@@ -1,411 +1,428 @@
 "use client";
 
-import { useEffect, useMemo, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
 type Season = {
   id: number;
   name: string;
   start_date: string | null;
-  end_date: string | null;
 };
 
-type Player = {
-  id: number;
-  name: string;
-};
-
-type Session = {
-  id: number;
-  season_id: number | null;
-  date: string;
-};
-
-type SessionPlayer = {
-  session_id: number;
-  player_id: number;
-};
-
-type Result = {
-  session_id: number;
-  team_a_id: number | null;
-  team_b_id: number | null;
-  goals_team_a: number | null;
-  goals_team_b: number | null;
-};
-
-type Team = {
-  id: number;
-  session_id: number | null;
-};
-
-type TeamPlayer = {
-  team_id: number;
-  player_id: number;
-};
-
-type Row = {
+type StandingRow = {
   player_id: number;
   name: string;
   participated: number;
   wins: number;
 };
 
-//
-// Wrapper-Seite mit Suspense, damit useSearchParams erlaubt ist
-//
-export default function StandingsPageWrapper() {
-  return (
-    <Suspense fallback={<div className="p-4">Standings werden geladen…</div>}>
-      <StandingsInner />
-    </Suspense>
-  );
-}
-
-//
-// Innere Client-Komponente mit eigentlicher Logik
-//
-function StandingsInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
+export default function StandingsPage() {
   const [seasons, setSeasons] = useState<Season[]>([]);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string | "all">(
+    "all"
+  );
+  const [rows, setRows] = useState<StandingRow[]>([]);
+  const [movement, setMovement] = useState<Map<number, number | null>>(
+    new Map()
+  );
+  const [ranks, setRanks] = useState<Map<number, number>>(new Map());
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Query-Parameter "season"
-  const seasonParam = searchParams.get("season") ?? "";
+  // Platz-Berechnung mit Gleichstand (Siege & Teilnahmen)
+  function computeRanks(list: StandingRow[]): Map<number, number> {
+    const rankMap = new Map<number, number>();
+    let currentRank = 0;
+    let lastWins: number | null = null;
+    let lastPart: number | null = null;
 
-  // "all" = ewige Tabelle, sonst Season-ID
-  const selectedSeasonId: number | "all" | null = useMemo(() => {
-    if (!seasonParam) return null;
-    if (seasonParam === "all") return "all";
-    const n = Number(seasonParam);
-    return Number.isNaN(n) ? null : n;
-  }, [seasonParam]);
+    list.forEach((row, index) => {
+      if (index === 0) {
+        currentRank = 1;
+      } else {
+        if (row.wins === lastWins && row.participated === lastPart) {
+          // gleicher Platz wie vorher
+        } else {
+          currentRank = index + 1;
+        }
+      }
 
-  // Seasons laden
+      rankMap.set(row.player_id, currentRank);
+      lastWins = row.wins;
+      lastPart = row.participated;
+    });
+
+    return rankMap;
+  }
+
+  // Saisons laden
   useEffect(() => {
-    let cancelled = false;
-
     async function loadSeasons() {
       const { data, error } = await supabase
         .from("seasons")
-        .select("*")
-        .order("start_date", { ascending: true });
-
-      if (cancelled) return;
+        .select("id, name, start_date")
+        .order("start_date", { ascending: false });
 
       if (error) {
-        console.error(error);
-        setError("Fehler beim Laden der Saisons.");
+        setError(error.message);
         return;
       }
 
-      setSeasons(data || []);
-    }
+      const list = data ?? [];
+      setSeasons(list);
 
-    loadSeasons();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Standings laden, sobald Saisons da sind oder sich die Auswahl ändert
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadStandings() {
-      setLoading(true);
-      setError(null);
-
-      try {
-        // Spieler
-        const { data: playersData, error: playersError } = await supabase
-          .from("players")
-          .select("id, name")
-          .order("name", { ascending: true });
-
-        if (playersError) throw playersError;
-        const players: Player[] = playersData || [];
-
-        // Sessions (alle – wir filtern in JS)
-        const { data: sessionsData, error: sessionsError } = await supabase
-          .from("sessions")
-          .select("id, season_id, date")
-          .order("date", { ascending: true });
-
-        if (sessionsError) throw sessionsError;
-        const sessions: Session[] = sessionsData || [];
-
-        // session_players (Anwesenheit)
-        const { data: spData, error: spError } = await supabase
-          .from("session_players")
-          .select("session_id, player_id");
-
-        if (spError) throw spError;
-        const sessionPlayers: SessionPlayer[] = spData || [];
-
-        // results (Ergebnisse)
-        const { data: resultsData, error: resultsError } = await supabase
-          .from("results")
-          .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b");
-
-        if (resultsError) throw resultsError;
-        const results: Result[] = resultsData || [];
-
-        // teams
-        const { data: teamsData, error: teamsError } = await supabase
-          .from("teams")
-          .select("id, session_id");
-
-        if (teamsError) throw teamsError;
-        const teams: Team[] = teamsData || [];
-
-        // team_players
-        const { data: tpData, error: tpError } = await supabase
-          .from("team_players")
-          .select("team_id, player_id");
-
-        if (tpError) throw tpError;
-        const teamPlayers: TeamPlayer[] = tpData || [];
-
-        // --- Filter: welche Sessions gehören in die Auswertung? ---
-
-        let relevantSessionIds: number[];
-
-        if (selectedSeasonId === "all") {
-          // Ewige Tabelle = alle Sessions aller Saisons
-          relevantSessionIds = sessions.map((s) => s.id);
-        } else {
-          let seasonIdToUse: number | null = selectedSeasonId;
-
-          // Wenn noch keine Season aus URL, nimm die letzte (aktuellste)
-          if (seasonIdToUse === null && seasons.length > 0) {
-            const last = seasons[seasons.length - 1];
-            seasonIdToUse = last.id;
-          }
-
-          if (!seasonIdToUse) {
-            // keine Saisons im System
-            relevantSessionIds = [];
-          } else {
-            relevantSessionIds = sessions
-              .filter((s) => s.season_id === seasonIdToUse)
-              .map((s) => s.id);
-          }
-        }
-
-        // --- Teilnahmen zählen ---
-
-        const participationMap = new Map<number, number>();
-        for (const sp of sessionPlayers) {
-          if (!relevantSessionIds.includes(sp.session_id)) continue;
-          participationMap.set(
-            sp.player_id,
-            (participationMap.get(sp.player_id) ?? 0) + 1
-          );
-        }
-
-        // --- Siege zählen ---
-
-        // Hilfstabellen
-        const teamToPlayers = new Map<number, number[]>();
-        for (const tp of teamPlayers) {
-          if (!teamToPlayers.has(tp.team_id)) {
-            teamToPlayers.set(tp.team_id, []);
-          }
-          teamToPlayers.get(tp.team_id)!.push(tp.player_id);
-        }
-
-        const winsMap = new Map<number, number>();
-
-        for (const r of results) {
-          if (!relevantSessionIds.includes(r.session_id)) continue;
-          if (
-            r.goals_team_a == null ||
-            r.goals_team_b == null ||
-            r.team_a_id == null ||
-            r.team_b_id == null
-          ) {
-            continue;
-          }
-
-          if (r.goals_team_a === r.goals_team_b) {
-            // Unentschieden = kein Sieg
-            continue;
-          }
-
-          const winningTeamId =
-            r.goals_team_a > r.goals_team_b ? r.team_a_id : r.team_b_id;
-
-          const winners = teamToPlayers.get(winningTeamId) || [];
-          for (const pid of winners) {
-            winsMap.set(pid, (winsMap.get(pid) ?? 0) + 1);
-          }
-        }
-
-        // --- Tabelle bauen ---
-
-        const tableRows: Row[] = players.map((p) => ({
-          player_id: p.id,
-          name: p.name,
-          participated: participationMap.get(p.id) ?? 0,
-          wins: winsMap.get(p.id) ?? 0,
-        }));
-
-        // Nur Spieler anzeigen, die überhaupt einmal teilgenommen haben
-        const filteredRows = tableRows.filter((r) => r.participated > 0);
-
-        filteredRows.sort((a, b) => {
-          // zuerst nach Siegen
-          if (b.wins !== a.wins) return b.wins - a.wins;
-          // dann nach Teilnahmen
-          if (b.participated !== a.participated) {
-            return b.participated - a.participated;
-          }
-          // dann alphabetisch
-          return a.name.localeCompare(b.name);
-        });
-
-        if (!cancelled) {
-          setRows(filteredRows);
-        }
-      } catch (err) {
-        console.error(err);
-        if (!cancelled) {
-          setError("Fehler beim Laden der Tabelle.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      if (list.length > 0) {
+        // neueste Saison als Standard
+        setSelectedSeasonId(String(list[0].id));
+      } else {
+        setSelectedSeasonId("all");
       }
     }
 
-    // Seasons müssen vorher geladen sein, sonst wissen wir nicht,
-    // welche Season standardmäßig aktiv ist
-    if (seasons.length > 0) {
-      loadStandings();
+    loadSeasons();
+  }, []);
+
+  // Tabelle + Bewegung laden
+  useEffect(() => {
+    async function loadStandings() {
+      setLoading(true);
+      setError(null);
+      try {
+        // Sessions bestimmen
+        let sessionsQuery = supabase
+          .from("sessions")
+          .select("id, season_id, date");
+
+        if (selectedSeasonId !== "all") {
+          sessionsQuery = sessionsQuery.eq(
+            "season_id",
+            Number(selectedSeasonId)
+          );
+        }
+
+        const { data: sessions, error: sessionsErr } = await sessionsQuery;
+        if (sessionsErr) throw sessionsErr;
+
+        const sessionIds = (sessions ?? []).map((s) => s.id as number);
+        if (sessionIds.length === 0) {
+          setRows([]);
+          setMovement(new Map());
+          setRanks(new Map());
+          setLoading(false);
+          return;
+        }
+
+        const [
+          { data: players, error: playersErr },
+          { data: sessionPlayers, error: spErr },
+          { data: teams, error: teamsErr },
+          { data: teamPlayers, error: tpErr },
+          { data: results, error: resultsErr },
+        ] = await Promise.all([
+          supabase.from("players").select("id, name"),
+          supabase
+            .from("session_players")
+            .select("session_id, player_id")
+            .in("session_id", sessionIds),
+          supabase
+            .from("teams")
+            .select("id, session_id, name")
+            .in("session_id", sessionIds),
+          supabase.from("team_players").select("team_id, player_id"),
+          supabase
+            .from("results")
+            .select(
+              "session_id, team_a_id, team_b_id, goals_team_a, goals_team_b"
+            )
+            .in("session_id", sessionIds),
+        ]);
+
+        if (playersErr) throw playersErr;
+        if (spErr) throw spErr;
+        if (teamsErr) throw teamsErr;
+        if (tpErr) throw tpErr;
+        if (resultsErr) throw resultsErr;
+
+        const playerMap = new Map<number, string>();
+        (players ?? []).forEach((p) => {
+          playerMap.set(p.id as number, p.name as string);
+        });
+
+        const teamPlayerMap = new Map<number, number[]>();
+        (teamPlayers ?? []).forEach((tp) => {
+          const tid = tp.team_id as number;
+          const pid = tp.player_id as number;
+          if (!teamPlayerMap.has(tid)) teamPlayerMap.set(tid, []);
+          teamPlayerMap.get(tid)!.push(pid);
+        });
+
+        // Stats pro Spieler berechnen
+        function computeStats(sessionIdSet: Set<number>): StandingRow[] {
+          const stats = new Map<number, StandingRow>();
+
+          (sessionPlayers ?? []).forEach((sp) => {
+            const sid = sp.session_id as number;
+            if (!sessionIdSet.has(sid)) return;
+
+            const pid = sp.player_id as number;
+            if (!playerMap.has(pid)) return;
+
+            if (!stats.has(pid)) {
+              stats.set(pid, {
+                player_id: pid,
+                name: playerMap.get(pid) ?? "Unbekannt",
+                participated: 0,
+                wins: 0,
+              });
+            }
+            stats.get(pid)!.participated += 1;
+          });
+
+          (results ?? []).forEach((r) => {
+            const sid = r.session_id as number;
+            if (!sessionIdSet.has(sid)) return;
+
+            const aId = r.team_a_id as number | null;
+            const bId = r.team_b_id as number | null;
+            if (aId == null || bId == null) return;
+            if (r.goals_team_a == null || r.goals_team_b == null) return;
+
+            let winnerTeamId: number | null = null;
+            if (r.goals_team_a > r.goals_team_b) winnerTeamId = aId;
+            else if (r.goals_team_b > r.goals_team_a) winnerTeamId = bId;
+            else winnerTeamId = null;
+
+            if (!winnerTeamId) return;
+
+            const playersOfWinner = teamPlayerMap.get(winnerTeamId) ?? [];
+            playersOfWinner.forEach((pid) => {
+              if (!playerMap.has(pid)) return;
+
+              if (!stats.has(pid)) {
+                stats.set(pid, {
+                  player_id: pid,
+                  name: playerMap.get(pid) ?? "Unbekannt",
+                  participated: 0,
+                  wins: 0,
+                });
+              }
+              stats.get(pid)!.wins += 1;
+            });
+          });
+
+          const list = Array.from(stats.values());
+          list.sort((a, b) => {
+            if (b.wins !== a.wins) return b.wins - a.wins;
+            if (b.participated !== a.participated)
+              return b.participated - a.participated;
+            return a.name.localeCompare(b.name);
+          });
+
+          return list;
+        }
+
+        const allSessionSet = new Set(sessionIds);
+        const currentList = computeStats(allSessionSet);
+        const currentRanks = computeRanks(currentList);
+
+        // Bewegung zur Vorwoche
+        const movementMap = new Map<number, number | null>();
+        if (sessions && sessions.length > 1) {
+          const sessionsSorted = [...sessions].sort(
+            (a, b) =>
+              new Date(a.date as string).getTime() -
+              new Date(b.date as string).getTime()
+          );
+          const prevSessions = sessionsSorted.slice(0, -1);
+          const prevSessionIds = prevSessions.map((s) => s.id as number);
+          const prevSet = new Set(prevSessionIds);
+
+          if (prevSessionIds.length > 0) {
+            const prevList = computeStats(prevSet);
+            const prevRanks = computeRanks(prevList);
+
+            currentList.forEach((row) => {
+              const currentRank = currentRanks.get(row.player_id);
+              const prevRank = prevRanks.get(row.player_id);
+              if (currentRank == null || prevRank == null) {
+                movementMap.set(row.player_id, null);
+              } else {
+                movementMap.set(row.player_id, prevRank - currentRank);
+              }
+            });
+          }
+        }
+
+        setRows(currentList);
+        setRanks(currentRanks);
+        setMovement(movementMap);
+      } catch (e: any) {
+        setError(e.message ?? "Fehler beim Laden der Tabelle.");
+      } finally {
+        setLoading(false);
+      }
     }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedSeasonId, seasons]);
+    loadStandings();
+  }, [selectedSeasonId]);
 
-  // Standard-Season setzen, wenn noch keine in der URL
-  useEffect(() => {
-    if (seasons.length === 0) return;
-    if (selectedSeasonId !== null) return; // schon gesetzt
+  const currentSeasonId = seasons[0]?.id ?? null;
 
-    const last = seasons[seasons.length - 1];
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    params.set("season", String(last.id));
-    router.replace(`/standings?${params.toString()}`);
-  }, [seasons, selectedSeasonId, router, searchParams]);
+  // PDF-Export der aktuell angezeigten Tabelle
+  async function handleExportPdf() {
+    if (rows.length === 0) return;
 
-  const handleSeasonChange = (value: string) => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    params.set("season", value);
-    router.replace(`/standings?${params.toString()}`);
-  };
+    const jsPDFModule = await import("jspdf");
+    const autoTableModule: any = await import("jspdf-autotable");
 
-  const seasonLabel = (() => {
-    if (seasonParam === "all") return "Ewige Tabelle";
-    const season = seasons.find((s) => String(s.id) === seasonParam);
-    return season ? season.name : "";
-  })();
+    const doc = new jsPDFModule.jsPDF({
+      orientation: "portrait",
+      unit: "pt",
+    });
+
+    const title =
+      selectedSeasonId === "all"
+        ? "Ewige Tabelle"
+        : `Tabelle – ${
+            seasons.find((s) => String(s.id) === selectedSeasonId)?.name ??
+            "Saison"
+          }`;
+
+    doc.setFontSize(14);
+    doc.text(title, 40, 40);
+
+    const body = rows.map((r) => [
+      ranks.get(r.player_id) ?? "",
+      r.name,
+      r.wins,
+      r.participated,
+    ]);
+
+    autoTableModule.default(doc, {
+      startY: 60,
+      head: [["Platz", "Spieler", "Siege", "Teilnahmen"]],
+      body,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [15, 23, 42] }, // dunkles Blau-Grau
+    });
+
+    const filenameBase =
+      selectedSeasonId === "all"
+        ? "ewige-tabelle"
+        : `tabelle-saison-${selectedSeasonId}`;
+    doc.save(`${filenameBase}.pdf`);
+  }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900">
-            Standings / Strichliste
-          </h1>
-          <p className="text-xs text-slate-500">
-            Platzierung je nach Siegen und Trainings­teilnahmen.
-          </p>
-        </div>
+    <div className="space-y-4">
+      {/* Kopf + Saison-Auswahl */}
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-lg font-semibold text-slate-900">Tabellen</h1>
 
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-600">Saison:</label>
+        <div className="flex flex-col items-end gap-1">
+          <label className="text-[11px] text-slate-500">Saison:</label>
           <select
-            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm"
-            value={seasonParam || ""}
-            onChange={(e) => handleSeasonChange(e.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs"
+            value={selectedSeasonId}
+            onChange={(e) => setSelectedSeasonId(e.target.value as any)}
           >
-            {/* Aktuelle Saisons */}
-            {seasons.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}{" "}
-                {s.start_date ? `(ab ${new Date(s.start_date).toLocaleDateString("de-DE")})` : ""}
+            {currentSeasonId && seasons.length > 0 && (
+              <option value={String(currentSeasonId)}>
+                {seasons[0].name} (aktuell)
+              </option>
+            )}
+            <option value="all">Ewige Tabelle (alle Saisons)</option>
+            {seasons.slice(1).map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                {s.name}
               </option>
             ))}
-
-            {/* Ewige Tabelle */}
-            <option value="all">Ewige Tabelle (alle Saisons)</option>
           </select>
         </div>
       </div>
 
-      {loading ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
-          Tabelle wird geladen…
+      {/* Export-Button */}
+      {rows.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            onClick={handleExportPdf}
+            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] hover:bg-slate-50"
+          >
+            Als PDF exportieren
+          </button>
         </div>
-      ) : error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      )}
+
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700">
           {error}
         </div>
+      )}
+
+      {loading ? (
+        <div className="text-xs text-slate-500">Lade Tabelle…</div>
       ) : rows.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
-          Noch keine Daten für diese Auswahl vorhanden.
+        <div className="rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-500">
+          Keine Daten für diese Auswahl.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="min-w-full border-collapse text-sm">
-            <thead className="bg-slate-50">
-              <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <table className="min-w-full text-xs">
+            <thead>
+              <tr className="border-b bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
                 <th className="px-3 py-2 text-left">Platz</th>
                 <th className="px-3 py-2 text-left">Spieler</th>
-                <th className="px-3 py-2 text-right">Teilnahmen</th>
                 <th className="px-3 py-2 text-right">Siege</th>
+                <th className="px-3 py-2 text-right">Teilnahmen</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, idx) => (
-                <tr
-                  key={row.player_id}
-                  className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/80"}
-                >
-                  <td className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold text-slate-600">
-                    {idx + 1}.
-                  </td>
-                  <td className="px-3 py-2 text-sm font-medium text-slate-800">
-                    {row.name}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs text-slate-700">
-                    {row.participated}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold text-slate-900">
-                    {row.wins}
-                  </td>
-                </tr>
-              ))}
+              {rows.map((r) => {
+                const rank = ranks.get(r.player_id) ?? 0;
+                const delta = movement.get(r.player_id) ?? null;
+
+                let deltaText = "";
+                let deltaClass = "";
+                if (delta != null && delta !== 0) {
+                  if (delta > 0) {
+                    deltaText = `▲${delta}`;
+                    deltaClass = "text-emerald-600";
+                  } else if (delta < 0) {
+                    deltaText = `▼${Math.abs(delta)}`;
+                    deltaClass = "text-red-600";
+                  }
+                }
+
+                return (
+                  <tr key={r.player_id} className="border-b last:border-b-0">
+                    <td className="px-3 py-2 text-left align-middle">
+                      <div className="flex items-center gap-1">
+                        <span>{rank}.</span>
+                        {deltaText && (
+                          <span
+                            className={`text-[10px] font-medium ${deltaClass}`}
+                          >
+                            {deltaText}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 align-middle">
+                      <span className="font-medium text-slate-900">
+                        {r.name}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-right align-middle">
+                      {r.wins}
+                    </td>
+                    <td className="px-3 py-2 text-right align-middle">
+                      {r.participated}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-
-          <div className="border-t border-slate-100 px-3 py-2 text-[11px] text-slate-500">
-            {seasonLabel && (
-              <span>
-                Ansicht: <strong>{seasonLabel}</strong>
-              </span>
-            )}
-          </div>
         </div>
       )}
     </div>

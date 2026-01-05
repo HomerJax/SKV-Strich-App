@@ -5,128 +5,113 @@ type SessionRow = {
   id: number;
   date: string;
   notes: string | null;
+  season_id: number | null;
+};
+
+type SeasonRow = {
+  id: number;
+  name: string;
 };
 
 export default async function SessionsPage() {
-  // Sessions holen
-  const { data: sessions, error } = await supabase
-    .from("sessions")
-    .select("id, date, notes")
-    .order("date", { ascending: false });
+  const [{ data: sessions }, { data: seasons }] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select("id, date, notes, season_id")
+      .order("date", { ascending: false }),
+    supabase.from("seasons").select("id, name").order("start_date", {
+      ascending: true,
+    }),
+  ]);
 
-  if (error) {
-    return <p className="text-red-600">Fehler: {error.message}</p>;
-  }
-
-  const sessionsList = sessions ?? [];
-
-  // Für Status & Teilnehmer Infos
-  async function getSessionInfo(id: number) {
-    const [{ data: result }, { data: players }] = await Promise.all([
-      supabase
-        .from("results")
-        .select("id")
-        .eq("session_id", id)
-        .maybeSingle(),
-
-      supabase
-        .from("session_players")
-        .select("player_id")
-        .eq("session_id", id),
-    ]);
-
-    const hasResult = !!result;
-    const participants = players?.length ?? 0;
-
-    let statusLabel = "Kein Ergebnis";
-    let statusColor = "bg-red-100 text-red-700";
-
-    if (participants > 0 && !hasResult) {
-      statusLabel = "Nur Anwesenheit";
-      statusColor = "bg-amber-100 text-amber-700";
-    }
-
-    if (hasResult) {
-      statusLabel = "Ergebnis gespeichert";
-      statusColor = "bg-emerald-100 text-emerald-700";
-    }
-
-    return { participants, statusLabel, statusColor };
-  }
-
-  const infos = await Promise.all(
-    sessionsList.map((s) => getSessionInfo(s.id))
-  );
+  const seasonMap = new Map<number, string>();
+  (seasons || []).forEach((s) => {
+    seasonMap.set(s.id, s.name);
+  });
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Trainings &amp; Spieltage
-        </h1>
+      {/* Zurück zur Startseite */}
+      <div>
+        <Link
+          href="/"
+          className="text-xs text-slate-500 hover:text-slate-700"
+        >
+          ← Zur Startseite
+        </Link>
+      </div>
+
+      {/* Kopfbereich */}
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">
+            Training / Termine
+          </h1>
+          <p className="text-xs text-slate-500">
+            Anwesenheit, Teams & Ergebnisse.
+          </p>
+        </div>
 
         <Link
           href="/sessions/new"
-          className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-slate-50"
+          className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
         >
           + Neuer Termin
         </Link>
       </div>
 
-      {sessionsList.length === 0 && (
-        <p className="text-sm text-slate-600">
-          Noch keine Trainings oder Spieltage erfasst.
-        </p>
-      )}
+      {/* Liste */}
+      {(!sessions || sessions.length === 0) ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500">
+          Noch keine Termine angelegt.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {sessions.map((s) => {
+            const d = new Date(s.date);
+            const formatted = d.toLocaleDateString("de-DE", {
+              weekday: "short",
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            });
 
-      <div className="space-y-3">
-        {sessionsList.map((s, idx) => {
-          const info = infos[idx];
+            const seasonName =
+              s.season_id ? seasonMap.get(s.season_id) ?? "" : "";
 
-          const formattedDate = new Date(s.date).toLocaleDateString("de-DE", {
-            weekday: "short",
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          });
-
-          return (
-            <Link
-              key={s.id}
-              href={`/sessions/${s.id}`}
-              className="block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                {/* Links: Datum & Notiz */}
+            return (
+              <Link
+                key={s.id}
+                href={`/sessions/${s.id}`}
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm hover:bg-slate-50"
+              >
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">
-                    {formattedDate}
+                  <div className="font-medium text-slate-900">
+                    {formatted}
                   </div>
 
-                  {s.notes && (
-                    <div className="text-xs text-slate-500">
+                  {/* 👉 Nur anzeigen, wenn eine Saison existiert */}
+                  {seasonName && (
+                    <div className="text-[11px] text-slate-500">
+                      {seasonName}
+                      {s.notes ? ` · ${s.notes}` : null}
+                    </div>
+                  )}
+
+                  {/* Wenn nur Notiz, aber keine Saison */}
+                  {!seasonName && s.notes && (
+                    <div className="text-[11px] text-slate-500">
                       {s.notes}
                     </div>
                   )}
                 </div>
 
-                {/* Rechts: Status + Teilnehmer */}
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${info.statusColor}`}
-                  >
-                    {info.statusLabel}
-                  </span>
-
-                  <div className="text-xs text-slate-600">
-                    <strong>{info.participants}</strong> Teilnehmer
-                  </div>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+                <span className="text-[11px] text-slate-400">Verwalten →</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
