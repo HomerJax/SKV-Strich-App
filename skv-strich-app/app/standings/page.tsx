@@ -1,304 +1,411 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
-type SeasonConfig = {
-  id: string;
-  label: string;
-  startDate: string | null;
-  endDate: string | null;
+type Season = {
+  id: number;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
 };
 
-type PlayerStatsBase = {
+type Player = {
+  id: number;
+  name: string;
+};
+
+type Session = {
+  id: number;
+  season_id: number | null;
+  date: string;
+};
+
+type SessionPlayer = {
+  session_id: number;
+  player_id: number;
+};
+
+type Result = {
+  session_id: number;
+  team_a_id: number | null;
+  team_b_id: number | null;
+  goals_team_a: number | null;
+  goals_team_b: number | null;
+};
+
+type Team = {
+  id: number;
+  session_id: number | null;
+};
+
+type TeamPlayer = {
+  team_id: number;
+  player_id: number;
+};
+
+type Row = {
   player_id: number;
   name: string;
-  participations: number;
+  participated: number;
   wins: number;
 };
 
-type PlayerStats = PlayerStatsBase & {
-  rank: number;
-  rankChange: number | null;
-};
+//
+// Wrapper-Seite mit Suspense, damit useSearchParams erlaubt ist
+//
+export default function StandingsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-4">Standings werden geladen…</div>}>
+      <StandingsInner />
+    </Suspense>
+  );
+}
 
-const SEASONS: SeasonConfig[] = [
-  {
-    id: "2025",
-    label: "Saison 2025 (10.12.2024 – 06.12.2025)",
-    startDate: "2024-12-10",
-    endDate: "2025-12-06",
-  },
-  {
-    id: "2026",
-    label: "Saison 2026 (ab 07.12.2025)",
-    startDate: "2025-12-07",
-    endDate: "2026-12-31",
-  },
-  {
-    id: "all",
-    label: "Ewige Tabelle (alle Saisons)",
-    startDate: null,
-    endDate: null,
-  },
-];
-
-export default function StandingsPage() {
+//
+// Innere Client-Komponente mit eigentlicher Logik
+//
+function StandingsInner() {
   const router = useRouter();
-  const params = useSearchParams();
+  const searchParams = useSearchParams();
 
-  const numericSeasons = SEASONS.filter((s) => /^\d+$/.test(s.id));
-  let defaultSeason = "all";
-
-  if (numericSeasons.length > 0) {
-    defaultSeason = numericSeasons.reduce((m, s) =>
-      parseInt(s.id) > parseInt(m.id) ? s : m
-    ).id;
-  }
-
-  const selected = params.get("season") ?? defaultSeason;
-  const season =
-    SEASONS.find((s) => s.id === selected) ??
-    SEASONS.find((s) => s.id === defaultSeason)!;
-
-  const [stats, setStats] = useState<PlayerStats[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasPreviousSnapshot, setHasPreviousSnapshot] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // Query-Parameter "season"
+  const seasonParam = searchParams.get("season") ?? "";
+
+  // "all" = ewige Tabelle, sonst Season-ID
+  const selectedSeasonId: number | "all" | null = useMemo(() => {
+    if (!seasonParam) return null;
+    if (seasonParam === "all") return "all";
+    const n = Number(seasonParam);
+    return Number.isNaN(n) ? null : n;
+  }, [seasonParam]);
+
+  // Seasons laden
   useEffect(() => {
-    async function load() {
-      setLoading(true);
+    let cancelled = false;
 
-      // Spieler
-      const { data: players } = await supabase
-        .from("players")
-        .select("id,name");
+    async function loadSeasons() {
+      const { data, error } = await supabase
+        .from("seasons")
+        .select("*")
+        .order("start_date", { ascending: true });
 
-      const playersMap = new Map<number, string>();
-      (players ?? []).forEach((p) => playersMap.set(p.id, p.name));
+      if (cancelled) return;
 
-      // Sessions
-      let q = supabase.from("sessions").select("id,date");
-
-      if (season.startDate) q = q.gte("date", season.startDate);
-      if (season.endDate) q = q.lte("date", season.endDate);
-
-      const { data: sessions } = await q;
-
-      const list = (sessions ?? []).sort((a, b) =>
-        a.date.localeCompare(b.date)
-      );
-
-      if (!list.length) {
-        setStats([]);
-        setLoading(false);
+      if (error) {
+        console.error(error);
+        setError("Fehler beim Laden der Saisons.");
         return;
       }
 
-      const allIds = list.map((s) => s.id);
-      const prevIds =
-        list.length > 1 ? list.slice(0, -1).map((s) => s.id) : [];
+      setSeasons(data || []);
+    }
 
-      setHasPreviousSnapshot(prevIds.length > 0);
+    loadSeasons();
 
-      async function compute(sessionIds: number[]) {
-        const stats = new Map<number, PlayerStatsBase>();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-        if (!sessionIds.length) return stats;
+  // Standings laden, sobald Saisons da sind oder sich die Auswahl ändert
+  useEffect(() => {
+    let cancelled = false;
 
-        const [{ data: sp }, { data: results }, { data: tp }, { data: teams }] =
-          await Promise.all([
-            supabase
-              .from("session_players")
-              .select("session_id,player_id")
-              .in("session_id", sessionIds),
+    async function loadStandings() {
+      setLoading(true);
+      setError(null);
 
-            supabase
-              .from("results")
-              .select(
-                "session_id,team_a_id,team_b_id,goals_team_a,goals_team_b"
-              )
-              .in("session_id", sessionIds),
+      try {
+        // Spieler
+        const { data: playersData, error: playersError } = await supabase
+          .from("players")
+          .select("id, name")
+          .order("name", { ascending: true });
 
-            supabase
-              .from("team_players")
-              .select("team_id,player_id"),
+        if (playersError) throw playersError;
+        const players: Player[] = playersData || [];
 
-            supabase
-              .from("teams")
-              .select("id,session_id")
-              .in("session_id", sessionIds),
-          ]);
+        // Sessions (alle – wir filtern in JS)
+        const { data: sessionsData, error: sessionsError } = await supabase
+          .from("sessions")
+          .select("id, season_id, date")
+          .order("date", { ascending: true });
 
-        const playersByTeam = new Map<number, number[]>();
-        (tp ?? []).forEach((t) => {
-          const arr = playersByTeam.get(t.team_id) ?? [];
-          arr.push(t.player_id);
-          playersByTeam.set(t.team_id, arr);
-        });
+        if (sessionsError) throw sessionsError;
+        const sessions: Session[] = sessionsData || [];
 
-        function ensure(pid: number) {
-          if (!stats.has(pid)) {
-            stats.set(pid, {
-              player_id: pid,
-              name: playersMap.get(pid) ?? "Unbekannt",
-              participations: 0,
-              wins: 0,
-            });
+        // session_players (Anwesenheit)
+        const { data: spData, error: spError } = await supabase
+          .from("session_players")
+          .select("session_id, player_id");
+
+        if (spError) throw spError;
+        const sessionPlayers: SessionPlayer[] = spData || [];
+
+        // results (Ergebnisse)
+        const { data: resultsData, error: resultsError } = await supabase
+          .from("results")
+          .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b");
+
+        if (resultsError) throw resultsError;
+        const results: Result[] = resultsData || [];
+
+        // teams
+        const { data: teamsData, error: teamsError } = await supabase
+          .from("teams")
+          .select("id, session_id");
+
+        if (teamsError) throw teamsError;
+        const teams: Team[] = teamsData || [];
+
+        // team_players
+        const { data: tpData, error: tpError } = await supabase
+          .from("team_players")
+          .select("team_id, player_id");
+
+        if (tpError) throw tpError;
+        const teamPlayers: TeamPlayer[] = tpData || [];
+
+        // --- Filter: welche Sessions gehören in die Auswertung? ---
+
+        let relevantSessionIds: number[];
+
+        if (selectedSeasonId === "all") {
+          // Ewige Tabelle = alle Sessions aller Saisons
+          relevantSessionIds = sessions.map((s) => s.id);
+        } else {
+          let seasonIdToUse: number | null = selectedSeasonId;
+
+          // Wenn noch keine Season aus URL, nimm die letzte (aktuellste)
+          if (seasonIdToUse === null && seasons.length > 0) {
+            const last = seasons[seasons.length - 1];
+            seasonIdToUse = last.id;
           }
-          return stats.get(pid)!;
+
+          if (!seasonIdToUse) {
+            // keine Saisons im System
+            relevantSessionIds = [];
+          } else {
+            relevantSessionIds = sessions
+              .filter((s) => s.season_id === seasonIdToUse)
+              .map((s) => s.id);
+          }
         }
 
-        (sp ?? []).forEach((r) => {
-          ensure(r.player_id).participations++;
-        });
+        // --- Teilnahmen zählen ---
 
-        (results ?? []).forEach((r) => {
+        const participationMap = new Map<number, number>();
+        for (const sp of sessionPlayers) {
+          if (!relevantSessionIds.includes(sp.session_id)) continue;
+          participationMap.set(
+            sp.player_id,
+            (participationMap.get(sp.player_id) ?? 0) + 1
+          );
+        }
+
+        // --- Siege zählen ---
+
+        // Hilfstabellen
+        const teamToPlayers = new Map<number, number[]>();
+        for (const tp of teamPlayers) {
+          if (!teamToPlayers.has(tp.team_id)) {
+            teamToPlayers.set(tp.team_id, []);
+          }
+          teamToPlayers.get(tp.team_id)!.push(tp.player_id);
+        }
+
+        const winsMap = new Map<number, number>();
+
+        for (const r of results) {
+          if (!relevantSessionIds.includes(r.session_id)) continue;
           if (
             r.goals_team_a == null ||
             r.goals_team_b == null ||
             r.team_a_id == null ||
             r.team_b_id == null
-          )
-            return;
+          ) {
+            continue;
+          }
 
-          let winner: number | null = null;
+          if (r.goals_team_a === r.goals_team_b) {
+            // Unentschieden = kein Sieg
+            continue;
+          }
 
-          if (r.goals_team_a > r.goals_team_b) winner = r.team_a_id;
-          else if (r.goals_team_b > r.goals_team_a) winner = r.team_b_id;
+          const winningTeamId =
+            r.goals_team_a > r.goals_team_b ? r.team_a_id : r.team_b_id;
 
-          if (!winner) return;
+          const winners = teamToPlayers.get(winningTeamId) || [];
+          for (const pid of winners) {
+            winsMap.set(pid, (winsMap.get(pid) ?? 0) + 1);
+          }
+        }
 
-          (playersByTeam.get(winner) ?? []).forEach((pid) => {
-            ensure(pid).wins++;
-          });
-        });
+        // --- Tabelle bauen ---
 
-        return stats;
-      }
+        const tableRows: Row[] = players.map((p) => ({
+          player_id: p.id,
+          name: p.name,
+          participated: participationMap.get(p.id) ?? 0,
+          wins: winsMap.get(p.id) ?? 0,
+        }));
 
-      const current = await compute(allIds);
-      const previous = await compute(prevIds);
+        // Nur Spieler anzeigen, die überhaupt einmal teilgenommen haben
+        const filteredRows = tableRows.filter((r) => r.participated > 0);
 
-      function sort(arr: PlayerStatsBase[]) {
-        return arr.sort((a, b) => {
+        filteredRows.sort((a, b) => {
+          // zuerst nach Siegen
           if (b.wins !== a.wins) return b.wins - a.wins;
-          if (b.participations !== a.participations)
-            return b.participations - a.participations;
+          // dann nach Teilnahmen
+          if (b.participated !== a.participated) {
+            return b.participated - a.participated;
+          }
+          // dann alphabetisch
           return a.name.localeCompare(b.name);
         });
+
+        if (!cancelled) {
+          setRows(filteredRows);
+        }
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) {
+          setError("Fehler beim Laden der Tabelle.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-
-      const curArr = sort([...current.values()]);
-      const prevArr = sort([...previous.values()]);
-
-      const prevRank = new Map<number, number>();
-      prevArr.forEach((p, i) => prevRank.set(p.player_id, i + 1));
-
-      const final = curArr.map((p, i) => {
-        const now = i + 1;
-        const was = prevRank.get(p.player_id);
-        return {
-          ...p,
-          rank: now,
-          rankChange: was == null ? null : was - now,
-        };
-      });
-
-      setStats(final);
-      setLoading(false);
     }
 
-    load();
-  }, [season.id, season.startDate, season.endDate]);
+    // Seasons müssen vorher geladen sein, sonst wissen wir nicht,
+    // welche Season standardmäßig aktiv ist
+    if (seasons.length > 0) {
+      loadStandings();
+    }
 
-  function changeSeason(id: string) {
-    router.push(`/standings?season=${id}`);
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSeasonId, seasons]);
+
+  // Standard-Season setzen, wenn noch keine in der URL
+  useEffect(() => {
+    if (seasons.length === 0) return;
+    if (selectedSeasonId !== null) return; // schon gesetzt
+
+    const last = seasons[seasons.length - 1];
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    params.set("season", String(last.id));
+    router.replace(`/standings?${params.toString()}`);
+  }, [seasons, selectedSeasonId, router, searchParams]);
+
+  const handleSeasonChange = (value: string) => {
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    params.set("season", value);
+    router.replace(`/standings?${params.toString()}`);
+  };
+
+  const seasonLabel = (() => {
+    if (seasonParam === "all") return "Ewige Tabelle";
+    const season = seasons.find((s) => String(s.id) === seasonParam);
+    return season ? season.name : "";
+  })();
 
   return (
-    <div className="max-w-3xl space-y-3">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Standings</h1>
+          <h1 className="text-xl font-semibold text-slate-900">
+            Standings / Strichliste
+          </h1>
           <p className="text-xs text-slate-500">
-            Platzierung &amp; Veränderung (Vorwoche).
+            Platzierung je nach Siegen und Trainings­teilnahmen.
           </p>
         </div>
 
-        <select
-          value={selected}
-          onChange={(e) => changeSeason(e.target.value)}
-          className="rounded-md border px-2 py-1 text-xs"
-        >
-          {SEASONS.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-slate-600">Saison:</label>
+          <select
+            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm"
+            value={seasonParam || ""}
+            onChange={(e) => handleSeasonChange(e.target.value)}
+          >
+            {/* Aktuelle Saisons */}
+            {seasons.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}{" "}
+                {s.start_date ? `(ab ${new Date(s.start_date).toLocaleDateString("de-DE")})` : ""}
+              </option>
+            ))}
+
+            {/* Ewige Tabelle */}
+            <option value="all">Ewige Tabelle (alle Saisons)</option>
+          </select>
+        </div>
       </div>
 
-      {loading && <p>Lade…</p>}
-
-      {!loading && stats.length > 0 && (
-        <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-3 py-2 text-center">Platz</th>
+      {loading ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+          Tabelle wird geladen…
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+          Noch keine Daten für diese Auswahl vorhanden.
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <table className="min-w-full border-collapse text-sm">
+            <thead className="bg-slate-50">
+              <tr className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-3 py-2 text-left">Platz</th>
                 <th className="px-3 py-2 text-left">Spieler</th>
-                <th className="px-3 py-2 text-center">Teilnahmen</th>
-                <th className="px-3 py-2 text-center">Siege</th>
+                <th className="px-3 py-2 text-right">Teilnahmen</th>
+                <th className="px-3 py-2 text-right">Siege</th>
               </tr>
             </thead>
             <tbody>
-              {stats.map((p, idx) => {
-                let change = null;
-
-                if (hasPreviousSnapshot) {
-                  if (p.rankChange === null)
-                    change = (
-                      <span className="text-[10px] text-slate-400">
-                        neu
-                      </span>
-                    );
-                  else if (p.rankChange > 0)
-                    change = (
-                      <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-[10px]">
-                        ↑ {p.rankChange}
-                      </span>
-                    );
-                  else if (p.rankChange < 0)
-                    change = (
-                      <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded-full text-[10px]">
-                        ↓ {Math.abs(p.rankChange)}
-                      </span>
-                    );
-                  else change = <span className="text-[10px]">–</span>;
-                }
-
-                return (
-                  <tr key={p.player_id}>
-                    <td className="text-center px-3 py-2">
-                      <div className="flex flex-col items-center">
-                        <strong>{p.rank}.</strong>
-                        {change}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">{p.name}</td>
-                    <td className="text-center px-3 py-2">
-                      {p.participations}
-                    </td>
-                    <td className="text-center px-3 py-2">
-                      {p.wins}
-                    </td>
-                  </tr>
-                );
-              })}
+              {rows.map((row, idx) => (
+                <tr
+                  key={row.player_id}
+                  className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/80"}
+                >
+                  <td className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold text-slate-600">
+                    {idx + 1}.
+                  </td>
+                  <td className="px-3 py-2 text-sm font-medium text-slate-800">
+                    {row.name}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs text-slate-700">
+                    {row.participated}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs font-semibold text-slate-900">
+                    {row.wins}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
+
+          <div className="border-t border-slate-100 px-3 py-2 text-[11px] text-slate-500">
+            {seasonLabel && (
+              <span>
+                Ansicht: <strong>{seasonLabel}</strong>
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
