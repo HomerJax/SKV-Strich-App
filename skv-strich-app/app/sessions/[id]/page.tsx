@@ -37,6 +37,41 @@ const ageScore = (a: string | null) => (a === "Ü32" ? 1 : a === "AH" ? -1 : 0);
 const posScore = (p: string | null) =>
   p === "attack" ? 1 : p === "defense" ? -1 : 0;
 
+// Sortierung & Zusammenfassung für Teams
+function sortPlayersInTeam(players: Player[]) {
+  const order = (p: Player) => {
+    switch (p.preferred_position) {
+      case "goalkeeper":
+        return 0;
+      case "defense":
+        return 1;
+      case "attack":
+        return 2;
+      default:
+        return 3;
+    }
+  };
+
+  return [...players].sort((a, b) => {
+    const oa = order(a);
+    const ob = order(b);
+    if (oa !== ob) return oa - ob;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function summarizeTeam(players: Player[]) {
+  const backs = players.filter((p) => p.preferred_position === "defense").length;
+  const fronts = players.filter((p) => p.preferred_position === "attack").length;
+  const keepers = players.filter(
+    (p) => p.preferred_position === "goalkeeper"
+  ).length;
+  const ah = players.filter((p) => p.age_group === "AH").length;
+  const u32 = players.filter((p) => p.age_group === "Ü32").length;
+
+  return { backs, fronts, keepers, ah, u32 };
+}
+
 export default function SessionDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -79,9 +114,7 @@ export default function SessionDetailPage() {
         // Spieler
         const { data: pData, error: pErr } = await supabase
           .from("players")
-          .select(
-            "id, name, is_active, age_group, preferred_position"
-          )
+          .select("id, name, is_active, age_group, preferred_position")
           .order("name");
         if (pErr) throw pErr;
 
@@ -101,9 +134,7 @@ export default function SessionDetailPage() {
         // Ergebnis
         const { data: rData } = await supabase
           .from("results")
-          .select(
-            "id, team_a_id, team_b_id, goals_team_a, goals_team_b"
-          )
+          .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
           .eq("session_id", sessionId)
           .maybeSingle();
 
@@ -149,6 +180,11 @@ export default function SessionDetailPage() {
   const present = players.filter((p) => presentIds.includes(p.id));
   const teamA = present.filter((p) => manualTeams[p.id] === "A");
   const teamB = present.filter((p) => manualTeams[p.id] === "B");
+
+  const teamASorted = sortPlayersInTeam(teamA);
+  const teamBSorted = sortPlayersInTeam(teamB);
+  const summaryA = summarizeTeam(teamA);
+  const summaryB = summarizeTeam(teamB);
 
   // ---------- Anwesenheit ----------
   async function togglePresence(id: number) {
@@ -412,61 +448,207 @@ export default function SessionDetailPage() {
           <div className="text-xs font-semibold">Teams</div>
           <button
             onClick={generateTeams}
-            className="text-xs border px-2 py-1 rounded-lg"
+            className="text-xs border px-2 py-1 rounded-lg bg-slate-50 hover:bg-slate-100"
           >
             Teams generieren
           </button>
         </div>
 
-        {/* 👉 HIER: pro Team nur eigene Spieler */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Team-Karten mit Übersicht */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {/* Team 1 */}
-          <div className="space-y-1 rounded-lg border p-2">
-            <div className="text-xs font-semibold">Team 1</div>
-            {teamA.length === 0 ? (
+          <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold text-slate-900">
+                Team 1
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-600">
+                {summaryA.keepers > 0 && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                    TW: {summaryA.keepers}
+                  </span>
+                )}
+                {summaryA.backs > 0 && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                    Hinten: {summaryA.backs}
+                  </span>
+                )}
+                {summaryA.fronts > 0 && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                    Vorne: {summaryA.fronts}
+                  </span>
+                )}
+                {summaryA.ah > 0 && (
+                  <span className="rounded-full bg-zinc-50 px-2 py-0.5 text-zinc-800">
+                    AH: {summaryA.ah}
+                  </span>
+                )}
+                {summaryA.u32 > 0 && (
+                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-800">
+                    Ü32: {summaryA.u32}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {teamASorted.length === 0 ? (
               <div className="text-[11px] text-slate-400">
                 Noch kein Spieler zugewiesen.
               </div>
             ) : (
-              teamA.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() =>
-                    setManualTeams((m) => ({
-                      ...m,
-                      [p.id]: m[p.id] === "A" ? null : "A",
-                    }))
+              <ul className="space-y-1 text-xs">
+                {teamASorted.map((p) => {
+                  let posClass =
+                    "border-slate-200 bg-slate-50 text-slate-700";
+                  if (p.preferred_position === "goalkeeper") {
+                    posClass =
+                      "border-yellow-300 bg-yellow-50 text-yellow-800";
+                  } else if (p.preferred_position === "defense") {
+                    posClass = "border-sky-300 bg-sky-50 text-sky-800";
+                  } else if (p.preferred_position === "attack") {
+                    posClass =
+                      "border-emerald-300 bg-emerald-50 text-emerald-800";
                   }
-                  className="w-full text-left rounded-md px-2 py-1 text-xs bg-blue-50"
-                >
-                  {p.name}
-                </button>
-              ))
+
+                  let ageClass =
+                    "border-slate-200 bg-slate-50 text-slate-700";
+                  if (p.age_group === "AH") {
+                    ageClass = "border-zinc-300 bg-zinc-50 text-zinc-800";
+                  } else if (p.age_group === "Ü32") {
+                    ageClass =
+                      "border-indigo-300 bg-indigo-50 text-indigo-800";
+                  }
+
+                  return (
+                    <li
+                      key={p.id}
+                      onClick={() =>
+                        setManualTeams((m) => ({
+                          ...m,
+                          [p.id]: m[p.id] === "A" ? null : "A",
+                        }))
+                      }
+                      className="flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1"
+                    >
+                      <span className="text-[13px] font-medium text-slate-900">
+                        {p.name}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${posClass}`}
+                        >
+                          {positionLabel(p.preferred_position)}
+                        </span>
+                        {p.age_group && (
+                          <span
+                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${ageClass}`}
+                          >
+                            {p.age_group}
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
 
           {/* Team 2 */}
-          <div className="space-y-1 rounded-lg border p-2">
-            <div className="text-xs font-semibold">Team 2</div>
-            {teamB.length === 0 ? (
+          <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold text-slate-900">
+                Team 2
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-600">
+                {summaryB.keepers > 0 && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                    TW: {summaryB.keepers}
+                  </span>
+                )}
+                {summaryB.backs > 0 && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                    Hinten: {summaryB.backs}
+                  </span>
+                )}
+                {summaryB.fronts > 0 && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                    Vorne: {summaryB.fronts}
+                  </span>
+                )}
+                {summaryB.ah > 0 && (
+                  <span className="rounded-full bg-zinc-50 px-2 py-0.5 text-zinc-800">
+                    AH: {summaryB.ah}
+                  </span>
+                )}
+                {summaryB.u32 > 0 && (
+                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-800">
+                    Ü32: {summaryB.u32}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {teamBSorted.length === 0 ? (
               <div className="text-[11px] text-slate-400">
                 Noch kein Spieler zugewiesen.
               </div>
             ) : (
-              teamB.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() =>
-                    setManualTeams((m) => ({
-                      ...m,
-                      [p.id]: m[p.id] === "B" ? null : "B",
-                    }))
+              <ul className="space-y-1 text-xs">
+                {teamBSorted.map((p) => {
+                  let posClass =
+                    "border-slate-200 bg-slate-50 text-slate-700";
+                  if (p.preferred_position === "goalkeeper") {
+                    posClass =
+                      "border-yellow-300 bg-yellow-50 text-yellow-800";
+                  } else if (p.preferred_position === "defense") {
+                    posClass = "border-sky-300 bg-sky-50 text-sky-800";
+                  } else if (p.preferred_position === "attack") {
+                    posClass =
+                      "border-emerald-300 bg-emerald-50 text-emerald-800";
                   }
-                  className="w-full text-left rounded-md px-2 py-1 text-xs bg-blue-50"
-                >
-                  {p.name}
-                </button>
-              ))
+
+                  let ageClass =
+                    "border-slate-200 bg-slate-50 text-slate-700";
+                  if (p.age_group === "AH") {
+                    ageClass = "border-zinc-300 bg-zinc-50 text-zinc-800";
+                  } else if (p.age_group === "Ü32") {
+                    ageClass =
+                      "border-indigo-300 bg-indigo-50 text-indigo-800";
+                  }
+
+                  return (
+                    <li
+                      key={p.id}
+                      onClick={() =>
+                        setManualTeams((m) => ({
+                          ...m,
+                          [p.id]: m[p.id] === "B" ? null : "B",
+                        }))
+                      }
+                      className="flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1"
+                    >
+                      <span className="text-[13px] font-medium text-slate-900">
+                        {p.name}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${posClass}`}
+                        >
+                          {positionLabel(p.preferred_position)}
+                        </span>
+                        {p.age_group && (
+                          <span
+                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${ageClass}`}
+                          >
+                            {p.age_group}
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
         </div>
