@@ -32,12 +32,9 @@ function badgeColor(pos: string | null) {
   return "bg-slate-100 text-slate-700";
 }
 
-// Balance-Helfer
 const ageScore = (a: string | null) => (a === "Ü32" ? 1 : a === "AH" ? -1 : 0);
-const posScore = (p: string | null) =>
-  p === "attack" ? 1 : p === "defense" ? -1 : 0;
+const posScore = (p: string | null) => (p === "attack" ? 1 : p === "defense" ? -1 : 0);
 
-// Sortierung & Zusammenfassung für Teams
 function sortPlayersInTeam(players: Player[]) {
   const order = (p: Player) => {
     switch (p.preferred_position) {
@@ -63,12 +60,9 @@ function sortPlayersInTeam(players: Player[]) {
 function summarizeTeam(players: Player[]) {
   const backs = players.filter((p) => p.preferred_position === "defense").length;
   const fronts = players.filter((p) => p.preferred_position === "attack").length;
-  const keepers = players.filter(
-    (p) => p.preferred_position === "goalkeeper"
-  ).length;
+  const keepers = players.filter((p) => p.preferred_position === "goalkeeper").length;
   const ah = players.filter((p) => p.age_group === "AH").length;
   const u32 = players.filter((p) => p.age_group === "Ü32").length;
-
   return { backs, fronts, keepers, ah, u32 };
 }
 
@@ -82,10 +76,7 @@ export default function SessionDetailPage() {
   const [session, setSession] = useState<SessionRow | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [presentIds, setPresentIds] = useState<number[]>([]);
-
-  const [manualTeams, setManualTeams] = useState<
-    Record<number, "A" | "B" | null>
-  >({});
+  const [manualTeams, setManualTeams] = useState<Record<number, "A" | "B" | null>>({});
 
   const [goalsA, setGoalsA] = useState("");
   const [goalsB, setGoalsB] = useState("");
@@ -96,14 +87,12 @@ export default function SessionDetailPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  // ---------- Laden ----------
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
         setErr(null);
 
-        // Session
         const { data: sData, error: sErr } = await supabase
           .from("sessions")
           .select("id, date, notes")
@@ -111,18 +100,14 @@ export default function SessionDetailPage() {
           .single();
         if (sErr) throw sErr;
 
-        // Spieler
         const { data: pData, error: pErr } = await supabase
           .from("players")
           .select("id, name, is_active, age_group, preferred_position")
           .order("name");
         if (pErr) throw pErr;
 
-        const active = (pData ?? []).filter(
-          (p) => p.is_active !== false
-        ) as Player[];
+        const active = (pData ?? []).filter((p) => p.is_active !== false) as Player[];
 
-        // Anwesenheit
         const { data: spData, error: spErr } = await supabase
           .from("session_players")
           .select("player_id")
@@ -131,7 +116,6 @@ export default function SessionDetailPage() {
 
         const present = (spData ?? []).map((r) => r.player_id as number);
 
-        // Ergebnis
         const { data: rData } = await supabase
           .from("results")
           .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
@@ -142,24 +126,20 @@ export default function SessionDetailPage() {
         present.forEach((pid) => (teamAssignment[pid] = null));
 
         if (rData && (rData.team_a_id || rData.team_b_id)) {
-          const teamIds = [rData.team_a_id, rData.team_b_id].filter(
-            Boolean
-          ) as number[];
+          const teamIds = [rData.team_a_id, rData.team_b_id].filter(Boolean) as number[];
+
           const { data: tpData } = await supabase
             .from("team_players")
             .select("team_id, player_id")
             .in("team_id", teamIds);
 
           for (const tp of tpData ?? []) {
-            if (tp.team_id === rData.team_a_id)
-              teamAssignment[tp.player_id] = "A";
-            if (tp.team_id === rData.team_b_id)
-              teamAssignment[tp.player_id] = "B";
+            if (tp.team_id === rData.team_a_id) teamAssignment[tp.player_id] = "A";
+            if (tp.team_id === rData.team_b_id) teamAssignment[tp.player_id] = "B";
           }
 
           if (rData.goals_team_a != null) setGoalsA(String(rData.goals_team_a));
           if (rData.goals_team_b != null) setGoalsB(String(rData.goals_team_b));
-
           setHasResult(true);
         }
 
@@ -186,18 +166,12 @@ export default function SessionDetailPage() {
   const summaryA = summarizeTeam(teamA);
   const summaryB = summarizeTeam(teamB);
 
-  // ---------- Anwesenheit ----------
   async function togglePresence(id: number) {
     setErr(null);
     const isPresent = presentIds.includes(id);
 
     if (isPresent) {
-      await supabase
-        .from("session_players")
-        .delete()
-        .eq("session_id", sessionId)
-        .eq("player_id", id);
-
+      await supabase.from("session_players").delete().eq("session_id", sessionId).eq("player_id", id);
       setPresentIds((x) => x.filter((p) => p !== id));
       setManualTeams((m) => {
         const copy = { ...m };
@@ -205,16 +179,12 @@ export default function SessionDetailPage() {
         return copy;
       });
     } else {
-      await supabase
-        .from("session_players")
-        .insert({ session_id: sessionId, player_id: id });
-
+      await supabase.from("session_players").insert({ session_id: sessionId, player_id: id });
       setPresentIds((x) => [...x, id]);
       setManualTeams((m) => ({ ...m, [id]: null }));
     }
   }
 
-  // ---------- Teamgenerator ----------
   function generateTeams() {
     setMsg(null);
     setErr(null);
@@ -224,12 +194,8 @@ export default function SessionDetailPage() {
       return;
     }
 
-    const keepers = present.filter(
-      (p) => p.preferred_position === "goalkeeper"
-    );
-    const field = present.filter(
-      (p) => p.preferred_position !== "goalkeeper"
-    );
+    const keepers = present.filter((p) => p.preferred_position === "goalkeeper");
+    const field = present.filter((p) => p.preferred_position !== "goalkeeper");
 
     const a: Player[] = [];
     const b: Player[] = [];
@@ -250,7 +216,6 @@ export default function SessionDetailPage() {
         ) * 2;
 
       const sd = Math.abs(A.length - B.length);
-
       return ad + pd + sd;
     }
 
@@ -289,12 +254,9 @@ export default function SessionDetailPage() {
     });
 
     setManualTeams(next);
-    setMsg(
-      "Teams automatisch verteilt (fair nach Alter & Position). Anpassung möglich."
-    );
+    setMsg("Teams automatisch verteilt. Anpassung möglich.");
   }
 
-  // ---------- Ergebnis speichern ----------
   async function saveResult() {
     try {
       setSaving(true);
@@ -304,8 +266,9 @@ export default function SessionDetailPage() {
       const A = present.filter((p) => manualTeams[p.id] === "A");
       const B = present.filter((p) => manualTeams[p.id] === "B");
 
-      if (A.length === 0 || B.length === 0)
+      if (A.length === 0 || B.length === 0) {
         throw new Error("Beide Teams brauchen mindestens einen Spieler.");
+      }
 
       const { data: existing } = await supabase
         .from("results")
@@ -313,7 +276,6 @@ export default function SessionDetailPage() {
         .eq("session_id", sessionId)
         .maybeSingle();
 
-      // Teams in DB anlegen (oder wiederverwenden)
       async function ensureTeam(name: string) {
         const { data } = await supabase
           .from("teams")
@@ -336,11 +298,7 @@ export default function SessionDetailPage() {
       const teamAId = await ensureTeam("Team 1");
       const teamBId = await ensureTeam("Team 2");
 
-      // team_players neu schreiben
-      await supabase
-        .from("team_players")
-        .delete()
-        .in("team_id", [teamAId, teamBId]);
+      await supabase.from("team_players").delete().in("team_id", [teamAId, teamBId]);
 
       await supabase.from("team_players").insert([
         ...A.map((p) => ({ team_id: teamAId, player_id: p.id })),
@@ -356,10 +314,7 @@ export default function SessionDetailPage() {
       };
 
       if (existing) {
-        await supabase
-          .from("results")
-          .update(payload)
-          .eq("session_id", sessionId);
+        await supabase.from("results").update(payload).eq("session_id", sessionId);
       } else {
         await supabase.from("results").insert(payload);
       }
@@ -373,17 +328,43 @@ export default function SessionDetailPage() {
     }
   }
 
-  if (loading)
-    return <div className="p-4 text-sm text-slate-500">Lade…</div>;
+  // ✅ Ergebnis löschen: results + teams (damit keine Punkte zählen & alles wieder wie neu)
+  async function deleteResult() {
+    try {
+      setSaving(true);
+      setErr(null);
+      setMsg(null);
 
-  if (err)
-    return (
-      <div className="p-4 text-sm text-red-700 bg-red-50">{err}</div>
-    );
+      // Ergebnis löschen
+      await supabase.from("results").delete().eq("session_id", sessionId);
+
+      // Teams der Session löschen (löscht team_players via Cascade)
+      await supabase.from("teams").delete().eq("session_id", sessionId);
+
+      // UI zurücksetzen
+      setGoalsA("");
+      setGoalsB("");
+      setHasResult(false);
+
+      // Teams im UI zurücksetzen (alle anwesenden bleiben, aber ohne Team)
+      const reset: Record<number, "A" | "B" | null> = {};
+      presentIds.forEach((pid) => (reset[pid] = null));
+      setManualTeams(reset);
+
+      setMsg("Ergebnis gelöscht. Du kannst es jetzt neu eintragen.");
+    } catch (e: any) {
+      setErr(e.message ?? "Fehler beim Löschen.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return <div className="p-4 text-sm text-slate-500">Lade…</div>;
+
+  if (err) return <div className="p-4 text-sm text-red-700 bg-red-50">{err}</div>;
 
   return (
     <div className="space-y-4">
-      {/* Zurück */}
       <button
         onClick={() => router.push("/sessions")}
         className="text-xs text-slate-500 hover:text-slate-700"
@@ -391,32 +372,22 @@ export default function SessionDetailPage() {
         ← Zurück zu Trainings
       </button>
 
-      {/* Kopf */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold">
-            Training{" "}
-            {new Date(session!.date).toLocaleDateString("de-DE")}
+            Training {new Date(session!.date).toLocaleDateString("de-DE")}
           </h1>
-          {session?.notes && (
-            <div className="text-[11px] text-slate-500">
-              {session.notes}
-            </div>
-          )}
+          {session?.notes && <div className="text-[11px] text-slate-500">{session.notes}</div>}
         </div>
 
-        {/* Button: zum Ergebnis scrollen */}
         <button
-          onClick={() =>
-            resultRef.current?.scrollIntoView({ behavior: "smooth" })
-          }
+          onClick={() => resultRef.current?.scrollIntoView({ behavior: "smooth" })}
           className="rounded-lg border px-3 py-1.5 text-xs shadow-sm bg-white"
         >
           Zum Ergebnis ↓
         </button>
       </div>
 
-      {/* Anwesenheit */}
       <div className="rounded-xl border p-3 bg-white space-y-2">
         <div className="text-xs font-semibold">Anwesend</div>
         {players.map((p) => {
@@ -430,11 +401,7 @@ export default function SessionDetailPage() {
               }`}
             >
               <span>{p.name}</span>
-              <span
-                className={`px-2 py-0.5 rounded-md text-[11px] ${badgeColor(
-                  p.preferred_position
-                )}`}
-              >
+              <span className={`px-2 py-0.5 rounded-md text-[11px] ${badgeColor(p.preferred_position)}`}>
                 {positionLabel(p.preferred_position)}
               </span>
             </button>
@@ -442,7 +409,6 @@ export default function SessionDetailPage() {
         })}
       </div>
 
-      {/* Teams */}
       <div className="rounded-xl border bg-white p-3 space-y-3">
         <div className="flex justify-between items-center">
           <div className="text-xs font-semibold">Teams</div>
@@ -454,212 +420,105 @@ export default function SessionDetailPage() {
           </button>
         </div>
 
-        {/* Team-Karten mit Übersicht */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {/* Team 1 */}
           <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-xs font-semibold text-slate-900">
-                Team 1
-              </div>
+              <div className="text-xs font-semibold text-slate-900">Team 1</div>
               <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-600">
-                {summaryA.keepers > 0 && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                    TW: {summaryA.keepers}
-                  </span>
-                )}
-                {summaryA.backs > 0 && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                    Hinten: {summaryA.backs}
-                  </span>
-                )}
-                {summaryA.fronts > 0 && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                    Vorne: {summaryA.fronts}
-                  </span>
-                )}
-                {summaryA.ah > 0 && (
-                  <span className="rounded-full bg-zinc-50 px-2 py-0.5 text-zinc-800">
-                    AH: {summaryA.ah}
-                  </span>
-                )}
-                {summaryA.u32 > 0 && (
-                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-800">
-                    Ü32: {summaryA.u32}
-                  </span>
-                )}
+                {summaryA.keepers > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5">TW: {summaryA.keepers}</span>}
+                {summaryA.backs > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5">Hinten: {summaryA.backs}</span>}
+                {summaryA.fronts > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5">Vorne: {summaryA.fronts}</span>}
+                {summaryA.ah > 0 && <span className="rounded-full bg-zinc-50 px-2 py-0.5 text-zinc-800">AH: {summaryA.ah}</span>}
+                {summaryA.u32 > 0 && <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-800">Ü32: {summaryA.u32}</span>}
               </div>
             </div>
 
             {teamASorted.length === 0 ? (
-              <div className="text-[11px] text-slate-400">
-                Noch kein Spieler zugewiesen.
-              </div>
+              <div className="text-[11px] text-slate-400">Noch kein Spieler zugewiesen.</div>
             ) : (
               <ul className="space-y-1 text-xs">
-                {teamASorted.map((p) => {
-                  let posClass =
-                    "border-slate-200 bg-slate-50 text-slate-700";
-                  if (p.preferred_position === "goalkeeper") {
-                    posClass =
-                      "border-yellow-300 bg-yellow-50 text-yellow-800";
-                  } else if (p.preferred_position === "defense") {
-                    posClass = "border-sky-300 bg-sky-50 text-sky-800";
-                  } else if (p.preferred_position === "attack") {
-                    posClass =
-                      "border-emerald-300 bg-emerald-50 text-emerald-800";
-                  }
-
-                  let ageClass =
-                    "border-slate-200 bg-slate-50 text-slate-700";
-                  if (p.age_group === "AH") {
-                    ageClass = "border-zinc-300 bg-zinc-50 text-zinc-800";
-                  } else if (p.age_group === "Ü32") {
-                    ageClass =
-                      "border-indigo-300 bg-indigo-50 text-indigo-800";
-                  }
-
-                  return (
-                    <li
-                      key={p.id}
-                      onClick={() =>
-                        setManualTeams((m) => ({
-                          ...m,
-                          [p.id]: m[p.id] === "A" ? null : "A",
-                        }))
-                      }
-                      className="flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1"
-                    >
-                      <span className="text-[13px] font-medium text-slate-900">
-                        {p.name}
+                {teamASorted.map((p) => (
+                  <li
+                    key={p.id}
+                    onClick={() =>
+                      setManualTeams((m) => ({ ...m, [p.id]: m[p.id] === "A" ? null : "A" }))
+                    }
+                    className="flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1"
+                  >
+                    <span className="text-[13px] font-medium text-slate-900">{p.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badgeColor(p.preferred_position)}`}>
+                        {positionLabel(p.preferred_position)}
                       </span>
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${posClass}`}
-                        >
-                          {positionLabel(p.preferred_position)}
+                      {p.age_group && (
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                          {p.age_group}
                         </span>
-                        {p.age_group && (
-                          <span
-                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${ageClass}`}
-                          >
-                            {p.age_group}
-                          </span>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
+                      )}
+                    </div>
+                  </li>
+                ))}
               </ul>
             )}
           </div>
 
-          {/* Team 2 */}
           <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-xs font-semibold text-slate-900">
-                Team 2
-              </div>
+              <div className="text-xs font-semibold text-slate-900">Team 2</div>
               <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-600">
-                {summaryB.keepers > 0 && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                    TW: {summaryB.keepers}
-                  </span>
-                )}
-                {summaryB.backs > 0 && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                    Hinten: {summaryB.backs}
-                  </span>
-                )}
-                {summaryB.fronts > 0 && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                    Vorne: {summaryB.fronts}
-                  </span>
-                )}
-                {summaryB.ah > 0 && (
-                  <span className="rounded-full bg-zinc-50 px-2 py-0.5 text-zinc-800">
-                    AH: {summaryB.ah}
-                  </span>
-                )}
-                {summaryB.u32 > 0 && (
-                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-800">
-                    Ü32: {summaryB.u32}
-                  </span>
-                )}
+                {summaryB.keepers > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5">TW: {summaryB.keepers}</span>}
+                {summaryB.backs > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5">Hinten: {summaryB.backs}</span>}
+                {summaryB.fronts > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5">Vorne: {summaryB.fronts}</span>}
+                {summaryB.ah > 0 && <span className="rounded-full bg-zinc-50 px-2 py-0.5 text-zinc-800">AH: {summaryB.ah}</span>}
+                {summaryB.u32 > 0 && <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-800">Ü32: {summaryB.u32}</span>}
               </div>
             </div>
 
             {teamBSorted.length === 0 ? (
-              <div className="text-[11px] text-slate-400">
-                Noch kein Spieler zugewiesen.
-              </div>
+              <div className="text-[11px] text-slate-400">Noch kein Spieler zugewiesen.</div>
             ) : (
               <ul className="space-y-1 text-xs">
-                {teamBSorted.map((p) => {
-                  let posClass =
-                    "border-slate-200 bg-slate-50 text-slate-700";
-                  if (p.preferred_position === "goalkeeper") {
-                    posClass =
-                      "border-yellow-300 bg-yellow-50 text-yellow-800";
-                  } else if (p.preferred_position === "defense") {
-                    posClass = "border-sky-300 bg-sky-50 text-sky-800";
-                  } else if (p.preferred_position === "attack") {
-                    posClass =
-                      "border-emerald-300 bg-emerald-50 text-emerald-800";
-                  }
-
-                  let ageClass =
-                    "border-slate-200 bg-slate-50 text-slate-700";
-                  if (p.age_group === "AH") {
-                    ageClass = "border-zinc-300 bg-zinc-50 text-zinc-800";
-                  } else if (p.age_group === "Ü32") {
-                    ageClass =
-                      "border-indigo-300 bg-indigo-50 text-indigo-800";
-                  }
-
-                  return (
-                    <li
-                      key={p.id}
-                      onClick={() =>
-                        setManualTeams((m) => ({
-                          ...m,
-                          [p.id]: m[p.id] === "B" ? null : "B",
-                        }))
-                      }
-                      className="flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1"
-                    >
-                      <span className="text-[13px] font-medium text-slate-900">
-                        {p.name}
+                {teamBSorted.map((p) => (
+                  <li
+                    key={p.id}
+                    onClick={() =>
+                      setManualTeams((m) => ({ ...m, [p.id]: m[p.id] === "B" ? null : "B" }))
+                    }
+                    className="flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1"
+                  >
+                    <span className="text-[13px] font-medium text-slate-900">{p.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badgeColor(p.preferred_position)}`}>
+                        {positionLabel(p.preferred_position)}
                       </span>
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${posClass}`}
-                        >
-                          {positionLabel(p.preferred_position)}
+                      {p.age_group && (
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                          {p.age_group}
                         </span>
-                        {p.age_group && (
-                          <span
-                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${ageClass}`}
-                          >
-                            {p.age_group}
-                          </span>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
+                      )}
+                    </div>
+                  </li>
+                ))}
               </ul>
             )}
           </div>
         </div>
       </div>
 
-      {/* Ergebnis */}
-      <div
-        ref={resultRef}
-        className="rounded-xl border bg-white p-3 space-y-3"
-      >
-        <div className="text-xs font-semibold">Ergebnis</div>
+      <div ref={resultRef} className="rounded-xl border bg-white p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-semibold">Ergebnis</div>
+
+          {hasResult && (
+            <button
+              disabled={saving}
+              onClick={deleteResult}
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 shadow-sm hover:bg-red-100"
+            >
+              Ergebnis löschen
+            </button>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           <input
@@ -685,16 +544,8 @@ export default function SessionDetailPage() {
           {saving ? "Speichere…" : "Ergebnis speichern"}
         </button>
 
-        {msg && (
-          <div className="text-xs text-emerald-700 bg-emerald-50 p-2 rounded-md">
-            {msg}
-          </div>
-        )}
-        {err && (
-          <div className="text-xs text-red-700 bg-red-50 p-2 rounded-md">
-            {err}
-          </div>
-        )}
+        {msg && <div className="text-xs text-emerald-700 bg-emerald-50 p-2 rounded-md">{msg}</div>}
+        {err && <div className="text-xs text-red-700 bg-red-50 p-2 rounded-md">{err}</div>}
       </div>
     </div>
   );
