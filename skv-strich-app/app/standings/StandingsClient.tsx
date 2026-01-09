@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
 
 type Season = {
   id: number;
@@ -11,360 +13,350 @@ type Season = {
   end_date: string | null;
 };
 
-type Player = {
-  id: number;
-  name: string;
-  is_active: boolean | null;
-};
-
-type Session = {
-  id: number;
-  date: string;
-  season_id: number | null;
-};
-
-type SessionPlayer = {
-  session_id: number;
-  player_id: number;
-};
-
-type ResultRow = {
-  session_id: number;
-  team_a_id: number | null;
-  team_b_id: number | null;
-  goals_team_a: number | null;
-  goals_team_b: number | null;
-};
-
-type TeamPlayer = {
-  team_id: number;
-  player_id: number;
-};
-
 type StandingRow = {
   player_id: number;
   name: string;
+  participated: number;
   wins: number;
-  sessions: number;
-  rank: number;
-  movement: number | null;
 };
 
-function byDateAsc(a: Session, b: Session) {
-  return new Date(a.date).getTime() - new Date(b.date).getTime();
+type RankRow = StandingRow & {
+  rank: number;
+  deltaRank: number | null; // + = hoch, - = runter, 0 = gleich, null = nicht berechenbar
+};
+
+function fmtDate(d: string) {
+  try {
+    return new Date(d).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+  } catch {
+    return d;
+  }
 }
 
-function computeRanks(rows: { wins: number; sessions: number }[]) {
-  const sorted = [...rows]
-    .map((r, idx) => ({ ...r, __i: idx }))
-    .sort((a, b) => {
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      if (b.sessions !== a.sessions) return b.sessions - a.sessions;
-      return 0;
-    });
+// Sortierung: zuerst Siege, dann Teilnahmen (weniger Teilnahmen = besser bei gleicher Siegzahl?)
+// Du wolltest: Rangfolge anhand Siege; bei Gleichstand gleiche Platzierung, danach weiter springen.
+// Als Tiebreaker nutzen wir Teilnahmen DESC (wer öfter da war, steht nicht schlechter) – kannst du anpassen.
+function sortStandings(a: StandingRow, b: StandingRow) {
+  if (b.wins !== a.wins) return b.wins - a.wins;
+  if (b.participated !== a.participated) return b.participated - a.participated;
+  return a.name.localeCompare(b.name, "de");
+}
 
-  const rankByOriginalIndex = new Array<number>(rows.length).fill(0);
+// Ränge mit "Gleichplatzierungen" (Competition Ranking: 1,2,2,2,5,…)
+function withRanks(rows: StandingRow[]): RankRow[] {
+  const sorted = [...rows].sort(sortStandings);
+
+  let lastWins: number | null = null;
+  let lastPart: number | null = null;
   let currentRank = 0;
-  let position = 0;
 
-  for (let i = 0; i < sorted.length; i++) {
-    position += 1;
+  return sorted.map((r, idx) => {
+    const sameAsPrev = lastWins === r.wins && lastPart === r.participated;
+    if (!sameAsPrev) currentRank = idx + 1;
 
-    const prev = sorted[i - 1];
-    const cur = sorted[i];
+    lastWins = r.wins;
+    lastPart = r.participated;
 
-    const isTie =
-      i > 0 && cur.wins === prev.wins && cur.sessions === prev.sessions;
-
-    if (!isTie) currentRank = position;
-
-    rankByOriginalIndex[cur.__i] = currentRank;
-  }
-
-  return rankByOriginalIndex;
-}
-
-async function buildStandings({
-  seasonId,
-  upToSessionId,
-}: {
-  seasonId: number | "all";
-  upToSessionId: number | null;
-}) {
-  const { data: playersData, error: pErr } = await supabase
-    .from("players")
-    .select("id, name, is_active")
-    .order("name");
-  if (pErr) throw pErr;
-
-  const players = (playersData ?? []).filter((p) => p.is_active !== false) as Player[];
-
-  let sessionsQuery = supabase.from("sessions").select("id, date, season_id");
-  if (seasonId !== "all") sessionsQuery = sessionsQuery.eq("season_id", seasonId);
-
-  const { data: sessionsData, error: sErr } = await sessionsQuery.order("date", { ascending: true });
-  if (sErr) throw sErr;
-
-  let sessions = (sessionsData ?? []) as Session[];
-  sessions.sort(byDateAsc);
-
-  if (upToSessionId != null) {
-    const upTo = sessions.find((s) => s.id === upToSessionId);
-    if (upTo) {
-      const cutoff = new Date(upTo.date).getTime();
-      sessions = sessions.filter((s) => new Date(s.date).getTime() <= cutoff);
-    }
-  }
-
-  const sessionIds = sessions.map((s) => s.id);
-  if (sessionIds.length === 0) {
-    const base = players.map((p) => ({
-      player_id: p.id,
-      name: p.name,
-      wins: 0,
-      sessions: 0,
-    }));
-    const ranks = computeRanks(base);
-    return base.map((r, i) => ({ ...r, rank: ranks[i] }));
-  }
-
-  const { data: spData, error: spErr } = await supabase
-    .from("session_players")
-    .select("session_id, player_id")
-    .in("session_id", sessionIds);
-  if (spErr) throw spErr;
-
-  const attendance = (spData ?? []) as SessionPlayer[];
-
-  const { data: resData, error: rErr } = await supabase
-    .from("results")
-    .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
-    .in("session_id", sessionIds);
-  if (rErr) throw rErr;
-
-  const results = (resData ?? []) as ResultRow[];
-
-  const teamIds = Array.from(
-    new Set(
-      results
-        .flatMap((r) => [r.team_a_id, r.team_b_id])
-        .filter((x): x is number => typeof x === "number")
-    )
-  );
-
-  let teamPlayers: TeamPlayer[] = [];
-  if (teamIds.length > 0) {
-    const { data: tpData, error: tpErr } = await supabase
-      .from("team_players")
-      .select("team_id, player_id")
-      .in("team_id", teamIds);
-    if (tpErr) throw tpErr;
-    teamPlayers = (tpData ?? []) as TeamPlayer[];
-  }
-
-  const playersByTeam = new Map<number, number[]>();
-  for (const tp of teamPlayers) {
-    if (!playersByTeam.has(tp.team_id)) playersByTeam.set(tp.team_id, []);
-    playersByTeam.get(tp.team_id)!.push(tp.player_id);
-  }
-
-  const sessionsCount = new Map<number, number>();
-  for (const a of attendance) {
-    sessionsCount.set(a.player_id, (sessionsCount.get(a.player_id) ?? 0) + 1);
-  }
-
-  const winsCount = new Map<number, number>();
-
-  for (const r of results) {
-    const ga = r.goals_team_a;
-    const gb = r.goals_team_b;
-
-    if (ga == null || gb == null) continue;
-    if (ga === gb) continue;
-
-    const winnerTeamId = ga > gb ? r.team_a_id : r.team_b_id;
-    if (!winnerTeamId) continue;
-
-    const winnerPlayers = playersByTeam.get(winnerTeamId) ?? [];
-    for (const pid of winnerPlayers) {
-      winsCount.set(pid, (winsCount.get(pid) ?? 0) + 1);
-    }
-  }
-
-  const base = players.map((p) => ({
-    player_id: p.id,
-    name: p.name,
-    wins: winsCount.get(p.id) ?? 0,
-    sessions: sessionsCount.get(p.id) ?? 0,
-  }));
-
-  const ranks = computeRanks(base);
-  return base.map((r, i) => ({ ...r, rank: ranks[i] }));
+    return { ...r, rank: currentRank, deltaRank: null };
+  });
 }
 
 export default function StandingsClient() {
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const sp = useSearchParams();
 
   const [seasons, setSeasons] = useState<Season[]>([]);
-  const [selected, setSelected] = useState<string>("");
-
-  const [rows, setRows] = useState<StandingRow[]>([]);
+  const [selected, setSelected] = useState<string>(""); // "all" oder season.id als string
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
+  const [rows, setRows] = useState<RankRow[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const exportRef = useRef<HTMLDivElement | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const exportRef = useRef<HTMLDivElement | null>(null); // Export-Render (ohne Tailwind-Farben!)
 
+  // ---- Saison-Optionen (Ewige Tabelle als 2.) ----
+  const options = useMemo(() => {
+    // Sort: "höchste Zahl" / aktuellste Saison nach oben (wir nehmen id desc)
+    const sorted = [...seasons].sort((a, b) => b.id - a.id);
+
+    // "Ewige Tabelle" soll 2. sein:
+    // 1) aktuelle Saison
+    // 2) all
+    // 3) restliche Saisons
+    const current = sorted[0] ? [{ value: String(sorted[0].id), label: sorted[0].name }] : [];
+    const rest = sorted.slice(1).map((s) => ({ value: String(s.id), label: s.name }));
+
+    return [
+      ...current,
+      { value: "all", label: "Ewige Tabelle (alle Saisons)" },
+      ...rest,
+    ];
+  }, [seasons]);
+
+  const selectedSeason = useMemo(() => {
+    if (selected === "all") return null;
+    const id = Number(selected);
+    if (!Number.isFinite(id)) return null;
+    return seasons.find((s) => s.id === id) ?? null;
+  }, [selected, seasons]);
+
+  // ---- Initial: Saisons laden + Default setzen ----
   useEffect(() => {
-    async function loadSeasons() {
-      try {
-        const { data, error } = await supabase
-          .from("seasons")
-          .select("id, name, start_date, end_date")
-          .order("start_date", { ascending: false });
+    (async () => {
+      setLoading(true);
+      setError(null);
 
-        if (error) throw error;
+      const { data, error } = await supabase
+        .from("seasons")
+        .select("id, name, start_date, end_date")
+        .order("id", { ascending: false });
 
-        const s = (data ?? []) as Season[];
-        setSeasons(s);
-
-        const qp = searchParams.get("season");
-        if (qp) {
-          setSelected(qp);
-        } else if (s.length > 0) {
-          setSelected(String(s[0].id));
-        } else {
-          setSelected("all");
-        }
-      } catch (e: any) {
-        setErr(e.message ?? "Fehler beim Laden der Saisons.");
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
       }
-    }
 
-    loadSeasons();
+      const list = (data ?? []) as Season[];
+      setSeasons(list);
+
+      // query param ?season=...
+      const qp = sp.get("season");
+
+      // Default: höchste Saison-ID (aktuellste)
+      if (qp) {
+        setSelected(qp);
+      } else if (list.length > 0) {
+        setSelected(String(list[0].id));
+        router.replace(`/standings?season=${list[0].id}`);
+      } else {
+        // falls keine Saisons existieren: fallback auf all
+        setSelected("all");
+        router.replace(`/standings?season=all`);
+      }
+
+      setLoading(false);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ---- Wenn Dropdown geändert ----
+  function onChangeSeason(v: string) {
+    setSelected(v);
+    router.replace(`/standings?season=${v}`);
+  }
+
+  // ---- Hilfsfunktion: Sessions-IDs holen (nach Saison oder alle) ----
+  async function fetchSessionIds(seasonIdOrAll: string) {
+    let q = supabase.from("sessions").select("id, date").order("date", { ascending: true });
+
+    if (seasonIdOrAll !== "all") {
+      const sid = Number(seasonIdOrAll);
+      if (Number.isFinite(sid)) q = q.eq("season_id", sid);
+    }
+
+    const { data, error } = await q;
+    if (error) throw error;
+    const sessions = (data ?? []) as { id: number; date: string }[];
+    return sessions;
+  }
+
+  // ---- Hilfsfunktion: Standings bis inkl. sessionIndex berechnen ----
+  async function computeStandingsUpTo(sessionIds: number[]) {
+    // Teilnahme: session_players
+    const { data: presData, error: presErr } = await supabase
+      .from("session_players")
+      .select("session_id, player_id, players(name)")
+      .in("session_id", sessionIds);
+
+    if (presErr) throw presErr;
+
+    // Ergebnisse: results + team_players + players
+    // Wir holen results nur für die Session-IDs und ziehen daraus Gewinner + Teamzuordnung
+    const { data: resData, error: resErr } = await supabase
+      .from("results")
+      .select(
+        `
+        session_id,
+        goals_team_a,
+        goals_team_b,
+        team_a_id,
+        team_b_id,
+        teams:teams!results_team_a_id_fkey (
+          id,
+          team_players (
+            player_id,
+            players ( name )
+          )
+        ),
+        teams_b:teams!results_team_b_id_fkey (
+          id,
+          team_players (
+            player_id,
+            players ( name )
+          )
+        )
+      `
+      )
+      .in("session_id", sessionIds);
+
+    if (resErr) throw resErr;
+
+    const map = new Map<number, StandingRow>();
+
+    // Teilnahmen zählen
+    for (const r of presData ?? []) {
+      const pid = (r as any).player_id as number;
+      const name = (r as any).players?.name ?? "Unbekannt";
+      if (!map.has(pid)) map.set(pid, { player_id: pid, name, participated: 0, wins: 0 });
+      map.get(pid)!.participated += 1;
+    }
+
+    // Siege zählen
+    for (const rr of (resData ?? []) as any[]) {
+      const aPlayers = (rr.teams?.team_players ?? []) as any[];
+      const bPlayers = ((rr.teams_b?.team_players ?? []) as any[]);
+
+      const ga = rr.goals_team_a;
+      const gb = rr.goals_team_b;
+
+      // Nur werten, wenn beide Tore gesetzt sind (oder du willst “winner-only”: dann müsstest du anders speichern)
+      if (ga == null || gb == null) continue;
+
+      let winner: "A" | "B" | null = null;
+      if (ga > gb) winner = "A";
+      else if (gb > ga) winner = "B";
+
+      if (!winner) continue;
+
+      const winners = winner === "A" ? aPlayers : bPlayers;
+
+      for (const tp of winners) {
+        const pid = tp.player_id as number;
+        const name = tp.players?.name ?? "Unbekannt";
+
+        if (!map.has(pid)) map.set(pid, { player_id: pid, name, participated: 0, wins: 0 });
+        map.get(pid)!.wins += 1;
+      }
+    }
+
+    return Array.from(map.values());
+  }
+
+  // ---- Standings + Delta berechnen (vs vorletztem Termin) ----
   useEffect(() => {
-    async function load() {
+    (async () => {
+      if (!selected) return;
+
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        setErr(null);
+        const sessions = await fetchSessionIds(selected);
 
-        const seasonId: number | "all" =
-          selected === "all" || selected === "" ? "all" : Number(selected);
+        if (sessions.length === 0) {
+          setRows([]);
+          setLoading(false);
+          return;
+        }
 
-        let sessionsQuery = supabase.from("sessions").select("id, date, season_id");
-        if (seasonId !== "all") sessionsQuery = sessionsQuery.eq("season_id", seasonId);
+        const idsAll = sessions.map((s) => s.id);
+        const idsPrev = sessions.length >= 2 ? sessions.slice(0, sessions.length - 1).map((s) => s.id) : null;
 
-        const { data: sessionsData, error: sErr } = await sessionsQuery.order("date", { ascending: true });
-        if (sErr) throw sErr;
+        const current = withRanks(await computeStandingsUpTo(idsAll));
+        const previous = idsPrev ? withRanks(await computeStandingsUpTo(idsPrev)) : null;
 
-        const sessions = ((sessionsData ?? []) as Session[]).sort(byDateAsc);
+        if (previous) {
+          const prevRank = new Map<number, number>();
+          previous.forEach((r) => prevRank.set(r.player_id, r.rank));
 
-        const lastSessionId = sessions.length > 0 ? sessions[sessions.length - 1].id : null;
-        const prevSessionId = sessions.length > 1 ? sessions[sessions.length - 2].id : null;
+          const withDelta = current.map((r) => {
+            const pr = prevRank.get(r.player_id);
+            if (!pr) return { ...r, deltaRank: null };
+            // positive = hoch (z.B. von 5 auf 2 => +3)
+            const delta = pr - r.rank;
+            return { ...r, deltaRank: delta };
+          });
 
-        const currentBase = await buildStandings({ seasonId, upToSessionId: lastSessionId });
-        const prevBase = prevSessionId
-          ? await buildStandings({ seasonId, upToSessionId: prevSessionId })
-          : null;
-
-        const prevRankByPlayer = new Map<number, number>();
-        if (prevBase) for (const r of prevBase) prevRankByPlayer.set(r.player_id, r.rank);
-
-        const enriched: StandingRow[] = currentBase
-          .map((r) => {
-            const prevRank = prevRankByPlayer.get(r.player_id);
-            const movement = prevRank == null ? null : prevRank - r.rank;
-            return { ...r, movement };
-          })
-          .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
-
-        setRows(enriched);
-
-        const qp = seasonId === "all" ? "all" : String(seasonId);
-        router.replace(`/standings?season=${encodeURIComponent(qp)}`);
+          setRows(withDelta);
+        } else {
+          setRows(current.map((r) => ({ ...r, deltaRank: null })));
+        }
       } catch (e: any) {
-        setErr(e.message ?? "Fehler beim Laden der Tabelle.");
+        setError(e.message ?? "Fehler beim Laden.");
       } finally {
         setLoading(false);
       }
-    }
+    })();
+  }, [selected]);
 
-    if (selected !== "") load();
-  }, [selected, router]);
-
-  const seasonOptions = useMemo(() => {
-    const opts = seasons.map((s) => ({ value: String(s.id), label: s.name }));
-    return opts.length >= 1
-      ? [opts[0], { value: "all", label: "Ewige Tabelle" }, ...opts.slice(1)]
-      : [{ value: "all", label: "Ewige Tabelle" }];
-  }, [seasons]);
-
-  function movementView(m: number | null) {
-    if (m == null || m === 0) return { text: "–", cls: "text-slate-400" };
-    if (m > 0) return { text: `▲${m}`, cls: "text-emerald-600" };
-    return { text: `▼${Math.abs(m)}`, cls: "text-red-600" };
-  }
-
+  // ---- Export (wir exportieren eine “Export-Version” ohne Tailwind-Farben) ----
   async function exportPNG() {
-    if (!exportRef.current) return;
+    setExportError(null);
+    try {
+      const node = exportRef.current;
+      if (!node) throw new Error("Export-Bereich nicht gefunden.");
 
-    const html2canvas = (await import("html2canvas")).default;
-    const canvas = await html2canvas(exportRef.current, {
-      backgroundColor: "#ffffff",
-      scale: 2,
-      useCORS: true,
-    });
+      const dataUrl = await toPng(node, {
+        backgroundColor: "#ffffff",
+        cacheBust: true,
+      });
 
-    const dataUrl = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `skv-tabelle-${selected === "all" ? "ewig" : selected}.png`;
-    a.click();
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = selected === "all" ? "skv-ewige-tabelle.png" : "skv-tabelle.png";
+      a.click();
+    } catch (e: any) {
+      setExportError(e?.message ?? String(e));
+    }
   }
 
   async function exportPDF() {
-    if (!exportRef.current) return;
+    setExportError(null);
+    try {
+      const node = exportRef.current;
+      if (!node) throw new Error("Export-Bereich nicht gefunden.");
 
-    const html2canvas = (await import("html2canvas")).default;
-    const jsPDF = (await import("jspdf")).jsPDF;
+      const dataUrl = await toPng(node, {
+        backgroundColor: "#ffffff",
+        cacheBust: true,
+      });
 
-    const canvas = await html2canvas(exportRef.current, {
-      backgroundColor: "#ffffff",
-      scale: 2,
-      useCORS: true,
-    });
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = 210;
 
-    const imgData = canvas.toDataURL("image/png");
+      // Bildgröße proportional
+      const pxW = node.offsetWidth || 800;
+      const pxH = node.offsetHeight || 1200;
+      const mmH = (pxH * pageW) / pxW;
 
-    const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    const imgWidth = pageWidth - 40;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    if (imgHeight <= pageHeight - 40) {
-      pdf.addImage(imgData, "PNG", 20, 20, imgWidth, imgHeight);
-    } else {
-      let remaining = imgHeight;
-      let offset = 0;
-      while (remaining > 0) {
-        pdf.addImage(imgData, "PNG", 20, 20 - offset, imgWidth, imgHeight);
-        remaining -= pageHeight - 40;
-        offset += pageHeight - 40;
-        if (remaining > 0) pdf.addPage();
-      }
+      pdf.addImage(dataUrl, "PNG", 0, 0, pageW, mmH);
+      pdf.save(selected === "all" ? "skv-ewige-tabelle.pdf" : "skv-tabelle.pdf");
+    } catch (e: any) {
+      setExportError(e?.message ?? String(e));
     }
-
-    pdf.save(`skv-tabelle-${selected === "all" ? "ewig" : selected}.pdf`);
   }
+
+  // ---- UI-Helpers für Bewegung ----
+  function movementLabel(delta: number | null) {
+    if (delta == null) return "–";
+    if (delta === 0) return "→ 0";
+    if (delta > 0) return `↑ +${delta}`;
+    return `↓ ${delta}`;
+  }
+
+  function movementClass(delta: number | null) {
+    if (delta == null) return "text-slate-400";
+    if (delta === 0) return "text-slate-500";
+    if (delta > 0) return "text-emerald-600";
+    return "text-red-600";
+  }
+
+  const titleLabel = selected === "all" ? "Tabellen – Ewige Tabelle" : "Tabellen";
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
+      {/* Headerzeile */}
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Tabellen</h1>
         </div>
@@ -373,28 +365,33 @@ export default function StandingsClient() {
           <button
             onClick={exportPNG}
             className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
-            type="button"
           >
             Export PNG
           </button>
           <button
             onClick={exportPDF}
             className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
-            type="button"
           >
             Export PDF
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3">
-        <label className="block text-[11px] font-semibold text-slate-600">Saison</label>
+      {exportError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          Export-Fehler: {exportError}
+        </div>
+      )}
+
+      {/* Saison Auswahl */}
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3">
+        <div className="text-xs font-semibold text-slate-700">Saison</div>
         <select
           value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+          onChange={(e) => onChangeSeason(e.target.value)}
+          className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs"
         >
-          {seasonOptions.map((o) => (
+          {options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
@@ -402,67 +399,120 @@ export default function StandingsClient() {
         </select>
       </div>
 
-      {loading && (
+      {/* Content */}
+      {loading ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">Lade…</div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+      ) : rows.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
-          Lade Tabelle…
+          Keine Daten in dieser Auswahl.
         </div>
-      )}
-
-      {err && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {err}
-        </div>
-      )}
-
-      {!loading && !err && (
-        <div ref={exportRef} className="rounded-xl border border-slate-200 bg-white p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-xs font-semibold text-slate-800">
-              {selected === "all"
-                ? "Ewige Tabelle"
-                : seasonOptions.find((o) => o.value === selected)?.label ?? "Saison"}
-            </div>
-            <div className="text-[10px] text-slate-500">
-              Stand: {new Date().toLocaleDateString("de-DE")}
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-lg border border-slate-200">
-            <table className="w-full text-sm">
+      ) : (
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
               <thead className="bg-slate-50 text-[11px] text-slate-600">
                 <tr>
-                  <th className="w-16 px-2 py-2 text-left">Platz</th>
-                  <th className="px-2 py-2 text-left">Spieler</th>
-                  <th className="w-24 px-2 py-2 text-left">Siege</th>
-                  <th className="w-28 px-2 py-2 text-left">Teilnahmen</th>
+                  <th className="px-3 py-2 text-left w-[90px]">PLATZ</th>
+                  <th className="px-3 py-2 text-left">SPIELER</th>
+                  <th className="px-3 py-2 text-right w-[90px]">SIEGE</th>
+                  <th className="px-3 py-2 text-right w-[110px]">TEILNAHMEN</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => {
-                  const mv = movementView(r.movement);
-                  return (
-                    <tr key={r.player_id} className="border-t border-slate-100">
-                      <td className="px-2 py-2 align-middle">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-900">{r.rank}.</span>
-                          <span className={`text-[11px] font-semibold ${mv.cls}`}>{mv.text}</span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-2 align-middle text-slate-900">{r.name}</td>
-                      <td className="px-2 py-2 align-middle font-semibold text-slate-900">{r.wins}</td>
-                      <td className="px-2 py-2 align-middle text-slate-700">{r.sessions}</td>
-                    </tr>
-                  );
-                })}
+                {rows.map((r) => (
+                  <tr key={r.player_id} className="border-t border-slate-100">
+                    <td className="px-3 py-2">
+                      <div className="font-semibold">{r.rank}.</div>
+                      <div className={`text-[11px] ${movementClass(r.deltaRank)}`}>
+                        {movementLabel(r.deltaRank)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 font-medium text-slate-900">{r.name}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{r.wins}</td>
+                    <td className="px-3 py-2 text-right">{r.participated}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-
-          <div className="mt-2 text-[10px] text-slate-500">
-            Bewegung = Vergleich zur letzten Einheit davor (▲ hoch / ▼ runter).
-          </div>
         </div>
       )}
+
+      {/* -------------------------------------------
+          EXPORT-RENDER (unsichtbar/offscreen)
+          -> keine Tailwind-Farben, nur HEX => kein lab()/oklch() Crash
+         ------------------------------------------- */}
+      <div className="sr-only">
+        <div
+          ref={exportRef}
+          style={{
+            width: 900,
+            background: "#ffffff",
+            color: "#000000",
+            padding: 18,
+            fontFamily: "Arial, sans-serif",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>SKV Strich App</div>
+            <div style={{ fontSize: 12 }}>
+              {selected === "all" ? "Ewige Tabelle (alle Saisons)" : selectedSeason?.name ?? ""}
+            </div>
+          </div>
+
+          <div style={{ fontSize: 12, marginBottom: 10 }}>
+            Stand: {new Date().toLocaleDateString("de-DE")} {new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+          </div>
+
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr>
+                <th style={{ border: "1px solid #000", padding: 8, textAlign: "left", width: 90 }}>Platz</th>
+                <th style={{ border: "1px solid #000", padding: 8, textAlign: "left" }}>Spieler</th>
+                <th style={{ border: "1px solid #000", padding: 8, textAlign: "right", width: 90 }}>Siege</th>
+                <th style={{ border: "1px solid #000", padding: 8, textAlign: "right", width: 110 }}>Teilnahmen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const delta = r.deltaRank;
+                let deltaText = "–";
+                let deltaColor = "#777777";
+                if (delta != null) {
+                  if (delta > 0) {
+                    deltaText = `↑ +${delta}`;
+                    deltaColor = "#0a7a0a";
+                  } else if (delta < 0) {
+                    deltaText = `↓ ${delta}`;
+                    deltaColor = "#b00000";
+                  } else {
+                    deltaText = "→ 0";
+                    deltaColor = "#333333";
+                  }
+                }
+
+                return (
+                  <tr key={`exp-${r.player_id}`}>
+                    <td style={{ border: "1px solid #000", padding: 8, verticalAlign: "top" }}>
+                      <div style={{ fontWeight: 700 }}>{r.rank}.</div>
+                      <div style={{ fontSize: 11, color: deltaColor }}>{deltaText}</div>
+                    </td>
+                    <td style={{ border: "1px solid #000", padding: 8, fontWeight: 600 }}>{r.name}</td>
+                    <td style={{ border: "1px solid #000", padding: 8, textAlign: "right", fontWeight: 700 }}>{r.wins}</td>
+                    <td style={{ border: "1px solid #000", padding: 8, textAlign: "right" }}>{r.participated}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <div style={{ fontSize: 10, color: "#333", marginTop: 10 }}>
+            Hinweis: Bewegung (↑/↓) = Veränderung gegenüber dem vorletzten Termin dieser Auswahl.
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
