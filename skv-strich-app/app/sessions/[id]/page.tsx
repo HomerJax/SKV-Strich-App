@@ -35,6 +35,7 @@ function badgeColor(pos: string | null) {
 const ageScore = (a: string | null) => (a === "Ü32" ? 1 : a === "AH" ? -1 : 0);
 const posScore = (p: string | null) => (p === "attack" ? 1 : p === "defense" ? -1 : 0);
 
+// Sortierung & Zusammenfassung für Teams
 function sortPlayersInTeam(players: Player[]) {
   const order = (p: Player) => {
     switch (p.preferred_position) {
@@ -76,7 +77,10 @@ export default function SessionDetailPage() {
   const [session, setSession] = useState<SessionRow | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [presentIds, setPresentIds] = useState<number[]>([]);
-  const [manualTeams, setManualTeams] = useState<Record<number, "A" | "B" | null>>({});
+
+  const [manualTeams, setManualTeams] = useState<Record<number, "A" | "B" | null>>(
+    {}
+  );
 
   const [goalsA, setGoalsA] = useState("");
   const [goalsB, setGoalsB] = useState("");
@@ -87,12 +91,14 @@ export default function SessionDetailPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  // ---------- Laden ----------
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
         setErr(null);
 
+        // Session
         const { data: sData, error: sErr } = await supabase
           .from("sessions")
           .select("id, date, notes")
@@ -100,6 +106,7 @@ export default function SessionDetailPage() {
           .single();
         if (sErr) throw sErr;
 
+        // Spieler
         const { data: pData, error: pErr } = await supabase
           .from("players")
           .select("id, name, is_active, age_group, preferred_position")
@@ -108,6 +115,7 @@ export default function SessionDetailPage() {
 
         const active = (pData ?? []).filter((p) => p.is_active !== false) as Player[];
 
+        // Anwesenheit
         const { data: spData, error: spErr } = await supabase
           .from("session_players")
           .select("player_id")
@@ -116,6 +124,7 @@ export default function SessionDetailPage() {
 
         const present = (spData ?? []).map((r) => r.player_id as number);
 
+        // Ergebnis
         const { data: rData } = await supabase
           .from("results")
           .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
@@ -140,6 +149,7 @@ export default function SessionDetailPage() {
 
           if (rData.goals_team_a != null) setGoalsA(String(rData.goals_team_a));
           if (rData.goals_team_b != null) setGoalsB(String(rData.goals_team_b));
+
           setHasResult(true);
         }
 
@@ -157,7 +167,13 @@ export default function SessionDetailPage() {
     load();
   }, [sessionId]);
 
+  // Hilfssetter: Team setzen
+  function setTeam(playerId: number, team: "A" | "B" | null) {
+    setManualTeams((m) => ({ ...m, [playerId]: team }));
+  }
+
   const present = players.filter((p) => presentIds.includes(p.id));
+  const unassigned = present.filter((p) => !manualTeams[p.id]);
   const teamA = present.filter((p) => manualTeams[p.id] === "A");
   const teamB = present.filter((p) => manualTeams[p.id] === "B");
 
@@ -166,12 +182,14 @@ export default function SessionDetailPage() {
   const summaryA = summarizeTeam(teamA);
   const summaryB = summarizeTeam(teamB);
 
+  // ---------- Anwesenheit ----------
   async function togglePresence(id: number) {
     setErr(null);
     const isPresent = presentIds.includes(id);
 
     if (isPresent) {
       await supabase.from("session_players").delete().eq("session_id", sessionId).eq("player_id", id);
+
       setPresentIds((x) => x.filter((p) => p !== id));
       setManualTeams((m) => {
         const copy = { ...m };
@@ -180,11 +198,13 @@ export default function SessionDetailPage() {
       });
     } else {
       await supabase.from("session_players").insert({ session_id: sessionId, player_id: id });
+
       setPresentIds((x) => [...x, id]);
       setManualTeams((m) => ({ ...m, [id]: null }));
     }
   }
 
+  // ---------- Teamgenerator ----------
   function generateTeams() {
     setMsg(null);
     setErr(null);
@@ -254,9 +274,10 @@ export default function SessionDetailPage() {
     });
 
     setManualTeams(next);
-    setMsg("Teams automatisch verteilt. Anpassung möglich.");
+    setMsg("Teams automatisch verteilt. Du kannst danach manuell anpassen.");
   }
 
+  // ---------- Ergebnis speichern ----------
   async function saveResult() {
     try {
       setSaving(true);
@@ -298,6 +319,7 @@ export default function SessionDetailPage() {
       const teamAId = await ensureTeam("Team 1");
       const teamBId = await ensureTeam("Team 2");
 
+      // team_players neu schreiben
       await supabase.from("team_players").delete().in("team_id", [teamAId, teamBId]);
 
       await supabase.from("team_players").insert([
@@ -335,18 +357,13 @@ export default function SessionDetailPage() {
       setErr(null);
       setMsg(null);
 
-      // Ergebnis löschen
       await supabase.from("results").delete().eq("session_id", sessionId);
-
-      // Teams der Session löschen (löscht team_players via Cascade)
       await supabase.from("teams").delete().eq("session_id", sessionId);
 
-      // UI zurücksetzen
       setGoalsA("");
       setGoalsB("");
       setHasResult(false);
 
-      // Teams im UI zurücksetzen (alle anwesenden bleiben, aber ohne Team)
       const reset: Record<number, "A" | "B" | null> = {};
       presentIds.forEach((pid) => (reset[pid] = null));
       setManualTeams(reset);
@@ -360,15 +377,11 @@ export default function SessionDetailPage() {
   }
 
   if (loading) return <div className="p-4 text-sm text-slate-500">Lade…</div>;
-
   if (err) return <div className="p-4 text-sm text-red-700 bg-red-50">{err}</div>;
 
   return (
     <div className="space-y-4">
-      <button
-        onClick={() => router.push("/sessions")}
-        className="text-xs text-slate-500 hover:text-slate-700"
-      >
+      <button onClick={() => router.push("/sessions")} className="text-xs text-slate-500 hover:text-slate-700">
         ← Zurück zu Trainings
       </button>
 
@@ -388,6 +401,7 @@ export default function SessionDetailPage() {
         </button>
       </div>
 
+      {/* Anwesenheit */}
       <div className="rounded-xl border p-3 bg-white space-y-2">
         <div className="text-xs font-semibold">Anwesend</div>
         {players.map((p) => {
@@ -409,6 +423,80 @@ export default function SessionDetailPage() {
         })}
       </div>
 
+      {/* Manuelle Bearbeitung: Nicht zugewiesen */}
+      <div className="rounded-xl border bg-white p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs font-semibold">Manuell bearbeiten</div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const next: Record<number, "A" | "B" | null> = {};
+                present.forEach((p) => (next[p.id] = "A"));
+                setManualTeams(next);
+                setMsg("Alle anwesenden Spieler in Team 1 gesetzt.");
+              }}
+              className="rounded-lg border px-2 py-1 text-[11px] bg-white hover:bg-slate-50"
+              type="button"
+            >
+              Alle → Team 1
+            </button>
+            <button
+              onClick={() => {
+                const next: Record<number, "A" | "B" | null> = {};
+                present.forEach((p) => (next[p.id] = "B"));
+                setManualTeams(next);
+                setMsg("Alle anwesenden Spieler in Team 2 gesetzt.");
+              }}
+              className="rounded-lg border px-2 py-1 text-[11px] bg-white hover:bg-slate-50"
+              type="button"
+            >
+              Alle → Team 2
+            </button>
+          </div>
+        </div>
+
+        {unassigned.length === 0 ? (
+          <div className="text-[11px] text-slate-500">Alle anwesenden Spieler sind einem Team zugewiesen.</div>
+        ) : (
+          <ul className="space-y-1">
+            {unassigned
+              .slice()
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((p) => (
+                <li
+                  key={p.id}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-medium text-slate-900">{p.name}</div>
+                    <div className="text-[10px] text-slate-500">
+                      {p.age_group ?? "?"} · {positionLabel(p.preferred_position)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => setTeam(p.id, "A")}
+                      className="rounded-md border px-2 py-1 text-[11px] bg-white hover:bg-slate-100"
+                      type="button"
+                    >
+                      Team 1
+                    </button>
+                    <button
+                      onClick={() => setTeam(p.id, "B")}
+                      className="rounded-md border px-2 py-1 text-[11px] bg-white hover:bg-slate-100"
+                      type="button"
+                    >
+                      Team 2
+                    </button>
+                  </div>
+                </li>
+              ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Teams */}
       <div className="rounded-xl border bg-white p-3 space-y-3">
         <div className="flex justify-between items-center">
           <div className="text-xs font-semibold">Teams</div>
@@ -421,6 +509,7 @@ export default function SessionDetailPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* Team 1 */}
           <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
             <div className="flex items-center justify-between gap-2">
               <div className="text-xs font-semibold text-slate-900">Team 1</div>
@@ -440,10 +529,9 @@ export default function SessionDetailPage() {
                 {teamASorted.map((p) => (
                   <li
                     key={p.id}
-                    onClick={() =>
-                      setManualTeams((m) => ({ ...m, [p.id]: m[p.id] === "A" ? null : "A" }))
-                    }
+                    onClick={() => setTeam(p.id, null)}
                     className="flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1"
+                    title="Tippen = aus Team entfernen"
                   >
                     <span className="text-[13px] font-medium text-slate-900">{p.name}</span>
                     <div className="flex items-center gap-1.5">
@@ -462,6 +550,7 @@ export default function SessionDetailPage() {
             )}
           </div>
 
+          {/* Team 2 */}
           <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
             <div className="flex items-center justify-between gap-2">
               <div className="text-xs font-semibold text-slate-900">Team 2</div>
@@ -481,10 +570,9 @@ export default function SessionDetailPage() {
                 {teamBSorted.map((p) => (
                   <li
                     key={p.id}
-                    onClick={() =>
-                      setManualTeams((m) => ({ ...m, [p.id]: m[p.id] === "B" ? null : "B" }))
-                    }
+                    onClick={() => setTeam(p.id, null)}
                     className="flex cursor-pointer items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1"
+                    title="Tippen = aus Team entfernen"
                   >
                     <span className="text-[13px] font-medium text-slate-900">{p.name}</span>
                     <div className="flex items-center gap-1.5">
@@ -503,12 +591,16 @@ export default function SessionDetailPage() {
             )}
           </div>
         </div>
+
+        <div className="text-[11px] text-slate-500">
+          Tipp: Spieler antippen = aus dem Team raus. Nicht zugewiesene Spieler oben per Button in Team 1/2 schieben.
+        </div>
       </div>
 
+      {/* Ergebnis */}
       <div ref={resultRef} className="rounded-xl border bg-white p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold">Ergebnis</div>
-
           {hasResult && (
             <button
               disabled={saving}
