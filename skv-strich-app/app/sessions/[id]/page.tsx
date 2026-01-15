@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
-import ExportButtons from "@/components/ExportButtons";
 
 type Player = {
   id: number;
   name: string;
-  age_group: string | null;
-  preferred_position: string | null;
+  age_group: string | null; // "AH" | "Ü32"
+  preferred_position: string | null; // "defense" | "attack" | "goalkeeper"
   is_active: boolean | null;
 };
 
@@ -26,17 +25,43 @@ function positionLabel(pos: string | null) {
   return "Unbekannt";
 }
 
-function badgeColor(pos: string | null) {
+function posBadgeColor(pos: string | null) {
   if (pos === "defense") return "bg-sky-100 text-sky-800";
   if (pos === "attack") return "bg-orange-100 text-orange-800";
   if (pos === "goalkeeper") return "bg-purple-100 text-purple-800";
   return "bg-slate-100 text-slate-700";
 }
 
-function ageBadge(a: string | null) {
-  if (a === "Ü32") return "bg-zinc-900 text-white";
-  if (a === "AH") return "bg-zinc-100 text-zinc-900 border border-zinc-300";
+function ageBadgeColor(age: string | null) {
+  if (age === "Ü32") return "bg-amber-100 text-amber-800";
+  if (age === "AH") return "bg-emerald-100 text-emerald-800";
   return "bg-slate-100 text-slate-700";
+}
+
+// Balance-Helfer
+const ageScore = (a: string | null) => (a === "Ü32" ? 1 : a === "AH" ? -1 : 0);
+const posScore = (p: string | null) => (p === "attack" ? 1 : p === "defense" ? -1 : 0);
+
+function sortForDisplay(list: Player[]) {
+  const prio = (p: Player) => {
+    if (p.preferred_position === "goalkeeper") return 0;
+    if (p.preferred_position === "defense") return 1;
+    if (p.preferred_position === "attack") return 2;
+    return 3;
+  };
+  return [...list].sort((a, b) => prio(a) - prio(b) || a.name.localeCompare(b.name, "de"));
+}
+
+function stats(list: Player[]) {
+  const out = {
+    total: list.length,
+    gk: list.filter((p) => p.preferred_position === "goalkeeper").length,
+    def: list.filter((p) => p.preferred_position === "defense").length,
+    att: list.filter((p) => p.preferred_position === "attack").length,
+    ah: list.filter((p) => p.age_group === "AH").length,
+    u32: list.filter((p) => p.age_group === "Ü32").length,
+  };
+  return out;
 }
 
 export default function SessionDetailPage() {
@@ -68,6 +93,7 @@ export default function SessionDetailPage() {
         setLoading(true);
         setErr(null);
 
+        // Session
         const { data: sData, error: sErr } = await supabase
           .from("sessions")
           .select("id, date, notes")
@@ -75,6 +101,7 @@ export default function SessionDetailPage() {
           .single();
         if (sErr) throw sErr;
 
+        // Spieler
         const { data: pData, error: pErr } = await supabase
           .from("players")
           .select("id, name, is_active, age_group, preferred_position")
@@ -83,6 +110,7 @@ export default function SessionDetailPage() {
 
         const active = (pData ?? []).filter((p) => p.is_active !== false) as Player[];
 
+        // Anwesenheit
         const { data: spData, error: spErr } = await supabase
           .from("session_players")
           .select("player_id")
@@ -91,6 +119,7 @@ export default function SessionDetailPage() {
 
         const present = (spData ?? []).map((r) => r.player_id as number);
 
+        // Ergebnis
         const { data: rData } = await supabase
           .from("results")
           .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
@@ -132,9 +161,14 @@ export default function SessionDetailPage() {
     load();
   }, [sessionId]);
 
-  const present = players.filter((p) => presentIds.includes(p.id));
-  const teamA = present.filter((p) => manualTeams[p.id] === "A");
-  const teamB = present.filter((p) => manualTeams[p.id] === "B");
+  const present = useMemo(() => players.filter((p) => presentIds.includes(p.id)), [players, presentIds]);
+
+  const unassigned = useMemo(
+    () => sortForDisplay(present.filter((p) => manualTeams[p.id] == null)),
+    [present, manualTeams]
+  );
+  const teamA = useMemo(() => sortForDisplay(present.filter((p) => manualTeams[p.id] === "A")), [present, manualTeams]);
+  const teamB = useMemo(() => sortForDisplay(present.filter((p) => manualTeams[p.id] === "B")), [present, manualTeams]);
 
   // ---------- Anwesenheit ----------
   async function togglePresence(id: number) {
@@ -152,10 +186,14 @@ export default function SessionDetailPage() {
       });
     } else {
       await supabase.from("session_players").insert({ session_id: sessionId, player_id: id });
-
       setPresentIds((x) => [...x, id]);
       setManualTeams((m) => ({ ...m, [id]: null }));
     }
+  }
+
+  // ---------- Zuweisung ----------
+  function setTeam(pid: number, t: "A" | "B" | null) {
+    setManualTeams((m) => ({ ...m, [pid]: t }));
   }
 
   // ---------- Teamgenerator ----------
@@ -174,24 +212,16 @@ export default function SessionDetailPage() {
     const a: Player[] = [];
     const b: Player[] = [];
 
-    // Torwart-Verteilung
     keepers.forEach((k, i) => (i % 2 === 0 ? a.push(k) : b.push(k)));
-
-    // Scores: Ü32 und AH fair, vorne/hinten fair
-    const ageScore = (ag: string | null) => (ag === "Ü32" ? 1 : ag === "AH" ? -1 : 0);
-    const posScore = (p: string | null) => (p === "attack" ? 1 : p === "defense" ? -1 : 0);
 
     function evaluate(A: Player[], B: Player[]) {
       const ad =
-        Math.abs(A.reduce((s, p) => s + ageScore(p.age_group), 0) - B.reduce((s, p) => s + ageScore(p.age_group), 0)) *
-        3;
+        Math.abs(A.reduce((s, p) => s + ageScore(p.age_group), 0) - B.reduce((s, p) => s + ageScore(p.age_group), 0)) * 3;
 
       const pd =
-        Math.abs(A.reduce((s, p) => s + posScore(p.preferred_position), 0) - B.reduce((s, p) => s + posScore(p.preferred_position), 0)) *
-        2;
+        Math.abs(A.reduce((s, p) => s + posScore(p.preferred_position), 0) - B.reduce((s, p) => s + posScore(p.preferred_position), 0)) * 2;
 
       const sd = Math.abs(A.length - B.length);
-
       return ad + pd + sd;
     }
 
@@ -211,11 +241,9 @@ export default function SessionDetailPage() {
     for (let k = 0; k < 250; k++) {
       const A = [...a];
       const B = [...b];
-
       for (const p of shuffle(field)) {
         (A.length > B.length ? B : A).push(p);
       }
-
       const score = evaluate(A, B);
       if (score < best) {
         best = score;
@@ -232,7 +260,7 @@ export default function SessionDetailPage() {
     });
 
     setManualTeams(next);
-    setMsg("Teams automatisch verteilt. Du kannst manuell anpassen.");
+    setMsg("Teams automatisch verteilt. Du kannst Spieler jetzt manuell umschieben.");
   }
 
   // ---------- Ergebnis speichern ----------
@@ -247,16 +275,11 @@ export default function SessionDetailPage() {
 
       if (A.length === 0 || B.length === 0) throw new Error("Beide Teams brauchen mindestens einen Spieler.");
 
-      const { data: existing } = await supabase
-        .from("results")
-        .select("id")
-        .eq("session_id", sessionId)
-        .maybeSingle();
+      const { data: existing } = await supabase.from("results").select("id").eq("session_id", sessionId).maybeSingle();
 
       async function ensureTeam(name: string) {
         const { data } = await supabase.from("teams").select("id").eq("session_id", sessionId).eq("name", name).maybeSingle();
         if (data) return data.id;
-
         const { data: ins } = await supabase.from("teams").insert({ session_id: sessionId, name }).select().single();
         return ins!.id as number;
       }
@@ -279,11 +302,8 @@ export default function SessionDetailPage() {
         goals_team_b: goalsB === "" ? null : Number(goalsB),
       };
 
-      if (existing) {
-        await supabase.from("results").update(payload).eq("session_id", sessionId);
-      } else {
-        await supabase.from("results").insert(payload);
-      }
+      if (existing) await supabase.from("results").update(payload).eq("session_id", sessionId);
+      else await supabase.from("results").insert(payload);
 
       setHasResult(true);
       setMsg("Ergebnis gespeichert.");
@@ -294,42 +314,11 @@ export default function SessionDetailPage() {
     }
   }
 
-  // ---------- Ergebnis löschen (Punkte weg + neu eingeben) ----------
-  async function deleteResult() {
-    try {
-      setSaving(true);
-      setErr(null);
-      setMsg(null);
-
-      const { data: rData, error: rErr } = await supabase
-        .from("results")
-        .select("team_a_id, team_b_id")
-        .eq("session_id", sessionId)
-        .maybeSingle();
-      if (rErr) throw rErr;
-
-      const teamIds = [rData?.team_a_id, rData?.team_b_id].filter(Boolean) as number[];
-
-      await supabase.from("results").delete().eq("session_id", sessionId);
-
-      if (teamIds.length > 0) {
-        await supabase.from("team_players").delete().in("team_id", teamIds);
-        await supabase.from("teams").delete().eq("session_id", sessionId);
-      }
-
-      setGoalsA("");
-      setGoalsB("");
-      setHasResult(false);
-      setMsg("Ergebnis gelöscht. Du kannst neu eintragen.");
-    } catch (e: any) {
-      setErr(e.message ?? "Fehler beim Löschen.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   if (loading) return <div className="p-4 text-sm text-slate-500">Lade…</div>;
   if (err) return <div className="p-4 text-sm text-red-700 bg-red-50">{err}</div>;
+
+  const sA = stats(teamA);
+  const sB = stats(teamB);
 
   return (
     <div className="space-y-4">
@@ -338,8 +327,8 @@ export default function SessionDetailPage() {
         ← Zurück zu Trainings
       </button>
 
-      {/* Kopf + Export */}
-      <div className="flex items-start justify-between gap-3">
+      {/* Kopf */}
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">
             Training {new Date(session!.date).toLocaleDateString("de-DE")}
@@ -347,13 +336,17 @@ export default function SessionDetailPage() {
           {session?.notes && <div className="text-[11px] text-slate-500">{session.notes}</div>}
         </div>
 
-        {/* Export: Teams + Ergebnis */}
-        <ExportButtons targetId="export-session" fileBaseName="skv-ergebnis" />
+        <button
+          onClick={() => resultRef.current?.scrollIntoView({ behavior: "smooth" })}
+          className="rounded-lg border px-3 py-1.5 text-xs shadow-sm bg-white"
+        >
+          Zum Ergebnis ↓
+        </button>
       </div>
 
       {/* Anwesenheit */}
       <div className="rounded-xl border p-3 bg-white space-y-2">
-        <div className="text-xs font-semibold">Anwesend</div>
+        <div className="text-xs font-semibold">Anwesenheit</div>
         {players.map((p) => {
           const on = presentIds.includes(p.id);
           return (
@@ -361,16 +354,15 @@ export default function SessionDetailPage() {
               key={p.id}
               onClick={() => togglePresence(p.id)}
               className={`w-full flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm ${
-                on ? "bg-emerald-50" : "bg-white"
+                on ? "bg-emerald-50 border-emerald-200" : "bg-white"
               }`}
             >
               <span className="font-medium text-slate-900">{p.name}</span>
-
               <span className="flex items-center gap-2">
-                <span className={`px-2 py-0.5 rounded-md text-[11px] ${ageBadge(p.age_group)}`}>
+                <span className={`px-2 py-0.5 rounded-md text-[11px] ${ageBadgeColor(p.age_group)}`}>
                   {p.age_group ?? "?"}
                 </span>
-                <span className={`px-2 py-0.5 rounded-md text-[11px] ${badgeColor(p.preferred_position)}`}>
+                <span className={`px-2 py-0.5 rounded-md text-[11px] ${posBadgeColor(p.preferred_position)}`}>
                   {positionLabel(p.preferred_position)}
                 </span>
               </span>
@@ -379,108 +371,170 @@ export default function SessionDetailPage() {
         })}
       </div>
 
-      {/* EXPORT TARGET: Teams + Ergebnis */}
-      <div id="export-session" className="space-y-4">
-        {/* Teams */}
-        <div className="rounded-xl border bg-white p-3 space-y-3">
-          <div className="flex justify-between items-center">
-            <div className="text-xs font-semibold">Teams</div>
-            <button onClick={generateTeams} className="text-xs border px-2 py-1 rounded-lg">
-              Teams generieren
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1 rounded-lg border p-2">
-              <div className="text-xs font-semibold">Team 1</div>
-              {teamA.length === 0 ? (
-                <div className="text-[11px] text-slate-400">Noch kein Spieler zugewiesen.</div>
-              ) : (
-                teamA.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() =>
-                      setManualTeams((m) => ({
-                        ...m,
-                        [p.id]: m[p.id] === "A" ? null : "A",
-                      }))
-                    }
-                    className="w-full text-left rounded-md px-2 py-1 text-xs bg-blue-50"
-                  >
-                    {p.name}
-                  </button>
-                ))
-              )}
-            </div>
-
-            <div className="space-y-1 rounded-lg border p-2">
-              <div className="text-xs font-semibold">Team 2</div>
-              {teamB.length === 0 ? (
-                <div className="text-[11px] text-slate-400">Noch kein Spieler zugewiesen.</div>
-              ) : (
-                teamB.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() =>
-                      setManualTeams((m) => ({
-                        ...m,
-                        [p.id]: m[p.id] === "B" ? null : "B",
-                      }))
-                    }
-                    className="w-full text-left rounded-md px-2 py-1 text-xs bg-blue-50"
-                  >
-                    {p.name}
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-
-          {msg && <div className="text-xs text-emerald-700 bg-emerald-50 p-2 rounded-md">{msg}</div>}
+      {/* Teams */}
+      <div className="rounded-xl border bg-white p-3 space-y-3">
+        <div className="flex justify-between items-center gap-2">
+          <div className="text-xs font-semibold">Teams</div>
+          <button onClick={generateTeams} className="text-xs border px-2 py-1 rounded-lg">
+            Teams generieren
+          </button>
         </div>
 
-        {/* Ergebnis */}
-        <div ref={resultRef} className="rounded-xl border bg-white p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold">Ergebnis</div>
+        {/* Unzugeordnet */}
+        <div className="rounded-lg border p-2">
+          <div className="text-xs font-semibold mb-2">Unzugeordnet ({unassigned.length})</div>
+          {unassigned.length === 0 ? (
+            <div className="text-[11px] text-slate-400">Alle anwesenden Spieler sind in Teams.</div>
+          ) : (
+            <div className="space-y-2">
+              {unassigned.map((p) => (
+                <div key={p.id} className="flex items-center justify-between rounded-md border px-2 py-1">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-slate-900 truncate">{p.name}</div>
+                    <div className="flex gap-2 mt-0.5">
+                      <span className={`px-2 py-0.5 rounded-md text-[11px] ${ageBadgeColor(p.age_group)}`}>
+                        {p.age_group ?? "?"}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md text-[11px] ${posBadgeColor(p.preferred_position)}`}>
+                        {positionLabel(p.preferred_position)}
+                      </span>
+                    </div>
+                  </div>
 
-            {hasResult && (
-              <button
-                disabled={saving}
-                onClick={deleteResult}
-                className="rounded-lg border px-3 py-1.5 text-xs shadow-sm bg-red-50 border-red-200 text-red-700"
-              >
-                Ergebnis löschen
-              </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setTeam(p.id, "A")}
+                      className="rounded-md border px-2 py-1 text-xs bg-slate-50 hover:bg-slate-100"
+                    >
+                      → Team 1
+                    </button>
+                    <button
+                      onClick={() => setTeam(p.id, "B")}
+                      className="rounded-md border px-2 py-1 text-xs bg-slate-50 hover:bg-slate-100"
+                    >
+                      → Team 2
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Team-Karten */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Team 1 */}
+          <div className="space-y-2 rounded-lg border p-2">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <div className="text-xs font-semibold">Team 1 ({teamA.length})</div>
+                <div className="text-[11px] text-slate-500">
+                  GK {sA.gk} · Hinten {sA.def} · Vorne {sA.att} · AH {sA.ah} · Ü32 {sA.u32}
+                </div>
+              </div>
+            </div>
+
+            {teamA.length === 0 ? (
+              <div className="text-[11px] text-slate-400">Noch kein Spieler in Team 1.</div>
+            ) : (
+              <div className="space-y-1">
+                {teamA.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setTeam(p.id, null)} // rauswerfen -> unzugeordnet
+                    className="w-full text-left rounded-md border px-2 py-1 text-sm hover:bg-slate-50"
+                    title="Klick = aus Team entfernen"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{p.name}</span>
+                      <span className="flex items-center gap-1">
+                        <span className={`px-2 py-0.5 rounded-md text-[11px] ${ageBadgeColor(p.age_group)}`}>
+                          {p.age_group ?? "?"}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-md text-[11px] ${posBadgeColor(p.preferred_position)}`}>
+                          {positionLabel(p.preferred_position)}
+                        </span>
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              value={goalsA}
-              onChange={(e) => setGoalsA(e.target.value)}
-              placeholder="Team 1"
-              className="w-16 rounded-md border px-2 py-1 text-center"
-            />
-            <span className="text-sm">:</span>
-            <input
-              value={goalsB}
-              onChange={(e) => setGoalsB(e.target.value)}
-              placeholder="Team 2"
-              className="w-16 rounded-md border px-2 py-1 text-center"
-            />
+          {/* Team 2 */}
+          <div className="space-y-2 rounded-lg border p-2">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <div className="text-xs font-semibold">Team 2 ({teamB.length})</div>
+                <div className="text-[11px] text-slate-500">
+                  GK {sB.gk} · Hinten {sB.def} · Vorne {sB.att} · AH {sB.ah} · Ü32 {sB.u32}
+                </div>
+              </div>
+            </div>
+
+            {teamB.length === 0 ? (
+              <div className="text-[11px] text-slate-400">Noch kein Spieler in Team 2.</div>
+            ) : (
+              <div className="space-y-1">
+                {teamB.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setTeam(p.id, null)} // rauswerfen -> unzugeordnet
+                    className="w-full text-left rounded-md border px-2 py-1 text-sm hover:bg-slate-50"
+                    title="Klick = aus Team entfernen"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{p.name}</span>
+                      <span className="flex items-center gap-1">
+                        <span className={`px-2 py-0.5 rounded-md text-[11px] ${ageBadgeColor(p.age_group)}`}>
+                          {p.age_group ?? "?"}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-md text-[11px] ${posBadgeColor(p.preferred_position)}`}>
+                          {positionLabel(p.preferred_position)}
+                        </span>
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-
-          <button
-            disabled={saving}
-            onClick={saveResult}
-            className="rounded-lg border px-3 py-1.5 text-xs shadow-sm bg-emerald-50"
-          >
-            {saving ? "Speichere…" : "Ergebnis speichern"}
-          </button>
-
-          {err && <div className="text-xs text-red-700 bg-red-50 p-2 rounded-md">{err}</div>}
         </div>
+
+        {msg && <div className="text-xs text-emerald-700 bg-emerald-50 p-2 rounded-md">{msg}</div>}
+        {err && <div className="text-xs text-red-700 bg-red-50 p-2 rounded-md">{err}</div>}
+      </div>
+
+      {/* Ergebnis */}
+      <div ref={resultRef} className="rounded-xl border bg-white p-3 space-y-3">
+        <div className="text-xs font-semibold">Ergebnis</div>
+
+        <div className="flex items-center gap-2">
+          <input
+            value={goalsA}
+            onChange={(e) => setGoalsA(e.target.value)}
+            placeholder="Team 1"
+            className="w-16 rounded-md border px-2 py-1 text-center"
+          />
+          <span className="text-sm">:</span>
+          <input
+            value={goalsB}
+            onChange={(e) => setGoalsB(e.target.value)}
+            placeholder="Team 2"
+            className="w-16 rounded-md border px-2 py-1 text-center"
+          />
+        </div>
+
+        <button
+          disabled={saving}
+          onClick={saveResult}
+          className="rounded-lg border px-3 py-1.5 text-xs shadow-sm bg-emerald-50"
+        >
+          {saving ? "Speichere…" : "Ergebnis speichern"}
+        </button>
+
+        {hasResult && <div className="text-[11px] text-slate-500">Hinweis: Ergebnis überschreibt die gespeicherten Teams.</div>}
       </div>
     </div>
   );
