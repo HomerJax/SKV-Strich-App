@@ -23,13 +23,17 @@ function posLabel(p: string | null) {
 export default function AdminPlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+
   const [q, setQ] = useState("");
 
-  // lokale Änderungen (id -> strength)
-  const [changes, setChanges] = useState<Record<number, number>>({});
+  // lokale Änderungen (id -> patch)
+  const [patches, setPatches] = useState<
+    Record<number, Partial<Pick<Player, "strength" | "is_active">>>
+  >({});
 
   useEffect(() => {
     (async () => {
@@ -55,17 +59,25 @@ export default function AdminPlayersPage() {
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const list = players.filter((p) => p.is_active !== false);
-    if (!needle) return list;
-    return list.filter((p) => p.name.toLowerCase().includes(needle));
+    if (!needle) return players;
+    return players.filter((p) => p.name.toLowerCase().includes(needle));
   }, [players, q]);
 
-  function getStrength(p: Player) {
-    return changes[p.id] ?? p.strength ?? 3;
+  function currentStrength(p: Player) {
+    return (patches[p.id]?.strength ?? p.strength ?? 3) as number;
   }
 
-  function setStrength(id: number, val: number) {
-    setChanges((c) => ({ ...c, [id]: val }));
+  function currentActive(p: Player) {
+    const v = patches[p.id]?.is_active;
+    return v !== undefined ? v : p.is_active !== false;
+  }
+
+  function setStrength(id: number, strength: number) {
+    setPatches((prev) => ({ ...prev, [id]: { ...prev[id], strength } }));
+  }
+
+  function toggleActive(id: number, active: boolean) {
+    setPatches((prev) => ({ ...prev, [id]: { ...prev[id], is_active: active } }));
   }
 
   async function saveAll() {
@@ -74,26 +86,25 @@ export default function AdminPlayersPage() {
       setErr(null);
       setMsg(null);
 
-      const ids = Object.keys(changes).map(Number);
+      const ids = Object.keys(patches).map(Number);
       if (ids.length === 0) {
         setMsg("Keine Änderungen zum Speichern.");
         return;
       }
 
-      // Updates einzeln (simpel & zuverlässig)
       for (const id of ids) {
-        const val = changes[id];
-        const { error } = await supabase.from("players").update({ strength: val }).eq("id", id);
+        const patch = patches[id];
+        const { error } = await supabase.from("players").update(patch).eq("id", id);
         if (error) throw error;
       }
 
-      // lokale Playerliste aktualisieren
+      // lokal aktualisieren
       setPlayers((prev) =>
-        prev.map((p) => (changes[p.id] != null ? { ...p, strength: changes[p.id] } : p))
+        prev.map((p) => (patches[p.id] ? { ...p, ...patches[p.id] } : p))
       );
 
-      setChanges({});
-      setMsg("Stärken gespeichert ✅");
+      setPatches({});
+      setMsg("Gespeichert ✅");
     } catch (e: any) {
       setErr(e?.message ?? "Fehler beim Speichern.");
     } finally {
@@ -105,7 +116,7 @@ export default function AdminPlayersPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
             <Link href="/admin" className="text-xs text-slate-500 hover:text-slate-700">
@@ -116,9 +127,11 @@ export default function AdminPlayersPage() {
             </Link>
           </div>
 
-          <h1 className="mt-2 text-lg font-semibold text-slate-900">Admin · Stärken</h1>
+          <h1 className="mt-2 text-lg font-semibold text-slate-900">
+            Spieler & Stärken
+          </h1>
           <p className="text-xs text-slate-500">
-            Stärke (1–5) ist nur für Team-Balancing. Spieler sehen das nicht.
+            Stärke (1–5) wird nur für Team-Balancing genutzt und nicht angezeigt.
           </p>
         </div>
 
@@ -127,7 +140,7 @@ export default function AdminPlayersPage() {
           disabled={saving}
           className="rounded-xl bg-black px-3 py-2 text-xs font-semibold text-white shadow-sm disabled:opacity-50"
         >
-          {saving ? "Speichere…" : "Alle speichern"}
+          {saving ? "Speichere…" : "Speichern"}
         </button>
       </div>
 
@@ -158,31 +171,49 @@ export default function AdminPlayersPage() {
         {filtered.map((p) => (
           <div
             key={p.id}
-            className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm"
           >
-            <div className="min-w-0">
-              <div className="font-semibold text-slate-900 truncate">{p.name}</div>
-              <div className="text-[11px] text-slate-500">
-                {p.age_group ?? "?"} · {posLabel(p.preferred_position)}
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-semibold text-slate-900 truncate">{p.name}</div>
+                <div className="text-[11px] text-slate-500">
+                  {p.age_group ?? "?"} · {posLabel(p.preferred_position)}
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <div className="text-[11px] text-slate-500">Stärke</div>
-              <select
-                value={getStrength(p)}
-                onChange={(e) => setStrength(p.id, Number(e.target.value))}
-                className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs"
-              >
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-                <option value={3}>3</option>
-                <option value={4}>4</option>
-                <option value={5}>5</option>
-              </select>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-500">Stärke</span>
+                  <select
+                    value={currentStrength(p)}
+                    onChange={(e) => setStrength(p.id, Number(e.target.value))}
+                    className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs"
+                  >
+                    <option value={1}>1</option>
+                    <option value={2}>2</option>
+                    <option value={3}>3</option>
+                    <option value={4}>4</option>
+                    <option value={5}>5</option>
+                  </select>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-500">Aktiv</span>
+                  <input
+                    type="checkbox"
+                    checked={currentActive(p)}
+                    onChange={(e) => toggleActive(p.id, e.target.checked)}
+                  />
+                </label>
+              </div>
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500">
+        Hinweis: Bearbeiten von Name/Position/Altersgruppe machen wir entweder in einer Edit-Seite
+        oder direkt im Supabase Table Editor (wie du’s bisher gemacht hast).
       </div>
     </div>
   );
