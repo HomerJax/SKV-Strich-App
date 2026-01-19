@@ -17,8 +17,17 @@ type SessionRow = {
   season_id: number | null;
 };
 
+function fmtDateDE(iso: string) {
+  return new Date(iso).toLocaleDateString("de-DE", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export default async function SessionsPage() {
-  const { data: seasons } = await supabase
+  const { data: seasons, error: sErr } = await supabase
     .from("seasons")
     .select("id, name, start_date, end_date")
     .order("start_date", { ascending: false });
@@ -28,11 +37,12 @@ export default async function SessionsPage() {
     .select("id, date, notes, season_id")
     .order("date", { ascending: false });
 
-  // Gruppieren nach Saison
+  // seasonId -> season
   const seasonMap = new Map<number, Season>();
   (seasons ?? []).forEach((s: any) => seasonMap.set(s.id, s as Season));
 
-  const groups: Record<string, SessionRow[]> = {};
+  // seasonId -> sessions[]
+  const seasonSessions = new Map<number, SessionRow[]>();
   const withoutSeason: SessionRow[] = [];
 
   (sessions ?? []).forEach((t: any) => {
@@ -40,11 +50,23 @@ export default async function SessionsPage() {
     if (!row.season_id) {
       withoutSeason.push(row);
     } else {
-      const name = seasonMap.get(row.season_id)?.name ?? "Unbekannte Saison";
-      groups[name] = groups[name] ?? [];
-      groups[name].push(row);
+      const arr = seasonSessions.get(row.season_id) ?? [];
+      arr.push(row);
+      seasonSessions.set(row.season_id, arr);
     }
   });
+
+  // Sortierte Saisonliste (neueste oben)
+  const seasonListSorted = (seasons ?? []).slice() as Season[];
+
+  // Innerhalb jeder Saison: Termine neueste oben
+  for (const [sid, arr] of seasonSessions.entries()) {
+    arr.sort((a, b) => (a.date < b.date ? 1 : -1));
+    seasonSessions.set(sid, arr);
+  }
+
+  // Ohne Saison: neueste oben
+  withoutSeason.sort((a, b) => (a.date < b.date ? 1 : -1));
 
   return (
     <div className="space-y-4">
@@ -68,39 +90,53 @@ export default async function SessionsPage() {
         </Link>
       </div>
 
-      {error && (
+      {(sErr || error) && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-          Fehler: {error.message}
+          Fehler: {sErr?.message ?? error?.message}
         </div>
       )}
 
-      {/* Saison-Gruppen */}
       <div className="space-y-3">
-        {Object.entries(groups).map(([seasonName, list]) => (
-          <div key={seasonName} className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="text-xs font-semibold text-slate-700 mb-2">{seasonName}</div>
+        {/* Saisons (neueste zuerst) */}
+        {seasonListSorted.map((season) => {
+          const list = seasonSessions.get(season.id) ?? [];
+          if (list.length === 0) return null;
 
-            <div className="space-y-2">
-              {list.map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/sessions/${s.id}`}
-                  className="block rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm hover:bg-slate-50"
-                >
-                  <div className="font-semibold text-slate-900">
-                    {new Date(s.date).toLocaleDateString("de-DE")}
-                  </div>
-                  {s.notes && <div className="text-xs text-slate-500">{s.notes}</div>}
-                </Link>
-              ))}
+          return (
+            <div
+              key={season.id}
+              className="rounded-xl border border-slate-200 bg-white p-3"
+            >
+              <div className="text-xs font-semibold text-slate-700 mb-2">
+                {season.name}
+              </div>
+
+              <div className="space-y-2">
+                {list.map((s) => (
+                  <Link
+                    key={s.id}
+                    href={`/sessions/${s.id}`}
+                    className="block rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm hover:bg-slate-50"
+                  >
+                    <div className="font-semibold text-slate-900">
+                      {fmtDateDE(s.date)}
+                    </div>
+                    {s.notes && (
+                      <div className="text-xs text-slate-500">{s.notes}</div>
+                    )}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
-        {/* Ohne Saison (sollte selten sein) */}
+        {/* Ohne Saison ganz unten */}
         {withoutSeason.length > 0 && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <div className="text-xs font-semibold text-amber-800 mb-2">Ohne Saison</div>
+            <div className="text-xs font-semibold text-amber-800 mb-2">
+              Ohne Saison
+            </div>
             <div className="space-y-2">
               {withoutSeason.map((s) => (
                 <Link
@@ -109,9 +145,11 @@ export default async function SessionsPage() {
                   className="block rounded-xl border border-amber-200 bg-white px-3 py-3 shadow-sm hover:bg-amber-100"
                 >
                   <div className="font-semibold text-slate-900">
-                    {new Date(s.date).toLocaleDateString("de-DE")}
+                    {fmtDateDE(s.date)}
                   </div>
-                  {s.notes && <div className="text-xs text-slate-500">{s.notes}</div>}
+                  {s.notes && (
+                    <div className="text-xs text-slate-500">{s.notes}</div>
+                  )}
                 </Link>
               ))}
             </div>
