@@ -63,13 +63,20 @@ export default function AdminPlayersPage() {
     return players.filter((p) => p.name.toLowerCase().includes(needle));
   }, [players, q]);
 
-  function currentStrength(p: Player) {
-    return (patches[p.id]?.strength ?? p.strength ?? 3) as number;
+  function currentStrength(p: Player): number {
+    const patched = patches[p.id]?.strength;
+    const base = p.strength ?? 3;
+    return (patched ?? base) as number;
   }
 
-  function currentActive(p: Player) {
-    const v = patches[p.id]?.is_active;
-    return v !== undefined ? v : p.is_active !== false;
+  function currentActive(p: Player): boolean {
+    // WICHTIG: immer boolean zurückgeben
+    const patched = patches[p.id]?.is_active;
+    if (patched === true) return true;
+    if (patched === false) return false;
+
+    // DB: null bedeutet bei dir "aktiv" (default true)
+    return p.is_active !== false;
   }
 
   function setStrength(id: number, strength: number) {
@@ -201,7 +208,7 @@ export default function AdminPlayersPage() {
                   <span className="text-[11px] text-slate-500">Aktiv</span>
                   <input
                     type="checkbox"
-                    checked={currentActive(p)}
+                    checked={currentActive(p)}  // <- jetzt immer boolean ✅
                     onChange={(e) => toggleActive(p.id, e.target.checked)}
                   />
                 </label>
@@ -212,8 +219,8 @@ export default function AdminPlayersPage() {
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500">
-        Hinweis: Bearbeiten von Name/Position/Altersgruppe machen wir entweder in einer Edit-Seite
-        oder direkt im Supabase Table Editor (wie du’s bisher gemacht hast).
+        Hinweis: Name/Position/Altersgruppe kannst du weiterhin im Supabase Table Editor ändern
+        (oder wir bauen dir eine Edit-Seite pro Spieler).
       </div>
     </div>
   );
