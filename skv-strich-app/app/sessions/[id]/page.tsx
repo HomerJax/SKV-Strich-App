@@ -73,6 +73,27 @@ function sumPos(team: Player[]) {
   return team.reduce((s, p) => s + posScore(p.preferred_position), 0);
 }
 
+/**
+ * Sortierung für Anzeige:
+ * 1) Torwart
+ * 2) Hinten
+ * 3) Vorne
+ * 4) Unbekannt
+ * innerhalb alphabetisch
+ */
+function positionRank(pos: Player["preferred_position"]) {
+  if (pos === "goalkeeper") return 0;
+  if (pos === "defense") return 1;
+  if (pos === "attack") return 2;
+  return 3;
+}
+function sortForTeamView(a: Player, b: Player) {
+  const ra = positionRank(a.preferred_position);
+  const rb = positionRank(b.preferred_position);
+  if (ra !== rb) return ra - rb;
+  return a.name.localeCompare(b.name, "de");
+}
+
 export default function SessionDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -173,11 +194,22 @@ export default function SessionDetailPage() {
     load();
   }, [sessionId]);
 
-  const presentPlayers = useMemo(() => players.filter((p) => presentIds.includes(p.id)), [players, presentIds]);
-  const teamA = useMemo(() => presentPlayers.filter((p) => manualTeams[p.id] === "A"), [presentPlayers, manualTeams]);
-  const teamB = useMemo(() => presentPlayers.filter((p) => manualTeams[p.id] === "B"), [presentPlayers, manualTeams]);
+  const presentPlayers = useMemo(
+    () => players.filter((p) => presentIds.includes(p.id)),
+    [players, presentIds]
+  );
+
+  // ✅ Teams jetzt sortiert für die Anzeige
+  const teamA = useMemo(
+    () => presentPlayers.filter((p) => manualTeams[p.id] === "A").slice().sort(sortForTeamView),
+    [presentPlayers, manualTeams]
+  );
+  const teamB = useMemo(
+    () => presentPlayers.filter((p) => manualTeams[p.id] === "B").slice().sort(sortForTeamView),
+    [presentPlayers, manualTeams]
+  );
   const unassigned = useMemo(
-    () => presentPlayers.filter((p) => !manualTeams[p.id]),
+    () => presentPlayers.filter((p) => !manualTeams[p.id]).slice().sort(sortForTeamView),
     [presentPlayers, manualTeams]
   );
 
@@ -241,6 +273,7 @@ export default function SessionDetailPage() {
       const A: Player[] = [];
       const B: Player[] = [];
 
+      // Torwarte fair verteilen (aber Teamgrößen beachten)
       const shuffledKeepers = shuffle(keepers);
       for (const gk of shuffledKeepers) {
         if (A.length < targetA && (A.length <= B.length || B.length >= targetB)) A.push(gk);
@@ -304,11 +337,11 @@ export default function SessionDetailPage() {
       setErr(null);
       setMsg(null);
 
-      const A = presentPlayers.filter((p) => manualTeams[p.id] === "A");
-      const B = presentPlayers.filter((p) => manualTeams[p.id] === "B");
+      const Araw = presentPlayers.filter((p) => manualTeams[p.id] === "A");
+      const Braw = presentPlayers.filter((p) => manualTeams[p.id] === "B");
 
-      if (A.length === 0 || B.length === 0) throw new Error("Beide Teams brauchen mindestens einen Spieler.");
-      if (Math.abs(A.length - B.length) > 1) throw new Error("Teams dürfen höchstens 1 Spieler Unterschied haben.");
+      if (Araw.length === 0 || Braw.length === 0) throw new Error("Beide Teams brauchen mindestens einen Spieler.");
+      if (Math.abs(Araw.length - Braw.length) > 1) throw new Error("Teams dürfen höchstens 1 Spieler Unterschied haben.");
 
       const { data: existing } = await supabase
         .from("results")
@@ -342,8 +375,8 @@ export default function SessionDetailPage() {
       await supabase.from("team_players").delete().in("team_id", [teamAId, teamBId]);
 
       await supabase.from("team_players").insert([
-        ...A.map((p) => ({ team_id: teamAId, player_id: p.id })),
-        ...B.map((p) => ({ team_id: teamBId, player_id: p.id })),
+        ...Araw.map((p) => ({ team_id: teamAId, player_id: p.id })),
+        ...Braw.map((p) => ({ team_id: teamBId, player_id: p.id })),
       ]);
 
       const payload = {
@@ -388,12 +421,10 @@ export default function SessionDetailPage() {
 
   return (
     <div className="space-y-4">
-      {/* Back */}
       <button onClick={() => router.push("/sessions")} className="text-xs text-slate-500 hover:text-slate-700">
         ← Zurück zu Trainings
       </button>
 
-      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">
@@ -410,7 +441,6 @@ export default function SessionDetailPage() {
         </button>
       </div>
 
-      {/* Errors / Msg */}
       {err && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
           {err}
@@ -422,7 +452,7 @@ export default function SessionDetailPage() {
         </div>
       )}
 
-      {/* Presence */}
+      {/* Anwesenheit */}
       <div className="rounded-xl border p-3 bg-white space-y-2">
         <div className="flex items-center justify-between">
           <div className="text-xs font-semibold">Anwesenheit</div>
@@ -533,7 +563,7 @@ export default function SessionDetailPage() {
           </div>
         </div>
 
-        {/* Unassigned */}
+        {/* Nicht zugewiesen */}
         <div className="rounded-lg border p-2">
           <div className="text-xs font-semibold mb-2">Nicht zugewiesen ({unassigned.length})</div>
 
@@ -577,11 +607,11 @@ export default function SessionDetailPage() {
         </div>
 
         <div className="text-[11px] text-slate-500">
-          Hinweis: Teams dürfen höchstens 1 Spieler Unterschied haben. Der Generator erzwingt das automatisch.
+          Hinweis: Anzeige ist nach Torwart / Hinten / Vorne sortiert (danach alphabetisch).
         </div>
       </div>
 
-      {/* Result */}
+      {/* Ergebnis */}
       <div ref={resultRef} className="rounded-xl border bg-white p-3 space-y-3">
         <div className="text-xs font-semibold">Ergebnis</div>
 
