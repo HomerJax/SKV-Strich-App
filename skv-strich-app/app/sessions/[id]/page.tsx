@@ -10,6 +10,7 @@ type Player = {
   age_group: string | null; // "AH" | "Ü32"
   preferred_position: string | null; // "defense" | "attack" | "goalkeeper"
   is_active: boolean | null;
+  strength: number | null; // 1..5 (admin-only)
 };
 
 type SessionRow = {
@@ -42,6 +43,12 @@ function ageBadgeColor(age: string | null) {
 const ageScore = (a: string | null) => (a === "Ü32" ? 1 : a === "AH" ? -1 : 0);
 const posScore = (p: string | null) => (p === "attack" ? 1 : p === "defense" ? -1 : 0);
 
+// Stärke 1..5 -> -2..+2 (3 ist neutral)
+const strengthScore = (s: number | null) => {
+  const v = s ?? 3;
+  return v - 3;
+};
+
 function sortForDisplay(list: Player[]) {
   const prio = (p: Player) => {
     if (p.preferred_position === "goalkeeper") return 0;
@@ -53,15 +60,17 @@ function sortForDisplay(list: Player[]) {
 }
 
 function stats(list: Player[]) {
-  const out = {
-    total: list.length,
-    gk: list.filter((p) => p.preferred_position === "goalkeeper").length,
-    def: list.filter((p) => p.preferred_position === "defense").length,
-    att: list.filter((p) => p.preferred_position === "attack").length,
-    ah: list.filter((p) => p.age_group === "AH").length,
-    u32: list.filter((p) => p.age_group === "Ü32").length,
-  };
-  return out;
+  const total = list.length;
+  const gk = list.filter((p) => p.preferred_position === "goalkeeper").length;
+  const def = list.filter((p) => p.preferred_position === "defense").length;
+  const att = list.filter((p) => p.preferred_position === "attack").length;
+  const ah = list.filter((p) => p.age_group === "AH").length;
+  const u32 = list.filter((p) => p.age_group === "Ü32").length;
+
+  const strengthSum = list.reduce((s, p) => s + (p.strength ?? 3), 0);
+  const strengthAvg = total > 0 ? Math.round((strengthSum / total) * 10) / 10 : 0;
+
+  return { total, gk, def, att, ah, u32, strengthAvg };
 }
 
 export default function SessionDetailPage() {
@@ -79,7 +88,6 @@ export default function SessionDetailPage() {
 
   const [goalsA, setGoalsA] = useState("");
   const [goalsB, setGoalsB] = useState("");
-  const [hasResult, setHasResult] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,7 +101,6 @@ export default function SessionDetailPage() {
         setLoading(true);
         setErr(null);
 
-        // Session
         const { data: sData, error: sErr } = await supabase
           .from("sessions")
           .select("id, date, notes")
@@ -101,16 +108,14 @@ export default function SessionDetailPage() {
           .single();
         if (sErr) throw sErr;
 
-        // Spieler
         const { data: pData, error: pErr } = await supabase
           .from("players")
-          .select("id, name, is_active, age_group, preferred_position")
+          .select("id, name, is_active, age_group, preferred_position, strength")
           .order("name");
         if (pErr) throw pErr;
 
         const active = (pData ?? []).filter((p) => p.is_active !== false) as Player[];
 
-        // Anwesenheit
         const { data: spData, error: spErr } = await supabase
           .from("session_players")
           .select("player_id")
@@ -119,7 +124,7 @@ export default function SessionDetailPage() {
 
         const present = (spData ?? []).map((r) => r.player_id as number);
 
-        // Ergebnis
+        // Ergebnis/Teams laden (wenn vorhanden)
         const { data: rData } = await supabase
           .from("results")
           .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
@@ -143,8 +148,6 @@ export default function SessionDetailPage() {
 
           if (rData.goals_team_a != null) setGoalsA(String(rData.goals_team_a));
           if (rData.goals_team_b != null) setGoalsB(String(rData.goals_team_b));
-
-          setHasResult(true);
         }
 
         setSession(sData as SessionRow);
@@ -177,7 +180,6 @@ export default function SessionDetailPage() {
 
     if (isPresent) {
       await supabase.from("session_players").delete().eq("session_id", sessionId).eq("player_id", id);
-
       setPresentIds((x) => x.filter((p) => p !== id));
       setManualTeams((m) => {
         const copy = { ...m };
@@ -191,12 +193,11 @@ export default function SessionDetailPage() {
     }
   }
 
-  // ---------- Zuweisung ----------
   function setTeam(pid: number, t: "A" | "B" | null) {
     setManualTeams((m) => ({ ...m, [pid]: t }));
   }
 
-  // ---------- Teamgenerator ----------
+  // ---------- Teamgenerator (mit Stärke) ----------
   function generateTeams() {
     setMsg(null);
     setErr(null);
@@ -212,6 +213,7 @@ export default function SessionDetailPage() {
     const a: Player[] = [];
     const b: Player[] = [];
 
+    // Torwarte: abwechselnd
     keepers.forEach((k, i) => (i % 2 === 0 ? a.push(k) : b.push(k)));
 
     function evaluate(A: Player[], B: Player[]) {
@@ -221,8 +223,13 @@ export default function SessionDetailPage() {
       const pd =
         Math.abs(A.reduce((s, p) => s + posScore(p.preferred_position), 0) - B.reduce((s, p) => s + posScore(p.preferred_position), 0)) * 2;
 
-      const sd = Math.abs(A.length - B.length);
-      return ad + pd + sd;
+      // NEU: Stärke-Balance
+      const sdStrength =
+        Math.abs(A.reduce((s, p) => s + strengthScore(p.strength), 0) - B.reduce((s, p) => s + strengthScore(p.strength), 0)) * 4;
+
+      const sdCount = Math.abs(A.length - B.length) * 2;
+
+      return ad + pd + sdStrength + sdCount;
     }
 
     function shuffle<T>(x: T[]) {
@@ -238,12 +245,14 @@ export default function SessionDetailPage() {
     let bestB: Player[] = [];
     let best = Infinity;
 
-    for (let k = 0; k < 250; k++) {
+    for (let k = 0; k < 350; k++) {
       const A = [...a];
       const B = [...b];
+
       for (const p of shuffle(field)) {
         (A.length > B.length ? B : A).push(p);
       }
+
       const score = evaluate(A, B);
       if (score < best) {
         best = score;
@@ -260,7 +269,7 @@ export default function SessionDetailPage() {
     });
 
     setManualTeams(next);
-    setMsg("Teams automatisch verteilt. Du kannst Spieler jetzt manuell umschieben.");
+    setMsg("Teams automatisch verteilt (inkl. Stärke-Balance). Du kannst manuell nachjustieren.");
   }
 
   // ---------- Ergebnis speichern ----------
@@ -275,8 +284,7 @@ export default function SessionDetailPage() {
 
       if (A.length === 0 || B.length === 0) throw new Error("Beide Teams brauchen mindestens einen Spieler.");
 
-      const { data: existing } = await supabase.from("results").select("id").eq("session_id", sessionId).maybeSingle();
-
+      // Teams sicherstellen
       async function ensureTeam(name: string) {
         const { data } = await supabase.from("teams").select("id").eq("session_id", sessionId).eq("name", name).maybeSingle();
         if (data) return data.id;
@@ -287,13 +295,14 @@ export default function SessionDetailPage() {
       const teamAId = await ensureTeam("Team 1");
       const teamBId = await ensureTeam("Team 2");
 
+      // team_players neu schreiben
       await supabase.from("team_players").delete().in("team_id", [teamAId, teamBId]);
-
       await supabase.from("team_players").insert([
         ...A.map((p) => ({ team_id: teamAId, player_id: p.id })),
         ...B.map((p) => ({ team_id: teamBId, player_id: p.id })),
       ]);
 
+      // Ergebnis upsert
       const payload = {
         session_id: sessionId,
         team_a_id: teamAId,
@@ -302,11 +311,11 @@ export default function SessionDetailPage() {
         goals_team_b: goalsB === "" ? null : Number(goalsB),
       };
 
+      const { data: existing } = await supabase.from("results").select("id").eq("session_id", sessionId).maybeSingle();
       if (existing) await supabase.from("results").update(payload).eq("session_id", sessionId);
       else await supabase.from("results").insert(payload);
 
-      setHasResult(true);
-      setMsg("Ergebnis gespeichert.");
+      setMsg("Ergebnis gespeichert ✅");
     } catch (e: any) {
       setErr(e.message ?? "Fehler beim Speichern.");
     } finally {
@@ -322,12 +331,10 @@ export default function SessionDetailPage() {
 
   return (
     <div className="space-y-4">
-      {/* Zurück */}
       <button onClick={() => router.push("/sessions")} className="text-xs text-slate-500 hover:text-slate-700">
         ← Zurück zu Trainings
       </button>
 
-      {/* Kopf */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">
@@ -423,14 +430,11 @@ export default function SessionDetailPage() {
 
         {/* Team-Karten */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Team 1 */}
           <div className="space-y-2 rounded-lg border p-2">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="text-xs font-semibold">Team 1 ({teamA.length})</div>
-                <div className="text-[11px] text-slate-500">
-                  GK {sA.gk} · Hinten {sA.def} · Vorne {sA.att} · AH {sA.ah} · Ü32 {sA.u32}
-                </div>
+            <div>
+              <div className="text-xs font-semibold">Team 1 ({teamA.length})</div>
+              <div className="text-[11px] text-slate-500">
+                GK {sA.gk} · Hinten {sA.def} · Vorne {sA.att} · AH {sA.ah} · Ü32 {sA.u32} · ØStärke {sA.strengthAvg}
               </div>
             </div>
 
@@ -441,7 +445,7 @@ export default function SessionDetailPage() {
                 {teamA.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => setTeam(p.id, null)} // rauswerfen -> unzugeordnet
+                    onClick={() => setTeam(p.id, null)}
                     className="w-full text-left rounded-md border px-2 py-1 text-sm hover:bg-slate-50"
                     title="Klick = aus Team entfernen"
                   >
@@ -462,14 +466,11 @@ export default function SessionDetailPage() {
             )}
           </div>
 
-          {/* Team 2 */}
           <div className="space-y-2 rounded-lg border p-2">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="text-xs font-semibold">Team 2 ({teamB.length})</div>
-                <div className="text-[11px] text-slate-500">
-                  GK {sB.gk} · Hinten {sB.def} · Vorne {sB.att} · AH {sB.ah} · Ü32 {sB.u32}
-                </div>
+            <div>
+              <div className="text-xs font-semibold">Team 2 ({teamB.length})</div>
+              <div className="text-[11px] text-slate-500">
+                GK {sB.gk} · Hinten {sB.def} · Vorne {sB.att} · AH {sB.ah} · Ü32 {sB.u32} · ØStärke {sB.strengthAvg}
               </div>
             </div>
 
@@ -480,7 +481,7 @@ export default function SessionDetailPage() {
                 {teamB.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => setTeam(p.id, null)} // rauswerfen -> unzugeordnet
+                    onClick={() => setTeam(p.id, null)}
                     className="w-full text-left rounded-md border px-2 py-1 text-sm hover:bg-slate-50"
                     title="Klick = aus Team entfernen"
                   >
@@ -533,8 +534,6 @@ export default function SessionDetailPage() {
         >
           {saving ? "Speichere…" : "Ergebnis speichern"}
         </button>
-
-        {hasResult && <div className="text-[11px] text-slate-500">Hinweis: Ergebnis überschreibt die gespeicherten Teams.</div>}
       </div>
     </div>
   );
