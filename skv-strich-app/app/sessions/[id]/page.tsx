@@ -216,7 +216,7 @@ export default function SessionDetailPage() {
   // ---------- Presence toggle (sperren wenn Ergebnis existiert) ----------
   async function togglePresence(id: number) {
     if (hasResult) {
-      setErr("Anwesenheit ist gesperrt, weil bereits ein Ergebnis gespeichert ist.");
+      setErr("Anwesenheit ist gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um wieder zu entsperren.");
       return;
     }
     setErr(null);
@@ -225,7 +225,11 @@ export default function SessionDetailPage() {
     const isPresent = presentIds.includes(id);
 
     if (isPresent) {
-      await supabase.from("session_players").delete().eq("session_id", sessionId).eq("player_id", id);
+      await supabase
+        .from("session_players")
+        .delete()
+        .eq("session_id", sessionId)
+        .eq("player_id", id);
 
       setPresentIds((x) => x.filter((p) => p !== id));
       setManualTeams((m) => {
@@ -243,6 +247,10 @@ export default function SessionDetailPage() {
 
   // ---------- Generator (Größe hart, Stärke intern priorisiert - NICHT anzeigen) ----------
   function generateTeams() {
+    if (hasResult) {
+      setErr("Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern.");
+      return;
+    }
     setErr(null);
     setMsg(null);
 
@@ -327,11 +335,20 @@ export default function SessionDetailPage() {
 
   // ---------- Manual assignment ----------
   function setSide(pid: number, side: TeamSide | null) {
+    if (hasResult) {
+      setErr("Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern.");
+      return;
+    }
+    setErr(null);
     setManualTeams((m) => ({ ...m, [pid]: side }));
   }
 
   // ---------- Save result ----------
   async function saveResult() {
+    // Optionaler extra Schutz (kannst du drin lassen)
+    const ok = window.confirm("Ergebnis speichern? Danach sind Aufstellungen & Anwesenheit gesperrt.");
+    if (!ok) return;
+
     try {
       setSaving(true);
       setErr(null);
@@ -396,9 +413,36 @@ export default function SessionDetailPage() {
       }
 
       setHasResult(true);
-      setMsg("Ergebnis gespeichert. Anwesenheit ist ab jetzt gesperrt.");
+      setMsg("Ergebnis gespeichert. Aufstellungen & Anwesenheit sind ab jetzt gesperrt.");
     } catch (e: any) {
       setErr(e?.message ?? "Fehler beim Speichern.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ---------- Delete result (unlock) ----------
+  async function deleteResult() {
+    const ok = window.confirm(
+      "Ergebnis wirklich löschen?\nDanach sind Aufstellungen & Anwesenheit wieder bearbeitbar."
+    );
+    if (!ok) return;
+
+    try {
+      setSaving(true);
+      setErr(null);
+      setMsg(null);
+
+      const { error } = await supabase.from("results").delete().eq("session_id", sessionId);
+      if (error) throw error;
+
+      setHasResult(false);
+      setGoalsA("");
+      setGoalsB("");
+
+      setMsg("Ergebnis gelöscht. Aufstellungen & Anwesenheit sind wieder bearbeitbar.");
+    } catch (e: any) {
+      setErr(e?.message ?? "Fehler beim Löschen des Ergebnisses.");
     } finally {
       setSaving(false);
     }
@@ -490,10 +534,21 @@ export default function SessionDetailPage() {
       <div className="rounded-xl border bg-white p-3 space-y-3">
         <div className="flex justify-between items-center">
           <div className="text-xs font-semibold">Teams</div>
-          <button onClick={generateTeams} className="text-xs border px-2 py-1 rounded-lg">
+          <button
+            onClick={generateTeams}
+            disabled={hasResult}
+            className={`text-xs border px-2 py-1 rounded-lg ${hasResult ? "opacity-60 cursor-not-allowed" : ""}`}
+            title={hasResult ? "Gesperrt: Ergebnis gespeichert" : "Teams automatisch verteilen"}
+          >
             Teams generieren
           </button>
         </div>
+
+        {hasResult && (
+          <div className="text-[11px] text-slate-500">
+            Teams sind gesperrt, weil ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern.
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           {/* Team 1 */}
@@ -511,8 +566,11 @@ export default function SessionDetailPage() {
                   <button
                     key={p.id}
                     onClick={() => setSide(p.id, null)}
-                    className="w-full text-left rounded-md px-2 py-1 text-xs border bg-white hover:bg-slate-50 flex items-center justify-between"
-                    title="Klick: aus Team entfernen"
+                    disabled={hasResult}
+                    className={`w-full text-left rounded-md px-2 py-1 text-xs border bg-white hover:bg-slate-50 flex items-center justify-between ${
+                      hasResult ? "opacity-60 cursor-not-allowed hover:bg-white" : ""
+                    }`}
+                    title={hasResult ? "Gesperrt: Ergebnis gespeichert" : "Klick: aus Team entfernen"}
                   >
                     <span className="truncate">{p.name}</span>
                     <span className="flex items-center gap-1">
@@ -544,8 +602,11 @@ export default function SessionDetailPage() {
                   <button
                     key={p.id}
                     onClick={() => setSide(p.id, null)}
-                    className="w-full text-left rounded-md px-2 py-1 text-xs border bg-white hover:bg-slate-50 flex items-center justify-between"
-                    title="Klick: aus Team entfernen"
+                    disabled={hasResult}
+                    className={`w-full text-left rounded-md px-2 py-1 text-xs border bg-white hover:bg-slate-50 flex items-center justify-between ${
+                      hasResult ? "opacity-60 cursor-not-allowed hover:bg-white" : ""
+                    }`}
+                    title={hasResult ? "Gesperrt: Ergebnis gespeichert" : "Klick: aus Team entfernen"}
                   >
                     <span className="truncate">{p.name}</span>
                     <span className="flex items-center gap-1">
@@ -588,14 +649,22 @@ export default function SessionDetailPage() {
 
                   <div className="flex items-center gap-1 shrink-0">
                     <button
-                      className="rounded-md border px-2 py-1 text-[11px] hover:bg-slate-50"
+                      disabled={hasResult}
+                      className={`rounded-md border px-2 py-1 text-[11px] hover:bg-slate-50 ${
+                        hasResult ? "opacity-60 cursor-not-allowed hover:bg-white" : ""
+                      }`}
                       onClick={() => setSide(p.id, "A")}
+                      title={hasResult ? "Gesperrt: Ergebnis gespeichert" : "Zu Team 1"}
                     >
                       → Team 1
                     </button>
                     <button
-                      className="rounded-md border px-2 py-1 text-[11px] hover:bg-slate-50"
+                      disabled={hasResult}
+                      className={`rounded-md border px-2 py-1 text-[11px] hover:bg-slate-50 ${
+                        hasResult ? "opacity-60 cursor-not-allowed hover:bg-white" : ""
+                      }`}
                       onClick={() => setSide(p.id, "B")}
+                      title={hasResult ? "Gesperrt: Ergebnis gespeichert" : "Zu Team 2"}
                     >
                       → Team 2
                     </button>
@@ -613,7 +682,19 @@ export default function SessionDetailPage() {
 
       {/* Ergebnis */}
       <div ref={resultRef} className="rounded-xl border bg-white p-3 space-y-3">
-        <div className="text-xs font-semibold">Ergebnis</div>
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-semibold">Ergebnis</div>
+
+          {hasResult && (
+            <button
+              disabled={saving}
+              onClick={deleteResult}
+              className="rounded-lg border px-3 py-1.5 text-xs shadow-sm bg-red-50"
+            >
+              Ergebnis löschen
+            </button>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           <input
@@ -638,6 +719,11 @@ export default function SessionDetailPage() {
         >
           {saving ? "Speichere…" : "Ergebnis speichern"}
         </button>
+
+        <div className="text-[11px] text-slate-500">
+          Hinweis: Nach dem Speichern sind Aufstellungen & Anwesenheit gesperrt. Wenn ein Spieler fehlt, lösche das Ergebnis,
+          passe Aufstellungen an und trage das Ergebnis erneut ein.
+        </div>
       </div>
     </div>
   );
