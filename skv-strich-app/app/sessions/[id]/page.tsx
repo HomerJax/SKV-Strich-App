@@ -22,6 +22,13 @@ type SessionRow = {
 type TeamSide = "A" | "B";
 type TeamMap = Record<number, TeamSide | null>;
 
+function getErrorMessage(e: unknown, fallback: string) {
+  if (e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string") {
+    return (e as { message: string }).message;
+  }
+  return fallback;
+}
+
 function positionLabel(pos: Player["preferred_position"]) {
   if (pos === "defense") return "Hinten";
   if (pos === "attack") return "Vorne";
@@ -156,7 +163,7 @@ export default function SessionDetailPage() {
           .eq("session_id", sessionId)
           .maybeSingle();
 
-        let teamAssignment: TeamMap = {};
+        const teamAssignment: TeamMap = {};
         present.forEach((pid) => (teamAssignment[pid] = null));
 
         if (rData && (rData.team_a_id || rData.team_b_id)) {
@@ -184,8 +191,8 @@ export default function SessionDetailPage() {
         setPlayers(active);
         setPresentIds(present);
         setManualTeams(teamAssignment);
-      } catch (e: any) {
-        setErr(e?.message ?? "Fehler beim Laden.");
+      } catch (e: unknown) {
+        setErr(getErrorMessage(e, "Fehler beim Laden."));
       } finally {
         setLoading(false);
       }
@@ -251,6 +258,7 @@ export default function SessionDetailPage() {
       setErr("Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern.");
       return;
     }
+
     setErr(null);
     setMsg(null);
 
@@ -345,7 +353,6 @@ export default function SessionDetailPage() {
 
   // ---------- Save result ----------
   async function saveResult() {
-    // Optionaler extra Schutz (kannst du drin lassen)
     const ok = window.confirm("Ergebnis speichern? Danach sind Aufstellungen & Anwesenheit gesperrt.");
     if (!ok) return;
 
@@ -414,8 +421,8 @@ export default function SessionDetailPage() {
 
       setHasResult(true);
       setMsg("Ergebnis gespeichert. Aufstellungen & Anwesenheit sind ab jetzt gesperrt.");
-    } catch (e: any) {
-      setErr(e?.message ?? "Fehler beim Speichern.");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Fehler beim Speichern."));
     } finally {
       setSaving(false);
     }
@@ -441,8 +448,8 @@ export default function SessionDetailPage() {
       setGoalsB("");
 
       setMsg("Ergebnis gelöscht. Aufstellungen & Anwesenheit sind wieder bearbeitbar.");
-    } catch (e: any) {
-      setErr(e?.message ?? "Fehler beim Löschen des Ergebnisses.");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Fehler beim Löschen des Ergebnisses."));
     } finally {
       setSaving(false);
     }
@@ -538,7 +545,6 @@ export default function SessionDetailPage() {
             onClick={generateTeams}
             disabled={hasResult}
             className={`text-xs border px-2 py-1 rounded-lg ${hasResult ? "opacity-60 cursor-not-allowed" : ""}`}
-            title={hasResult ? "Gesperrt: Ergebnis gespeichert" : "Teams automatisch verteilen"}
           >
             Teams generieren
           </button>
@@ -654,7 +660,6 @@ export default function SessionDetailPage() {
                         hasResult ? "opacity-60 cursor-not-allowed hover:bg-white" : ""
                       }`}
                       onClick={() => setSide(p.id, "A")}
-                      title={hasResult ? "Gesperrt: Ergebnis gespeichert" : "Zu Team 1"}
                     >
                       → Team 1
                     </button>
@@ -664,7 +669,6 @@ export default function SessionDetailPage() {
                         hasResult ? "opacity-60 cursor-not-allowed hover:bg-white" : ""
                       }`}
                       onClick={() => setSide(p.id, "B")}
-                      title={hasResult ? "Gesperrt: Ergebnis gespeichert" : "Zu Team 2"}
                     >
                       → Team 2
                     </button>

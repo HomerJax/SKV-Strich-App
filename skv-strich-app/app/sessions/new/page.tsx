@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";

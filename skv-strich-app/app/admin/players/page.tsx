@@ -1,227 +1,321 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase } from "../../../lib/supabaseClient";
+
+type AgeGroup = "AH" | "Ü32" | null;
+type PreferredPosition = "defense" | "attack" | "goalkeeper" | null;
 
 type Player = {
   id: number;
   name: string;
-  age_group: string | null; // AH | Ü32
-  preferred_position: string | null; // defense | attack | goalkeeper
+  age_group: AgeGroup;
+  preferred_position: PreferredPosition;
+  strength: number | null;
   is_active: boolean | null;
-  strength: number | null; // 1..5
 };
 
-function posLabel(p: string | null) {
-  if (p === "defense") return "Hinten";
-  if (p === "attack") return "Vorne";
-  if (p === "goalkeeper") return "Torwart";
-  return "Unbekannt";
+function getErrorMessage(e: unknown, fallback: string) {
+  if (e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string") {
+    return (e as { message: string }).message;
+  }
+  return fallback;
+}
+
+function toStrength(value: string): number | null {
+  if (value.trim() === "") return null;
+  const n = Number(value);
+  if (Number.isNaN(n)) return null;
+  return Math.max(1, Math.min(5, n));
 }
 
 export default function AdminPlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [draft, setDraft] = useState<Record<number, Player>>({});
   const [loading, setLoading] = useState(true);
-
-  const [saving, setSaving] = useState(false);
+  const [savingId, setSavingId] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
+  const [showInactive, setShowInactive] = useState(true);
 
-  // lokale Änderungen (id -> patch)
-  const [patches, setPatches] = useState<
-    Record<number, Partial<Pick<Player, "strength" | "is_active">>>
-  >({});
-
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setErr(null);
-
-        const { data, error } = await supabase
-          .from("players")
-          .select("id, name, age_group, preferred_position, is_active, strength")
-          .order("name", { ascending: true });
-
-        if (error) throw error;
-
-        setPlayers((data ?? []) as Player[]);
-      } catch (e: any) {
-        setErr(e?.message ?? "Fehler beim Laden.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return players;
-    return players.filter((p) => p.name.toLowerCase().includes(needle));
-  }, [players, q]);
-
-  function currentStrength(p: Player): number {
-    const patched = patches[p.id]?.strength;
-    const base = p.strength ?? 3;
-    return (patched ?? base) as number;
-  }
-
-  function currentActive(p: Player): boolean {
-    // WICHTIG: immer boolean zurückgeben
-    const patched = patches[p.id]?.is_active;
-    if (patched === true) return true;
-    if (patched === false) return false;
-
-    // DB: null bedeutet bei dir "aktiv" (default true)
-    return p.is_active !== false;
-  }
-
-  function setStrength(id: number, strength: number) {
-    setPatches((prev) => ({ ...prev, [id]: { ...prev[id], strength } }));
-  }
-
-  function toggleActive(id: number, active: boolean) {
-    setPatches((prev) => ({ ...prev, [id]: { ...prev[id], is_active: active } }));
-  }
-
-  async function saveAll() {
+  async function load() {
     try {
-      setSaving(true);
+      setLoading(true);
       setErr(null);
       setMsg(null);
 
-      const ids = Object.keys(patches).map(Number);
-      if (ids.length === 0) {
-        setMsg("Keine Änderungen zum Speichern.");
-        return;
-      }
+      const { data, error } = await supabase
+        .from("players")
+        .select("id, name, age_group, preferred_position, strength, is_active")
+        .order("name");
 
-      for (const id of ids) {
-        const patch = patches[id];
-        const { error } = await supabase.from("players").update(patch).eq("id", id);
-        if (error) throw error;
-      }
+      if (error) throw error;
 
-      // lokal aktualisieren
-      setPlayers((prev) =>
-        prev.map((p) => (patches[p.id] ? { ...p, ...patches[p.id] } : p))
-      );
+      const list = (data ?? []) as Player[];
+      setPlayers(list);
 
-      setPatches({});
-      setMsg("Gespeichert ✅");
-    } catch (e: any) {
-      setErr(e?.message ?? "Fehler beim Speichern.");
+      const nextDraft: Record<number, Player> = {};
+      for (const p of list) nextDraft[p.id] = { ...p };
+      setDraft(nextDraft);
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Fehler beim Laden."));
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   }
 
-  if (loading) return <div className="p-4 text-sm text-slate-500">Lade…</div>;
+  useEffect(() => {
+    load();
+  }, []);
+
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return players.filter((p) => {
+      if (!showInactive && p.is_active === false) return false;
+      if (!term) return true;
+      return p.name.toLowerCase().includes(term);
+    });
+  }, [players, q, showInactive]);
+
+  function setField(id: number, patch: Partial<Player>) {
+    setDraft((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
+  }
+
+  function isDirty(id: number) {
+    const original = players.find((p) => p.id === id);
+    const current = draft[id];
+    if (!original || !current) return false;
+
+    return (
+      original.name !== current.name ||
+      (original.age_group ?? null) !== (current.age_group ?? null) ||
+      (original.preferred_position ?? null) !== (current.preferred_position ?? null) ||
+      (original.strength ?? null) !== (current.strength ?? null) ||
+      (original.is_active ?? null) !== (current.is_active ?? null)
+    );
+  }
+
+  async function savePlayer(id: number) {
+    const p = draft[id];
+    if (!p) return;
+
+    try {
+      setSavingId(id);
+      setErr(null);
+      setMsg(null);
+
+      const name = (p.name ?? "").trim();
+      if (!name) throw new Error("Name darf nicht leer sein.");
+
+      const payload = {
+        name,
+        age_group: p.age_group ?? null,
+        preferred_position: p.preferred_position ?? null,
+        strength: p.strength === null ? null : Math.max(1, Math.min(5, Number(p.strength))),
+        is_active: p.is_active ?? true,
+      };
+
+      const { error } = await supabase.from("players").update(payload).eq("id", id);
+      if (error) throw error;
+
+      setPlayers((list) => list.map((x) => (x.id === id ? ({ ...x, ...payload } as Player) : x)));
+      setDraft((d) => ({ ...d, [id]: { ...d[id], ...payload } as Player }));
+
+      setMsg(`Gespeichert: ${payload.name}`);
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Fehler beim Speichern."));
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function createPlayer() {
+    const name = window.prompt("Name des neuen Spielers:");
+    if (!name || !name.trim()) return;
+
+    try {
+      setSavingId(-1);
+      setErr(null);
+      setMsg(null);
+
+      const { data, error } = await supabase
+        .from("players")
+        .insert({
+          name: name.trim(),
+          is_active: true,
+          age_group: null,
+          preferred_position: null,
+          strength: null,
+        })
+        .select("id, name, age_group, preferred_position, strength, is_active")
+        .single();
+
+      if (error) throw error;
+
+      const p = data as Player;
+      setPlayers((prev) => [...prev, p].sort((a, b) => a.name.localeCompare(b.name, "de")));
+      setDraft((d) => ({ ...d, [p.id]: { ...p } }));
+
+      setMsg(`Spieler angelegt: ${p.name}`);
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Fehler beim Anlegen."));
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  if (loading) return <div className="p-4 text-sm text-slate-500">Lade Spieler…</div>;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-3">
-            <Link href="/admin" className="text-xs text-slate-500 hover:text-slate-700">
-              ← Admin
-            </Link>
-            <Link href="/" className="text-xs text-slate-500 hover:text-slate-700">
-              ← Start
-            </Link>
-          </div>
-
-          <h1 className="mt-2 text-lg font-semibold text-slate-900">
-            Spieler & Stärken
-          </h1>
-          <p className="text-xs text-slate-500">
-            Stärke (1–5) wird nur für Team-Balancing genutzt und nicht angezeigt.
-          </p>
+          <h1 className="text-lg font-semibold">Admin · Spieler</h1>
+          <div className="text-xs text-slate-500">Ü32/AH + Position + Stärke bearbeiten</div>
         </div>
 
-        <button
-          onClick={saveAll}
-          disabled={saving}
-          className="rounded-xl bg-black px-3 py-2 text-xs font-semibold text-white shadow-sm disabled:opacity-50"
-        >
-          {saving ? "Speichere…" : "Speichern"}
+        <div className="flex items-center gap-2">
+          <Link href="/admin" className="text-xs border rounded-lg px-2 py-1 bg-white">
+            ← Admin
+          </Link>
+          <button
+            onClick={createPlayer}
+            disabled={savingId === -1}
+            className="text-xs border rounded-lg px-2 py-1 bg-emerald-50"
+          >
+            {savingId === -1 ? "Erstelle…" : "Neuer Spieler"}
+          </button>
+        </div>
+      </div>
+
+      {err && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{err}</div>}
+      {msg && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">{msg}</div>}
+
+      <div className="flex flex-col md:flex-row gap-2 md:items-center">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Spieler suchen…"
+          className="rounded-lg border px-3 py-1.5 text-sm bg-white"
+        />
+        <label className="flex items-center gap-2 text-xs text-slate-600">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+          />
+          Inaktive anzeigen
+        </label>
+
+        <button onClick={load} className="text-xs border rounded-lg px-2 py-1 bg-white">
+          Neu laden
         </button>
       </div>
 
-      {err && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-          Fehler: {err}
-        </div>
-      )}
-      {msg && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700">
-          {msg}
-        </div>
-      )}
+      <div className="space-y-3">
+        {filtered.map((p) => {
+          const d = draft[p.id] ?? p;
+          const dirty = isDirty(p.id);
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-xs font-semibold text-slate-700">Suche</div>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Spielername…"
-            className="w-48 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"
-          />
-        </div>
-      </div>
+          return (
+            <div key={p.id} className="rounded-xl border bg-white p-3 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs text-slate-500">#{p.id}</div>
+                  <div className="text-sm font-semibold truncate">{p.name}</div>
+                </div>
 
-      <div className="space-y-2">
-        {filtered.map((p) => (
-          <div
-            key={p.id}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="font-semibold text-slate-900 truncate">{p.name}</div>
-                <div className="text-[11px] text-slate-500">
-                  {p.age_group ?? "?"} · {posLabel(p.preferred_position)}
+                <button
+                  onClick={() => savePlayer(p.id)}
+                  disabled={!dirty || savingId === p.id}
+                  className={`text-xs border rounded-lg px-3 py-1.5 shadow-sm ${
+                    !dirty || savingId === p.id ? "opacity-60 cursor-not-allowed bg-white" : "bg-emerald-50"
+                  }`}
+                >
+                  {savingId === p.id ? "Speichere…" : dirty ? "Speichern" : "Gespeichert"}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                <div className="space-y-1">
+                  <div className="text-[11px] text-slate-500">Name</div>
+                  <input
+                    value={d.name ?? ""}
+                    onChange={(e) => setField(p.id, { name: e.target.value })}
+                    className="w-full rounded-lg border px-3 py-1.5 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] text-slate-500">Gruppe</div>
+                  <select
+                    value={d.age_group ?? ""}
+                    onChange={(e) =>
+                      setField(p.id, { age_group: e.target.value === "" ? null : (e.target.value as AgeGroup) })
+                    }
+                    className="w-full rounded-lg border px-3 py-1.5 text-sm bg-white"
+                  >
+                    <option value="">—</option>
+                    <option value="AH">AH</option>
+                    <option value="Ü32">Ü32</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] text-slate-500">Position</div>
+                  <select
+                    value={d.preferred_position ?? ""}
+                    onChange={(e) =>
+                      setField(p.id, {
+                        preferred_position: e.target.value === "" ? null : (e.target.value as PreferredPosition),
+                      })
+                    }
+                    className="w-full rounded-lg border px-3 py-1.5 text-sm bg-white"
+                  >
+                    <option value="">—</option>
+                    <option value="goalkeeper">Torwart</option>
+                    <option value="defense">Hinten</option>
+                    <option value="attack">Vorne</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] text-slate-500">Stärke (1–5)</div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={d.strength ?? ""}
+                    onChange={(e) => setField(p.id, { strength: toStrength(e.target.value) })}
+                    className="w-full rounded-lg border px-3 py-1.5 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] text-slate-500">Aktiv</div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={d.is_active !== false}
+                      onChange={(e) => setField(p.id, { is_active: e.target.checked })}
+                    />
+                    {d.is_active !== false ? "aktiv" : "inaktiv"}
+                  </label>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-500">Stärke</span>
-                  <select
-                    value={currentStrength(p)}
-                    onChange={(e) => setStrength(p.id, Number(e.target.value))}
-                    className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs"
-                  >
-                    <option value={1}>1</option>
-                    <option value={2}>2</option>
-                    <option value={3}>3</option>
-                    <option value={4}>4</option>
-                    <option value={5}>5</option>
-                  </select>
-                </label>
-
-                <label className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-500">Aktiv</span>
-                  <input
-                    type="checkbox"
-                    checked={currentActive(p)}  // <- jetzt immer boolean ✅
-                    onChange={(e) => toggleActive(p.id, e.target.checked)}
-                  />
-                </label>
+              <div className="text-[11px] text-slate-500">
+                Tipp: Änderung machen → „Speichern“ drücken (pro Spieler).
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500">
-        Hinweis: Name/Position/Altersgruppe kannst du weiterhin im Supabase Table Editor ändern
-        (oder wir bauen dir eine Edit-Seite pro Spieler).
-      </div>
+      {filtered.length === 0 && <div className="text-sm text-slate-500">Keine Spieler gefunden.</div>}
     </div>
   );
 }

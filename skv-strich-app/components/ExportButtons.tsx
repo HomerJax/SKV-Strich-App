@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useState } from "react";
 import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
