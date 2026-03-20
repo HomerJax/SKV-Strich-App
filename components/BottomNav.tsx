@@ -9,6 +9,20 @@ type MembershipRow = {
   role: "admin" | "member" | null;
 };
 
+type NavItem =
+  | {
+      type: "link";
+      href: string;
+      label: string;
+      icon: string;
+    }
+  | {
+      type: "logout";
+      href: string;
+      label: string;
+      icon: string;
+    };
+
 const HIDDEN_PATHS = [
   "/login",
   "/signup",
@@ -76,17 +90,22 @@ export default function BottomNav() {
     };
   }, []);
 
-  const navItems = useMemo(() => {
-    const items = [
-      { type: "link" as const, href: "/", label: "Start", icon: "🏠" },
+  const navItems = useMemo<NavItem[]>(() => {
+    const items: NavItem[] = [
       {
-        type: "link" as const,
+        type: "link",
+        href: "/",
+        label: "Start",
+        icon: "🏠",
+      },
+      {
+        type: "link",
         href: "/sessions",
         label: "Trainings",
         icon: "⚽",
       },
       {
-        type: "link" as const,
+        type: "link",
         href: "/standings",
         label: "Tabellen",
         icon: "📊",
@@ -95,7 +114,7 @@ export default function BottomNav() {
 
     if (isAdmin) {
       items.push({
-        type: "link" as const,
+        type: "link",
         href: "/admin",
         label: "Admin",
         icon: "⚙️",
@@ -103,7 +122,7 @@ export default function BottomNav() {
     }
 
     items.push({
-      type: "logout" as const,
+      type: "logout",
       href: "/api/logout",
       label: "Logout",
       icon: "🚪",
@@ -120,7 +139,9 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-black text-white">
       <div
         className="mx-auto grid max-w-3xl"
-        style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
+        style={{
+          gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))`,
+        }}
       >
         {navItems.map((item) => {
           if (item.type === "logout") {
