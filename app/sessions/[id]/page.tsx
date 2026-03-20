@@ -1034,14 +1034,14 @@ export default function SessionDetailPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs font-semibold">Teams</div>
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
             <button
               onClick={generateTeams}
               disabled={hasResult}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm ${
+              className={`rounded-xl px-3 py-2 text-xs font-semibold shadow-sm transition ${
                 hasResult
                   ? "cursor-not-allowed border border-emerald-200 bg-emerald-100 text-emerald-900 opacity-60"
-                  : "border border-emerald-700 bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "border border-emerald-300 bg-emerald-200 text-emerald-950 hover:bg-emerald-300"
               }`}
             >
               Teams generieren
@@ -1050,10 +1050,10 @@ export default function SessionDetailPage() {
             <button
               onClick={handleShareLineup}
               disabled={sharingLineup || !canShareLineup}
-              className={`rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm ${
+              className={`rounded-xl border bg-white px-3 py-2 text-xs shadow-sm transition ${
                 sharingLineup || !canShareLineup
                   ? "cursor-not-allowed opacity-60"
-                  : ""
+                  : "hover:bg-slate-50"
               }`}
             >
               {sharingLineup ? "Teile…" : "Aufstellung teilen"}
@@ -1268,29 +1268,15 @@ export default function SessionDetailPage() {
         <div className="flex items-center justify-between gap-2">
           <div className="text-xs font-semibold">Ergebnis</div>
 
-          <div className="flex items-center gap-2">
+          {hasResult && (
             <button
-              onClick={handleShareResult}
-              disabled={sharingResult || !canShareResult}
-              className={`rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm ${
-                sharingResult || !canShareResult
-                  ? "cursor-not-allowed opacity-60"
-                  : ""
-              }`}
+              disabled={saving}
+              onClick={deleteResult}
+              className="rounded-lg border bg-red-50 px-3 py-1.5 text-xs shadow-sm"
             >
-              {sharingResult ? "Teile…" : "Ergebnis teilen"}
+              Ergebnis löschen
             </button>
-
-            {hasResult && (
-              <button
-                disabled={saving}
-                onClick={deleteResult}
-                className="rounded-lg border bg-red-50 px-3 py-1.5 text-xs shadow-sm"
-              >
-                Ergebnis löschen
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -1388,13 +1374,31 @@ export default function SessionDetailPage() {
           </div>
         )}
 
-        <button
-          disabled={saving}
-          onClick={saveResult}
-          className="rounded-lg border bg-emerald-50 px-3 py-1.5 text-xs shadow-sm"
-        >
-          {saving ? "Speichere…" : "Ergebnis speichern"}
-        </button>
+        <div className="flex items-center justify-between gap-2">
+          <button
+            disabled={saving}
+            onClick={saveResult}
+            className={`rounded-xl px-3 py-2 text-xs font-semibold shadow-sm transition ${
+              saving
+                ? "cursor-not-allowed border border-emerald-200 bg-emerald-100 text-emerald-900 opacity-60"
+                : "border border-emerald-300 bg-emerald-200 text-emerald-950 hover:bg-emerald-300"
+            }`}
+          >
+            {saving ? "Speichere…" : "Ergebnis speichern"}
+          </button>
+
+          <button
+            onClick={handleShareResult}
+            disabled={sharingResult || !canShareResult}
+            className={`rounded-xl border bg-white px-3 py-2 text-xs shadow-sm transition ${
+              sharingResult || !canShareResult
+                ? "cursor-not-allowed opacity-60"
+                : "hover:bg-slate-50"
+            }`}
+          >
+            {sharingResult ? "Teile…" : "Ergebnis teilen"}
+          </button>
+        </div>
 
         <div className="text-[11px] text-slate-500">
           Hinweis: Nach dem Speichern sind Aufstellungen & Anwesenheit gesperrt.
