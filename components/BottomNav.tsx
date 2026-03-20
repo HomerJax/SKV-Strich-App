@@ -76,18 +76,40 @@ export default function BottomNav() {
     };
   }, []);
 
-  const items = useMemo(() => {
-    const baseItems = [
-      { href: "/", label: "Start", icon: "🏠" },
-      { href: "/sessions", label: "Trainings", icon: "⚽" },
-      { href: "/standings", label: "Tabellen", icon: "📊" },
+  const navItems = useMemo(() => {
+    const items = [
+      { type: "link" as const, href: "/", label: "Start", icon: "🏠" },
+      {
+        type: "link" as const,
+        href: "/sessions",
+        label: "Trainings",
+        icon: "⚽",
+      },
+      {
+        type: "link" as const,
+        href: "/standings",
+        label: "Tabellen",
+        icon: "📊",
+      },
     ];
 
     if (isAdmin) {
-      baseItems.push({ href: "/admin", label: "Admin", icon: "⚙️" });
+      items.push({
+        type: "link" as const,
+        href: "/admin",
+        label: "Admin",
+        icon: "⚙️",
+      });
     }
 
-    return baseItems;
+    items.push({
+      type: "logout" as const,
+      href: "/api/logout",
+      label: "Logout",
+      icon: "🚪",
+    });
+
+    return items;
   }, [isAdmin]);
 
   if (!pathname || shouldHideBottomNav(pathname)) {
@@ -96,46 +118,60 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-black text-white">
-      <div className="mx-auto flex max-w-3xl items-stretch justify-between px-2 py-2">
-        <div className="flex min-w-0 flex-1 items-stretch justify-around">
-          {items.map((item) => {
-            const active = isActive(pathname, item.href);
-
+      <div
+        className="mx-auto grid max-w-3xl"
+        style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
+      >
+        {navItems.map((item) => {
+          if (item.type === "logout") {
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex min-h-[62px] min-w-[64px] flex-1 flex-col items-center justify-center gap-1 px-1 text-center"
+              <form
+                key="logout"
+                action="/api/logout"
+                method="post"
+                className="m-0"
               >
-                <span
-                  className={`text-lg leading-none ${
-                    active ? "opacity-100" : "opacity-60"
-                  }`}
+                <button
+                  type="submit"
+                  className="flex min-h-[64px] w-full flex-col items-center justify-center gap-1 px-1 text-center"
+                  aria-label="Logout"
                 >
-                  {item.icon}
-                </span>
-                <span
-                  className={`text-[11px] leading-none ${
-                    active ? "opacity-100" : "opacity-60"
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </Link>
+                  <span className="text-lg leading-none opacity-80">
+                    {item.icon}
+                  </span>
+                  <span className="text-[11px] leading-none opacity-80">
+                    {item.label}
+                  </span>
+                </button>
+              </form>
             );
-          })}
-        </div>
+          }
 
-        <form action="/api/logout" method="post" className="ml-1 flex-shrink-0">
-          <button
-            type="submit"
-            className="flex min-h-[62px] min-w-[64px] flex-col items-center justify-center gap-1 px-1 text-center"
-            aria-label="Logout"
-          >
-            <span className="text-lg leading-none opacity-60">🚪</span>
-            <span className="text-[11px] leading-none opacity-60">Logout</span>
-          </button>
-        </form>
+          const active = isActive(pathname, item.href);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex min-h-[64px] flex-col items-center justify-center gap-1 px-1 text-center"
+            >
+              <span
+                className={`text-lg leading-none ${
+                  active ? "opacity-100" : "opacity-60"
+                }`}
+              >
+                {item.icon}
+              </span>
+              <span
+                className={`text-[11px] leading-none ${
+                  active ? "opacity-100" : "opacity-60"
+                }`}
+              >
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
