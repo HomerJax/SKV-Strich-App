@@ -1,0 +1,23 @@
+<svg width="520" height="120" viewBox="0 0 520 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+  <text
+    x="0"
+    y="82"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="78"
+    font-weight="800"
+    letter-spacing="-2"
+    fill="#FFFFFF"
+  >
+    strikr
+  </text>
+
+  <g transform="translate(250,16)" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round">
+    <line x1="8" y1="72" x2="8" y2="8" />
+    <line x1="34" y1="72" x2="34" y2="8" />
+    <line x1="60" y1="72" x2="60" y2="8" />
+    <line x1="86" y1="72" x2="86" y2="8" />
+    <line x1="0" y1="78" x2="104" y2="4" />
+  </g>
+
+</svg>

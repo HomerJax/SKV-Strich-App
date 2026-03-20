@@ -1,0 +1,34 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "strikr",
+    short_name: "strikr",
+    description: "Trainings, Teams & Tabelle",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#020617",
+    theme_color: "#020617",
+    lang: "de-DE",
+    icons: [
+      {
+        src: "/icon-dark.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/icon-dark.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+      {
+        src: "/icon-dark.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+    ],
+  };
+}
