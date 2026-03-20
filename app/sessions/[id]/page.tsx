@@ -3,9 +3,7 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
-import ExportButtons from "@/components/ExportButtons";
 import { getPlayerDisplayName } from "@/lib/player-display";
-import { LineupExportCard, ResultExportCard } from "./SessionExportCards";
 import type { Player, SessionRow, TeamMap, TeamSide } from "./session-types";
 import {
   ageBadgeColor,
@@ -849,592 +847,561 @@ export default function SessionDetailPage() {
     return <div className="bg-red-50 p-4 text-sm text-red-700">{err}</div>;
 
   return (
-    <>
-      <div className="space-y-4">
-        <button
-          onClick={() => router.push("/sessions")}
-          className="text-xs text-slate-500 hover:text-slate-700"
-        >
-          ← Zurück zu Trainings
-        </button>
+    <div className="space-y-4">
+      <button
+        onClick={() => router.push("/sessions")}
+        className="text-xs text-slate-500 hover:text-slate-700"
+      >
+        ← Zurück zu Trainings
+      </button>
 
-        <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold">
+            Training {new Date(session!.date).toLocaleDateString("de-DE")}
+          </h1>
+          {session?.notes && (
+            <div className="text-[11px] text-slate-500">{session.notes}</div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => teamsRef.current?.scrollIntoView({ behavior: "smooth" })}
+            className="rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm"
+          >
+            Zu den Teams ↓
+          </button>
+          <button
+            onClick={() => resultRef.current?.scrollIntoView({ behavior: "smooth" })}
+            className="rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm"
+          >
+            Zum Ergebnis ↓
+          </button>
+        </div>
+      </div>
+
+      {err && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          {err}
+        </div>
+      )}
+      {msg && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+          {msg}
+        </div>
+      )}
+
+      <div className="space-y-3 rounded-xl border bg-white p-3">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-semibold">
-              Training {new Date(session!.date).toLocaleDateString("de-DE")}
-            </h1>
-            {session?.notes && (
-              <div className="text-[11px] text-slate-500">{session.notes}</div>
+            <div className="text-xs font-semibold">Anwesenheit</div>
+            {hasResult && (
+              <div className="text-[11px] text-slate-500">
+                Gesperrt (Ergebnis gespeichert)
+              </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          {isAdmin && (
             <button
-              onClick={() => teamsRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm"
+              type="button"
+              onClick={() => setShowGuestForm((v) => !v)}
+              disabled={hasResult}
+              className={`rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm ${
+                hasResult ? "cursor-not-allowed opacity-60" : ""
+              }`}
             >
-              Zu den Teams ↓
+              {showGuestForm ? "Gastformular schließen" : "Gast hinzufügen"}
             </button>
-            <button
-              onClick={() => resultRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm"
-            >
-              Zum Ergebnis ↓
-            </button>
-          </div>
+          )}
         </div>
 
-        {err && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-            {err}
-          </div>
-        )}
-        {msg && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-            {msg}
-          </div>
-        )}
-
-        <div className="space-y-3 rounded-xl border bg-white p-3">
-          <div className="flex items-center justify-between gap-3">
+        {isAdmin && showGuestForm && !hasResult && (
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <div>
-              <div className="text-xs font-semibold">Anwesenheit</div>
-              {hasResult && (
-                <div className="text-[11px] text-slate-500">
-                  Gesperrt (Ergebnis gespeichert)
+              <div className="mb-1 text-xs font-semibold text-slate-700">Name</div>
+              <input
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="z. B. Gastspieler 1"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <div className="mb-1 text-xs font-semibold text-slate-700">
+                  {clubSettings?.position_label ?? "Position"} (optional)
                 </div>
-              )}
-            </div>
-
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={() => setShowGuestForm((v) => !v)}
-                disabled={hasResult}
-                className={`rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm ${
-                  hasResult ? "cursor-not-allowed opacity-60" : ""
-                }`}
-              >
-                {showGuestForm ? "Gastformular schließen" : "Gast hinzufügen"}
-              </button>
-            )}
-          </div>
-
-          {isAdmin && showGuestForm && !hasResult && (
-            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <div>
-                <div className="mb-1 text-xs font-semibold text-slate-700">Name</div>
-                <input
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  placeholder="z. B. Gastspieler 1"
+                <select
+                  value={guestPosition ?? ""}
+                  onChange={(e) =>
+                    setGuestPosition(
+                      e.target.value as Player["preferred_position"] | ""
+                    )
+                  }
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block">
-                  <div className="mb-1 text-xs font-semibold text-slate-700">
-                    {clubSettings?.position_label ?? "Position"} (optional)
-                  </div>
-                  <select
-                    value={guestPosition ?? ""}
-                    onChange={(e) =>
-                      setGuestPosition(
-                        e.target.value as Player["preferred_position"] | ""
-                      )
-                    }
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="">Offen</option>
-                    <option value="goalkeeper">
-                      {clubSettings?.goalkeeper_label ?? "Torwart"}
-                    </option>
-                    <option value="defense">
-                      {clubSettings?.defense_label ?? "Hinten"}
-                    </option>
-                    <option value="attack">
-                      {clubSettings?.attack_label ?? "Vorne"}
-                    </option>
-                  </select>
-                </label>
-
-                <label className="block">
-                  <div className="mb-1 text-xs font-semibold text-slate-700">
-                    {clubSettings?.category_label ?? "Altersgruppe"} (optional)
-                  </div>
-                  <select
-                    value={guestAgeGroup ?? ""}
-                    onChange={(e) =>
-                      setGuestAgeGroup(e.target.value as Player["age_group"] | "")
-                    }
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="">Offen</option>
-                    <option value="AH">AH</option>
-                    <option value="Ü32">Ü32</option>
-                  </select>
-                </label>
-              </div>
-
-              <button
-                type="button"
-                onClick={addGuestPlayer}
-                disabled={guestSaving}
-                className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {guestSaving ? "Speichere…" : "Gastspieler anlegen"}
-              </button>
-            </div>
-          )}
-
-          {!isAdmin && (
-            <div className="text-[11px] text-slate-500">
-              Gastspieler können aktuell nur von Admins angelegt werden.
-            </div>
-          )}
-
-          <div className="grid gap-2">
-            {players.map((p) => {
-              const on = presentIds.includes(p.id);
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => togglePresence(p.id)}
-                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-sm ${
-                    on ? "bg-emerald-50" : "bg-white"
-                  } ${hasResult ? "cursor-not-allowed opacity-60" : ""}`}
-                  disabled={hasResult}
                 >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate">{getPlayerDisplayName(p)}</span>
-                    {guestBadge(p)}
-                  </span>
+                  <option value="">Offen</option>
+                  <option value="goalkeeper">
+                    {clubSettings?.goalkeeper_label ?? "Torwart"}
+                  </option>
+                  <option value="defense">
+                    {clubSettings?.defense_label ?? "Hinten"}
+                  </option>
+                  <option value="attack">
+                    {clubSettings?.attack_label ?? "Vorne"}
+                  </option>
+                </select>
+              </label>
 
-                  <span className="flex items-center gap-2">
-                    <span
-                      className={`rounded-md px-2 py-0.5 text-[11px] ${ageBadgeColor(
-                        p.age_group
-                      )}`}
-                    >
-                      {p.age_group ?? "?"}
-                    </span>
-                    <span
-                      className={`rounded-md px-2 py-0.5 text-[11px] ${badgeColor(
-                        p.preferred_position
-                      )}`}
-                    >
-                      {positionLabel(p.preferred_position)}
-                    </span>
+              <label className="block">
+                <div className="mb-1 text-xs font-semibold text-slate-700">
+                  {clubSettings?.category_label ?? "Altersgruppe"} (optional)
+                </div>
+                <select
+                  value={guestAgeGroup ?? ""}
+                  onChange={(e) =>
+                    setGuestAgeGroup(e.target.value as Player["age_group"] | "")
+                  }
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">Offen</option>
+                  <option value="AH">AH</option>
+                  <option value="Ü32">Ü32</option>
+                </select>
+              </label>
+            </div>
+
+            <button
+              type="button"
+              onClick={addGuestPlayer}
+              disabled={guestSaving}
+              className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {guestSaving ? "Speichere…" : "Gastspieler anlegen"}
+            </button>
+          </div>
+        )}
+
+        {!isAdmin && (
+          <div className="text-[11px] text-slate-500">
+            Gastspieler können aktuell nur von Admins angelegt werden.
+          </div>
+        )}
+
+        <div className="grid gap-2">
+          {players.map((p) => {
+            const on = presentIds.includes(p.id);
+            return (
+              <button
+                key={p.id}
+                onClick={() => togglePresence(p.id)}
+                className={`flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-sm ${
+                  on ? "bg-emerald-50" : "bg-white"
+                } ${hasResult ? "cursor-not-allowed opacity-60" : ""}`}
+                disabled={hasResult}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{getPlayerDisplayName(p)}</span>
+                  {guestBadge(p)}
+                </span>
+
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-[11px] ${ageBadgeColor(
+                      p.age_group
+                    )}`}
+                  >
+                    {p.age_group ?? "?"}
                   </span>
-                </button>
-              );
-            })}
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-[11px] ${badgeColor(
+                      p.preferred_position
+                    )}`}
+                  >
+                    {positionLabel(p.preferred_position)}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div ref={teamsRef} className="space-y-3 rounded-xl border bg-white p-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-xs font-semibold">Teams</div>
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={generateTeams}
+              disabled={hasResult}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm ${
+                hasResult
+                  ? "cursor-not-allowed border border-emerald-200 bg-emerald-100 text-emerald-900 opacity-60"
+                  : "border border-emerald-700 bg-emerald-600 text-white hover:bg-emerald-700"
+              }`}
+            >
+              Teams generieren
+            </button>
+
+            <button
+              onClick={handleShareLineup}
+              disabled={sharingLineup || !canShareLineup}
+              className={`rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm ${
+                sharingLineup || !canShareLineup
+                  ? "cursor-not-allowed opacity-60"
+                  : ""
+              }`}
+            >
+              {sharingLineup ? "Teile…" : "Aufstellung teilen"}
+            </button>
           </div>
         </div>
 
-        <div ref={teamsRef} className="space-y-3 rounded-xl border bg-white p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs font-semibold">Teams</div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleShareLineup}
-                disabled={sharingLineup || !canShareLineup}
-                className={`rounded-lg border px-2 py-1 text-xs ${
-                  sharingLineup || !canShareLineup
-                    ? "cursor-not-allowed opacity-60"
-                    : ""
-                }`}
-              >
-                {sharingLineup ? "Teile…" : "Aufstellung teilen"}
-              </button>
-
-              <ExportButtons
-                targetId="export-lineup-card"
-                fileBaseName={`strikr-aufstellung-${session?.date ?? sessionId}`}
-              />
-
-              <button
-                onClick={generateTeams}
-                disabled={hasResult}
-                className={`rounded-lg border px-2 py-1 text-xs ${
-                  hasResult ? "cursor-not-allowed opacity-60" : ""
-                }`}
-              >
-                Teams generieren
-              </button>
-            </div>
+        {hasResult && (
+          <div className="text-[11px] text-slate-500">
+            Teams sind gesperrt, weil ein Ergebnis gespeichert ist. Lösche das
+            Ergebnis, um Teams zu ändern.
           </div>
+        )}
 
-          {hasResult && (
-            <div className="text-[11px] text-slate-500">
-              Teams sind gesperrt, weil ein Ergebnis gespeichert ist. Lösche das
-              Ergebnis, um Teams zu ändern.
-            </div>
-          )}
-
-          {!canShareLineup && (
-            <div className="text-[11px] text-slate-500">
-              Aufstellung teilen ist verfügbar, sobald beide Teams mindestens einen
-              Spieler haben.
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2 rounded-lg border p-2">
-              <div className="text-xs font-semibold">Team 1 ({teamA.length})</div>
-              <div className="text-[11px] text-slate-500">
-                GK {metaA.gk} · Hinten {metaA.def} · Vorne {metaA.att} · AH{" "}
-                {metaA.ah} · Ü32 {metaA.u32}
-              </div>
-
-              {teamA.length === 0 ? (
-                <div className="text-[11px] text-slate-400">
-                  Noch kein Spieler zugewiesen.
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {teamA.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setSide(p.id, null)}
-                      disabled={hasResult}
-                      className={`flex w-full items-center justify-between rounded-md border bg-white px-2 py-1 text-left text-xs hover:bg-slate-50 ${
-                        hasResult
-                          ? "cursor-not-allowed opacity-60 hover:bg-white"
-                          : ""
-                      }`}
-                      title={
-                        hasResult
-                          ? "Gesperrt: Ergebnis gespeichert"
-                          : "Klick: aus Team entfernen"
-                      }
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate">{getPlayerDisplayName(p)}</span>
-                        {guestBadge(p)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span
-                          className={`rounded-md px-2 py-0.5 text-[10px] ${ageBadgeColor(
-                            p.age_group
-                          )}`}
-                        >
-                          {p.age_group ?? "?"}
-                        </span>
-                        <span
-                          className={`rounded-md px-2 py-0.5 text-[10px] ${badgeColor(
-                            p.preferred_position
-                          )}`}
-                        >
-                          {positionLabel(p.preferred_position)}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2 rounded-lg border p-2">
-              <div className="text-xs font-semibold">Team 2 ({teamB.length})</div>
-              <div className="text-[11px] text-slate-500">
-                GK {metaB.gk} · Hinten {metaB.def} · Vorne {metaB.att} · AH{" "}
-                {metaB.ah} · Ü32 {metaB.u32}
-              </div>
-
-              {teamB.length === 0 ? (
-                <div className="text-[11px] text-slate-400">
-                  Noch kein Spieler zugewiesen.
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {teamB.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setSide(p.id, null)}
-                      disabled={hasResult}
-                      className={`flex w-full items-center justify-between rounded-md border bg-white px-2 py-1 text-left text-xs hover:bg-slate-50 ${
-                        hasResult
-                          ? "cursor-not-allowed opacity-60 hover:bg-white"
-                          : ""
-                      }`}
-                      title={
-                        hasResult
-                          ? "Gesperrt: Ergebnis gespeichert"
-                          : "Klick: aus Team entfernen"
-                      }
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate">{getPlayerDisplayName(p)}</span>
-                        {guestBadge(p)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span
-                          className={`rounded-md px-2 py-0.5 text-[10px] ${ageBadgeColor(
-                            p.age_group
-                          )}`}
-                        >
-                          {p.age_group ?? "?"}
-                        </span>
-                        <span
-                          className={`rounded-md px-2 py-0.5 text-[10px] ${badgeColor(
-                            p.preferred_position
-                          )}`}
-                        >
-                          {positionLabel(p.preferred_position)}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+        {!canShareLineup && (
+          <div className="text-[11px] text-slate-500">
+            Aufstellung teilen ist verfügbar, sobald beide Teams mindestens einen
+            Spieler haben.
           </div>
+        )}
 
-          <div className="rounded-lg border p-2">
-            <div className="mb-2 text-xs font-semibold">
-              Nicht zugewiesen ({unassigned.length})
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2 rounded-lg border p-2">
+            <div className="text-xs font-semibold">Team 1 ({teamA.length})</div>
+            <div className="text-[11px] text-slate-500">
+              GK {metaA.gk} · Hinten {metaA.def} · Vorne {metaA.att} · AH{" "}
+              {metaA.ah} · Ü32 {metaA.u32}
             </div>
 
-            {unassigned.length === 0 ? (
+            {teamA.length === 0 ? (
               <div className="text-[11px] text-slate-400">
-                Alle Spieler sind einem Team zugeordnet.
+                Noch kein Spieler zugewiesen.
               </div>
             ) : (
               <div className="space-y-1">
-                {unassigned.map((p) => (
-                  <div
+                {teamA.map((p) => (
+                  <button
                     key={p.id}
-                    className="flex w-full items-center justify-between gap-2 rounded-md border bg-white px-2 py-1 text-xs"
+                    onClick={() => setSide(p.id, null)}
+                    disabled={hasResult}
+                    className={`flex w-full items-center justify-between rounded-md border bg-white px-2 py-1 text-left text-xs hover:bg-slate-50 ${
+                      hasResult
+                        ? "cursor-not-allowed opacity-60 hover:bg-white"
+                        : ""
+                    }`}
+                    title={
+                      hasResult
+                        ? "Gesperrt: Ergebnis gespeichert"
+                        : "Klick: aus Team entfernen"
+                    }
                   >
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <div className="truncate font-medium">
-                          {getPlayerDisplayName(p)}
-                        </div>
-                        {guestBadge(p)}
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                        <span
-                          className={`rounded-md px-2 py-0.5 ${ageBadgeColor(
-                            p.age_group
-                          )}`}
-                        >
-                          {p.age_group ?? "?"}
-                        </span>
-                        <span
-                          className={`rounded-md px-2 py-0.5 ${badgeColor(
-                            p.preferred_position
-                          )}`}
-                        >
-                          {positionLabel(p.preferred_position)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        disabled={hasResult}
-                        className={`rounded-md border px-2 py-1 text-[11px] hover:bg-slate-50 ${
-                          hasResult
-                            ? "cursor-not-allowed opacity-60 hover:bg-white"
-                            : ""
-                        }`}
-                        onClick={() => setSide(p.id, "A")}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">{getPlayerDisplayName(p)}</span>
+                      {guestBadge(p)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-[10px] ${ageBadgeColor(
+                          p.age_group
+                        )}`}
                       >
-                        → Team 1
-                      </button>
-                      <button
-                        disabled={hasResult}
-                        className={`rounded-md border px-2 py-1 text-[11px] hover:bg-slate-50 ${
-                          hasResult
-                            ? "cursor-not-allowed opacity-60 hover:bg-white"
-                            : ""
-                        }`}
-                        onClick={() => setSide(p.id, "B")}
+                        {p.age_group ?? "?"}
+                      </span>
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-[10px] ${badgeColor(
+                          p.preferred_position
+                        )}`}
                       >
-                        → Team 2
-                      </button>
-                    </div>
-                  </div>
+                        {positionLabel(p.preferred_position)}
+                      </span>
+                    </span>
+                  </button>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="text-[11px] text-slate-500">
-            Hinweis: Anzeige ist nach Torwart / Hinten / Vorne sortiert (danach
-            alphabetisch).
+          <div className="space-y-2 rounded-lg border p-2">
+            <div className="text-xs font-semibold">Team 2 ({teamB.length})</div>
+            <div className="text-[11px] text-slate-500">
+              GK {metaB.gk} · Hinten {metaB.def} · Vorne {metaB.att} · AH{" "}
+              {metaB.ah} · Ü32 {metaB.u32}
+            </div>
+
+            {teamB.length === 0 ? (
+              <div className="text-[11px] text-slate-400">
+                Noch kein Spieler zugewiesen.
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {teamB.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSide(p.id, null)}
+                    disabled={hasResult}
+                    className={`flex w-full items-center justify-between rounded-md border bg-white px-2 py-1 text-left text-xs hover:bg-slate-50 ${
+                      hasResult
+                        ? "cursor-not-allowed opacity-60 hover:bg-white"
+                        : ""
+                    }`}
+                    title={
+                      hasResult
+                        ? "Gesperrt: Ergebnis gespeichert"
+                        : "Klick: aus Team entfernen"
+                    }
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">{getPlayerDisplayName(p)}</span>
+                      {guestBadge(p)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-[10px] ${ageBadgeColor(
+                          p.age_group
+                        )}`}
+                      >
+                        {p.age_group ?? "?"}
+                      </span>
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-[10px] ${badgeColor(
+                          p.preferred_position
+                        )}`}
+                      >
+                        {positionLabel(p.preferred_position)}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        <div ref={resultRef} className="space-y-3 rounded-xl border bg-white p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs font-semibold">Ergebnis</div>
+        <div className="rounded-lg border p-2">
+          <div className="mb-2 text-xs font-semibold">
+            Nicht zugewiesen ({unassigned.length})
+          </div>
+
+          {unassigned.length === 0 ? (
+            <div className="text-[11px] text-slate-400">
+              Alle Spieler sind einem Team zugeordnet.
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {unassigned.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex w-full items-center justify-between gap-2 rounded-md border bg-white px-2 py-1 text-xs"
+                >
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="truncate font-medium">
+                        {getPlayerDisplayName(p)}
+                      </div>
+                      {guestBadge(p)}
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                      <span
+                        className={`rounded-md px-2 py-0.5 ${ageBadgeColor(
+                          p.age_group
+                        )}`}
+                      >
+                        {p.age_group ?? "?"}
+                      </span>
+                      <span
+                        className={`rounded-md px-2 py-0.5 ${badgeColor(
+                          p.preferred_position
+                        )}`}
+                      >
+                        {positionLabel(p.preferred_position)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      disabled={hasResult}
+                      className={`rounded-md border px-2 py-1 text-[11px] hover:bg-slate-50 ${
+                        hasResult
+                          ? "cursor-not-allowed opacity-60 hover:bg-white"
+                          : ""
+                      }`}
+                      onClick={() => setSide(p.id, "A")}
+                    >
+                      → Team 1
+                    </button>
+                    <button
+                      disabled={hasResult}
+                      className={`rounded-md border px-2 py-1 text-[11px] hover:bg-slate-50 ${
+                        hasResult
+                          ? "cursor-not-allowed opacity-60 hover:bg-white"
+                          : ""
+                      }`}
+                      onClick={() => setSide(p.id, "B")}
+                    >
+                      → Team 2
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="text-[11px] text-slate-500">
+          Hinweis: Anzeige ist nach Torwart / Hinten / Vorne sortiert (danach
+          alphabetisch).
+        </div>
+      </div>
+
+      <div ref={resultRef} className="space-y-3 rounded-xl border bg-white p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs font-semibold">Ergebnis</div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShareResult}
+              disabled={sharingResult || !canShareResult}
+              className={`rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm ${
+                sharingResult || !canShareResult
+                  ? "cursor-not-allowed opacity-60"
+                  : ""
+              }`}
+            >
+              {sharingResult ? "Teile…" : "Ergebnis teilen"}
+            </button>
+
+            {hasResult && (
+              <button
+                disabled={saving}
+                onClick={deleteResult}
+                className="rounded-lg border bg-red-50 px-3 py-1.5 text-xs shadow-sm"
+              >
+                Ergebnis löschen
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            value={goalsA}
+            onChange={(e) => setGoalsA(normalizeGoalValue(e.target.value))}
+            placeholder="Team 1"
+            inputMode="numeric"
+            className="w-16 rounded-md border px-2 py-1 text-center"
+          />
+          <span className="text-sm">:</span>
+          <input
+            value={goalsB}
+            onChange={(e) => setGoalsB(normalizeGoalValue(e.target.value))}
+            placeholder="Team 2"
+            inputMode="numeric"
+            className="w-16 rounded-md border px-2 py-1 text-center"
+          />
+        </div>
+
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-semibold text-slate-800">
+                Siegerfoto
+              </div>
+              <div className="text-[11px] text-slate-500">
+                Optional für Ergebniskarte und Teilen.
+              </div>
+            </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleShareResult}
-                disabled={sharingResult || !canShareResult}
-                className={`rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm ${
-                  sharingResult || !canShareResult
-                    ? "cursor-not-allowed opacity-60"
-                    : ""
-                }`}
-              >
-                {sharingResult ? "Teile…" : "Ergebnis teilen"}
-              </button>
-
-              <ExportButtons
-                targetId="export-result-card"
-                fileBaseName={`strikr-ergebnis-${session?.date ?? sessionId}`}
+              <input
+                ref={winnerPhotoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleWinnerPhotoUpload}
+                disabled={photoBusy}
               />
 
-              {hasResult && (
+              <button
+                type="button"
+                onClick={() => winnerPhotoInputRef.current?.click()}
+                disabled={photoBusy}
+                className={`rounded-lg border bg-white px-3 py-1.5 text-xs ${
+                  photoBusy ? "cursor-not-allowed opacity-60" : ""
+                }`}
+              >
+                {session?.winner_photo_path ? "Foto ersetzen" : "Foto hochladen"}
+              </button>
+
+              {session?.winner_photo_path && (
                 <button
-                  disabled={saving}
-                  onClick={deleteResult}
-                  className="rounded-lg border bg-red-50 px-3 py-1.5 text-xs shadow-sm"
+                  type="button"
+                  onClick={handleWinnerPhotoDelete}
+                  disabled={photoBusy}
+                  className={`rounded-lg border bg-red-50 px-3 py-1.5 text-xs ${
+                    photoBusy ? "cursor-not-allowed opacity-60" : ""
+                  }`}
                 >
-                  Ergebnis löschen
+                  Foto löschen
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              value={goalsA}
-              onChange={(e) => setGoalsA(normalizeGoalValue(e.target.value))}
-              placeholder="Team 1"
-              inputMode="numeric"
-              className="w-16 rounded-md border px-2 py-1 text-center"
-            />
-            <span className="text-sm">:</span>
-            <input
-              value={goalsB}
-              onChange={(e) => setGoalsB(normalizeGoalValue(e.target.value))}
-              placeholder="Team 2"
-              inputMode="numeric"
-              className="w-16 rounded-md border px-2 py-1 text-center"
-            />
-          </div>
-
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs font-semibold text-slate-800">
-                  Siegerfoto
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Optional für Ergebniskarte und Teilen.
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  ref={winnerPhotoInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleWinnerPhotoUpload}
-                  disabled={photoBusy}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => winnerPhotoInputRef.current?.click()}
-                  disabled={photoBusy}
-                  className={`rounded-lg border bg-white px-3 py-1.5 text-xs ${
-                    photoBusy ? "cursor-not-allowed opacity-60" : ""
-                  }`}
-                >
-                  {session?.winner_photo_path ? "Foto ersetzen" : "Foto hochladen"}
-                </button>
-
-                {session?.winner_photo_path && (
-                  <button
-                    type="button"
-                    onClick={handleWinnerPhotoDelete}
-                    disabled={photoBusy}
-                    className={`rounded-lg border bg-red-50 px-3 py-1.5 text-xs ${
-                      photoBusy ? "cursor-not-allowed opacity-60" : ""
-                    }`}
-                  >
-                    Foto löschen
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {photoBusy && (
-              <div className="text-[11px] text-slate-500">
-                Foto wird verarbeitet…
-              </div>
-            )}
-
-            {winnerPhotoUrl ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-2">
-                <div className="w-full max-w-[140px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                  <img
-                    src={winnerPhotoUrl}
-                    alt="Siegerfoto"
-                    className="h-24 w-full object-cover"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="text-[11px] text-slate-400">
-                Noch kein Siegerfoto hinterlegt.
-              </div>
-            )}
-          </div>
-
-          {!canShareResult && (
+          {photoBusy && (
             <div className="text-[11px] text-slate-500">
-              Ergebnis teilen ist verfügbar, sobald beide Teams Spieler haben und
-              beide Tore gültig eingetragen sind.
+              Foto wird verarbeitet…
             </div>
           )}
 
-          <button
-            disabled={saving}
-            onClick={saveResult}
-            className="rounded-lg border bg-emerald-50 px-3 py-1.5 text-xs shadow-sm"
-          >
-            {saving ? "Speichere…" : "Ergebnis speichern"}
-          </button>
+          {winnerPhotoUrl ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-2">
+              <div className="w-full max-w-[140px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                <img
+                  src={winnerPhotoUrl}
+                  alt="Siegerfoto"
+                  className="h-24 w-full object-cover"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="text-[11px] text-slate-400">
+              Noch kein Siegerfoto hinterlegt.
+            </div>
+          )}
+        </div>
 
+        {!canShareResult && (
           <div className="text-[11px] text-slate-500">
-            Hinweis: Nach dem Speichern sind Aufstellungen & Anwesenheit gesperrt.
-            Wenn ein Spieler fehlt, lösche das Ergebnis, passe Aufstellungen an und
-            trage das Ergebnis erneut ein.
+            Ergebnis teilen ist verfügbar, sobald beide Teams Spieler haben und
+            beide Tore gültig eingetragen sind.
           </div>
+        )}
+
+        <button
+          disabled={saving}
+          onClick={saveResult}
+          className="rounded-lg border bg-emerald-50 px-3 py-1.5 text-xs shadow-sm"
+        >
+          {saving ? "Speichere…" : "Ergebnis speichern"}
+        </button>
+
+        <div className="text-[11px] text-slate-500">
+          Hinweis: Nach dem Speichern sind Aufstellungen & Anwesenheit gesperrt.
+          Wenn ein Spieler fehlt, lösche das Ergebnis, passe Aufstellungen an und
+          trage das Ergebnis erneut ein.
         </div>
       </div>
-
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed -left-[99999px] top-0 opacity-0"
-      >
-        <LineupExportCard
-          session={session}
-          teamA={teamA}
-          teamB={teamB}
-          metaA={metaA}
-          metaB={metaB}
-        />
-        <ResultExportCard
-          session={session}
-          teamA={teamA}
-          teamB={teamB}
-          goalsA={goalsA}
-          goalsB={goalsB}
-          winnerPhotoUrl={winnerPhotoUrl}
-        />
-      </div>
-    </>
+    </div>
   );
 }
