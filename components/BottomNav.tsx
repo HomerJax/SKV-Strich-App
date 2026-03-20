@@ -5,34 +5,36 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-type Membership =
-  | {
-      role: "admin" | "member" | null;
-    }
-  | null;
+type MembershipRow = {
+  role: "admin" | "member" | null;
+};
 
-function isHiddenPath(pathname: string) {
-  const hiddenPaths = [
-    "/login",
-    "/signup",
-    "/forgot-password",
-    "/reset-password",
-    "/onboarding",
-    "/join",
-  ];
+const HIDDEN_PATHS = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/onboarding",
+  "/join",
+];
 
-  return hiddenPaths.some(
+function shouldHideBottomNav(pathname: string) {
+  return HIDDEN_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`)
   );
+}
+
+function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export default function BottomNav() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [roleLoaded, setRoleLoaded] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
 
     async function loadRole() {
       try {
@@ -42,23 +44,21 @@ export default function BottomNav() {
           throw error;
         }
 
-        let membership: Membership = null;
+        let role: string | null = null;
 
-        if (Array.isArray(data)) {
-          membership = (data[0] as Membership | undefined) ?? null;
-        } else if (data && typeof data === "object") {
-          membership = data as Membership;
+        if (Array.isArray(data) && data.length > 0) {
+          role = (data[0] as MembershipRow)?.role ?? null;
+        } else if (data && typeof data === "object" && "role" in data) {
+          role = (data as MembershipRow).role ?? null;
         }
 
-        if (!mounted) return;
-
-        setIsAdmin(membership?.role === "admin");
+        if (!cancelled) {
+          setIsAdmin(role === "admin");
+        }
       } catch {
-        if (!mounted) return;
-        setIsAdmin(false);
-      } finally {
-        if (!mounted) return;
-        setRoleLoaded(true);
+        if (!cancelled) {
+          setIsAdmin(false);
+        }
       }
     }
 
@@ -71,92 +71,72 @@ export default function BottomNav() {
     });
 
     return () => {
-      mounted = false;
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, []);
 
-  const navItems = useMemo(() => {
-    const items = [
+  const items = useMemo(() => {
+    const baseItems = [
       { href: "/", label: "Start", icon: "🏠" },
       { href: "/sessions", label: "Trainings", icon: "⚽" },
       { href: "/standings", label: "Tabellen", icon: "📊" },
     ];
 
     if (isAdmin) {
-      items.push({ href: "/admin", label: "Admin", icon: "⚙️" });
+      baseItems.push({ href: "/admin", label: "Admin", icon: "⚙️" });
     }
 
-    return items;
+    return baseItems;
   }, [isAdmin]);
 
-  if (!pathname || isHiddenPath(pathname)) {
+  if (!pathname || shouldHideBottomNav(pathname)) {
     return null;
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-black text-white">
-      <div
-        className={`mx-auto grid max-w-3xl items-stretch py-2 ${
-          isAdmin ? "grid-cols-5" : "grid-cols-4"
-        }`}
-      >
-        {navItems.map((item) => {
-          const active =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-black text-white">
+      <div className="mx-auto flex max-w-3xl items-stretch justify-between px-2 py-2">
+        <div className="flex min-w-0 flex-1 items-stretch justify-around">
+          {items.map((item) => {
+            const active = isActive(pathname, item.href);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex min-h-[60px] flex-col items-center justify-center gap-1 px-2 text-center"
-            >
-              <span
-                className={`text-lg transition-opacity ${
-                  active ? "opacity-100" : "opacity-60"
-                }`}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex min-h-[62px] min-w-[64px] flex-1 flex-col items-center justify-center gap-1 px-1 text-center"
               >
-                {item.icon}
-              </span>
-              <span
-                className={`text-[11px] transition-opacity ${
-                  active ? "opacity-100" : "opacity-60"
-                }`}
-              >
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+                <span
+                  className={`text-lg leading-none ${
+                    active ? "opacity-100" : "opacity-60"
+                  }`}
+                >
+                  {item.icon}
+                </span>
+                <span
+                  className={`text-[11px] leading-none ${
+                    active ? "opacity-100" : "opacity-60"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
 
-        <form action="/api/logout" method="post" className="h-full">
+        <form action="/api/logout" method="post" className="ml-1 flex-shrink-0">
           <button
             type="submit"
-            className="flex min-h-[60px] w-full flex-col items-center justify-center gap-1 px-2 text-center"
+            className="flex min-h-[62px] min-w-[64px] flex-col items-center justify-center gap-1 px-1 text-center"
             aria-label="Logout"
           >
-            <span
-              className={`text-lg transition-opacity ${
-                pathname === "/logout" ? "opacity-100" : "opacity-60"
-              }`}
-            >
-              🚪
-            </span>
-            <span
-              className={`text-[11px] transition-opacity ${
-                pathname === "/logout" ? "opacity-100" : "opacity-60"
-              }`}
-            >
-              Logout
-            </span>
+            <span className="text-lg leading-none opacity-60">🚪</span>
+            <span className="text-[11px] leading-none opacity-60">Logout</span>
           </button>
         </form>
       </div>
-
-      {!roleLoaded && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-0" />
-      )}
     </nav>
   );
 }
