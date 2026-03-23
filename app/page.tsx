@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -38,6 +38,7 @@ function writeCookie(name: string, value: string) {
 
 export default function HomePage() {
   const router = useRouter();
+  const hasRedirectedRef = useRef(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [clubName, setClubName] = useState("Dein Team");
@@ -53,23 +54,62 @@ export default function HomePage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadHome() {
-      setIsLoading(true);
-      setErrorMessage(null);
-
+    async function resolveAuthenticatedUser() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
-      if (!session?.user) {
-        router.replace("/login");
+      if (session?.user) {
+        return session.user;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        return user;
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+
+      const {
+        data: { session: retrySession },
+      } = await supabase.auth.getSession();
+
+      if (retrySession?.user) {
+        return retrySession.user;
+      }
+
+      const {
+        data: { user: retryUser },
+      } = await supabase.auth.getUser();
+
+      return retryUser ?? null;
+    }
+
+    async function loadHome() {
+      setIsLoading(true);
+      setErrorMessage(null);
+
+      const user = await resolveAuthenticatedUser();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!user) {
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          router.replace("/login");
+        }
         return;
       }
 
       const { data: membershipsData, error: membershipsError } = await supabase
         .from("club_memberships")
         .select("club_id, role")
-        .eq("user_id", session.user.id);
+        .eq("user_id", user.id);
 
       if (!isMounted) {
         return;
@@ -84,7 +124,10 @@ export default function HomePage() {
       const memberships = (membershipsData ?? []) as MembershipRow[];
 
       if (memberships.length === 0) {
-        router.replace("/club-setup");
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          router.replace("/club-setup");
+        }
         return;
       }
 
@@ -107,7 +150,10 @@ export default function HomePage() {
         activeClubId = memberships[0].club_id;
         writeCookie("active_club_id", activeClubId);
       } else {
-        router.replace("/select-club");
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          router.replace("/select-club");
+        }
         return;
       }
 
@@ -128,7 +174,6 @@ export default function HomePage() {
       }
 
       const club = (clubData ?? null) as ClubRow | null;
-
       setClubName(club?.display_name?.trim() || "Dein Team");
 
       if (club?.logo_path) {
@@ -150,8 +195,17 @@ export default function HomePage() {
 
     loadHome();
 
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      if (!hasRedirectedRef.current) {
+        loadHome();
+      }
+    });
+
     return () => {
       isMounted = false;
+      subscription.unsubscribe();
     };
   }, [router]);
 
