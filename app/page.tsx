@@ -1,8 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 type MembershipRow = {
   club_id: string;
@@ -15,70 +17,176 @@ type ClubRow = {
   logo_path: string | null;
 };
 
-export default async function HomePage() {
-  const cookieStore = await cookies();
-  const activeClubIdFromCookie =
-    cookieStore.get("active_club_id")?.value ?? null;
-
-  const supabase = await createSupabaseServerClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
+function readCookie(name: string) {
+  if (typeof document === "undefined") {
+    return null;
   }
 
-  const { data: membershipsData, error: membershipsError } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("user_id", user.id);
+  const value = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1];
 
-  if (membershipsError) {
-    throw new Error(membershipsError.message);
+  return value ? decodeURIComponent(value) : null;
+}
+
+function writeCookie(name: string, value: string) {
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
+
+export default function HomePage() {
+  const router = useRouter();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [clubName, setClubName] = useState("Dein Team");
+  const [clubLogoUrl, setClubLogoUrl] = useState<string | null>(null);
+  const [hasMultipleClubs, setHasMultipleClubs] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const feedbackHref = useMemo(
+    () => "mailto:mb1607@gmx.de?subject=strikr%20Feedback",
+    []
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadHome() {
+      setIsLoading(true);
+      setErrorMessage(null);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        router.replace("/login");
+        return;
+      }
+
+      const { data: membershipsData, error: membershipsError } = await supabase
+        .from("club_memberships")
+        .select("club_id, role")
+        .eq("user_id", session.user.id);
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (membershipsError) {
+        setErrorMessage("Deine Teams konnten nicht geladen werden.");
+        setIsLoading(false);
+        return;
+      }
+
+      const memberships = (membershipsData ?? []) as MembershipRow[];
+
+      if (memberships.length === 0) {
+        router.replace("/club-setup");
+        return;
+      }
+
+      const multipleClubs = memberships.length > 1;
+      setHasMultipleClubs(multipleClubs);
+
+      const validClubIds = new Set(
+        memberships
+          .map((membership) => membership.club_id)
+          .filter((value): value is string => Boolean(value))
+      );
+
+      const activeClubIdFromCookie = readCookie("active_club_id");
+
+      let activeClubId: string | null = null;
+
+      if (activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)) {
+        activeClubId = activeClubIdFromCookie;
+      } else if (memberships.length === 1) {
+        activeClubId = memberships[0].club_id;
+        writeCookie("active_club_id", activeClubId);
+      } else {
+        router.replace("/select-club");
+        return;
+      }
+
+      const { data: clubData, error: clubError } = await supabase
+        .from("clubs")
+        .select("id, display_name, logo_path")
+        .eq("id", activeClubId)
+        .maybeSingle();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (clubError) {
+        setErrorMessage("Dein aktives Team konnte nicht geladen werden.");
+        setIsLoading(false);
+        return;
+      }
+
+      const club = (clubData ?? null) as ClubRow | null;
+
+      setClubName(club?.display_name?.trim() || "Dein Team");
+
+      if (club?.logo_path) {
+        const { data: signedLogo, error: logoError } = await supabase.storage
+          .from("club-logos")
+          .createSignedUrl(club.logo_path, 60 * 60);
+
+        if (isMounted && !logoError) {
+          setClubLogoUrl(signedLogo?.signedUrl ?? null);
+        }
+      } else {
+        setClubLogoUrl(null);
+      }
+
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    }
+
+    loadHome();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-neutral-100 pb-24">
+        <section className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+          <div className="w-full max-w-md rounded-[24px] border border-black/10 bg-white p-6 text-center shadow-sm">
+            <p className="text-sm text-neutral-600">Startseite wird geladen...</p>
+          </div>
+        </section>
+      </main>
+    );
   }
 
-  const memberships = (membershipsData ?? []) as MembershipRow[];
+  if (errorMessage) {
+    return (
+      <main className="min-h-screen bg-neutral-100 pb-24">
+        <section className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+          <div className="w-full max-w-md rounded-[24px] border border-red-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {errorMessage}
+            </div>
 
-  if (memberships.length === 0) {
-    redirect("/club-setup");
-  }
-
-  const hasMultipleClubs = memberships.length > 1;
-  const validClubIds = new Set(memberships.map((m) => m.club_id));
-
-  let activeClubId: string | null = null;
-
-  if (activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)) {
-    activeClubId = activeClubIdFromCookie;
-  } else if (memberships.length === 1) {
-    activeClubId = memberships[0].club_id;
-  } else {
-    redirect("/select-club");
-  }
-
-  const { data: clubData, error: clubError } = await supabase
-    .from("clubs")
-    .select("id, display_name, logo_path")
-    .eq("id", activeClubId)
-    .maybeSingle();
-
-  if (clubError) {
-    throw new Error(clubError.message);
-  }
-
-  const club = (clubData ?? null) as ClubRow | null;
-  const clubName = club?.display_name?.trim() || "Dein Team";
-
-  let clubLogoUrl: string | null = null;
-
-  if (club?.logo_path) {
-    const { data: signedLogo } = await supabase.storage
-      .from("club-logos")
-      .createSignedUrl(club.logo_path, 60 * 60);
-
-    clubLogoUrl = signedLogo?.signedUrl ?? null;
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Erneut laden
+            </button>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -95,6 +203,7 @@ export default async function HomePage() {
                     width={48}
                     height={48}
                     className="h-full w-full object-contain"
+                    unoptimized
                   />
                 ) : (
                   <Image
@@ -199,7 +308,7 @@ export default async function HomePage() {
           </div>
 
           <a
-            href="mailto:mb1607@gmx.de?subject=strikr%20Feedback"
+            href={feedbackHref}
             className="rounded-[24px] border border-black/10 bg-white p-5 text-sm shadow"
           >
             Feedback oder Probleme? → Mail senden

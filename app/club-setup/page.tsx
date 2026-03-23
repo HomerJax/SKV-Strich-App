@@ -1,17 +1,15 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+"use client";
 
-type SearchParams = Promise<{
-  error?: string;
-}>;
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 type MembershipRow = {
   club_id: string;
 };
 
-function getErrorMessage(error?: string) {
+function getErrorMessage(error?: string | null) {
   switch (error) {
     case "missing-name":
       return "Bitte gib einen Teamnamen ein.";
@@ -28,44 +26,143 @@ function getErrorMessage(error?: string) {
   }
 }
 
-export default async function ClubSetupPage(props: {
-  searchParams: SearchParams;
-}) {
-  const searchParams = await props.searchParams;
-  const supabase = await createSupabaseServerClient();
-  const cookieStore = await cookies();
+export default function ClubSetupPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [displayName, setDisplayName] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    getErrorMessage(searchParams.get("error"))
+  );
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!user) {
-    redirect("/login");
+  useEffect(() => {
+    let isMounted = true;
+
+    async function bootstrap() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        router.replace("/login");
+        return;
+      }
+
+      const { data: memberships, error } = await supabase
+        .from("club_memberships")
+        .select("club_id")
+        .eq("user_id", session.user.id);
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (error) {
+        setErrorMessage("Dein Account konnte nicht geladen werden.");
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      const typedMemberships = (memberships ?? []) as MembershipRow[];
+
+      if (typedMemberships.length === 1) {
+        document.cookie = `active_club_id=${typedMemberships[0].club_id}; Path=/; Max-Age=31536000; SameSite=Lax`;
+        router.replace("/");
+        return;
+      }
+
+      if (typedMemberships.length > 1) {
+        router.replace("/select-club");
+        return;
+      }
+
+      setIsCheckingAuth(false);
+    }
+
+    bootstrap();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const cleanDisplayName = displayName.trim();
+
+    if (!cleanDisplayName) {
+      setErrorMessage("Bitte gib einen Teamnamen ein.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const accessToken = session?.access_token;
+      const user = session?.user;
+
+      if (!accessToken || !user) {
+        router.replace("/login");
+        return;
+      }
+
+      const response = await fetch("/api/club-setup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          display_name: cleanDisplayName,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            ok?: boolean;
+            error?: string;
+            club_id?: string;
+            redirect_to?: string;
+          }
+        | null;
+
+      if (!response.ok || !payload?.ok) {
+        setErrorMessage(getErrorMessage(payload?.error) ?? "Das Team konnte nicht erstellt werden.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (payload.club_id) {
+        document.cookie = `active_club_id=${payload.club_id}; Path=/; Max-Age=31536000; SameSite=Lax`;
+      }
+
+      router.replace(payload?.redirect_to || "/");
+      router.refresh();
+    } catch {
+      setErrorMessage("Das Team konnte nicht erstellt werden.");
+      setIsSubmitting(false);
+    }
   }
 
-  const { data: memberships } = await supabase
-    .from("club_memberships")
-    .select("club_id")
-    .eq("user_id", user.id);
-
-  const typedMemberships = (memberships ?? []) as MembershipRow[];
-
-  if (typedMemberships.length === 1) {
-    cookieStore.set("active_club_id", typedMemberships[0].club_id, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 180,
-    });
-    redirect("/");
+  if (isCheckingAuth) {
+    return (
+      <main className="min-h-screen bg-neutral-50">
+        <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+          <div className="w-full rounded-3xl border border-neutral-200 bg-white p-6 text-center shadow-sm sm:p-8">
+            <p className="text-sm text-neutral-600">Lade Team-Setup...</p>
+          </div>
+        </div>
+      </main>
+    );
   }
-
-  if (typedMemberships.length > 1) {
-    redirect("/select-club");
-  }
-
-  const errorMessage = getErrorMessage(searchParams.error);
 
   return (
     <main className="min-h-screen bg-neutral-50">
@@ -104,18 +201,7 @@ export default async function ClubSetupPage(props: {
                 Teams.
               </p>
 
-              <form
-                action="/api/club-setup"
-                method="post"
-                className="mt-5 space-y-4"
-              >
-                <input type="hidden" name="user_id" value={user.id} />
-                <input
-                  type="hidden"
-                  name="user_email"
-                  value={user.email ?? ""}
-                />
-
+              <form onSubmit={handleSubmit} className="mt-5 space-y-4">
                 <div>
                   <label
                     htmlFor="display_name"
@@ -130,16 +216,20 @@ export default async function ClubSetupPage(props: {
                     type="text"
                     required
                     maxLength={80}
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
                     placeholder="z. B. AH Musterstadt"
                     className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-400"
+                    disabled={isSubmitting}
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-300"
+                  disabled={isSubmitting}
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Team erstellen
+                  {isSubmitting ? "Team wird erstellt..." : "Team erstellen"}
                 </button>
               </form>
             </section>
