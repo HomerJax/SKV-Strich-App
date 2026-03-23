@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 
 function buildUrl(
   request: NextRequest,
@@ -24,53 +24,37 @@ function redirectWithError(request: NextRequest, code: string) {
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
+
   const displayName = String(formData.get("display_name") ?? "").trim();
+  const userId = String(formData.get("user_id") ?? "").trim();
 
   if (!displayName) {
     return redirectWithError(request, "missing-name");
   }
 
+  if (!userId) {
+    return redirectWithError(request, "missing-user");
+  }
+
   const cookieStore = await cookies();
 
-  const response = NextResponse.redirect(buildUrl(request, "/"), {
-    status: 303,
-  });
-
-  const supabase = createServerClient(
+  const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          for (const cookie of cookiesToSet) {
-            cookieStore.set(cookie.name, cookie.value, cookie.options);
-            response.cookies.set(cookie.name, cookie.value, cookie.options);
-          }
-        },
-      },
-    }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return redirectWithError(request, "not-authenticated");
-  }
 
   const { data: existingMemberships } = await supabase
     .from("club_memberships")
     .select("club_id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .limit(2);
 
   if ((existingMemberships ?? []).length === 1) {
     const clubId = existingMemberships?.[0]?.club_id ?? null;
+
+    const response = NextResponse.redirect(buildUrl(request, "/"), {
+      status: 303,
+    });
 
     if (clubId) {
       response.cookies.set("active_club_id", clubId, {
@@ -108,7 +92,7 @@ export async function POST(request: NextRequest) {
   const { error: membershipError } = await supabase
     .from("club_memberships")
     .insert({
-      user_id: user.id,
+      user_id: userId,
       club_id: clubId,
       role: "admin",
     });
@@ -124,6 +108,10 @@ export async function POST(request: NextRequest) {
   if (settingsError) {
     return redirectWithError(request, "settings-create-failed");
   }
+
+  const response = NextResponse.redirect(buildUrl(request, "/"), {
+    status: 303,
+  });
 
   response.cookies.set("active_club_id", clubId, {
     httpOnly: true,

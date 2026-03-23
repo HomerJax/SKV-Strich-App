@@ -1,37 +1,28 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
-
-type ClubMembershipRow = {
-  club_id: string;
-  role: "admin" | "member";
-  clubs:
-    | {
-        id: string;
-        display_name: string | null;
-        logo_path: string | null;
-      }[]
-    | null;
-};
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 type SearchParams = Promise<{
   error?: string;
-  success?: string;
 }>;
+
+type MembershipRow = {
+  club_id: string;
+};
 
 function getErrorMessage(error?: string) {
   switch (error) {
     case "missing-name":
       return "Bitte gib einen Teamnamen ein.";
-    case "not-authenticated":
-      return "Du musst eingeloggt sein.";
+    case "missing-user":
+      return "Der Benutzer konnte nicht erkannt werden.";
     case "club-create-failed":
       return "Das Team konnte nicht erstellt werden.";
     case "membership-create-failed":
-      return "Die Mitgliedschaft konnte nicht angelegt werden.";
+      return "Die Team-Zuordnung konnte nicht erstellt werden.";
     case "settings-create-failed":
-      return "Das Team wurde erstellt, aber die Standardeinstellungen konnten nicht vollständig angelegt werden.";
+      return "Das Team wurde erstellt, aber die Einstellungen konnten nicht vollständig angelegt werden.";
     default:
       return null;
   }
@@ -41,28 +32,8 @@ export default async function ClubSetupPage(props: {
   searchParams: SearchParams;
 }) {
   const searchParams = await props.searchParams;
+  const supabase = await createSupabaseServerClient();
   const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            for (const cookie of cookiesToSet) {
-              cookieStore.set(cookie.name, cookie.value, cookie.options);
-            }
-          } catch {
-            // Cookie-Schreiben kann in diesem Kontext ignoriert werden.
-          }
-        },
-      },
-    }
-  );
 
   const {
     data: { user },
@@ -74,22 +45,19 @@ export default async function ClubSetupPage(props: {
 
   const { data: memberships } = await supabase
     .from("club_memberships")
-    .select(
-      `
-        club_id,
-        role,
-        clubs (
-          id,
-          display_name,
-          logo_path
-        )
-      `
-    )
+    .select("club_id")
     .eq("user_id", user.id);
 
-  const typedMemberships = (memberships ?? []) as unknown as ClubMembershipRow[];
+  const typedMemberships = (memberships ?? []) as MembershipRow[];
 
   if (typedMemberships.length === 1) {
+    cookieStore.set("active_club_id", typedMemberships[0].club_id, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 180,
+    });
     redirect("/");
   }
 
@@ -141,6 +109,13 @@ export default async function ClubSetupPage(props: {
                 method="post"
                 className="mt-5 space-y-4"
               >
+                <input type="hidden" name="user_id" value={user.id} />
+                <input
+                  type="hidden"
+                  name="user_email"
+                  value={user.email ?? ""}
+                />
+
                 <div>
                   <label
                     htmlFor="display_name"
