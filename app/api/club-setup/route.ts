@@ -48,7 +48,10 @@ export async function POST(request: NextRequest) {
   }
 
   const cookieStore = await cookies();
-  const authCarrierResponse = createRedirectResponse(request, "/");
+  const authCarrierResponse = createRedirectResponse(
+    request,
+    "/club-setup/success"
+  );
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -92,7 +95,7 @@ export async function POST(request: NextRequest) {
 
   if ((existingMemberships ?? []).length === 1) {
     const clubId = existingMemberships?.[0]?.club_id ?? null;
-    const response = createRedirectResponse(request, "/");
+    const response = createRedirectResponse(request, "/club-setup/success");
     copyCookies(authCarrierResponse, response);
 
     if (clubId) {
@@ -160,7 +163,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const finalResponse = createRedirectResponse(request, "/");
+  const finalResponse = createRedirectResponse(request, "/club-setup/success");
   copyCookies(authCarrierResponse, finalResponse);
 
   finalResponse.cookies.set("active_club_id", clubId, {
