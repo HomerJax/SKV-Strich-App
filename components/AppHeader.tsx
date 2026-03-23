@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 const HIDDEN_ON_PATHS = [
   "/login",
@@ -10,10 +13,6 @@ const HIDDEN_ON_PATHS = [
   "/reset-password",
   "/onboarding",
 ];
-
-type AppHeaderProps = {
-  pathname?: string;
-};
 
 type MembershipRow = {
   club_id: string;
@@ -67,87 +66,126 @@ function getInitials(label: string) {
     .join("");
 }
 
-export default async function AppHeader({ pathname }: AppHeaderProps) {
-  const hidden = pathname
-    ? HIDDEN_ON_PATHS.some(
-        (path) => pathname === path || pathname.startsWith(`${path}/`)
-      )
-    : false;
-
-  if (hidden) {
+function readCookie(name: string) {
+  if (typeof document === "undefined") {
     return null;
   }
 
-  const cookieStore = await cookies();
+  const value = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1];
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {
-          // read only
-        },
-      },
-    }
-  );
+  return value ? decodeURIComponent(value) : null;
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export default function AppHeader() {
+  const pathname = usePathname();
 
-  let club: ClubRow | null = null;
-  let player: PlayerRow | null = null;
-  let clubLogoUrl: string | null = null;
-
-  if (user) {
-    const activeClubId = cookieStore.get("active_club_id")?.value ?? null;
-
-    const { data: memberships } = await supabase
-      .from("club_memberships")
-      .select("club_id, role")
-      .eq("user_id", user.id);
-
-    const typedMemberships = (memberships ?? []) as MembershipRow[];
-
-    let resolvedClubId: string | null = activeClubId;
-
-    if (!resolvedClubId && typedMemberships.length === 1) {
-      resolvedClubId = typedMemberships[0].club_id;
+  const hidden = useMemo(() => {
+    if (!pathname) {
+      return false;
     }
 
-    if (resolvedClubId) {
-      const [{ data: clubData }, { data: playerData }] = await Promise.all([
-        supabase
-          .from("clubs")
-          .select("id, display_name, logo_path")
-          .eq("id", resolvedClubId)
-          .maybeSingle(),
+    return HIDDEN_ON_PATHS.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`)
+    );
+  }, [pathname]);
+
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userLabel, setUserLabel] = useState("Eingeloggt");
+  const [clubName, setClubName] = useState<string | null>(null);
+  const [clubLogoUrl, setClubLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadHeader() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!session?.user) {
+        setUserEmail(null);
+        setUserLabel("Eingeloggt");
+        setClubName(null);
+        setClubLogoUrl(null);
+        return;
+      }
+
+      const user = session.user;
+      setUserEmail(user.email ?? null);
+
+      const activeClubId = readCookie("active_club_id");
+
+      if (!activeClubId) {
+        setUserLabel(user.email ?? "Eingeloggt");
+        setClubName(null);
+        setClubLogoUrl(null);
+        return;
+      }
+
+      const [{ data: playerData }, { data: clubData }] = await Promise.all([
         supabase
           .from("players")
           .select("id, first_name, last_name, nickname, name, email")
-          .eq("club_id", resolvedClubId)
+          .eq("club_id", activeClubId)
           .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("clubs")
+          .select("id, display_name, logo_path")
+          .eq("id", activeClubId)
           .maybeSingle(),
       ]);
 
-      club = (clubData ?? null) as ClubRow | null;
-      player = (playerData ?? null) as PlayerRow | null;
+      if (!isMounted) {
+        return;
+      }
+
+      const player = (playerData ?? null) as PlayerRow | null;
+      const club = (clubData ?? null) as ClubRow | null;
+
+      setUserLabel(getUserLabel(player, user.email ?? null));
+      setClubName(club?.display_name ?? null);
 
       if (club?.logo_path) {
         const { data: signedLogo } = await supabase.storage
           .from("club-logos")
           .createSignedUrl(club.logo_path, 60 * 60);
 
-        clubLogoUrl = signedLogo?.signedUrl ?? null;
+        if (!isMounted) {
+          return;
+        }
+
+        setClubLogoUrl(signedLogo?.signedUrl ?? null);
+      } else {
+        setClubLogoUrl(null);
       }
     }
+
+    loadHeader();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadHeader();
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [pathname]);
+
+  if (hidden) {
+    return null;
   }
 
-  const userLabel = getUserLabel(player, user?.email ?? null);
   const initials = getInitials(userLabel);
 
   return (
@@ -167,7 +205,7 @@ export default async function AppHeader({ pathname }: AppHeaderProps) {
           </span>
         </Link>
 
-        {user ? (
+        {userEmail ? (
           <div className="flex items-center gap-2">
             <div className="flex max-w-[180px] items-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 px-2.5 py-2 text-neutral-800">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-semibold text-white">
@@ -176,11 +214,9 @@ export default async function AppHeader({ pathname }: AppHeaderProps) {
 
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium">{userLabel}</div>
-                {user.email ? (
-                  <div className="truncate text-[11px] text-neutral-500">
-                    {user.email}
-                  </div>
-                ) : null}
+                <div className="truncate text-[11px] text-neutral-500">
+                  {userEmail}
+                </div>
               </div>
             </div>
 
@@ -188,10 +224,11 @@ export default async function AppHeader({ pathname }: AppHeaderProps) {
               {clubLogoUrl ? (
                 <Image
                   src={clubLogoUrl}
-                  alt={club?.display_name ?? "Clublogo"}
+                  alt={clubName ?? "Clublogo"}
                   width={34}
                   height={34}
                   className="h-8 w-8 object-contain"
+                  unoptimized
                 />
               ) : (
                 <Image
