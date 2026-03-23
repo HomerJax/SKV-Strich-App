@@ -1,204 +1,157 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+import {
+  Home,
+  CalendarDays,
+  Trophy,
+  Shield,
+  LogOut,
+} from "lucide-react";
 
-type MembershipRow = {
-  role: "admin" | "member" | null;
-};
-
-type NavItem =
-  | {
-      type: "link";
-      href: string;
-      label: string;
-      icon: string;
-    }
-  | {
-      type: "logout";
-      label: string;
-      icon: string;
-    };
-
-const HIDDEN_PATHS = [
+const HIDDEN_ON_PATHS = [
   "/login",
   "/signup",
   "/forgot-password",
   "/reset-password",
   "/onboarding",
-  "/join",
   "/club-setup",
   "/select-club",
 ];
 
-function shouldHideBottomNav(pathname: string) {
-  return HIDDEN_PATHS.some(
+type AppBottomNavProps = {
+  pathname?: string;
+};
+
+type MembershipRow = {
+  club_id: string;
+  role: "admin" | "member";
+};
+
+function isHiddenPath(pathname?: string) {
+  if (!pathname) return false;
+
+  return HIDDEN_ON_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`)
   );
 }
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
+function isActive(pathname: string | undefined, href: string) {
+  if (!pathname) return false;
+
+  if (href === "/") {
+    return pathname === "/";
+  }
+
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function getCookie(name: string) {
-  if (typeof document === "undefined") return null;
-
-  const match = document.cookie.match(
-    new RegExp(`(?:^|; )${name.replace(/[$()*+./?[\\\]^{|}-]/g, "\\$&")}=([^;]*)`)
-  );
-
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-export default function AppBottomNav() {
-  const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadRole() {
-      try {
-        const activeClubId = getCookie("active_club_id");
-
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError) throw userError;
-        if (!user?.id || !activeClubId) {
-          if (!cancelled) setIsAdmin(false);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from("club_memberships")
-          .select("role")
-          .eq("user_id", user.id)
-          .eq("club_id", activeClubId)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        const role = (data as MembershipRow | null)?.role ?? null;
-
-        if (!cancelled) {
-          setIsAdmin(role === "admin");
-        }
-      } catch {
-        if (!cancelled) {
-          setIsAdmin(false);
-        }
-      }
-    }
-
-    loadRole();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      loadRole();
-    });
-
-    const onFocus = () => loadRole();
-    window.addEventListener("focus", onFocus);
-
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-      window.removeEventListener("focus", onFocus);
-    };
-  }, []);
-
-  const navItems = useMemo<NavItem[]>(() => {
-    const items: NavItem[] = [
-      { type: "link", href: "/", label: "Home", icon: "⌂" },
-      { type: "link", href: "/sessions", label: "Trainings", icon: "▣" },
-      { type: "link", href: "/standings", label: "Tabelle", icon: "⌘" },
-    ];
-
-    if (isAdmin) {
-      items.push({
-        type: "link",
-        href: "/admin",
-        label: "Admin",
-        icon: "⚙",
-      });
-    }
-
-    items.push({
-      type: "logout",
-      label: "Logout",
-      icon: "⇥",
-    });
-
-    return items;
-  }, [isAdmin]);
-
-  if (!pathname || shouldHideBottomNav(pathname)) {
+export default async function AppBottomNav({
+  pathname,
+}: AppBottomNavProps) {
+  if (isHiddenPath(pathname)) {
     return null;
   }
 
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur">
-      <div
-        className="mx-auto grid max-w-3xl"
-        style={{
-          gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))`,
-        }}
-      >
-        {navItems.map((item) => {
-          if (item.type === "logout") {
-            return (
-              <form
-                key="logout"
-                action="/api/logout"
-                method="post"
-                className="m-0"
-              >
-                <button
-                  type="submit"
-                  className="flex min-h-[72px] w-full flex-col items-center justify-center gap-1 px-2 text-center text-slate-700"
-                  aria-label="Logout"
-                >
-                  <span className="text-lg leading-none opacity-80">
-                    {item.icon}
-                  </span>
-                  <span className="text-[11px] leading-none opacity-80">
-                    {item.label}
-                  </span>
-                </button>
-              </form>
-            );
-          }
+  const cookieStore = await cookies();
 
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {
+          // Bottom nav liest nur.
+        },
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  const { data: memberships } = await supabase
+    .from("club_memberships")
+    .select("club_id, role")
+    .eq("user_id", user.id);
+
+  const typedMemberships = (memberships ?? []) as MembershipRow[];
+
+  const activeClubId = cookieStore.get("active_club_id")?.value ?? null;
+
+  let activeMembership: MembershipRow | null = null;
+
+  if (activeClubId) {
+    activeMembership =
+      typedMemberships.find((membership) => membership.club_id === activeClubId) ??
+      null;
+  }
+
+  if (!activeMembership && typedMemberships.length === 1) {
+    activeMembership = typedMemberships[0];
+  }
+
+  const isAdmin = activeMembership?.role === "admin";
+
+  const items = [
+    {
+      href: "/",
+      label: "Home",
+      icon: Home,
+    },
+    {
+      href: "/sessions",
+      label: "Trainings",
+      icon: CalendarDays,
+    },
+    {
+      href: "/standings",
+      label: "Tabelle",
+      icon: Trophy,
+    },
+    ...(isAdmin
+      ? [
+          {
+            href: "/admin",
+            label: "Admin",
+            icon: Shield,
+          },
+        ]
+      : []),
+    {
+      href: "/logout",
+      label: "Logout",
+      icon: LogOut,
+    },
+  ];
+
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <div className="mx-auto flex max-w-3xl items-stretch justify-around px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+        {items.map((item) => {
+          const Icon = item.icon;
           const active = isActive(pathname, item.href);
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex min-h-[72px] flex-col items-center justify-center gap-1 px-2 text-center text-slate-700"
+              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-medium transition ${
+                active
+                  ? "bg-neutral-100 text-neutral-950"
+                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800"
+              }`}
             >
-              <span
-                className={`text-lg leading-none ${
-                  active ? "opacity-100" : "opacity-60"
-                }`}
-              >
-                {item.icon}
-              </span>
-              <span
-                className={`text-[11px] leading-none ${
-                  active ? "font-medium opacity-100" : "opacity-60"
-                }`}
-              >
-                {item.label}
-              </span>
+              <Icon className="h-4 w-4" strokeWidth={2} />
+              <span className="truncate">{item.label}</span>
             </Link>
           );
         })}
