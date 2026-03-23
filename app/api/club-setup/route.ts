@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
   }
 
   const cookieStore = await cookies();
-
   const response = createRedirectResponse(request, "/");
 
   const supabase = createServerClient(
@@ -82,11 +81,34 @@ export async function POST(request: NextRequest) {
     .limit(2);
 
   if ((existingMemberships ?? []).length === 1) {
-    return createRedirectResponse(request, "/");
+    const clubId = existingMemberships?.[0]?.club_id ?? null;
+    const alreadyAssignedResponse = createRedirectResponse(request, "/");
+
+    for (const cookie of response.cookies.getAll()) {
+      alreadyAssignedResponse.cookies.set(cookie);
+    }
+
+    if (clubId) {
+      alreadyAssignedResponse.cookies.set("active_club_id", clubId, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 180,
+      });
+    }
+
+    return alreadyAssignedResponse;
   }
 
   if ((existingMemberships ?? []).length > 1) {
-    return createRedirectResponse(request, "/select-club");
+    const multiClubResponse = createRedirectResponse(request, "/select-club");
+
+    for (const cookie of response.cookies.getAll()) {
+      multiClubResponse.cookies.set(cookie);
+    }
+
+    return multiClubResponse;
   }
 
   const { data: createdClub, error: clubError } = await supabase
@@ -127,14 +149,6 @@ export async function POST(request: NextRequest) {
     club_id: clubId,
   });
 
-  response.cookies.set("active_club_id", clubId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 180,
-  });
-
   if (settingsError) {
     return createRedirectResponse(
       request,
@@ -143,5 +157,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return response;
+  const finalResponse = createRedirectResponse(request, "/");
+
+  for (const cookie of response.cookies.getAll()) {
+    finalResponse.cookies.set(cookie);
+  }
+
+  finalResponse.cookies.set("active_club_id", clubId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 180,
+  });
+
+  return finalResponse;
 }

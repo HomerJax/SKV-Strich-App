@@ -15,14 +15,28 @@ function safeNextPath(value: string | null) {
   return value;
 }
 
-function buildRedirect(request: NextRequest, pathname: string, search?: URLSearchParams) {
+function buildUrl(
+  request: NextRequest,
+  pathname: string,
+  search?: URLSearchParams
+) {
   const url = request.nextUrl.clone();
   url.pathname = pathname;
   url.search = search ? search.toString() : "";
   return url;
 }
 
-function buildErrorRedirect(request: NextRequest, code: string, email?: string) {
+function createRedirectResponse(
+  request: NextRequest,
+  pathname: string,
+  search?: URLSearchParams
+) {
+  return NextResponse.redirect(buildUrl(request, pathname, search), {
+    status: 303,
+  });
+}
+
+function buildErrorParams(code: string, email?: string) {
   const params = new URLSearchParams();
   params.set("error", code);
 
@@ -30,9 +44,7 @@ function buildErrorRedirect(request: NextRequest, code: string, email?: string) 
     params.set("email", email);
   }
 
-  return NextResponse.redirect(buildRedirect(request, "/login", params), {
-    status: 303,
-  });
+  return params;
 }
 
 export async function POST(request: NextRequest) {
@@ -43,11 +55,15 @@ export async function POST(request: NextRequest) {
   const nextParam = safeNextPath(String(formData.get("next") ?? "") || null);
 
   if (!email || !password) {
-    return buildErrorRedirect(request, "missing-fields", email);
+    return createRedirectResponse(
+      request,
+      "/login",
+      buildErrorParams("missing-fields", email)
+    );
   }
 
   const cookieStore = await cookies();
-  const response = NextResponse.next();
+  const response = createRedirectResponse(request, "/");
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -74,7 +90,11 @@ export async function POST(request: NextRequest) {
     });
 
   if (signInError || !signInData.user) {
-    return buildErrorRedirect(request, "invalid-credentials", email);
+    return createRedirectResponse(
+      request,
+      "/login",
+      buildErrorParams("invalid-credentials", email)
+    );
   }
 
   const user = signInData.user;
@@ -85,27 +105,35 @@ export async function POST(request: NextRequest) {
     .eq("user_id", user.id);
 
   if (membershipsError) {
-    return buildErrorRedirect(request, "membership-load-failed", email);
+    return createRedirectResponse(
+      request,
+      "/login",
+      buildErrorParams("membership-load-failed", email)
+    );
   }
 
   const typedMemberships = (memberships ?? []) as MembershipRow[];
 
   if (typedMemberships.length === 0) {
-    return NextResponse.redirect(buildRedirect(request, "/club-setup"), {
-      status: 303,
-    });
+    const noClubResponse = createRedirectResponse(request, "/club-setup");
+
+    for (const cookie of response.cookies.getAll()) {
+      noClubResponse.cookies.set(cookie);
+    }
+
+    return noClubResponse;
   }
 
   if (typedMemberships.length === 1) {
     const clubId = typedMemberships[0].club_id;
-    const redirectTo = nextParam === "/" ? "/" : nextParam;
+    const targetPath = nextParam === "/" ? "/" : nextParam;
+    const targetResponse = createRedirectResponse(request, targetPath);
 
-    const redirectResponse = NextResponse.redirect(
-      buildRedirect(request, redirectTo),
-      { status: 303 }
-    );
+    for (const cookie of response.cookies.getAll()) {
+      targetResponse.cookies.set(cookie);
+    }
 
-    redirectResponse.cookies.set("active_club_id", clubId, {
+    targetResponse.cookies.set("active_club_id", clubId, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
@@ -113,10 +141,14 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 180,
     });
 
-    return redirectResponse;
+    return targetResponse;
   }
 
-  return NextResponse.redirect(buildRedirect(request, "/select-club"), {
-    status: 303,
-  });
+  const multiClubResponse = createRedirectResponse(request, "/select-club");
+
+  for (const cookie of response.cookies.getAll()) {
+    multiClubResponse.cookies.set(cookie);
+  }
+
+  return multiClubResponse;
 }
