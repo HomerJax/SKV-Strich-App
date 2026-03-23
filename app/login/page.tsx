@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 function getInitialErrorMessage(error?: string | null) {
@@ -19,20 +19,27 @@ function getInitialErrorMessage(error?: string | null) {
   }
 }
 
+function getUrlParams() {
+  if (typeof window === "undefined") {
+    return new URLSearchParams();
+  }
+
+  return new URLSearchParams(window.location.search);
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const initialEmail = searchParams.get("email") ?? "";
-  const initialError = useMemo(
-    () => getInitialErrorMessage(searchParams.get("error")),
-    [searchParams]
-  );
-
-  const [email, setEmail] = useState(initialEmail);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(initialError);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const params = getUrlParams();
+    setEmail(params.get("email") ?? "");
+    setErrorMessage(getInitialErrorMessage(params.get("error")));
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
