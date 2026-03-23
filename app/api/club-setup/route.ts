@@ -29,6 +29,12 @@ function errorParams(code: string) {
   return params;
 }
 
+function copyCookies(from: NextResponse, to: NextResponse) {
+  for (const cookie of from.cookies.getAll()) {
+    to.cookies.set(cookie);
+  }
+}
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const displayName = String(formData.get("display_name") ?? "").trim();
@@ -42,7 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   const cookieStore = await cookies();
-  const response = createRedirectResponse(request, "/");
+  const authCarrierResponse = createRedirectResponse(request, "/");
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,7 +61,11 @@ export async function POST(request: NextRequest) {
         setAll(cookiesToSet) {
           for (const cookie of cookiesToSet) {
             cookieStore.set(cookie.name, cookie.value, cookie.options);
-            response.cookies.set(cookie.name, cookie.value, cookie.options);
+            authCarrierResponse.cookies.set(
+              cookie.name,
+              cookie.value,
+              cookie.options
+            );
           }
         },
       },
@@ -82,14 +92,11 @@ export async function POST(request: NextRequest) {
 
   if ((existingMemberships ?? []).length === 1) {
     const clubId = existingMemberships?.[0]?.club_id ?? null;
-    const alreadyAssignedResponse = createRedirectResponse(request, "/");
-
-    for (const cookie of response.cookies.getAll()) {
-      alreadyAssignedResponse.cookies.set(cookie);
-    }
+    const response = createRedirectResponse(request, "/");
+    copyCookies(authCarrierResponse, response);
 
     if (clubId) {
-      alreadyAssignedResponse.cookies.set("active_club_id", clubId, {
+      response.cookies.set("active_club_id", clubId, {
         httpOnly: true,
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
@@ -98,17 +105,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return alreadyAssignedResponse;
+    return response;
   }
 
   if ((existingMemberships ?? []).length > 1) {
-    const multiClubResponse = createRedirectResponse(request, "/select-club");
-
-    for (const cookie of response.cookies.getAll()) {
-      multiClubResponse.cookies.set(cookie);
-    }
-
-    return multiClubResponse;
+    const response = createRedirectResponse(request, "/select-club");
+    copyCookies(authCarrierResponse, response);
+    return response;
   }
 
   const { data: createdClub, error: clubError } = await supabase
@@ -158,10 +161,7 @@ export async function POST(request: NextRequest) {
   }
 
   const finalResponse = createRedirectResponse(request, "/");
-
-  for (const cookie of response.cookies.getAll()) {
-    finalResponse.cookies.set(cookie);
-  }
+  copyCookies(authCarrierResponse, finalResponse);
 
   finalResponse.cookies.set("active_club_id", clubId, {
     httpOnly: true,
