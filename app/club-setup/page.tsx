@@ -6,11 +6,13 @@ import { createServerClient } from "@supabase/ssr";
 type ClubMembershipRow = {
   club_id: string;
   role: "admin" | "member";
-  clubs: {
-    id: string;
-    display_name: string | null;
-    logo_path: string | null;
-  } | null;
+  clubs:
+    | {
+        id: string;
+        display_name: string | null;
+        logo_path: string | null;
+      }[]
+    | null;
 };
 
 type SearchParams = Promise<{
@@ -35,7 +37,9 @@ function getErrorMessage(error?: string) {
   }
 }
 
-export default async function ClubSetupPage(props: { searchParams: SearchParams }) {
+export default async function ClubSetupPage(props: {
+  searchParams: SearchParams;
+}) {
   const searchParams = await props.searchParams;
   const cookieStore = await cookies();
 
@@ -53,7 +57,7 @@ export default async function ClubSetupPage(props: { searchParams: SearchParams 
               cookieStore.set(cookie.name, cookie.value, cookie.options);
             }
           } catch {
-            // In Server Components können Cookie-Schreibzugriffe je nach Kontext ignoriert werden.
+            // Cookie-Schreiben kann in diesem Kontext ignoriert werden.
           }
         },
       },
@@ -83,7 +87,7 @@ export default async function ClubSetupPage(props: { searchParams: SearchParams 
     )
     .eq("user_id", user.id);
 
-  const typedMemberships = (memberships ?? []) as ClubMembershipRow[];
+  const typedMemberships = (memberships ?? []) as unknown as ClubMembershipRow[];
 
   if (typedMemberships.length === 1) {
     redirect("/");
@@ -103,13 +107,15 @@ export default async function ClubSetupPage(props: { searchParams: SearchParams 
             <div className="mb-3 inline-flex items-center rounded-full bg-neutral-100 px-3 py-1 text-sm font-medium text-neutral-700">
               strikr
             </div>
+
             <h1 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
               Du hast aktuell noch kein Team
             </h1>
+
             <p className="mt-3 max-w-2xl text-base leading-7 text-neutral-600">
               Erstelle jetzt dein Team, wenn du loslegen möchtest. Oder warte auf
-              eine Einladung, falls du später zu einem bestehenden Team hinzugefügt
-              wirst.
+              eine Einladung, falls du später zu einem bestehenden Team
+              hinzugefügt wirst.
             </p>
           </div>
 
@@ -124,8 +130,10 @@ export default async function ClubSetupPage(props: { searchParams: SearchParams 
               <h2 className="text-lg font-semibold text-neutral-950">
                 Team erstellen
               </h2>
+
               <p className="mt-2 text-sm leading-6 text-neutral-600">
-                Du legst ein neues Team an und wirst automatisch Admin dieses Teams.
+                Du legst ein neues Team an und wirst automatisch Admin dieses
+                Teams.
               </p>
 
               <form
@@ -140,6 +148,7 @@ export default async function ClubSetupPage(props: { searchParams: SearchParams 
                   >
                     Teamname
                   </label>
+
                   <input
                     id="display_name"
                     name="display_name"
@@ -164,14 +173,15 @@ export default async function ClubSetupPage(props: { searchParams: SearchParams 
               <h2 className="text-lg font-semibold text-neutral-950">
                 Auf Einladung warten
               </h2>
+
               <p className="mt-2 text-sm leading-6 text-neutral-600">
                 Falls dich ein Admin später zu einem bestehenden Team hinzufügt,
                 kannst du dich einfach erneut einloggen und direkt weitermachen.
               </p>
 
               <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white p-4 text-sm leading-6 text-neutral-600">
-                Aktuell gibt es noch kein separates Invite-System. Diese Seite sorgt
-                aber schon jetzt dafür, dass User ohne Team nicht in einen
+                Aktuell gibt es noch kein separates Invite-System. Diese Seite
+                sorgt aber schon jetzt dafür, dass User ohne Team nicht in einen
                 unklaren Zustand laufen.
               </div>
 
