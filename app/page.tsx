@@ -17,7 +17,8 @@ type ClubRow = {
 
 export default async function HomePage() {
   const cookieStore = await cookies();
-  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
+  const activeClubIdFromCookie =
+    cookieStore.get("active_club_id")?.value ?? null;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,10 +63,7 @@ export default async function HomePage() {
 
   let activeClubId: string | null = null;
 
-  if (
-    activeClubIdFromCookie &&
-    validClubIds.has(activeClubIdFromCookie)
-  ) {
+  if (activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)) {
     activeClubId = activeClubIdFromCookie;
   } else if (memberships.length === 1) {
     activeClubId = memberships[0].club_id;
@@ -84,7 +82,6 @@ export default async function HomePage() {
   }
 
   const club = (clubData ?? null) as ClubRow | null;
-
   const clubName = club?.display_name?.trim() || "Dein Team";
 
   let clubLogoUrl: string | null = null;
