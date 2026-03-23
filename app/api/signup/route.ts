@@ -6,7 +6,7 @@ function toText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
 }
 
-function buildRedirect(
+function buildUrl(
   request: NextRequest,
   pathname: string,
   search?: URLSearchParams
@@ -17,11 +17,17 @@ function buildRedirect(
   return url;
 }
 
-function buildErrorRedirect(
+function createRedirectResponse(
   request: NextRequest,
-  code: string,
-  email?: string
+  pathname: string,
+  search?: URLSearchParams
 ) {
+  return NextResponse.redirect(buildUrl(request, pathname, search), {
+    status: 303,
+  });
+}
+
+function buildErrorParams(code: string, email?: string) {
   const params = new URLSearchParams();
   params.set("error", code);
 
@@ -29,9 +35,7 @@ function buildErrorRedirect(
     params.set("email", email);
   }
 
-  return NextResponse.redirect(buildRedirect(request, "/signup", params), {
-    status: 303,
-  });
+  return params;
 }
 
 export async function POST(request: NextRequest) {
@@ -42,19 +46,32 @@ export async function POST(request: NextRequest) {
   const passwordConfirm = String(formData.get("password_confirm") ?? "");
 
   if (!email || !password || !passwordConfirm) {
-    return buildErrorRedirect(request, "missing-fields", email);
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("missing-fields", email)
+    );
   }
 
   if (password !== passwordConfirm) {
-    return buildErrorRedirect(request, "password-mismatch", email);
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("password-mismatch", email)
+    );
   }
 
   if (password.length < 8) {
-    return buildErrorRedirect(request, "password-too-short", email);
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("password-too-short", email)
+    );
   }
 
   const cookieStore = await cookies();
-  const response = NextResponse.next();
+
+  const response = createRedirectResponse(request, "/club-setup");
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -82,15 +99,31 @@ export async function POST(request: NextRequest) {
   if (signUpError) {
     const message = signUpError.message.toLowerCase();
 
-    if (message.includes("already registered") || message.includes("already been registered")) {
-      return buildErrorRedirect(request, "email-already-used", email);
+    if (
+      message.includes("already registered") ||
+      message.includes("already been registered") ||
+      message.includes("user already registered")
+    ) {
+      return createRedirectResponse(
+        request,
+        "/signup",
+        buildErrorParams("email-already-used", email)
+      );
     }
 
-    return buildErrorRedirect(request, "signup-failed", email);
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("signup-failed", email)
+    );
   }
 
   if (!signUpData.user) {
-    return buildErrorRedirect(request, "signup-failed", email);
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("signup-failed", email)
+    );
   }
 
   await supabase.rpc("link_existing_player_by_email", {
@@ -103,12 +136,8 @@ export async function POST(request: NextRequest) {
   });
 
   if (signInError) {
-    return NextResponse.redirect(buildRedirect(request, "/login"), {
-      status: 303,
-    });
+    return createRedirectResponse(request, "/login");
   }
 
-  return NextResponse.redirect(buildRedirect(request, "/club-setup"), {
-    status: 303,
-  });
+  return response;
 }

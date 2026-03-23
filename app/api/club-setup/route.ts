@@ -2,10 +2,31 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-function redirectWithError(request: NextRequest, code: string) {
-  const url = new URL("/club-setup", request.url);
-  url.searchParams.set("error", code);
-  return NextResponse.redirect(url, { status: 303 });
+function buildUrl(
+  request: NextRequest,
+  pathname: string,
+  search?: URLSearchParams
+) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = search ? search.toString() : "";
+  return url;
+}
+
+function createRedirectResponse(
+  request: NextRequest,
+  pathname: string,
+  search?: URLSearchParams
+) {
+  return NextResponse.redirect(buildUrl(request, pathname, search), {
+    status: 303,
+  });
+}
+
+function errorParams(code: string) {
+  const params = new URLSearchParams();
+  params.set("error", code);
+  return params;
 }
 
 export async function POST(request: NextRequest) {
@@ -13,12 +34,16 @@ export async function POST(request: NextRequest) {
   const displayName = String(formData.get("display_name") ?? "").trim();
 
   if (!displayName) {
-    return redirectWithError(request, "missing-name");
+    return createRedirectResponse(
+      request,
+      "/club-setup",
+      errorParams("missing-name")
+    );
   }
 
   const cookieStore = await cookies();
 
-  const response = NextResponse.next();
+  const response = createRedirectResponse(request, "/");
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,7 +68,11 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return redirectWithError(request, "not-authenticated");
+    return createRedirectResponse(
+      request,
+      "/club-setup",
+      errorParams("not-authenticated")
+    );
   }
 
   const { data: existingMemberships } = await supabase
@@ -53,13 +82,11 @@ export async function POST(request: NextRequest) {
     .limit(2);
 
   if ((existingMemberships ?? []).length === 1) {
-    return NextResponse.redirect(new URL("/", request.url), { status: 303 });
+    return createRedirectResponse(request, "/");
   }
 
   if ((existingMemberships ?? []).length > 1) {
-    return NextResponse.redirect(new URL("/select-club", request.url), {
-      status: 303,
-    });
+    return createRedirectResponse(request, "/select-club");
   }
 
   const { data: createdClub, error: clubError } = await supabase
@@ -71,7 +98,11 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (clubError || !createdClub) {
-    return redirectWithError(request, "club-create-failed");
+    return createRedirectResponse(
+      request,
+      "/club-setup",
+      errorParams("club-create-failed")
+    );
   }
 
   const clubId = createdClub.id as string;
@@ -85,18 +116,18 @@ export async function POST(request: NextRequest) {
     });
 
   if (membershipError) {
-    return redirectWithError(request, "membership-create-failed");
+    return createRedirectResponse(
+      request,
+      "/club-setup",
+      errorParams("membership-create-failed")
+    );
   }
 
   const { error: settingsError } = await supabase.from("club_settings").insert({
     club_id: clubId,
   });
 
-  const redirectResponse = NextResponse.redirect(new URL("/", request.url), {
-    status: 303,
-  });
-
-  redirectResponse.cookies.set("active_club_id", clubId, {
+  response.cookies.set("active_club_id", clubId, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -105,10 +136,12 @@ export async function POST(request: NextRequest) {
   });
 
   if (settingsError) {
-    const fallbackUrl = new URL("/club-setup", request.url);
-    fallbackUrl.searchParams.set("error", "settings-create-failed");
-    return NextResponse.redirect(fallbackUrl, { status: 303 });
+    return createRedirectResponse(
+      request,
+      "/club-setup",
+      errorParams("settings-create-failed")
+    );
   }
 
-  return redirectResponse;
+  return response;
 }
