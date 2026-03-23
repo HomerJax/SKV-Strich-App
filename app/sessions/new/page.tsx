@@ -12,6 +12,16 @@ type Membership = {
   role: string;
 };
 
+function getCookie(name: string) {
+  if (typeof document === "undefined") return null;
+
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${name.replace(/[$()*+./?[\\\]^{|}-]/g, "\\$&")}=([^;]*)`)
+  );
+
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export default function NewSessionPage() {
   const router = useRouter();
 
@@ -32,11 +42,28 @@ export default function NewSessionPage() {
       setSaving(true);
       setErr(null);
 
-      if (!date) throw new Error("Bitte Datum auswählen.");
+      if (!date) {
+        throw new Error("Bitte Datum auswählen.");
+      }
 
-      const { data: membershipData, error: membershipError } = await supabase.rpc(
-        "get_my_membership"
-      );
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw userError;
+      }
+
+      if (!user?.id) {
+        router.push("/login?next=/sessions/new");
+        return;
+      }
+
+      const { data: membershipsData, error: membershipError } = await supabase
+        .from("club_memberships")
+        .select("user_id, club_id, role")
+        .eq("user_id", user.id);
 
       if (membershipError) {
         throw new Error(
@@ -44,11 +71,26 @@ export default function NewSessionPage() {
         );
       }
 
-      const membership = (membershipData?.[0] as Membership | undefined) ?? null;
-      const clubId = membership?.club_id ?? null;
+      const memberships = (membershipsData ?? []) as Membership[];
+
+      if (memberships.length === 0) {
+        router.push("/club-setup");
+        return;
+      }
+
+      const validClubIds = new Set(memberships.map((m) => m.club_id));
+      const activeClubIdFromCookie = getCookie("active_club_id");
+
+      const clubId =
+        memberships.length === 1
+          ? memberships[0].club_id
+          : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+            ? activeClubIdFromCookie
+            : null;
 
       if (!clubId) {
-        throw new Error("Kein Club für den aktuellen User gefunden.");
+        router.push("/select-club");
+        return;
       }
 
       const { data: season, error: seasonErr } = await supabase
@@ -61,7 +103,9 @@ export default function NewSessionPage() {
         .limit(1)
         .maybeSingle();
 
-      if (seasonErr) throw seasonErr;
+      if (seasonErr) {
+        throw seasonErr;
+      }
 
       const { data: created, error: insErr } = await supabase
         .from("sessions")
@@ -74,7 +118,9 @@ export default function NewSessionPage() {
         .select("id")
         .single();
 
-      if (insErr) throw insErr;
+      if (insErr) {
+        throw insErr;
+      }
 
       router.push(`/sessions/${created.id}`);
       router.refresh();

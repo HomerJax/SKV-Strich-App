@@ -29,6 +29,8 @@ const HIDDEN_PATHS = [
   "/reset-password",
   "/onboarding",
   "/join",
+  "/club-setup",
+  "/select-club",
 ];
 
 function shouldHideBottomNav(pathname: string) {
@@ -42,6 +44,16 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function getCookie(name: string) {
+  if (typeof document === "undefined") return null;
+
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${name.replace(/[$()*+./?[\\\]^{|}-]/g, "\\$&")}=([^;]*)`)
+  );
+
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export default function AppBottomNav() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -51,19 +63,29 @@ export default function AppBottomNav() {
 
     async function loadRole() {
       try {
-        const { data, error } = await supabase.rpc("get_my_membership");
+        const activeClubId = getCookie("active_club_id");
 
-        if (error) {
-          throw error;
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) throw userError;
+        if (!user?.id || !activeClubId) {
+          if (!cancelled) setIsAdmin(false);
+          return;
         }
 
-        let role: string | null = null;
+        const { data, error } = await supabase
+          .from("club_memberships")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("club_id", activeClubId)
+          .maybeSingle();
 
-        if (Array.isArray(data) && data.length > 0) {
-          role = (data[0] as MembershipRow)?.role ?? null;
-        } else if (data && typeof data === "object" && "role" in data) {
-          role = (data as MembershipRow).role ?? null;
-        }
+        if (error) throw error;
+
+        const role = (data as MembershipRow | null)?.role ?? null;
 
         if (!cancelled) {
           setIsAdmin(role === "admin");
@@ -83,16 +105,20 @@ export default function AppBottomNav() {
       loadRole();
     });
 
+    const onFocus = () => loadRole();
+    window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
       subscription.unsubscribe();
+      window.removeEventListener("focus", onFocus);
     };
   }, []);
 
   const navItems = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
       { type: "link", href: "/", label: "Home", icon: "⌂" },
-      { type: "link", href: "/sessions", label: "Sessions", icon: "▣" },
+      { type: "link", href: "/sessions", label: "Trainings", icon: "▣" },
       { type: "link", href: "/standings", label: "Tabelle", icon: "⌘" },
     ];
 

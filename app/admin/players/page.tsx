@@ -8,6 +8,11 @@ type SearchParams = {
   message?: string | string[];
 };
 
+type MembershipRow = {
+  club_id: string;
+  role: "admin" | "member";
+};
+
 type PlayerRow = {
   id: number;
   club_id: string;
@@ -69,6 +74,7 @@ export default async function AdminPlayersPage({
   const message = getSingle(resolvedSearchParams?.message);
 
   const cookieStore = await cookies();
+  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,18 +93,41 @@ export default async function AdminPlayersPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/?next=/admin/players");
+    redirect("/login?next=/admin/players");
   }
 
-  const { data: membership } = await supabase
+  const { data: membershipsData, error: membershipsError } = await supabase
     .from("club_memberships")
     .select("club_id, role")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .limit(1)
-    .maybeSingle();
+    .eq("user_id", user.id);
 
-  if (!membership?.club_id) {
+  if (membershipsError) {
+    throw new Error(membershipsError.message);
+  }
+
+  const memberships = (membershipsData ?? []) as MembershipRow[];
+
+  if (memberships.length === 0) {
+    redirect("/club-setup");
+  }
+
+  const validClubIds = new Set(memberships.map((m) => m.club_id));
+
+  const activeClubId =
+    memberships.length === 1
+      ? memberships[0].club_id
+      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+        ? activeClubIdFromCookie
+        : null;
+
+  if (!activeClubId) {
+    redirect("/select-club");
+  }
+
+  const membership =
+    memberships.find((item) => item.club_id === activeClubId) ?? null;
+
+  if (!membership || membership.role !== "admin") {
     return (
       <main className="mx-auto w-full max-w-5xl px-4 py-6 pb-24">
         <div className="mb-4 flex items-center">
@@ -111,13 +140,13 @@ export default async function AdminPlayersPage({
         </div>
 
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          Kein Admin-Zugriff vorhanden.
+          Kein Admin-Zugriff für das aktuell ausgewählte Team.
         </div>
       </main>
     );
   }
 
-  const clubId = membership.club_id;
+  const clubId = activeClubId;
 
   const [{ data: settings }, { data: categories }, { data: players, error: playersError }] =
     await Promise.all([
@@ -165,7 +194,7 @@ export default async function AdminPlayersPage({
     );
   }
 
-  const safeSettings = settings ?? null;
+  const safeSettings = (settings as ClubSettingsRow | null) ?? null;
   const safeCategories = (categories ?? []) as ClubCategoryRow[];
   const safePlayers = (players ?? []) as PlayerRow[];
 

@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import ExportButtons from "@/components/ExportButtons";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import StandingsShareCard from "./StandingsShareCard";
 import type {
-  Membership,
   RankRow,
   Season,
   Session,
@@ -33,11 +33,17 @@ type RankingCard = {
   fileBaseName: string;
 };
 
-export default function StandingsClient() {
+type StandingsClientProps = {
+  initialClubId: string;
+};
+
+export default function StandingsClient({
+  initialClubId,
+}: StandingsClientProps) {
   const router = useRouter();
   const sp = useSearchParams();
 
-  const [clubId, setClubId] = useState<string | null>(null);
+  const [clubId] = useState<string>(initialClubId);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [selected, setSelected] = useState<string>("");
   const [rows, setRows] = useState<RankRow[]>([]);
@@ -86,15 +92,6 @@ export default function StandingsClient() {
       };
     });
   }, [rows, selectedLabel]);
-
-  async function getMembershipClubId() {
-    const { data, error } = await supabase.rpc("get_my_membership");
-
-    if (error) throw error;
-
-    const membership = (data?.[0] as Membership | undefined) ?? null;
-    return membership?.club_id ?? null;
-  }
 
   async function fetchSessions(currentClubId: string, seasonIdOrAll: string) {
     let q = supabase
@@ -254,18 +251,10 @@ export default function StandingsClient() {
         setErr(null);
         setMsg(null);
 
-        const currentClubId = await getMembershipClubId();
-
-        if (!currentClubId) {
-          throw new Error("Kein Club für den aktuellen User gefunden.");
-        }
-
-        setClubId(currentClubId);
-
         const { data, error } = await supabase
           .from("seasons")
           .select("id, name, start_date, end_date")
-          .eq("club_id", currentClubId)
+          .eq("club_id", clubId)
           .order("id", { ascending: false });
 
         if (error) throw error;
@@ -284,12 +273,12 @@ export default function StandingsClient() {
           router.replace(`/standings?season=all`);
         }
       } catch (e: unknown) {
-        setErr(getErrorMessage(e, "Fehler beim Laden."));
+        setErr(getErrorMessage(e, "Fehler beim Laden der Tabelle."));
       } finally {
         setLoading(false);
       }
     })();
-  }, [router, sp]);
+  }, [router, sp, clubId]);
 
   useEffect(() => {
     (async () => {
@@ -341,7 +330,7 @@ export default function StandingsClient() {
 
         router.replace(`/standings?season=${selected}`);
       } catch (e: unknown) {
-        setErr(getErrorMessage(e, "Fehler beim Laden."));
+        setErr(getErrorMessage(e, "Fehler beim Laden der Tabelle."));
       } finally {
         setLoading(false);
       }
@@ -362,7 +351,7 @@ export default function StandingsClient() {
       return "copied";
     }
 
-    throw new Error("Teilen wird auf diesem Gerät/Browser nicht unterstützt.");
+    throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
   }
 
   async function handleShareCard(card: RankingCard) {
@@ -408,13 +397,15 @@ export default function StandingsClient() {
             </p>
           </div>
 
-          <ExportButtons
-            targetId="export-standings"
-            fileBaseName={`strikr-tabelle-${selectedLabel
-              .toLowerCase()
-              .replace(/\s+/g, "-")
-              .replace(/[^a-z0-9äöüß-]/gi, "")}`}
-          />
+          {!loading && !err && rows.length > 0 && (
+            <ExportButtons
+              targetId="export-standings"
+              fileBaseName={`strikr-tabelle-${selectedLabel
+                .toLowerCase()
+                .replace(/\s+/g, "-")
+                .replace(/[^a-z0-9äöüß-]/gi, "")}`}
+            />
+          )}
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-3">
@@ -450,8 +441,8 @@ export default function StandingsClient() {
         )}
 
         {loading && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
-            Lade…
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
+            Lade Tabelle…
           </div>
         )}
 
@@ -462,8 +453,38 @@ export default function StandingsClient() {
         )}
 
         {!loading && !err && rows.length === 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
-            Keine Daten in dieser Auswahl.
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="max-w-lg">
+              <div className="text-sm font-semibold text-slate-500">
+                Noch keine Tabelle
+              </div>
+
+              <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">
+                In dieser Auswahl sind noch keine Ergebnisse vorhanden.
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Sobald ihr Trainings spielt und Ergebnisse speichert, baut sich
+                eure Tabelle hier automatisch auf. Starte am besten mit eurer
+                ersten Session.
+              </p>
+
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Link
+                  href="/sessions/new"
+                  className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white"
+                >
+                  Erstes Training erstellen
+                </Link>
+
+                <Link
+                  href="/sessions"
+                  className="rounded-xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700"
+                >
+                  Zu den Trainings
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 

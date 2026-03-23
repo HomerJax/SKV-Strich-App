@@ -2,6 +2,11 @@ import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+type MembershipRow = {
+  club_id: string;
+  role: "admin" | "member";
+};
+
 function toText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
 }
@@ -71,6 +76,7 @@ export async function POST(request: Request) {
   const cookieStore = await cookies();
   const headerStore = await headers();
   const origin = getOriginFromHeaders(headerStore, request);
+  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
 
   if (!playerId || Number.isNaN(playerId)) {
     return redirectToAdminPlayers(origin, {
@@ -96,24 +102,55 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(new URL("/", origin), { status: 303 });
-  }
-
-  const { data: membership } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .limit(1)
-    .maybeSingle();
-
-  if (!membership?.club_id) {
-    return redirectToAdminPlayers(origin, {
-      error: "Kein Admin-Zugriff vorhanden.",
+    return NextResponse.redirect(new URL("/login?next=/admin/players", origin), {
+      status: 303,
     });
   }
 
-  const clubId = membership.club_id;
+  const { data: membershipsData, error: membershipsError } = await supabase
+    .from("club_memberships")
+    .select("club_id, role")
+    .eq("user_id", user.id);
+
+  if (membershipsError) {
+    return redirectToAdminPlayers(origin, {
+      error: "Admin-Zugriff konnte nicht geprüft werden.",
+    });
+  }
+
+  const memberships = (membershipsData ?? []) as MembershipRow[];
+
+  if (memberships.length === 0) {
+    return NextResponse.redirect(new URL("/club-setup", origin), {
+      status: 303,
+    });
+  }
+
+  const validClubIds = new Set(memberships.map((m) => m.club_id));
+
+  const activeClubId =
+    memberships.length === 1
+      ? memberships[0].club_id
+      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+        ? activeClubIdFromCookie
+        : null;
+
+  if (!activeClubId) {
+    return NextResponse.redirect(new URL("/select-club", origin), {
+      status: 303,
+    });
+  }
+
+  const membership =
+    memberships.find((m) => m.club_id === activeClubId) ?? null;
+
+  if (!membership || membership.role !== "admin") {
+    return redirectToAdminPlayers(origin, {
+      error: "Kein Admin-Zugriff für das aktuell ausgewählte Team vorhanden.",
+    });
+  }
+
+  const clubId = activeClubId;
 
   const { data: existingPlayer } = await supabase
     .from("players")
@@ -151,8 +188,8 @@ export async function POST(request: Request) {
   const updatePayload: Record<string, unknown> = {
     first_name: firstName,
     last_name: lastName,
-    nickname: nickname,
-    email: email,
+    nickname,
+    email,
     preferred_position: preferredPosition,
     category_key: categoryKey,
     is_active: isActive,

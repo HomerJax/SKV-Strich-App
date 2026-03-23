@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
@@ -9,6 +10,7 @@ type MembershipRow = {
 };
 
 type ClubRow = {
+  id: string;
   display_name: string | null;
   logo_path: string | null;
 };
@@ -34,6 +36,7 @@ function getBaseUrl(
 export default async function HomePage() {
   const cookieStore = await cookies();
   const headerStore = await headers();
+  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,6 +62,10 @@ export default async function HomePage() {
   const host = headerStore.get("host");
   const baseUrl = getBaseUrl(forwardedProto, forwardedHost, host);
 
+  let clubName = "Dein Team";
+  let clubLogoUrl: string | null = null;
+  let hasMultipleClubs = false;
+
   if (user?.id && user.email) {
     const { error: autoLinkError } = await supabase.rpc(
       "link_existing_player_by_email",
@@ -71,41 +78,58 @@ export default async function HomePage() {
     if (autoLinkError) {
       console.error("Auto-link on home failed", autoLinkError);
     }
-  }
 
-  let clubName = "Dein Team";
-  let clubLogoUrl: string | null = null;
-
-  if (user) {
-    const { data: membershipData } = await supabase
+    const { data: membershipsData, error: membershipsError } = await supabase
       .from("club_memberships")
       .select("club_id, role")
-      .eq("user_id", user.id)
-      .order("role", { ascending: true })
-      .limit(1)
+      .eq("user_id", user.id);
+
+    if (membershipsError) {
+      throw new Error(membershipsError.message);
+    }
+
+    const memberships = (membershipsData ?? []) as MembershipRow[];
+
+    if (memberships.length === 0) {
+      redirect("/club-setup");
+    }
+
+    hasMultipleClubs = memberships.length > 1;
+
+    const validClubIds = new Set(memberships.map((m) => m.club_id));
+
+    let activeClubId =
+      memberships.length === 1
+        ? memberships[0].club_id
+        : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+          ? activeClubIdFromCookie
+          : null;
+
+    if (!activeClubId) {
+      redirect("/select-club");
+    }
+
+    const { data: clubData, error: clubError } = await supabase
+      .from("clubs")
+      .select("id, display_name, logo_path")
+      .eq("id", activeClubId)
       .maybeSingle();
 
-    const membership = (membershipData as MembershipRow | null) ?? null;
+    if (clubError) {
+      throw new Error(clubError.message);
+    }
 
-    if (membership?.club_id) {
-      const { data: clubData } = await supabase
-        .from("clubs")
-        .select("display_name, logo_path")
-        .eq("id", membership.club_id)
-        .maybeSingle();
+    const club = (clubData as ClubRow | null) ?? null;
 
-      const club = (clubData as ClubRow | null) ?? null;
+    if (club) {
+      clubName = club.display_name || "Dein Team";
 
-      if (club) {
-        clubName = club.display_name || "Dein Team";
+      if (club.logo_path) {
+        const { data: publicUrlData } = supabase.storage
+          .from("club-logos")
+          .getPublicUrl(club.logo_path);
 
-        if (club.logo_path) {
-          const { data: publicUrlData } = supabase.storage
-            .from("club-logos")
-            .getPublicUrl(club.logo_path);
-
-          clubLogoUrl = publicUrlData.publicUrl || null;
-        }
+        clubLogoUrl = publicUrlData.publicUrl || null;
       }
     }
   }
@@ -262,6 +286,17 @@ export default async function HomePage() {
                   Tabelle ansehen
                 </Link>
               </div>
+
+              {hasMultipleClubs && (
+                <div className="mt-4 border-t border-slate-200 pt-4">
+                  <Link
+                    href="/select-club"
+                    className="text-sm font-semibold text-slate-700 underline underline-offset-4"
+                  >
+                    Team wechseln
+                  </Link>
+                </div>
+              )}
             </div>
 
             <a

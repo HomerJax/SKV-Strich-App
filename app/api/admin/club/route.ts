@@ -19,7 +19,7 @@ type ClubRow = {
 
 type AdminClubContext =
   | { club: ClubRow }
-  | { error: "unauthorized" | "missing_club" };
+  | { error: "unauthorized" | "missing_club" | "select_club" };
 
 const ALLOWED_TYPES = [
   "image/png",
@@ -87,6 +87,9 @@ function getSupabaseServiceClient() {
 }
 
 async function getAdminClubContext(): Promise<AdminClubContext> {
+  const cookieStore = await cookies();
+  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
+
   const supabase = await getSupabaseAuthClient();
 
   const {
@@ -98,29 +101,46 @@ async function getAdminClubContext(): Promise<AdminClubContext> {
     return { error: "unauthorized" };
   }
 
-  const { data: membershipData, error: membershipError } = await supabase
+  const { data: membershipsData, error: membershipError } = await supabase
     .from("club_memberships")
     .select("club_id, role")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .limit(1)
-    .maybeSingle();
+    .eq("user_id", user.id);
 
   if (membershipError) {
     console.error("club membership lookup failed", membershipError);
     return { error: "unauthorized" };
   }
 
-  const membership = (membershipData as MembershipRow | null) ?? null;
+  const memberships = (membershipsData ?? []) as MembershipRow[];
 
-  if (!membership?.club_id) {
+  if (memberships.length === 0) {
     return { error: "missing_club" };
+  }
+
+  const validClubIds = new Set(memberships.map((m) => m.club_id));
+
+  const activeClubId =
+    memberships.length === 1
+      ? memberships[0].club_id
+      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+        ? activeClubIdFromCookie
+        : null;
+
+  if (!activeClubId) {
+    return { error: "select_club" };
+  }
+
+  const membership =
+    memberships.find((m) => m.club_id === activeClubId) ?? null;
+
+  if (!membership || membership.role !== "admin") {
+    return { error: "unauthorized" };
   }
 
   const { data: clubData, error: clubError } = await supabase
     .from("clubs")
     .select("id, display_name, logo_path")
-    .eq("id", membership.club_id)
+    .eq("id", activeClubId)
     .maybeSingle();
 
   if (clubError) {
@@ -151,6 +171,18 @@ export async function POST(request: NextRequest) {
     const context = await getAdminClubContext();
 
     if ("error" in context) {
+      if (context.error === "select_club") {
+        return NextResponse.redirect(new URL("/select-club", request.url), {
+          status: 303,
+        });
+      }
+
+      if (context.error === "missing_club") {
+        return NextResponse.redirect(new URL("/club-setup", request.url), {
+          status: 303,
+        });
+      }
+
       return redirectToAdmin(request, { error: context.error });
     }
 
@@ -264,12 +296,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const context = await getAdminClubContext();
 
     if ("error" in context) {
-      return NextResponse.json({ error: context.error }, { status: 401 });
+      const status =
+        context.error === "missing_club" || context.error === "select_club"
+          ? 400
+          : 401;
+
+      return NextResponse.json({ error: context.error }, { status });
     }
 
     return NextResponse.json({

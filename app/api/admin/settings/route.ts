@@ -39,6 +39,7 @@ function isValidYearMode(value: string) {
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
+  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -58,28 +59,48 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return redirectWithParams(request, { error: "unauthorized" });
+    return NextResponse.redirect(new URL("/login?next=/admin/settings", request.url), {
+      status: 303,
+    });
   }
 
-  const { data: membershipData, error: membershipError } = await supabase
+  const { data: membershipsData, error: membershipsError } = await supabase
     .from("club_memberships")
     .select("club_id, role")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
+    .eq("user_id", user.id);
 
-  if (membershipError) {
+  if (membershipsError) {
     return redirectWithParams(request, { error: "unauthorized" });
   }
 
-  const membership = (membershipData as MembershipRow | null) ?? null;
+  const memberships = (membershipsData ?? []) as MembershipRow[];
+
+  if (memberships.length === 0) {
+    return NextResponse.redirect(new URL("/club-setup", request.url), {
+      status: 303,
+    });
+  }
+
+  const validClubIds = new Set(memberships.map((m) => m.club_id));
+
+  const activeClubId =
+    memberships.length === 1
+      ? memberships[0].club_id
+      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+        ? activeClubIdFromCookie
+        : null;
+
+  if (!activeClubId) {
+    return NextResponse.redirect(new URL("/select-club", request.url), {
+      status: 303,
+    });
+  }
+
+  const membership =
+    memberships.find((m) => m.club_id === activeClubId) ?? null;
 
   if (!membership || membership.role !== "admin") {
     return redirectWithParams(request, { error: "unauthorized" });
-  }
-
-  if (!membership.club_id) {
-    return redirectWithParams(request, { error: "missing_club" });
   }
 
   const formData = await request.formData();
@@ -118,7 +139,7 @@ export async function POST(request: Request) {
 
   const { error: upsertError } = await supabase.from("club_settings").upsert(
     {
-      club_id: membership.club_id,
+      club_id: activeClubId,
       use_strength: useStrength,
       use_categories: useCategories,
       season_start_day: seasonStartDay,

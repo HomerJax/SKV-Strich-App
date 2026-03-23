@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 
 type MembershipRow = {
@@ -118,6 +119,7 @@ export default async function AdminSettingsPage({
 }: AdminSettingsPageProps) {
   const resolvedSearchParams = await searchParams;
   const cookieStore = await cookies();
+  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -136,36 +138,39 @@ export default async function AdminSettingsPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return (
-      <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto w-full max-w-3xl px-4 py-6">
-          <div className="rounded-[24px] border border-black/10 bg-white p-6 shadow-sm">
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
-              Kein Zugriff
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Bitte logge dich zuerst ein.
-            </p>
-            <Link
-              href="/"
-              className="mt-4 inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              Zur Startseite
-            </Link>
-          </div>
-        </section>
-      </main>
-    );
+    redirect("/login?next=/admin/settings");
   }
 
-  const { data: membershipData } = await supabase
+  const { data: membershipsData, error: membershipsError } = await supabase
     .from("club_memberships")
     .select("club_id, role")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
+    .eq("user_id", user.id);
 
-  const membership = (membershipData as MembershipRow | null) ?? null;
+  if (membershipsError) {
+    throw new Error(membershipsError.message);
+  }
+
+  const memberships = (membershipsData ?? []) as MembershipRow[];
+
+  if (memberships.length === 0) {
+    redirect("/club-setup");
+  }
+
+  const validClubIds = new Set(memberships.map((m) => m.club_id));
+
+  const activeClubId =
+    memberships.length === 1
+      ? memberships[0].club_id
+      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+        ? activeClubIdFromCookie
+        : null;
+
+  if (!activeClubId) {
+    redirect("/select-club");
+  }
+
+  const membership =
+    memberships.find((item) => item.club_id === activeClubId) ?? null;
 
   if (!membership || membership.role !== "admin") {
     return (
@@ -176,27 +181,41 @@ export default async function AdminSettingsPage({
               Kein Zugriff
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Dieser Bereich ist nur für Admins verfügbar.
+              Dieser Bereich ist nur für Admins des aktuell ausgewählten Teams verfügbar.
             </p>
-            <Link
-              href="/"
-              className="mt-4 inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              Zur Startseite
-            </Link>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href="/"
+                className="inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                Zur Startseite
+              </Link>
+              {memberships.length > 1 && (
+                <Link
+                  href="/select-club"
+                  className="inline-flex rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900"
+                >
+                  Team wechseln
+                </Link>
+              )}
+            </div>
           </div>
         </section>
       </main>
     );
   }
 
-  const { data: settingsData } = await supabase
+  const { data: settingsData, error: settingsError } = await supabase
     .from("club_settings")
     .select(
       "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
     )
-    .eq("club_id", membership.club_id)
+    .eq("club_id", activeClubId)
     .maybeSingle();
+
+  if (settingsError) {
+    throw new Error(settingsError.message);
+  }
 
   const settings = (settingsData as ClubSettingsRow | null) ?? null;
 

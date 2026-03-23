@@ -1,122 +1,113 @@
-import { NextResponse } from "next/server";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-function getBaseUrl(
-  forwardedProto: string | null,
-  forwardedHost: string | null,
-  host: string | null
-) {
-  if (forwardedProto && forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
+type MembershipRow = {
+  club_id: string;
+};
 
-  if (host) {
-    const isLocalhost =
-      host.includes("localhost") || host.startsWith("127.0.0.1");
-    return `${isLocalhost ? "http" : "https"}://${host}`;
-  }
-
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+function safeNextPath(value: string | null) {
+  if (!value) return "/";
+  if (!value.startsWith("/")) return "/";
+  if (value.startsWith("//")) return "/";
+  if (value.startsWith("/login")) return "/";
+  if (value.startsWith("/signup")) return "/";
+  return value;
 }
 
-function resolveRedirect(baseUrl: string, nextValue: string) {
-  if (!nextValue) return `${baseUrl}/`;
+function buildErrorRedirect(request: NextRequest, code: string, email?: string) {
+  const url = new URL("/login", request.url);
+  url.searchParams.set("error", code);
 
-  if (nextValue.startsWith("http://") || nextValue.startsWith("https://")) {
-    return nextValue;
+  if (email) {
+    url.searchParams.set("email", email);
   }
 
-  if (nextValue.startsWith("/")) {
-    return `${baseUrl}${nextValue}`;
-  }
-
-  return `${baseUrl}/`;
+  return NextResponse.redirect(url, { status: 303 });
 }
 
-async function autoLinkPlayerByEmail(
-  supabase: ReturnType<typeof createServerClient>,
-  userId: string,
-  email: string
-) {
-  const { data, error } = await supabase.rpc("link_existing_player_by_email", {
-    p_user_id: userId,
-    p_email: email,
-  });
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
 
-  if (error) {
-    console.error("Auto-link login failed", error);
-    return null;
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const nextParam = safeNextPath(String(formData.get("next") ?? "") || null);
+
+  if (!email || !password) {
+    return buildErrorRedirect(request, "missing-fields", email);
   }
 
-  return data ?? null;
-}
+  const cookieStore = await cookies();
+  const response = NextResponse.next();
 
-export async function POST(req: Request) {
-  try {
-    const formData = await req.formData();
-
-    const email = String(formData.get("email") || "").trim().toLowerCase();
-    const password = String(formData.get("password") || "");
-    const nextValue = String(formData.get("next") || "/");
-
-    const cookieStore = await cookies();
-    const headerStore = await headers();
-
-    const forwardedProto = headerStore.get("x-forwarded-proto");
-    const forwardedHost = headerStore.get("x-forwarded-host");
-    const host = headerStore.get("host");
-    const baseUrl = getBaseUrl(forwardedProto, forwardedHost, host);
-
-    if (!email || !password) {
-      return NextResponse.redirect(`${baseUrl}/?error=login_failed`);
-    }
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          },
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
         },
-      }
-    );
+        setAll(cookiesToSet) {
+          for (const cookie of cookiesToSet) {
+            cookieStore.set(cookie.name, cookie.value, cookie.options);
+            response.cookies.set(cookie.name, cookie.value, cookie.options);
+          }
+        },
+      },
+    }
+  );
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error: signInError } =
+    await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (signInError) {
-      console.error("Login failed", signInError);
-      return NextResponse.redirect(`${baseUrl}/?error=login_failed`);
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user?.id && user.email) {
-      await autoLinkPlayerByEmail(supabase, user.id, user.email);
-    }
-
-    return NextResponse.redirect(resolveRedirect(baseUrl, nextValue));
-  } catch (error) {
-    console.error("Login route crashed", error);
-
-    const headerStore = await headers();
-    const forwardedProto = headerStore.get("x-forwarded-proto");
-    const forwardedHost = headerStore.get("x-forwarded-host");
-    const host = headerStore.get("host");
-    const baseUrl = getBaseUrl(forwardedProto, forwardedHost, host);
-
-    return NextResponse.redirect(`${baseUrl}/?error=login_failed`);
+  if (signInError || !signInData.user) {
+    return buildErrorRedirect(request, "invalid-credentials", email);
   }
+
+  const user = signInData.user;
+
+  const { data: memberships, error: membershipsError } = await supabase
+    .from("club_memberships")
+    .select("club_id")
+    .eq("user_id", user.id);
+
+  if (membershipsError) {
+    return buildErrorRedirect(request, "membership-load-failed", email);
+  }
+
+  const typedMemberships = (memberships ?? []) as MembershipRow[];
+
+  if (typedMemberships.length === 0) {
+    return NextResponse.redirect(new URL("/club-setup", request.url), {
+      status: 303,
+    });
+  }
+
+  if (typedMemberships.length === 1) {
+    const clubId = typedMemberships[0].club_id;
+    const redirectTo = nextParam === "/" ? "/" : nextParam;
+
+    const redirectResponse = NextResponse.redirect(
+      new URL(redirectTo, request.url),
+      { status: 303 }
+    );
+
+    redirectResponse.cookies.set("active_club_id", clubId, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 180,
+    });
+
+    return redirectResponse;
+  }
+
+  return NextResponse.redirect(new URL("/select-club", request.url), {
+    status: 303,
+  });
 }

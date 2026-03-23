@@ -37,6 +37,16 @@ type ClubSettings = {
   goalkeeper_label: string | null;
 };
 
+function getCookie(name: string) {
+  if (typeof document === "undefined") return null;
+
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${name.replace(/[$()*+./?[\\\]^{|}-]/g, "\\$&")}=([^;]*)`)
+  );
+
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export default function SessionDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -104,26 +114,69 @@ export default function SessionDetailPage() {
     setWinnerPhotoUrl(data.signedUrl);
   }
 
+  async function getActiveMembership() {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) throw userError;
+    if (!user?.id) {
+      router.push(`/login?next=/sessions/${sessionId}`);
+      return null;
+    }
+
+    const { data: membershipsData, error: membershipsError } = await supabase
+      .from("club_memberships")
+      .select("user_id, club_id, role")
+      .eq("user_id", user.id);
+
+    if (membershipsError) throw membershipsError;
+
+    const memberships = (membershipsData ?? []) as Membership[];
+
+    if (memberships.length === 0) {
+      router.push("/club-setup");
+      return null;
+    }
+
+    const validClubIds = new Set(memberships.map((m) => m.club_id));
+    const activeClubIdFromCookie = getCookie("active_club_id");
+
+    const activeClubId =
+      memberships.length === 1
+        ? memberships[0].club_id
+        : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+          ? activeClubIdFromCookie
+          : null;
+
+    if (!activeClubId) {
+      router.push("/select-club");
+      return null;
+    }
+
+    const membership =
+      memberships.find((m) => m.club_id === activeClubId) ?? null;
+
+    return membership;
+  }
+
   async function loadPage() {
     try {
       setLoading(true);
       setErr(null);
       setMsg(null);
 
-      const { data: membershipData, error: membershipError } =
-        await supabase.rpc("get_my_membership");
-
-      if (membershipError) throw membershipError;
-
-      const membership = (membershipData?.[0] as Membership | undefined) ?? null;
-      const currentClubId = membership?.club_id ?? null;
-
-      if (!currentClubId) {
-        throw new Error("Kein Club für den aktuellen User gefunden.");
+      const membership = await getActiveMembership();
+      if (!membership) {
+        setLoading(false);
+        return;
       }
 
+      const currentClubId = membership.club_id;
+
       setClubId(currentClubId);
-      setIsAdmin(membership?.role === "admin");
+      setIsAdmin(membership.role === "admin");
 
       const { data: settingsData, error: settingsError } = await supabase
         .from("club_settings")
@@ -137,9 +190,11 @@ export default function SessionDetailPage() {
 
       const { data: sData, error: sErr } = await supabase
         .from("sessions")
-        .select("id, date, notes, winner_photo_path")
+        .select("id, date, notes, winner_photo_path, club_id")
         .eq("id", sessionId)
+        .eq("club_id", currentClubId)
         .single();
+
       if (sErr) throw sErr;
 
       const sessionRow = sData as SessionRow;
@@ -152,6 +207,7 @@ export default function SessionDetailPage() {
         )
         .eq("club_id", currentClubId)
         .order("name");
+
       if (pErr) throw pErr;
 
       const active = (pData ?? []).filter((p) => p.is_active !== false) as Player[];
@@ -160,6 +216,7 @@ export default function SessionDetailPage() {
         .from("session_players")
         .select("player_id")
         .eq("session_id", sessionId);
+
       if (spErr) throw spErr;
 
       const present = (spData ?? []).map((r) => r.player_id as number);
@@ -177,6 +234,7 @@ export default function SessionDetailPage() {
         const teamIds = [rData.team_a_id, rData.team_b_id].filter(
           Boolean
         ) as number[];
+
         const { data: tpData } = await supabase
           .from("team_players")
           .select("team_id, player_id")
@@ -225,6 +283,7 @@ export default function SessionDetailPage() {
         .sort(sortForTeamView),
     [presentPlayers, manualTeams]
   );
+
   const teamB = useMemo(
     () =>
       presentPlayers
@@ -233,6 +292,7 @@ export default function SessionDetailPage() {
         .sort(sortForTeamView),
     [presentPlayers, manualTeams]
   );
+
   const unassigned = useMemo(
     () =>
       presentPlayers
@@ -278,6 +338,7 @@ export default function SessionDetailPage() {
 
       const text = buildLineupShareText(session, teamA, teamB);
       const result = await shareText(text, "Aufstellung teilen");
+
       setMsg(
         result === "copied"
           ? "Aufstellungs-Text in die Zwischenablage kopiert."
@@ -304,6 +365,7 @@ export default function SessionDetailPage() {
 
       const text = buildResultShareText(session, goalsA, goalsB, teamA, teamB);
       const result = await shareText(text, "Ergebnis teilen");
+
       setMsg(
         result === "copied"
           ? "Ergebnis-Text in die Zwischenablage kopiert."
@@ -323,6 +385,7 @@ export default function SessionDetailPage() {
       );
       return;
     }
+
     setErr(null);
     setMsg(null);
 
@@ -629,6 +692,7 @@ export default function SessionDetailPage() {
           .insert({ session_id: sessionId, name })
           .select()
           .single();
+
         if (insertError) throw insertError;
 
         return ins!.id as number;
@@ -641,12 +705,14 @@ export default function SessionDetailPage() {
         .from("team_players")
         .delete()
         .in("team_id", [teamAId, teamBId]);
+
       if (deleteTpError) throw deleteTpError;
 
       const { error: insertTpError } = await supabase.from("team_players").insert([
         ...Araw.map((p) => ({ team_id: teamAId, player_id: p.id })),
         ...Braw.map((p) => ({ team_id: teamBId, player_id: p.id })),
       ]);
+
       if (insertTpError) throw insertTpError;
 
       if (!clubId) {
@@ -667,6 +733,7 @@ export default function SessionDetailPage() {
           .from("results")
           .update(payload)
           .eq("session_id", sessionId);
+
         if (error) throw error;
       } else {
         const { error } = await supabase.from("results").insert(payload);
@@ -701,6 +768,7 @@ export default function SessionDetailPage() {
         .from("results")
         .delete()
         .eq("session_id", sessionId);
+
       if (error) throw error;
 
       setHasResult(false);
@@ -764,7 +832,8 @@ export default function SessionDetailPage() {
       const { error: updateError } = await supabase
         .from("sessions")
         .update({ winner_photo_path: newPath })
-        .eq("id", sessionId);
+        .eq("id", sessionId)
+        .eq("club_id", clubId);
 
       if (updateError) {
         await supabase.storage.from("session-photos").remove([newPath]);
@@ -809,7 +878,8 @@ export default function SessionDetailPage() {
       const { error: updateError } = await supabase
         .from("sessions")
         .update({ winner_photo_path: null })
-        .eq("id", sessionId);
+        .eq("id", sessionId)
+        .eq("club_id", clubId);
 
       if (updateError) throw updateError;
 
