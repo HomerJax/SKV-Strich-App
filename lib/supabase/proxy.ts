@@ -31,9 +31,7 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getClaims();
-
-  response.headers.set("Cache-Control", "private, no-store");
+  await supabase.auth.getUser();
 
   return response;
 }
