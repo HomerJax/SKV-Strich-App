@@ -10,16 +10,7 @@ export default async function HomePage() {
   return (
     <main style={{ padding: 40 }}>
       <h1>DEBUG HOME</h1>
-
-      <pre>
-        {JSON.stringify(
-          {
-            user,
-          },
-          null,
-          2
-        )}
-      </pre>
+      <pre>{JSON.stringify({ user }, null, 2)}</pre>
     </main>
   );
 }
