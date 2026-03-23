@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type MembershipRow = {
@@ -26,16 +26,26 @@ function getErrorMessage(error?: string | null) {
   }
 }
 
+function getErrorFromUrl() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  return params.get("error");
+}
+
 export default function ClubSetupPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [displayName, setDisplayName] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(
-    getErrorMessage(searchParams.get("error"))
-  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setErrorMessage(getErrorMessage(getErrorFromUrl()));
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -135,7 +145,9 @@ export default function ClubSetupPage() {
         | null;
 
       if (!response.ok || !payload?.ok) {
-        setErrorMessage(getErrorMessage(payload?.error) ?? "Das Team konnte nicht erstellt werden.");
+        setErrorMessage(
+          getErrorMessage(payload?.error) ?? "Das Team konnte nicht erstellt werden."
+        );
         setIsSubmitting(false);
         return;
       }
@@ -179,8 +191,8 @@ export default function ClubSetupPage() {
 
             <p className="mt-3 max-w-2xl text-base leading-7 text-neutral-600">
               Erstelle jetzt dein Team, wenn du loslegen möchtest. Oder warte auf
-              eine Einladung, falls du später zu einem bestehenden Team
-              hinzugefügt wirst.
+              eine Einladung, falls du später zu einem bestehenden Team hinzugefügt
+              wirst.
             </p>
           </div>
 
@@ -245,9 +257,9 @@ export default function ClubSetupPage() {
               </p>
 
               <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white p-4 text-sm leading-6 text-neutral-600">
-                Aktuell gibt es noch kein separates Invite-System. Diese Seite
-                sorgt aber schon jetzt dafür, dass User ohne Team nicht in einen
-                unklaren Zustand laufen.
+                Aktuell gibt es noch kein separates Invite-System. Diese Seite sorgt
+                aber schon jetzt dafür, dass User ohne Team nicht in einen unklaren
+                Zustand laufen.
               </div>
 
               <div className="mt-4">
