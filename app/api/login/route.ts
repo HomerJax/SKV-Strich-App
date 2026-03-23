@@ -15,15 +15,24 @@ function safeNextPath(value: string | null) {
   return value;
 }
 
+function buildRedirect(request: NextRequest, pathname: string, search?: URLSearchParams) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = search ? search.toString() : "";
+  return url;
+}
+
 function buildErrorRedirect(request: NextRequest, code: string, email?: string) {
-  const url = new URL("/login", request.url);
-  url.searchParams.set("error", code);
+  const params = new URLSearchParams();
+  params.set("error", code);
 
   if (email) {
-    url.searchParams.set("email", email);
+    params.set("email", email);
   }
 
-  return NextResponse.redirect(url, { status: 303 });
+  return NextResponse.redirect(buildRedirect(request, "/login", params), {
+    status: 303,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -82,7 +91,7 @@ export async function POST(request: NextRequest) {
   const typedMemberships = (memberships ?? []) as MembershipRow[];
 
   if (typedMemberships.length === 0) {
-    return NextResponse.redirect(new URL("/club-setup", request.url), {
+    return NextResponse.redirect(buildRedirect(request, "/club-setup"), {
       status: 303,
     });
   }
@@ -92,7 +101,7 @@ export async function POST(request: NextRequest) {
     const redirectTo = nextParam === "/" ? "/" : nextParam;
 
     const redirectResponse = NextResponse.redirect(
-      new URL(redirectTo, request.url),
+      buildRedirect(request, redirectTo),
       { status: 303 }
     );
 
@@ -107,7 +116,7 @@ export async function POST(request: NextRequest) {
     return redirectResponse;
   }
 
-  return NextResponse.redirect(new URL("/select-club", request.url), {
+  return NextResponse.redirect(buildRedirect(request, "/select-club"), {
     status: 303,
   });
 }

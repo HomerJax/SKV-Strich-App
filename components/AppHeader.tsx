@@ -9,7 +9,6 @@ const HIDDEN_ON_PATHS = [
   "/forgot-password",
   "/reset-password",
   "/onboarding",
-  "/join",
 ];
 
 type AppHeaderProps = {
@@ -22,9 +21,51 @@ type MembershipRow = {
 };
 
 type ClubRow = {
+  id: string;
   display_name: string | null;
   logo_path: string | null;
 };
+
+type PlayerRow = {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  name: string | null;
+  email: string | null;
+};
+
+function getUserLabel(player: PlayerRow | null, email: string | null) {
+  const nickname = player?.nickname?.trim();
+  if (nickname) return nickname;
+
+  const firstName = player?.first_name?.trim();
+  const lastName = player?.last_name?.trim();
+
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  if (fullName) return fullName;
+
+  const fallbackName = player?.name?.trim();
+  if (fallbackName) return fallbackName;
+
+  return email ?? "Eingeloggt";
+}
+
+function getInitials(label: string) {
+  const parts = label
+    .split(" ")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (parts.length === 0) {
+    return "U";
+  }
+
+  return parts
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
 
 export default async function AppHeader({ pathname }: AppHeaderProps) {
   const hidden = pathname
@@ -47,6 +88,9 @@ export default async function AppHeader({ pathname }: AppHeaderProps) {
         getAll() {
           return cookieStore.getAll();
         },
+        setAll() {
+          // read only
+        },
       },
     }
   );
@@ -55,68 +99,122 @@ export default async function AppHeader({ pathname }: AppHeaderProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let club: ClubRow | null = null;
+  let player: PlayerRow | null = null;
   let clubLogoUrl: string | null = null;
 
   if (user) {
-    const { data: membershipData } = await supabase
+    const activeClubId = cookieStore.get("active_club_id")?.value ?? null;
+
+    const { data: memberships } = await supabase
       .from("club_memberships")
       .select("club_id, role")
-      .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle();
+      .eq("user_id", user.id);
 
-    const membership = (membershipData as MembershipRow | null) ?? null;
+    const typedMemberships = (memberships ?? []) as MembershipRow[];
 
-    if (membership) {
-      const { data: clubData } = await supabase
-        .from("clubs")
-        .select("display_name, logo_path")
-        .eq("id", membership.club_id)
-        .maybeSingle();
+    let resolvedClubId: string | null = activeClubId;
 
-      const club = (clubData as ClubRow | null) ?? null;
+    if (!resolvedClubId && typedMemberships.length === 1) {
+      resolvedClubId = typedMemberships[0].club_id;
+    }
+
+    if (resolvedClubId) {
+      const [{ data: clubData }, { data: playerData }] = await Promise.all([
+        supabase
+          .from("clubs")
+          .select("id, display_name, logo_path")
+          .eq("id", resolvedClubId)
+          .maybeSingle(),
+        supabase
+          .from("players")
+          .select("id, first_name, last_name, nickname, name, email")
+          .eq("club_id", resolvedClubId)
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+
+      club = (clubData ?? null) as ClubRow | null;
+      player = (playerData ?? null) as PlayerRow | null;
 
       if (club?.logo_path) {
-        const { data: publicUrlData } = supabase.storage
+        const { data: signedLogo } = await supabase.storage
           .from("club-logos")
-          .getPublicUrl(club.logo_path);
+          .createSignedUrl(club.logo_path, 60 * 60);
 
-        clubLogoUrl = publicUrlData.publicUrl || null;
+        clubLogoUrl = signedLogo?.signedUrl ?? null;
       }
     }
   }
 
+  const userLabel = getUserLabel(player, user?.email ?? null);
+  const initials = getInitials(userLabel);
+
   return (
-    <header className="w-full border-b border-black/10 bg-white px-3 py-3">
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3">
-        <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2">
+    <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="flex items-center gap-3">
           <Image
             src="/icon-dark.png"
             alt="strikr"
-            width={36}
-            height={36}
-            className="h-9 w-9 rounded-md"
+            width={40}
+            height={40}
+            priority
+            className="h-10 w-10 rounded-xl object-contain"
           />
-          <span className="text-xl font-bold tracking-tight text-slate-950">
+          <span className="text-xl font-semibold tracking-tight text-neutral-950">
             strikr
           </span>
         </Link>
 
-        <div className="flex shrink-0 items-center justify-end">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white p-1 shadow-sm sm:h-12 sm:w-12">
-            {clubLogoUrl ? (
-              <Image
-                src={clubLogoUrl}
-                alt="Club Logo"
-                width={48}
-                height={48}
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <div className="h-full w-full rounded-md bg-neutral-100" />
-            )}
+        {user ? (
+          <div className="flex items-center gap-2">
+            <div className="flex max-w-[180px] items-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 px-2.5 py-2 text-neutral-800">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-semibold text-white">
+                {initials}
+              </div>
+
+              <div className="min-w-0">
+                <div className="truncate text-sm font-medium">{userLabel}</div>
+                {user.email ? (
+                  <div className="truncate text-[11px] text-neutral-500">
+                    {user.email}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-neutral-200 bg-white shadow-sm">
+              {clubLogoUrl ? (
+                <Image
+                  src={clubLogoUrl}
+                  alt={club?.display_name ?? "Clublogo"}
+                  width={34}
+                  height={34}
+                  className="h-8 w-8 object-contain"
+                />
+              ) : (
+                <Image
+                  src="/icon-dark.png"
+                  alt="strikr"
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 object-contain opacity-70"
+                />
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-neutral-200 bg-white shadow-sm">
+            <Image
+              src="/icon-dark.png"
+              alt="strikr"
+              width={24}
+              height={24}
+              className="h-6 w-6 object-contain opacity-70"
+            />
+          </div>
+        )}
       </div>
     </header>
   );

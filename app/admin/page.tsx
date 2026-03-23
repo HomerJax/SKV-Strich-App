@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 
 type MembershipRow = {
@@ -14,9 +14,8 @@ type ClubRow = {
   logo_path: string | null;
 };
 
-export default async function AdminOverviewPage() {
+export default async function AdminPage() {
   const cookieStore = await cookies();
-  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,6 +24,9 @@ export default async function AdminOverviewPage() {
       cookies: {
         getAll() {
           return cookieStore.getAll();
+        },
+        setAll() {
+          // read only
         },
       },
     }
@@ -35,160 +37,106 @@ export default async function AdminOverviewPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?next=/admin");
+    redirect("/login");
   }
 
-  const { data: membershipsData, error: membershipsError } = await supabase
+  const activeClubId = cookieStore.get("active_club_id")?.value ?? null;
+
+  const { data: memberships } = await supabase
     .from("club_memberships")
     .select("club_id, role")
     .eq("user_id", user.id);
 
-  if (membershipsError) {
-    throw new Error(membershipsError.message);
-  }
+  const typedMemberships = (memberships ?? []) as MembershipRow[];
 
-  const memberships = (membershipsData ?? []) as MembershipRow[];
-
-  if (memberships.length === 0) {
+  if (typedMemberships.length === 0) {
     redirect("/club-setup");
   }
 
-  const validClubIds = new Set(memberships.map((m) => m.club_id));
+  let activeMembership: MembershipRow | null = null;
 
-  const activeClubId =
-    memberships.length === 1
-      ? memberships[0].club_id
-      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-        ? activeClubIdFromCookie
-        : null;
+  if (activeClubId) {
+    activeMembership =
+      typedMemberships.find((membership) => membership.club_id === activeClubId) ??
+      null;
+  }
 
-  if (!activeClubId) {
+  if (!activeMembership && typedMemberships.length === 1) {
+    activeMembership = typedMemberships[0];
+  }
+
+  if (!activeMembership) {
     redirect("/select-club");
   }
 
-  const membership =
-    memberships.find((item) => item.club_id === activeClubId) ?? null;
-
-  if (!membership || membership.role !== "admin") {
-    return (
-      <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto w-full max-w-4xl px-4 py-6">
-          <div className="rounded-[24px] border border-black/10 bg-white p-6 shadow-sm">
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
-              Kein Zugriff
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Dieser Bereich ist nur für Admins des aktuell ausgewählten Teams
-              verfügbar.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link
-                href="/"
-                className="inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
-              >
-                Zur Startseite
-              </Link>
-
-              {memberships.length > 1 && (
-                <Link
-                  href="/select-club"
-                  className="inline-flex rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900"
-                >
-                  Team wechseln
-                </Link>
-              )}
-            </div>
-          </div>
-        </section>
-      </main>
-    );
+  if (activeMembership.role !== "admin") {
+    redirect("/");
   }
 
-  const { data: clubData, error: clubError } = await supabase
+  const { data: club } = await supabase
     .from("clubs")
     .select("id, display_name, logo_path")
-    .eq("id", activeClubId)
+    .eq("id", activeMembership.club_id)
     .maybeSingle();
 
-  if (clubError) {
-    throw new Error(clubError.message);
-  }
-
-  const club = (clubData as ClubRow | null) ?? null;
+  const typedClub = (club ?? null) as ClubRow | null;
 
   return (
-    <main className="min-h-screen bg-neutral-100">
-      <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6">
-        <div className="rounded-[24px] border border-black/10 bg-white p-6 shadow-sm">
-          <div className="text-sm font-semibold text-slate-500">Admin</div>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950">
-            Verwaltung
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            {club?.display_name?.trim()
-              ? `Admin-Bereich für ${club.display_name}.`
-              : "Hier verwaltest du Spieler, Einstellungen und Club-Branding."}
-          </p>
-
-          {memberships.length > 1 && (
-            <div className="mt-4">
-              <Link
-                href="/select-club"
-                className="text-sm font-semibold text-slate-700 underline underline-offset-4"
-              >
-                Team wechseln
-              </Link>
+    <main className="min-h-screen bg-neutral-100 pb-24">
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="rounded-[24px] border border-slate-800/10 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Adminbereich
+              </p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+                {typedClub?.display_name ?? "Team verwalten"}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                Verwalte Spieler, Einstellungen und Club-Branding für den aktuell
+                aktiven Club.
+              </p>
             </div>
-          )}
+
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+              Rolle im aktiven Club: Admin
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <Link
             href="/admin/players"
-            className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="rounded-[24px] border border-slate-800/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            <div className="text-sm font-semibold text-slate-500">Mitglieder</div>
-            <div className="mt-1 text-xl font-bold tracking-tight text-slate-950">
-              Spieler
-            </div>
-            <p className="mt-2 text-sm text-slate-600">
-              Spieler anlegen, bearbeiten und aktiv/inaktiv setzen.
+            <div className="text-sm font-semibold text-slate-900">Spieler</div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Spieler verwalten, Rollen prüfen und Gastspieler sinnvoll im Teamkontext
+              pflegen.
             </p>
           </Link>
 
           <Link
             href="/admin/settings"
-            className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="rounded-[24px] border border-slate-800/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            <div className="text-sm font-semibold text-slate-500">Setup</div>
-            <div className="mt-1 text-xl font-bold tracking-tight text-slate-950">
-              Einstellungen
-            </div>
-            <p className="mt-2 text-sm text-slate-600">
-              Optionen für Teamgenerator, Kategorien und Club-Logik.
+            <div className="text-sm font-semibold text-slate-900">Einstellungen</div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Saisonlogik, Kategorien, Positionslabels und Teamgenerator-Optionen
+              für diesen Club anpassen.
             </p>
           </Link>
 
           <Link
             href="/admin/club"
-            className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="rounded-[24px] border border-slate-800/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            <div className="text-sm font-semibold text-slate-500">Branding</div>
-            <div className="mt-1 text-xl font-bold tracking-tight text-slate-950">
-              Club
-            </div>
-            <p className="mt-2 text-sm text-slate-600">
-              Vereinsname und Logo für den Header der App verwalten.
+            <div className="text-sm font-semibold text-slate-900">Club & Branding</div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Clubname, Logo und visuelle Darstellung des aktuell aktiven Clubs
+              verwalten.
             </p>
-          </Link>
-        </div>
-
-        <div className="flex">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            Zur Startseite
           </Link>
         </div>
       </section>

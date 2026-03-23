@@ -4,7 +4,12 @@ import { createServerClient } from "@supabase/ssr";
 
 async function handleLogout(request: NextRequest) {
   const cookieStore = await cookies();
-  const response = NextResponse.redirect(new URL("/login", request.url), {
+
+  const redirectUrl = request.nextUrl.clone();
+  redirectUrl.pathname = "/login";
+  redirectUrl.search = "";
+
+  const response = NextResponse.redirect(redirectUrl, {
     status: 303,
   });
 
