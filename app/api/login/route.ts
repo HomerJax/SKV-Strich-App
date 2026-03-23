@@ -6,58 +6,11 @@ type MembershipRow = {
   club_id: string;
 };
 
-type PendingCookie = {
-  name: string;
-  value: string;
-  options?: Parameters<NextResponse["cookies"]["set"]>[2];
-};
-
-function safeNextPath(value: string | null) {
-  if (!value) return "/";
-  if (!value.startsWith("/")) return "/";
-  if (value.startsWith("//")) return "/";
-  if (value.startsWith("/login")) return "/";
-  if (value.startsWith("/signup")) return "/";
-  return value;
-}
-
-function buildUrl(
-  request: NextRequest,
-  pathname: string,
-  search?: URLSearchParams
-) {
+function buildRedirect(request: NextRequest, path: string) {
   const url = request.nextUrl.clone();
-  url.pathname = pathname;
-  url.search = search ? search.toString() : "";
-  return url;
-}
-
-function redirectResponse(
-  request: NextRequest,
-  pathname: string,
-  pendingCookies: PendingCookie[],
-  search?: URLSearchParams
-) {
-  const response = NextResponse.redirect(buildUrl(request, pathname, search), {
-    status: 303,
-  });
-
-  for (const cookie of pendingCookies) {
-    response.cookies.set(cookie.name, cookie.value, cookie.options);
-  }
-
-  return response;
-}
-
-function errorParams(code: string, email?: string) {
-  const params = new URLSearchParams();
-  params.set("error", code);
-
-  if (email) {
-    params.set("email", email);
-  }
-
-  return params;
+  url.pathname = path;
+  url.search = "";
+  return NextResponse.redirect(url, { status: 303 });
 }
 
 export async function POST(request: NextRequest) {
@@ -65,17 +18,12 @@ export async function POST(request: NextRequest) {
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const nextParam = safeNextPath(String(formData.get("next") ?? "") || null);
 
   if (!email || !password) {
-    return NextResponse.redirect(
-      buildUrl(request, "/login", errorParams("missing-fields", email)),
-      { status: 303 }
-    );
+    return buildRedirect(request, "/login");
   }
 
   const cookieStore = await cookies();
-  const pendingCookies: PendingCookie[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -86,63 +34,41 @@ export async function POST(request: NextRequest) {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          pendingCookies.length = 0;
-
           for (const cookie of cookiesToSet) {
             cookieStore.set(cookie.name, cookie.value, cookie.options);
-            pendingCookies.push({
-              name: cookie.name,
-              value: cookie.value,
-              options: cookie.options,
-            });
           }
         },
       },
     }
   );
 
-  const { data: signInData, error: signInError } =
+  const { data: signInData, error } =
     await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-  if (signInError || !signInData.user) {
-    return NextResponse.redirect(
-      buildUrl(request, "/login", errorParams("invalid-credentials", email)),
-      { status: 303 }
-    );
+  if (error || !signInData.user) {
+    return buildRedirect(request, "/login");
   }
 
   const user = signInData.user;
 
-  const { data: memberships, error: membershipsError } = await supabase
+  const { data: memberships } = await supabase
     .from("club_memberships")
     .select("club_id")
     .eq("user_id", user.id);
 
-  if (membershipsError) {
-    return NextResponse.redirect(
-      buildUrl(request, "/login", errorParams("membership-load-failed", email)),
-      { status: 303 }
-    );
-  }
-
   const typedMemberships = (memberships ?? []) as MembershipRow[];
 
   if (typedMemberships.length === 0) {
-    return redirectResponse(request, "/club-setup", pendingCookies);
+    return buildRedirect(request, "/club-setup");
   }
 
   if (typedMemberships.length === 1) {
-    const clubId = typedMemberships[0].club_id;
-    const response = redirectResponse(
-      request,
-      nextParam === "/" ? "/" : nextParam,
-      pendingCookies
-    );
+    const response = buildRedirect(request, "/");
 
-    response.cookies.set("active_club_id", clubId, {
+    response.cookies.set("active_club_id", typedMemberships[0].club_id, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
@@ -153,5 +79,5 @@ export async function POST(request: NextRequest) {
     return response;
   }
 
-  return redirectResponse(request, "/select-club", pendingCookies);
+  return buildRedirect(request, "/select-club");
 }
