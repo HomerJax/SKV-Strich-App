@@ -1,66 +1,115 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-function buildRedirect(request: Request, pathname: string) {
-  const url = new URL(pathname, request.url);
-  return NextResponse.redirect(url, 303);
+function getBearerToken(request: NextRequest) {
+  const authorization = request.headers.get("authorization") ?? "";
+  const prefix = "Bearer ";
+
+  if (!authorization.startsWith(prefix)) {
+    return null;
+  }
+
+  const token = authorization.slice(prefix.length).trim();
+  return token || null;
 }
 
-export async function POST(request: Request) {
-  const formData = await request.formData();
-  const clubId = String(formData.get("club_id") || "").trim();
+type RequestBody = {
+  club_id?: string;
+};
 
-  if (!clubId) {
-    return buildRedirect(request, "/select-club");
-  }
+export async function POST(request: NextRequest) {
+  try {
+    const token = getBearerToken(request);
 
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
+    if (!token) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "missing-user",
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        },
-      },
+        { status: 401 }
+      );
     }
-  );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const body = (await request.json().catch(() => null)) as RequestBody | null;
+    const clubId = String(body?.club_id ?? "").trim();
 
-  if (!user) {
-    return buildRedirect(request, "/login");
+    if (!clubId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "missing-club",
+        },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "missing-user",
+        },
+        { status: 401 }
+      );
+    }
+
+    const { data: membership, error: membershipError } = await supabase
+      .from("club_memberships")
+      .select("club_id")
+      .eq("user_id", user.id)
+      .eq("club_id", clubId)
+      .maybeSingle();
+
+    if (membershipError || !membership) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "invalid-club",
+        },
+        { status: 403 }
+      );
+    }
+
+    const response = NextResponse.json({
+      ok: true,
+      club_id: clubId,
+      redirect_to: "/",
+    });
+
+    response.cookies.set("active_club_id", clubId, {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+
+    return response;
+  } catch {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "select-club-failed",
+      },
+      { status: 500 }
+    );
   }
-
-  const { data: membership, error } = await supabase
-    .from("club_memberships")
-    .select("club_id")
-    .eq("user_id", user.id)
-    .eq("club_id", clubId)
-    .maybeSingle();
-
-  if (error || !membership) {
-    return buildRedirect(request, "/select-club");
-  }
-
-  const response = buildRedirect(request, "/");
-  response.cookies.set("active_club_id", clubId, {
-    httpOnly: false,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
-
-  return response;
 }
