@@ -101,16 +101,21 @@ export async function POST(request: NextRequest) {
 
   const cookieStore = await cookies();
 
-  let targetPath = "/";
-  let activeClubId: string | null = null;
-
-  const response = new NextResponse(buildSuccessHtml("/"), {
-    status: 200,
-    headers: {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "private, no-store",
-    },
-  });
+  let pendingCookies: Array<{
+    name: string;
+    value: string;
+    options?: {
+      domain?: string;
+      expires?: Date;
+      httpOnly?: boolean;
+      maxAge?: number;
+      path?: string;
+      sameSite?: "lax" | "strict" | "none" | boolean;
+      secure?: boolean;
+      priority?: "low" | "medium" | "high";
+      partitioned?: boolean;
+    };
+  }> = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -121,9 +126,14 @@ export async function POST(request: NextRequest) {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
+          pendingCookies = cookiesToSet.map((cookie) => ({
+            name: cookie.name,
+            value: cookie.value,
+            options: cookie.options,
+          }));
+
           for (const cookie of cookiesToSet) {
             cookieStore.set(cookie.name, cookie.value, cookie.options);
-            response.cookies.set(cookie.name, cookie.value, cookie.options);
           }
         },
       },
@@ -153,6 +163,9 @@ export async function POST(request: NextRequest) {
 
   const typedMemberships = (memberships ?? []) as MembershipRow[];
 
+  let targetPath = "/";
+  let activeClubId: string | null = null;
+
   if (typedMemberships.length === 0) {
     targetPath = "/club-setup";
   } else if (typedMemberships.length === 1) {
@@ -162,13 +175,18 @@ export async function POST(request: NextRequest) {
     targetPath = "/select-club";
   }
 
-  response.cookies.set("login_redirect_target", targetPath, {
-    httpOnly: false,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60,
+  const response = new NextResponse(buildSuccessHtml(targetPath), {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-store",
+      "x-strikr-target": targetPath,
+    },
   });
+
+  for (const cookie of pendingCookies) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
 
   if (activeClubId) {
     response.cookies.set("active_club_id", activeClubId, {
@@ -179,19 +197,6 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 180,
     });
   }
-
-  response.headers.set(
-    "content-type",
-    "text/html; charset=utf-8"
-  );
-  response.headers.set("cache-control", "private, no-store");
-
-  response.headers.set(
-    "x-strikr-target",
-    targetPath
-  );
-
-  response.body = buildSuccessHtml(targetPath) as any;
 
   return response;
 }
