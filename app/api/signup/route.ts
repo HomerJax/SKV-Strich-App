@@ -1,118 +1,155 @@
-import Image from "next/image";
-import Link from "next/link";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
-type SearchParams = Promise<{
-  error?: string;
-  email?: string;
-}>;
+function toText(value: FormDataEntryValue | null) {
+  return String(value ?? "").trim();
+}
 
-function getErrorMessage(error?: string) {
-  switch (error) {
-    case "missing-fields":
-      return "Bitte gib E-Mail und Passwort ein.";
-    case "invalid-credentials":
-      return "E-Mail oder Passwort ist falsch.";
-    case "membership-load-failed":
-      return "Dein Account konnte nicht geladen werden.";
-    default:
-      return null;
+function buildUrl(
+  request: NextRequest,
+  pathname: string,
+  search?: URLSearchParams
+) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = search ? search.toString() : "";
+  return url;
+}
+
+function createRedirectResponse(
+  request: NextRequest,
+  pathname: string,
+  search?: URLSearchParams
+) {
+  return NextResponse.redirect(buildUrl(request, pathname, search), {
+    status: 303,
+  });
+}
+
+function buildErrorParams(code: string, email?: string) {
+  const params = new URLSearchParams();
+  params.set("error", code);
+
+  if (email) {
+    params.set("email", email);
+  }
+
+  return params;
+}
+
+function copyCookies(from: NextResponse, to: NextResponse) {
+  for (const cookie of from.cookies.getAll()) {
+    to.cookies.set(cookie);
   }
 }
 
-export default async function LoginPage(props: {
-  searchParams: SearchParams;
-}) {
-  const searchParams = await props.searchParams;
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
 
-  const errorMessage = getErrorMessage(searchParams.error);
-  const email = searchParams.email ?? "";
+  const email = toText(formData.get("email")).toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const passwordConfirm = String(formData.get("password_confirm") ?? "");
 
-  return (
-    <main className="min-h-screen bg-neutral-100">
-      <section className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center px-4 py-10 sm:px-6">
-        <div className="mb-10 flex flex-col items-center gap-4">
-          <Image
-            src="/icon-dark.png"
-            alt="strikr"
-            width={84}
-            height={84}
-            priority
-            className="h-20 w-20 object-contain"
-          />
-          <span className="text-4xl font-black tracking-tight text-neutral-950 sm:text-5xl">
-            strikr
-          </span>
-        </div>
+  if (!email || !password || !passwordConfirm) {
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("missing-fields", email)
+    );
+  }
 
-        <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="text-2xl font-semibold text-neutral-950">Login</h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            Melde dich bei deinem Account an.
-          </p>
+  if (password !== passwordConfirm) {
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("password-mismatch", email)
+    );
+  }
 
-          {errorMessage ? (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {errorMessage}
-            </div>
-          ) : null}
+  if (password.length < 8) {
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("password-too-short", email)
+    );
+  }
 
-          <form action="/api/login" method="post" className="mt-6 space-y-4">
-            <input type="hidden" name="next" value="/" />
+  const cookieStore = await cookies();
+  const authCarrierResponse = createRedirectResponse(request, "/club-setup");
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-800">
-                E-Mail
-              </label>
-              <input
-                name="email"
-                type="email"
-                defaultValue={email}
-                required
-                className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-                placeholder="du@beispiel.de"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-800">
-                Passwort
-              </label>
-              <input
-                name="password"
-                type="password"
-                required
-                className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="mt-2 w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
-            >
-              Einloggen
-            </button>
-          </form>
-
-          <div className="mt-4 flex items-center justify-between text-sm">
-            <Link
-              href="/forgot-password"
-              className="text-neutral-600 hover:underline"
-            >
-              Passwort vergessen?
-            </Link>
-          </div>
-
-          <div className="mt-6 text-center text-sm text-neutral-600">
-            Noch kein Konto?{" "}
-            <Link
-              href="/signup"
-              className="font-medium text-neutral-900 hover:underline"
-            >
-              Registrieren
-            </Link>
-          </div>
-        </div>
-      </section>
-    </main>
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          for (const cookie of cookiesToSet) {
+            cookieStore.set(cookie.name, cookie.value, cookie.options);
+            authCarrierResponse.cookies.set(
+              cookie.name,
+              cookie.value,
+              cookie.options
+            );
+          }
+        },
+      },
+    }
   );
+
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (signUpError) {
+    const message = signUpError.message.toLowerCase();
+
+    if (
+      message.includes("already registered") ||
+      message.includes("already been registered") ||
+      message.includes("user already registered")
+    ) {
+      return createRedirectResponse(
+        request,
+        "/signup",
+        buildErrorParams("email-already-used", email)
+      );
+    }
+
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("signup-failed", email)
+    );
+  }
+
+  if (!signUpData.user) {
+    return createRedirectResponse(
+      request,
+      "/signup",
+      buildErrorParams("signup-failed", email)
+    );
+  }
+
+  await supabase.rpc("link_existing_player_by_email", {
+    user_email: email,
+  });
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInError) {
+    return createRedirectResponse(request, "/login");
+  }
+
+  const finalResponse = createRedirectResponse(request, "/club-setup");
+  copyCookies(authCarrierResponse, finalResponse);
+
+  return finalResponse;
 }
