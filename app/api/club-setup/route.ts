@@ -13,26 +13,10 @@ function buildUrl(
   return url;
 }
 
-function createRedirectResponse(
-  request: NextRequest,
-  pathname: string,
-  search?: URLSearchParams
-) {
-  return NextResponse.redirect(buildUrl(request, pathname, search), {
-    status: 303,
-  });
-}
-
 function errorParams(code: string) {
   const params = new URLSearchParams();
   params.set("error", code);
   return params;
-}
-
-function copyCookies(from: NextResponse, to: NextResponse) {
-  for (const cookie of from.cookies.getAll()) {
-    to.cookies.set(cookie);
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -40,18 +24,13 @@ export async function POST(request: NextRequest) {
   const displayName = String(formData.get("display_name") ?? "").trim();
 
   if (!displayName) {
-    return createRedirectResponse(
-      request,
-      "/club-setup",
-      errorParams("missing-name")
+    return NextResponse.redirect(
+      buildUrl(request, "/club-setup", errorParams("missing-name")),
+      { status: 303 }
     );
   }
 
   const cookieStore = await cookies();
-  const authCarrierResponse = createRedirectResponse(
-    request,
-    "/club-setup/success"
-  );
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,11 +43,6 @@ export async function POST(request: NextRequest) {
         setAll(cookiesToSet) {
           for (const cookie of cookiesToSet) {
             cookieStore.set(cookie.name, cookie.value, cookie.options);
-            authCarrierResponse.cookies.set(
-              cookie.name,
-              cookie.value,
-              cookie.options
-            );
           }
         },
       },
@@ -80,10 +54,9 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return createRedirectResponse(
-      request,
-      "/club-setup",
-      errorParams("not-authenticated")
+    return NextResponse.redirect(
+      buildUrl(request, "/club-setup", errorParams("not-authenticated")),
+      { status: 303 }
     );
   }
 
@@ -95,8 +68,9 @@ export async function POST(request: NextRequest) {
 
   if ((existingMemberships ?? []).length === 1) {
     const clubId = existingMemberships?.[0]?.club_id ?? null;
-    const response = createRedirectResponse(request, "/club-setup/success");
-    copyCookies(authCarrierResponse, response);
+    const response = NextResponse.redirect(buildUrl(request, "/"), {
+      status: 303,
+    });
 
     if (clubId) {
       response.cookies.set("active_club_id", clubId, {
@@ -112,9 +86,9 @@ export async function POST(request: NextRequest) {
   }
 
   if ((existingMemberships ?? []).length > 1) {
-    const response = createRedirectResponse(request, "/select-club");
-    copyCookies(authCarrierResponse, response);
-    return response;
+    return NextResponse.redirect(buildUrl(request, "/select-club"), {
+      status: 303,
+    });
   }
 
   const { data: createdClub, error: clubError } = await supabase
@@ -126,10 +100,9 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (clubError || !createdClub) {
-    return createRedirectResponse(
-      request,
-      "/club-setup",
-      errorParams("club-create-failed")
+    return NextResponse.redirect(
+      buildUrl(request, "/club-setup", errorParams("club-create-failed")),
+      { status: 303 }
     );
   }
 
@@ -144,10 +117,9 @@ export async function POST(request: NextRequest) {
     });
 
   if (membershipError) {
-    return createRedirectResponse(
-      request,
-      "/club-setup",
-      errorParams("membership-create-failed")
+    return NextResponse.redirect(
+      buildUrl(request, "/club-setup", errorParams("membership-create-failed")),
+      { status: 303 }
     );
   }
 
@@ -156,17 +128,17 @@ export async function POST(request: NextRequest) {
   });
 
   if (settingsError) {
-    return createRedirectResponse(
-      request,
-      "/club-setup",
-      errorParams("settings-create-failed")
+    return NextResponse.redirect(
+      buildUrl(request, "/club-setup", errorParams("settings-create-failed")),
+      { status: 303 }
     );
   }
 
-  const finalResponse = createRedirectResponse(request, "/club-setup/success");
-  copyCookies(authCarrierResponse, finalResponse);
+  const response = NextResponse.redirect(buildUrl(request, "/"), {
+    status: 303,
+  });
 
-  finalResponse.cookies.set("active_club_id", clubId, {
+  response.cookies.set("active_club_id", clubId, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -174,5 +146,5 @@ export async function POST(request: NextRequest) {
     maxAge: 60 * 60 * 24 * 180,
   });
 
-  return finalResponse;
+  return response;
 }

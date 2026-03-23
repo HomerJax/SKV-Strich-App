@@ -2,6 +2,12 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+type PendingCookie = {
+  name: string;
+  value: string;
+  options?: Parameters<NextResponse["cookies"]["set"]>[2];
+};
+
 function toText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
 }
@@ -17,17 +23,24 @@ function buildUrl(
   return url;
 }
 
-function createRedirectResponse(
+function redirectResponse(
   request: NextRequest,
   pathname: string,
+  pendingCookies: PendingCookie[],
   search?: URLSearchParams
 ) {
-  return NextResponse.redirect(buildUrl(request, pathname, search), {
+  const response = NextResponse.redirect(buildUrl(request, pathname, search), {
     status: 303,
   });
+
+  for (const cookie of pendingCookies) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }
 
-function buildErrorParams(code: string, email?: string) {
+function errorParams(code: string, email?: string) {
   const params = new URLSearchParams();
   params.set("error", code);
 
@@ -38,12 +51,6 @@ function buildErrorParams(code: string, email?: string) {
   return params;
 }
 
-function copyCookies(from: NextResponse, to: NextResponse) {
-  for (const cookie of from.cookies.getAll()) {
-    to.cookies.set(cookie);
-  }
-}
-
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
 
@@ -52,31 +59,28 @@ export async function POST(request: NextRequest) {
   const passwordConfirm = String(formData.get("password_confirm") ?? "");
 
   if (!email || !password || !passwordConfirm) {
-    return createRedirectResponse(
-      request,
-      "/signup",
-      buildErrorParams("missing-fields", email)
+    return NextResponse.redirect(
+      buildUrl(request, "/signup", errorParams("missing-fields", email)),
+      { status: 303 }
     );
   }
 
   if (password !== passwordConfirm) {
-    return createRedirectResponse(
-      request,
-      "/signup",
-      buildErrorParams("password-mismatch", email)
+    return NextResponse.redirect(
+      buildUrl(request, "/signup", errorParams("password-mismatch", email)),
+      { status: 303 }
     );
   }
 
   if (password.length < 8) {
-    return createRedirectResponse(
-      request,
-      "/signup",
-      buildErrorParams("password-too-short", email)
+    return NextResponse.redirect(
+      buildUrl(request, "/signup", errorParams("password-too-short", email)),
+      { status: 303 }
     );
   }
 
   const cookieStore = await cookies();
-  const authCarrierResponse = createRedirectResponse(request, "/club-setup");
+  const pendingCookies: PendingCookie[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,13 +91,15 @@ export async function POST(request: NextRequest) {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
+          pendingCookies.length = 0;
+
           for (const cookie of cookiesToSet) {
             cookieStore.set(cookie.name, cookie.value, cookie.options);
-            authCarrierResponse.cookies.set(
-              cookie.name,
-              cookie.value,
-              cookie.options
-            );
+            pendingCookies.push({
+              name: cookie.name,
+              value: cookie.value,
+              options: cookie.options,
+            });
           }
         },
       },
@@ -113,25 +119,22 @@ export async function POST(request: NextRequest) {
       message.includes("already been registered") ||
       message.includes("user already registered")
     ) {
-      return createRedirectResponse(
-        request,
-        "/signup",
-        buildErrorParams("email-already-used", email)
+      return NextResponse.redirect(
+        buildUrl(request, "/signup", errorParams("email-already-used", email)),
+        { status: 303 }
       );
     }
 
-    return createRedirectResponse(
-      request,
-      "/signup",
-      buildErrorParams("signup-failed", email)
+    return NextResponse.redirect(
+      buildUrl(request, "/signup", errorParams("signup-failed", email)),
+      { status: 303 }
     );
   }
 
   if (!signUpData.user) {
-    return createRedirectResponse(
-      request,
-      "/signup",
-      buildErrorParams("signup-failed", email)
+    return NextResponse.redirect(
+      buildUrl(request, "/signup", errorParams("signup-failed", email)),
+      { status: 303 }
     );
   }
 
@@ -145,11 +148,8 @@ export async function POST(request: NextRequest) {
   });
 
   if (signInError) {
-    return createRedirectResponse(request, "/login");
+    return redirectResponse(request, "/login", pendingCookies);
   }
 
-  const finalResponse = createRedirectResponse(request, "/club-setup");
-  copyCookies(authCarrierResponse, finalResponse);
-
-  return finalResponse;
+  return redirectResponse(request, "/club-setup", pendingCookies);
 }

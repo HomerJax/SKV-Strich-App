@@ -6,6 +6,12 @@ type MembershipRow = {
   club_id: string;
 };
 
+type PendingCookie = {
+  name: string;
+  value: string;
+  options?: Parameters<NextResponse["cookies"]["set"]>[2];
+};
+
 function safeNextPath(value: string | null) {
   if (!value) return "/";
   if (!value.startsWith("/")) return "/";
@@ -26,17 +32,24 @@ function buildUrl(
   return url;
 }
 
-function createRedirectResponse(
+function redirectResponse(
   request: NextRequest,
   pathname: string,
+  pendingCookies: PendingCookie[],
   search?: URLSearchParams
 ) {
-  return NextResponse.redirect(buildUrl(request, pathname, search), {
+  const response = NextResponse.redirect(buildUrl(request, pathname, search), {
     status: 303,
   });
+
+  for (const cookie of pendingCookies) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+
+  return response;
 }
 
-function buildErrorParams(code: string, email?: string) {
+function errorParams(code: string, email?: string) {
   const params = new URLSearchParams();
   params.set("error", code);
 
@@ -50,20 +63,19 @@ function buildErrorParams(code: string, email?: string) {
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
 
-  const email = String(formData.get("email") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const nextParam = safeNextPath(String(formData.get("next") ?? "") || null);
 
   if (!email || !password) {
-    return createRedirectResponse(
-      request,
-      "/login",
-      buildErrorParams("missing-fields", email)
+    return NextResponse.redirect(
+      buildUrl(request, "/login", errorParams("missing-fields", email)),
+      { status: 303 }
     );
   }
 
   const cookieStore = await cookies();
-  const response = createRedirectResponse(request, "/");
+  const pendingCookies: PendingCookie[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -74,9 +86,15 @@ export async function POST(request: NextRequest) {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
+          pendingCookies.length = 0;
+
           for (const cookie of cookiesToSet) {
             cookieStore.set(cookie.name, cookie.value, cookie.options);
-            response.cookies.set(cookie.name, cookie.value, cookie.options);
+            pendingCookies.push({
+              name: cookie.name,
+              value: cookie.value,
+              options: cookie.options,
+            });
           }
         },
       },
@@ -90,10 +108,9 @@ export async function POST(request: NextRequest) {
     });
 
   if (signInError || !signInData.user) {
-    return createRedirectResponse(
-      request,
-      "/login",
-      buildErrorParams("invalid-credentials", email)
+    return NextResponse.redirect(
+      buildUrl(request, "/login", errorParams("invalid-credentials", email)),
+      { status: 303 }
     );
   }
 
@@ -105,35 +122,27 @@ export async function POST(request: NextRequest) {
     .eq("user_id", user.id);
 
   if (membershipsError) {
-    return createRedirectResponse(
-      request,
-      "/login",
-      buildErrorParams("membership-load-failed", email)
+    return NextResponse.redirect(
+      buildUrl(request, "/login", errorParams("membership-load-failed", email)),
+      { status: 303 }
     );
   }
 
   const typedMemberships = (memberships ?? []) as MembershipRow[];
 
   if (typedMemberships.length === 0) {
-    const noClubResponse = createRedirectResponse(request, "/club-setup");
-
-    for (const cookie of response.cookies.getAll()) {
-      noClubResponse.cookies.set(cookie);
-    }
-
-    return noClubResponse;
+    return redirectResponse(request, "/club-setup", pendingCookies);
   }
 
   if (typedMemberships.length === 1) {
     const clubId = typedMemberships[0].club_id;
-    const targetPath = nextParam === "/" ? "/" : nextParam;
-    const targetResponse = createRedirectResponse(request, targetPath);
+    const response = redirectResponse(
+      request,
+      nextParam === "/" ? "/" : nextParam,
+      pendingCookies
+    );
 
-    for (const cookie of response.cookies.getAll()) {
-      targetResponse.cookies.set(cookie);
-    }
-
-    targetResponse.cookies.set("active_club_id", clubId, {
+    response.cookies.set("active_club_id", clubId, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
@@ -141,14 +150,8 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 180,
     });
 
-    return targetResponse;
+    return response;
   }
 
-  const multiClubResponse = createRedirectResponse(request, "/select-club");
-
-  for (const cookie of response.cookies.getAll()) {
-    multiClubResponse.cookies.set(cookie);
-  }
-
-  return multiClubResponse;
+  return redirectResponse(request, "/select-club", pendingCookies);
 }
