@@ -34,6 +34,61 @@ function buildErrorRedirect(
   });
 }
 
+function buildSuccessHtml(pathname: string) {
+  return `<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weiterleitung…</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+        color: #111;
+      }
+      .wrap {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      .card {
+        width: 100%;
+        max-width: 480px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 24px;
+      }
+      p {
+        margin: 0;
+        color: #555;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Login erfolgreich</h1>
+        <p>Du wirst jetzt automatisch weitergeleitet …</p>
+      </div>
+    </div>
+    <script>
+      window.location.replace(${JSON.stringify(pathname)});
+    </script>
+  </body>
+</html>`;
+}
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
 
@@ -49,8 +104,12 @@ export async function POST(request: NextRequest) {
   let targetPath = "/";
   let activeClubId: string | null = null;
 
-  const response = NextResponse.redirect(buildUrl(request, "/"), {
-    status: 303,
+  const response = new NextResponse(buildSuccessHtml("/"), {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-store",
+    },
   });
 
   const supabase = createServerClient(
@@ -103,7 +162,13 @@ export async function POST(request: NextRequest) {
     targetPath = "/select-club";
   }
 
-  response.headers.set("Location", buildUrl(request, targetPath).toString());
+  response.cookies.set("login_redirect_target", targetPath, {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60,
+  });
 
   if (activeClubId) {
     response.cookies.set("active_club_id", activeClubId, {
@@ -115,7 +180,18 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  response.headers.set("Cache-Control", "private, no-store");
+  response.headers.set(
+    "content-type",
+    "text/html; charset=utf-8"
+  );
+  response.headers.set("cache-control", "private, no-store");
+
+  response.headers.set(
+    "x-strikr-target",
+    targetPath
+  );
+
+  response.body = buildSuccessHtml(targetPath) as any;
 
   return response;
 }
