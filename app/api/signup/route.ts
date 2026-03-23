@@ -55,7 +55,9 @@ export async function POST(request: NextRequest) {
 
   const cookieStore = await cookies();
 
-  const response = NextResponse.next();
+  const response = NextResponse.redirect(buildUrl(request, "/club-setup"), {
+    status: 303,
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -115,13 +117,7 @@ export async function POST(request: NextRequest) {
     return buildErrorRedirect(request, "invalid-credentials", email);
   }
 
-  const redirectResponse = NextResponse.redirect(buildUrl(request, "/club-setup"), {
-    status: 303,
-  });
+  response.headers.set("Cache-Control", "private, no-store");
 
-  for (const cookie of response.cookies.getAll()) {
-    redirectResponse.cookies.set(cookie);
-  }
-
-  return redirectResponse;
+  return response;
 }

@@ -46,7 +46,12 @@ export async function POST(request: NextRequest) {
 
   const cookieStore = await cookies();
 
-  const response = NextResponse.next();
+  let targetPath = "/";
+  let activeClubId: string | null = null;
+
+  const response = NextResponse.redirect(buildUrl(request, "/"), {
+    status: 303,
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -90,46 +95,27 @@ export async function POST(request: NextRequest) {
   const typedMemberships = (memberships ?? []) as MembershipRow[];
 
   if (typedMemberships.length === 0) {
-    const redirectResponse = NextResponse.redirect(
-      buildUrl(request, "/club-setup"),
-      { status: 303 }
-    );
-
-    for (const cookie of response.cookies.getAll()) {
-      redirectResponse.cookies.set(cookie);
-    }
-
-    return redirectResponse;
+    targetPath = "/club-setup";
+  } else if (typedMemberships.length === 1) {
+    targetPath = "/";
+    activeClubId = typedMemberships[0].club_id;
+  } else {
+    targetPath = "/select-club";
   }
 
-  if (typedMemberships.length === 1) {
-    const redirectResponse = NextResponse.redirect(buildUrl(request, "/"), {
-      status: 303,
-    });
+  response.headers.set("Location", buildUrl(request, targetPath).toString());
 
-    for (const cookie of response.cookies.getAll()) {
-      redirectResponse.cookies.set(cookie);
-    }
-
-    redirectResponse.cookies.set("active_club_id", typedMemberships[0].club_id, {
+  if (activeClubId) {
+    response.cookies.set("active_club_id", activeClubId, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 60 * 60 * 24 * 180,
     });
-
-    return redirectResponse;
   }
 
-  const redirectResponse = NextResponse.redirect(
-    buildUrl(request, "/select-club"),
-    { status: 303 }
-  );
+  response.headers.set("Cache-Control", "private, no-store");
 
-  for (const cookie of response.cookies.getAll()) {
-    redirectResponse.cookies.set(cookie);
-  }
-
-  return redirectResponse;
+  return response;
 }
