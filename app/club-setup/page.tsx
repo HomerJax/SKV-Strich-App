@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -14,7 +14,7 @@ function getErrorMessage(error?: string | null) {
     case "missing-name":
       return "Bitte gib einen Teamnamen ein.";
     case "missing-user":
-      return "Der Benutzer konnte nicht erkannt werden.";
+      return "Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein.";
     case "club-create-failed":
       return "Das Team konnte nicht erstellt werden.";
     case "membership-create-failed":
@@ -35,13 +35,61 @@ function getErrorFromUrl() {
   return params.get("error");
 }
 
+async function resolveBrowserAuth() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session?.user && session.access_token) {
+    return {
+      user: session.user,
+      accessToken: session.access_token,
+    };
+  }
+
+  await supabase.auth.refreshSession();
+
+  const {
+    data: { session: refreshedSession },
+  } = await supabase.auth.getSession();
+
+  if (refreshedSession?.user && refreshedSession.access_token) {
+    return {
+      user: refreshedSession.user,
+      accessToken: refreshedSession.access_token,
+    };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      user: null,
+      accessToken: null,
+    };
+  }
+
+  const {
+    data: { session: finalSession },
+  } = await supabase.auth.getSession();
+
+  return {
+    user,
+    accessToken: finalSession?.access_token ?? null,
+  };
+}
+
 export default function ClubSetupPage() {
   const router = useRouter();
+  const hasNavigatedRef = useRef(false);
 
   const [displayName, setDisplayName] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     setErrorMessage(getErrorMessage(getErrorFromUrl()));
@@ -51,19 +99,25 @@ export default function ClubSetupPage() {
     let isMounted = true;
 
     async function bootstrap() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const auth = await resolveBrowserAuth();
 
-      if (!session?.user) {
-        router.replace("/login");
+      if (!isMounted) {
+        return;
+      }
+
+      if (!auth.user) {
+        setAuthReady(false);
+        setErrorMessage(
+          "Deine Anmeldung konnte nicht geladen werden. Bitte logge dich erneut ein."
+        );
+        setIsCheckingAuth(false);
         return;
       }
 
       const { data: memberships, error } = await supabase
         .from("club_memberships")
         .select("club_id")
-        .eq("user_id", session.user.id);
+        .eq("user_id", auth.user.id);
 
       if (!isMounted) {
         return;
@@ -71,6 +125,7 @@ export default function ClubSetupPage() {
 
       if (error) {
         setErrorMessage("Dein Account konnte nicht geladen werden.");
+        setAuthReady(true);
         setIsCheckingAuth(false);
         return;
       }
@@ -79,15 +134,23 @@ export default function ClubSetupPage() {
 
       if (typedMemberships.length === 1) {
         document.cookie = `active_club_id=${typedMemberships[0].club_id}; Path=/; Max-Age=31536000; SameSite=Lax`;
-        router.replace("/");
+
+        if (!hasNavigatedRef.current) {
+          hasNavigatedRef.current = true;
+          window.location.href = "/";
+        }
         return;
       }
 
       if (typedMemberships.length > 1) {
-        router.replace("/select-club");
+        if (!hasNavigatedRef.current) {
+          hasNavigatedRef.current = true;
+          window.location.href = "/select-club";
+        }
         return;
       }
 
+      setAuthReady(true);
       setIsCheckingAuth(false);
     }
 
@@ -112,15 +175,13 @@ export default function ClubSetupPage() {
     setErrorMessage(null);
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const auth = await resolveBrowserAuth();
 
-      const accessToken = session?.access_token;
-      const user = session?.user;
-
-      if (!accessToken || !user) {
-        router.replace("/login");
+      if (!auth.user || !auth.accessToken) {
+        setErrorMessage(
+          "Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein."
+        );
+        setIsSubmitting(false);
         return;
       }
 
@@ -128,7 +189,7 @@ export default function ClubSetupPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${auth.accessToken}`,
         },
         body: JSON.stringify({
           display_name: cleanDisplayName,
@@ -156,8 +217,8 @@ export default function ClubSetupPage() {
         document.cookie = `active_club_id=${payload.club_id}; Path=/; Max-Age=31536000; SameSite=Lax`;
       }
 
-      router.replace(payload?.redirect_to || "/");
-      router.refresh();
+      hasNavigatedRef.current = true;
+      window.location.href = payload?.redirect_to || "/";
     } catch {
       setErrorMessage("Das Team konnte nicht erstellt werden.");
       setIsSubmitting(false);
@@ -170,6 +231,28 @@ export default function ClubSetupPage() {
         <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
           <div className="w-full rounded-3xl border border-neutral-200 bg-white p-6 text-center shadow-sm sm:p-8">
             <p className="text-sm text-neutral-600">Lade Team-Setup...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!authReady) {
+    return (
+      <main className="min-h-screen bg-neutral-50">
+        <div className="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-10 sm:px-6 lg:px-8">
+          <div className="w-full rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {errorMessage ??
+                "Deine Anmeldung konnte nicht geladen werden. Bitte logge dich erneut ein."}
+            </div>
+
+            <Link
+              href="/login"
+              className="inline-flex w-full items-center justify-center rounded-2xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
+            >
+              Zum Login
+            </Link>
           </div>
         </div>
       </main>
