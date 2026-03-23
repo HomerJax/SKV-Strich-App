@@ -2,21 +2,67 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-function buildUrl(
-  request: NextRequest,
-  pathname: string,
-  search?: URLSearchParams
-) {
-  const url = request.nextUrl.clone();
-  url.pathname = pathname;
-  url.search = search ? search.toString() : "";
-  return url;
-}
-
-function errorParams(code: string) {
-  const params = new URLSearchParams();
-  params.set("error", code);
-  return params;
+function html(title: string, body: string) {
+  return new NextResponse(
+    `
+      <!doctype html>
+      <html lang="de">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>${title}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              background: #f5f5f5;
+              color: #111;
+              margin: 0;
+              padding: 24px;
+            }
+            .card {
+              max-width: 760px;
+              margin: 40px auto;
+              background: white;
+              border: 1px solid #ddd;
+              border-radius: 16px;
+              padding: 24px;
+              box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+            }
+            h1 { margin-top: 0; font-size: 24px; }
+            pre {
+              white-space: pre-wrap;
+              word-break: break-word;
+              background: #f7f7f7;
+              border: 1px solid #e5e5e5;
+              border-radius: 12px;
+              padding: 16px;
+              overflow: auto;
+            }
+            a {
+              display: inline-block;
+              margin-top: 16px;
+              color: #111;
+              font-weight: 600;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>${title}</h1>
+            <pre>${body}</pre>
+            <a href="/club-setup">Zurück zu /club-setup</a>
+          </div>
+        </body>
+      </html>
+    `,
+    {
+      status: 200,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+      },
+    }
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -24,9 +70,17 @@ export async function POST(request: NextRequest) {
   const displayName = String(formData.get("display_name") ?? "").trim();
 
   if (!displayName) {
-    return NextResponse.redirect(
-      buildUrl(request, "/club-setup", errorParams("missing-name")),
-      { status: 303 }
+    return html(
+      "DEBUG: Kein Teamname",
+      JSON.stringify(
+        {
+          step: "validate",
+          ok: false,
+          reason: "missing-name",
+        },
+        null,
+        2
+      )
     );
   }
 
@@ -51,44 +105,95 @@ export async function POST(request: NextRequest) {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.redirect(
-      buildUrl(request, "/club-setup", errorParams("not-authenticated")),
-      { status: 303 }
+  if (userError) {
+    return html(
+      "DEBUG: getUser Fehler",
+      JSON.stringify(
+        {
+          step: "auth.getUser",
+          ok: false,
+          error: userError.message,
+        },
+        null,
+        2
+      )
     );
   }
 
-  const { data: existingMemberships } = await supabase
+  if (!user) {
+    return html(
+      "DEBUG: Kein eingeloggter User in club-setup route",
+      JSON.stringify(
+        {
+          step: "auth.getUser",
+          ok: false,
+          user: null,
+          cookies: cookieStore.getAll().map((c) => c.name),
+          note: "Wenn du das siehst, kommt die Session in dieser Route nicht an.",
+        },
+        null,
+        2
+      )
+    );
+  }
+
+  const { data: existingMemberships, error: existingError } = await supabase
     .from("club_memberships")
     .select("club_id")
     .eq("user_id", user.id)
     .limit(2);
 
+  if (existingError) {
+    return html(
+      "DEBUG: Fehler beim Laden vorhandener Memberships",
+      JSON.stringify(
+        {
+          step: "load-memberships",
+          ok: false,
+          userId: user.id,
+          error: existingError.message,
+        },
+        null,
+        2
+      )
+    );
+  }
+
   if ((existingMemberships ?? []).length === 1) {
-    const clubId = existingMemberships?.[0]?.club_id ?? null;
-    const response = NextResponse.redirect(buildUrl(request, "/"), {
-      status: 303,
-    });
-
-    if (clubId) {
-      response.cookies.set("active_club_id", clubId, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 180,
-      });
-    }
-
-    return response;
+    return html(
+      "DEBUG: User hat bereits genau einen Club",
+      JSON.stringify(
+        {
+          step: "already-has-one-membership",
+          ok: true,
+          userId: user.id,
+          existingMemberships,
+          note: "Dann sollte eigentlich nur active_club_id gesetzt und auf / weitergeleitet werden.",
+        },
+        null,
+        2
+      )
+    );
   }
 
   if ((existingMemberships ?? []).length > 1) {
-    return NextResponse.redirect(buildUrl(request, "/select-club"), {
-      status: 303,
-    });
+    return html(
+      "DEBUG: User hat mehrere Clubs",
+      JSON.stringify(
+        {
+          step: "already-has-multiple-memberships",
+          ok: true,
+          userId: user.id,
+          existingMemberships,
+          note: "Dann sollte eigentlich /select-club kommen.",
+        },
+        null,
+        2
+      )
+    );
   }
 
   const { data: createdClub, error: clubError } = await supabase
@@ -100,9 +205,19 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (clubError || !createdClub) {
-    return NextResponse.redirect(
-      buildUrl(request, "/club-setup", errorParams("club-create-failed")),
-      { status: 303 }
+    return html(
+      "DEBUG: Club konnte nicht erstellt werden",
+      JSON.stringify(
+        {
+          step: "create-club",
+          ok: false,
+          userId: user.id,
+          displayName,
+          error: clubError?.message ?? "unknown",
+        },
+        null,
+        2
+      )
     );
   }
 
@@ -117,9 +232,19 @@ export async function POST(request: NextRequest) {
     });
 
   if (membershipError) {
-    return NextResponse.redirect(
-      buildUrl(request, "/club-setup", errorParams("membership-create-failed")),
-      { status: 303 }
+    return html(
+      "DEBUG: Membership konnte nicht erstellt werden",
+      JSON.stringify(
+        {
+          step: "create-membership",
+          ok: false,
+          userId: user.id,
+          clubId,
+          error: membershipError.message,
+        },
+        null,
+        2
+      )
     );
   }
 
@@ -128,23 +253,35 @@ export async function POST(request: NextRequest) {
   });
 
   if (settingsError) {
-    return NextResponse.redirect(
-      buildUrl(request, "/club-setup", errorParams("settings-create-failed")),
-      { status: 303 }
+    return html(
+      "DEBUG: club_settings konnte nicht erstellt werden",
+      JSON.stringify(
+        {
+          step: "create-settings",
+          ok: false,
+          userId: user.id,
+          clubId,
+          error: settingsError.message,
+        },
+        null,
+        2
+      )
     );
   }
 
-  const response = NextResponse.redirect(buildUrl(request, "/"), {
-    status: 303,
-  });
-
-  response.cookies.set("active_club_id", clubId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 180,
-  });
-
-  return response;
+  return html(
+    "DEBUG: Team erfolgreich angelegt",
+    JSON.stringify(
+      {
+        step: "success",
+        ok: true,
+        userId: user.id,
+        clubId,
+        displayName,
+        note: "Wenn du das siehst, funktioniert das Anlegen. Dann sitzt das Problem erst NACH dieser Route.",
+      },
+      null,
+      2
+    )
+  );
 }
