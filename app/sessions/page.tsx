@@ -1,9 +1,9 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+"use client";
 
-export const dynamic = "force-dynamic";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/browser";
 
 type Membership = {
   club_id: string;
@@ -33,85 +33,140 @@ function fmtDateDE(iso: string) {
   });
 }
 
-export default async function SessionsPage() {
-  const cookieStore = await cookies();
-  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
+function readCookie(name: string) {
+  if (typeof document === "undefined") return null;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
+  const value = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1];
+
+  return value ? decodeURIComponent(value) : null;
+}
+
+function writeCookie(name: string, value: string) {
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
+
+export default function SessionsPage() {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [clubId, setClubId] = useState<string | null>(null);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPage() {
+      setIsLoading(true);
+      setErrorMessage(null);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const user = session?.user ?? null;
+
+      if (!user) {
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
+      const { data: membershipsData, error: membershipError } = await supabase
+        .from("club_memberships")
+        .select("club_id, role")
+        .eq("user_id", user.id);
+
+      if (!isMounted) return;
+
+      if (membershipError) {
+        setErrorMessage(membershipError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      const memberships = (membershipsData ?? []) as Membership[];
+
+      if (memberships.length === 0) {
+        router.replace("/waiting-for-invite");
+        router.refresh();
+        return;
+      }
+
+      const activeClubIdFromCookie = readCookie("active_club_id");
+      const validClubIds = new Set(memberships.map((membership) => membership.club_id));
+
+      const resolvedClubId =
+        memberships.length === 1
+          ? memberships[0].club_id
+          : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+            ? activeClubIdFromCookie
+            : null;
+
+      if (!resolvedClubId) {
+        router.replace("/select-club");
+        router.refresh();
+        return;
+      }
+
+      if (memberships.length === 1) {
+        writeCookie("active_club_id", resolvedClubId);
+      }
+
+      const [{ data: seasonsData, error: seasonsError }, { data: sessionsData, error: sessionsError }] =
+        await Promise.all([
+          supabase
+            .from("seasons")
+            .select("id, name, start_date, end_date")
+            .eq("club_id", resolvedClubId)
+            .order("start_date", { ascending: false }),
+          supabase
+            .from("sessions")
+            .select("id, date, notes, season_id")
+            .eq("club_id", resolvedClubId)
+            .order("date", { ascending: false }),
+        ]);
+
+      if (!isMounted) return;
+
+      if (seasonsError || sessionsError) {
+        setErrorMessage(seasonsError?.message ?? sessionsError?.message ?? "Daten konnten nicht geladen werden.");
+        setIsLoading(false);
+        return;
+      }
+
+      setClubId(resolvedClubId);
+      setSeasons((seasonsData as Season[] | null) ?? []);
+      setSessions((sessionsData as SessionRow[] | null) ?? []);
+      setIsLoading(false);
     }
-  );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    loadPage();
 
-  if (!user) {
-    redirect("/login?next=/sessions");
+    return () => {
+      isMounted = false;
+    };
+  }, [router, supabase]);
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
+        Lade Trainings…
+      </div>
+    );
   }
-
-  const { data: membershipsData, error: membershipError } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("user_id", user.id);
-
-  if (membershipError) {
-    throw new Error(membershipError.message);
-  }
-
-  const memberships = (membershipsData ?? []) as Membership[];
-
-  if (memberships.length === 0) {
-    redirect("/waiting-for-invite");
-  }
-
-  const validClubIds = new Set(memberships.map((m) => m.club_id));
-
-  const clubId =
-    memberships.length === 1
-      ? memberships[0].club_id
-      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-        ? activeClubIdFromCookie
-        : null;
-
-  if (!clubId) {
-    redirect("/select-club");
-  }
-
-  let seasons: Season[] | null = null;
-  let sessions: SessionRow[] | null = null;
-  let seasonsError: { message: string } | null = null;
-  let sessionsError: { message: string } | null = null;
-
-  const { data: seasonsData, error: sErr } = await supabase
-    .from("seasons")
-    .select("id, name, start_date, end_date")
-    .eq("club_id", clubId)
-    .order("start_date", { ascending: false });
-
-  const { data: sessionsData, error } = await supabase
-    .from("sessions")
-    .select("id, date, notes, season_id")
-    .eq("club_id", clubId)
-    .order("date", { ascending: false });
-
-  seasons = (seasonsData as Season[] | null) ?? null;
-  sessions = (sessionsData as SessionRow[] | null) ?? null;
-  seasonsError = sErr;
-  sessionsError = error;
 
   const seasonSessions = new Map<number, SessionRow[]>();
   const withoutSeason: SessionRow[] = [];
 
-  (sessions ?? []).forEach((row) => {
+  sessions.forEach((row) => {
     if (!row.season_id) {
       withoutSeason.push(row);
     } else {
@@ -121,7 +176,7 @@ export default async function SessionsPage() {
     }
   });
 
-  const seasonListSorted = (seasons ?? []).slice();
+  const seasonListSorted = seasons.slice();
 
   for (const [sid, arr] of seasonSessions.entries()) {
     arr.sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -130,7 +185,7 @@ export default async function SessionsPage() {
 
   withoutSeason.sort((a, b) => (a.date < b.date ? 1 : -1));
 
-  const totalSessions = (sessions ?? []).length;
+  const totalSessions = sessions.length;
 
   return (
     <div className="space-y-4">
@@ -143,7 +198,7 @@ export default async function SessionsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Trainings</h1>
-          <p className="text-xs text-slate-500">Termine, Teams & Ergebnisse.</p>
+          <p className="text-xs text-slate-500">Termine, Teams &amp; Ergebnisse.</p>
         </div>
 
         <Link
@@ -154,13 +209,13 @@ export default async function SessionsPage() {
         </Link>
       </div>
 
-      {(seasonsError || sessionsError) && (
+      {errorMessage && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-          Fehler: {seasonsError?.message ?? sessionsError?.message}
+          Fehler: {errorMessage}
         </div>
       )}
 
-      {!seasonsError && !sessionsError && totalSessions === 0 && (
+      {!errorMessage && totalSessions === 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="max-w-lg">
             <div className="text-sm font-semibold text-slate-500">Noch leer</div>
@@ -192,7 +247,7 @@ export default async function SessionsPage() {
         </div>
       )}
 
-      {totalSessions > 0 && (
+      {!errorMessage && totalSessions > 0 && (
         <div className="space-y-3">
           {seasonListSorted.map((season) => {
             const list = seasonSessions.get(season.id) ?? [];
@@ -208,17 +263,17 @@ export default async function SessionsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {list.map((s) => (
+                  {list.map((session) => (
                     <Link
-                      key={s.id}
-                      href={`/sessions/${s.id}`}
+                      key={session.id}
+                      href={`/sessions/${session.id}`}
                       className="block rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm hover:bg-slate-50"
                     >
                       <div className="font-semibold text-slate-900">
-                        {fmtDateDE(s.date)}
+                        {fmtDateDE(session.date)}
                       </div>
-                      {s.notes && (
-                        <div className="text-xs text-slate-500">{s.notes}</div>
+                      {session.notes && (
+                        <div className="text-xs text-slate-500">{session.notes}</div>
                       )}
                     </Link>
                   ))}
@@ -233,17 +288,17 @@ export default async function SessionsPage() {
                 Ohne Saison
               </div>
               <div className="space-y-2">
-                {withoutSeason.map((s) => (
+                {withoutSeason.map((session) => (
                   <Link
-                    key={s.id}
-                    href={`/sessions/${s.id}`}
+                    key={session.id}
+                    href={`/sessions/${session.id}`}
                     className="block rounded-xl border border-amber-200 bg-white px-3 py-3 shadow-sm hover:bg-amber-100"
                   >
                     <div className="font-semibold text-slate-900">
-                      {fmtDateDE(s.date)}
+                      {fmtDateDE(session.date)}
                     </div>
-                    {s.notes && (
-                      <div className="text-xs text-slate-500">{s.notes}</div>
+                    {session.notes && (
+                      <div className="text-xs text-slate-500">{session.notes}</div>
                     )}
                   </Link>
                 ))}
