@@ -50,7 +50,7 @@ export default async function AdminPage() {
   const typedMemberships = (memberships ?? []) as MembershipRow[];
 
   if (typedMemberships.length === 0) {
-    redirect("/club-setup");
+    redirect("/waiting-for-invite");
   }
 
   let activeMembership: MembershipRow | null = null;

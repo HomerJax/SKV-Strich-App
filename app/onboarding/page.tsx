@@ -1,151 +1,124 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { saveOnboardingAction } from "./actions";
+"use client";
 
-type OnboardingPageProps = {
-  searchParams?: Promise<{
-    error?: string;
-    detail?: string;
-  }>;
+import { useActionState, useState } from "react";
+import { completeOnboarding, type OnboardingState } from "./actions";
+
+const initialState: OnboardingState = {
+  error: "",
 };
 
-function getErrorMessage(error: string | undefined, detail: string | undefined) {
-  switch (error) {
-    case "missing-fields":
-      return "Bitte gib Vorname und Nachname ein.";
-    case "save-failed":
-      return detail
-        ? `Onboarding konnte nicht gespeichert werden: ${detail}`
-        : "Onboarding konnte nicht gespeichert werden.";
-    default:
-      return "";
-  }
-}
-
-export default async function OnboardingPage({
-  searchParams,
-}: OnboardingPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    redirect("/login");
-  }
-
-  const { data: existingPlayer, error: playerError } = await supabase
-    .from("players")
-    .select("id, first_name, last_name, nickname")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (playerError) {
-    throw new Error("Spielerprofil konnte nicht geladen werden.");
-  }
-
-  if (existingPlayer?.id) {
-    const { data: memberships } = await supabase
-      .from("club_memberships")
-      .select("club_id")
-      .eq("user_id", user.id);
-
-    if ((memberships ?? []).length === 0) {
-      redirect("/club-setup");
-    }
-
-    redirect("/");
-  }
-
-  const errorMessage = getErrorMessage(
-    resolvedSearchParams?.error,
-    resolvedSearchParams?.detail
+export default function OnboardingPage() {
+  const [state, formAction, pending] = useActionState(
+    completeOnboarding,
+    initialState
+  );
+  const [intention, setIntention] = useState<"create-team" | "wait-for-invite">(
+    "create-team"
   );
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
-      <div className="w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Profil vervollständigen
-          </h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            Bitte ergänze deine Daten, damit dein Spielerprofil in{" "}
-            <span className="font-semibold">strikr</span> vervollständigt werden
-            kann.
-          </p>
-        </div>
+    <main className="mx-auto flex min-h-screen w-full max-w-2xl items-center px-6 py-12">
+      <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl backdrop-blur">
+        <h1 className="text-3xl font-semibold text-white">
+          Willkommen bei strikr
+        </h1>
 
-        {errorMessage ? (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            {errorMessage}
-          </div>
-        ) : null}
+        <p className="mt-3 text-sm leading-6 text-white/70">
+          Richte zuerst dein Profil ein und entscheide danach, wie du starten
+          möchtest.
+        </p>
 
-        <form action={saveOnboardingAction} className="space-y-4">
-          <div>
-            <label
-              htmlFor="first_name"
-              className="mb-1.5 block text-sm font-medium text-neutral-900"
-            >
-              Vorname
+        <form action={formAction} className="mt-8 space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block">
+              <span className="mb-2 block text-sm text-white">Vorname</span>
+              <input
+                name="firstName"
+                type="text"
+                required
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none"
+              />
             </label>
-            <input
-              id="first_name"
-              name="first_name"
-              type="text"
-              required
-              maxLength={80}
-              autoComplete="given-name"
-              className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-              placeholder="Max"
-            />
+
+            <label className="block">
+              <span className="mb-2 block text-sm text-white">Nachname</span>
+              <input
+                name="lastName"
+                type="text"
+                required
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none"
+              />
+            </label>
           </div>
 
-          <div>
-            <label
-              htmlFor="last_name"
-              className="mb-1.5 block text-sm font-medium text-neutral-900"
-            >
-              Nachname
-            </label>
+          <label className="block">
+            <span className="mb-2 block text-sm text-white">Spitzname</span>
             <input
-              id="last_name"
-              name="last_name"
-              type="text"
-              required
-              maxLength={80}
-              autoComplete="family-name"
-              className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-              placeholder="Mustermann"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="nickname"
-              className="mb-1.5 block text-sm font-medium text-neutral-900"
-            >
-              Spitzname <span className="text-neutral-400">(optional)</span>
-            </label>
-            <input
-              id="nickname"
               name="nickname"
               type="text"
-              maxLength={80}
-              className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-              placeholder="z. B. Messi, Benni, Keeper"
+              className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none"
             />
+          </label>
+
+          <input type="hidden" name="intention" value={intention} />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setIntention("create-team")}
+              className={`rounded-2xl border p-4 text-left transition ${
+                intention === "create-team"
+                  ? "border-green-400 bg-green-400/10"
+                  : "border-white/10 bg-white/5"
+              }`}
+            >
+              <div className="font-medium text-white">Ich möchte ein Team erstellen</div>
+              <div className="mt-2 text-sm text-white/70">
+                Du legst direkt dein eigenes Team an und kannst sofort loslegen.
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIntention("wait-for-invite")}
+              className={`rounded-2xl border p-4 text-left transition ${
+                intention === "wait-for-invite"
+                  ? "border-green-400 bg-green-400/10"
+                  : "border-white/10 bg-white/5"
+              }`}
+            >
+              <div className="font-medium text-white">Ich warte auf eine Einladung</div>
+              <div className="mt-2 text-sm text-white/70">
+                Dein Profil wird angelegt und du kannst später einem Team
+                beitreten.
+              </div>
+            </button>
           </div>
+
+          {intention === "create-team" && (
+            <label className="block">
+              <span className="mb-2 block text-sm text-white">Teamname</span>
+              <input
+                name="clubName"
+                type="text"
+                required
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none"
+              />
+            </label>
+          )}
+
+          {state.error ? (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              {state.error}
+            </div>
+          ) : null}
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+            disabled={pending}
+            className="w-full rounded-xl bg-green-400 px-4 py-3 font-medium text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Weiter zum Team-Setup
+            {pending ? "Wird gespeichert..." : "Weiter"}
           </button>
         </form>
       </div>

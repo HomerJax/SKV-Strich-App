@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/browser";
 
 type MembershipRow = {
   club_id: string;
@@ -39,6 +39,7 @@ function writeCookie(name: string, value: string) {
 export default function HomePage() {
   const router = useRouter();
   const hasRedirectedRef = useRef(false);
+  const supabase = useMemo(() => createClient(), []);
 
   const [isLoading, setIsLoading] = useState(true);
   const [clubName, setClubName] = useState("Dein Team");
@@ -101,7 +102,8 @@ export default function HomePage() {
       if (!user) {
         if (!hasRedirectedRef.current) {
           hasRedirectedRef.current = true;
-          window.location.href = "/login";
+          router.replace("/login");
+          router.refresh();
         }
         return;
       }
@@ -126,7 +128,8 @@ export default function HomePage() {
       if (memberships.length === 0) {
         if (!hasRedirectedRef.current) {
           hasRedirectedRef.current = true;
-          window.location.href = "/club-setup";
+          router.replace("/waiting-for-invite");
+          router.refresh();
         }
         return;
       }
@@ -152,7 +155,8 @@ export default function HomePage() {
       } else {
         if (!hasRedirectedRef.current) {
           hasRedirectedRef.current = true;
-          window.location.href = "/select-club";
+          router.replace("/select-club");
+          router.refresh();
         }
         return;
       }
@@ -207,7 +211,7 @@ export default function HomePage() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, supabase]);
 
   if (isLoading) {
     return (

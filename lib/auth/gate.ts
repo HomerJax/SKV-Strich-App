@@ -27,7 +27,7 @@ export type AppGateResult = {
 export async function requireAppAccess(
   options?: {
     allowOnboarding?: boolean;
-    allowClubSetup?: boolean;
+    allowWaitingForInvite?: boolean;
     allowSelectClub?: boolean;
   }
 ): Promise<AppGateResult> {
@@ -70,13 +70,13 @@ export async function requireAppAccess(
   const cookieStore = await cookies();
   const activeClubId = cookieStore.get("active_club_id")?.value ?? null;
 
-  if (player && clubList.length === 0 && !options?.allowClubSetup) {
-    redirect("/club-setup");
+  if (player && clubList.length === 0 && !options?.allowWaitingForInvite) {
+    redirect("/waiting-for-invite");
   }
 
   if (player && clubList.length > 1) {
     const hasValidActiveClub =
-      !!activeClubId && clubList.some((m) => m.club_id === activeClubId);
+      !!activeClubId && clubList.some((membership) => membership.club_id === activeClubId);
 
     if (!hasValidActiveClub && !options?.allowSelectClub) {
       redirect("/select-club");

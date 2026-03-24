@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (context.error === "missing_club") {
-        return NextResponse.redirect(new URL("/club-setup", request.url), {
+        return NextResponse.redirect(new URL("/waiting-for-invite", request.url), {
           status: 303,
         });
       }

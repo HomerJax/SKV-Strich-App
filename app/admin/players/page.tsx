@@ -108,7 +108,7 @@ export default async function AdminPlayersPage({
   const memberships = (membershipsData ?? []) as MembershipRow[];
 
   if (memberships.length === 0) {
-    redirect("/club-setup");
+    redirect("/waiting-for-invite");
   }
 
   const validClubIds = new Set(memberships.map((m) => m.club_id));

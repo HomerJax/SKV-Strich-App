@@ -70,7 +70,7 @@ export default async function SessionsPage() {
   const memberships = (membershipsData ?? []) as Membership[];
 
   if (memberships.length === 0) {
-    redirect("/club-setup");
+    redirect("/waiting-for-invite");
   }
 
   const validClubIds = new Set(memberships.map((m) => m.club_id));

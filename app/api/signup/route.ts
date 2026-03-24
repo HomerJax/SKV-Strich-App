@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
   const cookieStore = await cookies();
 
-  const response = new NextResponse(buildSuccessHtml("/club-setup"), {
+  const response = new NextResponse(buildSuccessHtml("/onboarding"), {
     status: 200,
     headers: {
       "content-type": "text/html; charset=utf-8",

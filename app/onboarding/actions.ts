@@ -1,108 +1,194 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { adminClient } from "@/lib/supabase/admin";
 
-export async function saveOnboardingAction(formData: FormData) {
+export type OnboardingState = {
+  error: string;
+};
+
+function toText(value: FormDataEntryValue | null) {
+  return String(value ?? "").trim();
+}
+
+export async function completeOnboarding(
+  _prevState: OnboardingState,
+  formData: FormData
+): Promise<OnboardingState> {
   const supabase = await createClient();
 
   const {
     data: { user },
-    error: userError,
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
-    console.error("saveOnboardingAction:getUser failed", userError);
-    redirect("/login");
+  if (authError || !user) {
+    return {
+      error: "Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein.",
+    };
   }
 
-  const firstName = String(formData.get("first_name") ?? "").trim();
-  const lastName = String(formData.get("last_name") ?? "").trim();
-  const nicknameRaw = String(formData.get("nickname") ?? "").trim();
-  const nickname = nicknameRaw.length ? nicknameRaw : null;
+  const firstName = toText(formData.get("firstName"));
+  const lastName = toText(formData.get("lastName"));
+  const nickname = toText(formData.get("nickname"));
+  const intention = toText(formData.get("intention"));
+  const clubName = toText(formData.get("clubName"));
 
   if (!firstName || !lastName) {
-    redirect("/onboarding?error=missing-fields");
+    return {
+      error: "Bitte gib Vorname und Nachname ein.",
+    };
   }
 
-  const fullName = `${firstName} ${lastName}`.trim();
+  if (intention !== "create-team" && intention !== "wait-for-invite") {
+    return {
+      error: "Bitte wähle aus, wie du starten möchtest.",
+    };
+  }
 
-  const basePayload = {
-    email: user.email ?? null,
-    first_name: firstName,
-    last_name: lastName,
-    nickname,
-    name: fullName,
-    is_guest: false,
-  };
+  if (intention === "create-team" && !clubName) {
+    return {
+      error: "Bitte gib einen Teamnamen ein.",
+    };
+  }
 
-  const { data: existingPlayer, error: existingPlayerError } = await adminClient
+  const fullName = [firstName, lastName].filter(Boolean).join(" ");
+
+  const { data: existingPlayer, error: existingPlayerError } = await supabase
     .from("players")
-    .select("id")
+    .select("id, club_id")
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (existingPlayerError) {
-    console.error("saveOnboardingAction:select existing player failed", {
-      message: existingPlayerError.message,
-      details: existingPlayerError.details,
-      hint: existingPlayerError.hint,
-      code: existingPlayerError.code,
+    return {
+      error: "Spielerprofil konnte nicht geladen werden.",
+    };
+  }
+
+  if (intention === "wait-for-invite") {
+    if (!existingPlayer) {
+      const { error: insertPlayerError } = await supabase.from("players").insert({
+        user_id: user.id,
+        club_id: null,
+        first_name: firstName,
+        last_name: lastName,
+        nickname: nickname || null,
+        name: fullName,
+        email: user.email ?? null,
+        is_guest: false,
+      });
+
+      if (insertPlayerError) {
+        return {
+          error: insertPlayerError.message || "Spielerprofil konnte nicht erstellt werden.",
+        };
+      }
+    } else {
+      const { error: updatePlayerError } = await supabase
+        .from("players")
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+          nickname: nickname || null,
+          name: fullName,
+          email: user.email ?? null,
+          is_guest: false,
+        })
+        .eq("id", existingPlayer.id);
+
+      if (updatePlayerError) {
+        return {
+          error: updatePlayerError.message || "Spielerprofil konnte nicht aktualisiert werden.",
+        };
+      }
+    }
+
+    redirect("/waiting-for-invite");
+  }
+
+  const { data: club, error: clubError } = await supabase
+    .from("clubs")
+    .insert({
+      name: clubName,
+      display_name: clubName,
+    })
+    .select("id")
+    .single();
+
+  if (clubError || !club) {
+    return {
+      error: clubError?.message || "Team konnte nicht erstellt werden.",
+    };
+  }
+
+  if (!existingPlayer) {
+    const { error: insertPlayerError } = await supabase.from("players").insert({
+      user_id: user.id,
+      club_id: club.id,
+      first_name: firstName,
+      last_name: lastName,
+      nickname: nickname || null,
+      name: fullName,
+      email: user.email ?? null,
+      is_guest: false,
     });
 
-    redirect(
-      `/onboarding?error=save-failed&detail=${encodeURIComponent(
-        existingPlayerError.message || "unknown"
-      )}`
-    );
-  }
-
-  if (existingPlayer?.id) {
-    const { error: updateError } = await adminClient
-      .from("players")
-      .update(basePayload)
-      .eq("id", existingPlayer.id);
-
-    if (updateError) {
-      console.error("saveOnboardingAction:update failed", {
-        message: updateError.message,
-        details: updateError.details,
-        hint: updateError.hint,
-        code: updateError.code,
-      });
-
-      redirect(
-        `/onboarding?error=save-failed&detail=${encodeURIComponent(
-          updateError.message || "unknown"
-        )}`
-      );
+    if (insertPlayerError) {
+      return {
+        error: insertPlayerError.message || "Spielerprofil konnte nicht erstellt werden.",
+      };
     }
   } else {
-    const insertPayload = {
-      user_id: user.id,
-      ...basePayload,
-    };
-
-    const { error: insertError } = await adminClient
+    const { error: updatePlayerError } = await supabase
       .from("players")
-      .insert(insertPayload);
+      .update({
+        club_id: club.id,
+        first_name: firstName,
+        last_name: lastName,
+        nickname: nickname || null,
+        name: fullName,
+        email: user.email ?? null,
+        is_guest: false,
+      })
+      .eq("id", existingPlayer.id);
 
-    if (insertError) {
-      console.error("saveOnboardingAction:insert failed", {
-        message: insertError.message,
-        details: insertError.details,
-        hint: insertError.hint,
-        code: insertError.code,
-      });
-
-      redirect(
-        `/onboarding?error=save-failed&detail=${encodeURIComponent(
-          insertError.message || "unknown"
-        )}`
-      );
+    if (updatePlayerError) {
+      return {
+        error: updatePlayerError.message || "Spielerprofil konnte nicht aktualisiert werden.",
+      };
     }
   }
 
-  redirect("/club-setup");
+  const { error: membershipError } = await supabase.from("club_memberships").insert({
+    user_id: user.id,
+    club_id: club.id,
+    role: "admin",
+  });
+
+  if (membershipError) {
+    return {
+      error: membershipError.message || "Mitgliedschaft konnte nicht erstellt werden.",
+    };
+  }
+
+  const { error: settingsError } = await supabase.from("club_settings").insert({
+    club_id: club.id,
+  });
+
+  if (settingsError) {
+    return {
+      error: settingsError.message || "Team-Einstellungen konnten nicht erstellt werden.",
+    };
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set("active_club_id", club.id, {
+    path: "/",
+    sameSite: "lax",
+    httpOnly: false,
+  });
+
+  redirect("/");
 }

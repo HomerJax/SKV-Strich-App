@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/browser";
 
 type MembershipRow = {
   club_id: string;
@@ -31,6 +31,7 @@ function writeCookie(name: string, value: string) {
 
 export default function SelectClubPage() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
   const [isLoading, setIsLoading] = useState(true);
   const [clubOptions, setClubOptions] = useState<ClubOption[]>([]);
@@ -49,7 +50,8 @@ export default function SelectClubPage() {
       } = await supabase.auth.getSession();
 
       if (!session?.user) {
-        router.replace("/login?next=/select-club");
+        router.replace("/login");
+        router.refresh();
         return;
       }
 
@@ -71,13 +73,15 @@ export default function SelectClubPage() {
       const memberships = (membershipData ?? []) as MembershipRow[];
 
       if (memberships.length === 0) {
-        router.replace("/club-setup");
+        router.replace("/waiting-for-invite");
+        router.refresh();
         return;
       }
 
       if (memberships.length === 1) {
         writeCookie("active_club_id", memberships[0].club_id);
         router.replace("/");
+        router.refresh();
         return;
       }
 
@@ -137,7 +141,7 @@ export default function SelectClubPage() {
     return () => {
       isMounted = false;
     };
-  }, [router]);
+  }, [router, supabase]);
 
   async function handleSelectClub(clubId: string) {
     setSubmittingClubId(clubId);
@@ -151,7 +155,8 @@ export default function SelectClubPage() {
       const accessToken = session?.access_token;
 
       if (!accessToken) {
-        router.replace("/login?next=/select-club");
+        router.replace("/login");
+        router.refresh();
         return;
       }
 

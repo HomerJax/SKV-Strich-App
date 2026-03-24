@@ -74,7 +74,7 @@ export default function NewSessionPage() {
       const memberships = (membershipsData ?? []) as Membership[];
 
       if (memberships.length === 0) {
-        router.push("/club-setup");
+        router.push("/waiting-for-invite");
         return;
       }
 

@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
   let activeClubId: string | null = null;
 
   if (typedMemberships.length === 0) {
-    targetPath = "/club-setup";
+    targetPath = "/waiting-for-invite";
   } else if (typedMemberships.length === 1) {
     targetPath = "/";
     activeClubId = typedMemberships[0].club_id;

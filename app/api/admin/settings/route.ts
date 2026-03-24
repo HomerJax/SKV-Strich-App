@@ -76,7 +76,7 @@ export async function POST(request: Request) {
   const memberships = (membershipsData ?? []) as MembershipRow[];
 
   if (memberships.length === 0) {
-    return NextResponse.redirect(new URL("/club-setup", request.url), {
+    return NextResponse.redirect(new URL("/waiting-for-invite", request.url), {
       status: 303,
     });
   }
