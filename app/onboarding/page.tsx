@@ -5,15 +5,18 @@ import { saveOnboardingAction } from "./actions";
 type OnboardingPageProps = {
   searchParams?: Promise<{
     error?: string;
+    detail?: string;
   }>;
 };
 
-function getErrorMessage(error: string | undefined) {
+function getErrorMessage(error: string | undefined, detail: string | undefined) {
   switch (error) {
     case "missing-fields":
       return "Bitte gib Vorname und Nachname ein.";
     case "save-failed":
-      return "Onboarding konnte nicht gespeichert werden.";
+      return detail
+        ? `Onboarding konnte nicht gespeichert werden: ${detail}`
+        : "Onboarding konnte nicht gespeichert werden.";
     default:
       return "";
   }
@@ -57,7 +60,10 @@ export default async function OnboardingPage({
     redirect("/");
   }
 
-  const errorMessage = getErrorMessage(resolvedSearchParams?.error);
+  const errorMessage = getErrorMessage(
+    resolvedSearchParams?.error,
+    resolvedSearchParams?.detail
+  );
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">

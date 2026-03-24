@@ -12,6 +12,7 @@ export async function saveOnboardingAction(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
+    console.error("saveOnboardingAction:getUser failed", userError);
     redirect("/login");
   }
 
@@ -26,24 +27,41 @@ export async function saveOnboardingAction(formData: FormData) {
 
   const fullName = `${firstName} ${lastName}`.trim();
 
-  const { error } = await supabase.from("players").upsert(
-    {
-      user_id: user.id,
-      email: user.email ?? null,
-      first_name: firstName,
-      last_name: lastName,
-      nickname,
-      name: fullName,
-      is_guest: false,
-    },
-    {
+  const payload = {
+    user_id: user.id,
+    email: user.email ?? null,
+    first_name: firstName,
+    last_name: lastName,
+    nickname,
+    name: fullName,
+    is_guest: false,
+  };
+
+  console.log("saveOnboardingAction:payload", payload);
+
+  const { data, error } = await supabase
+    .from("players")
+    .upsert(payload, {
       onConflict: "user_id",
-    }
-  );
+    })
+    .select();
 
   if (error) {
-    redirect("/onboarding?error=save-failed");
+    console.error("saveOnboardingAction:upsert failed", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+
+    redirect(
+      `/onboarding?error=save-failed&detail=${encodeURIComponent(
+        error.message || "unknown"
+      )}`
+    );
   }
+
+  console.log("saveOnboardingAction:upsert ok", data);
 
   redirect("/club-setup");
 }
