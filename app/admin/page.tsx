@@ -1,19 +1,181 @@
+"use client";
+
 import Link from "next/link";
-import { requireAppAccess } from "@/lib/auth/gate";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/browser";
 
-export default async function AdminPage() {
-  const access = await requireAppAccess();
-  const activeMembership = access.memberships.find(
-    (membership) => membership.club_id === access.activeClubId
-  );
+type MembershipRow = {
+  club_id: string;
+  role: "admin" | "member";
+};
 
-  const roleLabel =
-    activeMembership?.role === "admin" ? "Admin" : "Mitglied";
+type ClubRow = {
+  id: string;
+  display_name: string | null;
+};
 
-  const clubName =
-    access.player?.club_id && access.activeClubId
-      ? "Dein Club"
-      : "Dein Club";
+function readCookie(name: string) {
+  if (typeof document === "undefined") return null;
+
+  const value = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1];
+
+  return value ? decodeURIComponent(value) : null;
+}
+
+function writeCookie(name: string, value: string) {
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
+
+export default function AdminPage() {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [clubName, setClubName] = useState("Dein Club");
+  const [roleLabel, setRoleLabel] = useState("Mitglied");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAdmin() {
+      setIsLoading(true);
+      setErrorMessage(null);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const user = session?.user ?? null;
+
+      if (!user) {
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
+      const { data: membershipData, error: membershipError } = await supabase
+        .from("club_memberships")
+        .select("club_id, role")
+        .eq("user_id", user.id);
+
+      if (!isMounted) return;
+
+      if (membershipError) {
+        setErrorMessage("Deine Club-Mitgliedschaften konnten nicht geladen werden.");
+        setIsLoading(false);
+        return;
+      }
+
+      const memberships = (membershipData ?? []) as MembershipRow[];
+
+      if (memberships.length === 0) {
+        router.replace("/waiting-for-invite");
+        router.refresh();
+        return;
+      }
+
+      const activeClubIdFromCookie = readCookie("active_club_id");
+      const validClubIds = new Set(
+        memberships.map((membership) => membership.club_id).filter(Boolean)
+      );
+
+      let activeClubId: string | null = null;
+
+      if (activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)) {
+        activeClubId = activeClubIdFromCookie;
+      } else if (memberships.length === 1) {
+        activeClubId = memberships[0].club_id;
+        writeCookie("active_club_id", activeClubId);
+      } else {
+        router.replace("/select-club");
+        router.refresh();
+        return;
+      }
+
+      const activeMembership =
+        memberships.find((membership) => membership.club_id === activeClubId) ??
+        null;
+
+      if (!activeMembership) {
+        router.replace("/select-club");
+        router.refresh();
+        return;
+      }
+
+      if (activeMembership.role !== "admin") {
+        router.replace("/");
+        router.refresh();
+        return;
+      }
+
+      setRoleLabel(activeMembership.role === "admin" ? "Admin" : "Mitglied");
+
+      const { data: clubData, error: clubError } = await supabase
+        .from("clubs")
+        .select("id, display_name")
+        .eq("id", activeClubId)
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      if (clubError) {
+        setErrorMessage("Der aktive Club konnte nicht geladen werden.");
+        setIsLoading(false);
+        return;
+      }
+
+      const club = (clubData ?? null) as ClubRow | null;
+      setClubName(club?.display_name?.trim() || "Dein Club");
+      setIsLoading(false);
+    }
+
+    loadAdmin();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router, supabase]);
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-4 py-4 sm:px-6 lg:px-8">
+          <div className="w-full max-w-md rounded-[24px] border border-black/10 bg-white p-6 text-center shadow-sm">
+            <p className="text-sm text-neutral-600">Adminbereich wird geladen...</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-4 py-4 sm:px-6 lg:px-8">
+          <div className="w-full max-w-md rounded-[24px] border border-red-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {errorMessage}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Erneut laden
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-neutral-100">
