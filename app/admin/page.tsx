@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -35,6 +35,7 @@ function writeCookie(name: string, value: string) {
 export default function AdminPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const hasRedirectedRef = useRef(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -44,19 +45,60 @@ export default function AdminPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadAdmin() {
-      setIsLoading(true);
-      setErrorMessage(null);
-
+    async function resolveAuthenticatedUser() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
-      const user = session?.user ?? null;
+      if (session?.user) {
+        return session.user;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        return user;
+      }
+
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
+
+        const {
+          data: { session: retrySession },
+        } = await supabase.auth.getSession();
+
+        if (retrySession?.user) {
+          return retrySession.user;
+        }
+
+        const {
+          data: { user: retryUser },
+        } = await supabase.auth.getUser();
+
+        if (retryUser) {
+          return retryUser;
+        }
+      }
+
+      return null;
+    }
+
+    async function loadAdmin() {
+      setIsLoading(true);
+      setErrorMessage(null);
+
+      const user = await resolveAuthenticatedUser();
+
+      if (!isMounted) return;
 
       if (!user) {
-        router.replace("/login");
-        router.refresh();
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          router.replace("/login");
+          router.refresh();
+        }
         return;
       }
 
@@ -76,8 +118,11 @@ export default function AdminPage() {
       const memberships = (membershipData ?? []) as MembershipRow[];
 
       if (memberships.length === 0) {
-        router.replace("/waiting-for-invite");
-        router.refresh();
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          router.replace("/waiting-for-invite");
+          router.refresh();
+        }
         return;
       }
 
@@ -94,8 +139,11 @@ export default function AdminPage() {
         activeClubId = memberships[0].club_id;
         writeCookie("active_club_id", activeClubId);
       } else {
-        router.replace("/select-club");
-        router.refresh();
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          router.replace("/select-club");
+          router.refresh();
+        }
         return;
       }
 
@@ -104,14 +152,20 @@ export default function AdminPage() {
         null;
 
       if (!activeMembership) {
-        router.replace("/select-club");
-        router.refresh();
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          router.replace("/select-club");
+          router.refresh();
+        }
         return;
       }
 
       if (activeMembership.role !== "admin") {
-        router.replace("/");
-        router.refresh();
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          router.replace("/");
+          router.refresh();
+        }
         return;
       }
 
@@ -138,8 +192,17 @@ export default function AdminPage() {
 
     loadAdmin();
 
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      if (!hasRedirectedRef.current) {
+        loadAdmin();
+      }
+    });
+
     return () => {
       isMounted = false;
+      subscription.unsubscribe();
     };
   }, [router, supabase]);
 
