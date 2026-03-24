@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+type RequestBody = {
+  display_name?: string;
+};
+
+type PlayerLookupRow = {
+  id: number | string;
+};
 
 function getBearerToken(request: NextRequest) {
   const authorization = request.headers.get("authorization") ?? "";
@@ -13,10 +21,6 @@ function getBearerToken(request: NextRequest) {
   return token || null;
 }
 
-type RequestBody = {
-  display_name?: string;
-};
-
 function buildError(error: string, detail?: string, status = 500) {
   return NextResponse.json(
     {
@@ -29,24 +33,24 @@ function buildError(error: string, detail?: string, status = 500) {
 }
 
 async function resolvePostSetupRedirect(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: SupabaseClient,
   userId: string,
   clubId: string
 ) {
-  const { data: player, error: playerError } = await adminClient
+  const { data, error } = await adminClient
     .from("players")
     .select("id")
     .eq("club_id", clubId)
     .eq("user_id", userId)
     .eq("is_guest", false)
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
-  if (playerError) {
-    throw new Error(playerError.message);
+  if (error) {
+    throw new Error(error.message);
   }
 
-  return player?.id ? "/" : "/onboarding";
+  const rows = (data ?? []) as PlayerLookupRow[];
+  return rows.length > 0 ? "/" : "/onboarding";
 }
 
 export async function POST(request: NextRequest) {
