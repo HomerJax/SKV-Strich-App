@@ -20,7 +20,6 @@ type ClubRow = {
 type SetupState = {
   playersCount: number;
   invitesCount: number;
-  seasonsCount: number;
   sessionsCount: number;
 };
 
@@ -213,7 +212,6 @@ export default function HomePage() {
         { data: clubData, error: clubError },
         { count: playersCount, error: playersError },
         { count: invitesCount, error: invitesError },
-        { count: seasonsCount, error: seasonsError },
         { count: sessionsCount, error: sessionsError },
       ] = await Promise.all([
         supabase
@@ -232,10 +230,6 @@ export default function HomePage() {
           .eq("club_id", activeClubId)
           .eq("is_active", true),
         supabase
-          .from("seasons")
-          .select("*", { count: "exact", head: true })
-          .eq("club_id", activeClubId),
-        supabase
           .from("sessions")
           .select("*", { count: "exact", head: true })
           .eq("club_id", activeClubId),
@@ -249,7 +243,7 @@ export default function HomePage() {
         return;
       }
 
-      if (playersError || invitesError || seasonsError || sessionsError) {
+      if (playersError || invitesError || sessionsError) {
         setErrorMessage("Die Startdaten konnten nicht vollständig geladen werden.");
         setIsLoading(false);
         return;
@@ -261,7 +255,6 @@ export default function HomePage() {
       setSetupState({
         playersCount: playersCount ?? 0,
         invitesCount: invitesCount ?? 0,
-        seasonsCount: seasonsCount ?? 0,
         sessionsCount: sessionsCount ?? 0,
       });
 
@@ -301,7 +294,6 @@ export default function HomePage() {
   const showGettingStarted =
     !!setupState &&
     (setupState.invitesCount === 0 ||
-      setupState.seasonsCount === 0 ||
       setupState.playersCount === 0 ||
       setupState.sessionsCount === 0);
 
@@ -380,7 +372,7 @@ export default function HomePage() {
 
             <p className="text-xs leading-5 text-white/75 sm:text-sm">
               {showGettingStarted
-                ? "Lege die wichtigsten Grundlagen an und starte danach direkt mit eurem ersten Training."
+                ? "Nutze erstmal nur die stabilen Kernfunktionen und leg direkt los."
                 : "Planung, Teams und Ergebnisse — alles an einem Ort."}
             </p>
           </div>
@@ -393,10 +385,10 @@ export default function HomePage() {
                 Erste Schritte
               </div>
               <h2 className="mt-1 text-2xl font-extrabold text-slate-950">
-                Richte dein Team kurz ein
+                Starte mit den Kernfunktionen
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Sobald die Grundlagen stehen, verschwindet dieser Bereich automatisch.
+                Für die Freigabe sind nur die stabilen Wege sichtbar.
               </p>
             </div>
 
@@ -407,14 +399,6 @@ export default function HomePage() {
                 text="Erstelle Einladungslinks und teile sie per WhatsApp, Mail oder Copy-Link."
                 href="/admin/invites"
                 cta="Einladungen öffnen"
-              />
-
-              <StepCard
-                done={(setupState?.seasonsCount ?? 0) > 0}
-                title="Saison anlegen"
-                text="Definiere eure Saison, damit Sessions und Tabelle sauber einsortiert werden."
-                href="/admin/seasons"
-                cta="Saisons öffnen"
               />
 
               <StepCard

@@ -83,7 +83,7 @@ export default function AdminPage() {
 
       const activeClubIdFromCookie = readCookie("active_club_id");
       const validClubIds = new Set(
-        memberships.map((membership) => membership.club_id).filter(Boolean)
+        memberships.map((membership) => membership.club_id)
       );
 
       let activeClubId: string | null = null;
@@ -190,8 +190,7 @@ export default function AdminPage() {
                 {clubName}
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                Verwalte Mitglieder, Einladungen, Spieler, Einstellungen und
-                Club-Branding für deinen aktuell aktiven Club.
+                Für die Freigabe sind hier nur die stabilen Kernfunktionen sichtbar.
               </p>
             </div>
 
@@ -222,34 +221,7 @@ export default function AdminPage() {
           >
             <div className="text-sm font-semibold text-slate-900">Spieler</div>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Spieler verwalten, Rollen prüfen und Gastspieler sinnvoll im
-              Teamkontext pflegen.
-            </p>
-          </Link>
-
-          <Link
-            href="/admin/settings"
-            className="rounded-[24px] border border-slate-800/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="text-sm font-semibold text-slate-900">
-              Einstellungen
-            </div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Saisonlogik, Kategorien, Positionslabels und Teamgenerator-Optionen
-              für diesen Club anpassen.
-            </p>
-          </Link>
-
-          <Link
-            href="/admin/club"
-            className="rounded-[24px] border border-slate-800/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="text-sm font-semibold text-slate-900">
-              Club &amp; Branding
-            </div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Clubname, Logo und visuelle Darstellung des aktuell aktiven Clubs
-              verwalten.
+              Spieler verwalten, Positionen pflegen und Stärken anpassen.
             </p>
           </Link>
         </div>
