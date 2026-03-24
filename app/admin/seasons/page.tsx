@@ -49,6 +49,46 @@ export default function SeasonsAdminPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  async function resolveAuthenticatedUser() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session?.user) {
+      return session.user;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      return user;
+    }
+
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+
+      const {
+        data: { session: retrySession },
+      } = await supabase.auth.getSession();
+
+      if (retrySession?.user) {
+        return retrySession.user;
+      }
+
+      const {
+        data: { user: retryUser },
+      } = await supabase.auth.getUser();
+
+      if (retryUser) {
+        return retryUser;
+      }
+    }
+
+    return null;
+  }
+
   async function loadSeasonsForClub(currentClubId: string) {
     const { data, error } = await supabase
       .from("seasons")
@@ -71,11 +111,9 @@ export default function SeasonsAdminPage() {
       setPageLoading(true);
       setError(null);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const user = await resolveAuthenticatedUser();
 
-      const user = session?.user ?? null;
+      if (!isMounted) return;
 
       if (!user) {
         router.replace("/login");
@@ -105,7 +143,9 @@ export default function SeasonsAdminPage() {
       }
 
       const activeClubIdFromCookie = readCookie("active_club_id");
-      const validClubIds = new Set(memberships.map((membership) => membership.club_id));
+      const validClubIds = new Set(
+        memberships.map((membership) => membership.club_id)
+      );
 
       const activeClubId =
         memberships.length === 1
@@ -125,7 +165,8 @@ export default function SeasonsAdminPage() {
       }
 
       const activeMembership =
-        memberships.find((membership) => membership.club_id === activeClubId) ?? null;
+        memberships.find((membership) => membership.club_id === activeClubId) ??
+        null;
 
       if (!activeMembership || activeMembership.role !== "admin") {
         router.replace("/admin");
@@ -169,7 +210,7 @@ export default function SeasonsAdminPage() {
       const { error } = await supabase.from("seasons").insert({
         club_id: clubId,
         name: name.trim(),
-        start_date: startDate ? startDate : null,
+        start_date: startDate || null,
       });
 
       if (error) throw error;
@@ -254,10 +295,14 @@ export default function SeasonsAdminPage() {
             Saisons verwalten
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            Lege Saisons für den aktuell aktiven Club an und verwalte bestehende Einträge.
+            Lege Saisons für den aktuell aktiven Club an und verwalte bestehende
+            Einträge.
           </p>
 
-          <form onSubmit={addSeason} className="mt-6 space-y-3 rounded-2xl border border-black/10 bg-neutral-50 p-4">
+          <form
+            onSubmit={addSeason}
+            className="mt-6 space-y-3 rounded-2xl border border-black/10 bg-neutral-50 p-4"
+          >
             <div className="text-sm font-semibold text-slate-800">
               Neue Saison
             </div>
@@ -316,10 +361,15 @@ export default function SeasonsAdminPage() {
                     className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3"
                   >
                     <div>
-                      <div className="font-medium text-slate-900">{season.name}</div>
+                      <div className="font-medium text-slate-900">
+                        {season.name}
+                      </div>
                       {season.start_date ? (
                         <div className="text-xs text-slate-500">
-                          Start: {new Date(season.start_date).toLocaleDateString("de-DE")}
+                          Start:{" "}
+                          {new Date(season.start_date).toLocaleDateString(
+                            "de-DE"
+                          )}
                         </div>
                       ) : null}
                     </div>
