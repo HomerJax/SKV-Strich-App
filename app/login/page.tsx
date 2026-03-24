@@ -11,25 +11,39 @@ function getErrorMessage(error: string | null) {
       return "Bitte gib E-Mail und Passwort ein.";
     case "invalid-credentials":
       return "E-Mail oder Passwort ist falsch.";
+    case "session-not-ready":
+      return "Die Anmeldung wurde verarbeitet, aber die Session war noch nicht bereit. Bitte versuche es erneut.";
     default:
       return "";
   }
 }
 
 function getInitialEmail() {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
+  if (typeof window === "undefined") return "";
   return new URLSearchParams(window.location.search).get("email") ?? "";
 }
 
 function getInitialError() {
-  if (typeof window === "undefined") {
-    return "";
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("error");
+}
+
+async function waitForSession() {
+  const supabase = createClient();
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session?.user) {
+      return session;
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
   }
 
-  return new URLSearchParams(window.location.search).get("error");
+  return null;
 }
 
 export default function LoginPage() {
@@ -71,6 +85,14 @@ export default function LoginPage() {
 
       if (signInError) {
         setError("invalid-credentials");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const session = await waitForSession();
+
+      if (!session?.user) {
+        setError("session-not-ready");
         setIsSubmitting(false);
         return;
       }
