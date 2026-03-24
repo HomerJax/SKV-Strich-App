@@ -17,6 +17,13 @@ type ClubRow = {
   logo_path: string | null;
 };
 
+type SetupState = {
+  playersCount: number;
+  invitesCount: number;
+  seasonsCount: number;
+  sessionsCount: number;
+};
+
 function readCookie(name: string) {
   if (typeof document === "undefined") {
     return null;
@@ -36,16 +43,61 @@ function writeCookie(name: string, value: string) {
   )}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
 
+function StepCard({
+  done,
+  title,
+  text,
+  href,
+  cta,
+}: {
+  done: boolean;
+  title: string;
+  text: string;
+  href: string;
+  cta: string;
+}) {
+  return (
+    <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-base font-semibold text-slate-950">{title}</div>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+        </div>
+
+        <div
+          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-xs font-semibold ${
+            done
+              ? "bg-emerald-100 text-emerald-800"
+              : "bg-slate-100 text-slate-700"
+          }`}
+        >
+          {done ? "Erledigt" : "Offen"}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <Link
+          href={href}
+          className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          {cta}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
-  const hasRedirectedRef = useRef(false);
   const supabase = useMemo(() => createClient(), []);
+  const hasRedirectedRef = useRef(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [clubName, setClubName] = useState("Dein Team");
   const [clubLogoUrl, setClubLogoUrl] = useState<string | null>(null);
   const [hasMultipleClubs, setHasMultipleClubs] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [setupState, setSetupState] = useState<SetupState | null>(null);
 
   const feedbackHref = useMemo(
     () => "mailto:mb1607@gmx.de?subject=strikr%20Feedback",
@@ -95,9 +147,7 @@ export default function HomePage() {
 
       const user = await resolveAuthenticatedUser();
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       if (!user) {
         if (!hasRedirectedRef.current) {
@@ -113,9 +163,7 @@ export default function HomePage() {
         .select("club_id, role")
         .eq("user_id", user.id);
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       if (membershipsError) {
         setErrorMessage("Deine Teams konnten nicht geladen werden.");
@@ -161,15 +209,39 @@ export default function HomePage() {
         return;
       }
 
-      const { data: clubData, error: clubError } = await supabase
-        .from("clubs")
-        .select("id, display_name, logo_path")
-        .eq("id", activeClubId)
-        .maybeSingle();
+      const [
+        { data: clubData, error: clubError },
+        { count: playersCount, error: playersError },
+        { count: invitesCount, error: invitesError },
+        { count: seasonsCount, error: seasonsError },
+        { count: sessionsCount, error: sessionsError },
+      ] = await Promise.all([
+        supabase
+          .from("clubs")
+          .select("id, display_name, logo_path")
+          .eq("id", activeClubId)
+          .maybeSingle(),
+        supabase
+          .from("players")
+          .select("*", { count: "exact", head: true })
+          .eq("club_id", activeClubId)
+          .eq("is_guest", false),
+        supabase
+          .from("club_invites")
+          .select("*", { count: "exact", head: true })
+          .eq("club_id", activeClubId)
+          .eq("is_active", true),
+        supabase
+          .from("seasons")
+          .select("*", { count: "exact", head: true })
+          .eq("club_id", activeClubId),
+        supabase
+          .from("sessions")
+          .select("*", { count: "exact", head: true })
+          .eq("club_id", activeClubId),
+      ]);
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       if (clubError) {
         setErrorMessage("Dein aktives Team konnte nicht geladen werden.");
@@ -177,8 +249,21 @@ export default function HomePage() {
         return;
       }
 
+      if (playersError || invitesError || seasonsError || sessionsError) {
+        setErrorMessage("Die Startdaten konnten nicht vollständig geladen werden.");
+        setIsLoading(false);
+        return;
+      }
+
       const club = (clubData ?? null) as ClubRow | null;
       setClubName(club?.display_name?.trim() || "Dein Team");
+
+      setSetupState({
+        playersCount: playersCount ?? 0,
+        invitesCount: invitesCount ?? 0,
+        seasonsCount: seasonsCount ?? 0,
+        sessionsCount: sessionsCount ?? 0,
+      });
 
       if (club?.logo_path) {
         const { data: signedLogo, error: logoError } = await supabase.storage
@@ -212,6 +297,13 @@ export default function HomePage() {
       subscription.unsubscribe();
     };
   }, [router, supabase]);
+
+  const showGettingStarted =
+    !!setupState &&
+    (setupState.playersCount === 0 ||
+      setupState.invitesCount === 0 ||
+      setupState.seasonsCount === 0 ||
+      setupState.sessionsCount === 0);
 
   if (isLoading) {
     return (
@@ -280,98 +372,141 @@ export default function HomePage() {
               </span>
             </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
-              <Image
-                src="/icon-dark.png"
-                alt="strikr Logo"
-                width={24}
-                height={24}
-                className="h-6 w-6 object-contain invert"
-                priority
-              />
-            </div>
-
             <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-              Teamtage einfacher organisieren.
+              {showGettingStarted
+                ? "Bereit für die ersten Schritte."
+                : "Teamtage einfacher organisieren."}
             </h1>
 
             <p className="text-xs leading-5 text-white/75 sm:text-sm">
-              Planung, Teams und Ergebnisse — alles an einem Ort.
+              {showGettingStarted
+                ? "Lege die wichtigsten Grundlagen an und starte danach direkt mit eurem ersten Training."
+                : "Planung, Teams und Ergebnisse — alles an einem Ort."}
             </p>
           </div>
         </div>
 
-        <section className="mx-auto flex w-full max-w-2xl flex-col gap-3 pt-2">
-          <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_10px_30px_-22px_rgba(15,23,42,0.45)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold text-slate-500">
-                  Start
+        {showGettingStarted ? (
+          <section className="mx-auto flex w-full max-w-3xl flex-col gap-3 pt-2">
+            <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
+              <div className="text-sm font-semibold text-slate-500">
+                Erste Schritte
+              </div>
+              <h2 className="mt-1 text-2xl font-extrabold text-slate-950">
+                Richte dein Team kurz ein
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Sobald die Grundlagen stehen, verschwindet dieser Bereich automatisch.
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              <StepCard
+                done={(setupState?.playersCount ?? 0) > 0}
+                title="Spieler anlegen"
+                text="Lege eure Spieler an, damit Trainings und Teams sauber funktionieren."
+                href="/players/new"
+                cta="Spieler hinzufügen"
+              />
+
+              <StepCard
+                done={(setupState?.invitesCount ?? 0) > 0}
+                title="Mitglieder einladen"
+                text="Erstelle Einladungslinks und teile sie per WhatsApp, Mail oder Copy-Link."
+                href="/admin/invites"
+                cta="Einladungen öffnen"
+              />
+
+              <StepCard
+                done={(setupState?.seasonsCount ?? 0) > 0}
+                title="Saison anlegen"
+                text="Definiere eure Saison, damit Sessions und Tabelle sauber einsortiert werden."
+                href="/admin/seasons"
+                cta="Saisons öffnen"
+              />
+
+              <StepCard
+                done={(setupState?.sessionsCount ?? 0) > 0}
+                title="Erste Trainingssession starten"
+                text="Erstelle das erste Training und beginne mit Anwesenheiten, Teams und Ergebnissen."
+                href="/sessions/new"
+                cta="Training erstellen"
+              />
+            </div>
+          </section>
+        ) : (
+          <section className="mx-auto flex w-full max-w-2xl flex-col gap-3 pt-2">
+            <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_10px_30px_-22px_rgba(15,23,42,0.45)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-slate-500">
+                    Start
+                  </div>
+
+                  <h2 className="mt-1 text-2xl font-extrabold text-slate-950">
+                    Starte mit einer Trainingssession
+                  </h2>
+
+                  <p className="mt-2 text-sm text-slate-600">
+                    Erstelle eine neue Session oder springe direkt in eure
+                    Trainings und Tabellen.
+                  </p>
                 </div>
 
-                <h2 className="mt-1 text-2xl font-extrabold text-slate-950">
-                  Starte mit einer Trainingssession
-                </h2>
-
-                <p className="mt-2 text-sm text-slate-600">
-                  Erstelle eine neue Session oder springe direkt in eure
-                  Trainings und Tabellen.
-                </p>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100">
+                  <Image
+                    src="/icon-dark.png"
+                    alt="strikr Logo"
+                    width={28}
+                    height={28}
+                    className="h-7 w-7 object-contain"
+                  />
+                </div>
               </div>
 
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100">
-                <Image
-                  src="/icon-dark.png"
-                  alt="strikr Logo"
-                  width={28}
-                  height={28}
-                  className="h-7 w-7 object-contain"
-                />
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <Link
-                href="/sessions/new"
-                className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white"
-              >
-                Trainingssession starten
-              </Link>
-
-              <Link
-                href="/sessions"
-                className="rounded-xl border px-4 py-2.5 text-center text-sm font-semibold"
-              >
-                Sessions ansehen
-              </Link>
-
-              <Link
-                href="/standings"
-                className="rounded-xl border px-4 py-2.5 text-center text-sm font-semibold"
-              >
-                Tabelle ansehen
-              </Link>
-            </div>
-
-            {hasMultipleClubs ? (
-              <div className="mt-4 border-t border-slate-200 pt-4">
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                 <Link
-                  href="/select-club"
-                  className="text-sm font-semibold text-slate-700 underline underline-offset-4"
+                  href="/sessions/new"
+                  className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white"
                 >
-                  Team wechseln
+                  Trainingssession starten
+                </Link>
+
+                <Link
+                  href="/sessions"
+                  className="rounded-xl border px-4 py-2.5 text-center text-sm font-semibold"
+                >
+                  Sessions ansehen
+                </Link>
+
+                <Link
+                  href="/standings"
+                  className="rounded-xl border px-4 py-2.5 text-center text-sm font-semibold"
+                >
+                  Tabelle ansehen
                 </Link>
               </div>
-            ) : null}
-          </div>
 
-          <a
-            href={feedbackHref}
-            className="rounded-[24px] border border-black/10 bg-white p-5 text-sm shadow"
-          >
-            Feedback oder Probleme? → Mail senden
-          </a>
-        </section>
+              {hasMultipleClubs ? (
+                <div className="mt-4 border-t border-slate-200 pt-4">
+                  <Link
+                    href="/select-club"
+                    className="text-sm font-semibold text-slate-700 underline underline-offset-4"
+                  >
+                    Team wechseln
+                  </Link>
+                </div>
+              ) : null}
+            </div>
+
+            <a
+              href={feedbackHref}
+              className="rounded-[24px] border border-black/10 bg-white p-5 text-sm shadow"
+            >
+              Feedback oder Probleme? → Mail senden
+            </a>
+          </section>
+        )}
       </section>
     </main>
   );
