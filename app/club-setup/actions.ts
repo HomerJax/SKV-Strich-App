@@ -23,9 +23,9 @@ export async function createClubAction(formData: FormData) {
     redirect("/club-setup?error=missing-name");
   }
 
-  const { data: player } = await supabase
+  const { data: player } = await adminClient
     .from("players")
-    .select("id")
+    .select("id, club_id")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -96,6 +96,17 @@ export async function createClubAction(formData: FormData) {
 
   if (settingsError) {
     redirect("/club-setup?error=settings-create-failed");
+  }
+
+  const { error: playerUpdateError } = await adminClient
+    .from("players")
+    .update({
+      club_id: clubId,
+    })
+    .eq("id", player.id);
+
+  if (playerUpdateError) {
+    redirect("/club-setup?error=player-link-failed");
   }
 
   const cookieStore = await cookies();

@@ -21,6 +21,8 @@ function getErrorMessage(error?: string | null) {
       return "Das Team wurde erstellt, aber die Einstellungen konnten nicht vollständig angelegt werden.";
     case "membership-load-failed":
       return "Dein Account konnte nicht geladen werden.";
+    case "player-link-failed":
+      return "Das Team wurde erstellt, aber dein Spielerprofil konnte nicht mit dem Team verknüpft werden.";
     default:
       return null;
   }
