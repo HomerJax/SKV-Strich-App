@@ -55,15 +55,30 @@ export async function completeOnboarding(
 
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
-  const { data: existingPlayer, error: existingPlayerError } = await supabase
+  const { data: existingPlayers, error: existingPlayerError } = await supabase
     .from("players")
-    .select("id, club_id")
+    .select("id, club_id, user_id, email")
     .eq("user_id", user.id)
-    .maybeSingle();
+    .limit(5);
 
   if (existingPlayerError) {
     return {
-      error: "Spielerprofil konnte nicht geladen werden.",
+      error: `Spielerprofil konnte nicht geladen werden: ${existingPlayerError.message}`,
+    };
+  }
+
+  const existingPlayer =
+    Array.isArray(existingPlayers) && existingPlayers.length > 0
+      ? existingPlayers[0]
+      : null;
+
+  if (
+    Array.isArray(existingPlayers) &&
+    existingPlayers.length > 1
+  ) {
+    return {
+      error:
+        "Für diesen Benutzer existieren mehrere Spielerprofile. Bitte bereinige die doppelten Player-Datensätze in Supabase.",
     };
   }
 
@@ -82,7 +97,9 @@ export async function completeOnboarding(
 
       if (insertPlayerError) {
         return {
-          error: insertPlayerError.message || "Spielerprofil konnte nicht erstellt werden.",
+          error:
+            insertPlayerError.message ||
+            "Spielerprofil konnte nicht erstellt werden.",
         };
       }
     } else {
@@ -100,7 +117,9 @@ export async function completeOnboarding(
 
       if (updatePlayerError) {
         return {
-          error: updatePlayerError.message || "Spielerprofil konnte nicht aktualisiert werden.",
+          error:
+            updatePlayerError.message ||
+            "Spielerprofil konnte nicht aktualisiert werden.",
         };
       }
     }
@@ -137,7 +156,9 @@ export async function completeOnboarding(
 
     if (insertPlayerError) {
       return {
-        error: insertPlayerError.message || "Spielerprofil konnte nicht erstellt werden.",
+        error:
+          insertPlayerError.message ||
+          "Spielerprofil konnte nicht erstellt werden.",
       };
     }
   } else {
@@ -156,7 +177,9 @@ export async function completeOnboarding(
 
     if (updatePlayerError) {
       return {
-        error: updatePlayerError.message || "Spielerprofil konnte nicht aktualisiert werden.",
+        error:
+          updatePlayerError.message ||
+          "Spielerprofil konnte nicht aktualisiert werden.",
       };
     }
   }
@@ -169,7 +192,8 @@ export async function completeOnboarding(
 
   if (membershipError) {
     return {
-      error: membershipError.message || "Mitgliedschaft konnte nicht erstellt werden.",
+      error:
+        membershipError.message || "Mitgliedschaft konnte nicht erstellt werden.",
     };
   }
 
@@ -179,7 +203,9 @@ export async function completeOnboarding(
 
   if (settingsError) {
     return {
-      error: settingsError.message || "Team-Einstellungen konnten nicht erstellt werden.",
+      error:
+        settingsError.message ||
+        "Team-Einstellungen konnten nicht erstellt werden.",
     };
   }
 
