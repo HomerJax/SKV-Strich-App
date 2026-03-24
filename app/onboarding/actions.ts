@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 
 export async function saveOnboardingAction(formData: FormData) {
   const supabase = await createClient();
@@ -36,7 +37,7 @@ export async function saveOnboardingAction(formData: FormData) {
     is_guest: false,
   };
 
-  const { data: existingPlayer, error: existingPlayerError } = await supabase
+  const { data: existingPlayer, error: existingPlayerError } = await adminClient
     .from("players")
     .select("id")
     .eq("user_id", user.id)
@@ -58,7 +59,7 @@ export async function saveOnboardingAction(formData: FormData) {
   }
 
   if (existingPlayer?.id) {
-    const { error: updateError } = await supabase
+    const { error: updateError } = await adminClient
       .from("players")
       .update(basePayload)
       .eq("id", existingPlayer.id);
@@ -83,7 +84,7 @@ export async function saveOnboardingAction(formData: FormData) {
       ...basePayload,
     };
 
-    const { error: insertError } = await supabase
+    const { error: insertError } = await adminClient
       .from("players")
       .insert(insertPayload);
 
