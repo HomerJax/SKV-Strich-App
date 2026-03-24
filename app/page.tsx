@@ -300,9 +300,9 @@ export default function HomePage() {
 
   const showGettingStarted =
     !!setupState &&
-    (setupState.playersCount === 0 ||
-      setupState.invitesCount === 0 ||
+    (setupState.invitesCount === 0 ||
       setupState.seasonsCount === 0 ||
+      setupState.playersCount === 0 ||
       setupState.sessionsCount === 0);
 
   if (isLoading) {
@@ -402,14 +402,6 @@ export default function HomePage() {
 
             <div className="grid gap-3">
               <StepCard
-                done={(setupState?.playersCount ?? 0) > 0}
-                title="Spieler anlegen"
-                text="Lege eure Spieler an, damit Trainings und Teams sauber funktionieren."
-                href="/players/new"
-                cta="Spieler hinzufügen"
-              />
-
-              <StepCard
                 done={(setupState?.invitesCount ?? 0) > 0}
                 title="Mitglieder einladen"
                 text="Erstelle Einladungslinks und teile sie per WhatsApp, Mail oder Copy-Link."
@@ -423,6 +415,14 @@ export default function HomePage() {
                 text="Definiere eure Saison, damit Sessions und Tabelle sauber einsortiert werden."
                 href="/admin/seasons"
                 cta="Saisons öffnen"
+              />
+
+              <StepCard
+                done={(setupState?.playersCount ?? 0) > 0}
+                title="Spieler verwalten"
+                text="Pflege Positionen, Stärken und weitere Eigenschaften für eure Spieler."
+                href="/admin/players"
+                cta="Spieler verwalten"
               />
 
               <StepCard
