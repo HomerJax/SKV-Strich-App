@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
     const { data: createdClub, error: clubError } = await adminClient
       .from("clubs")
       .insert({
+        name: displayName,
         display_name: displayName,
       })
       .select("id")
