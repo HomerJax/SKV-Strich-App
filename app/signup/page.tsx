@@ -7,6 +7,7 @@ type SignupPageProps = {
     error?: string;
     success?: string;
     next?: string;
+    email?: string;
   }>;
 };
 
@@ -30,14 +31,18 @@ function getBaseUrl(
 
 function getErrorMessage(error: string | undefined) {
   switch (error) {
-    case "missing_fields":
-      return "Bitte E-Mail und Passwort vollständig eingeben.";
-    case "password_too_short":
+    case "missing-fields":
+      return "Bitte E-Mail, Passwort und Passwort-Bestätigung vollständig eingeben.";
+    case "password-mismatch":
+      return "Die Passwörter stimmen nicht überein.";
+    case "password-too-short":
       return "Das Passwort muss mindestens 8 Zeichen lang sein.";
-    case "email_exists":
+    case "email-already-used":
       return "Für diese E-Mail existiert bereits ein Konto. Bitte logge dich ein oder nutze Passwort vergessen.";
-    case "signup_failed":
+    case "signup-failed":
       return "Die Registrierung konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.";
+    case "invalid-credentials":
+      return "Das Konto wurde erstellt, aber die automatische Anmeldung ist fehlgeschlagen. Bitte logge dich manuell ein.";
     default:
       return "";
   }
@@ -55,6 +60,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const error = resolvedSearchParams?.error;
   const success = resolvedSearchParams?.success;
   const nextValue = resolvedSearchParams?.next || "/";
+  const emailValue = resolvedSearchParams?.email || "";
 
   const errorMessage = getErrorMessage(error);
 
@@ -133,6 +139,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                   type="email"
                   autoComplete="email"
                   required
+                  defaultValue={emailValue}
                   placeholder="E-Mail"
                   className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
                 />
@@ -151,6 +158,19 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                 />
               </div>
 
+              <div>
+                <input
+                  id="password_confirm"
+                  name="password_confirm"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  placeholder="Passwort wiederholen"
+                  className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
+                />
+              </div>
+
               <button
                 type="submit"
                 className="inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
@@ -161,7 +181,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
               <div className="pt-1 text-xs text-slate-600">
                 Schon ein Konto?{" "}
                 <Link
-                  href="/"
+                  href="/login"
                   className="underline underline-offset-4 hover:text-slate-950"
                 >
                   Zum Login

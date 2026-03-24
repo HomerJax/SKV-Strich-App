@@ -20,13 +20,18 @@ function buildUrl(
 function buildErrorRedirect(
   request: NextRequest,
   code: string,
-  email?: string
+  email?: string,
+  next?: string
 ) {
   const params = new URLSearchParams();
   params.set("error", code);
 
   if (email) {
     params.set("email", email);
+  }
+
+  if (next) {
+    params.set("next", next);
   }
 
   return NextResponse.redirect(buildUrl(request, "/signup", params), {
@@ -95,17 +100,18 @@ export async function POST(request: NextRequest) {
   const email = toText(formData.get("email")).toLowerCase();
   const password = String(formData.get("password") ?? "");
   const passwordConfirm = String(formData.get("password_confirm") ?? "");
+  const nextValue = toText(formData.get("next"));
 
   if (!email || !password || !passwordConfirm) {
-    return buildErrorRedirect(request, "missing-fields", email);
+    return buildErrorRedirect(request, "missing-fields", email, nextValue);
   }
 
   if (password !== passwordConfirm) {
-    return buildErrorRedirect(request, "password-mismatch", email);
+    return buildErrorRedirect(request, "password-mismatch", email, nextValue);
   }
 
   if (password.length < 8) {
-    return buildErrorRedirect(request, "password-too-short", email);
+    return buildErrorRedirect(request, "password-too-short", email, nextValue);
   }
 
   const cookieStore = await cookies();
@@ -149,14 +155,14 @@ export async function POST(request: NextRequest) {
       message.includes("already been registered") ||
       message.includes("user already registered")
     ) {
-      return buildErrorRedirect(request, "email-already-used", email);
+      return buildErrorRedirect(request, "email-already-used", email, nextValue);
     }
 
-    return buildErrorRedirect(request, "signup-failed", email);
+    return buildErrorRedirect(request, "signup-failed", email, nextValue);
   }
 
   if (!signUpData.user) {
-    return buildErrorRedirect(request, "signup-failed", email);
+    return buildErrorRedirect(request, "signup-failed", email, nextValue);
   }
 
   try {
@@ -173,7 +179,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (signInError) {
-    return buildErrorRedirect(request, "invalid-credentials", email);
+    return buildErrorRedirect(request, "invalid-credentials", email, nextValue);
   }
 
   return response;
