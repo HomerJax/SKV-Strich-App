@@ -7,140 +7,140 @@ import { supabase } from "@/lib/supabaseClient";
 
 const HIDDEN_ON_PATHS = [
   "/login",
-    "/signup",
-      "/forgot-password",
-        "/reset-password",
-          "/onboarding",
-          ];
-          
-          type MembershipRow = {
-            role: "admin" | "member";
-            };
-            
-            function NavItem({
-              href,
-                label,
-                  icon,
-                    active,
-                    }: {
-                      href: string;
-                        label: string;
-                          icon: string;
-                            active: boolean;
-                            }) {
-                              return (
-                                  <Link
-                                        href={href}
-                                              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs font-medium transition ${
-                                                      active
-                                                                ? "bg-neutral-900 text-white"
-                                                                          : "text-neutral-600 hover:bg-neutral-100"
-                                                                                }`}
-                                                                                    >
-                                                                                          <span className="text-base leading-none">{icon}</span>
-                                                                                                <span className="truncate">{label}</span>
-                                                                                                    </Link>
-                                                                                                      );
-                                                                                                      }
-                                                                                                      
-                                                                                                      export default function AppBottomNav() {
-                                                                                                        const pathname = usePathname();
-                                                                                                        
-                                                                                                          const hidden = useMemo(() => {
-                                                                                                              if (!pathname) {
-                                                                                                                    return false;
-                                                                                                                        }
-                                                                                                                        
-                                                                                                                            return HIDDEN_ON_PATHS.some(
-                                                                                                                                  (path) => pathname === path || pathname.startsWith(`${path}/`)
-                                                                                                                                      );
-                                                                                                                                        }, [pathname]);
-                                                                                                                                        
-                                                                                                                                          const [hasSession, setHasSession] = useState(false);
-                                                                                                                                            const [isAdmin, setIsAdmin] = useState(false);
-                                                                                                                                            
-                                                                                                                                              useEffect(() => {
-                                                                                                                                                  let isMounted = true;
-                                                                                                                                                  
-                                                                                                                                                      async function loadNav() {
-                                                                                                                                                            const {
-                                                                                                                                                                    data: { session },
-                                                                                                                                                                          } = await supabase.auth.getSession();
-                                                                                                                                                                          
-                                                                                                                                                                                if (!isMounted) {
-                                                                                                                                                                                        return;
-                                                                                                                                                                                              }
-                                                                                                                                                                                              
-                                                                                                                                                                                                    if (!session?.user) {
-                                                                                                                                                                                                            setHasSession(false);
-                                                                                                                                                                                                                    setIsAdmin(false);
-                                                                                                                                                                                                                            return;
-                                                                                                                                                                                                                                  }
-                                                                                                                                                                                                                                  
-                                                                                                                                                                                                                                        setHasSession(true);
-                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                              const { data: memberships } = await supabase
-                                                                                                                                                                                                                                                      .from("club_memberships")
-                                                                                                                                                                                                                                                              .select("role")
-                                                                                                                                                                                                                                                                      .eq("user_id", session.user.id);
-                                                                                                                                                                                                                                                                      
-                                                                                                                                                                                                                                                                            if (!isMounted) {
-                                                                                                                                                                                                                                                                                    return;
-                                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                                          
-                                                                                                                                                                                                                                                                                                const rows = (memberships ?? []) as MembershipRow[];
-                                                                                                                                                                                                                                                                                                      setIsAdmin(rows.some((row) => row.role === "admin"));
-                                                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                                                          
-                                                                                                                                                                                                                                                                                                              loadNav();
-                                                                                                                                                                                                                                                                                                              
-                                                                                                                                                                                                                                                                                                                  const {
-                                                                                                                                                                                                                                                                                                                        data: { subscription },
-                                                                                                                                                                                                                                                                                                                            } = supabase.auth.onAuthStateChange(() => {
-                                                                                                                                                                                                                                                                                                                                  loadNav();
-                                                                                                                                                                                                                                                                                                                                      });
-                                                                                                                                                                                                                                                                                                                                      
-                                                                                                                                                                                                                                                                                                                                          return () => {
-                                                                                                                                                                                                                                                                                                                                                isMounted = false;
-                                                                                                                                                                                                                                                                                                                                                      subscription.unsubscribe();
-                                                                                                                                                                                                                                                                                                                                                          };
-                                                                                                                                                                                                                                                                                                                                                            }, []);
-                                                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                                                                                              if (hidden || !hasSession) {
-                                                                                                                                                                                                                                                                                                                                                                  return null;
-                                                                                                                                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                                                                                                                                                      return (
-                                                                                                                                                                                                                                                                                                                                                                          <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-                                                                                                                                                                                                                                                                                                                                                                                <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3 sm:px-6 lg:px-8">
-                                                                                                                                                                                                                                                                                                                                                                                        <NavItem href="/" label="Home" icon="🏠" active={pathname === "/"} />
-                                                                                                                                                                                                                                                                                                                                                                                                <NavItem
-                                                                                                                                                                                                                                                                                                                                                                                                          href="/sessions"
-                                                                                                                                                                                                                                                                                                                                                                                                                    label="Trainings"
-                                                                                                                                                                                                                                                                                                                                                                                                                              icon="⚽"
-                                                                                                                                                                                                                                                                                                                                                                                                                                        active={pathname === "/sessions" || pathname.startsWith("/sessions/")}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        <NavItem
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                  href="/standings"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                            label="Tabelle"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      icon="📊"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                active={pathname === "/standings"}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        />
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                {isAdmin ? (
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          <NavItem
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      href="/admin"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  label="Admin"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              icon="🛠️"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          active={pathname === "/admin" || pathname.startsWith("/admin/")}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    />
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ) : null}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <NavItem
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              href="/logout"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        label="Logout"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  icon="🚪"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            active={pathname === "/logout"}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    />
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              </nav>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                );
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }"
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/onboarding",
+];
+
+type MembershipRow = {
+  role: "admin" | "member";
+};
+
+function NavItem({
+  href,
+  label,
+  icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs font-medium transition ${
+        active
+          ? "bg-neutral-900 text-white"
+          : "text-neutral-600 hover:bg-neutral-100"
+      }`}
+    >
+      <span className="text-base leading-none">{icon}</span>
+      <span className="truncate">{label}</span>
+    </Link>
+  );
+}
+
+export default function AppBottomNav() {
+  const pathname = usePathname();
+
+  const hidden = useMemo(() => {
+    if (!pathname) {
+      return false;
+    }
+
+    return HIDDEN_ON_PATHS.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`)
+    );
+  }, [pathname]);
+
+  const [hasSession, setHasSession] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadNav() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!session?.user) {
+        setHasSession(false);
+        setIsAdmin(false);
+        return;
+      }
+
+      setHasSession(true);
+
+      const { data: memberships } = await supabase
+        .from("club_memberships")
+        .select("role")
+        .eq("user_id", session.user.id);
+
+      if (!isMounted) {
+        return;
+      }
+
+      const rows = (memberships ?? []) as MembershipRow[];
+      setIsAdmin(rows.some((row) => row.role === "admin"));
+    }
+
+    loadNav();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadNav();
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  if (hidden || !hasSession) {
+    return null;
+  }
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
+      <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3 sm:px-6 lg:px-8">
+        <NavItem href="/" label="Home" icon="🏠" active={pathname === "/"} />
+        <NavItem
+          href="/sessions"
+          label="Trainings"
+          icon="⚽"
+          active={pathname === "/sessions" || pathname.startsWith("/sessions/")}
+        />
+        <NavItem
+          href="/standings"
+          label="Tabelle"
+          icon="📊"
+          active={pathname === "/standings"}
+        />
+        {isAdmin ? (
+          <NavItem
+            href="/admin"
+            label="Admin"
+            icon="🛠️"
+            active={pathname === "/admin" || pathname.startsWith("/admin/")}
+          />
+        ) : null}
+        <NavItem
+          href="/logout"
+          label="Logout"
+          icon="🚪"
+          active={pathname === "/logout"}
+        />
+      </div>
+    </nav>
+  );
+}
