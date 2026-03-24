@@ -107,7 +107,9 @@ export default function OnboardingPage() {
       }
 
       if (!auth.user) {
-        setErrorMessage("Deine Anmeldung konnte nicht geladen werden. Bitte logge dich erneut ein.");
+        setErrorMessage(
+          "Deine Anmeldung konnte nicht geladen werden. Bitte logge dich erneut ein."
+        );
         setIsLoading(false);
         return;
       }
@@ -142,7 +144,7 @@ export default function OnboardingPage() {
       if (player?.id) {
         if (!hasNavigatedRef.current) {
           hasNavigatedRef.current = true;
-          router.replace(next || "/");
+          router.replace(nextPath || "/");
         }
         return;
       }
@@ -178,7 +180,9 @@ export default function OnboardingPage() {
       const auth = await resolveBrowserAuth();
 
       if (!auth.user || !auth.accessToken) {
-        setErrorMessage("Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein.");
+        setErrorMessage(
+          "Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein."
+        );
         setIsSubmitting(false);
         return;
       }
@@ -207,7 +211,9 @@ export default function OnboardingPage() {
         | null;
 
       if (!response.ok || !payload?.ok) {
-        setErrorMessage(payload?.error || "Onboarding konnte nicht gespeichert werden.");
+        setErrorMessage(
+          payload?.error || "Onboarding konnte nicht gespeichert werden."
+        );
         setIsSubmitting(false);
         return;
       }
