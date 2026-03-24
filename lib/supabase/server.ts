@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-export async function createClient() {
+export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -17,7 +17,9 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
             });
-          } catch {}
+          } catch {
+            // ignore in read-only server contexts
+          }
         },
       },
     }
