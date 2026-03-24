@@ -5,6 +5,14 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 
+type PlayerRow = {
+  id: number | string;
+};
+
+type MembershipRow = {
+  club_id: string;
+};
+
 function getErrorMessage(error: string | null) {
   switch (error) {
     case "missing-fields":
@@ -26,6 +34,12 @@ function getInitialEmail() {
 function getInitialError() {
   if (typeof window === "undefined") return "";
   return new URLSearchParams(window.location.search).get("error");
+}
+
+function writeCookie(name: string, value: string) {
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
 
 async function waitForSession() {
@@ -97,7 +111,57 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.href = "/";
+      const user = session.user;
+
+      const { data: playerData, error: playerError } = await supabase
+        .from("players")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (playerError) {
+        window.location.href = "/onboarding";
+        return;
+      }
+
+      const player = (playerData ?? null) as PlayerRow | null;
+
+      if (!player) {
+        window.location.href = "/onboarding";
+        return;
+      }
+
+      const { data: membershipsData, error: membershipsError } = await supabase
+        .from("club_memberships")
+        .select("club_id")
+        .eq("user_id", user.id);
+
+      if (membershipsError) {
+        setError("session-not-ready");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const clubIds = Array.from(
+        new Set(
+          ((membershipsData ?? []) as MembershipRow[])
+            .map((entry) => entry.club_id)
+            .filter((value): value is string => Boolean(value))
+        )
+      );
+
+      if (clubIds.length === 0) {
+        window.location.href = "/club-setup";
+        return;
+      }
+
+      if (clubIds.length === 1) {
+        writeCookie("active_club_id", clubIds[0]);
+        window.location.href = "/";
+        return;
+      }
+
+      window.location.href = "/select-club";
       return;
     } catch {
       setError("invalid-credentials");
