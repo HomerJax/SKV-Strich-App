@@ -1,145 +1,256 @@
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import { createServerClient } from "@supabase/ssr";
-import { cookies, headers } from "next/headers";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/browser";
 import InviteShareActions from "./InviteShareActions";
 
-async function createClient() {
-  const cookieStore = await cookies();
+type MembershipRow = {
+  club_id: string;
+  role: "admin" | "member";
+};
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {}
-        },
-      },
+type InviteRow = {
+  id: number;
+  token: string;
+  role: "admin" | "member";
+  created_at: string;
+  expires_at: string | null;
+  used_at: string | null;
+  is_active: boolean;
+};
+
+function readCookie(name: string) {
+  if (typeof document === "undefined") return null;
+
+  const value = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1];
+
+  return value ? decodeURIComponent(value) : null;
+}
+
+function writeCookie(name: string, value: string) {
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
+
+function getBaseUrl() {
+  if (typeof window === "undefined") return "";
+  return window.location.origin;
+}
+
+export default function AdminInvitesPage() {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [deactivatingId, setDeactivatingId] = useState<number | null>(null);
+
+  const [clubId, setClubId] = useState<string | null>(null);
+  const [invites, setInvites] = useState<InviteRow[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [role, setRole] = useState<"admin" | "member">("member");
+  const [expiresInDays, setExpiresInDays] = useState("14");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPage() {
+      setIsLoading(true);
+      setErrorMessage(null);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const user = session?.user ?? null;
+
+      if (!user) {
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
+      const { data: membershipData, error: membershipError } = await supabase
+        .from("club_memberships")
+        .select("club_id, role")
+        .eq("user_id", user.id);
+
+      if (!isMounted) return;
+
+      if (membershipError) {
+        setErrorMessage("Deine Club-Mitgliedschaften konnten nicht geladen werden.");
+        setIsLoading(false);
+        return;
+      }
+
+      const memberships = (membershipData ?? []) as MembershipRow[];
+
+      if (memberships.length === 0) {
+        router.replace("/waiting-for-invite");
+        router.refresh();
+        return;
+      }
+
+      const activeClubIdFromCookie = readCookie("active_club_id");
+      const validClubIds = new Set(memberships.map((membership) => membership.club_id));
+
+      const activeClubId =
+        memberships.length === 1
+          ? memberships[0].club_id
+          : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+            ? activeClubIdFromCookie
+            : null;
+
+      if (!activeClubId) {
+        router.replace("/select-club");
+        router.refresh();
+        return;
+      }
+
+      if (memberships.length === 1) {
+        writeCookie("active_club_id", activeClubId);
+      }
+
+      const activeMembership =
+        memberships.find((membership) => membership.club_id === activeClubId) ?? null;
+
+      if (!activeMembership) {
+        router.replace("/select-club");
+        router.refresh();
+        return;
+      }
+
+      if (activeMembership.role !== "admin") {
+        router.replace("/");
+        router.refresh();
+        return;
+      }
+
+      const { data: invitesData, error: invitesError } = await supabase
+        .from("club_invites")
+        .select("id, token, role, created_at, expires_at, used_at, is_active")
+        .eq("club_id", activeClubId)
+        .order("created_at", { ascending: false });
+
+      if (!isMounted) return;
+
+      if (invitesError) {
+        setErrorMessage(invitesError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      setClubId(activeClubId);
+      setInvites((invitesData ?? []) as InviteRow[]);
+      setIsLoading(false);
     }
-  );
-}
 
-async function requireAdmin() {
-  const supabase = await createClient();
+    loadPage();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    return () => {
+      isMounted = false;
+    };
+  }, [router, supabase]);
 
-  if (!user) redirect("/login");
+  async function reloadInvites(currentClubId: string) {
+    const { data, error } = await supabase
+      .from("club_invites")
+      .select("id, token, role, created_at, expires_at, used_at, is_active")
+      .eq("club_id", currentClubId)
+      .order("created_at", { ascending: false });
 
-  const { data: membership } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
 
-  if (!membership || membership.role !== "admin") {
-    redirect("/");
+    setInvites((data ?? []) as InviteRow[]);
   }
 
-  return { supabase, clubId: membership.club_id };
-}
+  async function handleCreateInvite(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-async function createInviteAction(formData: FormData) {
-  "use server";
+    if (!clubId || isCreating) return;
 
-  const { supabase } = await requireAdmin();
+    setIsCreating(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
 
-  const role = String(formData.get("role") ?? "member").trim();
-  const expiresInDays = Number(
-    String(formData.get("expires_in_days") ?? "14").trim()
-  );
+    try {
+      const safeDays = Number(expiresInDays);
 
-  const safeRole = role === "admin" ? "admin" : "member";
-  const safeDays =
-    Number.isFinite(expiresInDays) && expiresInDays >= 0 && expiresInDays <= 365
-      ? expiresInDays
-      : 14;
+      const { error } = await supabase.rpc("create_club_invite", {
+        p_role: role,
+        p_expires_in_days:
+          Number.isFinite(safeDays) && safeDays >= 0 && safeDays <= 365 ? safeDays : 14,
+      });
 
-  const { error } = await supabase.rpc("create_club_invite", {
-    p_role: safeRole,
-    p_expires_in_days: safeDays,
-  });
+      if (error) {
+        setErrorMessage(error.message);
+        setIsCreating(false);
+        return;
+      }
 
-  if (error) {
-    redirect(`/admin/invites?error=${encodeURIComponent(error.message)}`);
+      await reloadInvites(clubId);
+      setExpiresInDays("14");
+      setRole("member");
+      setSuccessMessage("Einladung wurde erstellt.");
+    } catch {
+      setErrorMessage("Einladung konnte nicht erstellt werden.");
+    } finally {
+      setIsCreating(false);
+    }
   }
 
-  revalidatePath("/admin/invites");
-  redirect("/admin/invites?saved=1");
-}
+  async function handleDeactivateInvite(inviteId: number) {
+    if (!clubId || deactivatingId) return;
 
-async function deactivateInviteAction(formData: FormData) {
-  "use server";
+    setDeactivatingId(inviteId);
+    setErrorMessage(null);
+    setSuccessMessage(null);
 
-  const { supabase, clubId } = await requireAdmin();
+    try {
+      const { error } = await supabase
+        .from("club_invites")
+        .update({ is_active: false })
+        .eq("id", inviteId)
+        .eq("club_id", clubId);
 
-  const id = Number(String(formData.get("id") ?? ""));
+      if (error) {
+        setErrorMessage(error.message);
+        setDeactivatingId(null);
+        return;
+      }
 
-  if (!id) {
-    redirect("/admin/invites?error=Ungültige Einladung");
+      await reloadInvites(clubId);
+      setSuccessMessage("Einladung wurde deaktiviert.");
+    } catch {
+      setErrorMessage("Einladung konnte nicht deaktiviert werden.");
+    } finally {
+      setDeactivatingId(null);
+    }
   }
 
-  const { error } = await supabase
-    .from("club_invites")
-    .update({ is_active: false })
-    .eq("id", id)
-    .eq("club_id", clubId);
-
-  if (error) {
-    redirect(`/admin/invites?error=${encodeURIComponent(error.message)}`);
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="rounded-[24px] border border-black/10 bg-white p-6 text-center shadow-sm">
+            <p className="text-sm text-neutral-600">Einladungen werden geladen...</p>
+          </div>
+        </section>
+      </main>
+    );
   }
 
-  revalidatePath("/admin/invites");
-  redirect("/admin/invites?saved=1");
-}
-
-function getBaseUrl(
-  headerList: Awaited<ReturnType<typeof headers>>
-) {
-  const forwardedProto = headerList.get("x-forwarded-proto");
-  const forwardedHost = headerList.get("x-forwarded-host");
-  const host = forwardedHost || headerList.get("host");
-
-  if (host) {
-    return `${forwardedProto || "https"}://${host}`;
-  }
-
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  }
-
-  return "http://localhost:3000";
-}
-
-export default async function AdminInvitesPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const resolvedSearchParams = (await searchParams) ?? {};
-  const saved = resolvedSearchParams.saved;
-  const error = resolvedSearchParams.error;
-
-  const { supabase, clubId } = await requireAdmin();
-  const headerList = await headers();
-  const baseUrl = getBaseUrl(headerList);
-
-  const { data: invites } = await supabase
-    .from("club_invites")
-    .select("id, token, role, created_at, expires_at, used_at, is_active")
-    .eq("club_id", clubId)
-    .order("created_at", { ascending: false });
+  const baseUrl = getBaseUrl();
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -149,20 +260,19 @@ export default async function AdminInvitesPage({
             Einladungen
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Erzeuge Join-Links für neue Mitglieder deines Clubs und teile sie
-            direkt weiter.
+            Erzeuge Join-Links für neue Mitglieder deines Clubs und teile sie direkt weiter.
           </p>
         </div>
 
-        {saved ? (
+        {successMessage ? (
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-            Änderung gespeichert.
+            {successMessage}
           </div>
         ) : null}
 
-        {typeof error === "string" && error ? (
+        {errorMessage ? (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
+            {errorMessage}
           </div>
         ) : null}
 
@@ -171,14 +281,14 @@ export default async function AdminInvitesPage({
             Neue Einladung
           </h2>
 
-          <form action={createInviteAction} className="grid gap-4 md:grid-cols-3">
+          <form onSubmit={handleCreateInvite} className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-800">
                 Rolle
               </label>
               <select
-                name="role"
-                defaultValue="member"
+                value={role}
+                onChange={(event) => setRole(event.target.value === "admin" ? "admin" : "member")}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900"
               >
                 <option value="member">Mitglied</option>
@@ -192,10 +302,10 @@ export default async function AdminInvitesPage({
               </label>
               <input
                 type="number"
-                name="expires_in_days"
                 min={0}
                 max={365}
-                defaultValue={14}
+                value={expiresInDays}
+                onChange={(event) => setExpiresInDays(event.target.value)}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900"
               />
               <p className="mt-1 text-xs text-slate-500">
@@ -206,9 +316,10 @@ export default async function AdminInvitesPage({
             <div className="flex items-end">
               <button
                 type="submit"
-                className="w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                disabled={isCreating}
+                className="w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
               >
-                Einladung erzeugen
+                {isCreating ? "Wird erstellt..." : "Einladung erzeugen"}
               </button>
             </div>
           </form>
@@ -219,7 +330,7 @@ export default async function AdminInvitesPage({
             Bestehende Einladungen
           </h2>
 
-          {!invites || invites.length === 0 ? (
+          {invites.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               Noch keine Einladungen vorhanden.
             </div>
@@ -231,8 +342,7 @@ export default async function AdminInvitesPage({
                 const isExpired = invite.expires_at
                   ? new Date(invite.expires_at).getTime() < Date.now()
                   : false;
-                const roleLabel =
-                  invite.role === "admin" ? "Admin" : "Mitglied";
+                const roleLabel = invite.role === "admin" ? "Admin" : "Mitglied";
 
                 return (
                   <div
@@ -246,8 +356,7 @@ export default async function AdminInvitesPage({
                         </div>
 
                         <div className="mt-2 text-xs text-slate-500">
-                          Erstellt am{" "}
-                          {new Date(invite.created_at).toLocaleString("de-DE")}
+                          Erstellt am {new Date(invite.created_at).toLocaleString("de-DE")}
                         </div>
 
                         <div className="mt-1 text-xs text-slate-500">
@@ -294,18 +403,18 @@ export default async function AdminInvitesPage({
                     </div>
 
                     {!isUsed && invite.is_active ? (
-                      <form
-                        action={deactivateInviteAction}
-                        className="mt-4 flex justify-end"
-                      >
-                        <input type="hidden" name="id" value={invite.id} />
+                      <div className="mt-4 flex justify-end">
                         <button
-                          type="submit"
-                          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                          type="button"
+                          onClick={() => handleDeactivateInvite(invite.id)}
+                          disabled={deactivatingId === invite.id}
+                          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                         >
-                          Einladung deaktivieren
+                          {deactivatingId === invite.id
+                            ? "Wird deaktiviert..."
+                            : "Einladung deaktivieren"}
                         </button>
-                      </form>
+                      </div>
                     ) : null}
                   </div>
                 );
