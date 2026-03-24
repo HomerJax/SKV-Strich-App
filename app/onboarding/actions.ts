@@ -27,8 +27,7 @@ export async function saveOnboardingAction(formData: FormData) {
 
   const fullName = `${firstName} ${lastName}`.trim();
 
-  const payload = {
-    user_id: user.id,
+  const basePayload = {
     email: user.email ?? null,
     first_name: firstName,
     last_name: lastName,
@@ -37,31 +36,72 @@ export async function saveOnboardingAction(formData: FormData) {
     is_guest: false,
   };
 
-  console.log("saveOnboardingAction:payload", payload);
-
-  const { data, error } = await supabase
+  const { data: existingPlayer, error: existingPlayerError } = await supabase
     .from("players")
-    .upsert(payload, {
-      onConflict: "user_id",
-    })
-    .select();
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
-  if (error) {
-    console.error("saveOnboardingAction:upsert failed", {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
+  if (existingPlayerError) {
+    console.error("saveOnboardingAction:select existing player failed", {
+      message: existingPlayerError.message,
+      details: existingPlayerError.details,
+      hint: existingPlayerError.hint,
+      code: existingPlayerError.code,
     });
 
     redirect(
       `/onboarding?error=save-failed&detail=${encodeURIComponent(
-        error.message || "unknown"
+        existingPlayerError.message || "unknown"
       )}`
     );
   }
 
-  console.log("saveOnboardingAction:upsert ok", data);
+  if (existingPlayer?.id) {
+    const { error: updateError } = await supabase
+      .from("players")
+      .update(basePayload)
+      .eq("id", existingPlayer.id);
+
+    if (updateError) {
+      console.error("saveOnboardingAction:update failed", {
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint,
+        code: updateError.code,
+      });
+
+      redirect(
+        `/onboarding?error=save-failed&detail=${encodeURIComponent(
+          updateError.message || "unknown"
+        )}`
+      );
+    }
+  } else {
+    const insertPayload = {
+      user_id: user.id,
+      ...basePayload,
+    };
+
+    const { error: insertError } = await supabase
+      .from("players")
+      .insert(insertPayload);
+
+    if (insertError) {
+      console.error("saveOnboardingAction:insert failed", {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+      });
+
+      redirect(
+        `/onboarding?error=save-failed&detail=${encodeURIComponent(
+          insertError.message || "unknown"
+        )}`
+      );
+    }
+  }
 
   redirect("/club-setup");
 }
