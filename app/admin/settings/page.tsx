@@ -1,7 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/browser";
 
 type MembershipRow = {
   club_id: string;
@@ -17,13 +19,6 @@ type ClubSettingsRow = {
   season_end_day: number | null;
   season_end_month: number | null;
   season_year_mode: "start_year" | "end_year" | null;
-};
-
-type AdminSettingsPageProps = {
-  searchParams?: Promise<{
-    saved?: string;
-    error?: string;
-  }>;
 };
 
 const MONTHS = [
@@ -42,6 +37,28 @@ const MONTHS = [
 ];
 
 const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
+
+function readCookie(name: string) {
+  if (typeof document === "undefined") return null;
+
+  const value = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1];
+
+  return value ? decodeURIComponent(value) : null;
+}
+
+function writeCookie(name: string, value: string) {
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
+
+function getSearchParam(name: string) {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get(name) ?? "";
+}
 
 function getErrorMessage(error?: string) {
   switch (error) {
@@ -114,110 +131,158 @@ function getSeasonPreview(
   };
 }
 
-export default async function AdminSettingsPage({
-  searchParams,
-}: AdminSettingsPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const cookieStore = await cookies();
-  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
+export default function AdminSettingsPage() {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [flashError, setFlashError] = useState("");
+  const [flashSaved, setFlashSaved] = useState(false);
+
+  const [memberships, setMemberships] = useState<MembershipRow[]>([]);
+  const [settings, setSettings] = useState<ClubSettingsRow | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPage() {
+      setIsLoading(true);
+      setErrorMessage(null);
+      setFlashError(getErrorMessage(getSearchParam("error")));
+      setFlashSaved(getSearchParam("saved") === "1");
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const user = session?.user ?? null;
+
+      if (!user) {
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
+      const { data: membershipsData, error: membershipsError } = await supabase
+        .from("club_memberships")
+        .select("club_id, role")
+        .eq("user_id", user.id);
+
+      if (!isMounted) return;
+
+      if (membershipsError) {
+        setErrorMessage(membershipsError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      const safeMemberships = (membershipsData ?? []) as MembershipRow[];
+      setMemberships(safeMemberships);
+
+      if (safeMemberships.length === 0) {
+        router.replace("/waiting-for-invite");
+        router.refresh();
+        return;
+      }
+
+      const activeClubIdFromCookie = readCookie("active_club_id");
+      const validClubIds = new Set(safeMemberships.map((m) => m.club_id));
+
+      const activeClubId =
+        safeMemberships.length === 1
+          ? safeMemberships[0].club_id
+          : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+            ? activeClubIdFromCookie
+            : null;
+
+      if (!activeClubId) {
+        router.replace("/select-club");
+        router.refresh();
+        return;
+      }
+
+      if (safeMemberships.length === 1) {
+        writeCookie("active_club_id", activeClubId);
+      }
+
+      const membership =
+        safeMemberships.find((item) => item.club_id === activeClubId) ?? null;
+
+      if (!membership || membership.role !== "admin") {
+        router.replace("/admin");
+        router.refresh();
+        return;
+      }
+
+      const { data: settingsData, error: settingsError } = await supabase
+        .from("club_settings")
+        .select(
+          "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
+        )
+        .eq("club_id", activeClubId)
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      if (settingsError) {
+        setErrorMessage(settingsError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      setSettings((settingsData as ClubSettingsRow | null) ?? null);
+      setIsLoading(false);
     }
-  );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    loadPage();
 
-  if (!user) {
-    redirect("/login?next=/admin/settings");
-  }
+    return () => {
+      isMounted = false;
+    };
+  }, [router, supabase]);
 
-  const { data: membershipsData, error: membershipsError } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("user_id", user.id);
-
-  if (membershipsError) {
-    throw new Error(membershipsError.message);
-  }
-
-  const memberships = (membershipsData ?? []) as MembershipRow[];
-
-  if (memberships.length === 0) {
-    redirect("/waiting-for-invite");
-  }
-
-  const validClubIds = new Set(memberships.map((m) => m.club_id));
-
-  const activeClubId =
-    memberships.length === 1
-      ? memberships[0].club_id
-      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-        ? activeClubIdFromCookie
-        : null;
-
-  if (!activeClubId) {
-    redirect("/select-club");
-  }
-
-  const membership =
-    memberships.find((item) => item.club_id === activeClubId) ?? null;
-
-  if (!membership || membership.role !== "admin") {
+  if (isLoading) {
     return (
       <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto w-full max-w-3xl px-4 py-6">
-          <div className="rounded-[24px] border border-black/10 bg-white p-6 shadow-sm">
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
-              Kein Zugriff
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Dieser Bereich ist nur für Admins des aktuell ausgewählten Teams verfügbar.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link
-                href="/"
-                className="inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
-              >
-                Zur Startseite
-              </Link>
-              {memberships.length > 1 && (
-                <Link
-                  href="/select-club"
-                  className="inline-flex rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900"
-                >
-                  Team wechseln
-                </Link>
-              )}
-            </div>
+        <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:px-5">
+          <div className="flex items-center">
+            <Link
+              href="/admin"
+              className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+            >
+              ← Zurück zum Adminbereich
+            </Link>
+          </div>
+
+          <div className="rounded-[24px] border border-black/10 bg-white p-5 text-sm text-slate-600 shadow-sm">
+            Einstellungen werden geladen...
           </div>
         </section>
       </main>
     );
   }
 
-  const { data: settingsData, error: settingsError } = await supabase
-    .from("club_settings")
-    .select(
-      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
-    )
-    .eq("club_id", activeClubId)
-    .maybeSingle();
+  if (errorMessage) {
+    return (
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:px-5">
+          <div className="flex items-center">
+            <Link
+              href="/admin"
+              className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+            >
+              ← Zurück zum Adminbereich
+            </Link>
+          </div>
 
-  if (settingsError) {
-    throw new Error(settingsError.message);
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {errorMessage}
+          </div>
+        </section>
+      </main>
+    );
   }
-
-  const settings = (settingsData as ClubSettingsRow | null) ?? null;
 
   const useStrength = settings?.use_strength ?? false;
   const useCategories = settings?.use_categories ?? false;
@@ -234,9 +299,6 @@ export default async function AdminSettingsPage({
     seasonEndMonth,
     seasonYearMode
   );
-
-  const errorMessage = getErrorMessage(resolvedSearchParams?.error);
-  const saved = resolvedSearchParams?.saved === "1";
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -262,13 +324,13 @@ export default async function AdminSettingsPage({
             </p>
           </div>
 
-          {errorMessage ? (
+          {flashError ? (
             <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-              {errorMessage}
+              {flashError}
             </div>
           ) : null}
 
-          {saved ? (
+          {flashSaved ? (
             <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
               Saison-Einstellungen gespeichert.
             </div>
