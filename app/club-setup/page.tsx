@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 import { createClubAction } from "./actions";
 
 type ClubSetupPageProps = {
@@ -43,11 +44,15 @@ export default async function ClubSetupPage({
     redirect("/login");
   }
 
-  const { data: player } = await supabase
+  const { data: player, error: playerError } = await adminClient
     .from("players")
-    .select("id")
+    .select("id, club_id")
     .eq("user_id", user.id)
     .maybeSingle();
+
+  if (playerError) {
+    throw new Error("Spielerprofil konnte nicht geladen werden.");
+  }
 
   if (!player) {
     redirect("/onboarding");
