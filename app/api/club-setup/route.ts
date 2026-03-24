@@ -17,11 +17,7 @@ type RequestBody = {
   display_name?: string;
 };
 
-function buildError(
-  error: string,
-  detail?: string,
-  status = 500
-) {
+function buildError(error: string, detail?: string, status = 500) {
   return NextResponse.json(
     {
       ok: false,
@@ -47,7 +43,7 @@ export async function POST(request: NextRequest) {
       return buildError("missing-name", "Kein Teamname übergeben.", 400);
     }
 
-    const supabase = createClient(
+    const authClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
@@ -66,7 +62,7 @@ export async function POST(request: NextRequest) {
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser(token);
+    } = await authClient.auth.getUser(token);
 
     if (userError || !user) {
       return buildError(
@@ -76,11 +72,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: existingMemberships, error: membershipsError } = await supabase
-      .from("club_memberships")
-      .select("club_id")
-      .eq("user_id", user.id)
-      .limit(2);
+    const adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
+
+    const { data: existingMemberships, error: membershipsError } =
+      await adminClient
+        .from("club_memberships")
+        .select("club_id")
+        .eq("user_id", user.id)
+        .limit(2);
 
     if (membershipsError) {
       return buildError(
@@ -125,7 +133,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { data: createdClub, error: clubError } = await supabase
+    const { data: createdClub, error: clubError } = await adminClient
       .from("clubs")
       .insert({
         display_name: displayName,
@@ -142,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     const clubId = String(createdClub.id);
 
-    const { error: membershipError } = await supabase
+    const { error: membershipError } = await adminClient
       .from("club_memberships")
       .insert({
         user_id: user.id,
@@ -157,7 +165,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { error: settingsError } = await supabase
+    const { error: settingsError } = await adminClient
       .from("club_settings")
       .insert({
         club_id: clubId,
