@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type MembershipRow = {
@@ -21,6 +20,8 @@ function getErrorMessage(error?: string | null) {
       return "Die Team-Zuordnung konnte nicht erstellt werden.";
     case "settings-create-failed":
       return "Das Team wurde erstellt, aber die Einstellungen konnten nicht vollständig angelegt werden.";
+    case "membership-load-failed":
+      return "Dein Account konnte nicht geladen werden.";
     default:
       return null;
   }
@@ -82,11 +83,11 @@ async function resolveBrowserAuth() {
 }
 
 export default function ClubSetupPage() {
-  const router = useRouter();
   const hasNavigatedRef = useRef(false);
 
   const [displayName, setDisplayName] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -125,6 +126,7 @@ export default function ClubSetupPage() {
 
       if (error) {
         setErrorMessage("Dein Account konnte nicht geladen werden.");
+        setErrorDetail(error.message ?? null);
         setAuthReady(true);
         setIsCheckingAuth(false);
         return;
@@ -159,7 +161,7 @@ export default function ClubSetupPage() {
     return () => {
       isMounted = false;
     };
-  }, [router]);
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -168,11 +170,13 @@ export default function ClubSetupPage() {
 
     if (!cleanDisplayName) {
       setErrorMessage("Bitte gib einen Teamnamen ein.");
+      setErrorDetail(null);
       return;
     }
 
     setIsSubmitting(true);
     setErrorMessage(null);
+    setErrorDetail(null);
 
     try {
       const auth = await resolveBrowserAuth();
@@ -200,6 +204,7 @@ export default function ClubSetupPage() {
         | {
             ok?: boolean;
             error?: string;
+            detail?: string | null;
             club_id?: string;
             redirect_to?: string;
           }
@@ -209,6 +214,7 @@ export default function ClubSetupPage() {
         setErrorMessage(
           getErrorMessage(payload?.error) ?? "Das Team konnte nicht erstellt werden."
         );
+        setErrorDetail(payload?.detail ?? null);
         setIsSubmitting(false);
         return;
       }
@@ -219,8 +225,9 @@ export default function ClubSetupPage() {
 
       hasNavigatedRef.current = true;
       window.location.href = payload?.redirect_to || "/";
-    } catch {
+    } catch (error) {
       setErrorMessage("Das Team konnte nicht erstellt werden.");
+      setErrorDetail(error instanceof Error ? error.message : null);
       setIsSubmitting(false);
     }
   }
@@ -246,6 +253,12 @@ export default function ClubSetupPage() {
               {errorMessage ??
                 "Deine Anmeldung konnte nicht geladen werden. Bitte logge dich erneut ein."}
             </div>
+
+            {errorDetail ? (
+              <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+                {errorDetail}
+              </div>
+            ) : null}
 
             <Link
               href="/login"
@@ -280,8 +293,14 @@ export default function ClubSetupPage() {
           </div>
 
           {errorMessage ? (
-            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {errorMessage}
+            </div>
+          ) : null}
+
+          {errorDetail ? (
+            <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+              {errorDetail}
             </div>
           ) : null}
 
