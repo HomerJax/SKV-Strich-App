@@ -28,6 +28,27 @@ function buildError(error: string, detail?: string, status = 500) {
   );
 }
 
+async function resolvePostSetupRedirect(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+  clubId: string
+) {
+  const { data: player, error: playerError } = await adminClient
+    .from("players")
+    .select("id")
+    .eq("club_id", clubId)
+    .eq("user_id", userId)
+    .eq("is_guest", false)
+    .limit(1)
+    .maybeSingle();
+
+  if (playerError) {
+    throw new Error(playerError.message);
+  }
+
+  return player?.id ? "/" : "/onboarding";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const token = getBearerToken(request);
@@ -108,11 +129,16 @@ export async function POST(request: NextRequest) {
 
     if (membershipClubIds.length === 1) {
       const clubId = membershipClubIds[0];
+      const redirectTo = await resolvePostSetupRedirect(
+        adminClient,
+        user.id,
+        clubId
+      );
 
       const response = NextResponse.json({
         ok: true,
         club_id: clubId,
-        redirect_to: "/",
+        redirect_to: redirectTo,
       });
 
       response.cookies.set("active_club_id", clubId, {
@@ -179,10 +205,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const redirectTo = await resolvePostSetupRedirect(
+      adminClient,
+      user.id,
+      clubId
+    );
+
     const response = NextResponse.json({
       ok: true,
       club_id: clubId,
-      redirect_to: "/",
+      redirect_to: redirectTo,
     });
 
     response.cookies.set("active_club_id", clubId, {
