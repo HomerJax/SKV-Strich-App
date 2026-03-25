@@ -1,0 +1,15 @@
+[33mf55f63d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mbackup-auth-chaos[m[33m)[m Restore robust client login flow
+[33mdefb5e9[m Use page-local admin auth resolution
+[33m6a70a8a[m Harden app context hook auth sync
+[33m33da1bd[m Stop admin redirect bounce to login
+[33m1b97fbd[m Harden app context session resolution
+[33m9b830b0[m Stabilize login session before redirect
+[33m59039b2[m Refactor admin invites to shared app context
+[33mce1fd7f[m Wrap home search params in suspense
+[33mfddb593[m Wrap login search params in suspense
+[33mcc7bdd0[m Refactor home, admin and login to client app context
+[33ma9076dd[m harden admin page session handling
+[33m5b3f27e[m hide unstable admin routes for release mode
+[33m33a5cd2[m disable proxy auth redirects
+[33m28b4eb7[m stabilize admin seasons session handling
+[33mca7e625[m stabilize admin seasons page for client-first auth
