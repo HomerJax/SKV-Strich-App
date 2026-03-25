@@ -97,11 +97,15 @@ export default async function AdminMembersPage({
   ]);
 
   if (membersError) {
-    throw new Error(`Mitglieder konnten nicht geladen werden: ${membersError.message}`);
+    throw new Error(
+      `Mitglieder konnten nicht geladen werden: ${membersError.message}`
+    );
   }
 
   if (invitesError) {
-    throw new Error(`Einladungen konnten nicht geladen werden: ${invitesError.message}`);
+    throw new Error(
+      `Einladungen konnten nicht geladen werden: ${invitesError.message}`
+    );
   }
 
   if (playersError) {
@@ -206,7 +210,7 @@ export default async function AdminMembersPage({
                         {member.full_name}{" "}
                         {isAdminRole(member.role) && (
                           <span className="ml-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                            {member.role === "owner" ? "Owner" : "Admin"}
+                            Admin
                           </span>
                         )}
                         {isCurrentUser && (
@@ -227,11 +231,7 @@ export default async function AdminMembersPage({
                     </div>
 
                     <div className="text-sm text-slate-500">
-                      {member.role === "owner"
-                        ? "Owner"
-                        : member.role === "admin"
-                          ? "Administrator"
-                          : "Mitglied"}
+                      {member.role === "admin" ? "Administrator" : "Mitglied"}
                     </div>
                   </div>
 
