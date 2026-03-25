@@ -57,16 +57,16 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
         <div className="w-full rounded-[32px] border border-black/10 bg-white p-8 shadow-sm sm:p-10">
           <div className="mx-auto max-w-3xl">
             <div className="text-center">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-slate-950 shadow-[0_10px_25px_-10px_rgba(0,0,0,0.6)]">
-  <Image
-    src="/icon-dark.png"
-    alt="strikr Logo"
-    width={60}
-    height={60}
-    className="h-15 w-15 object-contain"
-    priority
-  />
-</div>
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-slate-950 shadow-sm">
+                <Image
+                  src="/icon-dark.png"
+                  alt="strikr Logo"
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 object-contain"
+                  priority
+                />
+              </div>
 
               <div className="mt-5 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
                 strikr
@@ -149,6 +149,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                 <div className="mt-4">
                   <Link
                     href="/logout"
+                    prefetch={false}
                     className="inline-flex w-full items-center justify-center rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100"
                   >
                     Abmelden

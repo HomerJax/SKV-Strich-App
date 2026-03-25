@@ -38,6 +38,20 @@ function NavItem({
   );
 }
 
+function LogoutNavItem() {
+  return (
+    <form action="/api/logout" method="post" className="flex min-w-0 flex-1">
+      <button
+        type="submit"
+        className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100"
+      >
+        <span className="text-base leading-none">🚪</span>
+        <span className="truncate">Logout</span>
+      </button>
+    </form>
+  );
+}
+
 type AppBottomNavProps = {
   isAdmin?: boolean;
 };
@@ -85,12 +99,7 @@ export default function AppBottomNav({
             active={pathname === "/admin" || pathname.startsWith("/admin/")}
           />
         ) : null}
-        <NavItem
-          href="/logout"
-          label="Logout"
-          icon="🚪"
-          active={pathname === "/logout"}
-        />
+        <LogoutNavItem />
       </div>
     </nav>
   );
