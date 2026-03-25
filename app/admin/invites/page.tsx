@@ -1,14 +1,9 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
 import InviteShareActions from "./InviteShareActions";
-
-type MembershipRow = {
-  club_id: string;
-  role: "admin" | "member";
-};
 
 type InviteRow = {
   id: number;
@@ -20,259 +15,138 @@ type InviteRow = {
   is_active: boolean;
 };
 
-function readCookie(name: string) {
-  if (typeof document === "undefined") return null;
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    success?: string;
+  }>;
+};
 
-  const value = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`))
-    ?.split("=")[1];
-
-  return value ? decodeURIComponent(value) : null;
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
 }
 
-function writeCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(
-    value
-  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
-}
+export default async function AdminInvitesPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const { membership } = await requireClub();
 
-function getBaseUrl() {
-  if (typeof window === "undefined") return "";
-  return window.location.origin;
-}
-
-export default function AdminInvitesPage() {
-  const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [deactivatingId, setDeactivatingId] = useState<number | null>(null);
-
-  const [clubId, setClubId] = useState<string | null>(null);
-  const [invites, setInvites] = useState<InviteRow[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  const [role, setRole] = useState<"admin" | "member">("member");
-  const [expiresInDays, setExpiresInDays] = useState("14");
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadPage() {
-      setIsLoading(true);
-      setErrorMessage(null);
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const user = session?.user ?? null;
-
-      if (!user) {
-        router.replace("/login");
-        router.refresh();
-        return;
-      }
-
-      const { data: membershipData, error: membershipError } = await supabase
-        .from("club_memberships")
-        .select("club_id, role")
-        .eq("user_id", user.id);
-
-      if (!isMounted) return;
-
-      if (membershipError) {
-        setErrorMessage("Deine Club-Mitgliedschaften konnten nicht geladen werden.");
-        setIsLoading(false);
-        return;
-      }
-
-      const memberships = (membershipData ?? []) as MembershipRow[];
-
-      if (memberships.length === 0) {
-        router.replace("/waiting-for-invite");
-        router.refresh();
-        return;
-      }
-
-      const activeClubIdFromCookie = readCookie("active_club_id");
-      const validClubIds = new Set(memberships.map((membership) => membership.club_id));
-
-      const activeClubId =
-        memberships.length === 1
-          ? memberships[0].club_id
-          : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-            ? activeClubIdFromCookie
-            : null;
-
-      if (!activeClubId) {
-        router.replace("/select-club");
-        router.refresh();
-        return;
-      }
-
-      if (memberships.length === 1) {
-        writeCookie("active_club_id", activeClubId);
-      }
-
-      const activeMembership =
-        memberships.find((membership) => membership.club_id === activeClubId) ?? null;
-
-      if (!activeMembership) {
-        router.replace("/select-club");
-        router.refresh();
-        return;
-      }
-
-      if (activeMembership.role !== "admin") {
-        router.replace("/");
-        router.refresh();
-        return;
-      }
-
-      const { data: invitesData, error: invitesError } = await supabase
-        .from("club_invites")
-        .select("id, token, role, created_at, expires_at, used_at, is_active")
-        .eq("club_id", activeClubId)
-        .order("created_at", { ascending: false });
-
-      if (!isMounted) return;
-
-      if (invitesError) {
-        setErrorMessage(invitesError.message);
-        setIsLoading(false);
-        return;
-      }
-
-      setClubId(activeClubId);
-      setInvites((invitesData ?? []) as InviteRow[]);
-      setIsLoading(false);
-    }
-
-    loadPage();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [router, supabase]);
-
-  async function reloadInvites(currentClubId: string) {
-    const { data, error } = await supabase
-      .from("club_invites")
-      .select("id, token, role, created_at, expires_at, used_at, is_active")
-      .eq("club_id", currentClubId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      setErrorMessage(error.message);
-      return;
-    }
-
-    setInvites((data ?? []) as InviteRow[]);
+  if (!isAdminRole(membership.role)) {
+    redirect(AUTH_ROUTES.dashboard);
   }
 
-  async function handleCreateInvite(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const supabase = await createClient();
 
-    if (!clubId || isCreating) return;
+  const { data: invitesData, error: invitesError } = await supabase
+    .from("club_invites")
+    .select("id, token, role, created_at, expires_at, used_at, is_active")
+    .order("created_at", { ascending: false });
 
-    setIsCreating(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    try {
-      const safeDays = Number(expiresInDays);
-
-      const { error } = await supabase.rpc("create_club_invite", {
-        p_role: role,
-        p_expires_in_days:
-          Number.isFinite(safeDays) && safeDays >= 0 && safeDays <= 365 ? safeDays : 14,
-      });
-
-      if (error) {
-        setErrorMessage(error.message);
-        setIsCreating(false);
-        return;
-      }
-
-      await reloadInvites(clubId);
-      setExpiresInDays("14");
-      setRole("member");
-      setSuccessMessage("Einladung wurde erstellt.");
-    } catch {
-      setErrorMessage("Einladung konnte nicht erstellt werden.");
-    } finally {
-      setIsCreating(false);
-    }
-  }
-
-  async function handleDeactivateInvite(inviteId: number) {
-    if (!clubId || deactivatingId) return;
-
-    setDeactivatingId(inviteId);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    try {
-      const { error } = await supabase
-        .from("club_invites")
-        .update({ is_active: false })
-        .eq("id", inviteId)
-        .eq("club_id", clubId);
-
-      if (error) {
-        setErrorMessage(error.message);
-        setDeactivatingId(null);
-        return;
-      }
-
-      await reloadInvites(clubId);
-      setSuccessMessage("Einladung wurde deaktiviert.");
-    } catch {
-      setErrorMessage("Einladung konnte nicht deaktiviert werden.");
-    } finally {
-      setDeactivatingId(null);
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="rounded-[24px] border border-black/10 bg-white p-6 text-center shadow-sm">
-            <p className="text-sm text-neutral-600">Einladungen werden geladen...</p>
-          </div>
-        </section>
-      </main>
+  if (invitesError) {
+    throw new Error(
+      `Einladungen konnten nicht geladen werden: ${invitesError.message}`
     );
   }
 
-  const baseUrl = getBaseUrl();
+  const invites = (invitesData ?? []) as InviteRow[];
+  const flashError = resolvedSearchParams?.error ?? "";
+  const flashSuccess = resolvedSearchParams?.success ?? "";
+
+  async function createInviteAction(formData: FormData) {
+    "use server";
+
+    const { membership } = await requireClub();
+
+    if (!isAdminRole(membership.role)) {
+      redirect(AUTH_ROUTES.dashboard);
+    }
+
+    const supabase = await createClient();
+
+    const roleValue =
+      String(formData.get("role") ?? "") === "admin" ? "admin" : "member";
+
+    const expiresInDaysRaw = Number(formData.get("expiresInDays") ?? 14);
+    const expiresInDays =
+      Number.isFinite(expiresInDaysRaw) &&
+      expiresInDaysRaw >= 0 &&
+      expiresInDaysRaw <= 365
+        ? expiresInDaysRaw
+        : 14;
+
+    const { error } = await supabase.rpc("create_club_invite", {
+      p_role: roleValue,
+      p_expires_in_days: expiresInDays,
+    });
+
+    if (error) {
+      redirect(`/admin/invites?error=${encodeURIComponent(error.message)}`);
+    }
+
+    redirect("/admin/invites?success=Einladung%20wurde%20erstellt.");
+  }
+
+  async function deactivateInviteAction(formData: FormData) {
+    "use server";
+
+    const { clubId, membership } = await requireClub();
+
+    if (!isAdminRole(membership.role)) {
+      redirect(AUTH_ROUTES.dashboard);
+    }
+
+    const supabase = await createClient();
+    const inviteId = Number(formData.get("inviteId") ?? 0);
+
+    if (!Number.isFinite(inviteId) || inviteId <= 0) {
+      redirect("/admin/invites?error=Ung%C3%BCltige%20Einladung.");
+    }
+
+    const { error } = await supabase
+      .from("club_invites")
+      .update({ is_active: false })
+      .eq("id", inviteId)
+      .eq("club_id", clubId);
+
+    if (error) {
+      redirect(`/admin/invites?error=${encodeURIComponent(error.message)}`);
+    }
+
+    redirect("/admin/invites?success=Einladung%20wurde%20deaktiviert.");
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
 
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-4 flex items-center">
+          <Link
+            href="/admin"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück zum Adminbereich
+          </Link>
+        </div>
+
         <div className="mb-6 rounded-[28px] border border-slate-800/10 bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
             Einladungen
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Erzeuge Join-Links für neue Mitglieder deines Clubs und teile sie direkt weiter.
+            Erzeuge Join-Links für neue Mitglieder deines Teams und teile sie
+            direkt weiter.
           </p>
         </div>
 
-        {successMessage ? (
-          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-            {successMessage}
+        {flashSuccess ? (
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {flashSuccess}
           </div>
         ) : null}
 
-        {errorMessage ? (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {errorMessage}
+        {flashError ? (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {flashError}
           </div>
         ) : null}
 
@@ -281,14 +155,14 @@ export default function AdminInvitesPage() {
             Neue Einladung
           </h2>
 
-          <form onSubmit={handleCreateInvite} className="grid gap-4 md:grid-cols-3">
+          <form action={createInviteAction} className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-800">
                 Rolle
               </label>
               <select
-                value={role}
-                onChange={(event) => setRole(event.target.value === "admin" ? "admin" : "member")}
+                name="role"
+                defaultValue="member"
                 className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900"
               >
                 <option value="member">Mitglied</option>
@@ -301,11 +175,11 @@ export default function AdminInvitesPage() {
                 Gültig für Tage
               </label>
               <input
+                name="expiresInDays"
                 type="number"
                 min={0}
                 max={365}
-                value={expiresInDays}
-                onChange={(event) => setExpiresInDays(event.target.value)}
+                defaultValue="14"
                 className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900"
               />
               <p className="mt-1 text-xs text-slate-500">
@@ -316,10 +190,9 @@ export default function AdminInvitesPage() {
             <div className="flex items-end">
               <button
                 type="submit"
-                disabled={isCreating}
-                className="w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                className="w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                {isCreating ? "Wird erstellt..." : "Einladung erzeugen"}
+                Einladung erzeugen
               </button>
             </div>
           </form>
@@ -339,9 +212,6 @@ export default function AdminInvitesPage() {
               {invites.map((invite) => {
                 const inviteUrl = `${baseUrl}/invite/${invite.token}`;
                 const isUsed = !!invite.used_at;
-                const isExpired = invite.expires_at
-                  ? new Date(invite.expires_at).getTime() < Date.now()
-                  : false;
                 const roleLabel = invite.role === "admin" ? "Admin" : "Mitglied";
 
                 return (
@@ -356,7 +226,8 @@ export default function AdminInvitesPage() {
                         </div>
 
                         <div className="mt-2 text-xs text-slate-500">
-                          Erstellt am {new Date(invite.created_at).toLocaleString("de-DE")}
+                          Erstellt am{" "}
+                          {new Date(invite.created_at).toLocaleString("de-DE")}
                         </div>
 
                         <div className="mt-1 text-xs text-slate-500">
@@ -374,12 +245,6 @@ export default function AdminInvitesPage() {
                           {isUsed ? (
                             <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-800">
                               verwendet
-                            </span>
-                          ) : null}
-
-                          {!isUsed && isExpired ? (
-                            <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">
-                              abgelaufen
                             </span>
                           ) : null}
                         </div>
@@ -404,16 +269,15 @@ export default function AdminInvitesPage() {
 
                     {!isUsed && invite.is_active ? (
                       <div className="mt-4 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => handleDeactivateInvite(invite.id)}
-                          disabled={deactivatingId === invite.id}
-                          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                        >
-                          {deactivatingId === invite.id
-                            ? "Wird deaktiviert..."
-                            : "Einladung deaktivieren"}
-                        </button>
+                        <form action={deactivateInviteAction}>
+                          <input type="hidden" name="inviteId" value={invite.id} />
+                          <button
+                            type="submit"
+                            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                          >
+                            Einladung deaktivieren
+                          </button>
+                        </form>
                       </div>
                     ) : null}
                   </div>

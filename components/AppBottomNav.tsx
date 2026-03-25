@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 
 const HIDDEN_ON_PATHS = [
   "/login",
@@ -12,10 +11,6 @@ const HIDDEN_ON_PATHS = [
   "/reset-password",
   "/onboarding",
 ];
-
-type MembershipRow = {
-  role: "admin" | "member";
-};
 
 function NavItem({
   href,
@@ -43,7 +38,13 @@ function NavItem({
   );
 }
 
-export default function AppBottomNav() {
+type AppBottomNavProps = {
+  isAdmin?: boolean;
+};
+
+export default function AppBottomNav({
+  isAdmin = false,
+}: AppBottomNavProps) {
   const pathname = usePathname();
 
   const hidden = useMemo(() => {
@@ -56,57 +57,7 @@ export default function AppBottomNav() {
     );
   }, [pathname]);
 
-  const [hasSession, setHasSession] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadNav() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (!session?.user) {
-        setHasSession(false);
-        setIsAdmin(false);
-        return;
-      }
-
-      setHasSession(true);
-
-      const { data: memberships } = await supabase
-        .from("club_memberships")
-        .select("role")
-        .eq("user_id", session.user.id);
-
-      if (!isMounted) {
-        return;
-      }
-
-      const rows = (memberships ?? []) as MembershipRow[];
-      setIsAdmin(rows.some((row) => row.role === "admin"));
-    }
-
-    loadNav();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      loadNav();
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  if (hidden || !hasSession) {
+  if (hidden) {
     return null;
   }
 

@@ -1,7 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/server";
 
 type Membership = {
   user_id: string;
@@ -9,20 +6,16 @@ type Membership = {
   role: string;
 };
 
-export default function MePage() {
-  const [membership, setMembership] = useState<Membership | null>(null);
+export default async function MePage() {
+  const supabase = await createClient();
 
-  useEffect(() => {
-    async function loadMembership() {
-      const { data, error } = await supabase.rpc("get_my_membership");
+  const { data, error } = await supabase.rpc("get_my_membership");
 
-      if (!error && data && data.length > 0) {
-        setMembership(data[0]);
-      }
-    }
+  let membership: Membership | null = null;
 
-    loadMembership();
-  }, []);
+  if (!error && data && data.length > 0) {
+    membership = data[0] as Membership;
+  }
 
   return (
     <div className="p-6 space-y-4">

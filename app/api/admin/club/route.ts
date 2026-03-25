@@ -1,15 +1,11 @@
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { getAuthContext } from "@/lib/auth/context";
+import { createClient } from "@/lib/supabase/server";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type MembershipRow = {
-  club_id: string;
-  role: "admin" | "member";
-};
 
 type ClubRow = {
   id: string;
@@ -19,7 +15,14 @@ type ClubRow = {
 
 type AdminClubContext =
   | { club: ClubRow }
-  | { error: "unauthorized" | "missing_club" | "select_club" };
+  | {
+      error:
+        | "unauthorized"
+        | "missing_club"
+        | "select_club"
+        | "login"
+        | "onboarding";
+    };
 
 const ALLOWED_TYPES = [
   "image/png",
@@ -39,11 +42,30 @@ function safeFileName(name: string) {
     .toLowerCase();
 }
 
-function redirectToAdmin(
+function getRequestOrigin(request: NextRequest) {
+  const forwardedProto =
+    request.headers.get("x-forwarded-proto") ?? "https";
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = request.headers.get("host");
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  if (host) {
+    const proto = host.includes("localhost") ? "http" : forwardedProto;
+    return `${proto}://${host}`;
+  }
+
+  return request.nextUrl.origin;
+}
+
+function redirectToPath(
   request: NextRequest,
+  pathname: string,
   params?: Record<string, string>
 ) {
-  const url = new URL("/admin/club", request.url);
+  const url = new URL(pathname, getRequestOrigin(request));
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -54,27 +76,15 @@ function redirectToAdmin(
   return NextResponse.redirect(url, { status: 303 });
 }
 
-async function getSupabaseAuthClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {
-          // no-op
-        },
-      },
-    }
-  );
+function redirectToClubAdmin(
+  request: NextRequest,
+  params?: Record<string, string>
+) {
+  return redirectToPath(request, "/admin/club", params);
 }
 
 function getSupabaseServiceClient() {
-  return createClient(
+  return createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -86,61 +96,47 @@ function getSupabaseServiceClient() {
   );
 }
 
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
+}
+
+function isUploadedFile(value: FormDataEntryValue | null): value is File {
+  return (
+    typeof value !== "string" &&
+    value !== null &&
+    typeof value.name === "string" &&
+    typeof value.size === "number"
+  );
+}
+
 async function getAdminClubContext(): Promise<AdminClubContext> {
-  const cookieStore = await cookies();
-  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
+  const ctx = await getAuthContext();
 
-  const supabase = await getSupabaseAuthClient();
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return { error: "unauthorized" };
+  if (!ctx.user) {
+    return { error: "login" };
   }
 
-  const { data: membershipsData, error: membershipError } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("user_id", user.id);
-
-  if (membershipError) {
-    console.error("club membership lookup failed", membershipError);
-    return { error: "unauthorized" };
+  if (!ctx.player) {
+    return { error: "onboarding" };
   }
 
-  const memberships = (membershipsData ?? []) as MembershipRow[];
-
-  if (memberships.length === 0) {
-    return { error: "missing_club" };
-  }
-
-  const validClubIds = new Set(memberships.map((m) => m.club_id));
-
-  const activeClubId =
-    memberships.length === 1
-      ? memberships[0].club_id
-      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-        ? activeClubIdFromCookie
-        : null;
-
-  if (!activeClubId) {
+  if (!ctx.memberships.length || !ctx.activeClubId) {
     return { error: "select_club" };
   }
 
   const membership =
-    memberships.find((m) => m.club_id === activeClubId) ?? null;
+    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ?? null;
 
-  if (!membership || membership.role !== "admin") {
+  if (!membership || !isAdminRole(membership.role)) {
     return { error: "unauthorized" };
   }
+
+  const supabase = await createClient();
 
   const { data: clubData, error: clubError } = await supabase
     .from("clubs")
     .select("id, display_name, logo_path")
-    .eq("id", activeClubId)
+    .eq("id", ctx.activeClubId)
     .maybeSingle();
 
   if (clubError) {
@@ -157,33 +153,28 @@ async function getAdminClubContext(): Promise<AdminClubContext> {
   return { club };
 }
 
-function isUploadedFile(value: FormDataEntryValue | null): value is File {
-  return (
-    typeof value !== "string" &&
-    value !== null &&
-    typeof value.name === "string" &&
-    typeof value.size === "number"
-  );
-}
-
 export async function POST(request: NextRequest) {
   try {
     const context = await getAdminClubContext();
 
     if ("error" in context) {
+      if (context.error === "login") {
+        return redirectToPath(request, AUTH_ROUTES.login);
+      }
+
+      if (context.error === "onboarding") {
+        return redirectToPath(request, AUTH_ROUTES.onboarding);
+      }
+
       if (context.error === "select_club") {
-        return NextResponse.redirect(new URL("/select-club", request.url), {
-          status: 303,
-        });
+        return redirectToPath(request, AUTH_ROUTES.selectClub);
       }
 
       if (context.error === "missing_club") {
-        return NextResponse.redirect(new URL("/waiting-for-invite", request.url), {
-          status: 303,
-        });
+        return redirectToClubAdmin(request, { error: "missing_club" });
       }
 
-      return redirectToAdmin(request, { error: context.error });
+      return redirectToClubAdmin(request, { error: "unauthorized" });
     }
 
     const { club } = context;
@@ -210,10 +201,10 @@ export async function POST(request: NextRequest) {
 
       if (updateError) {
         console.error("club remove logo db error", updateError);
-        return redirectToAdmin(request, { error: "remove_failed" });
+        return redirectToClubAdmin(request, { error: "remove_failed" });
       }
 
-      return redirectToAdmin(request, { saved: "1" });
+      return redirectToClubAdmin(request, { saved: "1" });
     }
 
     const rawDisplayName = formData.get("display_name");
@@ -223,15 +214,19 @@ export async function POST(request: NextRequest) {
     const logoEntry = formData.get("logo");
     let nextLogoPath = club.logo_path;
 
-    if (isUploadedFile(logoEntry) && logoEntry.size > 0 && logoEntry.name.trim()) {
+    if (
+      isUploadedFile(logoEntry) &&
+      logoEntry.size > 0 &&
+      logoEntry.name.trim()
+    ) {
       const file = logoEntry;
 
       if (!ALLOWED_TYPES.includes(file.type)) {
-        return redirectToAdmin(request, { error: "invalid_file" });
+        return redirectToClubAdmin(request, { error: "invalid_file" });
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        return redirectToAdmin(request, { error: "file_too_large" });
+        return redirectToClubAdmin(request, { error: "file_too_large" });
       }
 
       const safeName = safeFileName(file.name || "club-logo.png");
@@ -249,7 +244,7 @@ export async function POST(request: NextRequest) {
 
       if (uploadError) {
         console.error("club logo upload error", uploadError);
-        return redirectToAdmin(request, { error: "save_failed" });
+        return redirectToClubAdmin(request, { error: "save_failed" });
       }
 
       nextLogoPath = filePath;
@@ -272,11 +267,14 @@ export async function POST(request: NextRequest) {
           .remove([nextLogoPath]);
 
         if (rollbackRemoveError) {
-          console.error("uploaded logo rollback remove error", rollbackRemoveError);
+          console.error(
+            "uploaded logo rollback remove error",
+            rollbackRemoveError
+          );
         }
       }
 
-      return redirectToAdmin(request, { error: "save_failed" });
+      return redirectToClubAdmin(request, { error: "save_failed" });
     }
 
     if (club.logo_path && club.logo_path !== nextLogoPath) {
@@ -289,14 +287,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return redirectToAdmin(request, { saved: "1" });
+    return redirectToClubAdmin(request, { saved: "1" });
   } catch (error) {
     console.error("POST /api/admin/club failed", error);
-    return redirectToAdmin(request, { error: "save_failed" });
+    return redirectToClubAdmin(request, { error: "save_failed" });
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const context = await getAdminClubContext();
 
@@ -304,7 +302,9 @@ export async function GET(request: NextRequest) {
       const status =
         context.error === "missing_club" || context.error === "select_club"
           ? 400
-          : 401;
+          : context.error === "login"
+            ? 401
+            : 403;
 
       return NextResponse.json({ error: context.error }, { status });
     }

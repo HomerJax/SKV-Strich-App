@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
+import { useActionState, useMemo, useState } from "react";
+import { signupAction, type SignupState } from "./actions";
 
 type SignupFormProps = {
   initialEmail?: string;
@@ -32,129 +31,32 @@ function getErrorMessage(error: string) {
   }
 }
 
-async function waitForSession() {
-  const supabase = createClient();
-
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (session?.user) {
-      return session;
-    }
-
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
-  }
-
-  return null;
-}
+const INITIAL_STATE: SignupState = {
+  error: "",
+};
 
 export default function SignupForm({
   initialEmail = "",
   initialError = "",
 }: SignupFormProps) {
-  const router = useRouter();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [error, setError] = useState(initialError);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
 
-  const errorMessage = useMemo(() => getErrorMessage(error), [error]);
+  const [state, formAction, isPending] = useActionState(
+    signupAction,
+    INITIAL_STATE
+  );
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const activeErrorCode = hasEditedSinceSubmit
+    ? ""
+    : state.error || initialError || "";
 
-    if (isSubmitting) return;
-
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPassword = password;
-    const cleanPasswordConfirm = passwordConfirm;
-
-    if (!cleanEmail || !cleanPassword || !cleanPasswordConfirm) {
-      setError("missing-fields");
-      return;
-    }
-
-    if (cleanPassword !== cleanPasswordConfirm) {
-      setError("password-mismatch");
-      return;
-    }
-
-    if (cleanPassword.length < 8) {
-      setError("password-too-short");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-      const supabase = createClient();
-
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: cleanPassword,
-      });
-
-      if (signUpError) {
-        const message = signUpError.message.toLowerCase();
-
-        if (
-          message.includes("already registered") ||
-          message.includes("already been registered") ||
-          message.includes("user already registered")
-        ) {
-          setError("email-already-used");
-        } else {
-          setError("signup-failed");
-        }
-
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!signUpData.user) {
-        setError("signup-failed");
-        setIsSubmitting(false);
-        return;
-      }
-
-      try {
-        await supabase.rpc("link_existing_player_by_email", {
-          user_email: cleanEmail,
-        });
-      } catch {
-        // unkritisch
-      }
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password: cleanPassword,
-      });
-
-      if (signInError) {
-        setError("login-after-signup-failed");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const session = await waitForSession();
-
-      if (!session?.user) {
-        setError("session-not-ready");
-        setIsSubmitting(false);
-        return;
-      }
-
-      router.replace("/onboarding");
-      router.refresh();
-    } catch {
-      setError("signup-failed");
-      setIsSubmitting(false);
-    }
-  }
+  const errorMessage = useMemo(
+    () => getErrorMessage(activeErrorCode),
+    [activeErrorCode]
+  );
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -187,7 +89,11 @@ export default function SignupForm({
             </div>
           ) : null}
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <form
+            action={formAction}
+            onSubmit={() => setHasEditedSinceSubmit(false)}
+            className="mt-6 space-y-4"
+          >
             <div>
               <label className="mb-1 block text-sm font-medium text-neutral-800">
                 E-Mail
@@ -196,12 +102,15 @@ export default function SignupForm({
                 name="email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setHasEditedSinceSubmit(true);
+                }}
                 required
                 autoComplete="email"
                 className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
                 placeholder="du@beispiel.de"
-                disabled={isSubmitting}
+                disabled={isPending}
               />
             </div>
 
@@ -213,11 +122,14 @@ export default function SignupForm({
                 name="password"
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setHasEditedSinceSubmit(true);
+                }}
                 required
                 autoComplete="new-password"
                 className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-                disabled={isSubmitting}
+                disabled={isPending}
               />
             </div>
 
@@ -229,20 +141,23 @@ export default function SignupForm({
                 name="password_confirm"
                 type="password"
                 value={passwordConfirm}
-                onChange={(event) => setPasswordConfirm(event.target.value)}
+                onChange={(event) => {
+                  setPasswordConfirm(event.target.value);
+                  setHasEditedSinceSubmit(true);
+                }}
                 required
                 autoComplete="new-password"
                 className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-                disabled={isSubmitting}
+                disabled={isPending}
               />
             </div>
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isPending}
               className="mt-2 w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isSubmitting ? "Registrieren..." : "Registrieren"}
+              {isPending ? "Registrieren..." : "Registrieren"}
             </button>
           </form>
 

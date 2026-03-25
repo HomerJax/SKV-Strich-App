@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import type { Player, SessionRow } from "./session-types";
 import {
@@ -45,7 +46,7 @@ function PlayerLineupRow({ player }: { player: Player }) {
         {getPlayerDisplayName(player)}
       </span>
 
-      <span className="flex items-center gap-1 shrink-0">
+      <span className="flex shrink-0 items-center gap-1">
         <span
           className={`rounded-md px-2 py-0.5 text-[10px] ${ageBadgeColor(
             player.age_group
@@ -134,15 +135,9 @@ function TeamListCard({
         <div className="mt-3 space-y-1.5">
           {players.map((player) =>
             variant === "lineup" ? (
-              <PlayerLineupRow
-                key={`${title}-${player.id}`}
-                player={player}
-              />
+              <PlayerLineupRow key={`${title}-${player.id}`} player={player} />
             ) : (
-              <PlayerResultRow
-                key={`${title}-${player.id}`}
-                player={player}
-              />
+              <PlayerResultRow key={`${title}-${player.id}`} player={player} />
             )
           )}
         </div>
@@ -267,9 +262,12 @@ export function ResultExportCard({
       <div className="bg-slate-50 p-4">
         {winnerPhotoUrl && (
           <div className="mb-4 overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-            <img
+            <Image
               src={winnerPhotoUrl}
               alt="Siegerfoto"
+              width={1200}
+              height={800}
+              unoptimized
               className="h-auto max-h-[380px] w-full object-cover"
             />
           </div>

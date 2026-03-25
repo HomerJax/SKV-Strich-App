@@ -1,14 +1,6 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
-
-type Membership = {
-  club_id: string;
-  role: "admin" | "member";
-};
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
 
 type Season = {
   id: number;
@@ -33,135 +25,36 @@ function fmtDateDE(iso: string) {
   });
 }
 
-function readCookie(name: string) {
-  if (typeof document === "undefined") return null;
+export default async function SessionsPage() {
+  const { clubId } = await requireClub();
+  const supabase = await createClient();
 
-  const value = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`))
-    ?.split("=")[1];
+  const [
+    { data: seasonsData, error: seasonsError },
+    { data: sessionsData, error: sessionsError },
+  ] = await Promise.all([
+    supabase
+      .from("seasons")
+      .select("id, name, start_date, end_date")
+      .eq("club_id", clubId)
+      .order("start_date", { ascending: false }),
+    supabase
+      .from("sessions")
+      .select("id, date, notes, season_id")
+      .eq("club_id", clubId)
+      .order("date", { ascending: false }),
+  ]);
 
-  return value ? decodeURIComponent(value) : null;
-}
-
-function writeCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(
-    value
-  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
-}
-
-export default function SessionsPage() {
-  const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [clubId, setClubId] = useState<string | null>(null);
-  const [seasons, setSeasons] = useState<Season[]>([]);
-  const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadPage() {
-      setIsLoading(true);
-      setErrorMessage(null);
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const user = session?.user ?? null;
-
-      if (!user) {
-        router.replace("/login");
-        router.refresh();
-        return;
-      }
-
-      const { data: membershipsData, error: membershipError } = await supabase
-        .from("club_memberships")
-        .select("club_id, role")
-        .eq("user_id", user.id);
-
-      if (!isMounted) return;
-
-      if (membershipError) {
-        setErrorMessage(membershipError.message);
-        setIsLoading(false);
-        return;
-      }
-
-      const memberships = (membershipsData ?? []) as Membership[];
-
-      if (memberships.length === 0) {
-        router.replace("/waiting-for-invite");
-        router.refresh();
-        return;
-      }
-
-      const activeClubIdFromCookie = readCookie("active_club_id");
-      const validClubIds = new Set(memberships.map((membership) => membership.club_id));
-
-      const resolvedClubId =
-        memberships.length === 1
-          ? memberships[0].club_id
-          : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-            ? activeClubIdFromCookie
-            : null;
-
-      if (!resolvedClubId) {
-        router.replace("/select-club");
-        router.refresh();
-        return;
-      }
-
-      if (memberships.length === 1) {
-        writeCookie("active_club_id", resolvedClubId);
-      }
-
-      const [{ data: seasonsData, error: seasonsError }, { data: sessionsData, error: sessionsError }] =
-        await Promise.all([
-          supabase
-            .from("seasons")
-            .select("id, name, start_date, end_date")
-            .eq("club_id", resolvedClubId)
-            .order("start_date", { ascending: false }),
-          supabase
-            .from("sessions")
-            .select("id, date, notes, season_id")
-            .eq("club_id", resolvedClubId)
-            .order("date", { ascending: false }),
-        ]);
-
-      if (!isMounted) return;
-
-      if (seasonsError || sessionsError) {
-        setErrorMessage(seasonsError?.message ?? sessionsError?.message ?? "Daten konnten nicht geladen werden.");
-        setIsLoading(false);
-        return;
-      }
-
-      setClubId(resolvedClubId);
-      setSeasons((seasonsData as Season[] | null) ?? []);
-      setSessions((sessionsData as SessionRow[] | null) ?? []);
-      setIsLoading(false);
-    }
-
-    loadPage();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [router, supabase]);
-
-  if (isLoading) {
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
-        Lade Trainings…
-      </div>
+  if (seasonsError || sessionsError) {
+    throw new Error(
+      seasonsError?.message ??
+        sessionsError?.message ??
+        "Daten konnten nicht geladen werden."
     );
   }
+
+  const seasons = (seasonsData as Season[] | null) ?? [];
+  const sessions = (sessionsData as SessionRow[] | null) ?? [];
 
   const seasonSessions = new Map<number, SessionRow[]>();
   const withoutSeason: SessionRow[] = [];
@@ -198,7 +91,9 @@ export default function SessionsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Trainings</h1>
-          <p className="text-xs text-slate-500">Termine, Teams &amp; Ergebnisse.</p>
+          <p className="text-xs text-slate-500">
+            Termine, Teams &amp; Ergebnisse.
+          </p>
         </div>
 
         <Link
@@ -209,13 +104,14 @@ export default function SessionsPage() {
         </Link>
       </div>
 
-      {errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-          Fehler: {errorMessage}
+      {totalSessions > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+          {totalSessions} {totalSessions === 1 ? "Training" : "Trainings"}{" "}
+          gespeichert.
         </div>
       )}
 
-      {!errorMessage && totalSessions === 0 && (
+      {totalSessions === 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="max-w-lg">
             <div className="text-sm font-semibold text-slate-500">Noch leer</div>
@@ -247,7 +143,7 @@ export default function SessionsPage() {
         </div>
       )}
 
-      {!errorMessage && totalSessions > 0 && (
+      {totalSessions > 0 && (
         <div className="space-y-3">
           {seasonListSorted.map((season) => {
             const list = seasonSessions.get(season.id) ?? [];
@@ -258,8 +154,13 @@ export default function SessionsPage() {
                 key={season.id}
                 className="rounded-xl border border-slate-200 bg-white p-3"
               >
-                <div className="mb-2 text-xs font-semibold text-slate-700">
-                  {season.name}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="text-xs font-semibold text-slate-700">
+                    {season.name}
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    {list.length} {list.length === 1 ? "Training" : "Trainings"}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -272,8 +173,14 @@ export default function SessionsPage() {
                       <div className="font-semibold text-slate-900">
                         {fmtDateDE(session.date)}
                       </div>
-                      {session.notes && (
-                        <div className="text-xs text-slate-500">{session.notes}</div>
+                      {session.notes ? (
+                        <div className="text-xs text-slate-500">
+                          {session.notes}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-400">
+                          Keine Notiz hinterlegt
+                        </div>
                       )}
                     </Link>
                   ))}
@@ -284,9 +191,13 @@ export default function SessionsPage() {
 
           {withoutSeason.length > 0 && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <div className="mb-2 text-xs font-semibold text-amber-800">
+              <div className="mb-1 text-xs font-semibold text-amber-800">
                 Ohne Saison
               </div>
+              <div className="mb-3 text-[11px] text-amber-800/80">
+                Diese Trainings konnten keinem Saisonzeitraum zugeordnet werden.
+              </div>
+
               <div className="space-y-2">
                 {withoutSeason.map((session) => (
                   <Link
@@ -297,8 +208,12 @@ export default function SessionsPage() {
                     <div className="font-semibold text-slate-900">
                       {fmtDateDE(session.date)}
                     </div>
-                    {session.notes && (
+                    {session.notes ? (
                       <div className="text-xs text-slate-500">{session.notes}</div>
+                    ) : (
+                      <div className="text-xs text-slate-400">
+                        Keine Notiz hinterlegt
+                      </div>
                     )}
                   </Link>
                 ))}

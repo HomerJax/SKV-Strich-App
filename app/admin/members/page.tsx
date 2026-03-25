@@ -16,6 +16,7 @@ import {
   formatDate,
   sortPlayersByDisplayName,
 } from "./members-utils";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -34,6 +35,10 @@ async function getSupabaseServerClient() {
       },
     }
   );
+}
+
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
 }
 
 export default async function AdminMembersPage({
@@ -56,7 +61,7 @@ export default async function AdminMembersPage({
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    redirect("/login");
+    redirect(AUTH_ROUTES.login);
   }
 
   const { data: membership, error: membershipError } = await supabase
@@ -66,11 +71,11 @@ export default async function AdminMembersPage({
     .single();
 
   if (membershipError || !membership) {
-    redirect("/sessions");
+    redirect(AUTH_ROUTES.dashboard);
   }
 
-  if (membership.role !== "admin") {
-    redirect("/sessions");
+  if (!isAdminRole(membership.role)) {
+    redirect(AUTH_ROUTES.dashboard);
   }
 
   const [
@@ -92,15 +97,15 @@ export default async function AdminMembersPage({
   ]);
 
   if (membersError) {
-    throw new Error(`Members could not be loaded: ${membersError.message}`);
+    throw new Error(`Mitglieder konnten nicht geladen werden: ${membersError.message}`);
   }
 
   if (invitesError) {
-    throw new Error(`Invites could not be loaded: ${invitesError.message}`);
+    throw new Error(`Einladungen konnten nicht geladen werden: ${invitesError.message}`);
   }
 
   if (playersError) {
-    throw new Error(`Players could not be loaded: ${playersError.message}`);
+    throw new Error(`Spieler konnten nicht geladen werden: ${playersError.message}`);
   }
 
   const memberRows = (members || []) as MemberRow[];
@@ -126,6 +131,15 @@ export default async function AdminMembersPage({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
+      <div className="flex items-center">
+        <Link
+          href="/admin"
+          className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+        >
+          ← Zurück zum Adminbereich
+        </Link>
+      </div>
+
       <div className="flex flex-col gap-2">
         <div className="text-sm text-slate-500">
           <Link href="/admin" className="hover:text-slate-700">
@@ -190,9 +204,9 @@ export default async function AdminMembersPage({
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium text-slate-900">
                         {member.full_name}{" "}
-                        {member.role === "admin" && (
+                        {isAdminRole(member.role) && (
                           <span className="ml-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                            Admin
+                            {member.role === "owner" ? "Owner" : "Admin"}
                           </span>
                         )}
                         {isCurrentUser && (
@@ -213,7 +227,11 @@ export default async function AdminMembersPage({
                     </div>
 
                     <div className="text-sm text-slate-500">
-                      {member.role === "admin" ? "Administrator" : "Mitglied"}
+                      {member.role === "owner"
+                        ? "Owner"
+                        : member.role === "admin"
+                          ? "Administrator"
+                          : "Mitglied"}
                     </div>
                   </div>
 

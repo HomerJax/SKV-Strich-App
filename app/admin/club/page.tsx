@@ -1,12 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
-
-type MembershipRow = {
-  club_id: string;
-  role: "admin" | "member";
-};
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 type ClubRow = {
   id: string;
@@ -40,65 +37,17 @@ function getErrorMessage(error?: string) {
   }
 }
 
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
+}
+
 export default async function ClubAdminPage({
   searchParams,
 }: ClubAdminPageProps) {
   const resolvedSearchParams = await searchParams;
-  const cookieStore = await cookies();
-  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
+  const { clubId, membership, memberships } = await requireClub();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login?next=/admin/club");
-  }
-
-  const { data: membershipsData, error: membershipsError } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("user_id", user.id);
-
-  if (membershipsError) {
-    throw new Error(membershipsError.message);
-  }
-
-  const memberships = (membershipsData ?? []) as MembershipRow[];
-
-  if (memberships.length === 0) {
-    redirect("/waiting-for-invite");
-  }
-
-  const validClubIds = new Set(memberships.map((m) => m.club_id));
-
-  const activeClubId =
-    memberships.length === 1
-      ? memberships[0].club_id
-      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-        ? activeClubIdFromCookie
-        : null;
-
-  if (!activeClubId) {
-    redirect("/select-club");
-  }
-
-  const membership =
-    memberships.find((item) => item.club_id === activeClubId) ?? null;
-
-  if (!membership || membership.role !== "admin") {
+  if (!isAdminRole(membership.role)) {
     return (
       <main className="min-h-screen bg-neutral-100">
         <section className="mx-auto w-full max-w-3xl px-4 py-6">
@@ -107,7 +56,8 @@ export default async function ClubAdminPage({
               Kein Zugriff
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Dieser Bereich ist nur für Admins des aktuell ausgewählten Teams verfügbar.
+              Dieser Bereich ist nur für Admins des aktuell ausgewählten Teams
+              verfügbar.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
@@ -116,14 +66,14 @@ export default async function ClubAdminPage({
               >
                 Zur Startseite
               </Link>
-              {memberships.length > 1 && (
+              {memberships.length > 1 ? (
                 <Link
-                  href="/select-club"
+                  href={AUTH_ROUTES.selectClub}
                   className="inline-flex rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900"
                 >
                   Team wechseln
                 </Link>
-              )}
+              ) : null}
             </div>
           </div>
         </section>
@@ -131,10 +81,12 @@ export default async function ClubAdminPage({
     );
   }
 
+  const supabase = await createClient();
+
   const { data: clubData, error: clubError } = await supabase
     .from("clubs")
     .select("id, display_name, logo_path")
-    .eq("id", activeClubId)
+    .eq("id", clubId)
     .maybeSingle();
 
   if (clubError) {
@@ -144,20 +96,7 @@ export default async function ClubAdminPage({
   const club = (clubData as ClubRow | null) ?? null;
 
   if (!club) {
-    return (
-      <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto w-full max-w-3xl px-4 py-6">
-          <div className="rounded-[24px] border border-black/10 bg-white p-6 shadow-sm">
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
-              Club nicht gefunden
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Für deinen Account konnte kein Club geladen werden.
-            </p>
-          </div>
-        </section>
-      </main>
-    );
+    redirect(`${AUTH_ROUTES.admin}?error=missing_club`);
   }
 
   let logoUrl: string | null = null;
@@ -216,9 +155,12 @@ export default async function ClubAdminPage({
             <div className="flex items-center gap-3">
               {logoUrl ? (
                 <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
-                  <img
+                  <Image
                     src={logoUrl}
                     alt={club.display_name || "Clublogo"}
+                    width={80}
+                    height={80}
+                    unoptimized
                     className="h-full w-full object-contain"
                   />
                 </div>
@@ -232,9 +174,7 @@ export default async function ClubAdminPage({
                 <div className="truncate text-lg font-bold text-slate-950">
                   {club.display_name?.trim() || "Dein Team"}
                 </div>
-                <div className="text-sm text-slate-500">
-                  Anzeige im Header
-                </div>
+                <div className="text-sm text-slate-500">Anzeige im Header</div>
               </div>
             </div>
           </div>

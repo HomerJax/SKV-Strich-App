@@ -1,14 +1,7 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "../../../lib/supabaseClient";
-
-type Membership = {
-  user_id: string;
-  club_id: string;
-  role: string;
-};
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
 
 type PreferredPosition = "defense" | "attack" | "goalkeeper" | null;
 type AgeGroup = "AH" | "Ü32" | null;
@@ -34,69 +27,52 @@ function buildLegacyName({
   return "";
 }
 
-export default function NewPlayerPage() {
-  const router = useRouter();
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string;
+  }>;
+};
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [nickname, setNickname] = useState("");
-  const [position, setPosition] = useState<PreferredPosition>("attack");
-  const [ageGroup, setAgeGroup] = useState<AgeGroup>("AH");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+export default async function NewPlayerPage({ searchParams }: PageProps) {
+  await requireClub();
+  const resolvedSearchParams = await searchParams;
+  const errorMsg = resolvedSearchParams?.error ?? "";
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setErrorMsg(null);
+  async function createPlayerAction(formData: FormData) {
+    "use server";
 
-    const cleanFirstName = clean(firstName);
-    const cleanLastName = clean(lastName);
-    const cleanNickname = clean(nickname);
+    const { clubId } = await requireClub();
+    const supabase = await createClient();
 
-    if (!cleanNickname && !cleanFirstName && !cleanLastName) {
-      setErrorMsg("Bitte mindestens Spitzname oder Vorname/Nachname eingeben.");
-      return;
+    const firstName = clean(String(formData.get("first_name") ?? ""));
+    const lastName = clean(String(formData.get("last_name") ?? ""));
+    const nickname = clean(String(formData.get("nickname") ?? ""));
+    const ageGroup = (String(formData.get("age_group") ?? "") || "AH") as AgeGroup;
+    const position = (String(
+      formData.get("preferred_position") ?? ""
+    ) || "attack") as PreferredPosition;
+
+    if (!nickname && !firstName && !lastName) {
+      redirect(
+        "/players/new?error=Bitte%20mindestens%20Spitzname%20oder%20Vorname/Nachname%20eingeben."
+      );
     }
 
     const legacyName = buildLegacyName({
-      firstName: cleanFirstName,
-      lastName: cleanLastName,
-      nickname: cleanNickname,
+      firstName,
+      lastName,
+      nickname,
     });
 
     if (!legacyName) {
-      setErrorMsg("Der Spielername konnte nicht erstellt werden.");
-      return;
-    }
-
-    setLoading(true);
-
-    const { data: membershipData, error: membershipError } = await supabase.rpc(
-      "get_my_membership"
-    );
-
-    if (membershipError) {
-      setLoading(false);
-      setErrorMsg(
-        "Membership konnte nicht geladen werden: " + membershipError.message
-      );
-      return;
-    }
-
-    const membership = (membershipData?.[0] as Membership | undefined) ?? null;
-    const clubId = membership?.club_id ?? null;
-
-    if (!clubId) {
-      setLoading(false);
-      setErrorMsg("Kein Club für den aktuellen User gefunden.");
-      return;
+      redirect("/players/new?error=Der%20Spielername%20konnte%20nicht%20erstellt%20werden.");
     }
 
     const { error } = await supabase.from("players").insert({
       name: legacyName,
-      first_name: cleanFirstName || null,
-      last_name: cleanLastName || null,
-      nickname: cleanNickname || null,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      nickname: nickname || null,
       age_group: ageGroup,
       preferred_position: position,
       club_id: clubId,
@@ -104,27 +80,22 @@ export default function NewPlayerPage() {
       strength: null,
     });
 
-    setLoading(false);
-
     if (error) {
-      setErrorMsg(error.message);
-      return;
+      redirect(`/players/new?error=${encodeURIComponent(error.message)}`);
     }
 
-    router.push("/players");
-    router.refresh();
+    redirect("/players");
   }
 
   return (
     <div className="mx-auto w-full max-w-xl space-y-4 px-4 py-6">
       <div className="space-y-1">
-        <button
-          type="button"
-          onClick={() => router.push("/players")}
+        <Link
+          href="/players"
           className="text-xs text-slate-500 hover:text-slate-700"
         >
           ← Zurück zur Übersicht
-        </button>
+        </Link>
 
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
           Neuen Spieler anlegen
@@ -135,7 +106,7 @@ export default function NewPlayerPage() {
       </div>
 
       <form
-        onSubmit={handleSubmit}
+        action={createPlayerAction}
         className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
       >
         <div className="grid gap-4 md:grid-cols-2">
@@ -144,9 +115,8 @@ export default function NewPlayerPage() {
               Vorname
             </label>
             <input
+              name="first_name"
               type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
               className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-400"
             />
           </div>
@@ -156,9 +126,8 @@ export default function NewPlayerPage() {
               Nachname
             </label>
             <input
+              name="last_name"
               type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
               className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-400"
             />
           </div>
@@ -169,9 +138,8 @@ export default function NewPlayerPage() {
             Spitzname (optional)
           </label>
           <input
+            name="nickname"
             type="text"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-400"
           />
         </div>
@@ -182,8 +150,8 @@ export default function NewPlayerPage() {
               Altersgruppe
             </label>
             <select
-              value={ageGroup ?? ""}
-              onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}
+              name="age_group"
+              defaultValue="AH"
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400"
             >
               <option value="AH">AH</option>
@@ -196,10 +164,8 @@ export default function NewPlayerPage() {
               Position
             </label>
             <select
-              value={position ?? ""}
-              onChange={(e) =>
-                setPosition(e.target.value as PreferredPosition)
-              }
+              name="preferred_position"
+              defaultValue="attack"
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400"
             >
               <option value="defense">Hinten (Abwehr)</option>
@@ -209,35 +175,26 @@ export default function NewPlayerPage() {
           </div>
         </div>
 
-        <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
-          <span className="font-medium text-slate-800">Vorschau:</span>{" "}
-          {clean(nickname) ||
-            [clean(firstName), clean(lastName)].filter(Boolean).join(" ") ||
-            "Noch kein Anzeigename"}
-        </div>
-
-        {errorMsg && (
+        {errorMsg ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {errorMsg}
           </div>
-        )}
+        ) : null}
 
         <div className="flex items-center gap-3">
           <button
             type="submit"
-            disabled={loading}
-            className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
           >
-            {loading ? "Speichere..." : "Spieler anlegen"}
+            Spieler anlegen
           </button>
 
-          <button
-            type="button"
-            onClick={() => router.push("/players")}
+          <Link
+            href="/players"
             className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
             Abbrechen
-          </button>
+          </Link>
         </div>
       </form>
     </div>

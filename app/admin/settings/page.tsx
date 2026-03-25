@@ -1,14 +1,7 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
-
-type MembershipRow = {
-  club_id: string;
-  role: "admin" | "member";
-};
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
 
 type ClubSettingsRow = {
   club_id: string;
@@ -37,28 +30,6 @@ const MONTHS = [
 ];
 
 const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
-
-function readCookie(name: string) {
-  if (typeof document === "undefined") return null;
-
-  const value = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`))
-    ?.split("=")[1];
-
-  return value ? decodeURIComponent(value) : null;
-}
-
-function writeCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(
-    value
-  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
-}
-
-function getSearchParam(name: string) {
-  if (typeof window === "undefined") return "";
-  return new URLSearchParams(window.location.search).get(name) ?? "";
-}
 
 function getErrorMessage(error?: string) {
   switch (error) {
@@ -131,158 +102,40 @@ function getSeasonPreview(
   };
 }
 
-export default function AdminSettingsPage() {
-  const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    saved?: string;
+  }>;
+};
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [flashError, setFlashError] = useState("");
-  const [flashSaved, setFlashSaved] = useState(false);
+export default async function AdminSettingsPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const { clubId, membership } = await requireClub();
 
-  const [memberships, setMemberships] = useState<MembershipRow[]>([]);
-  const [settings, setSettings] = useState<ClubSettingsRow | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadPage() {
-      setIsLoading(true);
-      setErrorMessage(null);
-      setFlashError(getErrorMessage(getSearchParam("error")));
-      setFlashSaved(getSearchParam("saved") === "1");
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const user = session?.user ?? null;
-
-      if (!user) {
-        router.replace("/login");
-        router.refresh();
-        return;
-      }
-
-      const { data: membershipsData, error: membershipsError } = await supabase
-        .from("club_memberships")
-        .select("club_id, role")
-        .eq("user_id", user.id);
-
-      if (!isMounted) return;
-
-      if (membershipsError) {
-        setErrorMessage(membershipsError.message);
-        setIsLoading(false);
-        return;
-      }
-
-      const safeMemberships = (membershipsData ?? []) as MembershipRow[];
-      setMemberships(safeMemberships);
-
-      if (safeMemberships.length === 0) {
-        router.replace("/waiting-for-invite");
-        router.refresh();
-        return;
-      }
-
-      const activeClubIdFromCookie = readCookie("active_club_id");
-      const validClubIds = new Set(safeMemberships.map((m) => m.club_id));
-
-      const activeClubId =
-        safeMemberships.length === 1
-          ? safeMemberships[0].club_id
-          : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-            ? activeClubIdFromCookie
-            : null;
-
-      if (!activeClubId) {
-        router.replace("/select-club");
-        router.refresh();
-        return;
-      }
-
-      if (safeMemberships.length === 1) {
-        writeCookie("active_club_id", activeClubId);
-      }
-
-      const membership =
-        safeMemberships.find((item) => item.club_id === activeClubId) ?? null;
-
-      if (!membership || membership.role !== "admin") {
-        router.replace("/admin");
-        router.refresh();
-        return;
-      }
-
-      const { data: settingsData, error: settingsError } = await supabase
-        .from("club_settings")
-        .select(
-          "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
-        )
-        .eq("club_id", activeClubId)
-        .maybeSingle();
-
-      if (!isMounted) return;
-
-      if (settingsError) {
-        setErrorMessage(settingsError.message);
-        setIsLoading(false);
-        return;
-      }
-
-      setSettings((settingsData as ClubSettingsRow | null) ?? null);
-      setIsLoading(false);
-    }
-
-    loadPage();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [router, supabase]);
-
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:px-5">
-          <div className="flex items-center">
-            <Link
-              href="/admin"
-              className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-            >
-              ← Zurück zum Adminbereich
-            </Link>
-          </div>
-
-          <div className="rounded-[24px] border border-black/10 bg-white p-5 text-sm text-slate-600 shadow-sm">
-            Einstellungen werden geladen...
-          </div>
-        </section>
-      </main>
-    );
+  if (membership.role !== "admin") {
+    redirect("/admin");
   }
 
-  if (errorMessage) {
-    return (
-      <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:px-5">
-          <div className="flex items-center">
-            <Link
-              href="/admin"
-              className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-            >
-              ← Zurück zum Adminbereich
-            </Link>
-          </div>
+  const supabase = await createClient();
 
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            {errorMessage}
-          </div>
-        </section>
-      </main>
-    );
+  const { data: settingsData, error: settingsError } = await supabase
+    .from("club_settings")
+    .select(
+      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
+    )
+    .eq("club_id", clubId)
+    .maybeSingle();
+
+  if (settingsError) {
+    throw new Error(settingsError.message);
   }
+
+  const settings = (settingsData as ClubSettingsRow | null) ?? null;
+  const flashError = getErrorMessage(resolvedSearchParams?.error);
+  const flashSaved = resolvedSearchParams?.saved === "1";
 
   const useStrength = settings?.use_strength ?? false;
   const useCategories = settings?.use_categories ?? false;

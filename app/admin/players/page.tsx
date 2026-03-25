@@ -1,14 +1,8 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
-
-type MembershipRow = {
-  club_id: string;
-  role: "admin" | "member";
-};
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 type PlayerRow = {
   id: number;
@@ -42,21 +36,15 @@ type ClubCategoryRow = {
   is_active: boolean | null;
 };
 
-function readCookie(name: string) {
-  if (typeof document === "undefined") return null;
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    message?: string;
+  }>;
+};
 
-  const value = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`))
-    ?.split("=")[1];
-
-  return value ? decodeURIComponent(value) : null;
-}
-
-function writeCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(
-    value
-  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
 }
 
 function boolToYesNo(value: boolean | null | undefined) {
@@ -73,188 +61,91 @@ function positionLabel(
   return "Offen";
 }
 
-function getSearchParam(name: string) {
-  if (typeof window === "undefined") return "";
-  return new URLSearchParams(window.location.search).get(name) ?? "";
+function getPlayerHeadline(player: PlayerRow) {
+  if (player.nickname?.trim()) {
+    return player.nickname.trim();
+  }
+
+  const fullName = [player.first_name, player.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  if (fullName) {
+    return fullName;
+  }
+
+  if (player.name?.trim()) {
+    return player.name.trim();
+  }
+
+  return `Spieler #${player.id}`;
 }
 
-export default function AdminPlayersPage() {
-  const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
+function getPlayerSubline(player: PlayerRow, settings: ClubSettingsRow | null) {
+  return [
+    player.is_guest ? "Gastspieler" : "Normaler Spieler",
+    player.is_active ? "Aktiv" : "Inaktiv",
+    positionLabel(player.preferred_position, settings),
+  ].join(" · ");
+}
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [flashError, setFlashError] = useState("");
-  const [flashMessage, setFlashMessage] = useState("");
+export default async function AdminPlayersPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const { clubId, membership } = await requireClub();
 
-  const [settings, setSettings] = useState<ClubSettingsRow | null>(null);
-  const [categories, setCategories] = useState<ClubCategoryRow[]>([]);
-  const [players, setPlayers] = useState<PlayerRow[]>([]);
+  if (!isAdminRole(membership.role)) {
+    redirect(AUTH_ROUTES.dashboard);
+  }
 
-  useEffect(() => {
-    let isMounted = true;
+  const supabase = await createClient();
 
-    async function loadPage() {
-      setIsLoading(true);
-      setErrorMessage(null);
-      setFlashError(getSearchParam("error"));
-      setFlashMessage(getSearchParam("message"));
+  const [
+    { data: settingsData, error: settingsError },
+    { data: categoriesData, error: categoriesError },
+    { data: playersData, error: playersError },
+  ] = await Promise.all([
+    supabase
+      .from("club_settings")
+      .select(
+        "use_strength, strength_default, use_categories, position_label, attack_label, defense_label, goalkeeper_label"
+      )
+      .eq("club_id", clubId)
+      .maybeSingle(),
+    supabase
+      .from("club_categories")
+      .select("key, label, sort_order, is_active")
+      .eq("club_id", clubId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("players")
+      .select(
+        "id, club_id, name, first_name, last_name, nickname, email, preferred_position, category_key, strength, is_active, is_guest"
+      )
+      .eq("club_id", clubId)
+      .order("is_guest", { ascending: true })
+      .order("last_name", { ascending: true, nullsFirst: false })
+      .order("first_name", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true }),
+  ]);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const user = session?.user ?? null;
-
-      if (!user) {
-        router.replace("/login");
-        router.refresh();
-        return;
-      }
-
-      const { data: membershipsData, error: membershipsError } = await supabase
-        .from("club_memberships")
-        .select("club_id, role")
-        .eq("user_id", user.id);
-
-      if (!isMounted) return;
-
-      if (membershipsError) {
-        setErrorMessage(membershipsError.message);
-        setIsLoading(false);
-        return;
-      }
-
-      const memberships = (membershipsData ?? []) as MembershipRow[];
-
-      if (memberships.length === 0) {
-        router.replace("/waiting-for-invite");
-        router.refresh();
-        return;
-      }
-
-      const activeClubIdFromCookie = readCookie("active_club_id");
-      const validClubIds = new Set(memberships.map((membership) => membership.club_id));
-
-      const activeClubId =
-        memberships.length === 1
-          ? memberships[0].club_id
-          : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-            ? activeClubIdFromCookie
-            : null;
-
-      if (!activeClubId) {
-        router.replace("/select-club");
-        router.refresh();
-        return;
-      }
-
-      if (memberships.length === 1) {
-        writeCookie("active_club_id", activeClubId);
-      }
-
-      const activeMembership =
-        memberships.find((membership) => membership.club_id === activeClubId) ?? null;
-
-      if (!activeMembership || activeMembership.role !== "admin") {
-        router.replace("/admin");
-        router.refresh();
-        return;
-      }
-
-      const [
-        { data: settingsData, error: settingsError },
-        { data: categoriesData, error: categoriesError },
-        { data: playersData, error: playersError },
-      ] = await Promise.all([
-        supabase
-          .from("club_settings")
-          .select(
-            "use_strength, strength_default, use_categories, position_label, attack_label, defense_label, goalkeeper_label"
-          )
-          .eq("club_id", activeClubId)
-          .maybeSingle(),
-        supabase
-          .from("club_categories")
-          .select("key, label, sort_order, is_active")
-          .eq("club_id", activeClubId)
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true }),
-        supabase
-          .from("players")
-          .select(
-            "id, club_id, name, first_name, last_name, nickname, email, preferred_position, category_key, strength, is_active, is_guest"
-          )
-          .eq("club_id", activeClubId)
-          .order("is_guest", { ascending: true })
-          .order("last_name", { ascending: true, nullsFirst: false })
-          .order("first_name", { ascending: true, nullsFirst: false })
-          .order("name", { ascending: true }),
-      ]);
-
-      if (!isMounted) return;
-
-      if (settingsError || categoriesError || playersError) {
-        setErrorMessage(
-          settingsError?.message ||
-            categoriesError?.message ||
-            playersError?.message ||
-            "Daten konnten nicht geladen werden."
-        );
-        setIsLoading(false);
-        return;
-      }
-
-      setSettings((settingsData as ClubSettingsRow | null) ?? null);
-      setCategories((categoriesData ?? []) as ClubCategoryRow[]);
-      setPlayers((playersData ?? []) as PlayerRow[]);
-      setIsLoading(false);
-    }
-
-    loadPage();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [router, supabase]);
-
-  if (isLoading) {
-    return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-6 pb-24">
-        <div className="mb-4 flex items-center">
-          <Link
-            href="/admin"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück zum Adminbereich
-          </Link>
-        </div>
-
-        <div className="rounded-2xl border border-black/10 bg-white p-5 text-sm text-slate-600 shadow-sm">
-          Spieler werden geladen...
-        </div>
-      </main>
+  if (settingsError || categoriesError || playersError) {
+    throw new Error(
+      settingsError?.message ||
+        categoriesError?.message ||
+        playersError?.message ||
+        "Daten konnten nicht geladen werden."
     );
   }
 
-  if (errorMessage) {
-    return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-6 pb-24">
-        <div className="mb-4 flex items-center">
-          <Link
-            href="/admin"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück zum Adminbereich
-          </Link>
-        </div>
-
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          {errorMessage}
-        </div>
-      </main>
-    );
-  }
+  const settings = (settingsData as ClubSettingsRow | null) ?? null;
+  const categories = (categoriesData ?? []) as ClubCategoryRow[];
+  const players = (playersData ?? []) as PlayerRow[];
+  const flashError = resolvedSearchParams?.error ?? "";
+  const flashMessage = resolvedSearchParams?.message ?? "";
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 pb-24">
@@ -272,8 +163,49 @@ export default function AdminPlayersPage() {
           Spieler verwalten
         </h1>
         <p className="mt-2 text-sm text-neutral-600">
-          Bearbeite Namen, E-Mail, Position, Kategorie und Status deiner Spieler.
+          Bearbeite Namen, E-Mail, Position, Kategorie, Stärke und Status deiner
+          Spieler.
         </p>
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="text-sm font-semibold text-slate-900">
+          Hinweis für den Start
+        </div>
+        <div className="mt-2 text-sm leading-6 text-slate-600">
+          Lege zuerst eure wichtigsten Grundlagen fest. Besonders sinnvoll ist es,
+          früh eine oder mehrere Saisons anzulegen, damit Trainings und Tabelle
+          später sauber zugeordnet werden.
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600">
+          In den{" "}
+          <Link
+            href="/admin/seasons"
+            className="font-semibold text-slate-900 underline underline-offset-4"
+          >
+            Saison-Einstellungen
+          </Link>{" "}
+          stellst du ein, wie eine Saison heißt und wann sie beginnt und endet.
+          Trainings, deren Datum in diesen Zeitraum fällt, werden automatisch der
+          passenden Saison zugeordnet.
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href="/admin/seasons"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            Saisons öffnen
+          </Link>
+
+          <Link
+            href="/admin/club"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Team-Einstellungen öffnen
+          </Link>
+        </div>
       </div>
 
       {flashMessage ? (
@@ -288,216 +220,243 @@ export default function AdminPlayersPage() {
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        {players.map((player) => (
-          <form
-            key={player.id}
-            method="post"
-            action="/admin/players/update"
-            className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
-          >
-            <input type="hidden" name="player_id" value={String(player.id)} />
+      {players.length > 0 ? (
+        <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+          {players.length} Spieler im Team hinterlegt. Tippe auf einen Eintrag,
+          um die Bearbeitungsfelder aufzuklappen.
+        </div>
+      ) : null}
 
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div className="text-lg font-bold text-neutral-900">
-                  {player.nickname?.trim()
-                    ? player.nickname
-                    : [player.first_name, player.last_name].filter(Boolean).join(" ").trim() ||
-                      player.name ||
-                      `Spieler #${player.id}`}
+      {players.length === 0 ? (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-500 shadow-sm">
+          Noch keine Spieler vorhanden.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {players.map((player, index) => (
+            <details
+              key={player.id}
+              className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm"
+              open={index === 0}
+            >
+              <summary className="list-none cursor-pointer px-4 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-lg font-bold text-neutral-900">
+                      {getPlayerHeadline(player)}
+                    </div>
+                    <div className="mt-1 text-sm text-neutral-500">
+                      {getPlayerSubline(player, settings)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                      Bearbeiten
+                    </span>
+                    <span className="text-slate-400 transition group-open:rotate-180">
+                      ▼
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-1 text-sm text-neutral-500">
-                  {player.is_guest ? "Gastspieler" : "Normaler Spieler"} ·{" "}
-                  {player.is_active ? "Aktiv" : "Inaktiv"} ·{" "}
-                  {positionLabel(player.preferred_position, settings)}
-                </div>
+              </summary>
+
+              <div className="border-t border-neutral-200 px-4 pb-4 pt-4">
+                <form method="post" action="/admin/players/update">
+                  <input
+                    type="hidden"
+                    name="player_id"
+                    value={String(player.id)}
+                  />
+
+                  <div className="mb-4 flex justify-end">
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-800"
+                    >
+                      Speichern
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor={`first_name_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Vorname
+                      </label>
+                      <input
+                        id={`first_name_${player.id}`}
+                        name="first_name"
+                        defaultValue={player.first_name ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`last_name_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Nachname
+                      </label>
+                      <input
+                        id={`last_name_${player.id}`}
+                        name="last_name"
+                        defaultValue={player.last_name ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`nickname_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Spitzname
+                      </label>
+                      <input
+                        id={`nickname_${player.id}`}
+                        name="nickname"
+                        defaultValue={player.nickname ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`email_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        E-Mail
+                      </label>
+                      <input
+                        id={`email_${player.id}`}
+                        name="email"
+                        type="email"
+                        defaultValue={player.email ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`preferred_position_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        {settings?.position_label || "Position"}
+                      </label>
+                      <select
+                        id={`preferred_position_${player.id}`}
+                        name="preferred_position"
+                        defaultValue={player.preferred_position ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      >
+                        <option value="">Offen</option>
+                        <option value="attack">
+                          {settings?.attack_label || "Angriff"}
+                        </option>
+                        <option value="defense">
+                          {settings?.defense_label || "Abwehr"}
+                        </option>
+                        <option value="goalkeeper">
+                          {settings?.goalkeeper_label || "Torwart"}
+                        </option>
+                      </select>
+                    </div>
+
+                    {settings?.use_categories ? (
+                      <div>
+                        <label
+                          htmlFor={`category_key_${player.id}`}
+                          className="mb-1.5 block text-sm font-medium text-neutral-900"
+                        >
+                          Kategorie
+                        </label>
+                        <select
+                          id={`category_key_${player.id}`}
+                          name="category_key"
+                          defaultValue={player.category_key ?? ""}
+                          className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                        >
+                          <option value="">Keine Kategorie</option>
+                          {categories.map((category) => (
+                            <option key={category.key} value={category.key}>
+                              {category.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
+
+                    {settings?.use_strength ? (
+                      <div>
+                        <label
+                          htmlFor={`strength_${player.id}`}
+                          className="mb-1.5 block text-sm font-medium text-neutral-900"
+                        >
+                          Stärke
+                        </label>
+                        <select
+                          id={`strength_${player.id}`}
+                          name="strength"
+                          defaultValue={String(
+                            player.strength ?? settings?.strength_default ?? 3
+                          )}
+                          className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                        >
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                          <option value="4">4</option>
+                          <option value="5">5</option>
+                        </select>
+                      </div>
+                    ) : null}
+
+                    <div>
+                      <label
+                        htmlFor={`is_active_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Aktiv
+                      </label>
+                      <select
+                        id={`is_active_${player.id}`}
+                        name="is_active"
+                        defaultValue={boolToYesNo(player.is_active)}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      >
+                        <option value="1">Ja</option>
+                        <option value="0">Nein</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`is_guest_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Gastspieler
+                      </label>
+                      <select
+                        id={`is_guest_${player.id}`}
+                        name="is_guest"
+                        defaultValue={boolToYesNo(player.is_guest)}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      >
+                        <option value="0">Nein</option>
+                        <option value="1">Ja</option>
+                      </select>
+                    </div>
+                  </div>
+                </form>
               </div>
-
-              <button
-                type="submit"
-                className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-800"
-              >
-                Speichern
-              </button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label
-                  htmlFor={`first_name_${player.id}`}
-                  className="mb-1.5 block text-sm font-medium text-neutral-900"
-                >
-                  Vorname
-                </label>
-                <input
-                  id={`first_name_${player.id}`}
-                  name="first_name"
-                  defaultValue={player.first_name ?? ""}
-                  className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={`last_name_${player.id}`}
-                  className="mb-1.5 block text-sm font-medium text-neutral-900"
-                >
-                  Nachname
-                </label>
-                <input
-                  id={`last_name_${player.id}`}
-                  name="last_name"
-                  defaultValue={player.last_name ?? ""}
-                  className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={`nickname_${player.id}`}
-                  className="mb-1.5 block text-sm font-medium text-neutral-900"
-                >
-                  Spitzname
-                </label>
-                <input
-                  id={`nickname_${player.id}`}
-                  name="nickname"
-                  defaultValue={player.nickname ?? ""}
-                  className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={`email_${player.id}`}
-                  className="mb-1.5 block text-sm font-medium text-neutral-900"
-                >
-                  E-Mail
-                </label>
-                <input
-                  id={`email_${player.id}`}
-                  name="email"
-                  type="email"
-                  defaultValue={player.email ?? ""}
-                  className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={`preferred_position_${player.id}`}
-                  className="mb-1.5 block text-sm font-medium text-neutral-900"
-                >
-                  {settings?.position_label || "Position"}
-                </label>
-                <select
-                  id={`preferred_position_${player.id}`}
-                  name="preferred_position"
-                  defaultValue={player.preferred_position ?? ""}
-                  className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                >
-                  <option value="">Offen</option>
-                  <option value="attack">
-                    {settings?.attack_label || "Angriff"}
-                  </option>
-                  <option value="defense">
-                    {settings?.defense_label || "Abwehr"}
-                  </option>
-                  <option value="goalkeeper">
-                    {settings?.goalkeeper_label || "Torwart"}
-                  </option>
-                </select>
-              </div>
-
-              {settings?.use_categories ? (
-                <div>
-                  <label
-                    htmlFor={`category_key_${player.id}`}
-                    className="mb-1.5 block text-sm font-medium text-neutral-900"
-                  >
-                    Kategorie
-                  </label>
-                  <select
-                    id={`category_key_${player.id}`}
-                    name="category_key"
-                    defaultValue={player.category_key ?? ""}
-                    className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                  >
-                    <option value="">Keine Kategorie</option>
-                    {categories.map((category) => (
-                      <option key={category.key} value={category.key}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-
-              {settings?.use_strength ? (
-                <div>
-                  <label
-                    htmlFor={`strength_${player.id}`}
-                    className="mb-1.5 block text-sm font-medium text-neutral-900"
-                  >
-                    Stärke
-                  </label>
-                  <select
-                    id={`strength_${player.id}`}
-                    name="strength"
-                    defaultValue={String(
-                      player.strength ?? settings?.strength_default ?? 3
-                    )}
-                    className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                  >
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                  </select>
-                </div>
-              ) : null}
-
-              <div>
-                <label
-                  htmlFor={`is_active_${player.id}`}
-                  className="mb-1.5 block text-sm font-medium text-neutral-900"
-                >
-                  Aktiv
-                </label>
-                <select
-                  id={`is_active_${player.id}`}
-                  name="is_active"
-                  defaultValue={boolToYesNo(player.is_active)}
-                  className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                >
-                  <option value="1">Ja</option>
-                  <option value="0">Nein</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor={`is_guest_${player.id}`}
-                  className="mb-1.5 block text-sm font-medium text-neutral-900"
-                >
-                  Gastspieler
-                </label>
-                <select
-                  id={`is_guest_${player.id}`}
-                  name="is_guest"
-                  defaultValue={boolToYesNo(player.is_guest)}
-                  className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                >
-                  <option value="0">Nein</option>
-                  <option value="1">Ja</option>
-                </select>
-              </div>
-            </div>
-          </form>
-        ))}
-      </div>
+            </details>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

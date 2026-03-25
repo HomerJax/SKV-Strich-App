@@ -1,17 +1,8 @@
-"use client";
-
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-
-type MembershipRow = {
-  club_id: string;
-};
-
-type PlayerRow = {
-  id: number | string;
-  club_id: string | null;
-};
+import { redirect } from "next/navigation";
+import { getAuthContext } from "@/lib/auth/context";
+import { createClubAction } from "./actions";
 
 function getErrorMessage(error?: string | null) {
   switch (error) {
@@ -32,346 +23,142 @@ function getErrorMessage(error?: string | null) {
   }
 }
 
-function getErrorFromUrl() {
-  if (typeof window === "undefined") {
-    return null;
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string;
+  }>;
+};
+
+export default async function ClubSetupPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const ctx = await getAuthContext();
+
+  if (!ctx.user) {
+    redirect("/login");
   }
 
-  const params = new URLSearchParams(window.location.search);
-  return params.get("error");
-}
-
-export default function ClubSetupPage() {
-  const hasNavigatedRef = useRef(false);
-
-  const [displayName, setDisplayName] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
-
-  const resolvedErrorMessage = useMemo(
-    () => getErrorMessage(getErrorFromUrl()) ?? errorMessage,
-    [errorMessage]
-  );
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function resolveAuthenticatedUser() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session?.user) {
-        return session.user;
-      }
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        return user;
-      }
-
-      await new Promise((resolve) => window.setTimeout(resolve, 350));
-
-      const {
-        data: { session: retrySession },
-      } = await supabase.auth.getSession();
-
-      if (retrySession?.user) {
-        return retrySession.user;
-      }
-
-      const {
-        data: { user: retryUser },
-      } = await supabase.auth.getUser();
-
-      return retryUser ?? null;
-    }
-
-    async function bootstrap() {
-      const user = await resolveAuthenticatedUser();
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (!user) {
-        setAuthReady(false);
-        setErrorMessage(
-          "Deine Anmeldung konnte nicht geladen werden. Bitte logge dich erneut ein."
-        );
-        setIsCheckingAuth(false);
-        return;
-      }
-
-      const { data: playerData, error: playerError } = await supabase
-        .from("players")
-        .select("id, club_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (playerError) {
-        setAuthReady(false);
-        setErrorMessage("Dein Profil konnte nicht geladen werden.");
-        setIsCheckingAuth(false);
-        return;
-      }
-
-      const player = (playerData ?? null) as PlayerRow | null;
-
-      if (!player) {
-        if (!hasNavigatedRef.current) {
-          hasNavigatedRef.current = true;
-          window.location.href = "/onboarding";
-        }
-        return;
-      }
-
-      const { data: membershipsData, error: membershipsError } = await supabase
-        .from("club_memberships")
-        .select("club_id")
-        .eq("user_id", user.id);
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (membershipsError) {
-        setAuthReady(false);
-        setErrorMessage("Dein Account konnte nicht geladen werden.");
-        setIsCheckingAuth(false);
-        return;
-      }
-
-      const memberships = (membershipsData ?? []) as MembershipRow[];
-
-      if (memberships.length === 1) {
-        document.cookie = `active_club_id=${encodeURIComponent(
-          memberships[0].club_id
-        )}; Path=/; Max-Age=31536000; SameSite=Lax`;
-
-        if (!hasNavigatedRef.current) {
-          hasNavigatedRef.current = true;
-          window.location.href = "/";
-        }
-        return;
-      }
-
-      if (memberships.length > 1) {
-        if (!hasNavigatedRef.current) {
-          hasNavigatedRef.current = true;
-          window.location.href = "/select-club";
-        }
-        return;
-      }
-
-      setAuthReady(true);
-      setIsCheckingAuth(false);
-    }
-
-    bootstrap();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const cleanDisplayName = displayName.trim();
-
-    if (!cleanDisplayName) {
-      setErrorMessage("Bitte gib einen Teamnamen ein.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    try {
-      const response = await fetch("/api/club-setup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          display_name: cleanDisplayName,
-        }),
-        credentials: "include",
-      });
-
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            ok?: boolean;
-            error?: string;
-            detail?: string | null;
-            club_id?: string;
-            redirect_to?: string;
-          }
-        | null;
-
-      if (!response.ok || !payload?.ok) {
-        setErrorMessage(
-          getErrorMessage(payload?.error) ?? "Das Team konnte nicht erstellt werden."
-        );
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (payload.club_id) {
-        document.cookie = `active_club_id=${encodeURIComponent(
-          payload.club_id
-        )}; Path=/; Max-Age=31536000; SameSite=Lax`;
-      }
-
-      window.location.href = payload?.redirect_to || "/";
-    } catch {
-      setErrorMessage("Das Team konnte nicht erstellt werden.");
-      setIsSubmitting(false);
-    }
+  if (!ctx.player) {
+    redirect("/onboarding");
   }
 
-  if (isCheckingAuth) {
-    return (
-      <main className="min-h-screen bg-neutral-50">
-        <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-          <div className="w-full rounded-3xl border border-neutral-200 bg-white p-6 text-center shadow-sm sm:p-8">
-            <p className="text-sm text-neutral-600">Lade Team-Setup...</p>
-          </div>
-        </div>
-      </main>
-    );
+  if (ctx.memberships.length === 1 && ctx.activeClubId) {
+    redirect("/");
   }
 
-  if (!authReady) {
-    return (
-      <main className="min-h-screen bg-neutral-50">
-        <div className="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-10 sm:px-6 lg:px-8">
-          <div className="w-full rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {resolvedErrorMessage ??
-                "Deine Anmeldung konnte nicht geladen werden. Bitte logge dich erneut ein."}
-            </div>
-
-            <Link
-              href="/login"
-              className="inline-flex w-full items-center justify-center rounded-2xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
-            >
-              Zum Login
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
+  if (ctx.memberships.length > 1) {
+    redirect("/select-club");
   }
+
+  const resolvedErrorMessage = getErrorMessage(resolvedSearchParams?.error);
 
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <div className="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-10 sm:px-6 lg:px-8">
-        <div className="w-full rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="mb-8">
-            <div className="mb-3 inline-flex items-center rounded-full bg-neutral-100 px-3 py-1 text-sm font-medium text-neutral-700">
-              strikr
-            </div>
+    <main className="min-h-screen bg-neutral-100">
+      <section className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center px-4 py-10 sm:px-6">
+        <div className="w-full rounded-[32px] border border-black/10 bg-white p-8 shadow-sm sm:p-10">
+          <div className="mx-auto max-w-3xl">
+            <div className="text-center">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-slate-950 shadow-[0_10px_25px_-10px_rgba(0,0,0,0.6)]">
+  <Image
+    src="/icon-dark.png"
+    alt="strikr Logo"
+    width={60}
+    height={60}
+    className="h-15 w-15 object-contain"
+    priority
+  />
+</div>
 
-            <h1 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
-              Du hast aktuell noch kein Team
-            </h1>
+              <div className="mt-5 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
+                strikr
+              </div>
 
-            <p className="mt-3 max-w-2xl text-base leading-7 text-neutral-600">
-              Erstelle jetzt dein Team, wenn du loslegen möchtest. Oder warte auf
-              eine Einladung, falls du später zu einem bestehenden Team hinzugefügt
-              wirst.
-            </p>
-          </div>
+              <h1 className="mt-3 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                Noch kein Team vorhanden
+              </h1>
 
-          {resolvedErrorMessage ? (
-            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {resolvedErrorMessage}
-            </div>
-          ) : null}
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <section className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-              <h2 className="text-lg font-semibold text-neutral-950">
-                Team erstellen
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-neutral-600">
-                Du legst ein neues Team an und wirst automatisch Admin dieses
-                Teams.
+              <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">
+                Erstelle jetzt dein Team, wenn du direkt loslegen möchtest. Oder
+                warte auf eine Einladung, falls du später zu einem bestehenden
+                Team hinzugefügt wirst.
               </p>
+            </div>
 
-              <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-                <div>
-                  <label
-                    htmlFor="display_name"
-                    className="mb-2 block text-sm font-medium text-neutral-800"
+            {resolvedErrorMessage ? (
+              <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {resolvedErrorMessage}
+              </div>
+            ) : null}
+
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
+              <section className="rounded-[24px] border border-neutral-200 bg-neutral-50 p-5">
+                <h2 className="text-lg font-semibold text-neutral-950">
+                  Team erstellen
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-neutral-600">
+                  Du legst ein neues Team an und wirst automatisch Admin dieses
+                  Teams.
+                </p>
+
+                <form action={createClubAction} className="mt-5 space-y-4">
+                  <div>
+                    <label
+                      htmlFor="display_name"
+                      className="mb-2 block text-sm font-medium text-neutral-800"
+                    >
+                      Teamname
+                    </label>
+
+                    <input
+                      id="display_name"
+                      name="display_name"
+                      type="text"
+                      required
+                      maxLength={80}
+                      placeholder="z. B. AH Musterstadt"
+                      className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-400"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                   >
-                    Teamname
-                  </label>
+                    Team erstellen
+                  </button>
+                </form>
+              </section>
 
-                  <input
-                    id="display_name"
-                    name="display_name"
-                    type="text"
-                    required
-                    maxLength={80}
-                    value={displayName}
-                    onChange={(event) => setDisplayName(event.target.value)}
-                    placeholder="z. B. AH Musterstadt"
-                    className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-950 outline-none transition focus:border-neutral-400"
-                    disabled={isSubmitting}
-                  />
+              <section className="rounded-[24px] border border-neutral-200 bg-neutral-50 p-5">
+                <h2 className="text-lg font-semibold text-neutral-950">
+                  Auf Einladung warten
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-neutral-600">
+                  Falls dich ein Admin später zu einem bestehenden Team hinzufügt,
+                  kommst du nach dem nächsten Login oder Seitenaufruf automatisch
+                  weiter.
+                </p>
+
+                <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white p-4 text-sm leading-6 text-neutral-600">
+                  Du musst jetzt nichts weiter einrichten. Sobald eine Einladung
+                  für dich aktiv ist, kannst du direkt mit dem passenden Team
+                  starten.
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {isSubmitting ? "Team wird erstellt..." : "Team erstellen"}
-                </button>
-              </form>
-            </section>
-
-            <section className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-              <h2 className="text-lg font-semibold text-neutral-950">
-                Auf Einladung warten
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-neutral-600">
-                Falls dich ein Admin später zu einem bestehenden Team hinzufügt,
-                kannst du dich einfach erneut einloggen und direkt weitermachen.
-              </p>
-
-              <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white p-4 text-sm leading-6 text-neutral-600">
-                Aktuell gibt es noch kein separates Invite-System. Diese Seite sorgt
-                aber schon jetzt dafür, dass User ohne Team nicht in einen unklaren
-                Zustand laufen.
-              </div>
-
-              <div className="mt-4">
-                <Link
-                  href="/logout"
-                  className="inline-flex w-full items-center justify-center rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100"
-                >
-                  Abmelden
-                </Link>
-              </div>
-            </section>
+                <div className="mt-4">
+                  <Link
+                    href="/logout"
+                    className="inline-flex w-full items-center justify-center rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100"
+                  >
+                    Abmelden
+                  </Link>
+                </div>
+              </section>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

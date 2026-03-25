@@ -1,23 +1,12 @@
-"use client";
-
-import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LogoutButton() {
-  const router = useRouter();
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
   return (
-    <button
-      onClick={handleLogout}
+    <Link
+      href="/logout"
       className="rounded-lg border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
     >
       Logout
-    </button>
+    </Link>
   );
 }

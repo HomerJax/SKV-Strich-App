@@ -1,116 +1,103 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/auth/context";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
 
-function getSafeNext(next: string | null | undefined) {
-  if (!next) return "";
-  if (!next.startsWith("/")) return "";
-  if (next.startsWith("//")) return "";
-  return next;
-}
+export type SignupState = {
+  error: string;
+};
 
-function buildSignupRedirect(params: {
-  error?: string;
-  message?: string;
-  next?: string;
-  email?: string;
-}) {
-  const search = new URLSearchParams();
-
-  if (params.error) search.set("error", params.error);
-  if (params.message) search.set("message", params.message);
-  if (params.next) search.set("next", params.next);
-  if (params.email) search.set("email", params.email);
-
-  const query = search.toString();
-  return query ? `/signup?${query}` : "/signup";
-}
-
-function buildOnboardingRedirect(next: string) {
-  const search = new URLSearchParams();
-  if (next) search.set("next", next);
-
-  const query = search.toString();
-  return query ? `/onboarding?${query}` : "/onboarding";
-}
-
-export async function signupAction(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
+export async function signupAction(
+  _prevState: SignupState,
+  formData: FormData
+): Promise<SignupState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const rawNext = String(formData.get("next") ?? "");
-  const next = getSafeNext(rawNext);
+  const passwordConfirm = String(formData.get("password_confirm") ?? "");
 
-  if (!email || !password) {
-    redirect(
-      buildSignupRedirect({
-        error: "Bitte E-Mail und Passwort eingeben.",
-        next,
-        email,
-      })
-    );
+  if (!email || !password || !passwordConfirm) {
+    return { error: "missing-fields" };
+  }
+
+  if (password !== passwordConfirm) {
+    return { error: "password-mismatch" };
   }
 
   if (password.length < 8) {
-    redirect(
-      buildSignupRedirect({
-        error: "Das Passwort muss mindestens 8 Zeichen lang sein.",
-        next,
-        email,
-      })
-    );
+    return { error: "password-too-short" };
+  }
+
+  const supabase = await createClient();
+
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (signUpError) {
+    const message = signUpError.message.toLowerCase();
+
+    if (
+      message.includes("already registered") ||
+      message.includes("already been registered") ||
+      message.includes("user already registered")
+    ) {
+      return { error: "email-already-used" };
+    }
+
+    return { error: "signup-failed" };
+  }
+
+  if (!signUpData.user) {
+    return { error: "signup-failed" };
+  }
+
+  try {
+    await supabase.rpc("link_existing_player_by_email", {
+      user_email: email,
+    });
+  } catch {
+    // unkritisch
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInError) {
+    return { error: "login-after-signup-failed" };
+  }
+
+  const ctx = await getAuthContext();
+
+  if (!ctx.user) {
+    return { error: "session-not-ready" };
   }
 
   const cookieStore = await cookies();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  const origin =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000";
-
-  const emailRedirectTo = `${origin}/auth/callback`;
-
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo,
-    },
-  });
-
-  if (error) {
-    let message = "Registrierung fehlgeschlagen.";
-
-    if (error.message.toLowerCase().includes("already registered")) {
-      message = "Für diese E-Mail existiert bereits ein Konto.";
-    }
-
-    redirect(
-      buildSignupRedirect({
-        error: message,
-        next,
-        email,
-      })
-    );
+  if (!ctx.player) {
+    redirect(AUTH_ROUTES.onboarding);
   }
 
-  redirect(buildOnboardingRedirect(next));
+  if (!ctx.memberships.length) {
+    redirect(AUTH_ROUTES.waitingForInvite);
+  }
+
+  if (!ctx.activeClubId) {
+    redirect(AUTH_ROUTES.selectClub);
+  }
+
+  cookieStore.set("active_club_id", ctx.activeClubId, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+    httpOnly: false,
+  });
+
+  redirect(AUTH_ROUTES.dashboard);
 }

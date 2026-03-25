@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 
 type HeaderAuthActionsProps = {
   isLoggedIn: boolean;
@@ -13,14 +11,6 @@ export default function HeaderAuthActions({
   isLoggedIn,
   isAdmin,
 }: HeaderAuthActionsProps) {
-  const router = useRouter();
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
   if (!isLoggedIn) {
     return (
       <Link
@@ -43,13 +33,12 @@ export default function HeaderAuthActions({
         </Link>
       )}
 
-      <button
-        type="button"
-        onClick={handleLogout}
+      <Link
+        href="/logout"
         className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-white/90 hover:bg-white/10"
       >
         Logout
-      </button>
+      </Link>
     </div>
   );
 }

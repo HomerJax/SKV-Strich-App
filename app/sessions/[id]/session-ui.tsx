@@ -10,6 +10,7 @@ export function getErrorMessage(e: unknown, fallback: string) {
   ) {
     return (e as { message: string }).message;
   }
+
   return fallback;
 }
 
@@ -33,7 +34,8 @@ export function ageBadgeColor(age: Player["age_group"]) {
   return "bg-slate-100 text-slate-700";
 }
 
-export const ageScore = (a: Player["age_group"]) => (a === "Ü32" ? 1 : a === "AH" ? -1 : 0);
+export const ageScore = (a: Player["age_group"]) =>
+  a === "Ü32" ? 1 : a === "AH" ? -1 : 0;
 
 export const posScore = (p: Player["preferred_position"]) =>
   p === "attack" ? 1 : p === "defense" ? -1 : 0;
@@ -45,10 +47,12 @@ export const strengthScore = (s: number | null) => {
 
 export function shuffle<T>(arr: T[]) {
   const c = [...arr];
-  for (let i = c.length - 1; i > 0; i--) {
+
+  for (let i = c.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [c[i], c[j]] = [c[j], c[i]];
   }
+
   return c;
 }
 
@@ -74,7 +78,9 @@ export function positionRank(pos: Player["preferred_position"]) {
 export function sortForTeamView(a: Player, b: Player) {
   const ra = positionRank(a.preferred_position);
   const rb = positionRank(b.preferred_position);
+
   if (ra !== rb) return ra - rb;
+
   return getPlayerDisplayName(a).localeCompare(getPlayerDisplayName(b), "de");
 }
 
@@ -93,7 +99,11 @@ function sharePlayerLabel(player: Player) {
   return player.is_guest ? `${base} (Gast)` : base;
 }
 
-export function buildLineupShareText(session: SessionRow | null, teamA: Player[], teamB: Player[]) {
+export function buildLineupShareText(
+  session: SessionRow | null,
+  teamA: Player[],
+  teamB: Player[]
+) {
   const header = session
     ? `Aufstellung vom ${formatGermanDate(session.date)}`
     : "Aufstellung";
@@ -102,7 +112,9 @@ export function buildLineupShareText(session: SessionRow | null, teamA: Player[]
     teamA.length > 0
       ? teamA.map(
           (player, index) =>
-            `${index + 1}. ${sharePlayerLabel(player)} (${positionLabel(player.preferred_position)})`
+            `${index + 1}. ${sharePlayerLabel(player)} (${positionLabel(
+              player.preferred_position
+            )})`
         )
       : ["Noch keine Spieler zugewiesen."];
 
@@ -110,7 +122,9 @@ export function buildLineupShareText(session: SessionRow | null, teamA: Player[]
     teamB.length > 0
       ? teamB.map(
           (player, index) =>
-            `${index + 1}. ${sharePlayerLabel(player)} (${positionLabel(player.preferred_position)})`
+            `${index + 1}. ${sharePlayerLabel(player)} (${positionLabel(
+              player.preferred_position
+            )})`
         )
       : ["Noch keine Spieler zugewiesen."];
 
@@ -166,10 +180,17 @@ export function buildResultShareText(
 }
 
 export function winnerLabel(goalsA: string, goalsB: string) {
-  if (goalsA.trim() === "" || goalsB.trim() === "") return "Noch kein vollständiges Ergebnis";
+  if (goalsA.trim() === "" || goalsB.trim() === "") {
+    return "Noch kein vollständiges Ergebnis";
+  }
+
   const a = Number(goalsA);
   const b = Number(goalsB);
-  if (Number.isNaN(a) || Number.isNaN(b)) return "Noch kein vollständiges Ergebnis";
+
+  if (Number.isNaN(a) || Number.isNaN(b)) {
+    return "Noch kein vollständiges Ergebnis";
+  }
+
   if (a === b) return "Unentschieden";
   return a > b ? "Team 1 gewinnt" : "Team 2 gewinnt";
 }

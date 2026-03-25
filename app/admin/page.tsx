@@ -1,292 +1,159 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
-
-type MembershipRow = {
-  club_id: string;
-  role: "admin" | "member";
-};
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 type ClubRow = {
   id: string;
   display_name: string | null;
 };
 
-function readCookie(name: string) {
-  if (typeof document === "undefined") return null;
-
-  const value = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`))
-    ?.split("=")[1];
-
-  return value ? decodeURIComponent(value) : null;
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
 }
 
-function writeCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(
-    value
-  )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+function getRoleLabel(role: string | null | undefined) {
+  if (role === "owner") return "Owner";
+  if (role === "admin") return "Admin";
+  return "Mitglied";
 }
 
-export default function AdminPage() {
-  const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
-  const hasRedirectedRef = useRef(false);
+type AdminCardProps = {
+  href: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: string;
+};
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [clubName, setClubName] = useState("Dein Club");
-  const [roleLabel, setRoleLabel] = useState("Mitglied");
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function resolveAuthenticatedUser() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session?.user) {
-        return session.user;
-      }
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        return user;
-      }
-
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        await new Promise((resolve) => window.setTimeout(resolve, 250));
-
-        const {
-          data: { session: retrySession },
-        } = await supabase.auth.getSession();
-
-        if (retrySession?.user) {
-          return retrySession.user;
-        }
-
-        const {
-          data: { user: retryUser },
-        } = await supabase.auth.getUser();
-
-        if (retryUser) {
-          return retryUser;
-        }
-      }
-
-      return null;
-    }
-
-    async function loadAdmin() {
-      setIsLoading(true);
-      setErrorMessage(null);
-
-      const user = await resolveAuthenticatedUser();
-
-      if (!isMounted) return;
-
-      if (!user) {
-        if (!hasRedirectedRef.current) {
-          hasRedirectedRef.current = true;
-          router.replace("/login");
-          router.refresh();
-        }
-        return;
-      }
-
-      const { data: membershipData, error: membershipError } = await supabase
-        .from("club_memberships")
-        .select("club_id, role")
-        .eq("user_id", user.id);
-
-      if (!isMounted) return;
-
-      if (membershipError) {
-        setErrorMessage("Deine Club-Mitgliedschaften konnten nicht geladen werden.");
-        setIsLoading(false);
-        return;
-      }
-
-      const memberships = (membershipData ?? []) as MembershipRow[];
-
-      if (memberships.length === 0) {
-        if (!hasRedirectedRef.current) {
-          hasRedirectedRef.current = true;
-          router.replace("/waiting-for-invite");
-          router.refresh();
-        }
-        return;
-      }
-
-      const activeClubIdFromCookie = readCookie("active_club_id");
-      const validClubIds = new Set(
-        memberships.map((membership) => membership.club_id)
-      );
-
-      let activeClubId: string | null = null;
-
-      if (activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)) {
-        activeClubId = activeClubIdFromCookie;
-      } else if (memberships.length === 1) {
-        activeClubId = memberships[0].club_id;
-        writeCookie("active_club_id", activeClubId);
-      } else {
-        if (!hasRedirectedRef.current) {
-          hasRedirectedRef.current = true;
-          router.replace("/select-club");
-          router.refresh();
-        }
-        return;
-      }
-
-      const activeMembership =
-        memberships.find((membership) => membership.club_id === activeClubId) ??
-        null;
-
-      if (!activeMembership) {
-        if (!hasRedirectedRef.current) {
-          hasRedirectedRef.current = true;
-          router.replace("/select-club");
-          router.refresh();
-        }
-        return;
-      }
-
-      if (activeMembership.role !== "admin") {
-        if (!hasRedirectedRef.current) {
-          hasRedirectedRef.current = true;
-          router.replace("/");
-          router.refresh();
-        }
-        return;
-      }
-
-      setRoleLabel(activeMembership.role === "admin" ? "Admin" : "Mitglied");
-
-      const { data: clubData, error: clubError } = await supabase
-        .from("clubs")
-        .select("id, display_name")
-        .eq("id", activeClubId)
-        .maybeSingle();
-
-      if (!isMounted) return;
-
-      if (clubError) {
-        setErrorMessage("Der aktive Club konnte nicht geladen werden.");
-        setIsLoading(false);
-        return;
-      }
-
-      const club = (clubData ?? null) as ClubRow | null;
-      setClubName(club?.display_name?.trim() || "Dein Club");
-      setIsLoading(false);
-    }
-
-    loadAdmin();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      if (!hasRedirectedRef.current) {
-        loadAdmin();
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [router, supabase]);
-
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-4 py-4 sm:px-6 lg:px-8">
-          <div className="w-full max-w-md rounded-[24px] border border-black/10 bg-white p-6 text-center shadow-sm">
-            <p className="text-sm text-neutral-600">Adminbereich wird geladen...</p>
+function AdminCard({
+  href,
+  eyebrow,
+  title,
+  description,
+  icon,
+}: AdminCardProps) {
+  return (
+    <Link
+      href={href}
+      className="group rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+            {eyebrow}
           </div>
-        </section>
-      </main>
+          <h2 className="mt-2 text-lg font-semibold text-slate-950">{title}</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+        </div>
+
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
+          {icon}
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center text-sm font-medium text-slate-900">
+        Öffnen
+        <span className="ml-2 transition group-hover:translate-x-1">→</span>
+      </div>
+    </Link>
+  );
+}
+
+export default async function AdminPage() {
+  const { clubId, membership } = await requireClub();
+
+  if (!isAdminRole(membership.role)) {
+    redirect(AUTH_ROUTES.dashboard);
+  }
+
+  const supabase = await createClient();
+
+  const { data: clubData, error: clubError } = await supabase
+    .from("clubs")
+    .select("id, display_name")
+    .eq("id", clubId)
+    .maybeSingle();
+
+  if (clubError) {
+    throw new Error(
+      `Der aktive Club konnte nicht geladen werden: ${clubError.message}`
     );
   }
 
-  if (errorMessage) {
-    return (
-      <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-4 py-4 sm:px-6 lg:px-8">
-          <div className="w-full max-w-md rounded-[24px] border border-red-200 bg-white p-6 shadow-sm">
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {errorMessage}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
-            >
-              Erneut laden
-            </button>
-          </div>
-        </section>
-      </main>
-    );
-  }
+  const club = (clubData ?? null) as ClubRow | null;
+  const clubName = club?.display_name?.trim() || "Dein Team";
+  const roleLabel = getRoleLabel(membership.role);
 
   return (
     <main className="min-h-screen bg-neutral-100">
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="rounded-[28px] border border-slate-800/10 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex items-center">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück zur Startseite
+          </Link>
+        </div>
+
+        <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Adminbereich
               </div>
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
+
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
                 {clubName}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                Für die Freigabe sind hier nur die stabilen Kernfunktionen sichtbar.
+
+              <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
+                Hier verwaltest du die wichtigsten Einstellungen für dein Team:
+                Spieler, Mitglieder, Club-Auftritt und Saisonlogik.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900">
-              <div className="text-sm font-medium">Rolle im aktiven Club:</div>
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900">
+              <div className="text-sm font-medium">Deine Rolle</div>
               <div className="mt-1 text-2xl font-bold">{roleLabel}</div>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-4">
-          <Link
-            href="/admin/invites"
-            className="rounded-[24px] border border-slate-800/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="text-sm font-semibold text-slate-900">
-              Einladungen
-            </div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Erzeuge Einladungslinks, kopiere sie oder teile sie direkt per
-              WhatsApp, E-Mail oder über die Teilen-Funktion deines Geräts.
-            </p>
-          </Link>
-
-          <Link
+        <div className="grid gap-4 md:grid-cols-2">
+          <AdminCard
             href="/admin/players"
-            className="rounded-[24px] border border-slate-800/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="text-sm font-semibold text-slate-900">Spieler</div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Spieler verwalten, Positionen pflegen und Stärken anpassen.
-            </p>
-          </Link>
+            eyebrow="Spielbetrieb"
+            title="Spieler verwalten"
+            description="Pflege Spielerprofile, Positionen, Stärken und weitere Grundlagen für Trainings, Aufstellungen und Auswertungen."
+            icon="⚽"
+          />
+
+          <AdminCard
+            href="/admin/invites"
+            eyebrow="Mitglieder"
+            title="Mitglieder hinzufügen"
+            description="Lade neue Personen in den Club ein und steuere, wer Zugriff auf das Team und seine Funktionen erhält."
+            icon="👥"
+          />
+
+          <AdminCard
+            href="/admin/club"
+            eyebrow="Branding"
+            title="Club & Branding"
+            description="Hinterlege Teamname, Logo und weitere sichtbare Club-Informationen für eine saubere Identität in der App."
+            icon="🏷️"
+          />
+
+          <AdminCard
+            href="/admin/seasons"
+            eyebrow="Saison"
+            title="Saison-Einstellungen"
+            description="Lege fest, wie die Saison heißt und ab welchem Datum sie beginnt, damit Tabellen und Auswertungen sauber zugeordnet werden."
+            icon="📅"
+          />
         </div>
       </section>
     </main>

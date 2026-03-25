@@ -1,7 +1,5 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { getPlayerDisplayName } from "@/lib/player-display";
 import type { RankRow } from "./standings-types";
 import { movementClass, movementText } from "./standings-ui";

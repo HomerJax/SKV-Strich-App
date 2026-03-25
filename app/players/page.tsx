@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { requireClub } from "@/lib/auth/guards";
+import { createClient } from "@/lib/supabase/server";
 import { PublicPlayer } from "@/lib/types/player";
 import { getPlayerDisplayName } from "@/lib/player-display";
 
@@ -24,20 +24,8 @@ function sortPlayersByDisplayName(players: PlayerListItem[]) {
 }
 
 export default async function PlayersPage() {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    }
-  );
+  await requireClub();
+  const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("get_players_public");
 
@@ -59,7 +47,9 @@ export default async function PlayersPage() {
       <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Spieler</h1>
-          <p className="text-xs text-slate-500">Kader für die App.</p>
+          <p className="text-xs text-slate-500">
+            Kader für den aktiven Club.
+          </p>
         </div>
 
         <Link
