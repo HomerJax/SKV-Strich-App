@@ -1,8 +1,14 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+
+type MembershipRow = {
+  id: number;
+  club_id: string;
+  user_id: string;
+  role: string | null;
+};
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -13,46 +19,95 @@ export async function POST(request: Request) {
   const password = String(formData.get("password") ?? "").trim();
 
   if (!email || !password) {
-    redirect("/login?error=missing-fields&email=" + encodeURIComponent(email));
+    redirect(`/login?error=missing-fields&email=${encodeURIComponent(email)}`);
   }
 
   const supabase = await createClient();
 
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { data: signInData, error: signInError } =
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (signInError) {
-    redirect("/login?error=invalid-credentials&email=" + encodeURIComponent(email));
+  if (signInError || !signInData.user) {
+    redirect(
+      `/login?error=invalid-credentials&email=${encodeURIComponent(email)}`
+    );
   }
 
-  const ctx = await getAuthContext();
+  const user = signInData.user;
 
-  if (!ctx.user) {
-    redirect("/login?error=session-not-ready&email=" + encodeURIComponent(email));
+  const { data: player, error: playerError } = await supabase
+    .from("players")
+    .select("id, user_id, first_name, last_name, nickname")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (playerError) {
+    redirect(
+      `/login?error=${encodeURIComponent(
+        `player-load-failed:${playerError.message}`
+      )}&email=${encodeURIComponent(email)}`
+    );
+  }
+
+  if (!player) {
+    redirect(AUTH_ROUTES.onboarding);
+  }
+
+  const { data: memberships, error: membershipsError } = await supabase
+    .from("club_memberships")
+    .select("id, club_id, user_id, role")
+    .eq("user_id", user.id);
+
+  if (membershipsError) {
+    redirect(
+      `/login?error=${encodeURIComponent(
+        `membership-load-failed:${membershipsError.message}`
+      )}&email=${encodeURIComponent(email)}`
+    );
+  }
+
+  const normalizedMemberships = (memberships ?? []) as MembershipRow[];
+
+  if (!normalizedMemberships.length) {
+    redirect(AUTH_ROUTES.waitingForInvite);
   }
 
   const cookieStore = await cookies();
 
-  if (!ctx.player) {
-    redirect(AUTH_ROUTES.onboarding);
+  if (normalizedMemberships.length === 1) {
+    cookieStore.set("active_club_id", normalizedMemberships[0].club_id, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      httpOnly: false,
+      secure: true,
+    });
+
+    redirect(AUTH_ROUTES.dashboard);
   }
 
-  if (!ctx.memberships.length) {
-    redirect(AUTH_ROUTES.selectClub);
+  const existingActiveClubId = cookieStore.get("active_club_id")?.value ?? null;
+
+  const hasExistingMembership = existingActiveClubId
+    ? normalizedMemberships.some(
+        (membership) => membership.club_id === existingActiveClubId
+      )
+    : false;
+
+  if (hasExistingMembership && existingActiveClubId) {
+    cookieStore.set("active_club_id", existingActiveClubId, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      httpOnly: false,
+      secure: true,
+    });
+
+    redirect(AUTH_ROUTES.dashboard);
   }
 
-  if (!ctx.activeClubId) {
-    redirect(AUTH_ROUTES.selectClub);
-  }
-
-  cookieStore.set("active_club_id", ctx.activeClubId, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-    httpOnly: false,
-  });
-
-  redirect(AUTH_ROUTES.dashboard);
+  redirect(AUTH_ROUTES.selectClub);
 }
