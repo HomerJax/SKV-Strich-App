@@ -1,43 +1,35 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getAuthContext } from "@/lib/auth/context";
-
-const HIDDEN_ON_PATHS = [
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/onboarding",
-];
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AppHeader() {
   const ctx = await getAuthContext();
 
-  const hasActiveClub = Boolean(ctx.activeClubId);
-  const isHidden = false;
-
-  if (isHidden) {
-    return null;
-  }
-
   let clubName: string | null = null;
   let clubLogoUrl: string | null = null;
+  let clubUpdatedAt: string | null = null;
 
-  if (hasActiveClub) {
-    const { createClient } = await import("@/lib/supabase/server");
+  if (ctx.user && ctx.activeClubId) {
     const supabase = await createClient();
 
     const { data: club } = await supabase
       .from("clubs")
-      .select("name, logo_url")
+      .select("display_name, logo_url, updated_at")
       .eq("id", ctx.activeClubId)
       .maybeSingle();
 
-    clubName = club?.name ?? null;
+    clubName = club?.display_name ?? null;
     clubLogoUrl = club?.logo_url ?? null;
+    clubUpdatedAt = club?.updated_at ?? null;
   }
 
   const nickname = ctx.player?.nickname?.trim() || null;
+
+  const logoSrc =
+    clubLogoUrl && clubUpdatedAt
+      ? `${clubLogoUrl}${clubLogoUrl.includes("?") ? "&" : "?"}v=${encodeURIComponent(clubUpdatedAt)}`
+      : clubLogoUrl;
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -65,6 +57,7 @@ export default async function AppHeader() {
               <div className="truncate text-sm font-semibold text-slate-900">
                 {clubName ?? "Kein Team"}
               </div>
+
               {nickname ? (
                 <div className="truncate text-xs text-slate-500">
                   {nickname}
@@ -72,9 +65,9 @@ export default async function AppHeader() {
               ) : null}
             </div>
 
-            {clubLogoUrl ? (
+            {logoSrc ? (
               <img
-                src={clubLogoUrl}
+                src={logoSrc}
                 alt={clubName ?? "Club Logo"}
                 className="h-11 w-11 rounded-2xl border border-slate-200 object-cover shadow-sm"
               />

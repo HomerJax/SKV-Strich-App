@@ -34,8 +34,8 @@ function NavItem({ href, label, active, icon }: NavItemProps) {
           : "text-slate-500 hover:bg-slate-100",
       ].join(" ")}
     >
-      <div className="mb-1 h-4 w-4">{icon}</div>
-      {label}
+      <div className="mb-1 flex h-4 w-4 items-center justify-center">{icon}</div>
+      <span>{label}</span>
     </Link>
   );
 }
@@ -74,7 +74,7 @@ export default function AppBottomNav({
           icon={<CalendarDays className="h-4 w-4" />}
         />
 
-        {isAdmin && (
+        {isAdmin ? (
           <NavItem
             href="/admin"
             label="Admin"
@@ -83,7 +83,7 @@ export default function AppBottomNav({
             }
             icon={<Shield className="h-4 w-4" />}
           />
-        )}
+        ) : null}
 
         <form action="/api/logout" method="post" className="flex flex-1">
           <button
@@ -91,7 +91,7 @@ export default function AppBottomNav({
             className="flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100"
           >
             <LogOut className="mb-1 h-4 w-4" />
-            Logout
+            <span>Logout</span>
           </button>
         </form>
       </div>
