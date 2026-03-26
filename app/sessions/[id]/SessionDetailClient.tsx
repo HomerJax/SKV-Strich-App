@@ -79,6 +79,7 @@ export default function SessionDetailClient({
 
   const resultRef = useRef<HTMLDivElement | null>(null);
   const teamsRef = useRef<HTMLDivElement | null>(null);
+  const attendanceRef = useRef<HTMLDivElement | null>(null);
   const winnerPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [session, setSession] = useState<SessionRow | null>(initialSession);
@@ -692,35 +693,6 @@ export default function SessionDetailClient({
   const metaA = teamMeta(teamA);
   const metaB = teamMeta(teamB);
 
-  function scrollToTeams() {
-    teamsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function scrollToResult() {
-    resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  async function handlePrimaryStickyAction() {
-    if (hasResult) {
-      await handleShareResult();
-      return;
-    }
-
-    await saveResult();
-  }
-
-  const stickyPrimaryDisabled = hasResult
-    ? !canShareResult || sharingResult
-    : saving || !teamsComplete || normalizeGoalValue(goalsA) === "" || normalizeGoalValue(goalsB) === "";
-
-  const stickyPrimaryLabel = hasResult
-    ? sharingResult
-      ? "Teilen ..."
-      : "Ergebnis teilen"
-    : saving
-      ? "Speichert ..."
-      : "Speichern";
-
   if (err && !session) {
     return <div className="bg-red-50 p-4 text-sm text-red-700">{err}</div>;
   }
@@ -746,9 +718,17 @@ export default function SessionDetailClient({
         teamBCount={teamB.length}
         hasResult={hasResult}
         nextStepLabel={nextStepLabel}
-        onScrollToTeams={scrollToTeams}
-        onScrollToResult={scrollToResult}
+        onScrollToTeams={() => teamsRef.current?.scrollIntoView({ behavior: "smooth" })}
+        onScrollToResult={() =>
+          resultRef.current?.scrollIntoView({ behavior: "smooth" })
+        }
       />
+
+      {!hasResult && (
+        <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+          Empfohlene Reihenfolge: Anwesenheit festlegen → Teams aufteilen → Ergebnis speichern.
+        </div>
+      )}
 
       {err && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
@@ -762,25 +742,27 @@ export default function SessionDetailClient({
         </div>
       )}
 
-      <SessionAttendanceCard
-        players={players}
-        presentIds={presentIds}
-        pendingPresenceIds={pendingPresenceIds}
-        hasResult={hasResult}
-        isAdmin={isAdmin}
-        showGuestForm={showGuestForm}
-        guestName={guestName}
-        guestPosition={guestPosition}
-        guestAgeGroup={guestAgeGroup}
-        guestSaving={guestSaving}
-        clubSettings={clubSettings}
-        onToggleShowGuestForm={toggleGuestForm}
-        onGuestNameChange={setGuestName}
-        onGuestPositionChange={setGuestPosition}
-        onGuestAgeGroupChange={setGuestAgeGroup}
-        onAddGuestPlayer={addGuestPlayer}
-        onTogglePresence={togglePresence}
-      />
+      <div ref={attendanceRef}>
+        <SessionAttendanceCard
+          players={players}
+          presentIds={presentIds}
+          pendingPresenceIds={pendingPresenceIds}
+          hasResult={hasResult}
+          isAdmin={isAdmin}
+          showGuestForm={showGuestForm}
+          guestName={guestName}
+          guestPosition={guestPosition}
+          guestAgeGroup={guestAgeGroup}
+          guestSaving={guestSaving}
+          clubSettings={clubSettings}
+          onToggleShowGuestForm={toggleGuestForm}
+          onGuestNameChange={setGuestName}
+          onGuestPositionChange={setGuestPosition}
+          onGuestAgeGroupChange={setGuestAgeGroup}
+          onAddGuestPlayer={addGuestPlayer}
+          onTogglePresence={togglePresence}
+        />
+      </div>
 
       <div ref={teamsRef}>
         <SessionTeamsCard
@@ -823,32 +805,52 @@ export default function SessionDetailClient({
         />
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <div className="mx-auto flex w-full max-w-5xl items-center gap-2 px-4 py-3 sm:px-6 lg:px-8">
+      <div className="fixed inset-x-0 bottom-20 z-40 px-3 sm:px-4">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 rounded-2xl border border-black/10 bg-white/95 p-2 shadow-[0_10px_30px_-12px_rgba(15,23,42,0.35)] backdrop-blur">
           <button
-            type="button"
-            onClick={scrollToTeams}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            onClick={() =>
+              attendanceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+          >
+            Spieler
+          </button>
+
+          <button
+            onClick={() =>
+              teamsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
           >
             Teams
           </button>
 
           <button
-            type="button"
-            onClick={scrollToResult}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            onClick={() =>
+              resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
           >
             Ergebnis
           </button>
 
-          <button
-            type="button"
-            onClick={handlePrimaryStickyAction}
-            disabled={stickyPrimaryDisabled}
-            className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {stickyPrimaryLabel}
-          </button>
+          {!hasResult ? (
+            <button
+              onClick={saveResult}
+              disabled={saving || !teamsComplete || goalsA.trim() === "" || goalsB.trim() === ""}
+              className="flex-1 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saving ? "Speichert..." : "Speichern"}
+            </button>
+          ) : (
+            <button
+              onClick={handleShareResult}
+              disabled={!canShareResult || sharingResult}
+              className="flex-1 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {sharingResult ? "Teilt..." : "Teilen"}
+            </button>
+          )}
         </div>
       </div>
     </div>
