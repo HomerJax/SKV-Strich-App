@@ -6,9 +6,24 @@ type SessionHeaderCardProps = {
   teamBCount: number;
   hasResult: boolean;
   nextStepLabel: string;
-  onScrollToTeams: () => void;
-  onScrollToResult: () => void;
+  onScrollToTeams?: () => void;
+  onScrollToResult?: () => void;
 };
+
+function formatDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
 
 export default function SessionHeaderCard({
   date,
@@ -22,72 +37,87 @@ export default function SessionHeaderCard({
   onScrollToResult,
 }: SessionHeaderCardProps) {
   return (
-    <div className="rounded-2xl border bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-2">
+    <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-5 py-5 text-white sm:px-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-xl font-semibold">
-              Training {new Date(date).toLocaleDateString("de-DE")}
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+              Trainingssession
+            </div>
+
+            <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
+              {formatDate(date)}
             </h1>
+
             {notes ? (
-              <div className="mt-1 text-sm text-slate-500">{notes}</div>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
+                {notes}
+              </p>
             ) : (
-              <div className="mt-1 text-sm text-slate-400">
-                Keine Notiz hinterlegt
-              </div>
+              <p className="mt-3 text-sm leading-6 text-white/60">
+                Kein zusätzlicher Hinweis für diese Session hinterlegt.
+              </p>
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full border bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-700">
-              Anwesend: {presentCount}
-            </span>
-            <span className="rounded-full border bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-700">
-              Team 1: {teamACount}
-            </span>
-            <span className="rounded-full border bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-700">
-              Team 2: {teamBCount}
-            </span>
-            <span
-              className={`rounded-full border px-3 py-1 text-[11px] font-medium ${
-                hasResult
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-amber-200 bg-amber-50 text-amber-700"
-              }`}
-            >
-              {hasResult ? "Ergebnis gespeichert" : "Ergebnis offen"}
-            </span>
-          </div>
-        </div>
-
-        <div className="rounded-xl border bg-slate-50 p-3 lg:min-w-[280px]">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Nächster Schritt
-          </div>
-          <div className="mt-1 text-sm font-semibold text-slate-900">
-            {nextStepLabel}
-          </div>
-          <div className="mt-1 text-[11px] text-slate-500">
-            Springe direkt zum passenden Bereich.
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={onScrollToTeams}
-              className="rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm"
-            >
-              Zu den Teams
-            </button>
-            <button
-              type="button"
-              onClick={onScrollToResult}
-              className="rounded-lg border bg-white px-3 py-1.5 text-xs shadow-sm"
-            >
-              Zum Ergebnis
-            </button>
+          <div className="inline-flex w-fit items-center rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">
+            {hasResult ? "Ergebnis gespeichert" : nextStepLabel}
           </div>
         </div>
       </div>
-    </div>
+
+      <div className="grid grid-cols-3 gap-3 px-5 py-5 sm:px-6">
+        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Anwesend
+          </div>
+          <div className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+            {presentCount}
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Team A
+          </div>
+          <div className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+            {teamACount}
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+          <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Team B
+          </div>
+          <div className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+            {teamBCount}
+          </div>
+        </div>
+      </div>
+
+      {(onScrollToTeams || onScrollToResult) ? (
+        <div className="flex flex-col gap-2 border-t border-slate-100 px-5 py-4 sm:flex-row sm:px-6">
+          {onScrollToTeams ? (
+            <button
+              type="button"
+              onClick={onScrollToTeams}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Zu den Teams
+            </button>
+          ) : null}
+
+          {onScrollToResult ? (
+            <button
+              type="button"
+              onClick={onScrollToResult}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Zum Ergebnis
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
   );
 }
