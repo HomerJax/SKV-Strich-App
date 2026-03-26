@@ -1,113 +1,109 @@
-"use client";
-
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  Home,
-  CalendarDays,
-  Trophy,
-  Shield,
-  LogOut,
-} from "lucide-react";
+import { getAuthContext } from "@/lib/auth/context";
+import { createClient } from "@/lib/supabase/server";
 
-type AppBottomNavProps = {
-  isAdmin?: boolean;
+type ClubRow = {
+  id: string;
+  logo_path: string | null;
 };
 
-const HIDDEN_ON_PATHS = [
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/onboarding",
-];
+function getDisplayName(ctx: Awaited<ReturnType<typeof getAuthContext>>) {
+  const nickname = ctx.player?.nickname?.trim();
+  if (nickname) return nickname;
 
-type NavItemProps = {
-  href: string;
-  label: string;
-  active: boolean;
-  icon: React.ReactNode;
-};
+  const firstName = ctx.player?.first_name?.trim() ?? "";
+  const lastName = ctx.player?.last_name?.trim() ?? "";
+  const fullName = `${firstName} ${lastName}`.trim();
 
-function NavItem({ href, label, active, icon }: NavItemProps) {
-  return (
-    <Link
-      href={href}
-      className={[
-        "flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-medium transition",
-        active
-          ? "bg-slate-900 text-white"
-          : "text-slate-500 hover:bg-slate-100",
-      ].join(" ")}
-    >
-      <div className="mb-1 flex h-4 w-4 items-center justify-center">{icon}</div>
-      <span>{label}</span>
-    </Link>
-  );
+  if (fullName) return fullName;
+
+  return ctx.user?.email ?? "Account";
 }
 
-export default function AppBottomNav({
-  isAdmin = false,
-}: AppBottomNavProps) {
-  const pathname = usePathname();
+export default async function AppHeader() {
+  const ctx = await getAuthContext();
 
-  if (!pathname) return null;
+  const activeClubId =
+    ctx.activeClubId ??
+    (ctx.memberships.length === 1 ? ctx.memberships[0].club_id : null);
 
-  if (
-    HIDDEN_ON_PATHS.some(
-      (p) => pathname === p || pathname.startsWith(`${p}/`)
-    )
-  ) {
-    return null;
+  let clubLogoSrc: string | null = null;
+
+  if (ctx.user && activeClubId) {
+    const supabase = await createClient();
+
+    const { data: club } = await supabase
+      .from("clubs")
+      .select("id, logo_path")
+      .eq("id", activeClubId)
+      .maybeSingle<ClubRow>();
+
+    if (club?.logo_path?.trim()) {
+      const path = club.logo_path.trim();
+
+      if (path.startsWith("http://") || path.startsWith("https://")) {
+        clubLogoSrc = path;
+      } else {
+        const { data } = supabase.storage
+          .from("club-logos")
+          .getPublicUrl(path);
+
+        clubLogoSrc = data?.publicUrl ?? null;
+      }
+    }
   }
 
+  const displayName = getDisplayName(ctx);
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-md items-center gap-1 p-2">
-        <NavItem
-          href="/"
-          label="Home"
-          active={pathname === "/"}
-          icon={<Home className="h-4 w-4" />}
-        />
-
-        <NavItem
-          href="/sessions"
-          label="Sessions"
-          active={
-            pathname === "/sessions" || pathname.startsWith("/sessions/")
-          }
-          icon={<CalendarDays className="h-4 w-4" />}
-        />
-
-        <NavItem
-          href="/standings"
-          label="Tabellen"
-          active={
-            pathname === "/standings" || pathname.startsWith("/standings/")
-          }
-          icon={<Trophy className="h-4 w-4" />}
-        />
-
-        {isAdmin ? (
-          <NavItem
-            href="/admin"
-            label="Admin"
-            active={pathname === "/admin" || pathname.startsWith("/admin/")}
-            icon={<Shield className="h-4 w-4" />}
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <Image
+            src="/icon-dark.png"
+            alt="strikr"
+            width={48}
+            height={48}
+            priority
+            className="h-12 w-12 rounded-xl object-contain"
           />
-        ) : null}
 
-        <form action="/api/logout" method="post" className="flex flex-1">
-          <button
-            type="submit"
-            className="flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100"
-          >
-            <LogOut className="mb-1 h-4 w-4" />
-            <span>Logout</span>
-          </button>
-        </form>
+          <div className="min-w-0">
+            <div className="truncate text-2xl font-black tracking-tight text-slate-950">
+              strikr
+            </div>
+          </div>
+        </Link>
+
+        {ctx.user ? (
+          <div className="ml-4 flex min-w-0 items-center gap-3">
+            <div className="hidden min-w-0 text-right sm:block">
+              <div className="truncate text-sm font-semibold text-slate-900">
+                {displayName}
+              </div>
+            </div>
+
+            {clubLogoSrc ? (
+              <img
+                src={clubLogoSrc}
+                alt="Club Logo"
+                className="h-11 w-11 rounded-2xl border border-slate-200 bg-white object-cover shadow-sm"
+              />
+            ) : (
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <Image
+                  src="/icon-dark.png"
+                  alt="strikr"
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 object-contain opacity-70"
+                />
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
-    </nav>
+    </header>
   );
 }
