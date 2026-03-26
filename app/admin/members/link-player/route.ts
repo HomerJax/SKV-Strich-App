@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { cookies, headers } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from "next/server";
+import { cookies, headers } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -24,9 +24,9 @@ async function getSupabaseServerClient() {
 async function buildRedirectUrl(path: string) {
   const headerStore = await headers();
 
-  const forwardedProto = headerStore.get('x-forwarded-proto');
-  const forwardedHost = headerStore.get('x-forwarded-host');
-  const host = headerStore.get('host');
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const host = headerStore.get("host");
 
   if (forwardedProto && forwardedHost) {
     return new URL(path, `${forwardedProto}://${forwardedHost}`);
@@ -40,29 +40,29 @@ async function buildRedirectUrl(path: string) {
     return new URL(path, process.env.NEXT_PUBLIC_SITE_URL);
   }
 
-  return new URL(path, `http://${host ?? 'localhost:3000'}`);
+  return new URL(path, `http://${host ?? "localhost:3000"}`);
 }
 
 export async function POST(request: Request) {
   const formData = await request.formData();
 
-  const userId = formData.get('userId');
-  const playerIdRaw = formData.get('playerId');
+  const userId = formData.get("userId");
+  const playerIdRaw = formData.get("playerId");
 
-  if (typeof userId !== 'string') {
+  if (typeof userId !== "string" || !userId.trim()) {
     return NextResponse.redirect(
-      await buildRedirectUrl('/admin/members?error=member_player_link_failed')
+      await buildRedirectUrl("/admin/members?error=member_player_link_failed")
     );
   }
 
   let playerId: number | null = null;
 
-  if (typeof playerIdRaw === 'string' && playerIdRaw.trim() !== '') {
+  if (typeof playerIdRaw === "string" && playerIdRaw.trim() !== "") {
     const parsed = Number(playerIdRaw);
 
     if (!Number.isInteger(parsed) || parsed <= 0) {
       return NextResponse.redirect(
-        await buildRedirectUrl('/admin/members?error=member_player_link_failed')
+        await buildRedirectUrl("/admin/members?error=member_player_link_failed")
       );
     }
 
@@ -77,51 +77,51 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    return NextResponse.redirect(await buildRedirectUrl('/login'));
+    return NextResponse.redirect(await buildRedirectUrl("/login"));
   }
 
-  const { data, error } = await supabase.rpc('admin_link_member_player', {
+  const { data, error } = await supabase.rpc("admin_link_member_player", {
     target_user_id: userId,
     target_player_id: playerId,
   });
 
   if (error) {
     return NextResponse.redirect(
-      await buildRedirectUrl('/admin/members?error=member_player_link_failed')
+      await buildRedirectUrl("/admin/members?error=member_player_link_failed")
     );
   }
 
-  if (data === 'member_not_in_club') {
+  if (data === "member_not_in_club") {
     return NextResponse.redirect(
-      await buildRedirectUrl('/admin/members?error=member_not_in_club')
+      await buildRedirectUrl("/admin/members?error=member_not_in_club")
     );
   }
 
-  if (data === 'player_not_in_club') {
+  if (data === "player_not_in_club") {
     return NextResponse.redirect(
-      await buildRedirectUrl('/admin/members?error=player_not_in_club')
+      await buildRedirectUrl("/admin/members?error=player_not_in_club")
     );
   }
 
-  if (data === 'player_already_linked') {
+  if (data === "player_already_linked") {
     return NextResponse.redirect(
-      await buildRedirectUrl('/admin/members?error=player_already_linked')
+      await buildRedirectUrl("/admin/members?error=player_already_linked")
     );
   }
 
-  if (data === 'ok_unlinked') {
+  if (data === "ok_unlinked") {
     return NextResponse.redirect(
-      await buildRedirectUrl('/admin/members?success=player_unlinked')
+      await buildRedirectUrl("/admin/members?success=player_unlinked")
     );
   }
 
-  if (data !== 'ok') {
+  if (data !== "ok") {
     return NextResponse.redirect(
-      await buildRedirectUrl('/admin/members?error=not_allowed')
+      await buildRedirectUrl("/admin/members?error=not_allowed")
     );
   }
 
   return NextResponse.redirect(
-    await buildRedirectUrl('/admin/members?success=player_linked')
+    await buildRedirectUrl("/admin/members?success=player_linked")
   );
 }

@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from "next/server";
+import { cookies, headers } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -21,14 +21,35 @@ async function getSupabaseServerClient() {
   );
 }
 
+async function buildRedirectUrl(path: string) {
+  const headerStore = await headers();
+
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const host = headerStore.get("host");
+
+  if (forwardedProto && forwardedHost) {
+    return new URL(path, `${forwardedProto}://${forwardedHost}`);
+  }
+
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return new URL(path, process.env.NEXT_PUBLIC_APP_URL);
+  }
+
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return new URL(path, process.env.NEXT_PUBLIC_SITE_URL);
+  }
+
+  return new URL(path, `http://${host ?? "localhost:3000"}`);
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
+  const userId = formData.get("userId");
 
-  const userId = formData.get('userId');
-
-  if (typeof userId !== 'string') {
+  if (typeof userId !== "string" || !userId.trim()) {
     return NextResponse.redirect(
-      new URL('/admin/members?error=member_remove_failed', request.url)
+      await buildRedirectUrl("/admin/members?error=member_remove_failed")
     );
   }
 
@@ -40,38 +61,38 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(await buildRedirectUrl("/login"));
   }
 
-  const { data, error } = await supabase.rpc('admin_remove_member', {
+  const { data, error } = await supabase.rpc("admin_remove_member", {
     target_user_id: userId,
   });
 
   if (error) {
     return NextResponse.redirect(
-      new URL('/admin/members?error=member_remove_failed', request.url)
+      await buildRedirectUrl("/admin/members?error=member_remove_failed")
     );
   }
 
-  if (data === 'cannot_remove_yourself') {
+  if (data === "cannot_remove_yourself") {
     return NextResponse.redirect(
-      new URL('/admin/members?error=cannot_remove_yourself', request.url)
+      await buildRedirectUrl("/admin/members?error=cannot_remove_yourself")
     );
   }
 
-  if (data === 'last_admin_must_remain') {
+  if (data === "last_admin_must_remain") {
     return NextResponse.redirect(
-      new URL('/admin/members?error=last_admin_must_remain', request.url)
+      await buildRedirectUrl("/admin/members?error=last_admin_must_remain")
     );
   }
 
-  if (data !== 'ok') {
+  if (data !== "ok") {
     return NextResponse.redirect(
-      new URL('/admin/members?error=not_allowed', request.url)
+      await buildRedirectUrl("/admin/members?error=not_allowed")
     );
   }
 
   return NextResponse.redirect(
-    new URL('/admin/members?success=member_removed', request.url)
+    await buildRedirectUrl("/admin/members?success=member_removed")
   );
 }

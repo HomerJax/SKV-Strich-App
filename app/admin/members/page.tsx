@@ -2,21 +2,15 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
-import InviteActions from "./InviteActions";
-import { getPlayerDisplayName } from "@/lib/player-display";
 import { ErrorMessage, SuccessMessage } from "./MembersMessages";
-import type {
-  InviteRow,
-  MemberRow,
-  MemberWithPlayer,
-  PlayerRow,
-} from "./members-types";
+import type { InviteRow, MemberRow } from "./members-types";
 import {
   buildInviteUrl,
   formatDate,
-  sortPlayersByDisplayName,
+  getMemberRoleLabel,
 } from "./members-utils";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import InviteActions from "./InviteActions";
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -39,6 +33,18 @@ async function getSupabaseServerClient() {
 
 function isAdminRole(role: string | null | undefined) {
   return role === "admin" || role === "owner";
+}
+
+function getRoleChipClass(role: string | null | undefined) {
+  if (role === "owner") {
+    return "bg-amber-100 text-amber-800";
+  }
+
+  if (role === "admin") {
+    return "bg-slate-100 text-slate-700";
+  }
+
+  return "bg-sky-100 text-sky-700";
 }
 
 export default async function AdminMembersPage({
@@ -81,7 +87,6 @@ export default async function AdminMembersPage({
   const [
     { data: members, error: membersError },
     { data: invites, error: invitesError },
-    { data: players, error: playersError },
   ] = await Promise.all([
     supabase.rpc("get_club_members_admin"),
     supabase
@@ -90,10 +95,6 @@ export default async function AdminMembersPage({
       .eq("club_id", membership.club_id)
       .is("accepted_at", null)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("players")
-      .select("id, user_id, name, first_name, last_name, nickname, is_active")
-      .eq("club_id", membership.club_id),
   ]);
 
   if (membersError) {
@@ -108,30 +109,8 @@ export default async function AdminMembersPage({
     );
   }
 
-  if (playersError) {
-    throw new Error(`Spieler konnten nicht geladen werden: ${playersError.message}`);
-  }
-
   const memberRows = (members || []) as MemberRow[];
   const inviteRows = (invites || []) as InviteRow[];
-  const playerRows = sortPlayersByDisplayName((players || []) as PlayerRow[]);
-
-  const playerByUserId = new Map<string, PlayerRow>();
-  for (const player of playerRows) {
-    if (player.user_id) {
-      playerByUserId.set(player.user_id, player);
-    }
-  }
-
-  const membersWithPlayer: MemberWithPlayer[] = memberRows.map((member) => {
-    const linkedPlayer = playerByUserId.get(member.user_id);
-
-    return {
-      ...member,
-      linkedPlayerId: linkedPlayer?.id ?? null,
-      linkedPlayerName: linkedPlayer ? getPlayerDisplayName(linkedPlayer) : null,
-    };
-  });
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
@@ -159,19 +138,31 @@ export default async function AdminMembersPage({
               Mitglieder
             </h1>
             <p className="mt-1 text-sm text-slate-600">
-              Verwalte Mitglieder, Rollen, Spieler-Verknüpfungen und Einladungen.
+              Verwalte Mitglieder, Rollen und Einladungen.
             </p>
           </div>
 
-          <form method="POST" action="/admin/members/create">
-            <input type="hidden" name="role" value="member" />
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              + Einladung erstellen
-            </button>
-          </form>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <form method="POST" action="/admin/members/create">
+              <input type="hidden" name="role" value="member" />
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+              >
+                + Einladung erstellen
+              </button>
+            </form>
+
+            <form method="POST" action="/admin/members/create">
+              <input type="hidden" name="role" value="admin" />
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                + Admin einladen
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -186,18 +177,16 @@ export default async function AdminMembersPage({
         </div>
 
         <div className="divide-y divide-slate-100">
-          {membersWithPlayer.length === 0 ? (
+          {memberRows.length === 0 ? (
             <div className="px-5 py-8 text-sm text-slate-500">
               Keine Mitglieder gefunden.
             </div>
           ) : (
-            membersWithPlayer.map((member) => {
+            memberRows.map((member) => {
               const isCurrentUser = member.user_id === user.id;
-
-              const selectablePlayers = playerRows.filter(
-                (player) =>
-                  player.user_id === null || player.user_id === member.user_id
-              );
+              const isOwner = member.role === "owner";
+              const canChangeRole = !isCurrentUser && !isOwner;
+              const canRemoveMember = !isCurrentUser && !isOwner;
 
               return (
                 <div
@@ -206,110 +195,106 @@ export default async function AdminMembersPage({
                 >
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-slate-900">
-                        {member.full_name}{" "}
-                        {isAdminRole(member.role) && (
-                          <span className="ml-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                            Admin
-                          </span>
-                        )}
-                        {isCurrentUser && (
-                          <span className="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="truncate text-sm font-medium text-slate-900">
+                          {member.full_name}
+                        </div>
+
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getRoleChipClass(
+                            member.role
+                          )}`}
+                        >
+                          {getMemberRoleLabel(member.role)}
+                        </span>
+
+                        {isCurrentUser ? (
+                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                             Du
                           </span>
-                        )}
+                        ) : null}
                       </div>
+
                       <div className="truncate text-sm text-slate-500">
                         {member.email}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        Verknüpfter Spieler:{" "}
-                        <span className="font-medium text-slate-700">
-                          {member.linkedPlayerName ?? "Keiner"}
-                        </span>
                       </div>
                     </div>
 
                     <div className="text-sm text-slate-500">
-                      {member.role === "admin" ? "Administrator" : "Mitglied"}
+                      {getMemberRoleLabel(member.role)}
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Spieler-Verknüpfung
-                    </div>
-
-                    <form
-                      method="POST"
-                      action="/admin/members/link-player"
-                      className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
-                    >
-                      <input type="hidden" name="userId" value={member.user_id} />
-
-                      <div className="flex-1">
-                        <select
-                          name="playerId"
-                          defaultValue={
-                            member.linkedPlayerId
-                              ? String(member.linkedPlayerId)
-                              : ""
-                          }
-                          className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-slate-400"
-                        >
-                          <option value="">— Kein Spieler verknüpft —</option>
-                          {selectablePlayers.map((player) => (
-                            <option key={player.id} value={player.id}>
-                              {getPlayerDisplayName(player)}
-                              {player.is_active === false ? " (inaktiv)" : ""}
-                            </option>
-                          ))}
-                        </select>
+                  <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+                    <div className="rounded-2xl bg-slate-50 p-3">
+                      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Rolle
                       </div>
 
-                      <button
-                        type="submit"
-                        className="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                      >
-                        Spieler speichern
-                      </button>
-                    </form>
-                  </div>
+                      {canChangeRole ? (
+                        <form
+                          method="POST"
+                          action="/admin/members/change-role"
+                          className="flex flex-col gap-3 sm:flex-row sm:items-center"
+                        >
+                          <input
+                            type="hidden"
+                            name="userId"
+                            value={member.user_id}
+                          />
 
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <form
-                      method="POST"
-                      action="/admin/members/change-role"
-                      className="flex flex-col gap-3 sm:flex-row sm:items-center"
-                    >
-                      <input type="hidden" name="userId" value={member.user_id} />
+                          <select
+                            name="role"
+                            defaultValue={member.role}
+                            className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-slate-400"
+                          >
+                            <option value="member">Mitglied</option>
+                            <option value="admin">Admin</option>
+                          </select>
 
-                      <select
-                        name="role"
-                        defaultValue={member.role}
-                        className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-slate-400"
-                      >
-                        <option value="member">Mitglied</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                          <button
+                            type="submit"
+                            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                          >
+                            Rolle speichern
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                          {isOwner
+                            ? "Owner wird hier bewusst nicht zur Rollenänderung angeboten."
+                            : "Deine eigene Rolle kannst du hier nicht ändern."}
+                        </div>
+                      )}
+                    </div>
 
-                      <button
-                        type="submit"
-                        className="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                      >
-                        Rolle speichern
-                      </button>
-                    </form>
+                    <div className="rounded-2xl bg-slate-50 p-3">
+                      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Mitgliedschaft
+                      </div>
 
-                    <form method="POST" action="/admin/members/remove">
-                      <input type="hidden" name="userId" value={member.user_id} />
-                      <button
-                        type="submit"
-                        className="inline-flex items-center justify-center rounded-2xl border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
-                      >
-                        Mitglied entfernen
-                      </button>
-                    </form>
+                      {canRemoveMember ? (
+                        <form method="POST" action="/admin/members/remove">
+                          <input
+                            type="hidden"
+                            name="userId"
+                            value={member.user_id}
+                          />
+                          <button
+                            type="submit"
+                            className="inline-flex items-center justify-center rounded-2xl border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
+                          >
+                            Mitglied entfernen
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                          {isOwner
+                            ? "Owner wird hier bewusst nicht entfernt."
+                            : "Du kannst dich nicht selbst entfernen."}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from "next/server";
+import { cookies, headers } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -21,18 +21,37 @@ async function getSupabaseServerClient() {
   );
 }
 
+async function buildRedirectUrl(path: string) {
+  const headerStore = await headers();
+
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const host = headerStore.get("host");
+
+  if (forwardedProto && forwardedHost) {
+    return new URL(path, `${forwardedProto}://${forwardedHost}`);
+  }
+
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return new URL(path, process.env.NEXT_PUBLIC_APP_URL);
+  }
+
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return new URL(path, process.env.NEXT_PUBLIC_SITE_URL);
+  }
+
+  return new URL(path, `http://${host ?? "localhost:3000"}`);
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
 
-  const userId = formData.get('userId');
-  const role = formData.get('role');
+  const userId = formData.get("userId");
+  const role = formData.get("role");
 
-  if (
-    typeof userId !== 'string' ||
-    (role !== 'admin' && role !== 'member')
-  ) {
+  if (typeof userId !== "string" || !userId.trim() || (role !== "admin" && role !== "member")) {
     return NextResponse.redirect(
-      new URL('/admin/members?error=member_role_update_failed', request.url)
+      await buildRedirectUrl("/admin/members?error=member_role_update_failed")
     );
   }
 
@@ -44,39 +63,39 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(await buildRedirectUrl("/login"));
   }
 
-  const { data, error } = await supabase.rpc('admin_update_member_role', {
+  const { data, error } = await supabase.rpc("admin_update_member_role", {
     target_user_id: userId,
     new_role: role,
   });
 
   if (error) {
     return NextResponse.redirect(
-      new URL('/admin/members?error=member_role_update_failed', request.url)
+      await buildRedirectUrl("/admin/members?error=member_role_update_failed")
     );
   }
 
-  if (data === 'cannot_change_own_role') {
+  if (data === "cannot_change_own_role") {
     return NextResponse.redirect(
-      new URL('/admin/members?error=cannot_change_own_role', request.url)
+      await buildRedirectUrl("/admin/members?error=cannot_change_own_role")
     );
   }
 
-  if (data === 'last_admin_must_remain') {
+  if (data === "last_admin_must_remain") {
     return NextResponse.redirect(
-      new URL('/admin/members?error=last_admin_must_remain', request.url)
+      await buildRedirectUrl("/admin/members?error=last_admin_must_remain")
     );
   }
 
-  if (data !== 'ok') {
+  if (data !== "ok") {
     return NextResponse.redirect(
-      new URL('/admin/members?error=not_allowed', request.url)
+      await buildRedirectUrl("/admin/members?error=not_allowed")
     );
   }
 
   return NextResponse.redirect(
-    new URL('/admin/members?success=role_updated', request.url)
+    await buildRedirectUrl("/admin/members?success=role_updated")
   );
 }

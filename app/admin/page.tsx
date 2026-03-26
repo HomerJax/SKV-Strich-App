@@ -124,19 +124,27 @@ export default async function AdminPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <AdminCard
+            href="/admin/members"
+            eyebrow="Mitglieder"
+            title="Mitgliederverwaltung"
+            description="Sieh bestehende Mitglieder, aktuelle Rollen und Spieler-Verknüpfungen. Hier kannst du Rollen sicher zwischen Mitglied und Admin ändern."
+            icon="👥"
+          />
+
+          <AdminCard
+            href="/admin/invites"
+            eyebrow="Einladungen"
+            title="Einladungen verwalten"
+            description="Erstelle neue Einladungen und behalte im Blick, welche Zugänge noch offen oder aktiv sind."
+            icon="✉️"
+          />
+
+          <AdminCard
             href="/admin/players"
             eyebrow="Spielbetrieb"
             title="Spieler verwalten"
             description="Pflege Spielerprofile, Positionen, Stärken und weitere Grundlagen für Trainings, Aufstellungen und Auswertungen."
             icon="⚽"
-          />
-
-          <AdminCard
-            href="/admin/invites"
-            eyebrow="Mitglieder"
-            title="Mitglieder hinzufügen"
-            description="Lade neue Personen in den Club ein und steuere, wer Zugriff auf das Team und seine Funktionen erhält."
-            icon="👥"
           />
 
           <AdminCard
