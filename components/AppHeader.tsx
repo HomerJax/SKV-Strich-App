@@ -5,104 +5,94 @@ import { createClient } from "@/lib/supabase/server";
 
 type ClubRow = {
   id: string;
+  display_name: string | null;
+  name: string | null;
   logo_path: string | null;
 };
-
-function getDisplayName(ctx: Awaited<ReturnType<typeof getAuthContext>>) {
-  const nickname = ctx.player?.nickname?.trim();
-  if (nickname) return nickname;
-
-  const firstName = ctx.player?.first_name?.trim() ?? "";
-  const lastName = ctx.player?.last_name?.trim() ?? "";
-  const fullName = `${firstName} ${lastName}`.trim();
-
-  if (fullName) return fullName;
-
-  return ctx.user?.email ?? "Account";
-}
 
 export default async function AppHeader() {
   const ctx = await getAuthContext();
 
-  const activeClubId =
+  const fallbackClubId =
     ctx.activeClubId ??
     (ctx.memberships.length === 1 ? ctx.memberships[0].club_id : null);
 
-  let clubLogoSrc: string | null = null;
+  let clubName: string | null = null;
+  let logoSrc: string | null = null;
 
-  if (ctx.user && activeClubId) {
+  if (ctx.user && fallbackClubId) {
     const supabase = await createClient();
 
     const { data: club } = await supabase
       .from("clubs")
-      .select("id, logo_path")
-      .eq("id", activeClubId)
+      .select("id, display_name, name, logo_path")
+      .eq("id", fallbackClubId)
       .maybeSingle<ClubRow>();
 
-    if (club?.logo_path?.trim()) {
-      const path = club.logo_path.trim();
+    clubName = club?.display_name ?? club?.name ?? null;
 
-      if (path.startsWith("http://") || path.startsWith("https://")) {
-        clubLogoSrc = path;
-      } else {
-        const { data } = supabase.storage
-          .from("club-logos")
-          .getPublicUrl(path);
+    if (club?.logo_path) {
+      const { data } = supabase.storage
+        .from("club-logos")
+        .getPublicUrl(club.logo_path);
 
-        clubLogoSrc = data?.publicUrl ?? null;
-      }
+      logoSrc = data?.publicUrl ?? null;
     }
   }
 
-  const displayName = getDisplayName(ctx);
+  const nickname = ctx.player?.nickname?.trim() || null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex min-w-0 items-center gap-3">
+        
+        {/* LEFT: LOGO */}
+        <Link href="/" className="flex items-center gap-3">
           <Image
             src="/icon-dark.png"
             alt="strikr"
-            width={48}
-            height={48}
+            width={44}
+            height={44}
+            className="rounded-xl"
             priority
-            className="h-12 w-12 rounded-xl object-contain"
           />
 
-          <div className="min-w-0">
-            <div className="truncate text-2xl font-black tracking-tight text-slate-950">
-              strikr
-            </div>
+          <div className="text-xl font-black tracking-tight text-slate-950">
+            strikr
           </div>
         </Link>
 
-        {ctx.user ? (
-          <div className="ml-4 flex min-w-0 items-center gap-3">
-            <div className="hidden min-w-0 text-right sm:block">
-              <div className="truncate text-sm font-semibold text-slate-900">
-                {displayName}
+        {/* RIGHT: USER + CLUB */}
+        {ctx.user && (
+          <div className="flex items-center gap-3">
+            
+            {/* USER INFO */}
+            <div className="hidden text-right sm:block">
+              <div className="text-sm font-semibold text-slate-900">
+                {nickname ?? "Spieler"}
               </div>
             </div>
 
-            {clubLogoSrc ? (
-              <img
-                src={clubLogoSrc}
-                alt="Club Logo"
-                className="h-11 w-11 rounded-2xl border border-slate-200 bg-white object-cover shadow-sm"
-              />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+            {/* CLUB LOGO (EDLE VARIANTE) */}
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-md overflow-hidden">
+              {logoSrc ? (
+                <img
+                  src={logoSrc}
+                  alt={clubName ?? "Club Logo"}
+                  className="h-full w-full object-contain p-1.5"
+                />
+              ) : (
                 <Image
                   src="/icon-dark.png"
                   alt="strikr"
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 object-contain opacity-70"
+                  width={28}
+                  height={28}
+                  className="opacity-70"
                 />
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        ) : null}
+        )}
       </div>
     </header>
   );

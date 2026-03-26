@@ -75,7 +75,7 @@ export default async function HomePage() {
       .from("clubs")
       .select("id, display_name, logo_path")
       .eq("id", clubId)
-      .maybeSingle(),
+      .maybeSingle<ClubRow>(),
     supabase
       .from("players")
       .select("*", { count: "exact", head: true })
@@ -125,13 +125,11 @@ export default async function HomePage() {
   let clubLogoUrl: string | null = null;
 
   if (club?.logo_path) {
-    const { data: signedLogo, error: logoError } = await supabase.storage
+    const { data } = supabase.storage
       .from("club-logos")
-      .createSignedUrl(club.logo_path, 60 * 60);
+      .getPublicUrl(club.logo_path);
 
-    if (!logoError) {
-      clubLogoUrl = signedLogo?.signedUrl ?? null;
-    }
+    clubLogoUrl = data?.publicUrl ?? null;
   }
 
   const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
@@ -140,9 +138,9 @@ export default async function HomePage() {
     <main className="min-h-screen bg-neutral-100 pb-24">
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="rounded-[24px] border border-slate-800/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.75)]">
-          <div className="mx-auto flex max-w-2xl flex-col items-center gap-3 px-5 py-6 text-center">
-            <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-3 py-2">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-sm">
+          <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-5 py-7 text-center">
+            <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-2">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-sm">
                 {clubLogoUrl ? (
                   <Image
                     src={clubLogoUrl}
@@ -170,15 +168,11 @@ export default async function HomePage() {
             </div>
 
             <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-              {showGettingStarted
-                ? "Bereit für die ersten Schritte."
-                : "Das System für euer Training."}
+              strikr – Das System für euer Training.
             </h1>
 
             <p className="text-xs leading-5 text-white/75 sm:text-sm">
-              {showGettingStarted
-                ? "Richte dein Team einmal sauber ein. Danach laufen Trainings, Ergebnisse und Tabelle deutlich runder."
-                : "Faire Teams - echte Stats - effektives Training"}
+              faire Teams – effektives Training – echte Stats
             </p>
           </div>
         </div>

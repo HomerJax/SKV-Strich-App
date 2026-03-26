@@ -6,12 +6,8 @@ import { getAuthContext } from "@/lib/auth/context";
 
 export const metadata: Metadata = {
   title: "strikr",
-  description: "Fußball-Trainings organisieren mit strikr",
+  description: "Trainings, Teams und Ergebnisse an einem Ort.",
 };
-
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin" || role === "owner";
-}
 
 export default async function RootLayout({
   children,
@@ -20,16 +16,11 @@ export default async function RootLayout({
 }>) {
   const ctx = await getAuthContext();
 
-  const activeMembership =
-    ctx.activeClubId && ctx.memberships.length
-      ? ctx.memberships.find((membership) => membership.club_id === ctx.activeClubId) ?? null
-      : null;
-
-  const isAdmin = isAdminRole(activeMembership?.role);
+  const isAdmin = ctx.memberships.some((membership) => membership.role === "admin");
 
   return (
     <html lang="de">
-      <body className="bg-neutral-50 text-neutral-900">
+      <body className="min-h-screen bg-neutral-100 text-slate-950 antialiased">
         <AppHeader />
         <div className="min-h-[100dvh] pb-20">{children}</div>
         <AppBottomNav isAdmin={isAdmin} />
