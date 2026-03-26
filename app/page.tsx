@@ -97,15 +97,12 @@ export default async function HomePage() {
   ]);
 
   if (clubError) {
-    throw new Error(`Aktives Team konnte nicht geladen werden: ${clubError.message}`);
+    throw new Error(
+      `Aktives Team konnte nicht geladen werden: ${clubError.message}`
+    );
   }
 
-  if (
-    playersError ||
-    invitesError ||
-    sessionsError ||
-    seasonsError
-  ) {
+  if (playersError || invitesError || sessionsError || seasonsError) {
     throw new Error("Die Startdaten konnten nicht vollständig geladen werden.");
   }
 
@@ -175,13 +172,13 @@ export default async function HomePage() {
             <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
               {showGettingStarted
                 ? "Bereit für die ersten Schritte."
-                : "Teamtage einfacher organisieren."}
+                : "Das System für euer Training."}
             </h1>
 
             <p className="text-xs leading-5 text-white/75 sm:text-sm">
               {showGettingStarted
                 ? "Richte dein Team einmal sauber ein. Danach laufen Trainings, Ergebnisse und Tabelle deutlich runder."
-                : "Planung, Teams und Ergebnisse — alles an einem Ort."}
+                : "Faire Teams - echte Stats - effektives Training"}
             </p>
           </div>
         </div>
