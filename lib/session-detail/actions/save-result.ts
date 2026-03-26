@@ -143,6 +143,7 @@ export async function handleSaveResult({
         .from("teams")
         .select("id")
         .eq("session_id", sessionId)
+        .eq("club_id", clubId)
         .eq("name", name)
         .maybeSingle();
 
@@ -156,7 +157,11 @@ export async function handleSaveResult({
 
       const { data: inserted, error: insertError } = await supabase
         .from("teams")
-        .insert({ session_id: sessionId, name })
+        .insert({
+          session_id: sessionId,
+          club_id: clubId,
+          name,
+        })
         .select("id")
         .single();
 
