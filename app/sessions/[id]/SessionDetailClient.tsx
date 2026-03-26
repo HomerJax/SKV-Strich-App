@@ -138,10 +138,34 @@ export default function SessionDetailClient({
       credentials: "same-origin",
     });
 
-    const payload = (await response.json()) as ApiSuccess | ApiError;
+    const raw = await response.text();
 
-    if (!response.ok || "error" in payload) {
-      throw new Error("error" in payload ? payload.error : "Unbekannter Fehler.");
+    let payload: ApiSuccess | ApiError | null = null;
+
+    if (raw) {
+      try {
+        payload = JSON.parse(raw) as ApiSuccess | ApiError;
+      } catch {
+        throw new Error(
+          `Server hat keine gültige JSON-Antwort geliefert (HTTP ${response.status}).`
+        );
+      }
+    }
+
+    if (!response.ok) {
+      if (payload && "error" in payload) {
+        throw new Error(payload.error);
+      }
+
+      throw new Error(raw || `Unbekannter Fehler (HTTP ${response.status}).`);
+    }
+
+    if (!payload) {
+      throw new Error("Server hat keine Antwort geliefert.");
+    }
+
+    if ("error" in payload) {
+      throw new Error(payload.error);
     }
 
     return payload;
@@ -209,9 +233,10 @@ export default function SessionDetailClient({
     goalsA.trim() !== "" &&
     goalsB.trim() !== "";
 
-  const canUploadWinnerPhoto = hasResult && !saving;
   const teamsComplete =
     teamA.length > 0 && teamB.length > 0 && unassigned.length === 0;
+
+  const canUploadWinnerPhoto = teamsComplete && !saving;
 
   const nextStepLabel = hasResult
     ? "Ergebnis ist gespeichert"
@@ -708,9 +733,9 @@ export default function SessionDetailClient({
       return;
     }
 
-    if (!hasResult) {
+    if (!teamsComplete) {
       setErr(
-        "Ein Siegerfoto kann erst nach gespeichertem Ergebnis hochgeladen werden."
+        "Bitte zuerst die Teams vollständig zuweisen, bevor du ein Siegerfoto hochlädst."
       );
       return;
     }

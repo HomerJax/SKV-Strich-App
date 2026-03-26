@@ -36,141 +36,150 @@ export async function handleSaveResult({
   goalsB,
   manualTeamsRaw,
 }: SaveResultInput) {
-  const cleanA = normalizeGoalValue(goalsA);
-  const cleanB = normalizeGoalValue(goalsB);
-
-  if (cleanA === null || cleanB === null) {
-    return fail("Bitte ein gültiges Ergebnis eingeben.");
-  }
-
-  let manualTeams: TeamMap = {};
   try {
-    manualTeams = JSON.parse(manualTeamsRaw) as TeamMap;
-  } catch {
-    return fail("Teamdaten konnten nicht gelesen werden.");
-  }
+    const cleanA = normalizeGoalValue(goalsA);
+    const cleanB = normalizeGoalValue(goalsB);
 
-  const { data: sessionPlayersData, error: sessionPlayersError } = await supabase
-    .from("session_players")
-    .select("player_id")
-    .eq("session_id", sessionId);
+    if (cleanA === null || cleanB === null) {
+      return fail("Bitte ein gültiges Ergebnis eingeben.");
+    }
 
-  if (sessionPlayersError) {
-    return fail(sessionPlayersError.message, 500);
-  }
+    let manualTeams: TeamMap = {};
+    try {
+      manualTeams = JSON.parse(manualTeamsRaw) as TeamMap;
+    } catch {
+      return fail("Teamdaten konnten nicht gelesen werden.");
+    }
 
-  const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[])
-    .map((row) => row.player_id)
-    .filter(Number.isFinite);
+    const { data: sessionPlayersData, error: sessionPlayersError } =
+      await supabase
+        .from("session_players")
+        .select("player_id")
+        .eq("session_id", sessionId);
 
-  if (presentIds.length < 2) {
-    return fail("Mindestens 2 anwesende Spieler sind erforderlich.");
-  }
+    if (sessionPlayersError) {
+      return fail(sessionPlayersError.message, 500);
+    }
 
-  const presentIdSet = new Set(presentIds);
+    const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[])
+      .map((row) => row.player_id)
+      .filter(Number.isFinite);
 
-  const assignedIds = Object.keys(manualTeams)
-    .map((key) => Number(key))
-    .filter(Number.isFinite);
+    if (presentIds.length < 2) {
+      return fail("Mindestens 2 anwesende Spieler sind erforderlich.");
+    }
 
-  const invalidAssignedIds = assignedIds.filter((id) => !presentIdSet.has(id));
+    const presentIdSet = new Set(presentIds);
 
-  if (invalidAssignedIds.length > 0) {
-    return fail(
-      "Es dürfen nur aktuell anwesende Spieler in den Teams verwendet werden."
-    );
-  }
+    const assignedIds = Object.keys(manualTeams)
+      .map((key) => Number(key))
+      .filter(Number.isFinite);
 
-  const missingAssignments = presentIds.filter((id) => {
-    const side = manualTeams[id];
-    return side !== "A" && side !== "B";
-  });
+    const invalidAssignedIds = assignedIds.filter((id) => !presentIdSet.has(id));
 
-  if (missingAssignments.length > 0) {
-    return fail("Alle anwesenden Spieler müssen einem Team zugewiesen sein.");
-  }
+    if (invalidAssignedIds.length > 0) {
+      return fail(
+        "Es dürfen nur aktuell anwesende Spieler in den Teams verwendet werden."
+      );
+    }
 
-  const { data: presentPlayersData, error: presentPlayersError } = await supabase
-    .from("players")
-    .select("id")
-    .eq("club_id", clubId)
-    .in("id", presentIds);
+    const missingAssignments = presentIds.filter((id) => {
+      const side = manualTeams[id];
+      return side !== "A" && side !== "B";
+    });
 
-  if (presentPlayersError) {
-    return fail(presentPlayersError.message, 500);
-  }
+    if (missingAssignments.length > 0) {
+      return fail("Alle anwesenden Spieler müssen einem Team zugewiesen sein.");
+    }
 
-  const presentPlayers = (presentPlayersData ?? []) as PresentPlayerRow[];
+    const { data: presentPlayersData, error: presentPlayersError } =
+      await supabase
+        .from("players")
+        .select("id")
+        .eq("club_id", clubId)
+        .in("id", presentIds);
 
-  if (presentPlayers.length !== presentIds.length) {
-    return fail(
-      "Spielerdaten der anwesenden Spieler konnten nicht vollständig geladen werden."
-    );
-  }
+    if (presentPlayersError) {
+      return fail(presentPlayersError.message, 500);
+    }
 
-  const teamA = presentPlayers.filter((player) => manualTeams[player.id] === "A");
-  const teamB = presentPlayers.filter((player) => manualTeams[player.id] === "B");
+    const presentPlayers = (presentPlayersData ?? []) as PresentPlayerRow[];
 
-  if (teamA.length === 0 || teamB.length === 0) {
-    return fail("Beide Teams brauchen mindestens einen Spieler.");
-  }
+    if (presentPlayers.length !== presentIds.length) {
+      return fail(
+        "Spielerdaten der anwesenden Spieler konnten nicht vollständig geladen werden."
+      );
+    }
 
-  if (teamA.length + teamB.length !== presentPlayers.length) {
-    return fail(
-      "Alle anwesenden Spieler müssen genau einem Team zugewiesen sein."
-    );
-  }
+    const teamA = presentPlayers.filter((player) => manualTeams[player.id] === "A");
+    const teamB = presentPlayers.filter((player) => manualTeams[player.id] === "B");
 
-  if (Math.abs(teamA.length - teamB.length) > 1) {
-    return fail("Teams dürfen höchstens 1 Spieler Unterschied haben.");
-  }
+    if (teamA.length === 0 || teamB.length === 0) {
+      return fail("Beide Teams brauchen mindestens einen Spieler.");
+    }
 
-  const { data: existingResult, error: existingResultError } = await supabase
-    .from("results")
-    .select("id")
-    .eq("session_id", sessionId)
-    .maybeSingle();
+    if (teamA.length + teamB.length !== presentPlayers.length) {
+      return fail(
+        "Alle anwesenden Spieler müssen genau einem Team zugewiesen sein."
+      );
+    }
 
-  if (existingResultError) {
-    return fail(existingResultError.message, 500);
-  }
+    if (Math.abs(teamA.length - teamB.length) > 1) {
+      return fail("Teams dürfen höchstens 1 Spieler Unterschied haben.");
+    }
 
-  async function ensureTeam(name: string) {
-    const { data, error } = await supabase
-      .from("teams")
+    const { data: existingResult, error: existingResultError } = await supabase
+      .from("results")
       .select("id")
       .eq("session_id", sessionId)
-      .eq("name", name)
       .maybeSingle();
 
-    if (error) throw error;
-    if (data?.id) return data.id as number;
+    if (existingResultError) {
+      return fail(existingResultError.message, 500);
+    }
 
-    const { data: inserted, error: insertError } = await supabase
-      .from("teams")
-      .insert({ session_id: sessionId, name })
-      .select()
-      .single();
+    async function ensureTeam(name: string) {
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("session_id", sessionId)
+        .eq("name", name)
+        .maybeSingle();
 
-    if (insertError) throw insertError;
-    return inserted.id as number;
-  }
+      if (error) {
+        throw new Error(error.message);
+      }
 
-  const teamAId = await ensureTeam("Team 1");
-  const teamBId = await ensureTeam("Team 2");
+      if (data?.id) {
+        return data.id as number;
+      }
 
-  const { error: deleteTeamPlayersError } = await supabase
-    .from("team_players")
-    .delete()
-    .in("team_id", [teamAId, teamBId]);
+      const { data: inserted, error: insertError } = await supabase
+        .from("teams")
+        .insert({ session_id: sessionId, name })
+        .select("id")
+        .single();
 
-  if (deleteTeamPlayersError) {
-    return fail(deleteTeamPlayersError.message, 500);
-  }
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
 
-  const { error: insertTeamPlayersError } = await supabase
-    .from("team_players")
-    .insert([
+      return inserted.id as number;
+    }
+
+    const teamAId = await ensureTeam("Team 1");
+    const teamBId = await ensureTeam("Team 2");
+
+    const { error: deleteTeamPlayersError } = await supabase
+      .from("team_players")
+      .delete()
+      .in("team_id", [teamAId, teamBId]);
+
+    if (deleteTeamPlayersError) {
+      return fail(deleteTeamPlayersError.message, 500);
+    }
+
+    const teamPlayerRows = [
       ...teamA.map((player) => ({
         team_id: teamAId,
         player_id: player.id,
@@ -179,42 +188,57 @@ export async function handleSaveResult({
         team_id: teamBId,
         player_id: player.id,
       })),
-    ]);
+    ];
 
-  if (insertTeamPlayersError) {
-    return fail(insertTeamPlayersError.message, 500);
-  }
+    if (teamPlayerRows.length > 0) {
+      const { error: insertTeamPlayersError } = await supabase
+        .from("team_players")
+        .insert(teamPlayerRows);
 
-  const payload = {
-    session_id: sessionId,
-    team_a_id: teamAId,
-    team_b_id: teamBId,
-    goals_team_a: cleanA === "" ? null : Number(cleanA),
-    goals_team_b: cleanB === "" ? null : Number(cleanB),
-    club_id: clubId,
-  };
-
-  if (existingResult?.id) {
-    const { error } = await supabase
-      .from("results")
-      .update(payload)
-      .eq("session_id", sessionId);
-
-    if (error) {
-      return fail(error.message, 500);
+      if (insertTeamPlayersError) {
+        return fail(insertTeamPlayersError.message, 500);
+      }
     }
-  } else {
-    const { error } = await supabase.from("results").insert(payload);
-    if (error) {
-      return fail(error.message, 500);
-    }
-  }
 
-  return ok({
-    message:
-      "Ergebnis gespeichert. Aufstellungen & Anwesenheit sind ab jetzt gesperrt.",
-    hasResult: true,
-    goalsA: cleanA,
-    goalsB: cleanB,
-  });
+    const payload = {
+      session_id: sessionId,
+      team_a_id: teamAId,
+      team_b_id: teamBId,
+      goals_team_a: cleanA === "" ? null : Number(cleanA),
+      goals_team_b: cleanB === "" ? null : Number(cleanB),
+      club_id: clubId,
+    };
+
+    if (existingResult?.id) {
+      const { error } = await supabase
+        .from("results")
+        .update(payload)
+        .eq("session_id", sessionId);
+
+      if (error) {
+        return fail(error.message, 500);
+      }
+    } else {
+      const { error } = await supabase.from("results").insert(payload);
+
+      if (error) {
+        return fail(error.message, 500);
+      }
+    }
+
+    return ok({
+      message:
+        "Ergebnis gespeichert. Aufstellungen & Anwesenheit sind ab jetzt gesperrt.",
+      hasResult: true,
+      goalsA: cleanA,
+      goalsB: cleanB,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "Ergebnis konnte nicht gespeichert werden.";
+
+    return fail(message, 500);
+  }
 }
