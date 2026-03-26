@@ -82,7 +82,7 @@ export default function AppBottomNav({
 
         <NavItem
           href="/standings"
-          label="Standings"
+          label="Tabellen"
           active={
             pathname === "/standings" || pathname.startsWith("/standings/")
           }
