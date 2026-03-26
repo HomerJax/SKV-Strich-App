@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
 import { usePathname } from "next/navigation";
+
+type AppBottomNavProps = {
+  isAdmin?: boolean;
+};
 
 const HIDDEN_ON_PATHS = [
   "/login",
@@ -12,94 +15,79 @@ const HIDDEN_ON_PATHS = [
   "/onboarding",
 ];
 
-function NavItem({
-  href,
-  label,
-  icon,
-  active,
-}: {
+type NavItemProps = {
   href: string;
   label: string;
-  icon: string;
   active: boolean;
-}) {
+};
+
+function NavItem({ href, label, active }: NavItemProps) {
   return (
     <Link
       href={href}
-      className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs font-medium transition ${
+      className={[
+        "flex min-w-0 flex-1 items-center justify-center rounded-xl px-3 py-2 text-sm font-medium transition",
         active
-          ? "bg-neutral-900 text-white"
-          : "text-neutral-600 hover:bg-neutral-100"
-      }`}
+          ? "bg-slate-900 text-white"
+          : "text-slate-600 hover:bg-slate-100",
+      ].join(" ")}
     >
-      <span className="text-base leading-none">{icon}</span>
-      <span className="truncate">{label}</span>
+      {label}
     </Link>
   );
 }
-
-function LogoutNavItem() {
-  return (
-    <form action="/api/logout" method="post" className="flex min-w-0 flex-1">
-      <button
-        type="submit"
-        className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100"
-      >
-        <span className="text-base leading-none">🚪</span>
-        <span className="truncate">Logout</span>
-      </button>
-    </form>
-  );
-}
-
-type AppBottomNavProps = {
-  isAdmin?: boolean;
-};
 
 export default function AppBottomNav({
   isAdmin = false,
 }: AppBottomNavProps) {
   const pathname = usePathname();
 
-  const hidden = useMemo(() => {
-    if (!pathname) {
-      return false;
-    }
+  if (!pathname) {
+    return null;
+  }
 
-    return HIDDEN_ON_PATHS.some(
-      (path) => pathname === path || pathname.startsWith(`${path}/`)
-    );
-  }, [pathname]);
-
-  if (hidden) {
+  if (
+    HIDDEN_ON_PATHS.some(
+      (hiddenPath) =>
+        pathname === hiddenPath || pathname.startsWith(`${hiddenPath}/`)
+    )
+  ) {
     return null;
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-      <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3 sm:px-6 lg:px-8">
-        <NavItem href="/" label="Home" icon="🏠" active={pathname === "/"} />
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 p-3 backdrop-blur">
+      <div className="mx-auto flex max-w-md items-center gap-2">
+        <NavItem href="/" label="Home" active={pathname === "/"} />
+
         <NavItem
           href="/sessions"
-          label="Trainings"
-          icon="⚽"
+          label="Sessions"
           active={pathname === "/sessions" || pathname.startsWith("/sessions/")}
         />
+
         <NavItem
-          href="/standings"
-          label="Tabelle"
-          icon="📊"
-          active={pathname === "/standings"}
+          href="/players"
+          label="Players"
+          active={pathname === "/players" || pathname.startsWith("/players/")}
         />
+
         {isAdmin ? (
           <NavItem
             href="/admin"
             label="Admin"
-            icon="🛠️"
             active={pathname === "/admin" || pathname.startsWith("/admin/")}
           />
         ) : null}
-        <LogoutNavItem />
+
+        <form action="/api/logout" method="post" className="flex min-w-0 flex-1">
+          <button
+            type="submit"
+            className="flex w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+          >
+            Logout
+          </button>
+        </form>
       </div>
     </nav>
   );

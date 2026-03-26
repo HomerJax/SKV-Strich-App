@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 type MembershipRow = {
@@ -10,7 +9,11 @@ type MembershipRow = {
   role: string | null;
 };
 
-export async function POST(request: Request) {
+function buildRedirect(request: NextRequest, path: string) {
+  return new URL(path, request.url);
+}
+
+export async function POST(request: NextRequest) {
   const formData = await request.formData();
 
   const email = String(formData.get("email") ?? "")
@@ -19,10 +22,31 @@ export async function POST(request: Request) {
   const password = String(formData.get("password") ?? "").trim();
 
   if (!email || !password) {
-    redirect(`/login?error=missing-fields&email=${encodeURIComponent(email)}`);
+    const url = buildRedirect(
+      request,
+      `/login?error=missing-fields&email=${encodeURIComponent(email)}`
+    );
+    return NextResponse.redirect(url, { status: 303 });
   }
 
-  const supabase = await createClient();
+  const response = NextResponse.next();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          for (const { name, value, options } of cookiesToSet) {
+            response.cookies.set(name, value, options);
+          }
+        },
+      },
+    }
+  );
 
   const { data: signInData, error: signInError } =
     await supabase.auth.signInWithPassword({
@@ -31,9 +55,11 @@ export async function POST(request: Request) {
     });
 
   if (signInError || !signInData.user) {
-    redirect(
+    const url = buildRedirect(
+      request,
       `/login?error=invalid-credentials&email=${encodeURIComponent(email)}`
     );
+    return NextResponse.redirect(url, { status: 303 });
   }
 
   const user = signInData.user;
@@ -45,15 +71,26 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (playerError) {
-    redirect(
+    const url = buildRedirect(
+      request,
       `/login?error=${encodeURIComponent(
         `player-load-failed:${playerError.message}`
       )}&email=${encodeURIComponent(email)}`
     );
+    return NextResponse.redirect(url, { status: 303 });
   }
 
   if (!player) {
-    redirect(AUTH_ROUTES.onboarding);
+    const redirectResponse = NextResponse.redirect(
+      buildRedirect(request, AUTH_ROUTES.onboarding),
+      { status: 303 }
+    );
+
+    for (const cookie of response.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie);
+    }
+
+    return redirectResponse;
   }
 
   const { data: memberships, error: membershipsError } = await supabase
@@ -62,34 +99,32 @@ export async function POST(request: Request) {
     .eq("user_id", user.id);
 
   if (membershipsError) {
-    redirect(
+    const url = buildRedirect(
+      request,
       `/login?error=${encodeURIComponent(
         `membership-load-failed:${membershipsError.message}`
       )}&email=${encodeURIComponent(email)}`
     );
+    return NextResponse.redirect(url, { status: 303 });
   }
 
   const normalizedMemberships = (memberships ?? []) as MembershipRow[];
 
   if (!normalizedMemberships.length) {
-    redirect(AUTH_ROUTES.waitingForInvite);
+    const redirectResponse = NextResponse.redirect(
+      buildRedirect(request, AUTH_ROUTES.waitingForInvite),
+      { status: 303 }
+    );
+
+    for (const cookie of response.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie);
+    }
+
+    return redirectResponse;
   }
 
-  const cookieStore = await cookies();
-
-  if (normalizedMemberships.length === 1) {
-    cookieStore.set("active_club_id", normalizedMemberships[0].club_id, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: "lax",
-      httpOnly: false,
-      secure: true,
-    });
-
-    redirect(AUTH_ROUTES.dashboard);
-  }
-
-  const existingActiveClubId = cookieStore.get("active_club_id")?.value ?? null;
+  const existingActiveClubId =
+    request.cookies.get("active_club_id")?.value ?? null;
 
   const hasExistingMembership = existingActiveClubId
     ? normalizedMemberships.some(
@@ -97,17 +132,38 @@ export async function POST(request: Request) {
       )
     : false;
 
-  if (hasExistingMembership && existingActiveClubId) {
-    cookieStore.set("active_club_id", existingActiveClubId, {
+  let targetPath: string = AUTH_ROUTES.selectClub;
+
+  if (normalizedMemberships.length === 1) {
+    response.cookies.set("active_club_id", normalizedMemberships[0].club_id, {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
       sameSite: "lax",
       httpOnly: false,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
     });
 
-    redirect(AUTH_ROUTES.dashboard);
+    targetPath = AUTH_ROUTES.dashboard;
+  } else if (hasExistingMembership && existingActiveClubId) {
+    response.cookies.set("active_club_id", existingActiveClubId, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    targetPath = AUTH_ROUTES.dashboard;
   }
 
-  redirect(AUTH_ROUTES.selectClub);
+  const redirectResponse = NextResponse.redirect(
+    buildRedirect(request, targetPath),
+    { status: 303 }
+  );
+
+  for (const cookie of response.cookies.getAll()) {
+    redirectResponse.cookies.set(cookie);
+  }
+
+  return redirectResponse;
 }

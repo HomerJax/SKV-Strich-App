@@ -1,55 +1,27 @@
-import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/server";
 
-function getRequestOrigin(
-  headerStore: Awaited<ReturnType<typeof headers>>,
-  request: Request
-) {
-  const forwardedProto = headerStore.get("x-forwarded-proto");
-  const forwardedHost = headerStore.get("x-forwarded-host");
-  const host = headerStore.get("host");
+export async function POST() {
+  const supabase = await createClient();
 
-  if (forwardedProto && forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
+  await supabase.auth.signOut();
 
-  if (host) {
-    const protocol =
-      host.includes("localhost") || host.includes(":3000") ? "http" : "https";
-    return `${protocol}://${host}`;
-  }
-
-  return new URL(request.url).origin;
-}
-
-export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  const origin = getRequestOrigin(headerStore, request);
-
-  const response = NextResponse.redirect(new URL("/", origin), {
-    status: 303,
-  });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  const response = NextResponse.json(
+    { success: true },
     {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
       },
     }
   );
 
-  await supabase.auth.signOut();
+  response.cookies.set("active_club_id", "", {
+    path: "/",
+    maxAge: 0,
+  });
 
   return response;
 }

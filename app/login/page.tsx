@@ -5,31 +5,31 @@ import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 type LoginPageProps = {
   searchParams?: Promise<{
-    email?: string;
-    error?: string;
-  }>;
-};
+      email?: string;
+          error?: string;
+            }>;
+            };
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const ctx = await getAuthContext();
+            export default async function LoginPage({ searchParams }: LoginPageProps) {
+              const resolvedSearchParams = await searchParams;
+                const ctx = await getAuthContext();
 
-  if (ctx.user) {
-    if (!ctx.player) {
-      redirect(AUTH_ROUTES.onboarding);
-    }
+                  if (ctx.user) {
+                      if (!ctx.player) {
+                            redirect(AUTH_ROUTES.onboarding);
+                                }
 
-    if (!ctx.memberships.length || !ctx.activeClubId) {
-      redirect(AUTH_ROUTES.selectClub);
-    }
+                                    if (!ctx.memberships.length || !ctx.activeClubId) {
+                                          redirect(AUTH_ROUTES.selectClub);
+                                              }
 
-    redirect(AUTH_ROUTES.dashboard);
-  }
+                                                  redirect(AUTH_ROUTES.dashboard);
+                                                    }
 
-  return (
-    <LoginForm
-      initialEmail={resolvedSearchParams?.email ?? ""}
-      initialError={resolvedSearchParams?.error ?? ""}
-    />
-  );
-}
+                                                      return (
+                                                          <LoginForm
+                                                                initialEmail={resolvedSearchParams?.email ?? ""}
+                                                                      initialError={resolvedSearchParams?.error ?? ""}
+                                                                          />
+                                                                            );
+                                                                            }

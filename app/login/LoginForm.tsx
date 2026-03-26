@@ -66,11 +66,7 @@ export default function LoginForm({
             </div>
           ) : null}
 
-          <form
-            action="/api/login"
-            method="post"
-            className="mt-6 space-y-4"
-          >
+          <form action="/api/login" method="post" className="mt-6 space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-neutral-800">
                 E-Mail

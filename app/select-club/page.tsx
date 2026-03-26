@@ -18,8 +18,8 @@ export default async function SelectClubPage() {
     redirect(AUTH_ROUTES.waitingForInvite);
   }
 
-  if (ctx.memberships.length === 1) {
-    redirect("/");
+  if (ctx.memberships.length === 1 && ctx.activeClubId) {
+    redirect(AUTH_ROUTES.dashboard);
   }
 
   return (
@@ -40,7 +40,7 @@ export default async function SelectClubPage() {
               <form
                 key={membership.club_id}
                 method="post"
-                action={AUTH_ROUTES.selectClub}
+                action="/api/select-club"
               >
                 <input
                   type="hidden"
@@ -52,10 +52,10 @@ export default async function SelectClubPage() {
                   type="submit"
                   className="flex w-full items-center justify-between rounded-xl border border-black/10 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
                 >
-                  <span>Team</span>
+                  <span>{membership.club_id}</span>
 
                   <span className="text-xs text-slate-500">
-                    {membership.role}
+                    {membership.role ?? "Mitglied"}
                   </span>
                 </button>
               </form>

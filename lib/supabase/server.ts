@@ -14,11 +14,12 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
+            for (const { name, value, options } of cookiesToSet) {
+              cookieStore.set(name, value, options);
+            }
           } catch {
-            // ok in Server Components if immutable in current context
+            // In Server Components kann das Cookie-Store schreibgeschützt sein.
+            // Das ist dort okay, weil wir hier vor allem lesen.
           }
         },
       },

@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import LogoutButton from "@/components/LogoutButton";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClubAction } from "./actions";
 
@@ -147,13 +147,9 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                 </div>
 
                 <div className="mt-4">
-                  <Link
-                    href="/logout"
-                    prefetch={false}
-                    className="inline-flex w-full items-center justify-center rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100"
-                  >
+                  <LogoutButton className="inline-flex w-full items-center justify-center rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100 disabled:opacity-60">
                     Abmelden
-                  </Link>
+                  </LogoutButton>
                 </div>
               </section>
             </div>
