@@ -1,47 +1,97 @@
 import Image from "next/image";
+import Link from "next/link";
+import { getAuthContext } from "@/lib/auth/context";
 
-type Props = {
-  club?: {
-    name?: string;
-    logo_url?: string | null;
-  };
-  user?: {
-    nickname?: string | null;
-  };
-};
+const HIDDEN_ON_PATHS = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/onboarding",
+];
 
-export function HeaderClub({ club, user }: Props) {
+export default async function AppHeader() {
+  const ctx = await getAuthContext();
+
+  const hasActiveClub = Boolean(ctx.activeClubId);
+  const isHidden = false;
+
+  if (isHidden) {
+    return null;
+  }
+
+  let clubName: string | null = null;
+  let clubLogoUrl: string | null = null;
+
+  if (hasActiveClub) {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+
+    const { data: club } = await supabase
+      .from("clubs")
+      .select("name, logo_url")
+      .eq("id", ctx.activeClubId)
+      .maybeSingle();
+
+    clubName = club?.name ?? null;
+    clubLogoUrl = club?.logo_url ?? null;
+  }
+
+  const nickname = ctx.player?.nickname?.trim() || null;
+
   return (
-    <div className="flex items-center gap-3">
-      {/* Logo */}
-      {club?.logo_url ? (
-        <img
-          src={club.logo_url}
-          alt="Club Logo"
-          className="h-9 w-9 rounded-md object-cover"
-        />
-      ) : (
-        <Image
-          src="/icon.png" // dein strikr logo
-          alt="Strikr"
-          width={36}
-          height={36}
-          className="rounded-md"
-        />
-      )}
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <Image
+            src="/icon-dark.png"
+            alt="strikr"
+            width={48}
+            height={48}
+            priority
+            className="h-12 w-12 rounded-xl object-contain"
+          />
 
-      {/* Text */}
-      <div className="flex flex-col leading-tight">
-        <span className="text-sm font-semibold text-slate-900">
-          {club?.name ?? "Strikr"}
-        </span>
+          <div className="min-w-0">
+            <div className="truncate text-2xl font-black tracking-tight text-slate-950">
+              strikr
+            </div>
+          </div>
+        </Link>
 
-        {user?.nickname && (
-          <span className="text-xs text-slate-500">
-            {user.nickname}
-          </span>
-        )}
+        {ctx.user ? (
+          <div className="ml-4 flex min-w-0 items-center gap-3">
+            <div className="hidden min-w-0 text-right sm:block">
+              <div className="truncate text-sm font-semibold text-slate-900">
+                {clubName ?? "Kein Team"}
+              </div>
+              {nickname ? (
+                <div className="truncate text-xs text-slate-500">
+                  {nickname}
+                </div>
+              ) : null}
+            </div>
+
+            {clubLogoUrl ? (
+              <img
+                src={clubLogoUrl}
+                alt={clubName ?? "Club Logo"}
+                className="h-11 w-11 rounded-2xl border border-slate-200 object-cover shadow-sm"
+              />
+            ) : (
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <Image
+                  src="/icon-dark.png"
+                  alt="strikr"
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 object-contain opacity-70"
+                />
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
-    </div>
+    </header>
   );
 }
