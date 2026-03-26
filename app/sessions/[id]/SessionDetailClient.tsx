@@ -18,6 +18,7 @@ import { getPlayerDisplayName } from "@/lib/player-display";
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionTeamsCard from "./SessionTeamsCard";
+import SessionResultCard from "./SessionResultCard";
 
 type ClubSettings = {
   use_strength: boolean;
@@ -48,13 +49,7 @@ type SessionDetailClientProps = {
 type ApiSuccess =
   | { ok: true; mode: "added" | "removed"; playerId: number }
   | { ok: true; message: string; player: Player }
-  | {
-      ok: true;
-      message: string;
-      hasResult: boolean;
-      goalsA: string;
-      goalsB: string;
-    }
+  | { ok: true; message: string; hasResult: boolean; goalsA: string; goalsB: string }
   | {
       ok: true;
       message: string;
@@ -65,30 +60,6 @@ type ApiSuccess =
 type ApiError = {
   error: string;
 };
-
-function SectionCard({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-      <div className="mb-4">
-        <h2 className="text-base font-semibold text-slate-950 sm:text-lg">
-          {title}
-        </h2>
-        {subtitle ? (
-          <p className="mt-1 text-sm leading-6 text-slate-600">{subtitle}</p>
-        ) : null}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 export default function SessionDetailClient({
   sessionId,
@@ -106,6 +77,8 @@ export default function SessionDetailClient({
 }: SessionDetailClientProps) {
   const router = useRouter();
 
+  const resultRef = useRef<HTMLDivElement | null>(null);
+  const teamsRef = useRef<HTMLDivElement | null>(null);
   const winnerPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [session, setSession] = useState<SessionRow | null>(initialSession);
@@ -141,16 +114,6 @@ export default function SessionDetailClient({
   const [pendingPresenceIds, setPendingPresenceIds] = useState<number[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-
-  const [attendanceCollapsed, setAttendanceCollapsed] = useState(
-    initialPresentIds.length >= 2
-  );
-  const [resultExpanded, setResultExpanded] = useState(
-    !initialHasResult && initialPresentIds.length >= 2
-  );
-  const [photoExpanded, setPhotoExpanded] = useState(
-    initialHasResult || Boolean(initialWinnerPhotoUrl)
-  );
 
   async function postForm(formData: FormData): Promise<ApiSuccess> {
     const response = await fetch(`/api/sessions/${sessionId}`, {
@@ -338,7 +301,6 @@ export default function SessionDetailClient({
         } else {
           setPresentIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
           setManualTeams((prev) => ({ ...prev, [id]: prev[id] ?? null }));
-          setAttendanceCollapsed(true);
         }
       }
     } catch (e: unknown) {
@@ -401,7 +363,6 @@ export default function SessionDetailClient({
           ...prev,
           [nextPlayer.id]: prev[nextPlayer.id] ?? null,
         }));
-        setAttendanceCollapsed(true);
         resetGuestForm();
         setMsg(result.message);
       }
@@ -511,7 +472,6 @@ export default function SessionDetailClient({
     for (const player of bestB) next[player.id] = "B";
 
     setManualTeams(next);
-    setResultExpanded(true);
 
     const useStrength = clubSettings?.use_strength ?? true;
     const useCategories = clubSettings?.use_categories ?? true;
@@ -594,7 +554,6 @@ export default function SessionDetailClient({
         setHasResult(result.hasResult);
         setGoalsA(result.goalsA);
         setGoalsB(result.goalsB);
-        setPhotoExpanded(true);
         setMsg(result.message);
       }
     } catch (e: unknown) {
@@ -733,6 +692,35 @@ export default function SessionDetailClient({
   const metaA = teamMeta(teamA);
   const metaB = teamMeta(teamB);
 
+  function scrollToTeams() {
+    teamsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function scrollToResult() {
+    resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function handlePrimaryStickyAction() {
+    if (hasResult) {
+      await handleShareResult();
+      return;
+    }
+
+    await saveResult();
+  }
+
+  const stickyPrimaryDisabled = hasResult
+    ? !canShareResult || sharingResult
+    : saving || !teamsComplete || normalizeGoalValue(goalsA) === "" || normalizeGoalValue(goalsB) === "";
+
+  const stickyPrimaryLabel = hasResult
+    ? sharingResult
+      ? "Teilen ..."
+      : "Ergebnis teilen"
+    : saving
+      ? "Speichert ..."
+      : "Speichern";
+
   if (err && !session) {
     return <div className="bg-red-50 p-4 text-sm text-red-700">{err}</div>;
   }
@@ -742,7 +730,7 @@ export default function SessionDetailClient({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-28">
       <button
         onClick={() => router.push("/sessions")}
         className="text-xs text-slate-500 hover:text-slate-700"
@@ -758,79 +746,43 @@ export default function SessionDetailClient({
         teamBCount={teamB.length}
         hasResult={hasResult}
         nextStepLabel={nextStepLabel}
+        onScrollToTeams={scrollToTeams}
+        onScrollToResult={scrollToResult}
       />
 
-      {!hasResult ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
-          Empfohlene Reihenfolge: Anwesenheit festlegen → Teams aufteilen →
-          Ergebnis speichern.
-        </div>
-      ) : null}
-
-      {err ? (
+      {err && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
           {err}
         </div>
-      ) : null}
+      )}
 
-      {msg ? (
+      {msg && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
           {msg}
         </div>
-      ) : null}
+      )}
 
-      <SectionCard
-        title="Anwesenheit"
-        subtitle="Wähle die Spieler aus, die heute beim Training dabei sind."
-      >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">
-            {presentPlayers.length} Spieler aktuell anwesend
-          </div>
+      <SessionAttendanceCard
+        players={players}
+        presentIds={presentIds}
+        pendingPresenceIds={pendingPresenceIds}
+        hasResult={hasResult}
+        isAdmin={isAdmin}
+        showGuestForm={showGuestForm}
+        guestName={guestName}
+        guestPosition={guestPosition}
+        guestAgeGroup={guestAgeGroup}
+        guestSaving={guestSaving}
+        clubSettings={clubSettings}
+        onToggleShowGuestForm={toggleGuestForm}
+        onGuestNameChange={setGuestName}
+        onGuestPositionChange={setGuestPosition}
+        onGuestAgeGroupChange={setGuestAgeGroup}
+        onAddGuestPlayer={addGuestPlayer}
+        onTogglePresence={togglePresence}
+      />
 
-          {presentPlayers.length >= 2 ? (
-            <button
-              type="button"
-              onClick={() => setAttendanceCollapsed((prev) => !prev)}
-              className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              {attendanceCollapsed ? "Spieler anzeigen" : "Spieler einklappen"}
-            </button>
-          ) : null}
-        </div>
-
-        {!attendanceCollapsed ? (
-          <SessionAttendanceCard
-            players={players}
-            presentIds={presentIds}
-            pendingPresenceIds={pendingPresenceIds}
-            hasResult={hasResult}
-            isAdmin={isAdmin}
-            showGuestForm={showGuestForm}
-            guestName={guestName}
-            guestPosition={guestPosition}
-            guestAgeGroup={guestAgeGroup}
-            guestSaving={guestSaving}
-            clubSettings={clubSettings}
-            onToggleShowGuestForm={toggleGuestForm}
-            onGuestNameChange={setGuestName}
-            onGuestPositionChange={setGuestPosition}
-            onGuestAgeGroupChange={setGuestAgeGroup}
-            onAddGuestPlayer={addGuestPlayer}
-            onTogglePresence={togglePresence}
-          />
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-            Anwesenheitsliste ist eingeklappt. Du kannst sie jederzeit wieder
-            öffnen, um Spieler hinzuzufügen oder abzuwählen.
-          </div>
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Teams"
-        subtitle="Verteile die anwesenden Spieler auf Team A und Team B."
-      >
+      <div ref={teamsRef}>
         <SessionTeamsCard
           teamA={teamA}
           teamB={teamB}
@@ -840,192 +792,65 @@ export default function SessionDetailClient({
           hasResult={hasResult}
           saving={saving}
           teamsComplete={teamsComplete}
-          canShareLineup={false}
-          sharingLineup={false}
+          canShareLineup={canShareLineup}
+          sharingLineup={sharingLineup}
           onGenerateTeams={generateTeams}
-          onShareLineup={() => {}}
+          onShareLineup={handleShareLineup}
           onSetSide={setSide}
         />
+      </div>
 
-        <div className="mt-4 border-t border-slate-200 pt-4">
+      <div ref={resultRef}>
+        <SessionResultCard
+          hasResult={hasResult}
+          saving={saving}
+          photoBusy={photoBusy}
+          goalsA={goalsA}
+          goalsB={goalsB}
+          canShareResult={canShareResult}
+          canUploadWinnerPhoto={canUploadWinnerPhoto}
+          winnerPhotoUrl={winnerPhotoUrl}
+          hasWinnerPhoto={Boolean(session.winner_photo_path)}
+          sharingResult={sharingResult}
+          winnerPhotoInputRef={winnerPhotoInputRef}
+          onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
+          onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
+          onDeleteResult={deleteResult}
+          onWinnerPhotoUpload={handleWinnerPhotoUpload}
+          onWinnerPhotoDelete={handleWinnerPhotoDelete}
+          onSaveResult={saveResult}
+          onShareResult={handleShareResult}
+        />
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-2 px-4 py-3 sm:px-6 lg:px-8">
           <button
             type="button"
-            onClick={handleShareLineup}
-            disabled={!canShareLineup || sharingLineup}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={scrollToTeams}
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            {sharingLineup ? "Teilt..." : "Aufstellung teilen"}
+            Teams
           </button>
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Ergebnis"
-        subtitle="Trage das Endergebnis ein und speichere es separat."
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">
-            {hasResult
-              ? "Ergebnis ist gespeichert."
-              : "Noch kein Ergebnis gespeichert."}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setResultExpanded((prev) => !prev)}
-            className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            {resultExpanded ? "Einklappen" : "Öffnen"}
-          </button>
-        </div>
-
-        {resultExpanded ? (
-          <div className="mt-4 space-y-4">
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Team A
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={goalsA}
-                  onChange={(event) =>
-                    setGoalsA(normalizeGoalValue(event.target.value))
-                  }
-                  disabled={saving}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-center text-lg font-bold text-slate-950 outline-none transition focus:border-slate-500 disabled:bg-slate-100"
-                />
-              </div>
-
-              <div className="pb-3 text-center text-sm font-semibold text-slate-400">
-                :
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Team B
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={goalsB}
-                  onChange={(event) =>
-                    setGoalsB(normalizeGoalValue(event.target.value))
-                  }
-                  disabled={saving}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-center text-lg font-bold text-slate-950 outline-none transition focus:border-slate-500 disabled:bg-slate-100"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {!hasResult ? (
-                <button
-                  type="button"
-                  onClick={saveResult}
-                  disabled={saving}
-                  className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? "Speichert..." : "Ergebnis speichern"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={deleteResult}
-                  disabled={saving}
-                  className="inline-flex items-center justify-center rounded-xl border border-red-300 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? "Löscht..." : "Ergebnis löschen"}
-                </button>
-              )}
-            </div>
-          </div>
-        ) : null}
-      </SectionCard>
-
-      <SectionCard
-        title="Siegerfoto"
-        subtitle="Lade das Siegerfoto getrennt vom Ergebnis hoch."
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">
-            {winnerPhotoUrl ? "Siegerfoto vorhanden." : "Noch kein Siegerfoto."}
-          </div>
 
           <button
             type="button"
-            onClick={() => setPhotoExpanded((prev) => !prev)}
-            className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            onClick={scrollToResult}
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            {photoExpanded ? "Einklappen" : "Öffnen"}
+            Ergebnis
           </button>
-        </div>
 
-        {photoExpanded ? (
-          <div className="mt-4 space-y-4">
-            {winnerPhotoUrl ? (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                <img
-                  src={winnerPhotoUrl}
-                  alt="Siegerfoto"
-                  className="max-h-[320px] w-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                Noch kein Siegerfoto hochgeladen.
-              </div>
-            )}
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <input
-                ref={winnerPhotoInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                onChange={handleWinnerPhotoUpload}
-                className="hidden"
-              />
-
-              <button
-                type="button"
-                onClick={() => winnerPhotoInputRef.current?.click()}
-                disabled={!canUploadWinnerPhoto || photoBusy}
-                className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {photoBusy ? "Lädt..." : "Siegerfoto hochladen"}
-              </button>
-
-              {session.winner_photo_path ? (
-                <button
-                  type="button"
-                  onClick={handleWinnerPhotoDelete}
-                  disabled={photoBusy}
-                  className="inline-flex items-center justify-center rounded-xl border border-red-300 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {photoBusy ? "Löscht..." : "Siegerfoto löschen"}
-                </button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-      </SectionCard>
-
-      <SectionCard
-        title="Teilen"
-        subtitle="Ergebnis und Siegerfoto kannst du separat verschicken."
-      >
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <button
             type="button"
-            onClick={handleShareResult}
-            disabled={!canShareResult || sharingResult}
-            className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handlePrimaryStickyAction}
+            disabled={stickyPrimaryDisabled}
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {sharingResult ? "Teilt..." : "Ergebnis teilen"}
+            {stickyPrimaryLabel}
           </button>
         </div>
-      </SectionCard>
+      </div>
     </div>
   );
 }
