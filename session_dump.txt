@@ -1,0 +1,774 @@
+
+===== app/sessions/[id]/page.tsx =====
+
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+import SessionDetailClient from "./SessionDetailClient";
+import type { Player, SessionRow } from "./session-types";
+
+type ClubSettings = {
+  use_strength: boolean;
+  strength_default: number;
+  use_categories: boolean;
+  category_label: string | null;
+  position_label: string | null;
+  attack_label: string | null;
+  defense_label: string | null;
+  goalkeeper_label: string | null;
+};
+
+type ResultRow = {
+  id: number;
+  team_a_id: number | null;
+  team_b_id: number | null;
+  goals_team_a: number | null;
+  goals_team_b: number | null;
+};
+
+type TeamPlayerRow = {
+  team_id: number;
+  player_id: number;
+};
+
+type SessionPlayerRow = {
+  player_id: number;
+};
+
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
+}
+
+export default async function SessionDetailPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const sessionId = Number(resolvedParams.id);
+  const { clubId, membership } = await requireClub();
+  const supabase = await createClient();
+
+  if (!Number.isFinite(sessionId)) {
+    redirect("/sessions");
+  }
+
+  const [
+    { data: settingsData, error: settingsError },
+    { data: sessionData, error: sessionError },
+    { data: playersData, error: playersError },
+    { data: sessionPlayersData, error: sessionPlayersError },
+    { data: resultData, error: resultError },
+  ] = await Promise.all([
+    supabase
+      .from("club_settings")
+      .select(
+        "use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label"
+      )
+      .eq("club_id", clubId)
+      .single(),
+    supabase
+      .from("sessions")
+      .select("id, date, notes, winner_photo_path, club_id")
+      .eq("id", sessionId)
+      .eq("club_id", clubId)
+      .single(),
+    supabase
+      .from("players")
+      .select(
+        "id, name, first_name, last_name, nickname, is_active, age_group, preferred_position, strength, is_guest"
+      )
+      .eq("club_id", clubId)
+      .order("name"),
+    supabase
+      .from("session_players")
+      .select("player_id")
+      .eq("session_id", sessionId),
+    supabase
+      .from("results")
+      .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+      .eq("session_id", sessionId)
+      .maybeSingle(),
+  ]);
+
+  if (settingsError) {
+    throw new Error(
+      `Club-Settings konnten nicht geladen werden: ${settingsError.message}`
+    );
+  }
+
+  if (sessionError) {
+    redirect("/sessions");
+  }
+
+  if (playersError) {
+    throw new Error(
+      `Spieler konnten nicht geladen werden: ${playersError.message}`
+    );
+  }
+
+  if (sessionPlayersError) {
+    throw new Error(
+      `Session-Spieler konnten nicht geladen werden: ${sessionPlayersError.message}`
+    );
+  }
+
+  if (resultError) {
+    throw new Error(
+      `Ergebnis konnte nicht geladen werden: ${resultError.message}`
+    );
+  }
+
+  const session = sessionData as SessionRow;
+  const clubSettings = settingsData as ClubSettings;
+  const players = ((playersData ?? []).filter(
+    (player) => player.is_active !== false
+  ) ?? []) as Player[];
+  const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[]).map(
+    (row) => row.player_id
+  );
+
+  const result = (resultData ?? null) as ResultRow | null;
+
+  const manualTeams: Record<number, "A" | "B" | null> = {};
+  presentIds.forEach((playerId) => {
+    manualTeams[playerId] = null;
+  });
+
+  let goalsA = "";
+  let goalsB = "";
+  let hasResult = false;
+
+  if (result && (result.team_a_id || result.team_b_id)) {
+    const teamIds = [result.team_a_id, result.team_b_id].filter(Boolean) as number[];
+
+    if (teamIds.length > 0) {
+      const { data: teamPlayersData, error: teamPlayersError } = await supabase
+        .from("team_players")
+        .select("team_id, player_id")
+        .in("team_id", teamIds);
+
+      if (teamPlayersError) {
+        throw new Error(
+          `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`
+        );
+      }
+
+      for (const teamPlayer of (teamPlayersData ?? []) as TeamPlayerRow[]) {
+        if (teamPlayer.team_id === result.team_a_id) {
+          manualTeams[teamPlayer.player_id] = "A";
+        }
+        if (teamPlayer.team_id === result.team_b_id) {
+          manualTeams[teamPlayer.player_id] = "B";
+        }
+      }
+    }
+
+    if (result.goals_team_a != null) goalsA = String(result.goals_team_a);
+    if (result.goals_team_b != null) goalsB = String(result.goals_team_b);
+    hasResult = true;
+  }
+
+  let winnerPhotoUrl: string | null = null;
+
+  if (session.winner_photo_path) {
+    const { data, error } = await supabase.storage
+      .from("session-photos")
+      .createSignedUrl(session.winner_photo_path, 60 * 60);
+
+    if (!error) {
+      winnerPhotoUrl = data?.signedUrl ?? null;
+    }
+  }
+
+  return (
+    <SessionDetailClient
+      sessionId={sessionId}
+      initialSession={session}
+      initialPlayers={players}
+      initialPresentIds={presentIds}
+      initialManualTeams={manualTeams}
+      initialClubId={clubId}
+      initialIsAdmin={isAdminRole(membership.role)}
+      initialClubSettings={clubSettings}
+      initialWinnerPhotoUrl={winnerPhotoUrl}
+      initialGoalsA={goalsA}
+      initialGoalsB={goalsB}
+      initialHasResult={hasResult}
+    />
+  );
+}
+
+===== lib/session-detail/access.ts =====
+
+import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/auth/context";
+
+export type SessionRow = {
+  id: number;
+  date: string;
+  notes: string | null;
+  winner_photo_path: string | null;
+  club_id: string;
+};
+
+export async function requireSessionAccess(sessionId: number) {
+  const ctx = await getAuthContext();
+
+  if (!ctx.user) {
+    return { error: "Nicht eingeloggt.", status: 401 as const };
+  }
+
+  if (!ctx.player) {
+    return { error: "Onboarding unvollständig.", status: 403 as const };
+  }
+
+  if (!ctx.memberships.length || !ctx.activeClubId) {
+    return { error: "Kein aktiver Club gewählt.", status: 403 as const };
+  }
+
+  const membership =
+    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ?? null;
+
+  if (!membership) {
+    return {
+      error: "Keine gültige Club-Mitgliedschaft gefunden.",
+      status: 403 as const,
+    };
+  }
+
+  const supabase = await createClient();
+
+  const { data: sessionData, error: sessionError } = await supabase
+    .from("sessions")
+    .select("id, date, notes, winner_photo_path, club_id")
+    .eq("id", sessionId)
+    .eq("club_id", ctx.activeClubId)
+    .maybeSingle();
+
+  if (sessionError) {
+    return { error: sessionError.message, status: 500 as const };
+  }
+
+  if (!sessionData) {
+    return { error: "Session nicht gefunden.", status: 404 as const };
+  }
+
+  return {
+    supabase,
+    clubId: ctx.activeClubId,
+    membership,
+    session: sessionData as SessionRow,
+  };
+}
+
+===== lib/session-detail/photo.ts =====
+
+import { createClient } from "@/lib/supabase/server";
+
+export async function createSignedPhotoUrl(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  path: string | null | undefined
+) {
+  if (!path) return null;
+
+  const { data, error } = await supabase.storage
+    .from("session-photos")
+    .createSignedUrl(path, 60 * 60);
+
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
+
+===== lib/session-detail/actions/add-guest-player.ts =====
+
+import { createClient } from "@/lib/supabase/server";
+import { fail, ok } from "@/lib/session-detail/response";
+
+type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
+
+type PlayerRow = {
+  id: number;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  is_active: boolean | null;
+  age_group: string | null;
+  preferred_position: "attack" | "defense" | "goalkeeper" | null;
+  strength: number | null;
+  is_guest: boolean | null;
+};
+
+type AddGuestPlayerInput = {
+  supabase: SessionDetailSupabase;
+  sessionId: number;
+  clubId: string;
+  membership: {
+    role: string | null;
+  };
+  guestName: string;
+  guestPosition: string;
+  guestAgeGroup: string;
+};
+
+export async function handleAddGuestPlayer({
+  supabase,
+  sessionId,
+  clubId,
+  membership,
+  guestName,
+  guestPosition,
+  guestAgeGroup,
+}: AddGuestPlayerInput) {
+  const role = membership.role;
+
+  if (!(role === "admin" || role === "owner")) {
+    return fail(
+      "Gastspieler können aktuell nur von Admins angelegt werden.",
+      403
+    );
+  }
+
+  const { data: existingResult, error: existingResultError } = await supabase
+    .from("results")
+    .select("id")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+
+  if (existingResultError) {
+    return fail(existingResultError.message, 500);
+  }
+
+  if (existingResult?.id) {
+    return fail(
+      "Gastspieler können nicht mehr hinzugefügt werden, wenn bereits ein Ergebnis gespeichert ist."
+    );
+  }
+
+  if (!guestName.trim()) {
+    return fail("Bitte einen Namen für den Gastspieler eingeben.");
+  }
+
+  const payload = {
+    club_id: clubId,
+    name: guestName.trim(),
+    is_active: true,
+    is_guest: true,
+    preferred_position: guestPosition.trim() === "" ? null : guestPosition.trim(),
+    age_group: guestAgeGroup.trim() === "" ? null : guestAgeGroup.trim(),
+    strength: null,
+  };
+
+  const { data: createdPlayer, error: insertPlayerError } = await supabase
+    .from("players")
+    .insert(payload)
+    .select(
+      "id, name, first_name, last_name, nickname, is_active, age_group, preferred_position, strength, is_guest"
+    )
+    .single();
+
+  if (insertPlayerError) {
+    return fail(insertPlayerError.message, 500);
+  }
+
+  const typedCreatedPlayer = createdPlayer as PlayerRow;
+
+  const { error: insertSessionPlayerError } = await supabase
+    .from("session_players")
+    .insert({
+      session_id: sessionId,
+      player_id: typedCreatedPlayer.id,
+    });
+
+  if (insertSessionPlayerError) {
+    await supabase.from("players").delete().eq("id", typedCreatedPlayer.id);
+    return fail(insertSessionPlayerError.message, 500);
+  }
+
+  return ok({
+    message: "Gastspieler angelegt und direkt zur Anwesenheit hinzugefügt.",
+    player: typedCreatedPlayer,
+  });
+}
+
+===== lib/session-detail/actions/toggle-presence.ts =====
+
+import { createClient } from "@/lib/supabase/server";
+import { fail, ok } from "@/lib/session-detail/response";
+
+type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
+
+type TogglePresenceInput = {
+  supabase: SessionDetailSupabase;
+  sessionId: number;
+  playerId: number;
+};
+
+export async function handleTogglePresence({
+  supabase,
+  sessionId,
+  playerId,
+}: TogglePresenceInput) {
+  if (!Number.isFinite(playerId)) {
+    return fail("Ungültige Spieler-ID.");
+  }
+
+  const { data: existingResult, error: existingResultError } = await supabase
+    .from("results")
+    .select("id")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+
+  if (existingResultError) {
+    return fail(existingResultError.message, 500);
+  }
+
+  if (existingResult?.id) {
+    return fail(
+      "Anwesenheit ist gesperrt, weil bereits ein Ergebnis gespeichert ist."
+    );
+  }
+
+  const { data: existingPresence, error: presenceError } = await supabase
+    .from("session_players")
+    .select("player_id")
+    .eq("session_id", sessionId)
+    .eq("player_id", playerId)
+    .maybeSingle();
+
+  if (presenceError) {
+    return fail(presenceError.message, 500);
+  }
+
+  if (existingPresence) {
+    const { error: deleteError } = await supabase
+      .from("session_players")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("player_id", playerId);
+
+    if (deleteError) {
+      return fail(deleteError.message, 500);
+    }
+
+    return ok({
+      mode: "removed",
+      playerId,
+    });
+  }
+
+  const { error: insertError } = await supabase.from("session_players").insert({
+    session_id: sessionId,
+    player_id: playerId,
+  });
+
+  if (insertError) {
+    return fail(insertError.message, 500);
+  }
+
+  return ok({
+    mode: "added",
+    playerId,
+  });
+}
+
+===== lib/session-detail/actions/save-result.ts =====
+
+import { createClient } from "@/lib/supabase/server";
+import { fail, ok } from "@/lib/session-detail/response";
+
+type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
+type TeamMap = Record<number, "A" | "B" | null>;
+
+function normalizeGoalValue(value: string | null | undefined) {
+  const clean = String(value ?? "").trim();
+  if (clean === "") return "";
+  if (!/^\d+$/.test(clean)) return null;
+  return clean;
+}
+
+type SaveResultInput = {
+  supabase: SessionDetailSupabase;
+  sessionId: number;
+  clubId: string;
+  goalsA: string;
+  goalsB: string;
+  manualTeamsRaw: string;
+};
+
+type PresentPlayerRow = {
+  id: number;
+};
+
+type SessionPlayerRow = {
+  player_id: number;
+};
+
+export async function handleSaveResult({
+  supabase,
+  sessionId,
+  clubId,
+  goalsA,
+  goalsB,
+  manualTeamsRaw,
+}: SaveResultInput) {
+  const cleanA = normalizeGoalValue(goalsA);
+  const cleanB = normalizeGoalValue(goalsB);
+
+  if (cleanA === null || cleanB === null) {
+    return fail("Bitte ein gültiges Ergebnis eingeben.");
+  }
+
+  let manualTeams: TeamMap = {};
+  try {
+    manualTeams = JSON.parse(manualTeamsRaw) as TeamMap;
+  } catch {
+    return fail("Teamdaten konnten nicht gelesen werden.");
+  }
+
+  const { data: sessionPlayersData, error: sessionPlayersError } = await supabase
+    .from("session_players")
+    .select("player_id")
+    .eq("session_id", sessionId);
+
+  if (sessionPlayersError) {
+    return fail(sessionPlayersError.message, 500);
+  }
+
+  const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[])
+    .map((row) => row.player_id)
+    .filter(Number.isFinite);
+
+  if (presentIds.length < 2) {
+    return fail("Mindestens 2 anwesende Spieler sind erforderlich.");
+  }
+
+  const presentIdSet = new Set(presentIds);
+
+  const assignedIds = Object.keys(manualTeams)
+    .map((key) => Number(key))
+    .filter(Number.isFinite);
+
+  const invalidAssignedIds = assignedIds.filter((id) => !presentIdSet.has(id));
+
+  if (invalidAssignedIds.length > 0) {
+    return fail(
+      "Es dürfen nur aktuell anwesende Spieler in den Teams verwendet werden."
+    );
+  }
+
+  const missingAssignments = presentIds.filter((id) => {
+    const side = manualTeams[id];
+    return side !== "A" && side !== "B";
+  });
+
+  if (missingAssignments.length > 0) {
+    return fail("Alle anwesenden Spieler müssen einem Team zugewiesen sein.");
+  }
+
+  const { data: presentPlayersData, error: presentPlayersError } = await supabase
+    .from("players")
+    .select("id")
+    .eq("club_id", clubId)
+    .in("id", presentIds);
+
+  if (presentPlayersError) {
+    return fail(presentPlayersError.message, 500);
+  }
+
+  const presentPlayers = (presentPlayersData ?? []) as PresentPlayerRow[];
+
+  if (presentPlayers.length !== presentIds.length) {
+    return fail(
+      "Spielerdaten der anwesenden Spieler konnten nicht vollständig geladen werden."
+    );
+  }
+
+  const teamA = presentPlayers.filter((player) => manualTeams[player.id] === "A");
+  const teamB = presentPlayers.filter((player) => manualTeams[player.id] === "B");
+
+  if (teamA.length === 0 || teamB.length === 0) {
+    return fail("Beide Teams brauchen mindestens einen Spieler.");
+  }
+
+  if (teamA.length + teamB.length !== presentPlayers.length) {
+    return fail(
+      "Alle anwesenden Spieler müssen genau einem Team zugewiesen sein."
+    );
+  }
+
+  if (Math.abs(teamA.length - teamB.length) > 1) {
+    return fail("Teams dürfen höchstens 1 Spieler Unterschied haben.");
+  }
+
+  const { data: existingResult, error: existingResultError } = await supabase
+    .from("results")
+    .select("id")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+
+  if (existingResultError) {
+    return fail(existingResultError.message, 500);
+  }
+
+  async function ensureTeam(name: string) {
+    const { data, error } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("session_id", sessionId)
+      .eq("name", name)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data?.id) return data.id as number;
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("teams")
+      .insert({ session_id: sessionId, name })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+    return inserted.id as number;
+  }
+
+  const teamAId = await ensureTeam("Team 1");
+  const teamBId = await ensureTeam("Team 2");
+
+  const { error: deleteTeamPlayersError } = await supabase
+    .from("team_players")
+    .delete()
+    .in("team_id", [teamAId, teamBId]);
+
+  if (deleteTeamPlayersError) {
+    return fail(deleteTeamPlayersError.message, 500);
+  }
+
+  const { error: insertTeamPlayersError } = await supabase
+    .from("team_players")
+    .insert([
+      ...teamA.map((player) => ({
+        team_id: teamAId,
+        player_id: player.id,
+      })),
+      ...teamB.map((player) => ({
+        team_id: teamBId,
+        player_id: player.id,
+      })),
+    ]);
+
+  if (insertTeamPlayersError) {
+    return fail(insertTeamPlayersError.message, 500);
+  }
+
+  const payload = {
+    session_id: sessionId,
+    team_a_id: teamAId,
+    team_b_id: teamBId,
+    goals_team_a: cleanA === "" ? null : Number(cleanA),
+    goals_team_b: cleanB === "" ? null : Number(cleanB),
+    club_id: clubId,
+  };
+
+  if (existingResult?.id) {
+    const { error } = await supabase
+      .from("results")
+      .update(payload)
+      .eq("session_id", sessionId);
+
+    if (error) {
+      return fail(error.message, 500);
+    }
+  } else {
+    const { error } = await supabase.from("results").insert(payload);
+    if (error) {
+      return fail(error.message, 500);
+    }
+  }
+
+  return ok({
+    message:
+      "Ergebnis gespeichert. Aufstellungen & Anwesenheit sind ab jetzt gesperrt.",
+    hasResult: true,
+    goalsA: cleanA,
+    goalsB: cleanB,
+  });
+}
+
+===== lib/session-detail/actions/delete-result.ts =====
+
+import { createClient } from "@/lib/supabase/server";
+import { fail, ok } from "@/lib/session-detail/response";
+
+type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
+
+type DeleteResultInput = {
+  supabase: SessionDetailSupabase;
+  sessionId: number;
+};
+
+export async function handleDeleteResult({
+  supabase,
+  sessionId,
+}: DeleteResultInput) {
+  const { error } = await supabase
+    .from("results")
+    .delete()
+    .eq("session_id", sessionId);
+
+  if (error) {
+    return fail(error.message, 500);
+  }
+
+  return ok({
+    message:
+      "Ergebnis gelöscht. Aufstellungen & Anwesenheit sind wieder bearbeitbar.",
+    hasResult: false,
+    goalsA: "",
+    goalsB: "",
+  });
+}
+
+===== lib/session-detail/actions/delete-winner-photo.ts =====
+
+import { createClient } from "@/lib/supabase/server";
+import { fail, ok } from "@/lib/session-detail/response";
+
+type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
+
+type DeleteWinnerPhotoInput = {
+  supabase: SessionDetailSupabase;
+  sessionId: number;
+  clubId: string;
+  winnerPhotoPath: string | null;
+};
+
+export async function handleDeleteWinnerPhoto({
+  supabase,
+  sessionId,
+  clubId,
+  winnerPhotoPath,
+}: DeleteWinnerPhotoInput) {
+  if (!winnerPhotoPath) {
+    return fail("Kein Siegerfoto vorhanden.");
+  }
+
+  const { error: updateError } = await supabase
+    .from("sessions")
+    .update({ winner_photo_path: null })
+    .eq("id", sessionId)
+    .eq("club_id", clubId);
+
+  if (updateError) {
+    return fail(updateError.message, 500);
+  }
+
+  await supabase.storage.from("session-photos").remove([winnerPhotoPath]);
+
+  return ok({
+    message: "Siegerfoto gelöscht.",
+    winner_photo_path: null,
+    winnerPhotoUrl: null,
+  });
+}
