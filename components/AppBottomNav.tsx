@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, CalendarDays, Shield, LogOut } from "lucide-react";
+import {
+  Home,
+  CalendarDays,
+  Trophy,
+  Shield,
+  LogOut,
+} from "lucide-react";
 
 type AppBottomNavProps = {
   isAdmin?: boolean;
@@ -74,13 +80,20 @@ export default function AppBottomNav({
           icon={<CalendarDays className="h-4 w-4" />}
         />
 
+        <NavItem
+          href="/standings"
+          label="Standings"
+          active={
+            pathname === "/standings" || pathname.startsWith("/standings/")
+          }
+          icon={<Trophy className="h-4 w-4" />}
+        />
+
         {isAdmin ? (
           <NavItem
             href="/admin"
             label="Admin"
-            active={
-              pathname === "/admin" || pathname.startsWith("/admin/")
-            }
+            active={pathname === "/admin" || pathname.startsWith("/admin/")}
             icon={<Shield className="h-4 w-4" />}
           />
         ) : null}

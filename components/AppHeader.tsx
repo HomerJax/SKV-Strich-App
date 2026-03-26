@@ -3,33 +3,49 @@ import Link from "next/link";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 
+type ClubRow = {
+  id: string;
+  display_name: string | null;
+  logo_path: string | null;
+  updated_at?: string | null;
+};
+
 export default async function AppHeader() {
   const ctx = await getAuthContext();
 
-  let clubName: string | null = null;
-  let clubLogoUrl: string | null = null;
-  let clubUpdatedAt: string | null = null;
+  const fallbackClubId =
+    ctx.activeClubId ??
+    (ctx.memberships.length === 1 ? ctx.memberships[0].club_id : null);
 
-  if (ctx.user && ctx.activeClubId) {
+  let clubName: string | null = null;
+  let clubLogoSrc: string | null = null;
+
+  if (ctx.user && fallbackClubId) {
     const supabase = await createClient();
 
     const { data: club } = await supabase
       .from("clubs")
-      .select("display_name, logo_url, updated_at")
-      .eq("id", ctx.activeClubId)
-      .maybeSingle();
+      .select("id, display_name, logo_path, updated_at")
+      .eq("id", fallbackClubId)
+      .maybeSingle<ClubRow>();
 
-    clubName = club?.display_name ?? null;
-    clubLogoUrl = club?.logo_url ?? null;
-    clubUpdatedAt = club?.updated_at ?? null;
+    clubName = club?.display_name?.trim() || null;
+
+    if (club?.logo_path) {
+      const { data: publicUrlData } = supabase.storage
+        .from("club-logos")
+        .getPublicUrl(club.logo_path);
+
+      const rawUrl = publicUrlData?.publicUrl ?? null;
+
+      clubLogoSrc =
+        rawUrl && club.updated_at
+          ? `${rawUrl}${rawUrl.includes("?") ? "&" : "?"}v=${encodeURIComponent(club.updated_at)}`
+          : rawUrl;
+    }
   }
 
   const nickname = ctx.player?.nickname?.trim() || null;
-
-  const logoSrc =
-    clubLogoUrl && clubUpdatedAt
-      ? `${clubLogoUrl}${clubLogoUrl.includes("?") ? "&" : "?"}v=${encodeURIComponent(clubUpdatedAt)}`
-      : clubLogoUrl;
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -65,9 +81,9 @@ export default async function AppHeader() {
               ) : null}
             </div>
 
-            {logoSrc ? (
+            {clubLogoSrc ? (
               <img
-                src={logoSrc}
+                src={clubLogoSrc}
                 alt={clubName ?? "Club Logo"}
                 className="h-11 w-11 rounded-2xl border border-slate-200 object-cover shadow-sm"
               />
