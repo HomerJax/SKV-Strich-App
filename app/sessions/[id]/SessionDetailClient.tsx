@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Player, SessionRow, TeamMap, TeamSide } from "./session-types";
 import {
@@ -61,6 +61,15 @@ type ApiError = {
   error: string;
 };
 
+function sameIdSet(a: number[], b: number[]) {
+  if (a.length !== b.length) return false;
+
+  const aSorted = [...a].sort((x, y) => x - y);
+  const bSorted = [...b].sort((x, y) => x - y);
+
+  return aSorted.every((value, index) => value === bSorted[index]);
+}
+
 export default function SessionDetailClient({
   sessionId,
   initialSession,
@@ -84,7 +93,10 @@ export default function SessionDetailClient({
 
   const [session, setSession] = useState<SessionRow | null>(initialSession);
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
+
   const [presentIds, setPresentIds] = useState<number[]>(initialPresentIds);
+  const [draftPresentIds, setDraftPresentIds] = useState<number[]>(initialPresentIds);
+
   const [manualTeams, setManualTeams] = useState<TeamMap>(initialManualTeams);
   const [clubId] = useState<string | null>(initialClubId);
   const [isAdmin] = useState(initialIsAdmin);
@@ -108,11 +120,14 @@ export default function SessionDetailClient({
   );
   const [guestSaving, setGuestSaving] = useState(false);
 
+  const [attendanceCollapsed, setAttendanceCollapsed] = useState(initialHasResult);
+  const [teamsCollapsed, setTeamsCollapsed] = useState(initialHasResult);
+
   const [saving, setSaving] = useState(false);
+  const [savingPresence, setSavingPresence] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [sharingLineup, setSharingLineup] = useState(false);
   const [sharingResult, setSharingResult] = useState(false);
-  const [pendingPresenceIds, setPendingPresenceIds] = useState<number[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -132,9 +147,32 @@ export default function SessionDetailClient({
     return payload;
   }
 
+  useEffect(() => {
+    if (initialHasResult) {
+      const id = window.setTimeout(() => {
+        resultRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 120);
+
+      return () => window.clearTimeout(id);
+    }
+  }, [initialHasResult]);
+
+  const attendanceDirty = useMemo(
+    () => !sameIdSet(draftPresentIds, presentIds),
+    [draftPresentIds, presentIds]
+  );
+
   const presentPlayers = useMemo(
     () => players.filter((player) => presentIds.includes(player.id)),
     [players, presentIds]
+  );
+
+  const draftPresentPlayers = useMemo(
+    () => players.filter((player) => draftPresentIds.includes(player.id)),
+    [players, draftPresentIds]
   );
 
   const teamA = useMemo(
@@ -177,11 +215,13 @@ export default function SessionDetailClient({
 
   const nextStepLabel = hasResult
     ? "Ergebnis ist gespeichert"
-    : presentPlayers.length < 2
-      ? "Mehr Spieler auf anwesend setzen"
-      : !teamsComplete
-        ? "Teams fertig zuweisen"
-        : "Ergebnis eintragen und speichern";
+    : attendanceDirty
+      ? "Anwesenheit speichern"
+      : presentPlayers.length < 2
+        ? "Mehr Spieler auf anwesend setzen"
+        : !teamsComplete
+          ? "Teams fertig zuweisen"
+          : "Ergebnis eintragen und speichern";
 
   async function shareText(text: string, title: string) {
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -268,7 +308,7 @@ export default function SessionDetailClient({
     }
   }
 
-  async function togglePresence(id: number) {
+  function togglePresence(id: number) {
     if (hasResult) {
       setErr(
         "Anwesenheit ist gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um wieder zu entsperren."
@@ -276,38 +316,73 @@ export default function SessionDetailClient({
       return;
     }
 
-    if (pendingPresenceIds.includes(id)) {
+    setErr(null);
+    setMsg(null);
+
+    setDraftPresentIds((prev) =>
+      prev.includes(id) ? prev.filter((playerId) => playerId !== id) : [...prev, id]
+    );
+  }
+
+  async function savePresence() {
+    if (hasResult || savingPresence || !attendanceDirty) {
       return;
     }
 
     try {
-      setPendingPresenceIds((prev) => [...prev, id]);
+      setSavingPresence(true);
       setErr(null);
       setMsg(null);
 
-      const formData = new FormData();
-      formData.set("intent", "toggle_presence");
-      formData.set("player_id", String(id));
+      const toRemove = presentIds.filter((id) => !draftPresentIds.includes(id));
+      const toAdd = draftPresentIds.filter((id) => !presentIds.includes(id));
 
-      const result = await postForm(formData);
-
-      if ("mode" in result) {
-        if (result.mode === "removed") {
-          setPresentIds((prev) => prev.filter((playerId) => playerId !== id));
-          setManualTeams((prev) => {
-            const copy = { ...prev };
-            delete copy[id];
-            return copy;
-          });
-        } else {
-          setPresentIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-          setManualTeams((prev) => ({ ...prev, [id]: prev[id] ?? null }));
-        }
+      for (const id of toRemove) {
+        const formData = new FormData();
+        formData.set("intent", "toggle_presence");
+        formData.set("player_id", String(id));
+        await postForm(formData);
       }
+
+      for (const id of toAdd) {
+        const formData = new FormData();
+        formData.set("intent", "toggle_presence");
+        formData.set("player_id", String(id));
+        await postForm(formData);
+      }
+
+      setPresentIds(draftPresentIds);
+
+      setManualTeams((prev) => {
+        const next = { ...prev };
+
+        Object.keys(next).forEach((key) => {
+          const numericId = Number(key);
+          if (!draftPresentIds.includes(numericId)) {
+            delete next[numericId];
+          }
+        });
+
+        draftPresentIds.forEach((id) => {
+          next[id] = next[id] ?? null;
+        });
+
+        return next;
+      });
+
+      setAttendanceCollapsed(true);
+      setMsg("Anwesenheit gespeichert.");
+
+      window.setTimeout(() => {
+        teamsRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 120);
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Spieler konnte nicht geändert werden."));
+      setErr(getErrorMessage(e, "Anwesenheit konnte nicht gespeichert werden."));
     } finally {
-      setPendingPresenceIds((prev) => prev.filter((playerId) => playerId !== id));
+      setSavingPresence(false);
     }
   }
 
@@ -357,13 +432,19 @@ export default function SessionDetailClient({
             );
           })
         );
+
         setPresentIds((prev) =>
           prev.includes(nextPlayer.id) ? prev : [...prev, nextPlayer.id]
         );
+        setDraftPresentIds((prev) =>
+          prev.includes(nextPlayer.id) ? prev : [...prev, nextPlayer.id]
+        );
+
         setManualTeams((prev) => ({
           ...prev,
           [nextPlayer.id]: prev[nextPlayer.id] ?? null,
         }));
+
         resetGuestForm();
         setMsg(result.message);
       }
@@ -379,6 +460,11 @@ export default function SessionDetailClient({
       setErr(
         "Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern."
       );
+      return;
+    }
+
+    if (attendanceDirty) {
+      setErr("Bitte zuerst die Anwesenheit speichern.");
       return;
     }
 
@@ -481,26 +567,28 @@ export default function SessionDetailClient({
       setMsg(
         "Teams automatisch verteilt. Stärke und Kategorien wurden berücksichtigt."
       );
-      return;
-    }
-
-    if (useStrength && !useCategories) {
+    } else if (useStrength && !useCategories) {
       setMsg(
         "Teams automatisch verteilt. Stärke wurde berücksichtigt, Kategorien nicht."
       );
-      return;
-    }
-
-    if (!useStrength && useCategories) {
+    } else if (!useStrength && useCategories) {
       setMsg(
         "Teams automatisch verteilt. Kategorien wurden berücksichtigt, Stärke nicht."
       );
-      return;
+    } else {
+      setMsg(
+        "Teams automatisch verteilt. Stärke und Kategorien wurden nicht berücksichtigt."
+      );
     }
 
-    setMsg(
-      "Teams automatisch verteilt. Stärke und Kategorien wurden nicht berücksichtigt."
-    );
+    setTeamsCollapsed(false);
+
+    window.setTimeout(() => {
+      resultRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 120);
   }
 
   function setSide(playerId: number, side: TeamSide | null) {
@@ -508,6 +596,11 @@ export default function SessionDetailClient({
       setErr(
         "Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern."
       );
+      return;
+    }
+
+    if (attendanceDirty) {
+      setErr("Bitte zuerst die Anwesenheit speichern.");
       return;
     }
 
@@ -520,6 +613,11 @@ export default function SessionDetailClient({
 
     const cleanA = normalizeGoalValue(goalsA);
     const cleanB = normalizeGoalValue(goalsB);
+
+    if (attendanceDirty) {
+      setErr("Bitte zuerst die Anwesenheit speichern.");
+      return;
+    }
 
     if (!teamsComplete) {
       setErr(
@@ -555,6 +653,8 @@ export default function SessionDetailClient({
         setHasResult(result.hasResult);
         setGoalsA(result.goalsA);
         setGoalsB(result.goalsB);
+        setAttendanceCollapsed(true);
+        setTeamsCollapsed(true);
         setMsg(result.message);
       }
     } catch (e: unknown) {
@@ -586,6 +686,8 @@ export default function SessionDetailClient({
         setHasResult(result.hasResult);
         setGoalsA(result.goalsA);
         setGoalsB(result.goalsB);
+        setAttendanceCollapsed(false);
+        setTeamsCollapsed(false);
         setMsg(result.message);
       }
     } catch (e: unknown) {
@@ -702,7 +804,7 @@ export default function SessionDetailClient({
   }
 
   return (
-    <div className="space-y-4 pb-28">
+    <div className="space-y-4">
       <button
         onClick={() => router.push("/sessions")}
         className="text-xs text-slate-500 hover:text-slate-700"
@@ -718,7 +820,9 @@ export default function SessionDetailClient({
         teamBCount={teamB.length}
         hasResult={hasResult}
         nextStepLabel={nextStepLabel}
-        onScrollToTeams={() => teamsRef.current?.scrollIntoView({ behavior: "smooth" })}
+        onScrollToTeams={() =>
+          teamsRef.current?.scrollIntoView({ behavior: "smooth" })
+        }
         onScrollToResult={() =>
           resultRef.current?.scrollIntoView({ behavior: "smooth" })
         }
@@ -726,7 +830,8 @@ export default function SessionDetailClient({
 
       {!hasResult && (
         <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
-          Empfohlene Reihenfolge: Anwesenheit festlegen → Teams aufteilen → Ergebnis speichern.
+          Empfohlene Reihenfolge: Anwesenheit festlegen → Anwesenheit speichern →
+          Teams aufteilen → Ergebnis speichern.
         </div>
       )}
 
@@ -745,8 +850,7 @@ export default function SessionDetailClient({
       <div ref={attendanceRef}>
         <SessionAttendanceCard
           players={players}
-          presentIds={presentIds}
-          pendingPresenceIds={pendingPresenceIds}
+          presentIds={draftPresentIds}
           hasResult={hasResult}
           isAdmin={isAdmin}
           showGuestForm={showGuestForm}
@@ -755,12 +859,19 @@ export default function SessionDetailClient({
           guestAgeGroup={guestAgeGroup}
           guestSaving={guestSaving}
           clubSettings={clubSettings}
+          collapsed={attendanceCollapsed}
+          savingPresence={savingPresence}
+          dirty={attendanceDirty}
+          onToggleCollapsed={() =>
+            setAttendanceCollapsed((prev) => !prev)
+          }
           onToggleShowGuestForm={toggleGuestForm}
           onGuestNameChange={setGuestName}
           onGuestPositionChange={setGuestPosition}
           onGuestAgeGroupChange={setGuestAgeGroup}
           onAddGuestPlayer={addGuestPlayer}
           onTogglePresence={togglePresence}
+          onSavePresence={savePresence}
         />
       </div>
 
@@ -776,6 +887,9 @@ export default function SessionDetailClient({
           teamsComplete={teamsComplete}
           canShareLineup={canShareLineup}
           sharingLineup={sharingLineup}
+          collapsed={teamsCollapsed}
+          attendanceDirty={attendanceDirty}
+          onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
           onGenerateTeams={generateTeams}
           onShareLineup={handleShareLineup}
           onSetSide={setSide}
@@ -803,55 +917,6 @@ export default function SessionDetailClient({
           onSaveResult={saveResult}
           onShareResult={handleShareResult}
         />
-      </div>
-
-      <div className="fixed inset-x-0 bottom-20 z-40 px-3 sm:px-4">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 rounded-2xl border border-black/10 bg-white/95 p-2 shadow-[0_10px_30px_-12px_rgba(15,23,42,0.35)] backdrop-blur">
-          <button
-            onClick={() =>
-              attendanceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
-          >
-            Spieler
-          </button>
-
-          <button
-            onClick={() =>
-              teamsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
-          >
-            Teams
-          </button>
-
-          <button
-            onClick={() =>
-              resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
-          >
-            Ergebnis
-          </button>
-
-          {!hasResult ? (
-            <button
-              onClick={saveResult}
-              disabled={saving || !teamsComplete || goalsA.trim() === "" || goalsB.trim() === ""}
-              className="flex-1 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saving ? "Speichert..." : "Speichern"}
-            </button>
-          ) : (
-            <button
-              onClick={handleShareResult}
-              disabled={!canShareResult || sharingResult}
-              className="flex-1 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {sharingResult ? "Teilt..." : "Teilen"}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
