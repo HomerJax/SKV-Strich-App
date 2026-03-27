@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   BarChart3,
   Building2,
@@ -11,7 +10,6 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFounder } from "@/lib/auth/founder";
-import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 type ClubRow = {
   id: string;
@@ -67,6 +65,15 @@ function formatDateTime(value: string | null | undefined) {
   return new Date(value).toLocaleString("de-DE");
 }
 
+function getSafeCount(
+  result:
+    | { count: number | null; error: { message: string } | null }
+    | undefined
+) {
+  if (!result || result.error) return 0;
+  return result.count ?? 0;
+}
+
 export default async function FounderPage() {
   await requireFounder();
 
@@ -88,8 +95,8 @@ export default async function FounderPage() {
   ] = await Promise.all([
     supabase.from("clubs").select("id", { count: "exact", head: true }),
 
-    // Falls deine registrierten User nicht in "profiles" liegen,
-    // hier den Tabellennamen anpassen.
+    // Wenn "profiles" bei dir nicht existiert oder nicht lesbar ist,
+    // bleibt der KPI einfach auf 0 statt die Seite abstürzen zu lassen.
     supabase.from("profiles").select("id", { count: "exact", head: true }),
 
     supabase
@@ -129,70 +136,32 @@ export default async function FounderPage() {
       .limit(8),
   ]);
 
-  if (clubsCountResult.error) {
-    throw new Error(`Clubs konnten nicht geladen werden: ${clubsCountResult.error.message}`);
-  }
+  const clubs = clubsResult.error
+    ? []
+    : ((clubsResult.data ?? []) as ClubRow[]);
 
-  if (usersCountResult.error) {
-    throw new Error(
-      `User gesamt konnten nicht geladen werden. Falls deine User nicht in "profiles" liegen, passe den Tabellennamen an. Fehler: ${usersCountResult.error.message}`
-    );
-  }
-
-  if (usedInvitesCountResult.error) {
-    throw new Error(
-      `Genutzte Einladungen konnten nicht geladen werden: ${usedInvitesCountResult.error.message}`
-    );
-  }
-
-  if (openInvitesCountResult.error) {
-    throw new Error(
-      `Offene Einladungen konnten nicht geladen werden: ${openInvitesCountResult.error.message}`
-    );
-  }
-
-  if (sessionsCountResult.error) {
-    throw new Error(
-      `Trainings gesamt konnten nicht geladen werden: ${sessionsCountResult.error.message}`
-    );
-  }
-
-  if (sessionsLast7DaysCountResult.error) {
-    throw new Error(
-      `Trainings der letzten 7 Tage konnten nicht geladen werden: ${sessionsLast7DaysCountResult.error.message}`
-    );
-  }
-
-  if (clubsResult.error) {
-    throw new Error(`Clubliste konnte nicht geladen werden: ${clubsResult.error.message}`);
-  }
-
-  if (latestInviteUsagesResult.error) {
-    throw new Error(
-      `Letzte Registrierungen konnten nicht geladen werden: ${latestInviteUsagesResult.error.message}`
-    );
-  }
-
-  if (latestSessionsResult.error) {
-    throw new Error(
-      `Letzte Trainings konnten nicht geladen werden: ${latestSessionsResult.error.message}`
-    );
-  }
-
-  const clubs = (clubsResult.data ?? []) as ClubRow[];
   const clubNameById = new Map(
     clubs.map((club) => [club.id, club.display_name?.trim() || "Unbenannter Club"])
   );
 
-  const latestInviteUsages = (latestInviteUsagesResult.data ?? []) as InviteUsageRow[];
-  const latestSessions = (latestSessionsResult.data ?? []) as SessionRow[];
+  const latestInviteUsages = latestInviteUsagesResult.error
+    ? []
+    : ((latestInviteUsagesResult.data ?? []) as InviteUsageRow[]);
 
-  const clubsCount = clubsCountResult.count ?? 0;
-  const usersCount = usersCountResult.count ?? 0;
-  const usedInvitesCount = usedInvitesCountResult.count ?? 0;
-  const openInvitesCount = openInvitesCountResult.count ?? 0;
-  const sessionsCount = sessionsCountResult.count ?? 0;
-  const sessionsLast7DaysCount = sessionsLast7DaysCountResult.count ?? 0;
+  const latestSessions = latestSessionsResult.error
+    ? []
+    : ((latestSessionsResult.data ?? []) as SessionRow[]);
+
+  const clubsCount = getSafeCount(clubsCountResult);
+  const usersCount = getSafeCount(usersCountResult);
+  const usedInvitesCount = getSafeCount(usedInvitesCountResult);
+  const openInvitesCount = getSafeCount(openInvitesCountResult);
+  const sessionsCount = getSafeCount(sessionsCountResult);
+  const sessionsLast7DaysCount = getSafeCount(sessionsLast7DaysCountResult);
+
+  const userCountHint = usersCountResult.error
+    ? 'Konnte aktuell nicht geladen werden (prüfe ggf. Tabelle "profiles").'
+    : "Alle registrierten Accounts im System.";
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -219,7 +188,7 @@ export default async function FounderPage() {
 
               <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
                 Hier siehst du auf einen Blick, ob sich deine Piloten registriert
-                haben, wie viele Clubs aktiv angelegt wurden und wie viel Bewegung
+                haben, wie viele Clubs angelegt wurden und wie viel Bewegung
                 gerade im System ist.
               </p>
             </div>
@@ -242,7 +211,7 @@ export default async function FounderPage() {
           <KpiCard
             label="User gesamt"
             value={String(usersCount)}
-            description="Alle registrierten Accounts im System."
+            description={userCountHint}
             icon={<Users className="h-6 w-6" strokeWidth={2.1} />}
           />
 
@@ -382,9 +351,7 @@ export default async function FounderPage() {
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
             Übersicht
           </div>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950">
-            Clubs
-          </h2>
+          <h2 className="mt-2 text-xl font-semibold text-slate-950">Clubs</h2>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {clubs.length === 0 ? (
