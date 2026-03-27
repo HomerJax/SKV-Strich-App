@@ -4,10 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { requireFounder } from "@/lib/auth/founder";
 
 type SessionRow = {
-  id: string | number;
+  id: number;
   club_id: string;
-  title?: string | null;
+  date: string | null;
+  notes: string | null;
   created_at: string;
+  winner_photo_path: string | null;
+  season_id: number | null;
 };
 
 type ClubRow = {
@@ -26,6 +29,11 @@ function formatDateTime(value: string | null | undefined) {
   return new Date(value).toLocaleString("de-DE");
 }
 
+function formatDate(value: string | null | undefined) {
+  if (!value) return "–";
+  return new Date(value).toLocaleDateString("de-DE");
+}
+
 export default async function FounderSessionsPage({
   searchParams,
 }: PageProps) {
@@ -41,7 +49,7 @@ export default async function FounderSessionsPage({
 
   let sessionsQuery = supabase
     .from("sessions")
-    .select("id, club_id, title, created_at")
+    .select("id, club_id, date, notes, created_at, winner_photo_path, season_id")
     .order("created_at", { ascending: false });
 
   if (range === "7d") {
@@ -128,35 +136,72 @@ export default async function FounderSessionsPage({
               Keine Trainings gefunden.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-500">
-                    <th className="px-3 py-3 font-medium">Titel</th>
-                    <th className="px-3 py-3 font-medium">Club</th>
-                    <th className="px-3 py-3 font-medium">Erstellt am</th>
-                    <th className="px-3 py-3 font-medium">ID</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessions.map((session) => (
-                    <tr key={String(session.id)} className="border-b border-slate-100">
-                      <td className="px-3 py-3 font-medium text-slate-950">
-                        {session.title?.trim() || "Training"}
-                      </td>
-                      <td className="px-3 py-3 text-slate-700">
+            <div className="space-y-3">
+              {sessions.map((session) => (
+                <div
+                  key={String(session.id)}
+                  className="rounded-2xl border border-slate-200 p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950">
+                        Training am {formatDate(session.date)}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Club:{" "}
                         {clubNameById.get(session.club_id) ?? "Unbekannter Club"}
-                      </td>
-                      <td className="px-3 py-3 text-slate-700">
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Season ID: {session.season_id ?? "–"}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                      Session #{session.id}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-xl bg-slate-50 px-3 py-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Session-Datum
+                      </div>
+                      <div className="mt-1 text-sm text-slate-950">
+                        {formatDate(session.date)}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 px-3 py-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Erstellt am
+                      </div>
+                      <div className="mt-1 text-sm text-slate-950">
                         {formatDateTime(session.created_at)}
-                      </td>
-                      <td className="px-3 py-3 text-xs text-slate-500">
-                        {String(session.id)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 px-3 py-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Siegerfoto
+                      </div>
+                      <div className="mt-1 text-sm text-slate-950">
+                        {session.winner_photo_path ? "Ja" : "Nein"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {session.notes?.trim() ? (
+                    <div className="mt-4 rounded-xl bg-slate-50 px-3 py-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Notizen
+                      </div>
+                      <div className="mt-1 text-sm text-slate-950">
+                        {session.notes.trim()}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
             </div>
           )}
         </section>

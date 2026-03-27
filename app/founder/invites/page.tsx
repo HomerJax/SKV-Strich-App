@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mail, MailCheck, MailOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFounder } from "@/lib/auth/founder";
+import { listAllAuthUsers } from "@/lib/supabase/founder-admin";
 
 type InviteRow = {
   id: number;
@@ -11,6 +12,8 @@ type InviteRow = {
   expires_at: string | null;
   used_at: string | null;
   is_active: boolean;
+  created_by: string | null;
+  used_by: string | null;
 };
 
 type ClubRow = {
@@ -42,13 +45,17 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
 
   const supabase = await createClient();
 
-  const [invitesResult, clubsResult] = await Promise.all([
+  const [invitesResult, clubsResult, authUsers] = await Promise.all([
     supabase
       .from("club_invites")
-      .select("id, club_id, role, created_at, expires_at, used_at, is_active")
+      .select(
+        "id, club_id, role, created_at, expires_at, used_at, is_active, created_by, used_by"
+      )
       .order("created_at", { ascending: false }),
 
     supabase.from("clubs").select("id, display_name"),
+
+    listAllAuthUsers().catch(() => []),
   ]);
 
   const invites = invitesResult.error
@@ -62,6 +69,10 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
       club.id,
       club.display_name?.trim() || "Unbenannter Club",
     ])
+  );
+
+  const emailByUserId = new Map(
+    authUsers.map((user) => [user.id, user.email?.trim() || user.id])
   );
 
   const filteredInvites = invites.filter((invite) => {
@@ -96,7 +107,8 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
                 Einladungen
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Überblick über offene und bereits genutzte Einladungen.
+                Überblick über offene und genutzte Einladungen inklusive
+                Ersteller und Nutzung.
               </p>
             </div>
           </div>
@@ -145,58 +157,98 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
               Keine Einladungen für diese Auswahl gefunden.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-500">
-                    <th className="px-3 py-3 font-medium">Club</th>
-                    <th className="px-3 py-3 font-medium">Rolle</th>
-                    <th className="px-3 py-3 font-medium">Erstellt am</th>
-                    <th className="px-3 py-3 font-medium">Läuft ab</th>
-                    <th className="px-3 py-3 font-medium">Verwendet</th>
-                    <th className="px-3 py-3 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredInvites.map((invite) => {
-                    const clubName =
-                      clubNameById.get(invite.club_id) ?? "Unbekannter Club";
-                    const roleLabel =
-                      invite.role === "admin" ? "Admin" : "Mitglied";
+            <div className="space-y-3">
+              {filteredInvites.map((invite) => {
+                const clubName =
+                  clubNameById.get(invite.club_id) ?? "Unbekannter Club";
+                const roleLabel = invite.role === "admin" ? "Admin" : "Mitglied";
 
-                    const statusLabel = invite.used_at
-                      ? "verwendet"
-                      : invite.is_active
-                      ? "offen"
-                      : "deaktiviert";
+                const statusLabel = invite.used_at
+                  ? "verwendet"
+                  : invite.is_active
+                  ? "offen"
+                  : "deaktiviert";
 
-                    return (
-                      <tr key={invite.id} className="border-b border-slate-100">
-                        <td className="px-3 py-3 font-medium text-slate-950">
+                const createdBy =
+                  invite.created_by && emailByUserId.has(invite.created_by)
+                    ? emailByUserId.get(invite.created_by)
+                    : invite.created_by ?? "–";
+
+                const usedBy =
+                  invite.used_by && emailByUserId.has(invite.used_by)
+                    ? emailByUserId.get(invite.used_by)
+                    : invite.used_by ?? "–";
+
+                return (
+                  <div
+                    key={invite.id}
+                    className="rounded-2xl border border-slate-200 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-950">
                           {clubName}
-                        </td>
-                        <td className="px-3 py-3 text-slate-700">
-                          {roleLabel}
-                        </td>
-                        <td className="px-3 py-3 text-slate-700">
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          Rolle: {roleLabel}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          Status: {statusLabel}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                        Invite #{invite.id}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      <div className="rounded-xl bg-slate-50 px-3 py-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          Erstellt am
+                        </div>
+                        <div className="mt-1 text-sm text-slate-950">
                           {formatDateTime(invite.created_at)}
-                        </td>
-                        <td className="px-3 py-3 text-slate-700">
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-50 px-3 py-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          Erstellt von
+                        </div>
+                        <div className="mt-1 text-sm text-slate-950">
+                          {createdBy}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-50 px-3 py-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          Läuft ab
+                        </div>
+                        <div className="mt-1 text-sm text-slate-950">
                           {formatDateTime(invite.expires_at)}
-                        </td>
-                        <td className="px-3 py-3 text-slate-700">
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-50 px-3 py-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          Verwendet am
+                        </div>
+                        <div className="mt-1 text-sm text-slate-950">
                           {formatDateTime(invite.used_at)}
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                            {statusLabel}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-50 px-3 py-3 md:col-span-2 xl:col-span-2">
+                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          Verwendet von
+                        </div>
+                        <div className="mt-1 text-sm text-slate-950">{usedBy}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

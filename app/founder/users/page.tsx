@@ -2,12 +2,28 @@ import Link from "next/link";
 import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFounder } from "@/lib/auth/founder";
+import {
+  FounderAuthUser,
+  listAllAuthUsers,
+} from "@/lib/supabase/founder-admin";
 
-type ProfileRow = {
+type MembershipRow = {
   id: string;
-  email?: string | null;
-  full_name?: string | null;
-  created_at?: string | null;
+  user_id: string;
+  club_id: string;
+  role: string;
+  created_at: string;
+};
+
+type ClubRow = {
+  id: string;
+  display_name: string | null;
+};
+
+type UserClubAssignment = {
+  clubName: string;
+  role: string;
+  created_at: string;
 };
 
 function formatDateTime(value: string | null | undefined) {
@@ -20,14 +36,45 @@ export default async function FounderUsersPage() {
 
   const supabase = await createClient();
 
-  const profilesResult = await supabase
-    .from("profiles")
-    .select("id, email, full_name, created_at")
-    .order("created_at", { ascending: false });
+  const [authUsers, membershipsResult, clubsResult] = await Promise.all([
+    listAllAuthUsers().catch(() => []),
+    supabase
+      .from("club_memberships")
+      .select("id, user_id, club_id, role, created_at")
+      .order("created_at", { ascending: true }),
+    supabase.from("clubs").select("id, display_name"),
+  ]);
 
-  const profiles = profilesResult.error
+  const memberships = membershipsResult.error
     ? []
-    : ((profilesResult.data ?? []) as ProfileRow[]);
+    : ((membershipsResult.data ?? []) as MembershipRow[]);
+
+  const clubs = clubsResult.error ? [] : ((clubsResult.data ?? []) as ClubRow[]);
+
+  const clubNameById = new Map(
+    clubs.map((club) => [
+      club.id,
+      club.display_name?.trim() || "Unbenannter Club",
+    ])
+  );
+
+  const assignmentsByUserId = new Map<string, UserClubAssignment[]>();
+
+  for (const membership of memberships) {
+    const current = assignmentsByUserId.get(membership.user_id) ?? [];
+    current.push({
+      clubName: clubNameById.get(membership.club_id) ?? "Unbekannter Club",
+      role: membership.role,
+      created_at: membership.created_at,
+    });
+    assignmentsByUserId.set(membership.user_id, current);
+  }
+
+  const sortedUsers = [...authUsers].sort((a, b) => {
+    const aValue = a.created_at ?? "";
+    const bValue = b.created_at ?? "";
+    return bValue.localeCompare(aValue);
+  });
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -55,54 +102,72 @@ export default async function FounderUsersPage() {
                 Alle User
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Liste aller aktuell verfügbaren User aus der Tabelle{" "}
-                <span className="font-semibold">profiles</span>.
+                Liste aller Auth-User inklusive Club-Zuordnungen und Rollen.
               </p>
             </div>
           </div>
         </div>
 
-        {profilesResult.error ? (
-          <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 shadow-sm">
-            User konnten aktuell nicht geladen werden. Prüfe bitte, ob die
-            Tabelle <span className="font-semibold">profiles</span> in deinem
-            Projekt die richtige Quelle für registrierte User ist.
-          </div>
-        ) : null}
-
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-          {profiles.length === 0 ? (
+          {sortedUsers.length === 0 ? (
             <div className="text-sm text-slate-600">Keine User gefunden.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-500">
-                    <th className="px-3 py-3 font-medium">Name</th>
-                    <th className="px-3 py-3 font-medium">E-Mail</th>
-                    <th className="px-3 py-3 font-medium">Erstellt am</th>
-                    <th className="px-3 py-3 font-medium">ID</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {profiles.map((profile) => (
-                    <tr key={profile.id} className="border-b border-slate-100">
-                      <td className="px-3 py-3 font-medium text-slate-950">
-                        {profile.full_name?.trim() || "–"}
-                      </td>
-                      <td className="px-3 py-3 text-slate-700">
-                        {profile.email?.trim() || "–"}
-                      </td>
-                      <td className="px-3 py-3 text-slate-700">
-                        {formatDateTime(profile.created_at)}
-                      </td>
-                      <td className="px-3 py-3 text-xs text-slate-500">
-                        {profile.id}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {sortedUsers.map((user: FounderAuthUser) => {
+                const assignments = assignmentsByUserId.get(user.id) ?? [];
+
+                return (
+                  <div
+                    key={user.id}
+                    className="rounded-2xl border border-slate-200 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-950">
+                          {user.email?.trim() || "–"}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          User ID: {user.id}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          Registriert: {formatDateTime(user.created_at)}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                        Clubs: {assignments.length}
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      {assignments.length === 0 ? (
+                        <div className="text-sm text-slate-600">
+                          Noch keinem Club zugeordnet.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {assignments.map((assignment, index) => (
+                            <div
+                              key={`${user.id}-${assignment.clubName}-${index}`}
+                              className="rounded-xl bg-slate-50 px-3 py-3"
+                            >
+                              <div className="text-sm font-medium text-slate-950">
+                                {assignment.clubName}
+                              </div>
+                              <div className="mt-1 text-xs text-slate-600">
+                                Rolle: {assignment.role}
+                              </div>
+                              <div className="mt-1 text-xs text-slate-500">
+                                seit {formatDateTime(assignment.created_at)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

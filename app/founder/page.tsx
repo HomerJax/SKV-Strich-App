@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireFounder } from "@/lib/auth/founder";
+import { listAllAuthUsers } from "@/lib/supabase/founder-admin";
 
 type ClubRow = {
   id: string;
@@ -25,10 +26,11 @@ type InviteUsageRow = {
 };
 
 type SessionRow = {
-  id: string | number;
+  id: number;
   club_id: string;
   created_at: string;
-  title?: string | null;
+  date: string | null;
+  notes: string | null;
 };
 
 type KpiCardProps = {
@@ -74,6 +76,11 @@ function formatDateTime(value: string | null | undefined) {
   return new Date(value).toLocaleString("de-DE");
 }
 
+function formatDate(value: string | null | undefined) {
+  if (!value) return "–";
+  return new Date(value).toLocaleDateString("de-DE");
+}
+
 function getSafeCount(
   result:
     | { count: number | null; error: { message: string } | null }
@@ -93,7 +100,6 @@ export default async function FounderPage() {
 
   const [
     clubsCountResult,
-    usersCountResult,
     usedInvitesCountResult,
     openInvitesCountResult,
     sessionsCountResult,
@@ -101,10 +107,9 @@ export default async function FounderPage() {
     clubsResult,
     latestInviteUsagesResult,
     latestSessionsResult,
+    authUsers,
   ] = await Promise.all([
     supabase.from("clubs").select("id", { count: "exact", head: true }),
-
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
 
     supabase
       .from("club_invites")
@@ -138,14 +143,14 @@ export default async function FounderPage() {
 
     supabase
       .from("sessions")
-      .select("id, club_id, created_at, title")
+      .select("id, club_id, created_at, date, notes")
       .order("created_at", { ascending: false })
       .limit(8),
+
+    listAllAuthUsers().catch(() => []),
   ]);
 
-  const clubs = clubsResult.error
-    ? []
-    : ((clubsResult.data ?? []) as ClubRow[]);
+  const clubs = clubsResult.error ? [] : ((clubsResult.data ?? []) as ClubRow[]);
 
   const clubNameById = new Map(
     clubs.map((club) => [
@@ -163,15 +168,11 @@ export default async function FounderPage() {
     : ((latestSessionsResult.data ?? []) as SessionRow[]);
 
   const clubsCount = getSafeCount(clubsCountResult);
-  const usersCount = getSafeCount(usersCountResult);
+  const usersCount = authUsers.length;
   const usedInvitesCount = getSafeCount(usedInvitesCountResult);
   const openInvitesCount = getSafeCount(openInvitesCountResult);
   const sessionsCount = getSafeCount(sessionsCountResult);
   const sessionsLast7DaysCount = getSafeCount(sessionsLast7DaysCountResult);
-
-  const userCountHint = usersCountResult.error
-    ? 'Konnte aktuell nicht geladen werden (prüfe ggf. Tabelle "profiles").'
-    : "Alle registrierten Accounts im System.";
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -223,7 +224,7 @@ export default async function FounderPage() {
             href="/founder/users"
             label="User gesamt"
             value={String(usersCount)}
-            description={userCountHint}
+            description="Alle registrierten Auth-User im System."
             icon={<Users className="h-6 w-6" strokeWidth={2.1} />}
           />
 
@@ -344,15 +345,20 @@ export default async function FounderPage() {
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div>
                             <div className="text-sm font-semibold text-slate-950">
-                              {session.title?.trim() || "Training"}
+                              Training am {formatDate(session.date)}
                             </div>
                             <div className="mt-1 text-xs text-slate-500">
                               Club: {clubName}
                             </div>
+                            {session.notes?.trim() ? (
+                              <div className="mt-1 text-xs text-slate-500">
+                                Notiz: {session.notes.trim()}
+                              </div>
+                            ) : null}
                           </div>
 
                           <div className="text-xs text-slate-500">
-                            {formatDateTime(session.created_at)}
+                            Erstellt: {formatDateTime(session.created_at)}
                           </div>
                         </div>
                       </div>
