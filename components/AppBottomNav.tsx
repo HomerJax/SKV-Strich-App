@@ -35,10 +35,13 @@ function NavItem({ href, label, active, icon }: NavItemProps) {
       href={href}
       className={[
         "flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-medium transition",
-        active
-          ? "bg-slate-900 text-white"
-          : "text-slate-500 hover:bg-slate-100",
+        active ? "text-white" : "text-slate-500 hover:bg-slate-100",
       ].join(" ")}
+      style={
+        active
+          ? { backgroundColor: "var(--club-primary, #0f172a)" }
+          : undefined
+      }
     >
       <div className="mb-1 flex h-4 w-4 items-center justify-center">{icon}</div>
       <span>{label}</span>

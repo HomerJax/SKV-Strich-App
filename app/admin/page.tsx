@@ -1,5 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  Users,
+  Mail,
+  UserRound,
+  Palette,
+  CalendarRange,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
@@ -24,7 +31,7 @@ type AdminCardProps = {
   eyebrow: string;
   title: string;
   description: string;
-  icon: string;
+  icon: React.ReactNode;
 };
 
 function AdminCard({
@@ -48,7 +55,7 @@ function AdminCard({
           <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
         </div>
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
           {icon}
         </div>
       </div>
@@ -128,7 +135,7 @@ export default async function AdminPage() {
             eyebrow="Mitglieder"
             title="Mitgliederverwaltung"
             description="Sieh bestehende Mitglieder, aktuelle Rollen und Spieler-Verknüpfungen. Hier kannst du Rollen sicher zwischen Mitglied und Admin ändern."
-            icon="👥"
+            icon={<Users className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <AdminCard
@@ -136,7 +143,7 @@ export default async function AdminPage() {
             eyebrow="Einladungen"
             title="Einladungen verwalten"
             description="Erstelle neue Einladungen und behalte im Blick, welche Zugänge noch offen oder aktiv sind."
-            icon="✉️"
+            icon={<Mail className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <AdminCard
@@ -144,7 +151,7 @@ export default async function AdminPage() {
             eyebrow="Spielbetrieb"
             title="Spieler verwalten"
             description="Pflege Spielerprofile, Positionen, Stärken und weitere Grundlagen für Trainings, Aufstellungen und Auswertungen."
-            icon="⚽"
+            icon={<UserRound className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <AdminCard
@@ -152,7 +159,7 @@ export default async function AdminPage() {
             eyebrow="Branding"
             title="Club & Branding"
             description="Hinterlege Teamname, Logo und weitere sichtbare Club-Informationen für eine saubere Identität in der App."
-            icon="🏷️"
+            icon={<Palette className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <AdminCard
@@ -160,7 +167,7 @@ export default async function AdminPage() {
             eyebrow="Saison"
             title="Saison-Einstellungen"
             description="Lege fest, wie die Saison heißt und ab welchem Datum sie beginnt, damit Tabellen und Auswertungen sauber zugeordnet werden."
-            icon="📅"
+            icon={<CalendarRange className="h-6 w-6" strokeWidth={2.1} />}
           />
         </div>
       </section>

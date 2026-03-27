@@ -2,11 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import WhatsNewModal from "@/components/WhatsNewModal";
 
 type ClubRow = {
   id: string;
   display_name: string | null;
   logo_path: string | null;
+  primary_color: string | null;
 };
 
 type SetupState = {
@@ -14,6 +16,13 @@ type SetupState = {
   invitesCount: number;
   sessionsCount: number;
   seasonsCount: number;
+};
+
+const COLOR_MAP: Record<string, string> = {
+  black: "#020617",
+  blue: "#1d4ed8",
+  red: "#dc2626",
+  green: "#16a34a",
 };
 
 function StepCard({
@@ -73,7 +82,7 @@ export default async function HomePage() {
   ] = await Promise.all([
     supabase
       .from("clubs")
-      .select("id, display_name, logo_path")
+      .select("id, display_name, logo_path, primary_color")
       .eq("id", clubId)
       .maybeSingle<ClubRow>(),
     supabase
@@ -109,6 +118,8 @@ export default async function HomePage() {
   const club = (clubData ?? null) as ClubRow | null;
   const clubName = club?.display_name?.trim() || "Dein Team";
   const hasMultipleClubs = memberships.length > 1;
+  const primaryColor =
+    COLOR_MAP[club?.primary_color ?? "black"] ?? COLOR_MAP.black;
 
   const setupState: SetupState = {
     playersCount: playersCount ?? 0,
@@ -136,10 +147,24 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
+      <WhatsNewModal version="v0.2" />
+
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="rounded-[24px] border border-slate-800/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.75)]">
+        <div
+          className="rounded-[24px] border text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.75)]"
+          style={{
+            borderColor: `${primaryColor}22`,
+            background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 75%)`,
+          }}
+        >
           <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-5 py-7 text-center">
-            <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-2">
+            <div
+              className="flex items-center gap-3 rounded-full px-4 py-2"
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(255,255,255,0.10)",
+              }}
+            >
               <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-sm">
                 {clubLogoUrl ? (
                   <Image
@@ -171,7 +196,7 @@ export default async function HomePage() {
               strikr – Das System für euer Training.
             </h1>
 
-            <p className="text-xs leading-5 text-white/75 sm:text-sm">
+            <p className="text-xs leading-5 text-white/80 sm:text-sm">
               faire Teams – effektives Training – echte Stats
             </p>
           </div>
@@ -252,7 +277,10 @@ export default async function HomePage() {
                   </p>
                 </div>
 
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-100">
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: `${primaryColor}12` }}
+                >
                   <Image
                     src="/icon-dark.png"
                     alt="strikr Logo"
@@ -266,7 +294,8 @@ export default async function HomePage() {
               <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                 <Link
                   href="/sessions/new"
-                  className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white"
+                  className="rounded-xl px-4 py-2.5 text-center text-sm font-semibold text-white"
+                  style={{ backgroundColor: primaryColor }}
                 >
                   Trainingssession starten
                 </Link>
