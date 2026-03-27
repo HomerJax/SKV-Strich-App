@@ -78,7 +78,13 @@ export default async function AppHeader() {
               <span className="text-xl font-black tracking-tight text-slate-950">
                 strikr
               </span>
-              <span className="mb-[2px] text-[11px] text-slate-400">v0.2</span>
+
+              <Link
+                href="/about"
+                className="mb-[2px] text-[11px] text-slate-400 transition hover:text-slate-700"
+              >
+                v0.2
+              </Link>
             </div>
           </Link>
 
