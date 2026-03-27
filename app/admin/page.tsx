@@ -6,10 +6,12 @@ import {
   UserRound,
   Palette,
   CalendarRange,
+  Shield,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { isFounderEmail } from "@/lib/auth/founder";
 
 type ClubRow = {
   id: string;
@@ -77,11 +79,14 @@ export default async function AdminPage() {
 
   const supabase = await createClient();
 
-  const { data: clubData, error: clubError } = await supabase
-    .from("clubs")
-    .select("id, display_name")
-    .eq("id", clubId)
-    .maybeSingle();
+  const [{ data: clubData, error: clubError }, authResult] = await Promise.all([
+    supabase
+      .from("clubs")
+      .select("id, display_name")
+      .eq("id", clubId)
+      .maybeSingle(),
+    supabase.auth.getUser(),
+  ]);
 
   if (clubError) {
     throw new Error(
@@ -92,6 +97,8 @@ export default async function AdminPage() {
   const club = (clubData ?? null) as ClubRow | null;
   const clubName = club?.display_name?.trim() || "Dein Team";
   const roleLabel = getRoleLabel(membership.role);
+  const userEmail = authResult.data.user?.email ?? null;
+  const founderAccess = isFounderEmail(userEmail);
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -169,6 +176,16 @@ export default async function AdminPage() {
             description="Lege fest, wie die Saison heißt und ab welchem Datum sie beginnt, damit Tabellen und Auswertungen sauber zugeordnet werden."
             icon={<CalendarRange className="h-6 w-6" strokeWidth={2.1} />}
           />
+
+          {founderAccess ? (
+            <AdminCard
+              href="/founder"
+              eyebrow="Founder"
+              title="Founder Dashboard"
+              description="Globale KPIs über Clubs, User, Registrierungen und Trainings. Hier steuerst du später auch Feature Flags pro Club."
+              icon={<Shield className="h-6 w-6" strokeWidth={2.1} />}
+            />
+          ) : null}
         </div>
       </section>
     </main>
