@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { ChangeEvent, RefObject } from "react";
 
 type Props = {
@@ -106,7 +107,11 @@ export default function SessionResultCard({
           disabled={saving}
           className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {saving ? "Speichert..." : hasResult ? "Ergebnis aktualisieren" : "Ergebnis speichern"}
+          {saving
+            ? "Speichert..."
+            : hasResult
+              ? "Ergebnis aktualisieren"
+              : "Ergebnis speichern"}
         </button>
 
         {hasResult ? (
@@ -142,12 +147,14 @@ export default function SessionResultCard({
 
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+            <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               {winnerPhotoUrl ? (
-                <img
+                <Image
                   src={winnerPhotoUrl}
                   alt="Siegerfoto"
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="64px"
+                  className="object-cover"
                 />
               ) : (
                 <div className="text-[10px] font-medium text-slate-400">

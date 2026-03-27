@@ -6,6 +6,9 @@ type SessionHeaderCardProps = {
   teamBCount: number;
   hasResult: boolean;
   nextStepLabel: string;
+  isAdmin: boolean;
+  deletingSession: boolean;
+  onDeleteSession?: () => void;
   onScrollToTeams?: () => void;
   onScrollToResult?: () => void;
 };
@@ -33,6 +36,9 @@ export default function SessionHeaderCard({
   teamBCount,
   hasResult,
   nextStepLabel,
+  isAdmin,
+  deletingSession,
+  onDeleteSession,
   onScrollToTeams,
   onScrollToResult,
 }: SessionHeaderCardProps) {
@@ -95,29 +101,38 @@ export default function SessionHeaderCard({
         </div>
       </div>
 
-      {(onScrollToTeams || onScrollToResult) ? (
-        <div className="flex flex-col gap-2 border-t border-slate-100 px-5 py-4 sm:flex-row sm:px-6">
-          {onScrollToTeams ? (
-            <button
-              type="button"
-              onClick={onScrollToTeams}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Zu den Teams
-            </button>
-          ) : null}
+      <div className="flex flex-col gap-2 border-t border-slate-100 px-5 py-4 sm:flex-row sm:flex-wrap sm:px-6">
+        {onScrollToTeams ? (
+          <button
+            type="button"
+            onClick={onScrollToTeams}
+            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Zu den Teams
+          </button>
+        ) : null}
 
-          {onScrollToResult ? (
-            <button
-              type="button"
-              onClick={onScrollToResult}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Zum Ergebnis
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+        {onScrollToResult ? (
+          <button
+            type="button"
+            onClick={onScrollToResult}
+            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Zum Ergebnis
+          </button>
+        ) : null}
+
+        {isAdmin && onDeleteSession ? (
+          <button
+            type="button"
+            onClick={onDeleteSession}
+            disabled={deletingSession}
+            className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 sm:ml-auto"
+          >
+            {deletingSession ? "Löscht..." : "Session löschen"}
+          </button>
+        ) : null}
+      </div>
     </section>
   );
 }

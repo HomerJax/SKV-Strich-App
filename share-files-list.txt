@@ -1,0 +1,15 @@
+app/share
+app/share/lineup
+app/share/lineup/[id]
+app/share/lineup/[id]/image
+app/share/lineup/[id]/image/route.tsx
+app/share/result
+app/share/result/[id]
+app/share/result/[id]/image
+app/share/result/[id]/image/route.tsx
+lib/share
+lib/share/brand.ts
+lib/share/lineup-share.ts
+lib/share/result-share.ts
+lib/share/types.ts
+lib/share/utils.ts

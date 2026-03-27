@@ -1,0 +1,656 @@
+]633;E;echo "===== app/sessions/page.tsx =====";7b8695e0-9a03-42cd-86de-1f5abdeb25ab]633;C===== app/sessions/page.tsx =====
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+
+type Season = {
+  id: number;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
+};
+
+type SessionRow = {
+  id: number;
+  date: string;
+  notes: string | null;
+  season_id: number | null;
+};
+
+function fmtDateDE(iso: string) {
+  return new Date(iso).toLocaleDateString("de-DE", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+export default async function SessionsPage() {
+  const { clubId } = await requireClub();
+  const supabase = await createClient();
+
+  const [
+    { data: seasonsData, error: seasonsError },
+    { data: sessionsData, error: sessionsError },
+  ] = await Promise.all([
+    supabase
+      .from("seasons")
+      .select("id, name, start_date, end_date")
+      .eq("club_id", clubId)
+      .order("start_date", { ascending: false }),
+    supabase
+      .from("sessions")
+      .select("id, date, notes, season_id")
+      .eq("club_id", clubId)
+      .order("date", { ascending: false }),
+  ]);
+
+  if (seasonsError || sessionsError) {
+    throw new Error(
+      seasonsError?.message ??
+        sessionsError?.message ??
+        "Daten konnten nicht geladen werden."
+    );
+  }
+
+  const seasons = (seasonsData as Season[] | null) ?? [];
+  const sessions = (sessionsData as SessionRow[] | null) ?? [];
+
+  const seasonSessions = new Map<number, SessionRow[]>();
+  const withoutSeason: SessionRow[] = [];
+
+  sessions.forEach((row) => {
+    if (!row.season_id) {
+      withoutSeason.push(row);
+    } else {
+      const arr = seasonSessions.get(row.season_id) ?? [];
+      arr.push(row);
+      seasonSessions.set(row.season_id, arr);
+    }
+  });
+
+  const seasonListSorted = seasons.slice();
+
+  for (const [sid, arr] of seasonSessions.entries()) {
+    arr.sort((a, b) => (a.date < b.date ? 1 : -1));
+    seasonSessions.set(sid, arr);
+  }
+
+  withoutSeason.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  const totalSessions = sessions.length;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Link href="/" className="text-xs text-slate-500 hover:text-slate-700">
+          ← Zur Startseite
+        </Link>
+      </div>
+
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">Trainings</h1>
+          <p className="text-xs text-slate-500">
+            Termine, Teams &amp; Ergebnisse.
+          </p>
+        </div>
+
+        <Link
+          href="/sessions/new"
+          className="rounded-xl bg-black px-3 py-2 text-xs font-semibold text-white shadow-sm"
+        >
+          + Neues Training
+        </Link>
+      </div>
+
+      {totalSessions > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+          {totalSessions} {totalSessions === 1 ? "Training" : "Trainings"}{" "}
+          gespeichert.
+        </div>
+      )}
+
+      {totalSessions === 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="max-w-lg">
+            <div className="text-sm font-semibold text-slate-500">Noch leer</div>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">
+              Ihr habt noch kein Training erstellt.
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Lege jetzt eure erste Session an. Danach kannst du Anwesenheiten
+              pflegen, Teams generieren, Ergebnisse speichern und die Tabelle
+              direkt in strikr nutzen.
+            </p>
+
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/sessions/new"
+                className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white"
+              >
+                Erstes Training erstellen
+              </Link>
+
+              <Link
+                href="/"
+                className="rounded-xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700"
+              >
+                Zur Startseite
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {totalSessions > 0 && (
+        <div className="space-y-3">
+          {seasonListSorted.map((season) => {
+            const list = seasonSessions.get(season.id) ?? [];
+            if (list.length === 0) return null;
+
+            return (
+              <div
+                key={season.id}
+                className="rounded-xl border border-slate-200 bg-white p-3"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="text-xs font-semibold text-slate-700">
+                    {season.name}
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    {list.length} {list.length === 1 ? "Training" : "Trainings"}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {list.map((session) => (
+                    <Link
+                      key={session.id}
+                      href={`/sessions/${session.id}`}
+                      className="block rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm hover:bg-slate-50"
+                    >
+                      <div className="font-semibold text-slate-900">
+                        {fmtDateDE(session.date)}
+                      </div>
+                      {session.notes ? (
+                        <div className="text-xs text-slate-500">
+                          {session.notes}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-400">
+                          Keine Notiz hinterlegt
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {withoutSeason.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <div className="mb-1 text-xs font-semibold text-amber-800">
+                Ohne Saison
+              </div>
+              <div className="mb-3 text-[11px] text-amber-800/80">
+                Diese Trainings konnten keinem Saisonzeitraum zugeordnet werden.
+              </div>
+
+              <div className="space-y-2">
+                {withoutSeason.map((session) => (
+                  <Link
+                    key={session.id}
+                    href={`/sessions/${session.id}`}
+                    className="block rounded-xl border border-amber-200 bg-white px-3 py-3 shadow-sm hover:bg-amber-100"
+                  >
+                    <div className="font-semibold text-slate-900">
+                      {fmtDateDE(session.date)}
+                    </div>
+                    {session.notes ? (
+                      <div className="text-xs text-slate-500">{session.notes}</div>
+                    ) : (
+                      <div className="text-xs text-slate-400">
+                        Keine Notiz hinterlegt
+                      </div>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+===== app/standings/page.tsx =====
+import { requireClub } from "@/lib/auth/guards";
+import StandingsClient from "./StandingsClient";
+
+export default async function StandingsPage() {
+  const { clubId } = await requireClub();
+
+  return <StandingsClient initialClubId={clubId} />;
+}
+===== app/admin/page.tsx =====
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
+
+type ClubRow = {
+  id: string;
+  display_name: string | null;
+};
+
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
+}
+
+function getRoleLabel(role: string | null | undefined) {
+  if (role === "owner") return "Owner";
+  if (role === "admin") return "Admin";
+  return "Mitglied";
+}
+
+type AdminCardProps = {
+  href: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: string;
+};
+
+function AdminCard({
+  href,
+  eyebrow,
+  title,
+  description,
+  icon,
+}: AdminCardProps) {
+  return (
+    <Link
+      href={href}
+      className="group rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+            {eyebrow}
+          </div>
+          <h2 className="mt-2 text-lg font-semibold text-slate-950">{title}</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+        </div>
+
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
+          {icon}
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center text-sm font-medium text-slate-900">
+        Öffnen
+        <span className="ml-2 transition group-hover:translate-x-1">→</span>
+      </div>
+    </Link>
+  );
+}
+
+export default async function AdminPage() {
+  const { clubId, membership } = await requireClub();
+
+  if (!isAdminRole(membership.role)) {
+    redirect(AUTH_ROUTES.dashboard);
+  }
+
+  const supabase = await createClient();
+
+  const { data: clubData, error: clubError } = await supabase
+    .from("clubs")
+    .select("id, display_name")
+    .eq("id", clubId)
+    .maybeSingle();
+
+  if (clubError) {
+    throw new Error(
+      `Der aktive Club konnte nicht geladen werden: ${clubError.message}`
+    );
+  }
+
+  const club = (clubData ?? null) as ClubRow | null;
+  const clubName = club?.display_name?.trim() || "Dein Team";
+  const roleLabel = getRoleLabel(membership.role);
+
+  return (
+    <main className="min-h-screen bg-neutral-100">
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex items-center">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück zur Startseite
+          </Link>
+        </div>
+
+        <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Adminbereich
+              </div>
+
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
+                {clubName}
+              </h1>
+
+              <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
+                Hier verwaltest du die wichtigsten Einstellungen für dein Team:
+                Spieler, Mitglieder, Club-Auftritt und Saisonlogik.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900">
+              <div className="text-sm font-medium">Deine Rolle</div>
+              <div className="mt-1 text-2xl font-bold">{roleLabel}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <AdminCard
+            href="/admin/members"
+            eyebrow="Mitglieder"
+            title="Mitgliederverwaltung"
+            description="Sieh bestehende Mitglieder, aktuelle Rollen und Spieler-Verknüpfungen. Hier kannst du Rollen sicher zwischen Mitglied und Admin ändern."
+            icon="👥"
+          />
+
+          <AdminCard
+            href="/admin/invites"
+            eyebrow="Einladungen"
+            title="Einladungen verwalten"
+            description="Erstelle neue Einladungen und behalte im Blick, welche Zugänge noch offen oder aktiv sind."
+            icon="✉️"
+          />
+
+          <AdminCard
+            href="/admin/players"
+            eyebrow="Spielbetrieb"
+            title="Spieler verwalten"
+            description="Pflege Spielerprofile, Positionen, Stärken und weitere Grundlagen für Trainings, Aufstellungen und Auswertungen."
+            icon="⚽"
+          />
+
+          <AdminCard
+            href="/admin/club"
+            eyebrow="Branding"
+            title="Club & Branding"
+            description="Hinterlege Teamname, Logo und weitere sichtbare Club-Informationen für eine saubere Identität in der App."
+            icon="🏷️"
+          />
+
+          <AdminCard
+            href="/admin/seasons"
+            eyebrow="Saison"
+            title="Saison-Einstellungen"
+            description="Lege fest, wie die Saison heißt und ab welchem Datum sie beginnt, damit Tabellen und Auswertungen sauber zugeordnet werden."
+            icon="📅"
+          />
+        </div>
+      </section>
+    </main>
+  );
+}
+===== components or files containing Export PNG / PDF =====
+app/waiting-for-invite/page.tsx:7:export default async function WaitingForInvitePage() {
+app/club-setup/success/page.tsx:6:export default function ClubSetupSuccessPage() {
+app/club-setup/actions.ts:8:export async function createClubAction(formData: FormData) {
+app/club-setup/page.tsx:32:export default async function ClubSetupPage({ searchParams }: PageProps) {
+app/layout.tsx:7:export const metadata: Metadata = {
+app/layout.tsx:12:export default async function RootLayout({
+app/api/logout/route.ts:4:export async function POST() {
+app/api/share/result/[id]/image/route.tsx:4:export const runtime = "nodejs";
+app/api/share/result/[id]/image/route.tsx:10:export async function GET(
+app/api/join/route.ts:22:export async function POST(request: Request) {
+app/api/login/route.ts:16:export async function POST(request: NextRequest) {
+app/api/standings/route.ts:6:export const runtime = "nodejs";
+app/api/standings/route.ts:7:export const dynamic = "force-dynamic";
+app/api/standings/route.ts:280:export async function GET(request: NextRequest) {
+app/api/select-club/route.ts:10:export async function POST(request: Request) {
+app/api/select-club/route.ts:56:export async function GET(request: Request) {
+app/api/sessions/[id]/route.ts:11:export const runtime = "nodejs";
+app/api/sessions/[id]/route.ts:12:export const dynamic = "force-dynamic";
+app/api/sessions/[id]/route.ts:18:export async function POST(
+app/api/onboarding/route.ts:44:export async function POST(request: NextRequest) {
+app/api/admin/seasons/route.ts:6:export const runtime = "nodejs";
+app/api/admin/seasons/route.ts:7:export const dynamic = "force-dynamic";
+app/api/admin/seasons/route.ts:73:export async function POST(request: NextRequest) {
+app/api/admin/players/update/route.ts:61:export async function POST(request: Request) {
+app/api/admin/settings/route.ts:40:export async function POST(request: Request) {
+app/api/admin/club/route.ts:7:export const runtime = "nodejs";
+app/api/admin/club/route.ts:8:export const dynamic = "force-dynamic";
+app/api/admin/club/route.ts:156:export async function POST(request: NextRequest) {
+app/api/admin/club/route.ts:297:export async function GET() {
+app/share/result/[id]/image/route.tsx:6:export const runtime = "nodejs";
+app/share/result/[id]/image/route.tsx:8:export async function GET(
+app/share/lineup/[id]/image/route.tsx:6:export const runtime = "nodejs";
+app/share/lineup/[id]/image/route.tsx:8:export async function GET(
+app/players/new/page.tsx:36:export default async function NewPlayerPage({ searchParams }: PageProps) {
+app/players/page.tsx:26:export default async function PlayersPage() {
+app/join/action.ts:31:export async function acceptInviteAction(formData: FormData) {
+app/join/page.tsx:21:export default async function JoinPage({
+app/login/page.tsx:13:            export default async function LoginPage({ searchParams }: LoginPageProps) {
+app/login/LoginForm.tsx:25:export default function LoginForm({
+app/standings/standings-types.ts:1:export type Membership = {
+app/standings/standings-types.ts:7:export type Season = {
+app/standings/standings-types.ts:14:export type Session = {
+app/standings/standings-types.ts:20:export type StandingRow = {
+app/standings/standings-types.ts:30:export type RankRow = StandingRow & {
+app/standings/StandingsClient.tsx:6:import ExportButtons from "@/components/ExportButtons";
+app/standings/StandingsClient.tsx:23:  exportId: string;
+app/standings/StandingsClient.tsx:38:export default function StandingsClient({
+app/standings/StandingsClient.tsx:78:      const exportId = `export-standings-card-${index + 1}`;
+app/standings/StandingsClient.tsx:89:        exportId,
+app/standings/StandingsClient.tsx:209:              Saison auswählen, Tabelle prüfen und als Share Card exportieren.
+app/standings/StandingsClient.tsx:214:            <ExportButtons
+app/standings/StandingsClient.tsx:215:              targetId="export-standings"
+app/standings/StandingsClient.tsx:308:              id="export-standings"
+app/standings/StandingsClient.tsx:384:                    aufgeteilt. Jede Karte kann separat exportiert oder als Text
+app/standings/StandingsClient.tsx:403:                      key={card.exportId}
+app/standings/StandingsClient.tsx:431:                          <ExportButtons
+app/standings/StandingsClient.tsx:432:                            targetId={card.exportId}
+app/standings/StandingsClient.tsx:453:              key={card.exportId}
+app/standings/StandingsClient.tsx:454:              exportId={card.exportId}
+app/standings/standings-ui.ts:4:export function sortRows(a: StandingRow, b: StandingRow) {
+app/standings/standings-ui.ts:10:export function addRanks(rows: StandingRow[]): RankRow[] {
+app/standings/standings-ui.ts:28:export function chunkRows<T>(items: T[], size: number) {
+app/standings/standings-ui.ts:36:export function getErrorMessage(e: unknown, fallback: string) {
+app/standings/standings-ui.ts:48:export function movementText(d: number | null) {
+app/standings/standings-ui.ts:55:export function movementClass(d: number | null) {
+app/standings/standings-ui.ts:62:export function buildStandingsShareText(
+app/standings/page.tsx:4:export default async function StandingsPage() {
+app/standings/StandingsShareCard.tsx:8:  exportId: string;
+app/standings/StandingsShareCard.tsx:15:export default function StandingsShareCard({
+app/standings/StandingsShareCard.tsx:16:  exportId,
+app/standings/StandingsShareCard.tsx:27:      id={exportId}
+app/select-club/SelectClubClient.tsx:7:export type SelectClubOption = {
+app/select-club/SelectClubClient.tsx:18:export default function SelectClubClient({
+app/select-club/page.tsx:6:export default async function SelectClubPage() {
+app/auth/action.ts:6:export async function signUpAction(formData: FormData) {
+app/auth/callback/route.ts:12:export async function GET(request: Request) {
+app/sessions/[id]/SessionHeaderCard.tsx:31:export default function SessionHeaderCard({
+app/sessions/[id]/SessionResultCard.tsx:26:export default function SessionResultCard({
+app/sessions/[id]/SessionExportCards.tsx:21:type LineupExportCardProps = {
+app/sessions/[id]/SessionExportCards.tsx:29:type ResultExportCardProps = {
+app/sessions/[id]/SessionExportCards.tsx:149:export function LineupExportCard({
+app/sessions/[id]/SessionExportCards.tsx:155:}: LineupExportCardProps) {
+app/sessions/[id]/SessionExportCards.tsx:158:      id="export-lineup-card"
+app/sessions/[id]/SessionExportCards.tsx:220:export function ResultExportCard({
+app/sessions/[id]/SessionExportCards.tsx:227:}: ResultExportCardProps) {
+app/sessions/[id]/SessionExportCards.tsx:230:      id="export-result-card"
+app/sessions/[id]/SessionTeamsCard.tsx:162:export default function SessionTeamsCard({
+app/sessions/[id]/session-types.ts:1:export type Player = {
+app/sessions/[id]/session-types.ts:14:export type SessionRow = {
+app/sessions/[id]/session-types.ts:21:export type TeamSide = "A" | "B";
+app/sessions/[id]/session-types.ts:22:export type TeamMap = Record<number, TeamSide | null>;
+app/sessions/[id]/SessionDetailClient.tsx:78:export default function SessionDetailClient({
+app/sessions/[id]/SessionAttendanceCard.tsx:48:export default function SessionAttendanceCard({
+app/sessions/[id]/page.tsx:43:export default async function SessionDetailPage({ params }: PageProps) {
+app/sessions/[id]/session-ui.tsx:4:export function getErrorMessage(e: unknown, fallback: string) {
+app/sessions/[id]/session-ui.tsx:17:export function positionLabel(pos: Player["preferred_position"]) {
+app/sessions/[id]/session-ui.tsx:24:export function badgeColor(pos: Player["preferred_position"]) {
+app/sessions/[id]/session-ui.tsx:31:export function ageBadgeColor(age: Player["age_group"]) {
+app/sessions/[id]/session-ui.tsx:37:export const ageScore = (a: Player["age_group"]) =>
+app/sessions/[id]/session-ui.tsx:40:export const posScore = (p: Player["preferred_position"]) =>
+app/sessions/[id]/session-ui.tsx:43:export const strengthScore = (s: number | null) => {
+app/sessions/[id]/session-ui.tsx:48:export function shuffle<T>(arr: T[]) {
+app/sessions/[id]/session-ui.tsx:59:export function sumStrength(team: Player[]) {
+app/sessions/[id]/session-ui.tsx:63:export function sumAge(team: Player[]) {
+app/sessions/[id]/session-ui.tsx:67:export function sumPos(team: Player[]) {
+app/sessions/[id]/session-ui.tsx:71:export function positionRank(pos: Player["preferred_position"]) {
+app/sessions/[id]/session-ui.tsx:78:export function sortForTeamView(a: Player, b: Player) {
+app/sessions/[id]/session-ui.tsx:87:export function formatGermanDate(date: string) {
+app/sessions/[id]/session-ui.tsx:91:export function normalizeGoalValue(value: string) {
+app/sessions/[id]/session-ui.tsx:102:export function buildLineupShareText(
+app/sessions/[id]/session-ui.tsx:145:export function buildResultShareText(
+app/sessions/[id]/session-ui.tsx:182:export function winnerLabel(goalsA: string, goalsB: string) {
+app/sessions/[id]/session-ui.tsx:198:export function winnerBadgeClass(goalsA: string, goalsB: string) {
+app/sessions/new/page.tsx:20:export default async function NewSessionPage({
+app/sessions/page.tsx:28:export default async function SessionsPage() {
+app/forgot-password/actions.ts:21:export async function forgotPasswordAction(formData: FormData) {
+app/forgot-password/page.tsx:15:export default function ForgotPasswordPage({
+app/signup/actions.ts:9:export type SignupState = {
+app/signup/actions.ts:13:export async function signupAction(
+app/signup/SignupForm.tsx:38:export default function SignupForm({
+app/signup/page.tsx:10:export default async function SignupPage({ searchParams }: SignupPageProps) {
+app/onboarding/actions.ts:7:export type OnboardingState = {
+app/onboarding/actions.ts:15:export async function completeOnboarding(
+app/onboarding/page.tsx:11:export default function OnboardingPage() {
+app/profile/ProfilePasswordForm.tsx:47:export default function ProfilePasswordForm({
+app/profile/page.tsx:5:export default async function ProfilePage() {
+app/me/page.tsx:9:export default async function MePage() {
+app/page.tsx:63:export default async function HomePage() {
+app/manifest.ts:3:export default function manifest(): MetadataRoute.Manifest {
+app/reset-password/actions.ts:20:export async function resetPasswordAction(formData: FormData) {
+app/reset-password/page.tsx:14:export default async function ResetPasswordPage({
+app/admin/seasons/page.tsx:31:export default async function SeasonsAdminPage({ searchParams }: PageProps) {
+app/admin/invites/InviteShareActions.tsx:10:export default function InviteShareActions({
+app/admin/invites/page.tsx:29:export default async function AdminInvitesPage({ searchParams }: PageProps) {
+app/admin/logout-button.tsx:5:export default function AdminLogoutButton() {
+app/admin/players/players-types.ts:1:export type Membership = {
+app/admin/players/players-types.ts:7:export type AgeGroup = "AH" | "Ü32" | null;
+app/admin/players/players-types.ts:8:export type PreferredPosition = "defense" | "attack" | "goalkeeper" | null;
+app/admin/players/players-types.ts:10:export type Player = {
+app/admin/players/players-utils.ts:4:export function getErrorMessage(e: unknown, fallback: string) {
+app/admin/players/players-utils.ts:16:export function toStrength(value: string): number | null {
+app/admin/players/players-utils.ts:23:export function clean(value: string | null | undefined) {
+app/admin/players/players-utils.ts:27:export function buildLegacyName(player: {
+app/admin/players/players-utils.ts:42:export function sortPlayersByDisplayName(list: Player[]) {
+app/admin/players/players-utils.ts:48:export function matchesPlayerSearch(player: Player, term: string) {
+app/admin/players/PlayersToolbar.tsx:15:export default function PlayersToolbar({
+app/admin/players/update/route.ts:6:export const runtime = "nodejs";
+app/admin/players/update/route.ts:7:export const dynamic = "force-dynamic";
+app/admin/players/update/route.ts:98:export async function POST(request: NextRequest) {
+app/admin/players/page.tsx:93:export default async function AdminPlayersPage({
+app/admin/categories/page.tsx:153:export default async function AdminCategoriesPage({
+app/admin/settings/page.tsx:112:export default async function AdminSettingsPage({
+app/admin/page.tsx:64:export default async function AdminPage() {
+app/admin/club/page.tsx:28:      return "Bitte lade nur PNG, JPG, JPEG oder WEBP hoch.";
+app/admin/club/page.tsx:44:export default async function ClubAdminPage({
+app/admin/club/page.tsx:221:                Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
+app/admin/members/remove/route.ts:46:export async function POST(request: Request) {
+app/admin/members/InviteActions.tsx:9:export default function InviteActions({ inviteUrl }: InviteActionsProps) {
+app/admin/members/link-player/route.ts:46:export async function POST(request: Request) {
+app/admin/members/members-types.ts:1:export type MemberRole = "owner" | "admin" | "member";
+app/admin/members/members-types.ts:3:export type MemberRow = {
+app/admin/members/members-types.ts:10:export type InviteRow = {
+app/admin/members/members-utils.ts:3:export function getBaseUrl() {
+app/admin/members/members-utils.ts:11:export function buildInviteUrl(token: string) {
+app/admin/members/members-utils.ts:15:export function formatDate(dateString: string) {
+app/admin/members/members-utils.ts:22:export function getMemberRoleLabel(
+app/admin/members/members-utils.ts:30:export function getErrorText(code?: string) {
+app/admin/members/members-utils.ts:54:export function getSuccessText(action?: string) {
+app/admin/members/MembersMessages.tsx:4:export function ErrorMessage({ code }: { code?: string }) {
+app/admin/members/MembersMessages.tsx:15:export function SuccessMessage({
+app/admin/members/revoke/route.ts:39:export async function POST(request: Request) {
+app/admin/members/change-role/route.ts:46:export async function POST(request: Request) {
+app/admin/members/page.tsx:50:export default async function AdminMembersPage({
+app/admin/members/create/route.ts:40:export async function POST(request: Request) {
+components/AppHeader.tsx:13:export default async function AppHeader() {
+components/share/ShareCardShell.tsx:5:export default function ShareCardShell({
+components/share/ResultShareCard.tsx:4:export default function ResultShareCard({
+components/share/LineupShareCard.tsx:18:export default function LineupShareCard({
+components/ExportButtons.tsx:34:  return normalized || "strikr-export";
+components/ExportButtons.tsx:39:  if (!el) throw new Error(`Export-Bereich nicht gefunden: #${targetId}`);
+components/ExportButtons.tsx:55:      title: "strikr Export",
+components/ExportButtons.tsx:73:function getExportFileName(fileBaseName: string, extension: "png" | "pdf") {
+components/ExportButtons.tsx:88:export default function ExportButtons({
+components/ExportButtons.tsx:90:  fileBaseName = "strikr-export",
+components/ExportButtons.tsx:97:  async function exportPNG() {
+components/ExportButtons.tsx:108:        getExportFileName(fileBaseName, "png")
+components/ExportButtons.tsx:112:        setMsg("PNG erfolgreich geteilt.");
+components/ExportButtons.tsx:114:        setMsg("PNG erfolgreich heruntergeladen.");
+components/ExportButtons.tsx:117:      setErr(e?.message ?? "Export PNG fehlgeschlagen.");
+components/ExportButtons.tsx:123:  async function exportPDF() {
+components/ExportButtons.tsx:137:          reject(new Error("Konnte Export-Bild nicht laden."));
+components/ExportButtons.tsx:142:        (jspdfModule as any).jsPDF || (jspdfModule as any).default;
+components/ExportButtons.tsx:164:          "PNG",
+components/ExportButtons.tsx:177:      pdf.save(getExportFileName(fileBaseName, "pdf"));
+components/ExportButtons.tsx:178:      setMsg("PDF erfolgreich heruntergeladen.");
+components/ExportButtons.tsx:180:      setErr(e?.message ?? "Export PDF fehlgeschlagen.");
+components/ExportButtons.tsx:192:          onClick={exportPNG}
+components/ExportButtons.tsx:197:          {busy === "png" ? "Exportiere PNG…" : "Export PNG"}
+components/ExportButtons.tsx:201:          onClick={exportPDF}
+components/ExportButtons.tsx:206:          {busy === "pdf" ? "Exportiere PDF…" : "Export PDF"}
+components/ExportButtons.tsx:218:          Export-Fehler: {err}
+components/HeaderAuthControls.tsx:16:export default function HeaderAuthControls({
+components/HeaderAuthActions.tsx:10:export default function HeaderAuthActions({
+components/LogoutButton.tsx:10:export default function LogoutButton({
+components/AppBottomNav.tsx:49:export default function AppBottomNav({
+lib/types/player.ts:1:export type PlayerPosition =
+lib/types/player.ts:7:export type PlayerAgeGroup = "AH" | "Ü32" | string | null;
+lib/types/player.ts:9:export type PlayerCategoryKey = string | null;
+lib/types/player.ts:11:export type PublicPlayer = {
+lib/types/player.ts:29:export type AdminPlayer = PublicPlayer & {
+lib/getCurrentMembership.ts:4:export async function getCurrentMembership() {
+lib/supabase/admin.ts:3:export const adminClient = createClient(
+lib/supabase/server.ts:4:export async function createClient() {
+lib/share/types.ts:1:export type SharePlayer = {
+lib/share/types.ts:6:export type ShareTeam = {
+lib/share/types.ts:11:export type ShareBranding = {
+lib/share/types.ts:19:export type LineupShareData = {
+lib/share/types.ts:28:export type ResultShareData = {
+lib/share/lineup-share.ts:59:export async function getLineupShareData(
+lib/share/utils.ts:1:export function formatDate(dateInput: string | Date) {
+lib/share/utils.ts:15:export function trimName(name: string, max = 18) {
+lib/share/utils.ts:23:export function buildPlayerDisplayName(player: {
+lib/share/utils.ts:49:export async function shareImageFromUrl({
+lib/share/brand.ts:5:export const SHARE_THEME = {
+lib/share/brand.ts:45:export async function getBaseShareBranding(): Promise<ShareBranding> {
+lib/share/result-share.ts:27:export async function getResultShareData(
+lib/players/getPublicPlayersForCurrentClub.ts:4:export async function getPublicPlayersForCurrentClub(
+lib/players/getAdminPlayersForClub.ts:4:export async function getAdminPlayersForClub(
+lib/auth/context.ts:5:export type AuthPlayer = {
+lib/auth/context.ts:13:export type AuthMembership = {
+lib/auth/context.ts:20:export type AuthContext = {
+lib/auth/context.ts:27:export async function getAuthContext(): Promise<AuthContext> {
+lib/auth/routes.ts:1:export const AUTH_ROUTES = {
+lib/auth/guards.ts:5:export async function requireUser() {
+lib/auth/guards.ts:15:export async function requirePlayer() {
+lib/auth/guards.ts:32:export async function requireClub() {
+lib/player-display.ts:1:export type PlayerDisplayFields = {
+lib/player-display.ts:12:export function getPlayerDisplayName(player: PlayerDisplayFields) {
+lib/session-detail/access.ts:4:export type SessionRow = {
+lib/session-detail/access.ts:12:export async function requireSessionAccess(sessionId: number) {
+lib/session-detail/photo.ts:3:export async function createSignedPhotoUrl(
+lib/session-detail/actions/add-guest-player.ts:31:export async function handleAddGuestPlayer({
+lib/session-detail/actions/toggle-presence.ts:12:export async function handleTogglePresence({
+lib/session-detail/actions/save-result.ts:31:export async function handleSaveResult({
+lib/session-detail/actions/delete-result.ts:11:export async function handleDeleteResult({
+lib/session-detail/actions/delete-winner-photo.ts:13:export async function handleDeleteWinnerPhoto({
+lib/session-detail/response.ts:3:export function ok(data: Record<string, unknown> = {}, status = 200) {
+lib/session-detail/response.ts:7:export function fail(error: string, status = 400, data: Record<string, unknown> = {}) {

@@ -9,6 +9,7 @@ type ClubRow = {
   id: string;
   display_name: string | null;
   logo_path: string | null;
+  primary_color: string | null;
 };
 
 type ClubAdminPageProps = {
@@ -17,6 +18,13 @@ type ClubAdminPageProps = {
     error?: string;
   }>;
 };
+
+const COLOR_OPTIONS = [
+  { value: "black", label: "Schwarz", color: "#020617" },
+  { value: "blue", label: "Blau", color: "#1d4ed8" },
+  { value: "red", label: "Rot", color: "#dc2626" },
+  { value: "green", label: "Grün", color: "#16a34a" },
+] as const;
 
 function getErrorMessage(error?: string) {
   switch (error) {
@@ -85,7 +93,7 @@ export default async function ClubAdminPage({
 
   const { data: clubData, error: clubError } = await supabase
     .from("clubs")
-    .select("id, display_name, logo_path")
+    .select("id, display_name, logo_path, primary_color")
     .eq("id", clubId)
     .maybeSingle();
 
@@ -109,6 +117,11 @@ export default async function ClubAdminPage({
     logoUrl = data.publicUrl;
   }
 
+  const selectedColor = club.primary_color ?? "black";
+  const previewColor =
+    COLOR_OPTIONS.find((option) => option.value === selectedColor)?.color ??
+    "#020617";
+
   const errorMessage = getErrorMessage(resolvedSearchParams?.error);
   const saved = resolvedSearchParams?.saved === "1";
 
@@ -128,10 +141,10 @@ export default async function ClubAdminPage({
           <div className="mb-5">
             <div className="text-sm font-semibold text-slate-500">Admin</div>
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
-              Clubname & Logo
+              Clubname, Logo & Farbe
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Diese Angaben erscheinen oben mittig im Header der App.
+              Diese Angaben erscheinen im Branding eures Clubs innerhalb der App.
             </p>
           </div>
 
@@ -152,29 +165,34 @@ export default async function ClubAdminPage({
               Aktuelle Vorschau
             </div>
 
-            <div className="flex items-center gap-3">
-              {logoUrl ? (
-                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
-                  <Image
-                    src={logoUrl}
-                    alt={club.display_name || "Clublogo"}
-                    width={80}
-                    height={80}
-                    unoptimized
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
-                  Logo
-                </div>
-              )}
+            <div
+              className="rounded-2xl border border-slate-200 bg-white p-4"
+              style={{ borderTop: `4px solid ${previewColor}` }}
+            >
+              <div className="flex items-center gap-3">
+                {logoUrl ? (
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
+                    <Image
+                      src={logoUrl}
+                      alt={club.display_name || "Clublogo"}
+                      width={80}
+                      height={80}
+                      unoptimized
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
+                    Logo
+                  </div>
+                )}
 
-              <div className="min-w-0">
-                <div className="truncate text-lg font-bold text-slate-950">
-                  {club.display_name?.trim() || "Dein Team"}
+                <div className="min-w-0">
+                  <div className="truncate text-lg font-bold text-slate-950">
+                    {club.display_name?.trim() || "Dein Team"}
+                  </div>
+                  <div className="text-sm text-slate-500">Anzeige im Header</div>
                 </div>
-                <div className="text-sm text-slate-500">Anzeige im Header</div>
               </div>
             </div>
           </div>
@@ -219,6 +237,37 @@ export default async function ClubAdminPage({
               />
               <p className="text-xs text-slate-500">
                 Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="block text-sm font-medium text-slate-900">
+                Vereinsfarbe
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {COLOR_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"
+                  >
+                    <input
+                      type="radio"
+                      name="primary_color"
+                      value={option.value}
+                      defaultChecked={option.value === selectedColor}
+                    />
+                    <span
+                      className="h-4 w-4 rounded-full border border-black/10"
+                      style={{ backgroundColor: option.color }}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Die Farbe wird als dezenter Akzent für euren Club in der App genutzt.
               </p>
             </div>
 

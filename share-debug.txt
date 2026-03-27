@@ -1,3 +1,4 @@
+]633;E;echo "===== app/sessions/[id]/SessionDetailClient.tsx =====";7b8695e0-9a03-42cd-86de-1f5abdeb25ab]633;C===== app/sessions/[id]/SessionDetailClient.tsx =====
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -5,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Player, SessionRow, TeamMap, TeamSide } from "./session-types";
 import {
   buildLineupShareText,
+  buildResultShareText,
   getErrorMessage,
   normalizeGoalValue,
   shuffle,
@@ -14,7 +16,6 @@ import {
   sumStrength,
 } from "./session-ui";
 import { getPlayerDisplayName } from "@/lib/player-display";
-import { shareImageFromUrl } from "@/lib/share/utils";
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionTeamsCard from "./SessionTeamsCard";
@@ -55,11 +56,6 @@ type ApiSuccess =
       message: string;
       winner_photo_path: string | null;
       winnerPhotoUrl: string | null;
-    }
-  | {
-      ok: true;
-      message: string;
-      deleted: true;
     };
 
 type ApiError = {
@@ -133,7 +129,6 @@ export default function SessionDetailClient({
   const [photoBusy, setPhotoBusy] = useState(false);
   const [sharingLineup, setSharingLineup] = useState(false);
   const [sharingResult, setSharingResult] = useState(false);
-  const [deletingSession, setDeletingSession] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -200,6 +195,11 @@ export default function SessionDetailClient({
     [players, presentIds]
   );
 
+  const draftPresentPlayers = useMemo(
+    () => players.filter((player) => draftPresentIds.includes(player.id)),
+    [players, draftPresentIds]
+  );
+
   const teamA = useMemo(
     () =>
       presentPlayers
@@ -237,7 +237,7 @@ export default function SessionDetailClient({
   const teamsComplete =
     teamA.length > 0 && teamB.length > 0 && unassigned.length === 0;
 
-  const canUploadWinnerPhoto = teamsComplete && !saving && !deletingSession;
+  const canUploadWinnerPhoto = teamsComplete && !saving;
 
   const nextStepLabel = hasResult
     ? "Ergebnis ist gespeichert"
@@ -319,55 +319,18 @@ export default function SessionDetailClient({
         );
       }
 
-      await shareImageFromUrl({
-        imageUrl: `/api/share/result/${sessionId}/image`,
-        fileName: `strikr-ergebnis-${sessionId}.png`,
-        title: "Ergebnis teilen",
-        text: "Ergebnis geteilt mit Strikr",
-      });
+      const text = buildResultShareText(session, goalsA, goalsB, teamA, teamB);
+      const result = await shareText(text, "Ergebnis teilen");
 
-      setMsg("Ergebnis erfolgreich als Bild geteilt.");
+      setMsg(
+        result === "copied"
+          ? "Ergebnis-Text in die Zwischenablage kopiert."
+          : "Ergebnis erfolgreich geteilt."
+      );
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Ergebnis konnte nicht geteilt werden."));
     } finally {
       setSharingResult(false);
-    }
-  }
-
-  async function handleDeleteSession() {
-    if (!isAdmin) {
-      setErr("Nur Admins dürfen eine Session löschen.");
-      return;
-    }
-
-    if (deletingSession || saving || savingPresence || photoBusy) {
-      return;
-    }
-
-    const okConfirm = window.confirm(
-      "Session wirklich komplett löschen?\n\nDabei werden Anwesenheit, Teams, Ergebnis und Siegerfoto endgültig entfernt."
-    );
-
-    if (!okConfirm) return;
-
-    try {
-      setDeletingSession(true);
-      setErr(null);
-      setMsg(null);
-
-      const formData = new FormData();
-      formData.set("intent", "delete_session");
-
-      const result = await postForm(formData);
-
-      if ("deleted" in result && result.deleted) {
-        router.push("/sessions?deleted=1");
-        router.refresh();
-      }
-    } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Session konnte nicht gelöscht werden."));
-    } finally {
-      setDeletingSession(false);
     }
   }
 
@@ -388,7 +351,7 @@ export default function SessionDetailClient({
   }
 
   async function savePresence() {
-    if (hasResult || savingPresence || !attendanceDirty || deletingSession) {
+    if (hasResult || savingPresence || !attendanceDirty) {
       return;
     }
 
@@ -467,14 +430,14 @@ export default function SessionDetailClient({
         throw new Error("Kein Club gefunden.");
       }
 
-      setGuestSaving(true);
-      setErr(null);
-      setMsg(null);
-
       const cleanName = guestName.trim();
       if (!cleanName) {
         throw new Error("Bitte einen Namen für den Gastspieler eingeben.");
       }
+
+      setGuestSaving(true);
+      setErr(null);
+      setMsg(null);
 
       const formData = new FormData();
       formData.set("intent", "add_guest_player");
@@ -672,7 +635,7 @@ export default function SessionDetailClient({
   }
 
   async function saveResult() {
-    if (saving || deletingSession) return;
+    if (saving) return;
 
     const cleanA = normalizeGoalValue(goalsA);
     const cleanB = normalizeGoalValue(goalsB);
@@ -728,7 +691,7 @@ export default function SessionDetailClient({
   }
 
   async function deleteResult() {
-    if (saving || deletingSession) return;
+    if (saving) return;
 
     const okConfirm = window.confirm(
       "Ergebnis wirklich löschen?\nDanach sind Aufstellungen & Anwesenheit wieder bearbeitbar."
@@ -778,7 +741,7 @@ export default function SessionDetailClient({
       return;
     }
 
-    if (photoBusy || saving || deletingSession) return;
+    if (photoBusy || saving) return;
 
     try {
       setPhotoBusy(true);
@@ -814,7 +777,7 @@ export default function SessionDetailClient({
       return;
     }
 
-    if (photoBusy || saving || deletingSession) return;
+    if (photoBusy || saving) return;
 
     const okConfirm = window.confirm("Siegerfoto wirklich löschen?");
     if (!okConfirm) return;
@@ -869,12 +832,10 @@ export default function SessionDetailClient({
   return (
     <div className="space-y-4">
       <button
-        type="button"
         onClick={() => router.push("/sessions")}
-        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        className="text-xs text-slate-500 hover:text-slate-700"
       >
-        <span aria-hidden="true">←</span>
-        <span>Zurück zu Trainings</span>
+        ← Zurück zu Trainings
       </button>
 
       <SessionHeaderCard
@@ -885,9 +846,6 @@ export default function SessionDetailClient({
         teamBCount={teamB.length}
         hasResult={hasResult}
         nextStepLabel={nextStepLabel}
-        isAdmin={isAdmin}
-        deletingSession={deletingSession}
-        onDeleteSession={handleDeleteSession}
         onScrollToTeams={() =>
           teamsRef.current?.scrollIntoView({ behavior: "smooth" })
         }
@@ -989,3 +947,422 @@ export default function SessionDetailClient({
     </div>
   );
 }
+===== lib/share/result-share.ts =====
+import { createClient } from "@/lib/supabase/server";
+import { ResultShareData } from "./types";
+import { formatDate } from "./utils";
+import { getBaseShareBranding } from "./brand";
+
+type SessionRow = {
+  id: number;
+  date: string | null;
+  club_id: number;
+  winner_photo_path: string | null;
+};
+
+type ClubRow = {
+  id: number;
+  display_name: string | null;
+  logo_path: string | null;
+};
+
+type ResultRow = {
+  id: number;
+  team_a_id: number | null;
+  team_b_id: number | null;
+  goals_team_a: number | null;
+  goals_team_b: number | null;
+};
+
+export async function getResultShareData(
+  sessionIdRaw: string
+): Promise<ResultShareData> {
+  const sessionId = Number(sessionIdRaw);
+
+  if (!Number.isFinite(sessionId)) {
+    throw new Error("Ungültige Session-ID");
+  }
+
+  const supabase = await createClient();
+
+  const [
+    { data: sessionData, error: sessionError },
+    { data: resultData, error: resultError },
+  ] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select("id, date, club_id, winner_photo_path")
+      .eq("id", sessionId)
+      .single(),
+    supabase
+      .from("results")
+      .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+      .eq("session_id", sessionId)
+      .maybeSingle(),
+  ]);
+
+  if (sessionError || !sessionData) {
+    throw new Error("Session nicht gefunden");
+  }
+
+  if (resultError) {
+    throw new Error(`Ergebnis konnte nicht geladen werden: ${resultError.message}`);
+  }
+
+  const session = sessionData as SessionRow;
+  const result = (resultData ?? null) as ResultRow | null;
+
+  if (!result) {
+    throw new Error("Für diese Session gibt es noch kein Ergebnis");
+  }
+
+  const branding = await getBaseShareBranding();
+
+  const { data: clubData } = await supabase
+    .from("clubs")
+    .select("id, display_name, logo_path")
+    .eq("id", session.club_id)
+    .maybeSingle();
+
+  const club = (clubData ?? null) as ClubRow | null;
+
+  if (club?.display_name) {
+    branding.clubName = club.display_name;
+  }
+
+  if (club?.logo_path) {
+    const { data: logoData } = supabase.storage
+      .from("club-logos")
+      .getPublicUrl(club.logo_path);
+
+    branding.clubCrestUrl = logoData?.publicUrl ?? null;
+  }
+
+  const goalsA = result.goals_team_a ?? 0;
+  const goalsB = result.goals_team_b ?? 0;
+
+  let winnerLabel = "Unentschieden";
+
+  if (goalsA > goalsB) {
+    winnerLabel = "Team A gewinnt";
+  } else if (goalsB > goalsA) {
+    winnerLabel = "Team B gewinnt";
+  }
+
+  let winnerPhotoUrl: string | null = null;
+
+  if (session.winner_photo_path) {
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from("session-photos")
+      .createSignedUrl(session.winner_photo_path, 60 * 60);
+
+    if (!signedError) {
+      winnerPhotoUrl = signedData?.signedUrl ?? null;
+    }
+  }
+
+  return {
+    title: "Ergebnis",
+    subtitle: "match result by strikr",
+    date: session.date ? formatDate(session.date) : "",
+    goalsA: String(goalsA),
+    goalsB: String(goalsB),
+    teamAName: "Team A",
+    teamBName: "Team B",
+    winnerLabel,
+    winnerPhotoUrl,
+    branding,
+  };
+}
+===== lib/share/lineup-share.ts =====
+import { createClient } from "@/lib/supabase/server";
+import { LineupShareData, SharePlayer } from "./types";
+import { buildPlayerDisplayName, formatDate } from "./utils";
+import { getBaseShareBranding } from "./brand";
+
+type SessionRow = {
+  id: number;
+  date: string | null;
+  club_id: number;
+};
+
+type ClubRow = {
+  id: number;
+  display_name: string | null;
+  logo_path: string | null;
+};
+
+type SessionPlayerRow = {
+  player_id: number;
+};
+
+type PlayerRow = {
+  id: number;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  is_active: boolean | null;
+};
+
+type ResultRow = {
+  id: number;
+  team_a_id: number | null;
+  team_b_id: number | null;
+};
+
+type TeamPlayerRow = {
+  team_id: number;
+  player_id: number;
+};
+
+function splitPlayersIntoTwoTeams(players: SharePlayer[]) {
+  const sorted = [...players].sort((a, b) => a.name.localeCompare(b.name, "de"));
+
+  const teamA: SharePlayer[] = [];
+  const teamB: SharePlayer[] = [];
+
+  sorted.forEach((player, index) => {
+    if (index % 2 === 0) {
+      teamA.push(player);
+    } else {
+      teamB.push(player);
+    }
+  });
+
+  return { teamA, teamB };
+}
+
+export async function getLineupShareData(
+  sessionIdRaw: string
+): Promise<LineupShareData> {
+  const sessionId = Number(sessionIdRaw);
+
+  if (!Number.isFinite(sessionId)) {
+    throw new Error("Ungültige Session-ID");
+  }
+
+  const supabase = await createClient();
+
+  const [
+    { data: sessionData, error: sessionError },
+    { data: sessionPlayersData, error: sessionPlayersError },
+    { data: resultData, error: resultError },
+  ] = await Promise.all([
+    supabase.from("sessions").select("id, date, club_id").eq("id", sessionId).single(),
+    supabase.from("session_players").select("player_id").eq("session_id", sessionId),
+    supabase
+      .from("results")
+      .select("id, team_a_id, team_b_id")
+      .eq("session_id", sessionId)
+      .maybeSingle(),
+  ]);
+
+  if (sessionError || !sessionData) {
+    throw new Error("Session nicht gefunden");
+  }
+
+  if (sessionPlayersError) {
+    throw new Error(
+      `Session-Spieler konnten nicht geladen werden: ${sessionPlayersError.message}`
+    );
+  }
+
+  if (resultError) {
+    throw new Error(`Ergebnis konnte nicht geladen werden: ${resultError.message}`);
+  }
+
+  const session = sessionData as SessionRow;
+  const sessionPlayers = (sessionPlayersData ?? []) as SessionPlayerRow[];
+  const result = (resultData ?? null) as ResultRow | null;
+
+  const branding = await getBaseShareBranding();
+
+  const { data: clubData } = await supabase
+    .from("clubs")
+    .select("id, display_name, logo_path")
+    .eq("id", session.club_id)
+    .maybeSingle();
+
+  const club = (clubData ?? null) as ClubRow | null;
+
+  if (club?.display_name) {
+    branding.clubName = club.display_name;
+  }
+
+  if (club?.logo_path) {
+    const { data: logoData } = supabase.storage
+      .from("club-logos")
+      .getPublicUrl(club.logo_path);
+
+    branding.clubCrestUrl = logoData?.publicUrl ?? null;
+  }
+
+  const presentIds = sessionPlayers.map((row) => row.player_id);
+
+  if (presentIds.length === 0) {
+    return {
+      title: "Aufstellung",
+      subtitle: "Noch keine anwesenden Spieler gespeichert",
+      date: session.date ? formatDate(session.date) : "",
+      teamA: {
+        name: "Team A",
+        players: [],
+      },
+      teamB: {
+        name: "Team B",
+        players: [],
+      },
+      branding,
+    };
+  }
+
+  const { data: playersData, error: playersError } = await supabase
+    .from("players")
+    .select("id, name, first_name, last_name, nickname, is_active")
+    .eq("club_id", session.club_id)
+    .in("id", presentIds)
+    .order("name");
+
+  if (playersError) {
+    throw new Error(`Spieler konnten nicht geladen werden: ${playersError.message}`);
+  }
+
+  const playerRows = ((playersData ?? []) as PlayerRow[]).filter(
+    (player) => player.is_active !== false
+  );
+
+  const playersById = new Map<number, SharePlayer>();
+
+  for (const player of playerRows) {
+    playersById.set(player.id, {
+      id: String(player.id),
+      name: buildPlayerDisplayName(player),
+    });
+  }
+
+  let teamAPlayers: SharePlayer[] = [];
+  let teamBPlayers: SharePlayer[] = [];
+  let subtitle = "balanced by strikr";
+
+  const hasStoredTeams =
+    result && (result.team_a_id !== null || result.team_b_id !== null);
+
+  if (hasStoredTeams) {
+    const teamIds = [result.team_a_id, result.team_b_id].filter(
+      (value): value is number => value !== null
+    );
+
+    const { data: teamPlayersData, error: teamPlayersError } = await supabase
+      .from("team_players")
+      .select("team_id, player_id")
+      .in("team_id", teamIds);
+
+    if (teamPlayersError) {
+      throw new Error(
+        `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`
+      );
+    }
+
+    const teamPlayers = (teamPlayersData ?? []) as TeamPlayerRow[];
+
+    for (const row of teamPlayers) {
+      const mappedPlayer = playersById.get(row.player_id);
+
+      if (!mappedPlayer) {
+        continue;
+      }
+
+      if (row.team_id === result?.team_a_id) {
+        teamAPlayers.push(mappedPlayer);
+      }
+
+      if (row.team_id === result?.team_b_id) {
+        teamBPlayers.push(mappedPlayer);
+      }
+    }
+
+    teamAPlayers = teamAPlayers.sort((a, b) => a.name.localeCompare(b.name, "de"));
+    teamBPlayers = teamBPlayers.sort((a, b) => a.name.localeCompare(b.name, "de"));
+
+    subtitle = "gespeicherte Teams aus der Session";
+  } else {
+    const presentPlayers = presentIds
+      .map((id) => playersById.get(id))
+      .filter((player): player is SharePlayer => Boolean(player));
+
+    const split = splitPlayersIntoTwoTeams(presentPlayers);
+    teamAPlayers = split.teamA;
+    teamBPlayers = split.teamB;
+  }
+
+  return {
+    title: "Aufstellung",
+    subtitle,
+    date: session.date ? formatDate(session.date) : "",
+    teamA: {
+      name: "Team A",
+      players: teamAPlayers,
+    },
+    teamB: {
+      name: "Team B",
+      players: teamBPlayers,
+    },
+    branding,
+  };
+}
+===== lib/share/utils.ts =====
+export function formatDate(dateInput: string | Date) {
+  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+export function trimName(name: string, max = 18) {
+  if (name.length <= max) {
+    return name;
+  }
+
+  return `${name.slice(0, max - 1)}…`;
+}
+
+export function buildPlayerDisplayName(player: {
+  name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  nickname?: string | null;
+}) {
+  if (player.name && player.name.trim().length > 0) {
+    return player.name.trim();
+  }
+
+  if (player.nickname && player.nickname.trim().length > 0) {
+    return player.nickname.trim();
+  }
+
+  const fullName = [player.first_name, player.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  if (fullName.length > 0) {
+    return fullName;
+  }
+
+  return "Spieler";
+}
+===== app/api/share/result/[id]/route.tsx =====
+
+===== app/api/share/result/[id]/image/route.tsx =====
+
+===== app/api/share/lineup/[id]/route.tsx =====
+
+===== app/api/share/lineup/[id]/image/route.tsx =====

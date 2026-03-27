@@ -11,6 +11,10 @@ import { handleDeleteWinnerPhoto } from "@/lib/session-detail/actions/delete-win
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -88,6 +92,89 @@ export async function POST(
         sessionId,
         clubId,
         winnerPhotoPath: session.winner_photo_path,
+      });
+    }
+
+    if (intent === "delete_session") {
+      if (!isAdminRole(membership.role)) {
+        return fail("Nur Admins dürfen eine Session löschen.", 403);
+      }
+
+      const { data: teamsData, error: teamsError } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("session_id", sessionId);
+
+      if (teamsError) {
+        return fail(`Teams konnten nicht geladen werden: ${teamsError.message}`, 500);
+      }
+
+      const teamIds = (teamsData ?? []).map((team) => Number(team.id)).filter(Boolean);
+
+      if (teamIds.length > 0) {
+        const { error: teamPlayersDeleteError } = await supabase
+          .from("team_players")
+          .delete()
+          .in("team_id", teamIds);
+
+        if (teamPlayersDeleteError) {
+          return fail(
+            `Team-Zuordnungen konnten nicht gelöscht werden: ${teamPlayersDeleteError.message}`,
+            500
+          );
+        }
+      }
+
+      const { error: resultsDeleteError } = await supabase
+        .from("results")
+        .delete()
+        .eq("session_id", sessionId);
+
+      if (resultsDeleteError) {
+        return fail(
+          `Ergebnis konnte nicht gelöscht werden: ${resultsDeleteError.message}`,
+          500
+        );
+      }
+
+      const { error: teamsDeleteError } = await supabase
+        .from("teams")
+        .delete()
+        .eq("session_id", sessionId);
+
+      if (teamsDeleteError) {
+        return fail(`Teams konnten nicht gelöscht werden: ${teamsDeleteError.message}`, 500);
+      }
+
+      const { error: sessionPlayersDeleteError } = await supabase
+        .from("session_players")
+        .delete()
+        .eq("session_id", sessionId);
+
+      if (sessionPlayersDeleteError) {
+        return fail(
+          `Anwesenheiten konnten nicht gelöscht werden: ${sessionPlayersDeleteError.message}`,
+          500
+        );
+      }
+
+      if (session.winner_photo_path) {
+        await supabase.storage.from("session-photos").remove([session.winner_photo_path]);
+      }
+
+      const { error: sessionDeleteError } = await supabase
+        .from("sessions")
+        .delete()
+        .eq("id", sessionId)
+        .eq("club_id", clubId);
+
+      if (sessionDeleteError) {
+        return fail(`Session konnte nicht gelöscht werden: ${sessionDeleteError.message}`, 500);
+      }
+
+      return ok({
+        message: "Session wurde gelöscht.",
+        deleted: true,
       });
     }
 

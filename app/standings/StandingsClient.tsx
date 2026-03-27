@@ -41,10 +41,11 @@ export default function StandingsClient({
   void initialClubId;
 
   const router = useRouter();
-  const sp = useSearchParams();
+  const searchParams = useSearchParams();
+  const seasonParam = searchParams.get("season") ?? "";
 
   const [seasons, setSeasons] = useState<Season[]>([]);
-  const [selected, setSelected] = useState<string>("");
+  const [selected, setSelected] = useState<string>(seasonParam || "");
   const [rows, setRows] = useState<RankRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -101,7 +102,6 @@ export default function StandingsClient({
         setErr(null);
         setMsg(null);
 
-        const seasonParam = sp.get("season");
         const url = seasonParam
           ? `/api/standings?season=${encodeURIComponent(seasonParam)}`
           : "/api/standings";
@@ -125,11 +125,6 @@ export default function StandingsClient({
         setSeasons(payload.seasons ?? []);
         setSelected(payload.selected ?? "all");
         setRows(payload.rows ?? []);
-
-        const currentParam = sp.get("season");
-        if ((payload.selected ?? "all") !== (currentParam ?? "")) {
-          router.replace(`/standings?season=${payload.selected ?? "all"}`);
-        }
       } catch (error: unknown) {
         if (cancelled) {
           return;
@@ -148,7 +143,7 @@ export default function StandingsClient({
     return () => {
       cancelled = true;
     };
-  }, [router, sp]);
+  }, [seasonParam]);
 
   async function shareText(text: string, title: string) {
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -202,23 +197,32 @@ export default function StandingsClient({
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-900">Tabellen</h1>
-            <p className="text-xs text-slate-500">
-              Saison auswählen, Tabelle prüfen und als Share Card exportieren.
-            </p>
-          </div>
+        <div className="flex items-center">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück zur Startseite
+          </Link>
+        </div>
 
-          {!loading && !err && rows.length > 0 && (
-            <ExportButtons
-              targetId="export-standings"
-              fileBaseName={`strikr-tabelle-${selectedLabel
-                .toLowerCase()
-                .replace(/\s+/g, "-")
-                .replace(/[^a-z0-9äöüß-]/gi, "")}`}
-            />
-          )}
+        <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-3xl">
+              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Tabellen
+              </div>
+
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
+                Tabellenübersicht
+              </h1>
+
+              <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
+                Saison auswählen, Tabelle prüfen und über die Share Cards unten
+                sauber teilen oder exportieren.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-3">

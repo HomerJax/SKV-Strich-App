@@ -11,6 +11,7 @@ type ClubRow = {
   id: string;
   display_name: string | null;
   logo_path: string | null;
+  primary_color: string | null;
 };
 
 type AdminClubContext =
@@ -32,6 +33,7 @@ const ALLOWED_TYPES = [
 ];
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
+const ALLOWED_COLORS = new Set(["black", "blue", "red", "green"]);
 
 function safeFileName(name: string) {
   return name
@@ -135,7 +137,7 @@ async function getAdminClubContext(): Promise<AdminClubContext> {
 
   const { data: clubData, error: clubError } = await supabase
     .from("clubs")
-    .select("id, display_name, logo_path")
+    .select("id, display_name, logo_path, primary_color")
     .eq("id", ctx.activeClubId)
     .maybeSingle();
 
@@ -211,6 +213,12 @@ export async function POST(request: NextRequest) {
     const displayName =
       typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
 
+    const rawPrimaryColor = formData.get("primary_color");
+    const primaryColor =
+      typeof rawPrimaryColor === "string" && ALLOWED_COLORS.has(rawPrimaryColor)
+        ? rawPrimaryColor
+        : "black";
+
     const logoEntry = formData.get("logo");
     let nextLogoPath = club.logo_path;
 
@@ -255,6 +263,7 @@ export async function POST(request: NextRequest) {
       .update({
         display_name: displayName || null,
         logo_path: nextLogoPath,
+        primary_color: primaryColor,
       })
       .eq("id", club.id);
 
@@ -314,6 +323,7 @@ export async function GET() {
         id: context.club.id,
         display_name: context.club.display_name,
         logo_path: context.club.logo_path,
+        primary_color: context.club.primary_color,
       },
     });
   } catch (error) {

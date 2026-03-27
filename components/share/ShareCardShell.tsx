@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ReactNode } from "react";
 import { ShareBranding } from "@/lib/share/types";
 import { SHARE_THEME } from "@/lib/share/brand";

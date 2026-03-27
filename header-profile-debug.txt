@@ -1,0 +1,229 @@
+]633;E;echo "===== components/AppHeader.tsx =====";7b8695e0-9a03-42cd-86de-1f5abdeb25ab]633;C===== components/AppHeader.tsx =====
+import Image from "next/image";
+import Link from "next/link";
+import { getAuthContext } from "@/lib/auth/context";
+import { createClient } from "@/lib/supabase/server";
+
+type ClubRow = {
+  id: string;
+  display_name: string | null;
+  name: string | null;
+  logo_path: string | null;
+};
+
+export default async function AppHeader() {
+  const ctx = await getAuthContext();
+
+  const fallbackClubId =
+    ctx.activeClubId ??
+    (ctx.memberships.length === 1 ? ctx.memberships[0].club_id : null);
+
+  let clubName: string | null = null;
+  let logoSrc: string | null = null;
+
+  if (ctx.user && fallbackClubId) {
+    const supabase = await createClient();
+
+    const { data: club } = await supabase
+      .from("clubs")
+      .select("id, display_name, name, logo_path")
+      .eq("id", fallbackClubId)
+      .maybeSingle<ClubRow>();
+
+    clubName = club?.display_name ?? club?.name ?? null;
+
+    if (club?.logo_path) {
+      const { data } = supabase.storage
+        .from("club-logos")
+        .getPublicUrl(club.logo_path);
+
+      logoSrc = data?.publicUrl ?? null;
+    }
+  }
+
+  const nickname = ctx.player?.nickname?.trim() || null;
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6">
+        
+        {/* LEFT: LOGO */}
+        <Link href="/" className="flex items-center gap-3">
+          <Image
+            src="/icon-dark.png"
+            alt="strikr"
+            width={44}
+            height={44}
+            className="rounded-xl"
+            priority
+          />
+
+          <div className="text-xl font-black tracking-tight text-slate-950">
+            strikr
+          </div>
+        </Link>
+
+<span className="ml-2 text-[10px] text-slate-400">
+  v0.2
+</span>
+
+        {/* RIGHT: USER + CLUB */}
+        {ctx.user && (
+          <div className="flex items-center gap-3">
+            
+            {/* USER INFO */}
+            <div className="hidden text-right sm:block">
+              <div className="text-sm font-semibold text-slate-900">
+                {nickname ?? "Spieler"}
+              </div>
+            </div>
+
+            {/* CLUB LOGO (EDLE VARIANTE) */}
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-md overflow-hidden">
+              {logoSrc ? (
+                <img
+                  src={logoSrc}
+                  alt={clubName ?? "Club Logo"}
+                  className="h-full w-full object-contain p-1.5"
+                />
+              ) : (
+                <Image
+                  src="/icon-dark.png"
+                  alt="strikr"
+                  width={28}
+                  height={28}
+                  className="opacity-70"
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}
+===== app/layout.tsx =====
+import "./globals.css";
+import type { Metadata } from "next";
+import AppHeader from "@/components/AppHeader";
+import AppBottomNav from "@/components/AppBottomNav";
+import { getAuthContext } from "@/lib/auth/context";
+
+export const metadata: Metadata = {
+  title: "strikr",
+  description: "Trainings, Teams und Ergebnisse an einem Ort.",
+};
+
+export default async function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const ctx = await getAuthContext();
+
+  const isAdmin = ctx.memberships.some((membership) => membership.role === "admin");
+
+  return (
+    <html lang="de">
+      <body className="min-h-screen bg-neutral-100 text-slate-950 antialiased">
+        <AppHeader />
+        <div className="min-h-[100dvh] pb-20">{children}</div>
+        <AppBottomNav isAdmin={isAdmin} />
+      </body>
+    </html>
+  );
+}
+===== lib/auth/context.ts =====
+import { cookies } from "next/headers";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
+
+export type AuthPlayer = {
+  id: number;
+  user_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+};
+
+export type AuthMembership = {
+  id: number;
+  club_id: string;
+  user_id: string;
+  role: string | null;
+};
+
+export type AuthContext = {
+  user: User | null;
+  player: AuthPlayer | null;
+  memberships: AuthMembership[];
+  activeClubId: string | null;
+};
+
+export async function getAuthContext(): Promise<AuthContext> {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      user: null,
+      player: null,
+      memberships: [],
+      activeClubId: null,
+    };
+  }
+
+  const { data: player, error: playerError } = await supabase
+    .from("players")
+    .select("id, user_id, first_name, last_name, nickname")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (playerError) {
+    throw new Error(`Failed to load player: ${playerError.message}`);
+  }
+
+  const { data: memberships, error: membershipsError } = await supabase
+    .from("club_memberships")
+    .select("id, club_id, user_id, role")
+    .eq("user_id", user.id);
+
+  if (membershipsError) {
+    throw new Error(`Failed to load memberships: ${membershipsError.message}`);
+  }
+
+  const normalizedMemberships = (memberships ?? []) as AuthMembership[];
+  const cookieClubId = cookieStore.get("active_club_id")?.value ?? null;
+
+  const hasCookieMembership = cookieClubId
+    ? normalizedMemberships.some((membership) => membership.club_id === cookieClubId)
+    : false;
+
+  const activeClubId = hasCookieMembership
+    ? cookieClubId
+    : normalizedMemberships.length === 1
+      ? normalizedMemberships[0].club_id
+      : null;
+
+  return {
+    user,
+    player: (player as AuthPlayer | null) ?? null,
+    memberships: normalizedMemberships,
+    activeClubId,
+  };
+}
+===== lib/auth/routes.ts =====
+export const AUTH_ROUTES = {
+  login: "/login",
+  signup: "/signup",
+  onboarding: "/onboarding",
+  selectClub: "/select-club",
+  waitingForInvite: "/waiting-for-invite",
+  dashboard: "/",
+  admin: "/admin",
+} as const;
