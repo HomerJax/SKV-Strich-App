@@ -19,7 +19,7 @@ const RELEASES: ReleaseItem[] = [
       "Version wird im Header angezeigt",
       "Ergebnis-Share als echtes Bild",
       "Siegerfoto in Sessions integriert",
-      "Startseite, Hero und Navigation stärker auf Clubfarbe ausgerichtet",
+      "Startseite und Navigation an Clubfarben angepasst",
       "Adminbereich optisch aufgeräumt",
     ],
   },
@@ -55,27 +55,113 @@ export default function AboutPage() {
           </Link>
         </div>
 
+        {/* STORY */}
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
           <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Über Strikr
+            Die Idee
           </div>
 
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-            Strikr
+            Wie alles angefangen hat
           </h1>
 
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
-            Strikr ist als praxisnahes Tool für Trainingsorganisation entstanden:
-            Anwesenheiten festhalten, faire Teams bilden, Ergebnisse speichern,
-            Siegerfotos ergänzen und Entwicklungen im Team sichtbar machen.
-          </p>
+          <div className="mt-4 space-y-4 text-sm leading-7 text-slate-600 sm:text-base">
+            <p>
+              Angefangen hat alles ganz simpel: In der SAH wollten wir unser
+              Training ein bisschen spannender machen. Also haben wir angefangen,
+              für Siege kleine „Striche“ zu zählen – ganz klassisch auf Papier.
+            </p>
 
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
-            Der Fokus liegt auf einer schnellen, klaren Nutzung direkt im
-            Vereinsalltag — ohne unnötige Komplexität.
-          </p>
+            <p>
+              Papier wurde schnell unübersichtlich. Also kam Excel. Tabellen,
+              Auswertungen, erste Ranglisten… aber auch ziemlich mühsam.
+            </p>
+
+            <p>
+              Irgendwann war klar: Das muss einfacher gehen. Und so entstand das
+              erste kleine Webtool.
+            </p>
+
+            <p>
+              Gleichzeitig kennen wahrscheinlich viele das gleiche Problem:
+              Teams werden „irgendwie“ gewählt. Durchzählen, Bauchgefühl… und am
+              Ende ist es oft einfach nicht fair.
+            </p>
+
+            <p>
+              Genau das wollten wir besser machen.
+            </p>
+
+            <p>
+              Also haben wir angefangen, einen Team-Generator zu bauen. Mit
+              Faktoren wie Alter, Position, Stärke, Fitness – alles Dinge, die im
+              Training eine Rolle spielen.
+            </p>
+
+            <p>
+              Die große Frage dabei:
+              <span className="font-semibold text-slate-950">
+                {" "}
+                Was ist eigentlich ein faires Team?
+              </span>
+            </p>
+
+            <p>
+              Die Antwort ist nicht perfekt – aber deutlich besser als vorher.
+              Und genau darum geht’s.
+            </p>
+
+            <p>
+              Aus einer Idee auf einer Weihnachtsfeier ist so Schritt für Schritt
+              ein kompletter Trainings-Workflow entstanden.
+            </p>
+
+            <p className="font-medium text-slate-800">
+              Und ja – wir sind eine AH-Truppe. Aber wir wollen trotzdem kicken.
+              Und zwar richtig. 😉
+            </p>
+
+            <p className="font-semibold text-slate-900">
+              Fußball ist unser Leben.
+            </p>
+          </div>
         </div>
 
+        {/* MEHRWERT */}
+        <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
+          <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Warum Strikr?
+          </div>
+
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
+            Was bringt das im Training?
+          </h2>
+
+          <div className="mt-4 space-y-4 text-sm leading-7 text-slate-600 sm:text-base">
+            <p>
+              Das Feedback aus unserer Mannschaft ist ziemlich klar:
+            </p>
+
+            <ul className="list-disc pl-5 space-y-2">
+              <li>Teams sind deutlich ausgeglichener</li>
+              <li>Spiele sind enger und intensiver</li>
+              <li>Jeder Spieler ist mehr gefordert</li>
+              <li>Das Training macht einfach mehr Spaß</li>
+            </ul>
+
+            <p>
+              Dazu kommen Statistiken, Tabellen, Saisonauswertungen und eine
+              „ewige Tabelle“ – einfach weil es Spaß macht, sich zu messen.
+            </p>
+
+            <p>
+              Klar: Die App löst nicht jedes Problem. Aber sie bringt Struktur,
+              Fairness und ein bisschen extra Motivation ins Training.
+            </p>
+          </div>
+        </div>
+
+        {/* STATUS */}
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
           <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
             Status
@@ -86,13 +172,18 @@ export default function AboutPage() {
           </h2>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-            Die App befindet sich aktuell in der Pilotphase. Ziel ist ein
-            stabiles, nützliches System für Vereine, das Schritt für Schritt
-            erweitert wird — erst sauber im Alltag, dann persönlicher und
-            datenstärker für Spieler und Teams.
+            Strikr läuft aktuell in einer Pilotphase. Die App ist stabil und wird
+            aktiv im Training genutzt. Weitere Features sind geplant – Schritt
+            für Schritt, immer nah am echten Bedarf auf dem Platz.
+          </p>
+
+          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+            Perspektivisch ist auch eine Veröffentlichung als mobile App
+            denkbar.
           </p>
         </div>
 
+        {/* RELEASES */}
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
           <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
             Versionen
@@ -138,6 +229,7 @@ export default function AboutPage() {
           </div>
         </div>
 
+        {/* FEEDBACK */}
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
           <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
             Feedback
@@ -148,8 +240,8 @@ export default function AboutPage() {
           </h2>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-            Feedback, Ideen und Probleme helfen direkt dabei, Strikr sinnvoll
-            weiterzuentwickeln.
+            Feedback, Ideen oder Probleme helfen direkt dabei, Strikr besser zu
+            machen.
           </p>
 
           <div className="mt-5">

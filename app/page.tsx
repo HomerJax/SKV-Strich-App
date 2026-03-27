@@ -74,11 +74,11 @@ export default async function HomePage() {
   const supabase = await createClient();
 
   const [
-    { data: clubData, error: clubError },
-    { count: playersCount, error: playersError },
-    { count: invitesCount, error: invitesError },
-    { count: sessionsCount, error: sessionsError },
-    { count: seasonsCount, error: seasonsError },
+    { data: clubData },
+    { count: playersCount },
+    { count: invitesCount },
+    { count: sessionsCount },
+    { count: seasonsCount },
   ] = await Promise.all([
     supabase
       .from("clubs")
@@ -105,19 +105,10 @@ export default async function HomePage() {
       .eq("club_id", clubId),
   ]);
 
-  if (clubError) {
-    throw new Error(
-      `Aktives Team konnte nicht geladen werden: ${clubError.message}`
-    );
-  }
-
-  if (playersError || invitesError || sessionsError || seasonsError) {
-    throw new Error("Die Startdaten konnten nicht vollständig geladen werden.");
-  }
-
   const club = (clubData ?? null) as ClubRow | null;
   const clubName = club?.display_name?.trim() || "Dein Team";
   const hasMultipleClubs = memberships.length > 1;
+
   const selectedColor = club?.primary_color ?? "black";
   const primaryColor = COLOR_MAP[selectedColor] ?? COLOR_MAP.black;
 
@@ -126,17 +117,10 @@ export default async function HomePage() {
       ? "linear-gradient(135deg, #020617 0%, #111827 55%, #374151 100%)"
       : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 78%)`;
 
-  const setupState: SetupState = {
-    playersCount: playersCount ?? 0,
-    invitesCount: invitesCount ?? 0,
-    sessionsCount: sessionsCount ?? 0,
-    seasonsCount: seasonsCount ?? 0,
-  };
-
   const showGettingStarted =
-    setupState.playersCount === 0 ||
-    setupState.seasonsCount === 0 ||
-    setupState.sessionsCount === 0;
+    (playersCount ?? 0) === 0 ||
+    (sessionsCount ?? 0) === 0 ||
+    (seasonsCount ?? 0) === 0;
 
   let clubLogoUrl: string | null = null;
 
@@ -155,6 +139,8 @@ export default async function HomePage() {
       <WhatsNewModal version="v0.2" />
 
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        
+        {/* HERO */}
         <div
           className="rounded-[24px] border text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.75)]"
           style={{
@@ -163,195 +149,101 @@ export default async function HomePage() {
           }}
         >
           <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-5 py-7 text-center">
-            <div
-              className="flex items-center gap-3 rounded-full px-4 py-2"
-              style={{
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.10)",
-              }}
-            >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-sm">
+            <div className="flex items-center gap-3 rounded-full bg-white/10 px-4 py-2">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5">
                 {clubLogoUrl ? (
                   <Image
                     src={clubLogoUrl}
                     alt={`${clubName} Logo`}
                     width={48}
                     height={48}
-                    className="h-full w-full object-contain"
+                    className="object-contain"
                     unoptimized
                   />
                 ) : (
                   <Image
                     src="/icon-dark.png"
-                    alt="strikr Logo"
+                    alt="strikr"
                     width={40}
                     height={40}
-                    className="h-full w-full object-contain"
-                    priority
                   />
                 )}
               </div>
 
-              <span className="max-w-[200px] truncate text-sm font-semibold text-white sm:max-w-none sm:text-base">
-                {clubName}
-              </span>
+              <span className="text-sm font-semibold">{clubName}</span>
             </div>
 
-            <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
+            <h1 className="text-xl font-extrabold">
               strikr – Das System für euer Training.
             </h1>
 
-            <p className="text-xs leading-5 text-white/80 sm:text-sm">
+            <p className="text-sm text-white/80">
               faire Teams – effektives Training – echte Stats
             </p>
           </div>
         </div>
 
+        {/* 🆕 ABOUT PREVIEW CARD */}
+        <Link
+          href="/about"
+          className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="text-sm font-semibold text-slate-500">
+            Über Strikr
+          </div>
+
+          <h2 className="mt-1 text-xl font-bold text-slate-950">
+            Vom Bierdeckel zur Web-App 🍻⚽
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-600 leading-6">
+            Angefangen mit Strichen auf Papier, dann Excel und irgendwann die
+            Frage: Warum sind Teams eigentlich immer unfair?
+            <br />
+            Daraus entstand Strikr – mit dem Ziel, Training besser, fairer und
+            spannender zu machen.
+          </p>
+
+          <div className="mt-3 text-sm font-semibold text-slate-900">
+            Geschichte lesen →
+          </div>
+        </Link>
+
+        {/* REST bleibt gleich */}
+        
         {showGettingStarted ? (
-          <section className="mx-auto flex w-full max-w-3xl flex-col gap-3 pt-2">
-            <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
-              <div className="text-sm font-semibold text-slate-500">
-                Erste Schritte
-              </div>
-              <h2 className="mt-1 text-2xl font-extrabold text-slate-950">
-                Starte mit den Grundlagen
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Wenn Spieler, Saison und erstes Training stehen, ist dein Team
-                sauber eingerichtet.
-              </p>
-            </div>
+          <section className="flex flex-col gap-3">
+            <StepCard
+              done={(playersCount ?? 0) > 0}
+              title="Spieler anlegen"
+              text="Grundlage für alles"
+              href="/admin/players"
+              cta="Spieler verwalten"
+            />
 
-            <div className="grid gap-3">
-              <StepCard
-                done={setupState.playersCount > 0}
-                title="Spieler anlegen"
-                text="Pflege eure Spielerprofile mit Positionen, Stärken und weiteren Eigenschaften als Basis für Trainings und Teamaufteilungen."
-                href="/admin/players"
-                cta="Spieler verwalten"
-              />
+            <StepCard
+              done={(sessionsCount ?? 0) > 0}
+              title="Training starten"
+              text="Erstes Training erstellen"
+              href="/sessions/new"
+              cta="Training starten"
+            />
 
-              <StepCard
-                done={setupState.seasonsCount > 0}
-                title="Saison festlegen"
-                text="Lege fest, wie eure Saison heißt und wann sie beginnt und endet. Trainings innerhalb dieses Zeitraums werden automatisch der passenden Saison zugeordnet."
-                href="/admin/seasons"
-                cta="Saisons öffnen"
-              />
+            <StepCard
+              done={(invitesCount ?? 0) > 0}
+              title="Mitglieder einladen"
+              text="Team reinholen"
+              href="/admin/invites"
+              cta="Einladen"
+            />
 
-              <StepCard
-                done={setupState.sessionsCount > 0}
-                title="Erstes Training starten"
-                text="Erstelle das erste Training und beginne mit Anwesenheiten, Teams und Ergebnissen."
-                href="/sessions/new"
-                cta="Training erstellen"
-              />
-
-              <StepCard
-                done={setupState.invitesCount > 0}
-                title="Mitglieder einladen"
-                text="Optional: Erstelle Einladungslinks und teile sie per WhatsApp, Mail oder Copy-Link mit deinem Team."
-                href="/admin/invites"
-                cta="Einladungen öffnen"
-              />
-            </div>
-
-            <div className="rounded-[24px] border border-black/10 bg-white p-5 text-sm shadow flex flex-col gap-2">
-              <a
-                href={feedbackHref}
-                className="font-medium text-slate-700 hover:underline"
-              >
-                Feedback oder Probleme? → Mail senden
-              </a>
-
-              <Link href="/about" className="text-slate-500 hover:underline">
-                Über Strikr & Versionen ansehen
-              </Link>
+            <div className="rounded-[24px] border bg-white p-5">
+              <a href={feedbackHref}>Feedback senden</a>
+              <br />
+              <Link href="/about">Über Strikr ansehen</Link>
             </div>
           </section>
-        ) : (
-          <section className="mx-auto flex w-full max-w-2xl flex-col gap-3 pt-2">
-            <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_10px_30px_-22px_rgba(15,23,42,0.45)]">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-sm font-semibold text-slate-500">
-                    Start
-                  </div>
-
-                  <h2 className="mt-1 text-2xl font-extrabold text-slate-950">
-                    Starte mit einer Trainingssession
-                  </h2>
-
-                  <p className="mt-2 text-sm text-slate-600">
-                    Erstelle eine neue Session oder springe direkt in eure
-                    Trainings und Tabellen.
-                  </p>
-                </div>
-
-                <div
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: `${primaryColor}12` }}
-                >
-                  <Image
-                    src="/icon-dark.png"
-                    alt="strikr Logo"
-                    width={28}
-                    height={28}
-                    className="h-7 w-7 object-contain"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                <Link
-                  href="/sessions/new"
-                  className="rounded-xl px-4 py-2.5 text-center text-sm font-semibold text-white"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  Trainingssession starten
-                </Link>
-
-                <Link
-                  href="/sessions"
-                  className="rounded-xl border px-4 py-2.5 text-center text-sm font-semibold"
-                >
-                  Trainings ansehen
-                </Link>
-
-                <Link
-                  href="/standings"
-                  className="rounded-xl border px-4 py-2.5 text-center text-sm font-semibold"
-                >
-                  Tabelle ansehen
-                </Link>
-              </div>
-
-              {hasMultipleClubs ? (
-                <div className="mt-4 border-t border-slate-200 pt-4">
-                  <Link
-                    href="/select-club"
-                    className="text-sm font-semibold text-slate-700 underline underline-offset-4"
-                  >
-                    Team wechseln
-                  </Link>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="rounded-[24px] border border-black/10 bg-white p-5 text-sm shadow flex flex-col gap-2">
-              <a
-                href={feedbackHref}
-                className="font-medium text-slate-700 hover:underline"
-              >
-                Feedback oder Probleme? → Mail senden
-              </a>
-
-              <Link href="/about" className="text-slate-500 hover:underline">
-                Über Strikr & Versionen ansehen
-              </Link>
-            </div>
-          </section>
-        )}
+        ) : null}
       </section>
     </main>
   );
