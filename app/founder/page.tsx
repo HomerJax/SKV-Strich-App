@@ -32,15 +32,19 @@ type SessionRow = {
 };
 
 type KpiCardProps = {
+  href: string;
   label: string;
   value: string;
   description: string;
   icon: React.ReactNode;
 };
 
-function KpiCard({ label, value, description, icon }: KpiCardProps) {
+function KpiCard({ href, label, value, description, icon }: KpiCardProps) {
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+    <Link
+      href={href}
+      className="group rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -56,7 +60,12 @@ function KpiCard({ label, value, description, icon }: KpiCardProps) {
           {icon}
         </div>
       </div>
-    </div>
+
+      <div className="mt-5 flex items-center text-sm font-medium text-slate-900">
+        Details ansehen
+        <span className="ml-2 transition group-hover:translate-x-1">→</span>
+      </div>
+    </Link>
   );
 }
 
@@ -95,8 +104,6 @@ export default async function FounderPage() {
   ] = await Promise.all([
     supabase.from("clubs").select("id", { count: "exact", head: true }),
 
-    // Wenn "profiles" bei dir nicht existiert oder nicht lesbar ist,
-    // bleibt der KPI einfach auf 0 statt die Seite abstürzen zu lassen.
     supabase.from("profiles").select("id", { count: "exact", head: true }),
 
     supabase
@@ -141,7 +148,10 @@ export default async function FounderPage() {
     : ((clubsResult.data ?? []) as ClubRow[]);
 
   const clubNameById = new Map(
-    clubs.map((club) => [club.id, club.display_name?.trim() || "Unbenannter Club"])
+    clubs.map((club) => [
+      club.id,
+      club.display_name?.trim() || "Unbenannter Club",
+    ])
   );
 
   const latestInviteUsages = latestInviteUsagesResult.error
@@ -202,6 +212,7 @@ export default async function FounderPage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <KpiCard
+            href="/founder/clubs"
             label="Clubs"
             value={String(clubsCount)}
             description="So viele Clubs existieren aktuell insgesamt."
@@ -209,6 +220,7 @@ export default async function FounderPage() {
           />
 
           <KpiCard
+            href="/founder/users"
             label="User gesamt"
             value={String(usersCount)}
             description={userCountHint}
@@ -216,6 +228,7 @@ export default async function FounderPage() {
           />
 
           <KpiCard
+            href="/founder/invites?status=used"
             label="Einladungen genutzt"
             value={String(usedInvitesCount)}
             description="Daran erkennst du direkt, ob Registrierungen stattfinden."
@@ -223,6 +236,7 @@ export default async function FounderPage() {
           />
 
           <KpiCard
+            href="/founder/invites?status=open"
             label="Einladungen offen"
             value={String(openInvitesCount)}
             description="Aktive Invite-Links, die noch nicht verwendet wurden."
@@ -230,6 +244,7 @@ export default async function FounderPage() {
           />
 
           <KpiCard
+            href="/founder/sessions"
             label="Trainings gesamt"
             value={String(sessionsCount)}
             description="Alle bisher angelegten Sessions im System."
@@ -237,6 +252,7 @@ export default async function FounderPage() {
           />
 
           <KpiCard
+            href="/founder/sessions?range=7d"
             label="Trainings letzte 7 Tage"
             value={String(sessionsLast7DaysCount)}
             description="Damit siehst du schnell, ob gerade echter Betrieb drin ist."
@@ -271,7 +287,8 @@ export default async function FounderPage() {
                   {latestInviteUsages.map((invite) => {
                     const clubName =
                       clubNameById.get(invite.club_id) ?? "Unbekannter Club";
-                    const roleLabel = invite.role === "admin" ? "Admin" : "Mitglied";
+                    const roleLabel =
+                      invite.role === "admin" ? "Admin" : "Mitglied";
 
                     return (
                       <div
@@ -348,10 +365,23 @@ export default async function FounderPage() {
         </div>
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-            Übersicht
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Übersicht
+              </div>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                Clubs
+              </h2>
+            </div>
+
+            <Link
+              href="/founder/clubs"
+              className="text-sm font-medium text-slate-900 hover:underline"
+            >
+              Alle Clubs →
+            </Link>
           </div>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950">Clubs</h2>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {clubs.length === 0 ? (
@@ -360,9 +390,10 @@ export default async function FounderPage() {
               </div>
             ) : (
               clubs.map((club) => (
-                <div
+                <Link
                   key={club.id}
-                  className="rounded-2xl border border-slate-200 px-4 py-3"
+                  href="/founder/clubs"
+                  className="rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50"
                 >
                   <div className="text-sm font-semibold text-slate-950">
                     {club.display_name?.trim() || "Unbenannter Club"}
@@ -370,7 +401,7 @@ export default async function FounderPage() {
                   <div className="mt-1 text-xs text-slate-500">
                     ID: {club.id}
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>
