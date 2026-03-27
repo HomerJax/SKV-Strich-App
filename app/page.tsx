@@ -118,8 +118,13 @@ export default async function HomePage() {
   const club = (clubData ?? null) as ClubRow | null;
   const clubName = club?.display_name?.trim() || "Dein Team";
   const hasMultipleClubs = memberships.length > 1;
-  const primaryColor =
-    COLOR_MAP[club?.primary_color ?? "black"] ?? COLOR_MAP.black;
+  const selectedColor = club?.primary_color ?? "black";
+  const primaryColor = COLOR_MAP[selectedColor] ?? COLOR_MAP.black;
+
+  const heroGradient =
+    selectedColor === "black"
+      ? "linear-gradient(135deg, #020617 0%, #111827 55%, #374151 100%)"
+      : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 78%)`;
 
   const setupState: SetupState = {
     playersCount: playersCount ?? 0,
@@ -154,7 +159,7 @@ export default async function HomePage() {
           className="rounded-[24px] border text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.75)]"
           style={{
             borderColor: `${primaryColor}22`,
-            background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 75%)`,
+            background: heroGradient,
           }}
         >
           <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 px-5 py-7 text-center">

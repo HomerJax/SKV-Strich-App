@@ -6,14 +6,29 @@ type Props = {
   version: string;
 };
 
-function subscribe() {
-  return () => {};
+const CHANGE_EVENT = "strikr-whats-new-change";
+
+function subscribe(callback: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handler = () => callback();
+
+  window.addEventListener("storage", handler);
+  window.addEventListener(CHANGE_EVENT, handler);
+
+  return () => {
+    window.removeEventListener("storage", handler);
+    window.removeEventListener(CHANGE_EVENT, handler);
+  };
 }
 
 export default function WhatsNewModal({ version }: Props) {
   const open = useSyncExternalStore(
     subscribe,
     () => {
+      if (typeof window === "undefined") return false;
       const storageKey = `strikr-whats-new-${version}`;
       return window.localStorage.getItem(storageKey) !== "seen";
     },
@@ -21,16 +36,18 @@ export default function WhatsNewModal({ version }: Props) {
   );
 
   function handleClose() {
+    if (typeof window === "undefined") return;
+
     const storageKey = `strikr-whats-new-${version}`;
     window.localStorage.setItem(storageKey, "seen");
-    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event(CHANGE_EVENT));
   }
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4">
-      <div className="w-full max-w-lg rounded-[28px] border border-black/10 bg-white p-6 shadow-2xl">
+    <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4">
+      <div className="pointer-events-auto w-full max-w-lg rounded-[28px] border border-black/10 bg-white p-6 shadow-2xl">
         <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
           Neu in {version}
         </div>
@@ -67,6 +84,7 @@ export default function WhatsNewModal({ version }: Props) {
 
         <div className="mt-6 flex justify-end">
           <button
+            type="button"
             onClick={handleClose}
             className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
