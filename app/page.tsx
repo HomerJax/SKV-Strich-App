@@ -256,12 +256,18 @@ export default async function HomePage() {
               />
             </div>
 
-            <a
-              href={feedbackHref}
-              className="rounded-[24px] border border-black/10 bg-white p-5 text-sm shadow"
-            >
-              Feedback oder Probleme? → Mail senden
-            </a>
+            <div className="rounded-[24px] border border-black/10 bg-white p-5 text-sm shadow flex flex-col gap-2">
+              <a
+                href={feedbackHref}
+                className="font-medium text-slate-700 hover:underline"
+              >
+                Feedback oder Probleme? → Mail senden
+              </a>
+
+              <Link href="/about" className="text-slate-500 hover:underline">
+                Über Strikr & Versionen ansehen
+              </Link>
+            </div>
           </section>
         ) : (
           <section className="mx-auto flex w-full max-w-2xl flex-col gap-3 pt-2">
@@ -332,12 +338,18 @@ export default async function HomePage() {
               ) : null}
             </div>
 
-            <a
-              href={feedbackHref}
-              className="rounded-[24px] border border-black/10 bg-white p-5 text-sm shadow"
-            >
-              Feedback oder Probleme? → Mail senden
-            </a>
+            <div className="rounded-[24px] border border-black/10 bg-white p-5 text-sm shadow flex flex-col gap-2">
+              <a
+                href={feedbackHref}
+                className="font-medium text-slate-700 hover:underline"
+              >
+                Feedback oder Probleme? → Mail senden
+              </a>
+
+              <Link href="/about" className="text-slate-500 hover:underline">
+                Über Strikr & Versionen ansehen
+              </Link>
+            </div>
           </section>
         )}
       </section>
