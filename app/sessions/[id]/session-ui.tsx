@@ -34,16 +34,64 @@ export function ageBadgeColor(age: Player["age_group"]) {
   return "bg-slate-100 text-slate-700";
 }
 
-export const ageScore = (a: Player["age_group"]) =>
-  a === "Ü32" ? 1 : a === "AH" ? -1 : 0;
-
-export const posScore = (p: Player["preferred_position"]) =>
-  p === "attack" ? 1 : p === "defense" ? -1 : 0;
-
+/**
+ * Individuelle Stärke bleibt 1–5.
+ * Wenn nichts gepflegt ist, wird konservativ 3 angenommen.
+ */
 export const strengthScore = (s: number | null) => {
   if (typeof s !== "number" || Number.isNaN(s)) return 3;
   return Math.max(1, Math.min(5, s));
 };
+
+/**
+ * Harte Kategorietrennung:
+ * AH 1–5   => 1–5
+ * Ü32 1–5  => 6–10
+ *
+ * Damit gilt:
+ * - AH 5 = 5
+ * - Ü32 1 = 6
+ */
+export const categoryBaseScore = (age: Player["age_group"]) => {
+  if (age === "Ü32") return 5;
+  if (age === "AH") return 0;
+  return 0;
+};
+
+export function playerGeneratorScore(player: Player) {
+  return categoryBaseScore(player.age_group) + strengthScore(player.strength);
+}
+
+export function sumTeamScore(team: Player[]) {
+  return team.reduce((sum, player) => sum + playerGeneratorScore(player), 0);
+}
+
+export function teamPositionCounts(team: Player[]) {
+  return {
+    gk: team.filter((p) => p.preferred_position === "goalkeeper").length,
+    def: team.filter((p) => p.preferred_position === "defense").length,
+    att: team.filter((p) => p.preferred_position === "attack").length,
+  };
+}
+
+/**
+ * Positionen sind KEIN Qualitätsbonus / -malus.
+ * Es wird nur bewertet, wie ähnlich die Positionsverteilung
+ * zwischen Team A und Team B ist.
+ *
+ * Torhüter zählen etwas stärker, weil dort ein Ungleichgewicht
+ * besonders auffällt.
+ */
+export function positionBalancePenalty(teamA: Player[], teamB: Player[]) {
+  const a = teamPositionCounts(teamA);
+  const b = teamPositionCounts(teamB);
+
+  return (
+    Math.abs(a.gk - b.gk) * 2 +
+    Math.abs(a.def - b.def) +
+    Math.abs(a.att - b.att)
+  );
+}
 
 export function shuffle<T>(arr: T[]) {
   const c = [...arr];
@@ -54,18 +102,6 @@ export function shuffle<T>(arr: T[]) {
   }
 
   return c;
-}
-
-export function sumStrength(team: Player[]) {
-  return team.reduce((s, p) => s + strengthScore(p.strength), 0);
-}
-
-export function sumAge(team: Player[]) {
-  return team.reduce((s, p) => s + ageScore(p.age_group), 0);
-}
-
-export function sumPos(team: Player[]) {
-  return team.reduce((s, p) => s + posScore(p.preferred_position), 0);
 }
 
 export function positionRank(pos: Player["preferred_position"]) {

@@ -49,37 +49,31 @@ export default function WhatsNewModal({ version }: Props) {
     <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4">
       <div className="pointer-events-auto w-full max-w-lg rounded-[28px] border border-black/10 bg-white p-6 shadow-2xl">
         <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-          Neu in {version}
+          Neues Release Update
         </div>
 
         <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
-          Was ist neu in Strikr?
+          Version 0.3
         </h2>
 
-        <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-          <div>
-            <span className="font-semibold text-slate-950">Profilbereich:</span>{" "}
-            Oben auf deinen Namen klicken, um direkt ins Profil zu kommen.
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="text-base font-semibold text-slate-950">
+            Team-Generator überarbeitet
           </div>
 
-          <div>
-            <span className="font-semibold text-slate-950">
-              Passwort ändern:
-            </span>{" "}
-            Direkt im Profil möglich.
-          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-700">
+            Der Generator wurde optimiert und bewertet Teamverteilungen jetzt
+            noch gezielter auf Basis von Kategorie, Stärke und Position.
+          </p>
 
-          <div>
-            <span className="font-semibold text-slate-950">
-              Club-Branding:
-            </span>{" "}
-            Im Adminbereich können Logo und Hauptfarbe gepflegt werden.
-          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-700">
+            Ziel ist eine insgesamt fairere und stimmigere Aufteilung für das
+            Training.
+          </p>
 
-          <div>
-            <span className="font-semibold text-slate-950">Version:</span> Die
-            aktuelle App-Version wird jetzt im Header angezeigt.
-          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Einfach wie gewohnt nutzen – Feedback ist jederzeit willkommen.
+          </p>
         </div>
 
         <div className="mt-6 flex justify-end">

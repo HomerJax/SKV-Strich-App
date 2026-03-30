@@ -1,0 +1,4674 @@
+
+
+===== app/admin/categories/page.tsx =====
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {}
+        },
+      },
+    }
+  );
+}
+
+async function requireAdmin() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: membership } = await supabase
+    .from("club_memberships")
+    .select("club_id, role")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!membership || membership.role !== "admin") {
+    redirect("/");
+  }
+
+  return { supabase, clubId: membership.club_id };
+}
+
+function slugifyKey(input: string) {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+
+async function addCategoryAction(formData: FormData) {
+  "use server";
+
+  const { supabase, clubId } = await requireAdmin();
+
+  const label = String(formData.get("label") ?? "").trim();
+  const keyInput = String(formData.get("key") ?? "").trim();
+
+  if (!label) {
+    redirect("/admin/categories?error=Bitte Bezeichnung eingeben");
+  }
+
+  const key = slugifyKey(keyInput || label);
+
+  if (!key) {
+    redirect("/admin/categories?error=Ungültiger Schlüssel");
+  }
+
+  const { data: maxRow } = await supabase
+    .from("club_categories")
+    .select("sort_order")
+    .eq("club_id", clubId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextSortOrder = (maxRow?.sort_order ?? 0) + 1;
+
+  const { error } = await supabase.from("club_categories").insert({
+    club_id: clubId,
+    key,
+    label,
+    sort_order: nextSortOrder,
+    is_active: true,
+  });
+
+  if (error) {
+    redirect(`/admin/categories?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/admin/categories");
+  revalidatePath("/onboarding");
+  redirect("/admin/categories?saved=1");
+}
+
+async function updateCategoryAction(formData: FormData) {
+  "use server";
+
+  const { supabase, clubId } = await requireAdmin();
+
+  const id = Number(String(formData.get("id") ?? ""));
+  const label = String(formData.get("label") ?? "").trim();
+  const keyInput = String(formData.get("key") ?? "").trim();
+  const sortOrder = Number(String(formData.get("sort_order") ?? "0"));
+  const isActive = formData.get("is_active") === "on";
+
+  if (!id || !label) {
+    redirect("/admin/categories?error=Ungültige Kategorie");
+  }
+
+  const key = slugifyKey(keyInput || label);
+
+  if (!key) {
+    redirect("/admin/categories?error=Ungültiger Schlüssel");
+  }
+
+  const safeSortOrder = Number.isFinite(sortOrder) ? sortOrder : 0;
+
+  const { error } = await supabase
+    .from("club_categories")
+    .update({
+      label,
+      key,
+      sort_order: safeSortOrder,
+      is_active: isActive,
+    })
+    .eq("id", id)
+    .eq("club_id", clubId);
+
+  if (error) {
+    redirect(`/admin/categories?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/admin/categories");
+  revalidatePath("/onboarding");
+  redirect("/admin/categories?saved=1");
+}
+
+export default async function AdminCategoriesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const saved = resolvedSearchParams.saved;
+  const error = resolvedSearchParams.error;
+
+  const { supabase, clubId } = await requireAdmin();
+
+  const { data: settings } = await supabase
+    .from("club_settings")
+    .select("use_categories, category_label")
+    .eq("club_id", clubId)
+    .maybeSingle();
+
+  const { data: categories } = await supabase
+    .from("club_categories")
+    .select("id, key, label, sort_order, is_active")
+    .eq("club_id", clubId)
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true });
+
+  const categoryLabel = settings?.category_label ?? "Kategorie";
+
+  return (
+    <main className="mx-auto max-w-3xl p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold">{categoryLabel}n verwalten</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Hier legst du die auswählbaren Kategorien deines Clubs fest.
+        </p>
+        {settings?.use_categories === false ? (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            Kategorien sind in den Club-Einstellungen aktuell deaktiviert. Du kannst sie hier trotzdem vorbereiten.
+          </div>
+        ) : null}
+      </div>
+
+      {saved ? (
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          Änderungen gespeichert.
+        </div>
+      ) : null}
+
+      {typeof error === "string" && error ? (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+
+      <section className="mb-8 rounded-2xl border bg-white p-5">
+        <h2 className="mb-4 text-lg font-semibold">Neue Kategorie anlegen</h2>
+
+        <form action={addCategoryAction} className="grid gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Bezeichnung</label>
+            <input
+              name="label"
+              required
+              placeholder="z. B. AH"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">Schlüssel (optional)</label>
+            <input
+              name="key"
+              placeholder="z. B. ah"
+              className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Wird leer automatisch aus der Bezeichnung erzeugt.
+            </p>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white"
+            >
+              Kategorie anlegen
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="rounded-2xl border bg-white p-5">
+        <h2 className="mb-4 text-lg font-semibold">Bestehende Kategorien</h2>
+
+        {!categories || categories.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            Noch keine Kategorien vorhanden.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {categories.map((category) => (
+              <form
+                key={category.id}
+                action={updateCategoryAction}
+                className="rounded-xl border border-slate-200 p-4"
+              >
+                <input type="hidden" name="id" value={category.id} />
+
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Bezeichnung</label>
+                    <input
+                      name="label"
+                      defaultValue={category.label}
+                      required
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Schlüssel</label>
+                    <input
+                      name="key"
+                      defaultValue={category.key}
+                      required
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Reihenfolge</label>
+                    <input
+                      type="number"
+                      name="sort_order"
+                      defaultValue={category.sort_order}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div className="flex items-center pt-6">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="is_active"
+                        defaultChecked={category.is_active}
+                      />
+                      Aktiv
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="submit"
+                    className="rounded-lg border px-4 py-2 text-sm font-semibold"
+                  >
+                    Speichern
+                  </button>
+                </div>
+              </form>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+===== app/admin/players/page.tsx =====
+
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
+
+type PlayerRow = {
+  id: number;
+  club_id: string;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  email: string | null;
+  preferred_position: "attack" | "defense" | "goalkeeper" | null;
+  category_key: string | null;
+  strength: number | null;
+  is_active: boolean | null;
+  is_guest: boolean | null;
+};
+
+type ClubSettingsRow = {
+  use_strength: boolean | null;
+  strength_default: number | null;
+  use_categories: boolean | null;
+  position_label: string | null;
+  attack_label: string | null;
+  defense_label: string | null;
+  goalkeeper_label: string | null;
+};
+
+type ClubCategoryRow = {
+  key: string;
+  label: string;
+  sort_order: number | null;
+  is_active: boolean | null;
+};
+
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    message?: string;
+  }>;
+};
+
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
+}
+
+function boolToYesNo(value: boolean | null | undefined) {
+  return value ? "1" : "0";
+}
+
+function positionLabel(
+  position: PlayerRow["preferred_position"],
+  settings: ClubSettingsRow | null
+) {
+  if (position === "attack") return settings?.attack_label || "Angriff";
+  if (position === "defense") return settings?.defense_label || "Abwehr";
+  if (position === "goalkeeper") return settings?.goalkeeper_label || "Torwart";
+  return "Offen";
+}
+
+function getPlayerHeadline(player: PlayerRow) {
+  if (player.nickname?.trim()) {
+    return player.nickname.trim();
+  }
+
+  const fullName = [player.first_name, player.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  if (fullName) {
+    return fullName;
+  }
+
+  if (player.name?.trim()) {
+    return player.name.trim();
+  }
+
+  return `Spieler #${player.id}`;
+}
+
+function getPlayerSubline(player: PlayerRow, settings: ClubSettingsRow | null) {
+  return [
+    player.is_guest ? "Gastspieler" : "Normaler Spieler",
+    player.is_active ? "Aktiv" : "Inaktiv",
+    positionLabel(player.preferred_position, settings),
+  ].join(" · ");
+}
+
+export default async function AdminPlayersPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const { clubId, membership } = await requireClub();
+
+  if (!isAdminRole(membership.role)) {
+    redirect(AUTH_ROUTES.dashboard);
+  }
+
+  const supabase = await createClient();
+
+  const [
+    { data: settingsData, error: settingsError },
+    { data: categoriesData, error: categoriesError },
+    { data: playersData, error: playersError },
+  ] = await Promise.all([
+    supabase
+      .from("club_settings")
+      .select(
+        "use_strength, strength_default, use_categories, position_label, attack_label, defense_label, goalkeeper_label"
+      )
+      .eq("club_id", clubId)
+      .maybeSingle(),
+    supabase
+      .from("club_categories")
+      .select("key, label, sort_order, is_active")
+      .eq("club_id", clubId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("players")
+      .select(
+        "id, club_id, name, first_name, last_name, nickname, email, preferred_position, category_key, strength, is_active, is_guest"
+      )
+      .eq("club_id", clubId)
+      .order("is_guest", { ascending: true })
+      .order("last_name", { ascending: true, nullsFirst: false })
+      .order("first_name", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true }),
+  ]);
+
+  if (settingsError || categoriesError || playersError) {
+    throw new Error(
+      settingsError?.message ||
+        categoriesError?.message ||
+        playersError?.message ||
+        "Daten konnten nicht geladen werden."
+    );
+  }
+
+  const settings = (settingsData as ClubSettingsRow | null) ?? null;
+  const categories = (categoriesData ?? []) as ClubCategoryRow[];
+  const players = (playersData ?? []) as PlayerRow[];
+  const flashError = resolvedSearchParams?.error ?? "";
+  const flashMessage = resolvedSearchParams?.message ?? "";
+
+  return (
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 pb-24">
+      <div className="mb-4 flex items-center">
+        <Link
+          href="/admin"
+          className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+        >
+          ← Zurück zum Adminbereich
+        </Link>
+      </div>
+
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">
+          Spieler verwalten
+        </h1>
+        <p className="mt-2 text-sm text-neutral-600">
+          Bearbeite Namen, E-Mail, Position, Kategorie, Stärke und Status deiner
+          Spieler.
+        </p>
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="text-sm font-semibold text-slate-900">
+          Hinweis für den Start
+        </div>
+        <div className="mt-2 text-sm leading-6 text-slate-600">
+          Lege zuerst eure wichtigsten Grundlagen fest. Besonders sinnvoll ist es,
+          früh eine oder mehrere Saisons anzulegen, damit Trainings und Tabelle
+          später sauber zugeordnet werden.
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600">
+          In den{" "}
+          <Link
+            href="/admin/seasons"
+            className="font-semibold text-slate-900 underline underline-offset-4"
+          >
+            Saison-Einstellungen
+          </Link>{" "}
+          stellst du ein, wie eine Saison heißt und wann sie beginnt und endet.
+          Trainings, deren Datum in diesen Zeitraum fällt, werden automatisch der
+          passenden Saison zugeordnet.
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href="/admin/seasons"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            Saisons öffnen
+          </Link>
+
+          <Link
+            href="/admin/club"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Team-Einstellungen öffnen
+          </Link>
+        </div>
+      </div>
+
+      {flashMessage ? (
+        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          {flashMessage}
+        </div>
+      ) : null}
+
+      {flashError ? (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {flashError}
+        </div>
+      ) : null}
+
+      {players.length > 0 ? (
+        <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+          {players.length} Spieler im Team hinterlegt. Tippe auf einen Eintrag,
+          um die Bearbeitungsfelder aufzuklappen.
+        </div>
+      ) : null}
+
+      {players.length === 0 ? (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-500 shadow-sm">
+          Noch keine Spieler vorhanden.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {players.map((player, index) => (
+            <details
+              key={player.id}
+              className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm"
+              open={index === 0}
+            >
+              <summary className="list-none cursor-pointer px-4 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-lg font-bold text-neutral-900">
+                      {getPlayerHeadline(player)}
+                    </div>
+                    <div className="mt-1 text-sm text-neutral-500">
+                      {getPlayerSubline(player, settings)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                      Bearbeiten
+                    </span>
+                    <span className="text-slate-400 transition group-open:rotate-180">
+                      ▼
+                    </span>
+                  </div>
+                </div>
+              </summary>
+
+              <div className="border-t border-neutral-200 px-4 pb-4 pt-4">
+                <form method="post" action="/admin/players/update">
+                  <input
+                    type="hidden"
+                    name="player_id"
+                    value={String(player.id)}
+                  />
+
+                  <div className="mb-4 flex justify-end">
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-800"
+                    >
+                      Speichern
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor={`first_name_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Vorname
+                      </label>
+                      <input
+                        id={`first_name_${player.id}`}
+                        name="first_name"
+                        defaultValue={player.first_name ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`last_name_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Nachname
+                      </label>
+                      <input
+                        id={`last_name_${player.id}`}
+                        name="last_name"
+                        defaultValue={player.last_name ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`nickname_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Spitzname
+                      </label>
+                      <input
+                        id={`nickname_${player.id}`}
+                        name="nickname"
+                        defaultValue={player.nickname ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`email_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        E-Mail
+                      </label>
+                      <input
+                        id={`email_${player.id}`}
+                        name="email"
+                        type="email"
+                        defaultValue={player.email ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`preferred_position_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        {settings?.position_label || "Position"}
+                      </label>
+                      <select
+                        id={`preferred_position_${player.id}`}
+                        name="preferred_position"
+                        defaultValue={player.preferred_position ?? ""}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      >
+                        <option value="">Offen</option>
+                        <option value="attack">
+                          {settings?.attack_label || "Angriff"}
+                        </option>
+                        <option value="defense">
+                          {settings?.defense_label || "Abwehr"}
+                        </option>
+                        <option value="goalkeeper">
+                          {settings?.goalkeeper_label || "Torwart"}
+                        </option>
+                      </select>
+                    </div>
+
+                    {settings?.use_categories ? (
+                      <div>
+                        <label
+                          htmlFor={`category_key_${player.id}`}
+                          className="mb-1.5 block text-sm font-medium text-neutral-900"
+                        >
+                          Kategorie
+                        </label>
+                        <select
+                          id={`category_key_${player.id}`}
+                          name="category_key"
+                          defaultValue={player.category_key ?? ""}
+                          className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                        >
+                          <option value="">Keine Kategorie</option>
+                          {categories.map((category) => (
+                            <option key={category.key} value={category.key}>
+                              {category.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
+
+                    {settings?.use_strength ? (
+                      <div>
+                        <label
+                          htmlFor={`strength_${player.id}`}
+                          className="mb-1.5 block text-sm font-medium text-neutral-900"
+                        >
+                          Stärke
+                        </label>
+                        <select
+                          id={`strength_${player.id}`}
+                          name="strength"
+                          defaultValue={String(
+                            player.strength ?? settings?.strength_default ?? 3
+                          )}
+                          className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                        >
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                          <option value="4">4</option>
+                          <option value="5">5</option>
+                        </select>
+                      </div>
+                    ) : null}
+
+                    <div>
+                      <label
+                        htmlFor={`is_active_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Aktiv
+                      </label>
+                      <select
+                        id={`is_active_${player.id}`}
+                        name="is_active"
+                        defaultValue={boolToYesNo(player.is_active)}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      >
+                        <option value="1">Ja</option>
+                        <option value="0">Nein</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`is_guest_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Gastspieler
+                      </label>
+                      <select
+                        id={`is_guest_${player.id}`}
+                        name="is_guest"
+                        defaultValue={boolToYesNo(player.is_guest)}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      >
+                        <option value="0">Nein</option>
+                        <option value="1">Ja</option>
+                      </select>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
+    </main>
+  );
+}
+
+===== app/admin/players/players-types.ts =====
+
+export type Membership = {
+  user_id: string;
+  club_id: string;
+  role: string;
+};
+
+export type AgeGroup = "AH" | "Ü32" | null;
+export type PreferredPosition = "defense" | "attack" | "goalkeeper" | null;
+
+export type Player = {
+  id: number;
+  name: string;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  age_group: AgeGroup;
+  preferred_position: PreferredPosition;
+  strength: number | null;
+  is_active: boolean | null;
+  club_id?: string;
+};
+
+===== app/admin/players/update/route.ts =====
+
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/auth/context";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function toText(value: FormDataEntryValue | null) {
+  return String(value ?? "").trim();
+}
+
+function toNullableText(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  return text.length ? text : null;
+}
+
+function toBool(value: FormDataEntryValue | null) {
+  return String(value ?? "") === "1";
+}
+
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
+}
+
+function getRequestOrigin(request: NextRequest) {
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = request.headers.get("host");
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  if (host) {
+    const proto = host.includes("localhost") ? "http" : forwardedProto;
+    return `${proto}://${host}`;
+  }
+
+  return request.nextUrl.origin;
+}
+
+function redirectToPath(
+  request: NextRequest,
+  pathname: string,
+  params?: Record<string, string>
+) {
+  const url = new URL(pathname, getRequestOrigin(request));
+
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      url.searchParams.set(key, value);
+    }
+  }
+
+  return NextResponse.redirect(url, { status: 303 });
+}
+
+function redirectToAdminPlayers(
+  request: NextRequest,
+  params?: { error?: string; message?: string }
+) {
+  const nextParams: Record<string, string> = {};
+
+  if (params?.error) nextParams.error = params.error;
+  if (params?.message) nextParams.message = params.message;
+
+  return redirectToPath(request, "/admin/players", nextParams);
+}
+
+async function requireAdminClubContext() {
+  const ctx = await getAuthContext();
+
+  if (!ctx.user) {
+    return { error: "login" as const };
+  }
+
+  if (!ctx.player) {
+    return { error: "onboarding" as const };
+  }
+
+  if (!ctx.memberships.length || !ctx.activeClubId) {
+    return { error: "select_club" as const };
+  }
+
+  const membership =
+    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ?? null;
+
+  if (!membership || !isAdminRole(membership.role)) {
+    return { error: "unauthorized" as const };
+  }
+
+  return {
+    clubId: ctx.activeClubId,
+  };
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const access = await requireAdminClubContext();
+
+    if ("error" in access) {
+      if (access.error === "login") {
+        return redirectToPath(request, AUTH_ROUTES.login);
+      }
+
+      if (access.error === "onboarding") {
+        return redirectToPath(request, AUTH_ROUTES.onboarding);
+      }
+
+      if (access.error === "select_club") {
+        return redirectToPath(request, AUTH_ROUTES.selectClub);
+      }
+
+      return redirectToPath(request, AUTH_ROUTES.dashboard);
+    }
+
+    const formData = await request.formData();
+
+    const playerId = Number(toText(formData.get("player_id")));
+    const firstName = toNullableText(formData.get("first_name"));
+    const lastName = toNullableText(formData.get("last_name"));
+    const nickname = toNullableText(formData.get("nickname"));
+    const emailRaw = toNullableText(formData.get("email"));
+    const email = emailRaw ? emailRaw.toLowerCase() : null;
+    const preferredPosition = toNullableText(formData.get("preferred_position"));
+    const categoryKey = toNullableText(formData.get("category_key"));
+    const strengthRaw = toNullableText(formData.get("strength"));
+    const isActive = toBool(formData.get("is_active"));
+    const isGuest = toBool(formData.get("is_guest"));
+
+    if (!playerId || Number.isNaN(playerId)) {
+      return redirectToAdminPlayers(request, {
+        error: "Ungültige Spieler-ID.",
+      });
+    }
+
+    const supabase = await createClient();
+    const clubId = access.clubId;
+
+    const { data: existingPlayer, error: existingPlayerError } = await supabase
+      .from("players")
+      .select("id, club_id")
+      .eq("id", playerId)
+      .eq("club_id", clubId)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingPlayerError) {
+      return redirectToAdminPlayers(request, {
+        error: "Spieler konnte nicht geladen werden.",
+      });
+    }
+
+    if (!existingPlayer) {
+      return redirectToAdminPlayers(request, {
+        error: "Spieler nicht gefunden.",
+      });
+    }
+
+    if (email) {
+      const { data: emailConflict, error: emailConflictError } = await supabase
+        .from("players")
+        .select("id")
+        .eq("club_id", clubId)
+        .eq("email", email)
+        .neq("id", playerId)
+        .limit(1)
+        .maybeSingle();
+
+      if (emailConflictError) {
+        return redirectToAdminPlayers(request, {
+          error: "E-Mail konnte nicht geprüft werden.",
+        });
+      }
+
+      if (emailConflict) {
+        return redirectToAdminPlayers(request, {
+          error: "Diese E-Mail ist bereits einem anderen Spieler zugeordnet.",
+        });
+      }
+    }
+
+    const displayName = [firstName, lastName].filter(Boolean).join(" ").trim();
+
+    const updatePayload: Record<string, unknown> = {
+      first_name: firstName,
+      last_name: lastName,
+      nickname,
+      email,
+      preferred_position: preferredPosition,
+      category_key: categoryKey,
+      is_active: isActive,
+      is_guest: isGuest,
+      name: displayName || nickname || null,
+    };
+
+    if (strengthRaw) {
+      const parsedStrength = Number(strengthRaw);
+
+      if (!Number.isNaN(parsedStrength)) {
+        updatePayload.strength = parsedStrength;
+      }
+    } else {
+      updatePayload.strength = null;
+    }
+
+    const { error: updateError } = await supabase
+      .from("players")
+      .update(updatePayload)
+      .eq("id", playerId)
+      .eq("club_id", clubId);
+
+    if (updateError) {
+      return redirectToAdminPlayers(request, {
+        error: "Spieler konnte nicht gespeichert werden.",
+      });
+    }
+
+    return redirectToAdminPlayers(request, {
+      message: "Spieler erfolgreich gespeichert.",
+    });
+  } catch (error) {
+    console.error("POST /admin/players/update failed", error);
+
+    return redirectToAdminPlayers(request, {
+      error: "Spieler konnte nicht gespeichert werden.",
+    });
+  }
+}
+
+===== app/admin/settings/page.tsx =====
+
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+
+type ClubSettingsRow = {
+  club_id: string;
+  use_strength: boolean | null;
+  use_categories: boolean | null;
+  season_start_day: number | null;
+  season_start_month: number | null;
+  season_end_day: number | null;
+  season_end_month: number | null;
+  season_year_mode: "start_year" | "end_year" | null;
+};
+
+const MONTHS = [
+  { value: 1, label: "Januar" },
+  { value: 2, label: "Februar" },
+  { value: 3, label: "März" },
+  { value: 4, label: "April" },
+  { value: 5, label: "Mai" },
+  { value: 6, label: "Juni" },
+  { value: 7, label: "Juli" },
+  { value: 8, label: "August" },
+  { value: 9, label: "September" },
+  { value: 10, label: "Oktober" },
+  { value: 11, label: "November" },
+  { value: 12, label: "Dezember" },
+];
+
+const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
+
+function getErrorMessage(error?: string) {
+  switch (error) {
+    case "unauthorized":
+      return "Du hast keinen Zugriff auf diesen Bereich.";
+    case "missing_club":
+      return "Es konnte kein Club gefunden werden.";
+    case "save_failed":
+      return "Die Saison-Einstellungen konnten nicht gespeichert werden.";
+    case "invalid_season_start_day":
+      return "Bitte wähle einen gültigen Start-Tag.";
+    case "invalid_season_start_month":
+      return "Bitte wähle einen gültigen Start-Monat.";
+    case "invalid_season_end_day":
+      return "Bitte wähle einen gültigen End-Tag.";
+    case "invalid_season_end_month":
+      return "Bitte wähle einen gültigen End-Monat.";
+    case "invalid_season_year_mode":
+      return "Bitte wähle eine gültige Benennung.";
+    default:
+      return "";
+  }
+}
+
+function monthLabel(value: number) {
+  return MONTHS.find((month) => month.value === value)?.label ?? "?";
+}
+
+function getSeasonPreview(
+  seasonStartDay: number,
+  seasonStartMonth: number,
+  seasonEndDay: number,
+  seasonEndMonth: number,
+  seasonYearMode: "start_year" | "end_year"
+) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  const nowMonthDay = (now.getMonth() + 1) * 100 + now.getDate();
+  const startMonthDay = seasonStartMonth * 100 + seasonStartDay;
+  const endMonthDay = seasonEndMonth * 100 + seasonEndDay;
+
+  const crossesYear = startMonthDay > endMonthDay;
+
+  let seasonStartYear = currentYear;
+
+  if (crossesYear) {
+    seasonStartYear =
+      nowMonthDay >= startMonthDay ? currentYear : currentYear - 1;
+  } else {
+    seasonStartYear = currentYear;
+  }
+
+  const seasonEndYear = crossesYear ? seasonStartYear + 1 : seasonStartYear;
+
+  const seasonName =
+    seasonYearMode === "end_year"
+      ? String(seasonEndYear)
+      : String(seasonStartYear);
+
+  return {
+    seasonStartLabel: `${String(seasonStartDay).padStart(2, "0")}. ${monthLabel(
+      seasonStartMonth
+    )} ${seasonStartYear}`,
+    seasonEndLabel: `${String(seasonEndDay).padStart(2, "0")}. ${monthLabel(
+      seasonEndMonth
+    )} ${seasonEndYear}`,
+    seasonName,
+    crossesYear,
+  };
+}
+
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    saved?: string;
+  }>;
+};
+
+export default async function AdminSettingsPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const { clubId, membership } = await requireClub();
+
+  if (membership.role !== "admin") {
+    redirect("/admin");
+  }
+
+  const supabase = await createClient();
+
+  const { data: settingsData, error: settingsError } = await supabase
+    .from("club_settings")
+    .select(
+      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
+    )
+    .eq("club_id", clubId)
+    .maybeSingle();
+
+  if (settingsError) {
+    throw new Error(settingsError.message);
+  }
+
+  const settings = (settingsData as ClubSettingsRow | null) ?? null;
+  const flashError = getErrorMessage(resolvedSearchParams?.error);
+  const flashSaved = resolvedSearchParams?.saved === "1";
+
+  const useStrength = settings?.use_strength ?? false;
+  const useCategories = settings?.use_categories ?? false;
+  const seasonStartDay = settings?.season_start_day ?? 1;
+  const seasonStartMonth = settings?.season_start_month ?? 1;
+  const seasonEndDay = settings?.season_end_day ?? 31;
+  const seasonEndMonth = settings?.season_end_month ?? 12;
+  const seasonYearMode = settings?.season_year_mode ?? "end_year";
+
+  const preview = getSeasonPreview(
+    seasonStartDay,
+    seasonStartMonth,
+    seasonEndDay,
+    seasonEndMonth,
+    seasonYearMode
+  );
+
+  return (
+    <main className="min-h-screen bg-neutral-100">
+      <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:px-5">
+        <div className="flex items-center">
+          <Link
+            href="/admin"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück zum Adminbereich
+          </Link>
+        </div>
+
+        <div className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm sm:p-6">
+          <div className="mb-5">
+            <div className="text-sm font-semibold text-slate-500">Admin</div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+              Neue Saison erstellen
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-600">
+              Hier definierst du Saison-Zeitraum, Benennung und wichtige
+              Einstellungen für den Teamgenerator.
+            </p>
+          </div>
+
+          {flashError ? (
+            <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              {flashError}
+            </div>
+          ) : null}
+
+          {flashSaved ? (
+            <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Saison-Einstellungen gespeichert.
+            </div>
+          ) : null}
+
+          <form method="post" action="/api/admin/settings" className="space-y-6">
+            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4 sm:p-5">
+              <div className="mb-3 text-sm font-semibold text-slate-500">
+                Teamgenerator
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                  <input
+                    type="checkbox"
+                    name="use_strength"
+                    value="1"
+                    defaultChecked={useStrength}
+                    className="mt-1 h-4 w-4 rounded border-neutral-300"
+                  />
+                  <div>
+                    <div className="text-sm font-semibold text-slate-950">
+                      Stärke berücksichtigen
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      Der Teamgenerator bezieht die Spielerstärke in die
+                      Verteilung ein.
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                  <input
+                    type="checkbox"
+                    name="use_categories"
+                    value="1"
+                    defaultChecked={useCategories}
+                    className="mt-1 h-4 w-4 rounded border-neutral-300"
+                  />
+                  <div>
+                    <div className="text-sm font-semibold text-slate-950">
+                      Kategorien berücksichtigen
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      Der Teamgenerator nutzt eure Club-Kategorien bei der
+                      Aufteilung.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4 sm:p-5">
+              <div className="mb-1 text-sm font-semibold text-slate-500">
+                Saison-Zeitraum
+              </div>
+              <p className="mb-4 text-sm text-slate-600">
+                Lege fest, wann eure Saison beginnt und endet. Die Benennung
+                kann wahlweise nach Startjahr oder Endjahr erfolgen.
+              </p>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-2xl border border-black/10 bg-white p-4">
+                  <div className="mb-3 text-sm font-semibold text-slate-950">
+                    Saisonbeginn
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="season_start_day"
+                        className="block text-sm font-medium text-slate-900"
+                      >
+                        Tag
+                      </label>
+                      <select
+                        id="season_start_day"
+                        name="season_start_day"
+                        defaultValue={String(seasonStartDay)}
+                        className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
+                      >
+                        {DAYS.map((day) => (
+                          <option key={day} value={String(day)}>
+                            {day}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="season_start_month"
+                        className="block text-sm font-medium text-slate-900"
+                      >
+                        Monat
+                      </label>
+                      <select
+                        id="season_start_month"
+                        name="season_start_month"
+                        defaultValue={String(seasonStartMonth)}
+                        className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
+                      >
+                        {MONTHS.map((month) => (
+                          <option key={month.value} value={String(month.value)}>
+                            {month.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-black/10 bg-white p-4">
+                  <div className="mb-3 text-sm font-semibold text-slate-950">
+                    Saisonende
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="season_end_day"
+                        className="block text-sm font-medium text-slate-900"
+                      >
+                        Tag
+                      </label>
+                      <select
+                        id="season_end_day"
+                        name="season_end_day"
+                        defaultValue={String(seasonEndDay)}
+                        className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
+                      >
+                        {DAYS.map((day) => (
+                          <option key={day} value={String(day)}>
+                            {day}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="season_end_month"
+                        className="block text-sm font-medium text-slate-900"
+                      >
+                        Monat
+                      </label>
+                      <select
+                        id="season_end_month"
+                        name="season_end_month"
+                        defaultValue={String(seasonEndMonth)}
+                        className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
+                      >
+                        {MONTHS.map((month) => (
+                          <option key={month.value} value={String(month.value)}>
+                            {month.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
+                <label
+                  htmlFor="season_year_mode"
+                  className="block text-sm font-medium text-slate-900"
+                >
+                  Saison benennen
+                </label>
+                <p className="mt-1 text-sm text-slate-600">
+                  Beispiel: Eine Saison von Dezember bis Dezember kann nach
+                  Beginn oder Ende benannt werden.
+                </p>
+                <select
+                  id="season_year_mode"
+                  name="season_year_mode"
+                  defaultValue={seasonYearMode}
+                  className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
+                >
+                  <option value="start_year">Nach Startjahr</option>
+                  <option value="end_year">Nach Endjahr</option>
+                </select>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-950">
+                  Vorschau der aktuellen Einstellung
+                </div>
+
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl bg-neutral-50 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Beginn
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-950">
+                      {preview.seasonStartLabel}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-neutral-50 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Ende
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-950">
+                      {preview.seasonEndLabel}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-950 p-3 text-white">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
+                      Anzeigename
+                    </div>
+                    <div className="mt-1 text-lg font-bold">
+                      {preview.seasonName}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 text-sm text-slate-600">
+                  {preview.crossesYear
+                    ? "Diese Saison überschreitet einen Jahreswechsel."
+                    : "Diese Saison liegt innerhalb eines Kalenderjahres."}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Neue Saison speichern
+              </button>
+
+              <Link
+                href="/admin"
+                className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+              >
+                Zurück
+              </Link>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+===== app/api/admin/players/update/route.ts =====
+
+import { cookies, headers } from "next/headers";
+import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+type MembershipRow = {
+  club_id: string;
+  role: "admin" | "member";
+};
+
+function toText(value: FormDataEntryValue | null) {
+  return String(value ?? "").trim();
+}
+
+function toNullableText(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  return text.length ? text : null;
+}
+
+function toBool(value: FormDataEntryValue | null) {
+  return String(value ?? "") === "1";
+}
+
+function getOriginFromHeaders(
+  headerStore: Awaited<ReturnType<typeof headers>>,
+  request: Request
+) {
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const host = headerStore.get("host");
+
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  if (host) {
+    const protocol =
+      host.includes("localhost") || host.includes(":3000") ? "http" : "https";
+    return `${protocol}://${host}`;
+  }
+
+  return new URL(request.url).origin;
+}
+
+function redirectToAdminPlayers(
+  origin: string,
+  params?: { error?: string; message?: string }
+) {
+  const search = new URLSearchParams();
+
+  if (params?.error) search.set("error", params.error);
+  if (params?.message) search.set("message", params.message);
+
+  const query = search.toString();
+
+  return NextResponse.redirect(
+    new URL(query ? `/admin/players?${query}` : "/admin/players", origin),
+    { status: 303 }
+  );
+}
+
+export async function POST(request: Request) {
+  const formData = await request.formData();
+
+  const playerId = Number(toText(formData.get("player_id")));
+  const firstName = toNullableText(formData.get("first_name"));
+  const lastName = toNullableText(formData.get("last_name"));
+  const nickname = toNullableText(formData.get("nickname"));
+  const emailRaw = toNullableText(formData.get("email"));
+  const email = emailRaw ? emailRaw.toLowerCase() : null;
+  const preferredPosition = toNullableText(formData.get("preferred_position"));
+  const categoryKey = toNullableText(formData.get("category_key"));
+  const strengthRaw = toNullableText(formData.get("strength"));
+  const isActive = toBool(formData.get("is_active"));
+  const isGuest = toBool(formData.get("is_guest"));
+
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+  const origin = getOriginFromHeaders(headerStore, request);
+  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
+
+  if (!playerId || Number.isNaN(playerId)) {
+    return redirectToAdminPlayers(origin, {
+      error: "Ungültige Spieler-ID.",
+    });
+  }
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.redirect(new URL("/login?next=/admin/players", origin), {
+      status: 303,
+    });
+  }
+
+  const { data: membershipsData, error: membershipsError } = await supabase
+    .from("club_memberships")
+    .select("club_id, role")
+    .eq("user_id", user.id);
+
+  if (membershipsError) {
+    return redirectToAdminPlayers(origin, {
+      error: "Admin-Zugriff konnte nicht geprüft werden.",
+    });
+  }
+
+  const memberships = (membershipsData ?? []) as MembershipRow[];
+
+  if (memberships.length === 0) {
+    return NextResponse.redirect(new URL("/waiting-for-invite", origin), {
+      status: 303,
+    });
+  }
+
+  const validClubIds = new Set(memberships.map((m) => m.club_id));
+
+  const activeClubId =
+    memberships.length === 1
+      ? memberships[0].club_id
+      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+        ? activeClubIdFromCookie
+        : null;
+
+  if (!activeClubId) {
+    return NextResponse.redirect(new URL("/select-club", origin), {
+      status: 303,
+    });
+  }
+
+  const membership =
+    memberships.find((m) => m.club_id === activeClubId) ?? null;
+
+  if (!membership || membership.role !== "admin") {
+    return redirectToAdminPlayers(origin, {
+      error: "Kein Admin-Zugriff für das aktuell ausgewählte Team vorhanden.",
+    });
+  }
+
+  const clubId = activeClubId;
+
+  const { data: existingPlayer } = await supabase
+    .from("players")
+    .select("id, club_id")
+    .eq("id", playerId)
+    .eq("club_id", clubId)
+    .limit(1)
+    .maybeSingle();
+
+  if (!existingPlayer) {
+    return redirectToAdminPlayers(origin, {
+      error: "Spieler nicht gefunden.",
+    });
+  }
+
+  if (email) {
+    const { data: emailConflict } = await supabase
+      .from("players")
+      .select("id")
+      .eq("club_id", clubId)
+      .eq("email", email)
+      .neq("id", playerId)
+      .limit(1)
+      .maybeSingle();
+
+    if (emailConflict) {
+      return redirectToAdminPlayers(origin, {
+        error: "Diese E-Mail ist bereits einem anderen Spieler zugeordnet.",
+      });
+    }
+  }
+
+  const displayName = [firstName, lastName].filter(Boolean).join(" ").trim();
+
+  const updatePayload: Record<string, unknown> = {
+    first_name: firstName,
+    last_name: lastName,
+    nickname,
+    email,
+    preferred_position: preferredPosition,
+    category_key: categoryKey,
+    is_active: isActive,
+    is_guest: isGuest,
+    name: displayName || nickname || null,
+  };
+
+  if (strengthRaw) {
+    const parsedStrength = Number(strengthRaw);
+    if (!Number.isNaN(parsedStrength)) {
+      updatePayload.strength = parsedStrength;
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from("players")
+    .update(updatePayload)
+    .eq("id", playerId)
+    .eq("club_id", clubId);
+
+  if (updateError) {
+    return redirectToAdminPlayers(origin, {
+      error: "Spieler konnte nicht gespeichert werden.",
+    });
+  }
+
+  return redirectToAdminPlayers(origin, {
+    message: "Spieler erfolgreich gespeichert.",
+  });
+}
+
+===== app/api/admin/settings/route.ts =====
+
+import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+type MembershipRow = {
+  club_id: string;
+  role: "admin" | "member";
+};
+
+function redirectWithParams(
+  request: Request,
+  params: Record<string, string>
+) {
+  const url = new URL("/admin/settings", request.url);
+
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+
+  return NextResponse.redirect(url, { status: 303 });
+}
+
+function parseInteger(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return NaN;
+  return Number.parseInt(value, 10);
+}
+
+function isValidDay(value: number) {
+  return Number.isInteger(value) && value >= 1 && value <= 31;
+}
+
+function isValidMonth(value: number) {
+  return Number.isInteger(value) && value >= 1 && value <= 12;
+}
+
+function isValidYearMode(value: string) {
+  return value === "start_year" || value === "end_year";
+}
+
+export async function POST(request: Request) {
+  const cookieStore = await cookies();
+  const activeClubIdFromCookie = cookieStore.get("active_club_id")?.value ?? null;
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.redirect(new URL("/login?next=/admin/settings", request.url), {
+      status: 303,
+    });
+  }
+
+  const { data: membershipsData, error: membershipsError } = await supabase
+    .from("club_memberships")
+    .select("club_id, role")
+    .eq("user_id", user.id);
+
+  if (membershipsError) {
+    return redirectWithParams(request, { error: "unauthorized" });
+  }
+
+  const memberships = (membershipsData ?? []) as MembershipRow[];
+
+  if (memberships.length === 0) {
+    return NextResponse.redirect(new URL("/waiting-for-invite", request.url), {
+      status: 303,
+    });
+  }
+
+  const validClubIds = new Set(memberships.map((m) => m.club_id));
+
+  const activeClubId =
+    memberships.length === 1
+      ? memberships[0].club_id
+      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+        ? activeClubIdFromCookie
+        : null;
+
+  if (!activeClubId) {
+    return NextResponse.redirect(new URL("/select-club", request.url), {
+      status: 303,
+    });
+  }
+
+  const membership =
+    memberships.find((m) => m.club_id === activeClubId) ?? null;
+
+  if (!membership || membership.role !== "admin") {
+    return redirectWithParams(request, { error: "unauthorized" });
+  }
+
+  const formData = await request.formData();
+
+  const useStrength = formData.get("use_strength") === "1";
+  const useCategories = formData.get("use_categories") === "1";
+
+  const seasonStartDay = parseInteger(formData.get("season_start_day"));
+  const seasonStartMonth = parseInteger(formData.get("season_start_month"));
+  const seasonEndDay = parseInteger(formData.get("season_end_day"));
+  const seasonEndMonth = parseInteger(formData.get("season_end_month"));
+
+  const seasonYearModeRaw = formData.get("season_year_mode");
+  const seasonYearMode =
+    typeof seasonYearModeRaw === "string" ? seasonYearModeRaw : "";
+
+  if (!isValidDay(seasonStartDay)) {
+    return redirectWithParams(request, { error: "invalid_season_start_day" });
+  }
+
+  if (!isValidMonth(seasonStartMonth)) {
+    return redirectWithParams(request, { error: "invalid_season_start_month" });
+  }
+
+  if (!isValidDay(seasonEndDay)) {
+    return redirectWithParams(request, { error: "invalid_season_end_day" });
+  }
+
+  if (!isValidMonth(seasonEndMonth)) {
+    return redirectWithParams(request, { error: "invalid_season_end_month" });
+  }
+
+  if (!isValidYearMode(seasonYearMode)) {
+    return redirectWithParams(request, { error: "invalid_season_year_mode" });
+  }
+
+  const { error: upsertError } = await supabase.from("club_settings").upsert(
+    {
+      club_id: activeClubId,
+      use_strength: useStrength,
+      use_categories: useCategories,
+      season_start_day: seasonStartDay,
+      season_start_month: seasonStartMonth,
+      season_end_day: seasonEndDay,
+      season_end_month: seasonEndMonth,
+      season_year_mode: seasonYearMode,
+    },
+    {
+      onConflict: "club_id",
+    }
+  );
+
+  if (upsertError) {
+    return redirectWithParams(request, { error: "save_failed" });
+  }
+
+  return redirectWithParams(request, { saved: "1" });
+}
+
+===== app/api/sessions/[id]/route.ts =====
+
+import { NextRequest } from "next/server";
+import { fail, ok } from "@/lib/session-detail/response";
+import { requireSessionAccess } from "@/lib/session-detail/access";
+import { createSignedPhotoUrl } from "@/lib/session-detail/photo";
+import { handleTogglePresence } from "@/lib/session-detail/actions/toggle-presence";
+import { handleAddGuestPlayer } from "@/lib/session-detail/actions/add-guest-player";
+import { handleSaveResult } from "@/lib/session-detail/actions/save-result";
+import { handleDeleteResult } from "@/lib/session-detail/actions/delete-result";
+import { handleDeleteWinnerPhoto } from "@/lib/session-detail/actions/delete-winner-photo";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
+}
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const resolvedParams = await context.params;
+  const sessionId = Number(resolvedParams.id);
+
+  if (!Number.isFinite(sessionId)) {
+    return fail("Ungültige Session-ID.", 400);
+  }
+
+  const access = await requireSessionAccess(sessionId);
+
+  if ("error" in access) {
+    return fail(access.error ?? "Unbekannter Fehler.", access.status);
+  }
+
+  const { supabase, clubId, membership, session } = access;
+
+  try {
+    const formData = await request.formData();
+    const intent = String(formData.get("intent") ?? "").trim();
+
+    if (intent === "toggle_presence") {
+      const playerId = Number(String(formData.get("player_id") ?? ""));
+
+      return handleTogglePresence({
+        supabase,
+        sessionId,
+        playerId,
+      });
+    }
+
+    if (intent === "add_guest_player") {
+      const guestName = String(formData.get("guest_name") ?? "");
+      const guestPosition = String(formData.get("guest_position") ?? "");
+      const guestAgeGroup = String(formData.get("guest_age_group") ?? "");
+
+      return handleAddGuestPlayer({
+        supabase,
+        sessionId,
+        clubId,
+        membership,
+        guestName,
+        guestPosition,
+        guestAgeGroup,
+      });
+    }
+
+    if (intent === "save_result") {
+      const goalsA = String(formData.get("goals_a") ?? "");
+      const goalsB = String(formData.get("goals_b") ?? "");
+      const manualTeamsRaw = String(formData.get("manual_teams") ?? "{}");
+
+      return handleSaveResult({
+        supabase,
+        sessionId,
+        clubId,
+        goalsA,
+        goalsB,
+        manualTeamsRaw,
+      });
+    }
+
+    if (intent === "delete_result") {
+      return handleDeleteResult({
+        supabase,
+        sessionId,
+      });
+    }
+
+    if (intent === "delete_winner_photo") {
+      return handleDeleteWinnerPhoto({
+        supabase,
+        sessionId,
+        clubId,
+        winnerPhotoPath: session.winner_photo_path,
+      });
+    }
+
+    if (intent === "delete_session") {
+      if (!isAdminRole(membership.role)) {
+        return fail("Nur Admins dürfen eine Session löschen.", 403);
+      }
+
+      const { data: teamsData, error: teamsError } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("session_id", sessionId);
+
+      if (teamsError) {
+        return fail(`Teams konnten nicht geladen werden: ${teamsError.message}`, 500);
+      }
+
+      const teamIds = (teamsData ?? []).map((team) => Number(team.id)).filter(Boolean);
+
+      if (teamIds.length > 0) {
+        const { error: teamPlayersDeleteError } = await supabase
+          .from("team_players")
+          .delete()
+          .in("team_id", teamIds);
+
+        if (teamPlayersDeleteError) {
+          return fail(
+            `Team-Zuordnungen konnten nicht gelöscht werden: ${teamPlayersDeleteError.message}`,
+            500
+          );
+        }
+      }
+
+      const { error: resultsDeleteError } = await supabase
+        .from("results")
+        .delete()
+        .eq("session_id", sessionId);
+
+      if (resultsDeleteError) {
+        return fail(
+          `Ergebnis konnte nicht gelöscht werden: ${resultsDeleteError.message}`,
+          500
+        );
+      }
+
+      const { error: teamsDeleteError } = await supabase
+        .from("teams")
+        .delete()
+        .eq("session_id", sessionId);
+
+      if (teamsDeleteError) {
+        return fail(`Teams konnten nicht gelöscht werden: ${teamsDeleteError.message}`, 500);
+      }
+
+      const { error: sessionPlayersDeleteError } = await supabase
+        .from("session_players")
+        .delete()
+        .eq("session_id", sessionId);
+
+      if (sessionPlayersDeleteError) {
+        return fail(
+          `Anwesenheiten konnten nicht gelöscht werden: ${sessionPlayersDeleteError.message}`,
+          500
+        );
+      }
+
+      if (session.winner_photo_path) {
+        await supabase.storage.from("session-photos").remove([session.winner_photo_path]);
+      }
+
+      const { error: sessionDeleteError } = await supabase
+        .from("sessions")
+        .delete()
+        .eq("id", sessionId)
+        .eq("club_id", clubId);
+
+      if (sessionDeleteError) {
+        return fail(`Session konnte nicht gelöscht werden: ${sessionDeleteError.message}`, 500);
+      }
+
+      return ok({
+        message: "Session wurde gelöscht.",
+        deleted: true,
+      });
+    }
+
+    if (intent === "upload_winner_photo") {
+      const { data: existingResult, error: existingResultError } = await supabase
+        .from("results")
+        .select("id")
+        .eq("session_id", sessionId)
+        .maybeSingle();
+
+      if (existingResultError) {
+        return fail(existingResultError.message, 500);
+      }
+
+      if (!existingResult?.id) {
+        return fail(
+          "Ein Siegerfoto kann erst hochgeladen werden, wenn ein Ergebnis gespeichert wurde."
+        );
+      }
+
+      const file = formData.get("file");
+
+      if (!(file instanceof File)) {
+        return fail("Bitte ein Bild auswählen.");
+      }
+
+      if (!file.type.startsWith("image/")) {
+        return fail("Bitte ein Bild auswählen.");
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        return fail("Das Bild ist zu groß. Bitte maximal 10 MB verwenden.");
+      }
+
+      const extension = file.name.includes(".")
+        ? file.name.split(".").pop()?.toLowerCase() || "jpg"
+        : "jpg";
+
+      const safeExt = extension.replace(/[^a-z0-9]/gi, "") || "jpg";
+      const newPath = `sessions/${sessionId}/${Date.now()}-winner.${safeExt}`;
+      const oldPath = session.winner_photo_path ?? null;
+
+      const { error: uploadError } = await supabase.storage
+        .from("session-photos")
+        .upload(newPath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        return fail(uploadError.message, 500);
+      }
+
+      const { error: updateError } = await supabase
+        .from("sessions")
+        .update({ winner_photo_path: newPath })
+        .eq("id", sessionId)
+        .eq("club_id", clubId);
+
+      if (updateError) {
+        await supabase.storage.from("session-photos").remove([newPath]);
+        return fail(updateError.message, 500);
+      }
+
+      if (oldPath) {
+        await supabase.storage.from("session-photos").remove([oldPath]);
+      }
+
+      const winnerPhotoUrl = await createSignedPhotoUrl(supabase, newPath);
+
+      return ok({
+        message: "Siegerfoto hochgeladen.",
+        winner_photo_path: newPath,
+        winnerPhotoUrl,
+      });
+    }
+
+    return fail("Ungültige Aktion.", 400);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unbekannter Fehler.";
+    return fail(message, 500);
+  }
+}
+
+===== app/players/new/page.tsx =====
+
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+
+type PreferredPosition = "defense" | "attack" | "goalkeeper" | null;
+type AgeGroup = "AH" | "Ü32" | null;
+
+function clean(value: string) {
+  return value.trim();
+}
+
+function buildLegacyName({
+  firstName,
+  lastName,
+  nickname,
+}: {
+  firstName: string;
+  lastName: string;
+  nickname: string;
+}) {
+  if (nickname) return nickname;
+
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  if (fullName) return fullName;
+
+  return "";
+}
+
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string;
+  }>;
+};
+
+export default async function NewPlayerPage({ searchParams }: PageProps) {
+  await requireClub();
+  const resolvedSearchParams = await searchParams;
+  const errorMsg = resolvedSearchParams?.error ?? "";
+
+  async function createPlayerAction(formData: FormData) {
+    "use server";
+
+    const { clubId } = await requireClub();
+    const supabase = await createClient();
+
+    const firstName = clean(String(formData.get("first_name") ?? ""));
+    const lastName = clean(String(formData.get("last_name") ?? ""));
+    const nickname = clean(String(formData.get("nickname") ?? ""));
+    const ageGroup = (String(formData.get("age_group") ?? "") || "AH") as AgeGroup;
+    const position = (String(
+      formData.get("preferred_position") ?? ""
+    ) || "attack") as PreferredPosition;
+
+    if (!nickname && !firstName && !lastName) {
+      redirect(
+        "/players/new?error=Bitte%20mindestens%20Spitzname%20oder%20Vorname/Nachname%20eingeben."
+      );
+    }
+
+    const legacyName = buildLegacyName({
+      firstName,
+      lastName,
+      nickname,
+    });
+
+    if (!legacyName) {
+      redirect("/players/new?error=Der%20Spielername%20konnte%20nicht%20erstellt%20werden.");
+    }
+
+    const { error } = await supabase.from("players").insert({
+      name: legacyName,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      nickname: nickname || null,
+      age_group: ageGroup,
+      preferred_position: position,
+      club_id: clubId,
+      is_active: true,
+      strength: null,
+    });
+
+    if (error) {
+      redirect(`/players/new?error=${encodeURIComponent(error.message)}`);
+    }
+
+    redirect("/players");
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-xl space-y-4 px-4 py-6">
+      <div className="space-y-1">
+        <Link
+          href="/players"
+          className="text-xs text-slate-500 hover:text-slate-700"
+        >
+          ← Zurück zur Übersicht
+        </Link>
+
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Neuen Spieler anlegen
+        </h1>
+        <p className="text-sm text-slate-500">
+          Anzeige in der App: Spitzname, sonst Vorname + Nachname.
+        </p>
+      </div>
+
+      <form
+        action={createPlayerAction}
+        className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-slate-700">
+              Vorname
+            </label>
+            <input
+              name="first_name"
+              type="text"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-400"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-slate-700">
+              Nachname
+            </label>
+            <input
+              name="last_name"
+              type="text"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-400"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-slate-700">
+            Spitzname (optional)
+          </label>
+          <input
+            name="nickname"
+            type="text"
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-400"
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-slate-700">
+              Altersgruppe
+            </label>
+            <select
+              name="age_group"
+              defaultValue="AH"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400"
+            >
+              <option value="AH">AH</option>
+              <option value="Ü32">Ü32</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-slate-700">
+              Position
+            </label>
+            <select
+              name="preferred_position"
+              defaultValue="attack"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400"
+            >
+              <option value="defense">Hinten (Abwehr)</option>
+              <option value="attack">Vorne (Angriff)</option>
+              <option value="goalkeeper">Torwart</option>
+            </select>
+          </div>
+        </div>
+
+        {errorMsg ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {errorMsg}
+          </div>
+        ) : null}
+
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+          >
+            Spieler anlegen
+          </button>
+
+          <Link
+            href="/players"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            Abbrechen
+          </Link>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+===== app/players/page.tsx =====
+
+import Link from "next/link";
+import { requireClub } from "@/lib/auth/guards";
+import { createClient } from "@/lib/supabase/server";
+import { PublicPlayer } from "@/lib/types/player";
+import { getPlayerDisplayName } from "@/lib/player-display";
+
+type PlayerListItem = PublicPlayer & {
+  first_name?: string | null;
+  last_name?: string | null;
+  nickname?: string | null;
+};
+
+function positionLabel(pos: PublicPlayer["preferred_position"]) {
+  if (pos === "defense") return "Hinten";
+  if (pos === "attack") return "Vorne";
+  if (pos === "goalkeeper") return "Torwart";
+  return "Position offen";
+}
+
+function sortPlayersByDisplayName(players: PlayerListItem[]) {
+  return [...players].sort((a, b) =>
+    getPlayerDisplayName(a).localeCompare(getPlayerDisplayName(b), "de")
+  );
+}
+
+export default async function PlayersPage() {
+  await requireClub();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("get_players_public");
+
+  const players = sortPlayersByDisplayName(
+    ((data ?? []) as PlayerListItem[]).filter((p) => p.is_active !== false)
+  );
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Link
+          href="/"
+          className="text-xs text-slate-500 hover:text-slate-700"
+        >
+          ← Zur Startseite
+        </Link>
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">Spieler</h1>
+          <p className="text-xs text-slate-500">
+            Kader für den aktiven Club.
+          </p>
+        </div>
+
+        <Link
+          href="/players/new"
+          className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+        >
+          + Spieler
+        </Link>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          Fehler beim Laden: {error.message}
+        </div>
+      )}
+
+      {!error && players.length === 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500">
+          Noch keine Spieler vorhanden.
+        </div>
+      )}
+
+      {!error && players.length > 0 && (
+        <ul className="space-y-2">
+          {players.map((player) => (
+            <li
+              key={player.id}
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+            >
+              <div>
+                <div className="font-medium text-slate-900">
+                  {getPlayerDisplayName(player)}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  {player.age_group ?? "?"} ·{" "}
+                  {positionLabel(player.preferred_position)}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+===== app/sessions/[id]/SessionAttendanceCard.tsx =====
+
+import { getPlayerDisplayName } from "@/lib/player-display";
+import type { Player } from "./session-types";
+import { ageBadgeColor, badgeColor, positionLabel } from "./session-ui";
+
+type ClubSettings = {
+  use_strength: boolean;
+  strength_default: number;
+  use_categories: boolean;
+  category_label: string | null;
+  position_label: string | null;
+  attack_label: string | null;
+  defense_label: string | null;
+  goalkeeper_label: string | null;
+};
+
+type SessionAttendanceCardProps = {
+  players: Player[];
+  presentIds: number[];
+  hasResult: boolean;
+  isAdmin: boolean;
+  showGuestForm: boolean;
+  guestName: string;
+  guestPosition: Player["preferred_position"] | "";
+  guestAgeGroup: Player["age_group"] | "";
+  guestSaving: boolean;
+  clubSettings: ClubSettings | null;
+  collapsed: boolean;
+  savingPresence: boolean;
+  dirty: boolean;
+  onToggleCollapsed: () => void;
+  onToggleShowGuestForm: () => void;
+  onGuestNameChange: (value: string) => void;
+  onGuestPositionChange: (value: Player["preferred_position"] | "") => void;
+  onGuestAgeGroupChange: (value: Player["age_group"] | "") => void;
+  onAddGuestPlayer: () => void;
+  onTogglePresence: (playerId: number) => void;
+  onSavePresence: () => void;
+};
+
+function guestBadge(player: Player) {
+  return player.is_guest ? (
+    <span className="rounded-md bg-slate-900 px-2 py-0.5 text-[10px] text-white">
+      Gast
+    </span>
+  ) : null;
+}
+
+export default function SessionAttendanceCard({
+  players,
+  presentIds,
+  hasResult,
+  isAdmin,
+  showGuestForm,
+  guestName,
+  guestPosition,
+  guestAgeGroup,
+  guestSaving,
+  clubSettings,
+  collapsed,
+  savingPresence,
+  dirty,
+  onToggleCollapsed,
+  onToggleShowGuestForm,
+  onGuestNameChange,
+  onGuestPositionChange,
+  onGuestAgeGroupChange,
+  onAddGuestPlayer,
+  onTogglePresence,
+  onSavePresence,
+}: SessionAttendanceCardProps) {
+  const presentCount = presentIds.length;
+  const absentCount = Math.max(players.length - presentCount, 0);
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-4">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-slate-900">Anwesenheit</div>
+          <div className="mt-1 text-xs text-slate-500">
+            {presentCount} anwesend · {absentCount} offen
+            {dirty ? " · ungespeicherte Änderungen" : ""}
+          </div>
+          {hasResult ? (
+            <div className="mt-1 text-[11px] text-slate-500">
+              Gesperrt, weil bereits ein Ergebnis gespeichert ist.
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!collapsed && !hasResult ? (
+            <button
+              type="button"
+              onClick={onSavePresence}
+              disabled={!dirty || savingPresence}
+              className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingPresence ? "Speichert..." : "Anwesenheit speichern"}
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            {collapsed ? "Aufklappen" : "Einklappen"}
+          </button>
+        </div>
+      </div>
+
+      {!collapsed ? (
+        <div className="space-y-3 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[11px] text-slate-500">
+              Tippe auf Spieler, markiere alles lokal und speichere dann gesammelt.
+            </div>
+
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={onToggleShowGuestForm}
+                disabled={hasResult || guestSaving}
+                className={`rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs shadow-sm ${
+                  hasResult || guestSaving ? "cursor-not-allowed opacity-60" : ""
+                }`}
+              >
+                {showGuestForm ? "Gastformular schließen" : "Gast hinzufügen"}
+              </button>
+            ) : null}
+          </div>
+
+          {isAdmin && showGuestForm && !hasResult ? (
+            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div>
+                <div className="mb-1 text-xs font-semibold text-slate-700">Name</div>
+                <input
+                  value={guestName}
+                  onChange={(e) => onGuestNameChange(e.target.value)}
+                  placeholder="z. B. Gastspieler 1"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <div className="mb-1 text-xs font-semibold text-slate-700">
+                    {clubSettings?.position_label ?? "Position"} (optional)
+                  </div>
+                  <select
+                    value={guestPosition ?? ""}
+                    onChange={(e) =>
+                      onGuestPositionChange(
+                        e.target.value as Player["preferred_position"] | ""
+                      )
+                    }
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">Offen</option>
+                    <option value="goalkeeper">
+                      {clubSettings?.goalkeeper_label ?? "Torwart"}
+                    </option>
+                    <option value="defense">
+                      {clubSettings?.defense_label ?? "Hinten"}
+                    </option>
+                    <option value="attack">
+                      {clubSettings?.attack_label ?? "Vorne"}
+                    </option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <div className="mb-1 text-xs font-semibold text-slate-700">
+                    {clubSettings?.category_label ?? "Altersgruppe"} (optional)
+                  </div>
+                  <select
+                    value={guestAgeGroup ?? ""}
+                    onChange={(e) =>
+                      onGuestAgeGroupChange(e.target.value as Player["age_group"] | "")
+                    }
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">Offen</option>
+                    <option value="AH">AH</option>
+                    <option value="Ü32">Ü32</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="text-[11px] text-slate-500">
+                Gastspieler werden direkt als anwesend hinzugefügt.
+              </div>
+
+              <button
+                type="button"
+                onClick={onAddGuestPlayer}
+                disabled={guestSaving}
+                className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {guestSaving ? "Speichere..." : "Gastspieler anlegen"}
+              </button>
+            </div>
+          ) : null}
+
+          {!isAdmin ? (
+            <div className="text-[11px] text-slate-500">
+              Gastspieler können aktuell nur von Admins angelegt werden.
+            </div>
+          ) : null}
+
+          <div className="grid gap-2">
+            {players.map((player) => {
+              const on = presentIds.includes(player.id);
+
+              return (
+                <button
+                  key={player.id}
+                  type="button"
+                  onClick={() => onTogglePresence(player.id)}
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${
+                    on
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-slate-200 bg-white hover:bg-slate-50"
+                  } ${hasResult ? "cursor-not-allowed opacity-60" : ""}`}
+                  disabled={hasResult}
+                  title={
+                    hasResult
+                      ? "Gesperrt: Ergebnis gespeichert"
+                      : on
+                        ? "Klick: als nicht anwesend markieren"
+                        : "Klick: als anwesend markieren"
+                  }
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate">{getPlayerDisplayName(player)}</span>
+                    {guestBadge(player)}
+                  </span>
+
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-[11px] ${ageBadgeColor(
+                        player.age_group
+                      )}`}
+                    >
+                      {player.age_group ?? "?"}
+                    </span>
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-[11px] ${badgeColor(
+                        player.preferred_position
+                      )}`}
+                    >
+                      {positionLabel(player.preferred_position)}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {!hasResult ? (
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+              <div className="text-xs text-slate-500">
+                {dirty
+                  ? "Änderungen noch nicht gespeichert."
+                  : "Anwesenheit ist gespeichert."}
+              </div>
+
+              <button
+                type="button"
+                onClick={onSavePresence}
+                disabled={!dirty || savingPresence}
+                className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {savingPresence ? "Speichert..." : "Anwesenheit speichern"}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="px-4 py-3 text-xs text-slate-500">
+          {presentCount} Spieler aktuell als anwesend markiert.
+        </div>
+      )}
+    </section>
+  );
+}
+
+===== app/sessions/[id]/SessionDetailClient.tsx =====
+
+"use client";
+
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Player, SessionRow, TeamMap, TeamSide } from "./session-types";
+import {
+  buildLineupShareText,
+  getErrorMessage,
+  normalizeGoalValue,
+  shuffle,
+  sortForTeamView,
+  sumAge,
+  sumPos,
+  sumStrength,
+} from "./session-ui";
+import { getPlayerDisplayName } from "@/lib/player-display";
+import { shareImageFromUrl } from "@/lib/share/utils";
+import SessionHeaderCard from "./SessionHeaderCard";
+import SessionAttendanceCard from "./SessionAttendanceCard";
+import SessionTeamsCard from "./SessionTeamsCard";
+import SessionResultCard from "./SessionResultCard";
+
+type ClubSettings = {
+  use_strength: boolean;
+  strength_default: number;
+  use_categories: boolean;
+  category_label: string | null;
+  position_label: string | null;
+  attack_label: string | null;
+  defense_label: string | null;
+  goalkeeper_label: string | null;
+};
+
+type SessionDetailClientProps = {
+  sessionId: number;
+  initialSession: SessionRow;
+  initialPlayers: Player[];
+  initialPresentIds: number[];
+  initialManualTeams: TeamMap;
+  initialClubId: string;
+  initialIsAdmin: boolean;
+  initialClubSettings: ClubSettings;
+  initialWinnerPhotoUrl: string | null;
+  initialGoalsA: string;
+  initialGoalsB: string;
+  initialHasResult: boolean;
+};
+
+type ApiSuccess =
+  | { ok: true; mode: "added" | "removed"; playerId: number }
+  | { ok: true; message: string; player: Player }
+  | { ok: true; message: string; hasResult: boolean; goalsA: string; goalsB: string }
+  | {
+      ok: true;
+      message: string;
+      winner_photo_path: string | null;
+      winnerPhotoUrl: string | null;
+    }
+  | {
+      ok: true;
+      message: string;
+      deleted: true;
+    };
+
+type ApiError = {
+  error: string;
+};
+
+function sameIdSet(a: number[], b: number[]) {
+  if (a.length !== b.length) return false;
+
+  const aSorted = [...a].sort((x, y) => x - y);
+  const bSorted = [...b].sort((x, y) => x - y);
+
+  return aSorted.every((value, index) => value === bSorted[index]);
+}
+
+export default function SessionDetailClient({
+  sessionId,
+  initialSession,
+  initialPlayers,
+  initialPresentIds,
+  initialManualTeams,
+  initialClubId,
+  initialIsAdmin,
+  initialClubSettings,
+  initialWinnerPhotoUrl,
+  initialGoalsA,
+  initialGoalsB,
+  initialHasResult,
+}: SessionDetailClientProps) {
+  const router = useRouter();
+
+  const resultRef = useRef<HTMLDivElement | null>(null);
+  const teamsRef = useRef<HTMLDivElement | null>(null);
+  const attendanceRef = useRef<HTMLDivElement | null>(null);
+  const winnerPhotoInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [session, setSession] = useState<SessionRow | null>(initialSession);
+  const [players, setPlayers] = useState<Player[]>(initialPlayers);
+
+  const [presentIds, setPresentIds] = useState<number[]>(initialPresentIds);
+  const [draftPresentIds, setDraftPresentIds] = useState<number[]>(initialPresentIds);
+
+  const [manualTeams, setManualTeams] = useState<TeamMap>(initialManualTeams);
+  const [clubId] = useState<string | null>(initialClubId);
+  const [isAdmin] = useState(initialIsAdmin);
+  const [clubSettings] = useState<ClubSettings | null>(initialClubSettings);
+
+  const [winnerPhotoUrl, setWinnerPhotoUrl] = useState<string | null>(
+    initialWinnerPhotoUrl
+  );
+
+  const [goalsA, setGoalsA] = useState(initialGoalsA);
+  const [goalsB, setGoalsB] = useState(initialGoalsB);
+  const [hasResult, setHasResult] = useState(initialHasResult);
+
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [guestPosition, setGuestPosition] = useState<
+    Player["preferred_position"] | ""
+  >("");
+  const [guestAgeGroup, setGuestAgeGroup] = useState<Player["age_group"] | "">(
+    ""
+  );
+  const [guestSaving, setGuestSaving] = useState(false);
+
+  const [attendanceCollapsed, setAttendanceCollapsed] = useState(initialHasResult);
+  const [teamsCollapsed, setTeamsCollapsed] = useState(initialHasResult);
+
+  const [saving, setSaving] = useState(false);
+  const [savingPresence, setSavingPresence] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [sharingLineup, setSharingLineup] = useState(false);
+  const [sharingResult, setSharingResult] = useState(false);
+  const [deletingSession, setDeletingSession] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function postForm(formData: FormData): Promise<ApiSuccess> {
+    const response = await fetch(`/api/sessions/${sessionId}`, {
+      method: "POST",
+      body: formData,
+      credentials: "same-origin",
+    });
+
+    const raw = await response.text();
+
+    let payload: ApiSuccess | ApiError | null = null;
+
+    if (raw) {
+      try {
+        payload = JSON.parse(raw) as ApiSuccess | ApiError;
+      } catch {
+        throw new Error(
+          `Server hat keine gültige JSON-Antwort geliefert (HTTP ${response.status}).`
+        );
+      }
+    }
+
+    if (!response.ok) {
+      if (payload && "error" in payload) {
+        throw new Error(payload.error);
+      }
+
+      throw new Error(raw || `Unbekannter Fehler (HTTP ${response.status}).`);
+    }
+
+    if (!payload) {
+      throw new Error("Server hat keine Antwort geliefert.");
+    }
+
+    if ("error" in payload) {
+      throw new Error(payload.error);
+    }
+
+    return payload;
+  }
+
+  useEffect(() => {
+    if (initialHasResult) {
+      const id = window.setTimeout(() => {
+        resultRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 120);
+
+      return () => window.clearTimeout(id);
+    }
+  }, [initialHasResult]);
+
+  const attendanceDirty = useMemo(
+    () => !sameIdSet(draftPresentIds, presentIds),
+    [draftPresentIds, presentIds]
+  );
+
+  const presentPlayers = useMemo(
+    () => players.filter((player) => presentIds.includes(player.id)),
+    [players, presentIds]
+  );
+
+  const teamA = useMemo(
+    () =>
+      presentPlayers
+        .filter((player) => manualTeams[player.id] === "A")
+        .slice()
+        .sort(sortForTeamView),
+    [presentPlayers, manualTeams]
+  );
+
+  const teamB = useMemo(
+    () =>
+      presentPlayers
+        .filter((player) => manualTeams[player.id] === "B")
+        .slice()
+        .sort(sortForTeamView),
+    [presentPlayers, manualTeams]
+  );
+
+  const unassigned = useMemo(
+    () =>
+      presentPlayers
+        .filter((player) => !manualTeams[player.id])
+        .slice()
+        .sort(sortForTeamView),
+    [presentPlayers, manualTeams]
+  );
+
+  const canShareLineup = teamA.length > 0 && teamB.length > 0;
+  const canShareResult =
+    teamA.length > 0 &&
+    teamB.length > 0 &&
+    goalsA.trim() !== "" &&
+    goalsB.trim() !== "";
+
+  const teamsComplete =
+    teamA.length > 0 && teamB.length > 0 && unassigned.length === 0;
+
+  const canUploadWinnerPhoto = teamsComplete && !saving && !deletingSession;
+
+  const nextStepLabel = hasResult
+    ? "Ergebnis ist gespeichert"
+    : attendanceDirty
+      ? "Anwesenheit speichern"
+      : presentPlayers.length < 2
+        ? "Mehr Spieler auf anwesend setzen"
+        : !teamsComplete
+          ? "Teams fertig zuweisen"
+          : "Ergebnis eintragen und speichern";
+
+  async function shareText(text: string, title: string) {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      await navigator.share({
+        title,
+        text,
+      });
+      return "shared";
+    }
+
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return "copied";
+    }
+
+    throw new Error("Teilen wird auf diesem Gerät/Browser nicht unterstützt.");
+  }
+
+  function resetGuestForm() {
+    setGuestName("");
+    setGuestPosition("");
+    setGuestAgeGroup("");
+    setShowGuestForm(false);
+  }
+
+  function toggleGuestForm() {
+    if (showGuestForm) {
+      resetGuestForm();
+      return;
+    }
+
+    setShowGuestForm(true);
+  }
+
+  async function handleShareLineup() {
+    try {
+      setSharingLineup(true);
+      setErr(null);
+      setMsg(null);
+
+      if (!canShareLineup) {
+        throw new Error("Bitte zuerst beide Teams zuweisen.");
+      }
+
+      const text = buildLineupShareText(session, teamA, teamB);
+      const result = await shareText(text, "Aufstellung teilen");
+
+      setMsg(
+        result === "copied"
+          ? "Aufstellungs-Text in die Zwischenablage kopiert."
+          : "Aufstellung erfolgreich geteilt."
+      );
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Aufstellung konnte nicht geteilt werden."));
+    } finally {
+      setSharingLineup(false);
+    }
+  }
+
+  async function handleShareResult() {
+    try {
+      setSharingResult(true);
+      setErr(null);
+      setMsg(null);
+
+      if (!canShareResult) {
+        throw new Error(
+          "Bitte zuerst Teams und Ergebnis vollständig und gültig eintragen."
+        );
+      }
+
+      await shareImageFromUrl({
+        imageUrl: `/api/share/result/${sessionId}/image`,
+        fileName: `strikr-ergebnis-${sessionId}.png`,
+        title: "Ergebnis teilen",
+        text: "Ergebnis geteilt mit Strikr",
+      });
+
+      setMsg("Ergebnis erfolgreich als Bild geteilt.");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Ergebnis konnte nicht geteilt werden."));
+    } finally {
+      setSharingResult(false);
+    }
+  }
+
+  async function handleDeleteSession() {
+    if (!isAdmin) {
+      setErr("Nur Admins dürfen eine Session löschen.");
+      return;
+    }
+
+    if (deletingSession || saving || savingPresence || photoBusy) {
+      return;
+    }
+
+    const okConfirm = window.confirm(
+      "Session wirklich komplett löschen?\n\nDabei werden Anwesenheit, Teams, Ergebnis und Siegerfoto endgültig entfernt."
+    );
+
+    if (!okConfirm) return;
+
+    try {
+      setDeletingSession(true);
+      setErr(null);
+      setMsg(null);
+
+      const formData = new FormData();
+      formData.set("intent", "delete_session");
+
+      const result = await postForm(formData);
+
+      if ("deleted" in result && result.deleted) {
+        router.push("/sessions?deleted=1");
+        router.refresh();
+      }
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Session konnte nicht gelöscht werden."));
+    } finally {
+      setDeletingSession(false);
+    }
+  }
+
+  function togglePresence(id: number) {
+    if (hasResult) {
+      setErr(
+        "Anwesenheit ist gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um wieder zu entsperren."
+      );
+      return;
+    }
+
+    setErr(null);
+    setMsg(null);
+
+    setDraftPresentIds((prev) =>
+      prev.includes(id) ? prev.filter((playerId) => playerId !== id) : [...prev, id]
+    );
+  }
+
+  async function savePresence() {
+    if (hasResult || savingPresence || !attendanceDirty || deletingSession) {
+      return;
+    }
+
+    try {
+      setSavingPresence(true);
+      setErr(null);
+      setMsg(null);
+
+      const toRemove = presentIds.filter((id) => !draftPresentIds.includes(id));
+      const toAdd = draftPresentIds.filter((id) => !presentIds.includes(id));
+
+      for (const id of toRemove) {
+        const formData = new FormData();
+        formData.set("intent", "toggle_presence");
+        formData.set("player_id", String(id));
+        await postForm(formData);
+      }
+
+      for (const id of toAdd) {
+        const formData = new FormData();
+        formData.set("intent", "toggle_presence");
+        formData.set("player_id", String(id));
+        await postForm(formData);
+      }
+
+      setPresentIds(draftPresentIds);
+
+      setManualTeams((prev) => {
+        const next = { ...prev };
+
+        Object.keys(next).forEach((key) => {
+          const numericId = Number(key);
+          if (!draftPresentIds.includes(numericId)) {
+            delete next[numericId];
+          }
+        });
+
+        draftPresentIds.forEach((id) => {
+          next[id] = next[id] ?? null;
+        });
+
+        return next;
+      });
+
+      setAttendanceCollapsed(true);
+      setMsg("Anwesenheit gespeichert.");
+
+      window.setTimeout(() => {
+        teamsRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 120);
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Anwesenheit konnte nicht gespeichert werden."));
+    } finally {
+      setSavingPresence(false);
+    }
+  }
+
+  async function addGuestPlayer() {
+    try {
+      if (!isAdmin) {
+        throw new Error(
+          "Gastspieler können aktuell nur von Admins angelegt werden."
+        );
+      }
+
+      if (hasResult) {
+        throw new Error(
+          "Gastspieler können nicht mehr hinzugefügt werden, wenn bereits ein Ergebnis gespeichert ist."
+        );
+      }
+
+      if (!clubId) {
+        throw new Error("Kein Club gefunden.");
+      }
+
+      setGuestSaving(true);
+      setErr(null);
+      setMsg(null);
+
+      const cleanName = guestName.trim();
+      if (!cleanName) {
+        throw new Error("Bitte einen Namen für den Gastspieler eingeben.");
+      }
+
+      const formData = new FormData();
+      formData.set("intent", "add_guest_player");
+      formData.set("guest_name", cleanName);
+      formData.set("guest_position", guestPosition ?? "");
+      formData.set("guest_age_group", guestAgeGroup ?? "");
+
+      const result = await postForm(formData);
+
+      if ("player" in result) {
+        const nextPlayer = result.player;
+
+        setPlayers((prev) =>
+          [...prev, nextPlayer].slice().sort((a, b) => {
+            return getPlayerDisplayName(a).localeCompare(
+              getPlayerDisplayName(b),
+              "de"
+            );
+          })
+        );
+
+        setPresentIds((prev) =>
+          prev.includes(nextPlayer.id) ? prev : [...prev, nextPlayer.id]
+        );
+        setDraftPresentIds((prev) =>
+          prev.includes(nextPlayer.id) ? prev : [...prev, nextPlayer.id]
+        );
+
+        setManualTeams((prev) => ({
+          ...prev,
+          [nextPlayer.id]: prev[nextPlayer.id] ?? null,
+        }));
+
+        resetGuestForm();
+        setMsg(result.message);
+      }
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Gastspieler konnte nicht angelegt werden."));
+    } finally {
+      setGuestSaving(false);
+    }
+  }
+
+  function generateTeams() {
+    if (hasResult) {
+      setErr(
+        "Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern."
+      );
+      return;
+    }
+
+    if (attendanceDirty) {
+      setErr("Bitte zuerst die Anwesenheit speichern.");
+      return;
+    }
+
+    setErr(null);
+    setMsg(null);
+
+    const present = presentPlayers;
+    if (present.length < 2) {
+      setErr("Mindestens 2 Spieler nötig.");
+      return;
+    }
+
+    const targetA = Math.ceil(present.length / 2);
+    const targetB = Math.floor(present.length / 2);
+
+    const keepers = present.filter((p) => p.preferred_position === "goalkeeper");
+    const field = present.filter((p) => p.preferred_position !== "goalkeeper");
+
+    function evaluate(A: Player[], B: Player[]) {
+      const useStrength = clubSettings?.use_strength ?? true;
+      const useCategories = clubSettings?.use_categories ?? true;
+
+      const sDiff = useStrength ? Math.abs(sumStrength(A) - sumStrength(B)) : 0;
+      const aDiff = useCategories ? Math.abs(sumAge(A) - sumAge(B)) : 0;
+      const pDiff = Math.abs(sumPos(A) - sumPos(B));
+
+      return sDiff * 6 + aDiff * 3 + pDiff * 2;
+    }
+
+    let bestA: Player[] = [];
+    let bestB: Player[] = [];
+    let bestScore = Infinity;
+
+    for (let k = 0; k < 400; k += 1) {
+      const A: Player[] = [];
+      const B: Player[] = [];
+
+      const shuffledKeepers = shuffle(keepers);
+      for (const gk of shuffledKeepers) {
+        if (
+          A.length < targetA &&
+          (A.length <= B.length || B.length >= targetB)
+        ) {
+          A.push(gk);
+        } else if (B.length < targetB) {
+          B.push(gk);
+        } else if (A.length < targetA) {
+          A.push(gk);
+        }
+      }
+
+      const shuffledField = shuffle(field);
+
+      for (const p of shuffledField) {
+        if (A.length >= targetA) {
+          if (B.length < targetB) B.push(p);
+          continue;
+        }
+        if (B.length >= targetB) {
+          if (A.length < targetA) A.push(p);
+          continue;
+        }
+
+        const scoreIfA = evaluate([...A, p], B);
+        const scoreIfB = evaluate(A, [...B, p]);
+
+        if (scoreIfA < scoreIfB) A.push(p);
+        else if (scoreIfB < scoreIfA) B.push(p);
+        else (A.length <= B.length ? A : B).push(p);
+      }
+
+      if (!(A.length === targetA && B.length === targetB)) continue;
+
+      const score = evaluate(A, B);
+      if (score < bestScore) {
+        bestScore = score;
+        bestA = A;
+        bestB = B;
+      }
+    }
+
+    if (bestA.length === 0 && bestB.length === 0) {
+      setErr("Konnte keine gültige Aufteilung finden (unerwartet).");
+      return;
+    }
+
+    const next: TeamMap = {};
+    present.forEach((player) => {
+      next[player.id] = null;
+    });
+    for (const player of bestA) next[player.id] = "A";
+    for (const player of bestB) next[player.id] = "B";
+
+    setManualTeams(next);
+
+    const useStrength = clubSettings?.use_strength ?? true;
+    const useCategories = clubSettings?.use_categories ?? true;
+
+    if (useStrength && useCategories) {
+      setMsg(
+        "Teams automatisch verteilt. Stärke und Kategorien wurden berücksichtigt."
+      );
+    } else if (useStrength && !useCategories) {
+      setMsg(
+        "Teams automatisch verteilt. Stärke wurde berücksichtigt, Kategorien nicht."
+      );
+    } else if (!useStrength && useCategories) {
+      setMsg(
+        "Teams automatisch verteilt. Kategorien wurden berücksichtigt, Stärke nicht."
+      );
+    } else {
+      setMsg(
+        "Teams automatisch verteilt. Stärke und Kategorien wurden nicht berücksichtigt."
+      );
+    }
+
+    setTeamsCollapsed(false);
+
+    window.setTimeout(() => {
+      resultRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 120);
+  }
+
+  function setSide(playerId: number, side: TeamSide | null) {
+    if (hasResult) {
+      setErr(
+        "Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern."
+      );
+      return;
+    }
+
+    if (attendanceDirty) {
+      setErr("Bitte zuerst die Anwesenheit speichern.");
+      return;
+    }
+
+    setErr(null);
+    setManualTeams((prev) => ({ ...prev, [playerId]: side }));
+  }
+
+  async function saveResult() {
+    if (saving || deletingSession) return;
+
+    const cleanA = normalizeGoalValue(goalsA);
+    const cleanB = normalizeGoalValue(goalsB);
+
+    if (attendanceDirty) {
+      setErr("Bitte zuerst die Anwesenheit speichern.");
+      return;
+    }
+
+    if (!teamsComplete) {
+      setErr(
+        "Bitte weise zuerst alle anwesenden Spieler einem Team zu. Beide Teams müssen mindestens einen Spieler haben."
+      );
+      return;
+    }
+
+    if (cleanA === "" || cleanB === "") {
+      setErr("Bitte trage zuerst ein vollständiges Ergebnis ein.");
+      return;
+    }
+
+    const okConfirm = window.confirm(
+      "Ergebnis speichern? Danach sind Aufstellungen & Anwesenheit gesperrt."
+    );
+    if (!okConfirm) return;
+
+    try {
+      setSaving(true);
+      setErr(null);
+      setMsg(null);
+
+      const formData = new FormData();
+      formData.set("intent", "save_result");
+      formData.set("goals_a", cleanA);
+      formData.set("goals_b", cleanB);
+      formData.set("manual_teams", JSON.stringify(manualTeams));
+
+      const result = await postForm(formData);
+
+      if ("hasResult" in result) {
+        setHasResult(result.hasResult);
+        setGoalsA(result.goalsA);
+        setGoalsB(result.goalsB);
+        setAttendanceCollapsed(true);
+        setTeamsCollapsed(true);
+        setMsg(result.message);
+      }
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Fehler beim Speichern."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteResult() {
+    if (saving || deletingSession) return;
+
+    const okConfirm = window.confirm(
+      "Ergebnis wirklich löschen?\nDanach sind Aufstellungen & Anwesenheit wieder bearbeitbar."
+    );
+    if (!okConfirm) return;
+
+    try {
+      setSaving(true);
+      setErr(null);
+      setMsg(null);
+
+      const formData = new FormData();
+      formData.set("intent", "delete_result");
+
+      const result = await postForm(formData);
+
+      if ("hasResult" in result) {
+        setHasResult(result.hasResult);
+        setGoalsA(result.goalsA);
+        setGoalsB(result.goalsB);
+        setAttendanceCollapsed(false);
+        setTeamsCollapsed(false);
+        setMsg(result.message);
+      }
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Fehler beim Löschen des Ergebnisses."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleWinnerPhotoUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (!session) {
+      setErr("Training konnte nicht geladen werden.");
+      return;
+    }
+
+    if (!teamsComplete) {
+      setErr(
+        "Bitte zuerst die Teams vollständig zuweisen, bevor du ein Siegerfoto hochlädst."
+      );
+      return;
+    }
+
+    if (photoBusy || saving || deletingSession) return;
+
+    try {
+      setPhotoBusy(true);
+      setErr(null);
+      setMsg(null);
+
+      const formData = new FormData();
+      formData.set("intent", "upload_winner_photo");
+      formData.set("file", file);
+
+      const result = await postForm(formData);
+
+      if ("winner_photo_path" in result) {
+        const nextSession: SessionRow = {
+          ...session,
+          winner_photo_path: result.winner_photo_path,
+        };
+
+        setSession(nextSession);
+        setWinnerPhotoUrl(result.winnerPhotoUrl);
+        setMsg(result.message);
+      }
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Siegerfoto konnte nicht hochgeladen werden."));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function handleWinnerPhotoDelete() {
+    if (!session?.winner_photo_path) {
+      setErr("Kein Siegerfoto vorhanden.");
+      return;
+    }
+
+    if (photoBusy || saving || deletingSession) return;
+
+    const okConfirm = window.confirm("Siegerfoto wirklich löschen?");
+    if (!okConfirm) return;
+
+    try {
+      setPhotoBusy(true);
+      setErr(null);
+      setMsg(null);
+
+      const formData = new FormData();
+      formData.set("intent", "delete_winner_photo");
+
+      const result = await postForm(formData);
+
+      if ("winner_photo_path" in result) {
+        const nextSession: SessionRow = {
+          ...session,
+          winner_photo_path: result.winner_photo_path,
+        };
+
+        setSession(nextSession);
+        setWinnerPhotoUrl(result.winnerPhotoUrl);
+        setMsg(result.message);
+      }
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Siegerfoto konnte nicht gelöscht werden."));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  function teamMeta(team: Player[]) {
+    const gk = team.filter((p) => p.preferred_position === "goalkeeper").length;
+    const def = team.filter((p) => p.preferred_position === "defense").length;
+    const att = team.filter((p) => p.preferred_position === "attack").length;
+    const ah = team.filter((p) => p.age_group === "AH").length;
+    const u32 = team.filter((p) => p.age_group === "Ü32").length;
+    return { gk, def, att, ah, u32 };
+  }
+
+  const metaA = teamMeta(teamA);
+  const metaB = teamMeta(teamB);
+
+  if (err && !session) {
+    return <div className="bg-red-50 p-4 text-sm text-red-700">{err}</div>;
+  }
+
+  if (!session) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      <button
+        type="button"
+        onClick={() => router.push("/sessions")}
+        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+      >
+        <span aria-hidden="true">←</span>
+        <span>Zurück zu Trainings</span>
+      </button>
+
+      <SessionHeaderCard
+        date={session.date}
+        notes={session.notes ?? null}
+        presentCount={presentPlayers.length}
+        teamACount={teamA.length}
+        teamBCount={teamB.length}
+        hasResult={hasResult}
+        nextStepLabel={nextStepLabel}
+        isAdmin={isAdmin}
+        deletingSession={deletingSession}
+        onDeleteSession={handleDeleteSession}
+        onScrollToTeams={() =>
+          teamsRef.current?.scrollIntoView({ behavior: "smooth" })
+        }
+        onScrollToResult={() =>
+          resultRef.current?.scrollIntoView({ behavior: "smooth" })
+        }
+      />
+
+      {!hasResult && (
+        <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+          Empfohlene Reihenfolge: Anwesenheit festlegen → Anwesenheit speichern →
+          Teams aufteilen → Ergebnis speichern.
+        </div>
+      )}
+
+      {err && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          {err}
+        </div>
+      )}
+
+      {msg && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+          {msg}
+        </div>
+      )}
+
+      <div ref={attendanceRef}>
+        <SessionAttendanceCard
+          players={players}
+          presentIds={draftPresentIds}
+          hasResult={hasResult}
+          isAdmin={isAdmin}
+          showGuestForm={showGuestForm}
+          guestName={guestName}
+          guestPosition={guestPosition}
+          guestAgeGroup={guestAgeGroup}
+          guestSaving={guestSaving}
+          clubSettings={clubSettings}
+          collapsed={attendanceCollapsed}
+          savingPresence={savingPresence}
+          dirty={attendanceDirty}
+          onToggleCollapsed={() =>
+            setAttendanceCollapsed((prev) => !prev)
+          }
+          onToggleShowGuestForm={toggleGuestForm}
+          onGuestNameChange={setGuestName}
+          onGuestPositionChange={setGuestPosition}
+          onGuestAgeGroupChange={setGuestAgeGroup}
+          onAddGuestPlayer={addGuestPlayer}
+          onTogglePresence={togglePresence}
+          onSavePresence={savePresence}
+        />
+      </div>
+
+      <div ref={teamsRef}>
+        <SessionTeamsCard
+          teamA={teamA}
+          teamB={teamB}
+          unassigned={unassigned}
+          metaA={metaA}
+          metaB={metaB}
+          hasResult={hasResult}
+          saving={saving}
+          teamsComplete={teamsComplete}
+          canShareLineup={canShareLineup}
+          sharingLineup={sharingLineup}
+          collapsed={teamsCollapsed}
+          attendanceDirty={attendanceDirty}
+          onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
+          onGenerateTeams={generateTeams}
+          onShareLineup={handleShareLineup}
+          onSetSide={setSide}
+        />
+      </div>
+
+      <div ref={resultRef}>
+        <SessionResultCard
+          hasResult={hasResult}
+          saving={saving}
+          photoBusy={photoBusy}
+          goalsA={goalsA}
+          goalsB={goalsB}
+          canShareResult={canShareResult}
+          canUploadWinnerPhoto={canUploadWinnerPhoto}
+          winnerPhotoUrl={winnerPhotoUrl}
+          hasWinnerPhoto={Boolean(session.winner_photo_path)}
+          sharingResult={sharingResult}
+          winnerPhotoInputRef={winnerPhotoInputRef}
+          onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
+          onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
+          onDeleteResult={deleteResult}
+          onWinnerPhotoUpload={handleWinnerPhotoUpload}
+          onWinnerPhotoDelete={handleWinnerPhotoDelete}
+          onSaveResult={saveResult}
+          onShareResult={handleShareResult}
+        />
+      </div>
+    </div>
+  );
+}
+
+===== app/sessions/[id]/SessionExportCards.tsx =====
+
+import Image from "next/image";
+import { getPlayerDisplayName } from "@/lib/player-display";
+import type { Player, SessionRow } from "./session-types";
+import {
+  ageBadgeColor,
+  badgeColor,
+  formatGermanDate,
+  positionLabel,
+  winnerBadgeClass,
+  winnerLabel,
+} from "./session-ui";
+
+type TeamMeta = {
+  gk: number;
+  def: number;
+  att: number;
+  ah: number;
+  u32: number;
+};
+
+type LineupExportCardProps = {
+  session: SessionRow | null;
+  teamA: Player[];
+  teamB: Player[];
+  metaA: TeamMeta;
+  metaB: TeamMeta;
+};
+
+type ResultExportCardProps = {
+  session: SessionRow | null;
+  teamA: Player[];
+  teamB: Player[];
+  goalsA: string;
+  goalsB: string;
+  winnerPhotoUrl: string | null;
+};
+
+function sessionLabel(session: SessionRow | null) {
+  return session ? formatGermanDate(session.date) : "Training";
+}
+
+function PlayerLineupRow({ player }: { player: Player }) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-2.5 py-2">
+      <span className="min-w-0 truncate text-xs font-medium text-slate-900">
+        {getPlayerDisplayName(player)}
+      </span>
+
+      <span className="flex shrink-0 items-center gap-1">
+        <span
+          className={`rounded-md px-2 py-0.5 text-[10px] ${ageBadgeColor(
+            player.age_group
+          )}`}
+        >
+          {player.age_group ?? "?"}
+        </span>
+        <span
+          className={`rounded-md px-2 py-0.5 text-[10px] ${badgeColor(
+            player.preferred_position
+          )}`}
+        >
+          {positionLabel(player.preferred_position)}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function PlayerResultRow({ player }: { player: Player }) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-2.5 py-2">
+      <span className="min-w-0 truncate text-xs font-medium text-slate-900">
+        {getPlayerDisplayName(player)}
+      </span>
+
+      <span
+        className={`rounded-md px-2 py-0.5 text-[10px] ${badgeColor(
+          player.preferred_position
+        )}`}
+      >
+        {positionLabel(player.preferred_position)}
+      </span>
+    </div>
+  );
+}
+
+function TeamMetaCard({
+  title,
+  count,
+  meta,
+}: {
+  title: string;
+  count: number;
+  meta: TeamMeta;
+}) {
+  return (
+    <div className="text-center">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-300">
+        {title}
+      </div>
+      <div className="mt-2 text-4xl font-semibold leading-none">{count}</div>
+      <div className="mt-2 text-[11px] text-slate-300">
+        GK {meta.gk} · Hinten {meta.def} · Vorne {meta.att}
+      </div>
+      <div className="mt-1 text-[10px] text-slate-400">
+        AH {meta.ah} · Ü32 {meta.u32}
+      </div>
+    </div>
+  );
+}
+
+function TeamListCard({
+  title,
+  players,
+  variant,
+}: {
+  title: string;
+  players: Player[];
+  variant: "lineup" | "result";
+}) {
+  return (
+    <div className="rounded-[20px] border border-slate-200 bg-white p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm font-semibold text-slate-900">{title}</div>
+        <div className="text-[10px] text-slate-500">
+          {players.length} Spieler
+        </div>
+      </div>
+
+      {players.length === 0 ? (
+        <div className="mt-3 text-xs text-slate-400">
+          Noch keine Spieler zugewiesen.
+        </div>
+      ) : (
+        <div className="mt-3 space-y-1.5">
+          {players.map((player) =>
+            variant === "lineup" ? (
+              <PlayerLineupRow key={`${title}-${player.id}`} player={player} />
+            ) : (
+              <PlayerResultRow key={`${title}-${player.id}`} player={player} />
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function LineupExportCard({
+  session,
+  teamA,
+  teamB,
+  metaA,
+  metaB,
+}: LineupExportCardProps) {
+  return (
+    <div
+      id="export-lineup-card"
+      className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm"
+    >
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-5 py-5 text-white">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300">
+              strikr
+            </div>
+            <div className="mt-2 text-2xl font-semibold leading-tight">
+              Aufstellung
+            </div>
+            <div className="mt-1 text-sm text-slate-300">
+              {sessionLabel(session)}
+            </div>
+          </div>
+
+          <div className="shrink-0 text-right">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+              made with strikr
+            </div>
+            <div className="mt-1 text-[10px] text-slate-300">#strikr</div>
+          </div>
+        </div>
+
+        {session?.notes && (
+          <div className="mt-4 rounded-[18px] border border-white/10 bg-white/10 px-3 py-2 text-[11px] text-slate-200">
+            {session.notes}
+          </div>
+        )}
+
+        <div className="mt-5 rounded-[24px] border border-white/10 bg-white/10 px-4 py-5 backdrop-blur-sm">
+          <div className="grid grid-cols-2 gap-4">
+            <TeamMetaCard title="Team 1" count={teamA.length} meta={metaA} />
+            <TeamMetaCard title="Team 2" count={teamB.length} meta={metaB} />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-slate-50 p-4">
+        <div className="grid grid-cols-2 gap-3">
+          <TeamListCard title="Team 1" players={teamA} variant="lineup" />
+          <TeamListCard title="Team 2" players={teamB} variant="lineup" />
+        </div>
+
+        <div className="mt-4 flex items-end justify-between gap-4">
+          <div className="text-[10px] text-slate-500">
+            {sessionLabel(session)}
+          </div>
+
+          <div className="text-right">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              made with strikr
+            </div>
+            <div className="mt-0.5 text-[10px] text-slate-400">#strikr</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ResultExportCard({
+  session,
+  teamA,
+  teamB,
+  goalsA,
+  goalsB,
+  winnerPhotoUrl,
+}: ResultExportCardProps) {
+  return (
+    <div
+      id="export-result-card"
+      className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm"
+    >
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-5 py-5 text-white">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300">
+              strikr
+            </div>
+            <div className="mt-2 text-2xl font-semibold leading-tight">
+              Ergebnis
+            </div>
+            <div className="mt-1 text-sm text-slate-300">
+              {sessionLabel(session)}
+            </div>
+          </div>
+
+          <div className="shrink-0 text-right">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+              made with strikr
+            </div>
+            <div className="mt-1 text-[10px] text-slate-300">#strikr</div>
+          </div>
+        </div>
+
+        {session?.notes && (
+          <div className="mt-4 rounded-[18px] border border-white/10 bg-white/10 px-3 py-2 text-[11px] text-slate-200">
+            {session.notes}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-slate-50 p-4">
+        {winnerPhotoUrl && (
+          <div className="mb-4 overflow-hidden rounded-[24px] border border-slate-200 bg-white">
+            <Image
+              src={winnerPhotoUrl}
+              alt="Siegerfoto"
+              width={1200}
+              height={800}
+              unoptimized
+              className="h-auto max-h-[380px] w-full object-cover"
+            />
+          </div>
+        )}
+
+        <div className="rounded-[24px] bg-slate-900 px-4 py-5 text-white">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="text-center">
+              <div className="text-[11px] uppercase tracking-wide text-slate-300">
+                Team 1
+              </div>
+              <div className="mt-2 text-5xl font-semibold leading-none">
+                {goalsA.trim() === "" ? "?" : goalsA}
+              </div>
+              <div className="mt-2 text-[11px] text-slate-300">
+                {teamA.length} Spieler
+              </div>
+            </div>
+
+            <div className="text-3xl font-semibold text-slate-500">:</div>
+
+            <div className="text-center">
+              <div className="text-[11px] uppercase tracking-wide text-slate-300">
+                Team 2
+              </div>
+              <div className="mt-2 text-5xl font-semibold leading-none">
+                {goalsB.trim() === "" ? "?" : goalsB}
+              </div>
+              <div className="mt-2 text-[11px] text-slate-300">
+                {teamB.length} Spieler
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-center">
+            <div
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold ${winnerBadgeClass(
+                goalsA,
+                goalsB
+              )}`}
+            >
+              {winnerLabel(goalsA, goalsB)}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <TeamListCard title="Team 1" players={teamA} variant="result" />
+          <TeamListCard title="Team 2" players={teamB} variant="result" />
+        </div>
+
+        <div className="mt-4 flex items-end justify-between gap-4">
+          <div className="text-[10px] text-slate-500">
+            {sessionLabel(session)}
+          </div>
+
+          <div className="text-right">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              made with strikr
+            </div>
+            <div className="mt-0.5 text-[10px] text-slate-400">#strikr</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+===== app/sessions/[id]/page.tsx =====
+
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
+import SessionDetailClient from "./SessionDetailClient";
+import type { Player, SessionRow } from "./session-types";
+
+type ClubSettings = {
+  use_strength: boolean;
+  strength_default: number;
+  use_categories: boolean;
+  category_label: string | null;
+  position_label: string | null;
+  attack_label: string | null;
+  defense_label: string | null;
+  goalkeeper_label: string | null;
+};
+
+type ResultRow = {
+  id: number;
+  team_a_id: number | null;
+  team_b_id: number | null;
+  goals_team_a: number | null;
+  goals_team_b: number | null;
+};
+
+type TeamPlayerRow = {
+  team_id: number;
+  player_id: number;
+};
+
+type SessionPlayerRow = {
+  player_id: number;
+};
+
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin" || role === "owner";
+}
+
+export default async function SessionDetailPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const sessionId = Number(resolvedParams.id);
+  const { clubId, membership } = await requireClub();
+  const supabase = await createClient();
+
+  if (!Number.isFinite(sessionId)) {
+    redirect("/sessions");
+  }
+
+  const [
+    { data: settingsData, error: settingsError },
+    { data: sessionData, error: sessionError },
+    { data: playersData, error: playersError },
+    { data: sessionPlayersData, error: sessionPlayersError },
+    { data: resultData, error: resultError },
+  ] = await Promise.all([
+    supabase
+      .from("club_settings")
+      .select(
+        "use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label"
+      )
+      .eq("club_id", clubId)
+      .single(),
+    supabase
+      .from("sessions")
+      .select("id, date, notes, winner_photo_path, club_id")
+      .eq("id", sessionId)
+      .eq("club_id", clubId)
+      .single(),
+    supabase
+      .from("players")
+      .select(
+        "id, name, first_name, last_name, nickname, is_active, age_group, preferred_position, strength, is_guest"
+      )
+      .eq("club_id", clubId)
+      .order("name"),
+    supabase
+      .from("session_players")
+      .select("player_id")
+      .eq("session_id", sessionId),
+    supabase
+      .from("results")
+      .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+      .eq("session_id", sessionId)
+      .maybeSingle(),
+  ]);
+
+  if (settingsError) {
+    throw new Error(
+      `Club-Settings konnten nicht geladen werden: ${settingsError.message}`
+    );
+  }
+
+  if (sessionError) {
+    redirect("/sessions");
+  }
+
+  if (playersError) {
+    throw new Error(
+      `Spieler konnten nicht geladen werden: ${playersError.message}`
+    );
+  }
+
+  if (sessionPlayersError) {
+    throw new Error(
+      `Session-Spieler konnten nicht geladen werden: ${sessionPlayersError.message}`
+    );
+  }
+
+  if (resultError) {
+    throw new Error(
+      `Ergebnis konnte nicht geladen werden: ${resultError.message}`
+    );
+  }
+
+  const session = sessionData as SessionRow;
+  const clubSettings = settingsData as ClubSettings;
+  const players = ((playersData ?? []).filter(
+    (player) => player.is_active !== false
+  ) ?? []) as Player[];
+  const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[]).map(
+    (row) => row.player_id
+  );
+
+  const result = (resultData ?? null) as ResultRow | null;
+
+  const manualTeams: Record<number, "A" | "B" | null> = {};
+  presentIds.forEach((playerId) => {
+    manualTeams[playerId] = null;
+  });
+
+  let goalsA = "";
+  let goalsB = "";
+  let hasResult = false;
+
+  if (result && (result.team_a_id || result.team_b_id)) {
+    const teamIds = [result.team_a_id, result.team_b_id].filter(Boolean) as number[];
+
+    if (teamIds.length > 0) {
+      const { data: teamPlayersData, error: teamPlayersError } = await supabase
+        .from("team_players")
+        .select("team_id, player_id")
+        .in("team_id", teamIds);
+
+      if (teamPlayersError) {
+        throw new Error(
+          `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`
+        );
+      }
+
+      for (const teamPlayer of (teamPlayersData ?? []) as TeamPlayerRow[]) {
+        if (teamPlayer.team_id === result.team_a_id) {
+          manualTeams[teamPlayer.player_id] = "A";
+        }
+        if (teamPlayer.team_id === result.team_b_id) {
+          manualTeams[teamPlayer.player_id] = "B";
+        }
+      }
+    }
+
+    if (result.goals_team_a != null) goalsA = String(result.goals_team_a);
+    if (result.goals_team_b != null) goalsB = String(result.goals_team_b);
+    hasResult = true;
+  }
+
+  let winnerPhotoUrl: string | null = null;
+
+  if (session.winner_photo_path) {
+    const { data, error } = await supabase.storage
+      .from("session-photos")
+      .createSignedUrl(session.winner_photo_path, 60 * 60);
+
+    if (!error) {
+      winnerPhotoUrl = data?.signedUrl ?? null;
+    }
+  }
+
+  return (
+    <SessionDetailClient
+      sessionId={sessionId}
+      initialSession={session}
+      initialPlayers={players}
+      initialPresentIds={presentIds}
+      initialManualTeams={manualTeams}
+      initialClubId={clubId}
+      initialIsAdmin={isAdminRole(membership.role)}
+      initialClubSettings={clubSettings}
+      initialWinnerPhotoUrl={winnerPhotoUrl}
+      initialGoalsA={goalsA}
+      initialGoalsB={goalsB}
+      initialHasResult={hasResult}
+    />
+  );
+}
+
+===== app/sessions/[id]/session-types.ts =====
+
+export type Player = {
+  id: number;
+  name: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  nickname?: string | null;
+  age_group: "AH" | "Ü32" | null;
+  preferred_position: "defense" | "attack" | "goalkeeper" | null;
+  strength: number | null;
+  is_active: boolean | null;
+  is_guest?: boolean;
+};
+
+export type SessionRow = {
+  id: number;
+  date: string;
+  notes: string | null;
+  winner_photo_path?: string | null;
+};
+
+export type TeamSide = "A" | "B";
+export type TeamMap = Record<number, TeamSide | null>;
+
+===== app/sessions/[id]/session-ui.tsx =====
+
+import { getPlayerDisplayName } from "@/lib/player-display";
+import type { Player, SessionRow } from "./session-types";
+
+export function getErrorMessage(e: unknown, fallback: string) {
+  if (
+    e &&
+    typeof e === "object" &&
+    "message" in e &&
+    typeof (e as { message: unknown }).message === "string"
+  ) {
+    return (e as { message: string }).message;
+  }
+
+  return fallback;
+}
+
+export function positionLabel(pos: Player["preferred_position"]) {
+  if (pos === "defense") return "Hinten";
+  if (pos === "attack") return "Vorne";
+  if (pos === "goalkeeper") return "Torwart";
+  return "Unbekannt";
+}
+
+export function badgeColor(pos: Player["preferred_position"]) {
+  if (pos === "defense") return "bg-sky-100 text-sky-800";
+  if (pos === "attack") return "bg-orange-100 text-orange-800";
+  if (pos === "goalkeeper") return "bg-purple-100 text-purple-800";
+  return "bg-slate-100 text-slate-700";
+}
+
+export function ageBadgeColor(age: Player["age_group"]) {
+  if (age === "Ü32") return "bg-amber-100 text-amber-800";
+  if (age === "AH") return "bg-emerald-100 text-emerald-800";
+  return "bg-slate-100 text-slate-700";
+}
+
+export const ageScore = (a: Player["age_group"]) =>
+  a === "Ü32" ? 1 : a === "AH" ? -1 : 0;
+
+export const posScore = (p: Player["preferred_position"]) =>
+  p === "attack" ? 1 : p === "defense" ? -1 : 0;
+
+export const strengthScore = (s: number | null) => {
+  if (typeof s !== "number" || Number.isNaN(s)) return 3;
+  return Math.max(1, Math.min(5, s));
+};
+
+export function shuffle<T>(arr: T[]) {
+  const c = [...arr];
+
+  for (let i = c.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [c[i], c[j]] = [c[j], c[i]];
+  }
+
+  return c;
+}
+
+export function sumStrength(team: Player[]) {
+  return team.reduce((s, p) => s + strengthScore(p.strength), 0);
+}
+
+export function sumAge(team: Player[]) {
+  return team.reduce((s, p) => s + ageScore(p.age_group), 0);
+}
+
+export function sumPos(team: Player[]) {
+  return team.reduce((s, p) => s + posScore(p.preferred_position), 0);
+}
+
+export function positionRank(pos: Player["preferred_position"]) {
+  if (pos === "goalkeeper") return 0;
+  if (pos === "defense") return 1;
+  if (pos === "attack") return 2;
+  return 3;
+}
+
+export function sortForTeamView(a: Player, b: Player) {
+  const ra = positionRank(a.preferred_position);
+  const rb = positionRank(b.preferred_position);
+
+  if (ra !== rb) return ra - rb;
+
+  return getPlayerDisplayName(a).localeCompare(getPlayerDisplayName(b), "de");
+}
+
+export function formatGermanDate(date: string) {
+  return new Date(date).toLocaleDateString("de-DE");
+}
+
+export function normalizeGoalValue(value: string) {
+  const digitsOnly = value.replace(/[^\d]/g, "");
+  if (digitsOnly === "") return "";
+  return digitsOnly;
+}
+
+function sharePlayerLabel(player: Player) {
+  const base = getPlayerDisplayName(player);
+  return player.is_guest ? `${base} (Gast)` : base;
+}
+
+export function buildLineupShareText(
+  session: SessionRow | null,
+  teamA: Player[],
+  teamB: Player[]
+) {
+  const header = session
+    ? `Aufstellung vom ${formatGermanDate(session.date)}`
+    : "Aufstellung";
+
+  const teamALines =
+    teamA.length > 0
+      ? teamA.map(
+          (player, index) =>
+            `${index + 1}. ${sharePlayerLabel(player)} (${positionLabel(
+              player.preferred_position
+            )})`
+        )
+      : ["Noch keine Spieler zugewiesen."];
+
+  const teamBLines =
+    teamB.length > 0
+      ? teamB.map(
+          (player, index) =>
+            `${index + 1}. ${sharePlayerLabel(player)} (${positionLabel(
+              player.preferred_position
+            )})`
+        )
+      : ["Noch keine Spieler zugewiesen."];
+
+  return [
+    `${header}`,
+    "",
+    `Team 1 (${teamA.length})`,
+    ...teamALines,
+    "",
+    `Team 2 (${teamB.length})`,
+    ...teamBLines,
+    "",
+    "made with strikr",
+    "#strikr",
+  ].join("\n");
+}
+
+export function buildResultShareText(
+  session: SessionRow | null,
+  goalsA: string,
+  goalsB: string,
+  teamA: Player[],
+  teamB: Player[]
+) {
+  const header = session
+    ? `Ergebnis vom ${formatGermanDate(session.date)}`
+    : "Ergebnis";
+
+  const scoreA = goalsA.trim() === "" ? "?" : goalsA.trim();
+  const scoreB = goalsB.trim() === "" ? "?" : goalsB.trim();
+
+  const winnerLine =
+    goalsA.trim() !== "" && goalsB.trim() !== ""
+      ? Number(goalsA) === Number(goalsB)
+        ? "Unentschieden"
+        : Number(goalsA) > Number(goalsB)
+          ? "Sieger: Team 1"
+          : "Sieger: Team 2"
+      : "Ergebnis noch unvollständig";
+
+  return [
+    `${header}`,
+    "",
+    `Team 1 ${scoreA}:${scoreB} Team 2`,
+    winnerLine,
+    "",
+    `Team 1 (${teamA.length} Spieler)`,
+    `Team 2 (${teamB.length} Spieler)`,
+    "",
+    "made with strikr",
+    "#strikr",
+  ].join("\n");
+}
+
+export function winnerLabel(goalsA: string, goalsB: string) {
+  if (goalsA.trim() === "" || goalsB.trim() === "") {
+    return "Noch kein vollständiges Ergebnis";
+  }
+
+  const a = Number(goalsA);
+  const b = Number(goalsB);
+
+  if (Number.isNaN(a) || Number.isNaN(b)) {
+    return "Noch kein vollständiges Ergebnis";
+  }
+
+  if (a === b) return "Unentschieden";
+  return a > b ? "Team 1 gewinnt" : "Team 2 gewinnt";
+}
+
+export function winnerBadgeClass(goalsA: string, goalsB: string) {
+  if (goalsA.trim() === "" || goalsB.trim() === "") {
+    return "bg-slate-100 text-slate-700";
+  }
+
+  const a = Number(goalsA);
+  const b = Number(goalsB);
+
+  if (Number.isNaN(a) || Number.isNaN(b)) {
+    return "bg-slate-100 text-slate-700";
+  }
+
+  if (a === b) {
+    return "bg-amber-100 text-amber-800";
+  }
+
+  return "bg-emerald-100 text-emerald-800";
+}
+
+===== lib/players/getAdminPlayersForClub.ts =====
+
+import { SupabaseClient } from "@supabase/supabase-js";
+import { AdminPlayer } from "@/lib/types/player";
+
+export async function getAdminPlayersForClub(
+  supabase: SupabaseClient,
+  clubId: string
+): Promise<AdminPlayer[]> {
+  const { data, error } = await supabase
+    .from("players")
+    .select(
+      "id, club_id, name, age_group, preferred_position, strength, is_active"
+    )
+    .eq("club_id", clubId)
+    .order("name", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as AdminPlayer[];
+}
+
+===== lib/session-detail/actions/add-guest-player.ts =====
+
+import { createClient } from "@/lib/supabase/server";
+import { fail, ok } from "@/lib/session-detail/response";
+
+type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
+
+type PlayerRow = {
+  id: number;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  is_active: boolean | null;
+  age_group: string | null;
+  preferred_position: "attack" | "defense" | "goalkeeper" | null;
+  strength: number | null;
+  is_guest: boolean | null;
+};
+
+type AddGuestPlayerInput = {
+  supabase: SessionDetailSupabase;
+  sessionId: number;
+  clubId: string;
+  membership: {
+    role: string | null;
+  };
+  guestName: string;
+  guestPosition: string;
+  guestAgeGroup: string;
+};
+
+export async function handleAddGuestPlayer({
+  supabase,
+  sessionId,
+  clubId,
+  membership,
+  guestName,
+  guestPosition,
+  guestAgeGroup,
+}: AddGuestPlayerInput) {
+  const role = membership.role;
+
+  if (!(role === "admin" || role === "owner")) {
+    return fail(
+      "Gastspieler können aktuell nur von Admins angelegt werden.",
+      403
+    );
+  }
+
+  const { data: existingResult, error: existingResultError } = await supabase
+    .from("results")
+    .select("id")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+
+  if (existingResultError) {
+    return fail(existingResultError.message, 500);
+  }
+
+  if (existingResult?.id) {
+    return fail(
+      "Gastspieler können nicht mehr hinzugefügt werden, wenn bereits ein Ergebnis gespeichert ist."
+    );
+  }
+
+  if (!guestName.trim()) {
+    return fail("Bitte einen Namen für den Gastspieler eingeben.");
+  }
+
+  const payload = {
+    club_id: clubId,
+    name: guestName.trim(),
+    is_active: true,
+    is_guest: true,
+    preferred_position: guestPosition.trim() === "" ? null : guestPosition.trim(),
+    age_group: guestAgeGroup.trim() === "" ? null : guestAgeGroup.trim(),
+    strength: null,
+  };
+
+  const { data: createdPlayer, error: insertPlayerError } = await supabase
+    .from("players")
+    .insert(payload)
+    .select(
+      "id, name, first_name, last_name, nickname, is_active, age_group, preferred_position, strength, is_guest"
+    )
+    .single();
+
+  if (insertPlayerError) {
+    return fail(insertPlayerError.message, 500);
+  }
+
+  const typedCreatedPlayer = createdPlayer as PlayerRow;
+
+  const { error: insertSessionPlayerError } = await supabase
+    .from("session_players")
+    .insert({
+      session_id: sessionId,
+      player_id: typedCreatedPlayer.id,
+    });
+
+  if (insertSessionPlayerError) {
+    await supabase.from("players").delete().eq("id", typedCreatedPlayer.id);
+    return fail(insertSessionPlayerError.message, 500);
+  }
+
+  return ok({
+    message: "Gastspieler angelegt und direkt zur Anwesenheit hinzugefügt.",
+    player: typedCreatedPlayer,
+  });
+}
+
+===== lib/types/player.ts =====
+
+export type PlayerPosition =
+  | "defense"
+  | "attack"
+  | "goalkeeper"
+  | null;
+
+export type PlayerAgeGroup = "AH" | "Ü32" | string | null;
+
+export type PlayerCategoryKey = string | null;
+
+export type PublicPlayer = {
+  id: number;
+  club_id: string;
+  user_id: string | null;
+  email: string | null;
+  name: string;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  age_group: PlayerAgeGroup;
+  preferred_position: PlayerPosition;
+  category_key: PlayerCategoryKey;
+  strength: number | null;
+  is_active: boolean | null;
+  is_guest: boolean | null;
+  created_at?: string | null;
+};
+
+export type AdminPlayer = PublicPlayer & {
+  created_at: string | null;
+};

@@ -9,9 +9,22 @@ type ReleaseItem = {
 
 const RELEASES: ReleaseItem[] = [
   {
+    version: "v0.3",
+    title: "Generator-Update & Spielerform",
+    dateLabel: "Neuestes Release",
+    items: [
+      "Team-Generator überarbeitet für fairere und stimmigere Aufteilungen",
+      "Generator bewertet Teamverteilungen jetzt noch gezielter auf Basis von Kategorie, Stärke und Position",
+      "Persönliche Spieler-Stats erweitert",
+      "Form-/Trend-Anzeige für die letzten 5 bewerteten Sessions ergänzt",
+      "Stats-Seite visuell und inhaltlich überarbeitet",
+      "Spieler-Form wird kompakter und verständlicher dargestellt",
+    ],
+  },
+  {
     version: "v0.2",
     title: "Pilot-Readiness",
-    dateLabel: "Aktueller Stand",
+    dateLabel: "Vorheriges Release",
     items: [
       "Profilbereich über Klick auf den Namen im Header erreichbar",
       "Passwort kann direkt im Profil geändert werden",
@@ -55,7 +68,6 @@ export default function AboutPage() {
           </Link>
         </div>
 
-        {/* STORY */}
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
           <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
             Die Idee
@@ -66,50 +78,65 @@ export default function AboutPage() {
           </h1>
 
           <div className="mt-4 space-y-4 text-sm leading-7 text-slate-600 sm:text-base">
+            <p>Angefangen hat alles ganz simpel:</p>
+
             <p>
-              Angefangen hat alles ganz simpel:
+              In der AH der SKV Rutesheim wollten wir unser Training ein bisschen
+              spannender machen. Also haben wir angefangen, Siege zu zählen –
+              ganz klassisch mit Strichen auf Papier. Gewinnt ein Team, bekommt
+              jeder Spieler im Siegerteam einen „Strich“.
             </p>
 
             <p>
-              In der AH der SKV Rutesheim wollten wir unser Training ein bisschen spannender machen. Also haben wir angefangen, Siege zu zählen – ganz klassisch mit Strichen auf Papier. Gewinnt ein Team, bekommt jeder Spieler im Siegerteam einen „Strich“.
+              Papier wurde schnell unübersichtlich. Also kam Excel. Tabellen,
+              Auswertungen, erste Ranglisten… aber auch ziemlich mühsam – vor
+              allem auf mobilen Geräten kaum vernünftig nutzbar.
             </p>
 
             <p>
-              Papier wurde schnell unübersichtlich. Also kam Excel. Tabellen, Auswertungen, erste Ranglisten… aber auch ziemlich mühsam – vor allem auf mobilen Geräten kaum vernünftig nutzbar.
-            </p>
-
-            <p>
-              Irgendwann war klar: <span className="font-semibold text-slate-950">Das muss einfacher gehen.</span>  
+              Irgendwann war klar:{" "}
+              <span className="font-semibold text-slate-950">
+                Das muss einfacher gehen.
+              </span>
+              <br />
               Und so entstand das erste kleine Webtool.
             </p>
 
             <p>
-              Gleichzeitig kennen wahrscheinlich viele das gleiche Problem: Teams werden „irgendwie“ gewählt. Durchzählen, Bauchgefühl… und am Ende ist es oft einfach nicht fair.
+              Gleichzeitig kennen wahrscheinlich viele das gleiche Problem:
+              Teams werden „irgendwie“ gewählt. Durchzählen, Bauchgefühl… und am
+              Ende ist es oft einfach nicht fair.
             </p>
 
-            <p>
-              Genau das wollten wir besser machen.
-            </p>
+            <p>Genau das wollten wir besser machen.</p>
 
             <p>
-              Also haben wir angefangen, einen Team-Generator zu bauen – mit Faktoren wie Alter, Position, Stärke, Fitness. Alles Dinge, die im Training eine Rolle spielen.
+              Also haben wir angefangen, einen Team-Generator zu bauen – mit
+              Faktoren wie Alter, Position, Stärke, Fitness. Alles Dinge, die im
+              Training eine Rolle spielen.
             </p>
 
             <p>
               Die große Frage dabei:
-              <span className="font-semibold text-slate-950"> Was ist eigentlich ein faires Team?</span>
+              <span className="font-semibold text-slate-950">
+                {" "}
+                Was ist eigentlich ein faires Team?
+              </span>
             </p>
 
             <p>
-              Die Antwort ist nicht perfekt – aber deutlich besser als vorher. Und genau darum geht’s.
+              Die Antwort ist nicht perfekt – aber deutlich besser als vorher.
+              Und genau darum geht’s.
             </p>
 
             <p>
-              Aus einer Idee auf einer Weihnachtsfeier ist so Schritt für Schritt ein kompletter Trainings-Workflow entstanden.
+              Aus einer Idee auf einer Weihnachtsfeier ist so Schritt für Schritt
+              ein kompletter Trainings-Workflow entstanden.
             </p>
 
             <p className="font-medium text-slate-800">
-              Und ja – wir sind eine AH-Truppe. Aber wir wollen trotzdem kicken. Und zwar richtig. 😉
+              Und ja – wir sind eine AH-Truppe. Aber wir wollen trotzdem kicken.
+              Und zwar richtig. 😉
             </p>
 
             <p className="font-semibold text-slate-900">
@@ -118,7 +145,6 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* VALUE */}
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
           <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
             Warum Strikr?
@@ -131,7 +157,7 @@ export default function AboutPage() {
           <div className="mt-4 space-y-4 text-sm leading-7 text-slate-600 sm:text-base">
             <p>Das Feedback aus unserer Mannschaft ist ziemlich klar:</p>
 
-            <ul className="list-disc pl-5 space-y-2">
+            <ul className="list-disc space-y-2 pl-5">
               <li>Teams sind deutlich ausgeglichener</li>
               <li>Spiele sind enger und intensiver</li>
               <li>Jeder Spieler ist mehr gefordert</li>
@@ -139,16 +165,17 @@ export default function AboutPage() {
             </ul>
 
             <p>
-              Dazu kommen Statistiken, Tabellen, Saisonauswertungen und eine „ewige Tabelle“ – einfach weil es Spaß macht, sich zu messen.
+              Dazu kommen Statistiken, Tabellen, Saisonauswertungen und eine
+              „ewige Tabelle“ – einfach weil es Spaß macht, sich zu messen.
             </p>
 
             <p>
-              Klar: Die App löst nicht jedes Problem. Aber sie bringt Struktur, Fairness und ein bisschen extra Motivation ins Training.
+              Klar: Die App löst nicht jedes Problem. Aber sie bringt Struktur,
+              Fairness und ein bisschen extra Motivation ins Training.
             </p>
           </div>
         </div>
 
-        {/* STATUS */}
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
           <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
             Status
@@ -159,11 +186,13 @@ export default function AboutPage() {
           </h2>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-            Strikr läuft aktuell in einer Pilotphase. Die App ist stabil und wird aktiv im Training genutzt.
+            Strikr läuft aktuell in einer Pilotphase. Die App ist stabil und wird
+            aktiv im Training genutzt.
           </p>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-            Weitere Features sind geplant – Schritt für Schritt, immer nah am echten Bedarf auf dem Platz.
+            Weitere Features sind geplant – Schritt für Schritt, immer nah am
+            echten Bedarf auf dem Platz.
           </p>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
@@ -171,7 +200,6 @@ export default function AboutPage() {
           </p>
         </div>
 
-        {/* RELEASES */}
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
           <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
             Versionen
@@ -187,9 +215,16 @@ export default function AboutPage() {
                 key={release.version}
                 className="rounded-[24px] border border-slate-200 bg-slate-50 p-5"
               >
-                <h3 className="text-lg font-bold text-slate-950">
-                  {release.version} · {release.title}
-                </h3>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-950">
+                      {release.version} · {release.title}
+                    </h3>
+                    <div className="mt-1 text-sm text-slate-500">
+                      {release.dateLabel}
+                    </div>
+                  </div>
+                </div>
 
                 <div className="mt-3 space-y-2">
                   {release.items.map((item) => (
@@ -206,11 +241,8 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* FEEDBACK */}
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
-          <h2 className="text-xl font-bold text-slate-950">
-            Feedback geben
-          </h2>
+          <h2 className="text-xl font-bold text-slate-950">Feedback geben</h2>
 
           <div className="mt-4">
             <a

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import PlayerSettingsCard from "@/components/admin/PlayerSettingsCard";
 
 type PlayerRow = {
   id: number;
@@ -160,11 +161,11 @@ export default async function AdminPlayersPage({
 
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">
-          Spieler verwalten
+          Spieler & Team-Generator
         </h1>
         <p className="mt-2 text-sm text-neutral-600">
           Bearbeite Namen, E-Mail, Position, Kategorie, Stärke und Status deiner
-          Spieler.
+          Spieler und prüfe die Grundlagen für den Generator.
         </p>
       </div>
 
@@ -207,6 +208,14 @@ export default async function AdminPlayersPage({
           </Link>
         </div>
       </div>
+
+      <PlayerSettingsCard
+        className="mb-4"
+        useStrength={!!settings?.use_strength}
+        strengthDefault={settings?.strength_default ?? 3}
+        useCategories={!!settings?.use_categories}
+        categoryCount={categories.length}
+      />
 
       {flashMessage ? (
         <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">

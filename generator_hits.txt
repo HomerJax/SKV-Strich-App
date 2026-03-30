@@ -1,0 +1,163 @@
+app/api/sessions/[id]/route.ts:54:      const guestAgeGroup = String(formData.get("guest_age_group") ?? "");
+app/api/admin/players/update/route.ts:70:  const preferredPosition = toNullableText(formData.get("preferred_position"));
+app/api/admin/players/update/route.ts:71:  const categoryKey = toNullableText(formData.get("category_key"));
+app/api/admin/players/update/route.ts:72:  const strengthRaw = toNullableText(formData.get("strength"));
+app/api/admin/players/update/route.ts:193:    preferred_position: preferredPosition,
+app/api/admin/players/update/route.ts:194:    category_key: categoryKey,
+app/api/admin/players/update/route.ts:200:  if (strengthRaw) {
+app/api/admin/players/update/route.ts:201:    const parsedStrength = Number(strengthRaw);
+app/api/admin/players/update/route.ts:203:      updatePayload.strength = parsedStrength;
+app/api/admin/settings/route.ts:108:  const useStrength = formData.get("use_strength") === "1";
+app/api/admin/settings/route.ts:109:  const useCategories = formData.get("use_categories") === "1";
+app/api/admin/settings/route.ts:143:      use_strength: useStrength,
+app/api/admin/settings/route.ts:144:      use_categories: useCategories,
+app/players/new/page.tsx:50:    const ageGroup = (String(formData.get("age_group") ?? "") || "AH") as AgeGroup;
+app/players/new/page.tsx:52:      formData.get("preferred_position") ?? ""
+app/players/new/page.tsx:76:      age_group: ageGroup,
+app/players/new/page.tsx:77:      preferred_position: position,
+app/players/new/page.tsx:80:      strength: null,
+app/players/new/page.tsx:153:              name="age_group"
+app/players/new/page.tsx:167:              name="preferred_position"
+app/players/page.tsx:13:function positionLabel(pos: PublicPlayer["preferred_position"]) {
+app/players/page.tsx:87:                  {player.age_group ?? "?"} ·{" "}
+app/players/page.tsx:88:                  {positionLabel(player.preferred_position)}
+app/sessions/[id]/SessionExportCards.tsx:52:            player.age_group
+app/sessions/[id]/SessionExportCards.tsx:55:          {player.age_group ?? "?"}
+app/sessions/[id]/SessionExportCards.tsx:59:            player.preferred_position
+app/sessions/[id]/SessionExportCards.tsx:62:          {positionLabel(player.preferred_position)}
+app/sessions/[id]/SessionExportCards.tsx:78:          player.preferred_position
+app/sessions/[id]/SessionExportCards.tsx:81:        {positionLabel(player.preferred_position)}
+app/sessions/[id]/session-types.ts:7:  age_group: "AH" | "Ü32" | null;
+app/sessions/[id]/session-types.ts:8:  preferred_position: "defense" | "attack" | "goalkeeper" | null;
+app/sessions/[id]/session-types.ts:9:  strength: number | null;
+app/sessions/[id]/SessionDetailClient.tsx:7:  buildLineupShareText,
+app/sessions/[id]/SessionDetailClient.tsx:10:  shuffle,
+app/sessions/[id]/SessionDetailClient.tsx:11:  sortForTeamView,
+app/sessions/[id]/SessionDetailClient.tsx:12:  sumAge,
+app/sessions/[id]/SessionDetailClient.tsx:13:  sumPos,
+app/sessions/[id]/SessionDetailClient.tsx:14:  sumStrength,
+app/sessions/[id]/SessionDetailClient.tsx:24:  use_strength: boolean;
+app/sessions/[id]/SessionDetailClient.tsx:25:  strength_default: number;
+app/sessions/[id]/SessionDetailClient.tsx:26:  use_categories: boolean;
+app/sessions/[id]/SessionDetailClient.tsx:121:    Player["preferred_position"] | ""
+app/sessions/[id]/SessionDetailClient.tsx:123:  const [guestAgeGroup, setGuestAgeGroup] = useState<Player["age_group"] | "">(
+app/sessions/[id]/SessionDetailClient.tsx:208:        .sort(sortForTeamView),
+app/sessions/[id]/SessionDetailClient.tsx:217:        .sort(sortForTeamView),
+app/sessions/[id]/SessionDetailClient.tsx:226:        .sort(sortForTeamView),
+app/sessions/[id]/SessionDetailClient.tsx:295:      const text = buildLineupShareText(session, teamA, teamB);
+app/sessions/[id]/SessionDetailClient.tsx:483:      formData.set("guest_age_group", guestAgeGroup ?? "");
+app/sessions/[id]/SessionDetailClient.tsx:521:  function generateTeams() {
+app/sessions/[id]/SessionDetailClient.tsx:546:    const keepers = present.filter((p) => p.preferred_position === "goalkeeper");
+app/sessions/[id]/SessionDetailClient.tsx:547:    const field = present.filter((p) => p.preferred_position !== "goalkeeper");
+app/sessions/[id]/SessionDetailClient.tsx:550:      const useStrength = clubSettings?.use_strength ?? true;
+app/sessions/[id]/SessionDetailClient.tsx:551:      const useCategories = clubSettings?.use_categories ?? true;
+app/sessions/[id]/SessionDetailClient.tsx:553:      const sDiff = useStrength ? Math.abs(sumStrength(A) - sumStrength(B)) : 0;
+app/sessions/[id]/SessionDetailClient.tsx:554:      const aDiff = useCategories ? Math.abs(sumAge(A) - sumAge(B)) : 0;
+app/sessions/[id]/SessionDetailClient.tsx:555:      const pDiff = Math.abs(sumPos(A) - sumPos(B));
+app/sessions/[id]/SessionDetailClient.tsx:568:      const shuffledKeepers = shuffle(keepers);
+app/sessions/[id]/SessionDetailClient.tsx:569:      for (const gk of shuffledKeepers) {
+app/sessions/[id]/SessionDetailClient.tsx:582:      const shuffledField = shuffle(field);
+app/sessions/[id]/SessionDetailClient.tsx:584:      for (const p of shuffledField) {
+app/sessions/[id]/SessionDetailClient.tsx:626:    const useStrength = clubSettings?.use_strength ?? true;
+app/sessions/[id]/SessionDetailClient.tsx:627:    const useCategories = clubSettings?.use_categories ?? true;
+app/sessions/[id]/SessionDetailClient.tsx:850:    const gk = team.filter((p) => p.preferred_position === "goalkeeper").length;
+app/sessions/[id]/SessionDetailClient.tsx:851:    const def = team.filter((p) => p.preferred_position === "defense").length;
+app/sessions/[id]/SessionDetailClient.tsx:852:    const att = team.filter((p) => p.preferred_position === "attack").length;
+app/sessions/[id]/SessionDetailClient.tsx:853:    const ah = team.filter((p) => p.age_group === "AH").length;
+app/sessions/[id]/SessionDetailClient.tsx:854:    const u32 = team.filter((p) => p.age_group === "Ü32").length;
+app/sessions/[id]/SessionDetailClient.tsx:961:          onGenerateTeams={generateTeams}
+app/sessions/[id]/SessionAttendanceCard.tsx:6:  use_strength: boolean;
+app/sessions/[id]/SessionAttendanceCard.tsx:7:  strength_default: number;
+app/sessions/[id]/SessionAttendanceCard.tsx:8:  use_categories: boolean;
+app/sessions/[id]/SessionAttendanceCard.tsx:23:  guestPosition: Player["preferred_position"] | "";
+app/sessions/[id]/SessionAttendanceCard.tsx:24:  guestAgeGroup: Player["age_group"] | "";
+app/sessions/[id]/SessionAttendanceCard.tsx:33:  onGuestPositionChange: (value: Player["preferred_position"] | "") => void;
+app/sessions/[id]/SessionAttendanceCard.tsx:34:  onGuestAgeGroupChange: (value: Player["age_group"] | "") => void;
+app/sessions/[id]/SessionAttendanceCard.tsx:154:                        e.target.value as Player["preferred_position"] | ""
+app/sessions/[id]/SessionAttendanceCard.tsx:179:                      onGuestAgeGroupChange(e.target.value as Player["age_group"] | "")
+app/sessions/[id]/SessionAttendanceCard.tsx:242:                        player.age_group
+app/sessions/[id]/SessionAttendanceCard.tsx:245:                      {player.age_group ?? "?"}
+app/sessions/[id]/SessionAttendanceCard.tsx:249:                        player.preferred_position
+app/sessions/[id]/SessionAttendanceCard.tsx:252:                      {positionLabel(player.preferred_position)}
+app/sessions/[id]/page.tsx:8:  use_strength: boolean;
+app/sessions/[id]/page.tsx:9:  strength_default: number;
+app/sessions/[id]/page.tsx:10:  use_categories: boolean;
+app/sessions/[id]/page.tsx:63:        "use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label"
+app/sessions/[id]/page.tsx:76:        "id, name, first_name, last_name, nickname, is_active, age_group, preferred_position, strength, is_guest"
+app/sessions/[id]/session-ui.tsx:17:export function positionLabel(pos: Player["preferred_position"]) {
+app/sessions/[id]/session-ui.tsx:24:export function badgeColor(pos: Player["preferred_position"]) {
+app/sessions/[id]/session-ui.tsx:31:export function ageBadgeColor(age: Player["age_group"]) {
+app/sessions/[id]/session-ui.tsx:37:export const ageScore = (a: Player["age_group"]) =>
+app/sessions/[id]/session-ui.tsx:40:export const posScore = (p: Player["preferred_position"]) =>
+app/sessions/[id]/session-ui.tsx:43:export const strengthScore = (s: number | null) => {
+app/sessions/[id]/session-ui.tsx:48:export function shuffle<T>(arr: T[]) {
+app/sessions/[id]/session-ui.tsx:59:export function sumStrength(team: Player[]) {
+app/sessions/[id]/session-ui.tsx:60:  return team.reduce((s, p) => s + strengthScore(p.strength), 0);
+app/sessions/[id]/session-ui.tsx:63:export function sumAge(team: Player[]) {
+app/sessions/[id]/session-ui.tsx:64:  return team.reduce((s, p) => s + ageScore(p.age_group), 0);
+app/sessions/[id]/session-ui.tsx:67:export function sumPos(team: Player[]) {
+app/sessions/[id]/session-ui.tsx:68:  return team.reduce((s, p) => s + posScore(p.preferred_position), 0);
+app/sessions/[id]/session-ui.tsx:71:export function positionRank(pos: Player["preferred_position"]) {
+app/sessions/[id]/session-ui.tsx:78:export function sortForTeamView(a: Player, b: Player) {
+app/sessions/[id]/session-ui.tsx:79:  const ra = positionRank(a.preferred_position);
+app/sessions/[id]/session-ui.tsx:80:  const rb = positionRank(b.preferred_position);
+app/sessions/[id]/session-ui.tsx:102:export function buildLineupShareText(
+app/sessions/[id]/session-ui.tsx:116:              player.preferred_position
+app/sessions/[id]/session-ui.tsx:126:              player.preferred_position
+app/admin/players/players-types.ts:16:  age_group: AgeGroup;
+app/admin/players/players-types.ts:17:  preferred_position: PreferredPosition;
+app/admin/players/players-types.ts:18:  strength: number | null;
+app/admin/players/update/route.ts:126:    const preferredPosition = toNullableText(formData.get("preferred_position"));
+app/admin/players/update/route.ts:127:    const categoryKey = toNullableText(formData.get("category_key"));
+app/admin/players/update/route.ts:128:    const strengthRaw = toNullableText(formData.get("strength"));
+app/admin/players/update/route.ts:191:      preferred_position: preferredPosition,
+app/admin/players/update/route.ts:192:      category_key: categoryKey,
+app/admin/players/update/route.ts:198:    if (strengthRaw) {
+app/admin/players/update/route.ts:199:      const parsedStrength = Number(strengthRaw);
+app/admin/players/update/route.ts:202:        updatePayload.strength = parsedStrength;
+app/admin/players/update/route.ts:205:      updatePayload.strength = null;
+app/admin/players/page.tsx:15:  preferred_position: "attack" | "defense" | "goalkeeper" | null;
+app/admin/players/page.tsx:16:  category_key: string | null;
+app/admin/players/page.tsx:17:  strength: number | null;
+app/admin/players/page.tsx:23:  use_strength: boolean | null;
+app/admin/players/page.tsx:24:  strength_default: number | null;
+app/admin/players/page.tsx:25:  use_categories: boolean | null;
+app/admin/players/page.tsx:55:  position: PlayerRow["preferred_position"],
+app/admin/players/page.tsx:89:    positionLabel(player.preferred_position, settings),
+app/admin/players/page.tsx:113:        "use_strength, strength_default, use_categories, position_label, attack_label, defense_label, goalkeeper_label"
+app/admin/players/page.tsx:126:        "id, club_id, name, first_name, last_name, nickname, email, preferred_position, category_key, strength, is_active, is_guest"
+app/admin/players/page.tsx:345:                        htmlFor={`preferred_position_${player.id}`}
+app/admin/players/page.tsx:351:                        id={`preferred_position_${player.id}`}
+app/admin/players/page.tsx:352:                        name="preferred_position"
+app/admin/players/page.tsx:353:                        defaultValue={player.preferred_position ?? ""}
+app/admin/players/page.tsx:369:                    {settings?.use_categories ? (
+app/admin/players/page.tsx:372:                          htmlFor={`category_key_${player.id}`}
+app/admin/players/page.tsx:378:                          id={`category_key_${player.id}`}
+app/admin/players/page.tsx:379:                          name="category_key"
+app/admin/players/page.tsx:380:                          defaultValue={player.category_key ?? ""}
+app/admin/players/page.tsx:393:                    {settings?.use_strength ? (
+app/admin/players/page.tsx:396:                          htmlFor={`strength_${player.id}`}
+app/admin/players/page.tsx:402:                          id={`strength_${player.id}`}
+app/admin/players/page.tsx:403:                          name="strength"
+app/admin/players/page.tsx:405:                            player.strength ?? settings?.strength_default ?? 3
+app/admin/categories/page.tsx:166:    .select("use_categories, category_label")
+app/admin/categories/page.tsx:186:        {settings?.use_categories === false ? (
+app/admin/settings/page.tsx:8:  use_strength: boolean | null;
+app/admin/settings/page.tsx:9:  use_categories: boolean | null;
+app/admin/settings/page.tsx:127:      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
+app/admin/settings/page.tsx:140:  const useStrength = settings?.use_strength ?? false;
+app/admin/settings/page.tsx:141:  const useCategories = settings?.use_categories ?? false;
+app/admin/settings/page.tsx:202:                    name="use_strength"
+app/admin/settings/page.tsx:221:                    name="use_categories"
+lib/types/player.ts:20:  age_group: PlayerAgeGroup;
+lib/types/player.ts:21:  preferred_position: PlayerPosition;
+lib/types/player.ts:22:  category_key: PlayerCategoryKey;
+lib/types/player.ts:23:  strength: number | null;
+lib/players/getAdminPlayersForClub.ts:11:      "id, club_id, name, age_group, preferred_position, strength, is_active"
+lib/session-detail/actions/add-guest-player.ts:13:  age_group: string | null;
+lib/session-detail/actions/add-guest-player.ts:14:  preferred_position: "attack" | "defense" | "goalkeeper" | null;
+lib/session-detail/actions/add-guest-player.ts:15:  strength: number | null;
+lib/session-detail/actions/add-guest-player.ts:74:    preferred_position: guestPosition.trim() === "" ? null : guestPosition.trim(),
+lib/session-detail/actions/add-guest-player.ts:75:    age_group: guestAgeGroup.trim() === "" ? null : guestAgeGroup.trim(),
+lib/session-detail/actions/add-guest-player.ts:76:    strength: null,
+lib/session-detail/actions/add-guest-player.ts:83:      "id, name, first_name, last_name, nickname, is_active, age_group, preferred_position, strength, is_guest"

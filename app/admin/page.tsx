@@ -7,6 +7,7 @@ import {
   Palette,
   CalendarRange,
   Shield,
+  ToggleLeft,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
@@ -156,8 +157,8 @@ export default async function AdminPage() {
           <AdminCard
             href="/admin/players"
             eyebrow="Spielbetrieb"
-            title="Spieler verwalten"
-            description="Pflege Spielerprofile, Positionen, Stärken und weitere Grundlagen für Trainings, Aufstellungen und Auswertungen."
+            title="Spieler & Team-Generator"
+            description="Pflege Spielerprofile, Positionen, Kategorien und Stärken und prüfe die Grundlagen für faire Teamaufteilungen."
             icon={<UserRound className="h-6 w-6" strokeWidth={2.1} />}
           />
 
@@ -178,13 +179,23 @@ export default async function AdminPage() {
           />
 
           {founderAccess ? (
-            <AdminCard
-              href="/founder"
-              eyebrow="Founder"
-              title="Founder Dashboard"
-              description="Globale KPIs über Clubs, User, Registrierungen und Trainings. Hier steuerst du später auch Feature Flags pro Club."
-              icon={<Shield className="h-6 w-6" strokeWidth={2.1} />}
-            />
+            <>
+              <AdminCard
+                href="/founder"
+                eyebrow="Founder"
+                title="Founder Dashboard"
+                description="Globale KPIs über Clubs, User, Registrierungen und Trainings. Zentrale Sicht auf die Entwicklung von Strikr."
+                icon={<Shield className="h-6 w-6" strokeWidth={2.1} />}
+              />
+
+              <AdminCard
+                href="/founder/flags"
+                eyebrow="Founder"
+                title="Feature Flags"
+                description="Steuere neue Features gezielt pro Club oder schalte sie gesammelt für alle Clubs frei."
+                icon={<ToggleLeft className="h-6 w-6" strokeWidth={2.1} />}
+              />
+            </>
           ) : null}
         </div>
       </section>

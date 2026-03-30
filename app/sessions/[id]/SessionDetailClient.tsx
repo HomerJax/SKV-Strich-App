@@ -7,11 +7,10 @@ import {
   buildLineupShareText,
   getErrorMessage,
   normalizeGoalValue,
+  positionBalancePenalty,
   shuffle,
   sortForTeamView,
-  sumAge,
-  sumPos,
-  sumStrength,
+  sumTeamScore,
 } from "./session-ui";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import { shareImageFromUrl } from "@/lib/share/utils";
@@ -550,11 +549,29 @@ export default function SessionDetailClient({
       const useStrength = clubSettings?.use_strength ?? true;
       const useCategories = clubSettings?.use_categories ?? true;
 
-      const sDiff = useStrength ? Math.abs(sumStrength(A) - sumStrength(B)) : 0;
-      const aDiff = useCategories ? Math.abs(sumAge(A) - sumAge(B)) : 0;
-      const pDiff = Math.abs(sumPos(A) - sumPos(B));
+      /**
+       * Neue Logik:
+       * - Stärke + Kategorie bilden gemeinsam den internen Spielerwert.
+       * - Position ist KEIN Bonus / Malus.
+       * - Position wird nur über die Verteilung bewertet.
+       *
+       * Falls Stärke/Kategorien in den Club-Settings deaktiviert sind,
+       * wird die Qualitätsdifferenz entsprechend reduziert.
+       */
+      const shouldUseScore = useStrength || useCategories;
 
-      return sDiff * 6 + aDiff * 3 + pDiff * 2;
+      const scoreDiff = shouldUseScore
+        ? Math.abs(sumTeamScore(A) - sumTeamScore(B))
+        : 0;
+
+      const posPenalty = positionBalancePenalty(A, B);
+
+      /**
+       * Gewichtung:
+       * - Qualitätsgleichheit ist Hauptziel
+       * - Positionsverteilung ist wichtig, aber nachgelagert
+       */
+      return scoreDiff * 10 + posPenalty * 3;
     }
 
     let bestA: Player[] = [];
@@ -566,6 +583,7 @@ export default function SessionDetailClient({
       const B: Player[] = [];
 
       const shuffledKeepers = shuffle(keepers);
+
       for (const gk of shuffledKeepers) {
         if (
           A.length < targetA &&
@@ -586,6 +604,7 @@ export default function SessionDetailClient({
           if (B.length < targetB) B.push(p);
           continue;
         }
+
         if (B.length >= targetB) {
           if (A.length < targetA) A.push(p);
           continue;
@@ -594,14 +613,19 @@ export default function SessionDetailClient({
         const scoreIfA = evaluate([...A, p], B);
         const scoreIfB = evaluate(A, [...B, p]);
 
-        if (scoreIfA < scoreIfB) A.push(p);
-        else if (scoreIfB < scoreIfA) B.push(p);
-        else (A.length <= B.length ? A : B).push(p);
+        if (scoreIfA < scoreIfB) {
+          A.push(p);
+        } else if (scoreIfB < scoreIfA) {
+          B.push(p);
+        } else {
+          (A.length <= B.length ? A : B).push(p);
+        }
       }
 
       if (!(A.length === targetA && B.length === targetB)) continue;
 
       const score = evaluate(A, B);
+
       if (score < bestScore) {
         bestScore = score;
         bestA = A;
@@ -618,6 +642,7 @@ export default function SessionDetailClient({
     present.forEach((player) => {
       next[player.id] = null;
     });
+
     for (const player of bestA) next[player.id] = "A";
     for (const player of bestB) next[player.id] = "B";
 
@@ -628,19 +653,19 @@ export default function SessionDetailClient({
 
     if (useStrength && useCategories) {
       setMsg(
-        "Teams automatisch verteilt. Stärke und Kategorien wurden berücksichtigt."
+        "Teams automatisch verteilt. Kategorie, Stärke und Positionsverteilung wurden berücksichtigt."
       );
     } else if (useStrength && !useCategories) {
       setMsg(
-        "Teams automatisch verteilt. Stärke wurde berücksichtigt, Kategorien nicht."
+        "Teams automatisch verteilt. Stärke und Positionsverteilung wurden berücksichtigt."
       );
     } else if (!useStrength && useCategories) {
       setMsg(
-        "Teams automatisch verteilt. Kategorien wurden berücksichtigt, Stärke nicht."
+        "Teams automatisch verteilt. Kategorien und Positionsverteilung wurden berücksichtigt."
       );
     } else {
       setMsg(
-        "Teams automatisch verteilt. Stärke und Kategorien wurden nicht berücksichtigt."
+        "Teams automatisch verteilt. Positionsverteilung wurde berücksichtigt."
       );
     }
 
