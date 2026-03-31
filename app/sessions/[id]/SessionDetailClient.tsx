@@ -43,6 +43,7 @@ type SessionDetailClientProps = {
   initialGoalsA: string;
   initialGoalsB: string;
   initialHasResult: boolean;
+  initialPrimaryColor?: string | null;
 };
 
 type ApiSuccess =
@@ -87,6 +88,7 @@ export default function SessionDetailClient({
   initialGoalsA,
   initialGoalsB,
   initialHasResult,
+  initialPrimaryColor,
 }: SessionDetailClientProps) {
   const router = useRouter();
 
@@ -105,6 +107,7 @@ export default function SessionDetailClient({
   const [clubId] = useState<string | null>(initialClubId);
   const [isAdmin] = useState(initialIsAdmin);
   const [clubSettings] = useState<ClubSettings | null>(initialClubSettings);
+  const [primaryColorKey] = useState<string | null>(initialPrimaryColor ?? "black");
 
   const [winnerPhotoUrl, setWinnerPhotoUrl] = useState<string | null>(
     initialWinnerPhotoUrl
@@ -549,15 +552,6 @@ export default function SessionDetailClient({
       const useStrength = clubSettings?.use_strength ?? true;
       const useCategories = clubSettings?.use_categories ?? true;
 
-      /**
-       * Neue Logik:
-       * - Stärke + Kategorie bilden gemeinsam den internen Spielerwert.
-       * - Position ist KEIN Bonus / Malus.
-       * - Position wird nur über die Verteilung bewertet.
-       *
-       * Falls Stärke/Kategorien in den Club-Settings deaktiviert sind,
-       * wird die Qualitätsdifferenz entsprechend reduziert.
-       */
       const shouldUseScore = useStrength || useCategories;
 
       const scoreDiff = shouldUseScore
@@ -566,11 +560,6 @@ export default function SessionDetailClient({
 
       const posPenalty = positionBalancePenalty(A, B);
 
-      /**
-       * Gewichtung:
-       * - Qualitätsgleichheit ist Hauptziel
-       * - Positionsverteilung ist wichtig, aber nachgelagert
-       */
       return scoreDiff * 10 + posPenalty * 3;
     }
 
@@ -912,6 +901,7 @@ export default function SessionDetailClient({
         nextStepLabel={nextStepLabel}
         isAdmin={isAdmin}
         deletingSession={deletingSession}
+        primaryColorKey={primaryColorKey}
         onDeleteSession={handleDeleteSession}
         onScrollToTeams={() =>
           teamsRef.current?.scrollIntoView({ behavior: "smooth" })

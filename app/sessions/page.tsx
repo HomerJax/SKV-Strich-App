@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import PageHero from "@/components/PageHero";
 
 type Season = {
   id: number;
@@ -14,6 +15,12 @@ type SessionRow = {
   date: string;
   notes: string | null;
   season_id: number | null;
+};
+
+type ClubRow = {
+  id: string;
+  display_name: string | null;
+  primary_color: string | null;
 };
 
 function fmtDateDE(iso: string) {
@@ -30,9 +37,15 @@ export default async function SessionsPage() {
   const supabase = await createClient();
 
   const [
+    { data: clubData },
     { data: seasonsData, error: seasonsError },
     { data: sessionsData, error: sessionsError },
   ] = await Promise.all([
+    supabase
+      .from("clubs")
+      .select("id, display_name, primary_color")
+      .eq("id", clubId)
+      .maybeSingle<ClubRow>(),
     supabase
       .from("seasons")
       .select("id, name, start_date, end_date")
@@ -52,6 +65,8 @@ export default async function SessionsPage() {
         "Daten konnten nicht geladen werden."
     );
   }
+
+  const club = (clubData ?? null) as ClubRow | null;
 
   const seasons = (seasonsData as Season[] | null) ?? [];
   const sessions = (sessionsData as SessionRow[] | null) ?? [];
@@ -83,6 +98,7 @@ export default async function SessionsPage() {
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+        {/* BACK */}
         <div className="flex items-center">
           <Link
             href="/"
@@ -92,37 +108,30 @@ export default async function SessionsPage() {
           </Link>
         </div>
 
-        <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="max-w-3xl">
-              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Trainings
-              </div>
-
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-                Trainingsübersicht
-              </h1>
-
-              <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-                Termine, Teams und Ergebnisse an einem Ort.
-              </p>
-            </div>
-
+        {/* HERO (NEU 🔥) */}
+        <PageHero
+          eyebrow="Trainings"
+          title="Trainingsübersicht"
+          description="Termine, Teams und Ergebnisse an einem Ort."
+          primaryColorKey={club?.primary_color}
+          action={
             <Link
               href="/sessions/new"
-              className="inline-flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
+              className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-white/90"
             >
               + Neues Training
             </Link>
-          </div>
-        </div>
+          }
+        />
 
+        {/* INFO */}
         {totalSessions > 0 && (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
             {totalSessions} {totalSessions === 1 ? "Training" : "Trainings"} gespeichert.
           </div>
         )}
 
+        {/* EMPTY */}
         {totalSessions === 0 && (
           <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="max-w-lg">
@@ -155,6 +164,7 @@ export default async function SessionsPage() {
           </div>
         )}
 
+        {/* LIST */}
         {totalSessions > 0 && (
           <div className="space-y-4">
             {seasonListSorted.map((season) => {

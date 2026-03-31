@@ -15,6 +15,11 @@ type ClubSettings = {
   goalkeeper_label: string | null;
 };
 
+type ClubRow = {
+  id: string;
+  primary_color: string | null;
+};
+
 type ResultRow = {
   id: number;
   team_a_id: number | null;
@@ -51,12 +56,18 @@ export default async function SessionDetailPage({ params }: PageProps) {
   }
 
   const [
+    { data: clubData, error: clubError },
     { data: settingsData, error: settingsError },
     { data: sessionData, error: sessionError },
     { data: playersData, error: playersError },
     { data: sessionPlayersData, error: sessionPlayersError },
     { data: resultData, error: resultError },
   ] = await Promise.all([
+    supabase
+      .from("clubs")
+      .select("id, primary_color")
+      .eq("id", clubId)
+      .maybeSingle<ClubRow>(),
     supabase
       .from("club_settings")
       .select(
@@ -87,6 +98,10 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .eq("session_id", sessionId)
       .maybeSingle(),
   ]);
+
+  if (clubError) {
+    throw new Error(`Club konnte nicht geladen werden: ${clubError.message}`);
+  }
 
   if (settingsError) {
     throw new Error(
@@ -192,6 +207,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialGoalsA={goalsA}
       initialGoalsB={goalsB}
       initialHasResult={hasResult}
+      initialPrimaryColor={clubData?.primary_color ?? "black"}
     />
   );
 }

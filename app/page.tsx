@@ -139,8 +139,19 @@ export default async function HomePage() {
       <WhatsNewModal version="v0.2" />
 
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        
-        {/* HERO */}
+        <div className="flex items-center justify-end">
+          <Link
+            href="/profile"
+            className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-900/20 hover:bg-slate-50"
+          >
+            <span className="hidden sm:inline">Meine Stats</span>
+            <span className="sm:hidden">Profil</span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+              {clubName}
+            </span>
+          </Link>
+        </div>
+
         <div
           className="rounded-[24px] border text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.75)]"
           style={{
@@ -183,7 +194,6 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 🆕 ABOUT PREVIEW CARD */}
         <Link
           href="/about"
           className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -196,7 +206,7 @@ export default async function HomePage() {
             Vom Bierdeckel zur Web-App 🍻⚽
           </h2>
 
-          <p className="mt-2 text-sm text-slate-600 leading-6">
+          <p className="mt-2 text-sm leading-6 text-slate-600">
             Angefangen mit Strichen auf Papier, dann Excel und irgendwann die
             Frage: Warum sind Teams eigentlich immer unfair?
             <br />
@@ -209,8 +219,6 @@ export default async function HomePage() {
           </div>
         </Link>
 
-        {/* REST bleibt gleich */}
-        
         {showGettingStarted ? (
           <section className="flex flex-col gap-3">
             <StepCard

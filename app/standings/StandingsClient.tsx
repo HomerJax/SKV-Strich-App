@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import ExportButtons from "@/components/ExportButtons";
+import PageHero from "@/components/PageHero";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import StandingsShareCard from "./StandingsShareCard";
 import type { RankRow, Season } from "./standings-types";
@@ -26,6 +27,7 @@ type RankingCard = {
 
 type StandingsClientProps = {
   initialClubId: string;
+  initialPrimaryColor?: string | null;
 };
 
 type StandingsApiResponse = {
@@ -37,6 +39,7 @@ type StandingsApiResponse = {
 
 export default function StandingsClient({
   initialClubId,
+  initialPrimaryColor,
 }: StandingsClientProps) {
   void initialClubId;
 
@@ -206,24 +209,12 @@ export default function StandingsClient({
           </Link>
         </div>
 
-        <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="max-w-3xl">
-              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Tabellen
-              </div>
-
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-                Tabellenübersicht
-              </h1>
-
-              <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-                Saison auswählen, Tabelle prüfen und über die Share Cards unten
-                sauber teilen oder exportieren.
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHero
+          eyebrow="Tabellen"
+          title="Tabellenübersicht"
+          description="Saison auswählen, Tabelle prüfen und über die Share Cards unten sauber teilen oder exportieren."
+          primaryColorKey={initialPrimaryColor}
+        />
 
         <div className="rounded-xl border border-slate-200 bg-white p-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
