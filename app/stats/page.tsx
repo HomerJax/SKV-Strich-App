@@ -5,6 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import PlayerTrendCard from "@/components/stats/PlayerTrendCard";
 
+type ClubSettingsRow = {
+  use_strength: boolean;
+  strength_default: number | null;
+};
+
 type ResultRow = {
   session_id: number;
   team_a_id: number | null;
@@ -15,6 +20,7 @@ type ResultRow = {
 
 type TeamPlayerRow = {
   team_id: number;
+  player_id: number;
 };
 
 type SessionPlayerRow = {
@@ -24,6 +30,11 @@ type SessionPlayerRow = {
 type SessionRow = {
   id: number;
   date: string;
+};
+
+type PlayerStrengthRow = {
+  id: number;
+  strength: number | null;
 };
 
 type RecentResult = {
@@ -56,10 +67,76 @@ function percentage(part: number, total: number) {
   return `${Math.round((part / total) * 100)}%`;
 }
 
-function pointsForOutcome(outcome: RecentResult["outcome"]) {
-  if (outcome === "win") return 3;
-  if (outcome === "draw") return 1;
+function trendValueForOutcome(outcome: RecentResult["outcome"]) {
+  if (outcome === "win") return 1;
   return 0;
+}
+
+function formatImpactValue(value: number) {
+  if (!Number.isFinite(value)) return "0,00";
+  return value.toFixed(2).replace(".", ",");
+}
+
+function getImpactValue(params: {
+  myTeamScore: number;
+  opponentScore: number;
+  goalsFor: number;
+  goalsAgainst: number;
+}) {
+  const { myTeamScore, opponentScore, goalsFor, goalsAgainst } = params;
+
+  const isWin = goalsFor > goalsAgainst;
+  if (goalsFor === goalsAgainst) return 0;
+
+  const diff = myTeamScore - opponentScore;
+
+  if (Math.abs(diff) < 0.0001) {
+    return isWin ? 1 : 0;
+  }
+
+  const isFavorite = diff > 0;
+
+  if (isWin && isFavorite) return 1;
+  if (isWin && !isFavorite) return 2;
+  if (!isWin && isFavorite) return -1;
+
+  return 0;
+}
+
+function getImpactMeta(impactPerMatch: number) {
+  if (impactPerMatch >= 1.25) {
+    return {
+      title: "Sehr starker Impact",
+      text: "Deine Teams performen mit dir sehr häufig besser als erwartet.",
+      badgeClasses: "bg-emerald-100 text-emerald-800",
+      boxClasses: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    };
+  }
+
+  if (impactPerMatch >= 0.75) {
+    return {
+      title: "Starker Impact",
+      text: "Mit dir im Team werden regelmäßig starke Ergebnisse erreicht.",
+      badgeClasses: "bg-sky-100 text-sky-800",
+      boxClasses: "border-sky-200 bg-sky-50 text-sky-900",
+    };
+  }
+
+  if (impactPerMatch >= 0.25) {
+    return {
+      title: "Solider Impact",
+      text: "Deine Teams holen mit dir ordentliche Ergebnisse und bleiben im positiven Bereich.",
+      badgeClasses: "bg-amber-100 text-amber-800",
+      boxClasses: "border-amber-200 bg-amber-50 text-amber-900",
+    };
+  }
+
+  return {
+    title: "Noch Luft nach oben",
+    text: "Aktuell performen deine Teams mit dir noch nicht konstant über Erwartung.",
+    badgeClasses: "bg-rose-100 text-rose-800",
+    boxClasses: "border-rose-200 bg-rose-50 text-rose-900",
+  };
 }
 
 export default async function StatsPage() {
@@ -73,15 +150,27 @@ export default async function StatsPage() {
   const supabase = await createClient();
 
   const [
-    { data: teamPlayerRows, error: teamPlayerError },
+    { data: clubSettingsData, error: clubSettingsError },
+    { data: teamPlayerRowsForPlayer, error: teamPlayerError },
     { data: sessionPlayerRows, error: sessionPlayerError },
   ] = await Promise.all([
+    supabase
+      .from("club_settings")
+      .select("use_strength, strength_default")
+      .eq("club_id", clubId)
+      .maybeSingle<ClubSettingsRow>(),
     supabase.from("team_players").select("team_id").eq("player_id", player.id),
     supabase
       .from("session_players")
       .select("session_id")
       .eq("player_id", player.id),
   ]);
+
+  if (clubSettingsError) {
+    throw new Error(
+      `Club-Settings konnten nicht geladen werden: ${clubSettingsError.message}`
+    );
+  }
 
   if (teamPlayerError) {
     throw new Error(
@@ -95,7 +184,15 @@ export default async function StatsPage() {
     );
   }
 
-  const teamIds = ((teamPlayerRows ?? []) as TeamPlayerRow[])
+  const clubSettings = (clubSettingsData ?? {
+    use_strength: true,
+    strength_default: 3,
+  }) as ClubSettingsRow;
+
+  const useStrength = clubSettings.use_strength ?? true;
+  const strengthDefault = clubSettings.strength_default ?? 3;
+
+  const teamIds = ((teamPlayerRowsForPlayer ?? []) as { team_id: number }[])
     .map((row) => row.team_id)
     .filter((value) => Number.isFinite(value));
 
@@ -180,9 +277,80 @@ export default async function StatsPage() {
     );
   }
 
+  const relevantTeamIds = Array.from(
+    new Set(
+      myResults.flatMap((result) =>
+        [result.team_a_id, result.team_b_id].filter(
+          (value): value is number => value !== null && Number.isFinite(value)
+        )
+      )
+    )
+  );
+
+  let teamScoreById = new Map<number, number>();
+
+  if (relevantTeamIds.length > 0) {
+    const { data: teamPlayersData, error: teamPlayersError } = await supabase
+      .from("team_players")
+      .select("team_id, player_id")
+      .in("team_id", relevantTeamIds);
+
+    if (teamPlayersError) {
+      throw new Error(
+        `Team-Spieler konnten nicht geladen werden: ${teamPlayersError.message}`
+      );
+    }
+
+    const teamPlayers = (teamPlayersData ?? []) as TeamPlayerRow[];
+
+    const playerIds = Array.from(
+      new Set(teamPlayers.map((row) => row.player_id).filter(Number.isFinite))
+    );
+
+    const { data: playersData, error: playersError } = await supabase
+      .from("players")
+      .select("id, strength")
+      .in("id", playerIds);
+
+    if (playersError) {
+      throw new Error(
+        `Spieler-Stärken konnten nicht geladen werden: ${playersError.message}`
+      );
+    }
+
+    const players = (playersData ?? []) as PlayerStrengthRow[];
+    const strengthByPlayerId = new Map<number, number>(
+      players.map((p) => [p.id, p.strength ?? strengthDefault])
+    );
+
+    const teamBuckets = new Map<number, TeamPlayerRow[]>();
+    for (const row of teamPlayers) {
+      const current = teamBuckets.get(row.team_id) ?? [];
+      current.push(row);
+      teamBuckets.set(row.team_id, current);
+    }
+
+    for (const teamId of relevantTeamIds) {
+      const rows = teamBuckets.get(teamId) ?? [];
+
+      if (useStrength) {
+        const score = rows.reduce((sum, row) => {
+          return sum + (strengthByPlayerId.get(row.player_id) ?? strengthDefault);
+        }, 0);
+
+        teamScoreById.set(teamId, score);
+      } else {
+        teamScoreById.set(teamId, rows.length);
+      }
+    }
+  }
+
   let wins = 0;
   let losses = 0;
   let draws = 0;
+  let impactTotal = 0;
+  let impactGames = 0;
+  let impactWins = 0;
 
   const recentResults: RecentResult[] = myResults.map((result) => {
     const myTeamIsA =
@@ -202,6 +370,30 @@ export default async function StatsPage() {
     } else {
       outcome = "loss";
       losses += 1;
+    }
+
+    const myTeamId = myTeamIsA ? result.team_a_id : result.team_b_id;
+    const opponentTeamId = myTeamIsA ? result.team_b_id : result.team_a_id;
+
+    const myTeamScore =
+      myTeamId !== null ? (teamScoreById.get(myTeamId) ?? 0) : 0;
+    const opponentScore =
+      opponentTeamId !== null ? (teamScoreById.get(opponentTeamId) ?? 0) : 0;
+
+    const goalsFor = myTeamIsA ? goalsA : goalsB;
+    const goalsAgainst = myTeamIsA ? goalsB : goalsA;
+
+    const impactValue = getImpactValue({
+      myTeamScore,
+      opponentScore,
+      goalsFor,
+      goalsAgainst,
+    });
+
+    impactTotal += impactValue;
+    impactGames += 1;
+    if (outcome === "win") {
+      impactWins += 1;
     }
 
     return {
@@ -225,8 +417,11 @@ export default async function StatsPage() {
   const trendPoints = [...lastFive].reverse().map((item, index) => ({
     id: `${item.sessionId}-${index}`,
     label: `${index + 1}`,
-    value: pointsForOutcome(item.outcome),
+    value: trendValueForOutcome(item.outcome),
   }));
+
+  const impactPerMatch = impactGames > 0 ? impactTotal / impactGames : 0;
+  const impactMeta = getImpactMeta(impactPerMatch);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
@@ -348,6 +543,128 @@ export default async function StatsPage() {
           )}
         </section>
       </div>
+
+      {flags.team_impact ? (
+        <section className="mt-5 rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-slate-950">
+                Team Impact
+              </div>
+              <div className="mt-1 text-sm text-slate-600">
+                Zeigt, wie Teams mit dir performen – nicht nur ob du gewinnst,
+                sondern auch wie stark dein Team im Vergleich war.
+              </div>
+            </div>
+
+            <span
+              className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${impactMeta.badgeClasses}`}
+            >
+              {impactMeta.title}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Spiele mit dir
+              </div>
+              <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
+                {impactGames}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Siege mit dir
+              </div>
+              <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
+                {impactWins}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Impact gesamt
+              </div>
+              <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
+                {formatImpactValue(impactTotal)}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Impact / Spiel
+              </div>
+              <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
+                {formatImpactValue(impactPerMatch)}
+              </div>
+            </div>
+          </div>
+
+          <div className={`mt-5 rounded-2xl border p-4 text-sm leading-6 ${impactMeta.boxClasses}`}>
+            <div className="font-semibold">{impactMeta.title}</div>
+            <div className="mt-1">{impactMeta.text}</div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <div className="font-semibold text-slate-900">
+              So wird Team Impact berechnet
+            </div>
+
+            <div className="mt-2 space-y-1">
+              <div>• Sieg mit stärkerem Team → +1</div>
+              <div>• Sieg als Underdog → +2</div>
+              <div>• Niederlage trotz stärkerem Team → -1</div>
+              <div>• Niederlage als Underdog → 0</div>
+            </div>
+
+            <p className="mt-3 text-slate-600">
+              Grundlage ist die erwartete Teamstärke aus den gespeicherten Teams.
+              Wenn in deinem Club Stärken aktiv sind, wird mit der Summe der
+              Spieler-Stärken gerechnet. Sonst zählt die Teamgröße als neutrale
+              Basis.
+            </p>
+
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <div className="font-semibold text-slate-900">
+                So kannst du die beiden Werte lesen
+              </div>
+
+              <div className="mt-3 space-y-3 text-slate-600">
+                <p>
+                  <span className="font-medium text-slate-800">Impact gesamt</span>{" "}
+                  ist die aufsummierte Wirkung über alle bewerteten Spiele.
+                  Der Wert steigt, wenn du über viele Spiele positiven Einfluss
+                  sammelst. Er hängt also stark davon ab, wie oft du gespielt hast.
+                </p>
+
+                <p>
+                  <span className="font-medium text-slate-800">Impact / Spiel</span>{" "}
+                  ist dein durchschnittlicher Einfluss pro Spiel. Das ist die
+                  wichtigere Kennzahl, weil sie fairer zwischen Spielern mit
+                  unterschiedlich vielen Einsätzen vergleichbar ist.
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-1 text-slate-600">
+                <div>• Unter 0,25 → eher schwach</div>
+                <div>• 0,25 bis 0,74 → solide</div>
+                <div>• 0,75 bis 1,24 → stark</div>
+                <div>• Ab 1,25 → sehr stark</div>
+              </div>
+
+              <p className="mt-3 text-slate-600">
+                Beispiel: Ein <span className="font-medium text-slate-800">Impact gesamt</span> von
+                9,0 kann stark sein – wenn er in wenigen Spielen entstanden ist.
+                Über sehr viele Spiele ist derselbe Wert eher mittel. Deshalb ist{" "}
+                <span className="font-medium text-slate-800">Impact / Spiel</span>{" "}
+                meist die bessere Einordnung.
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }
