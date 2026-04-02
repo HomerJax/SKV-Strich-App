@@ -46,60 +46,73 @@ export function buildPlayerDisplayName(player: {
   return "Spieler";
 }
 
+/**
+ * Externer Share:
+ * - natives Share-Menü mit Bild
+ * - Fallback: Download
+ */
 export async function shareImageFromUrl({
   imageUrl,
   fileName,
-  title,
-  text,
 }: {
   imageUrl: string;
   fileName: string;
-  title: string;
-  text?: string;
 }) {
-  if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-    throw new Error("Teilen wird auf diesem Gerät nicht unterstützt.");
+  try {
+    const response = await fetch(imageUrl, {
+      method: "GET",
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new Error(
+        errorText?.trim().length > 0
+          ? errorText
+          : `Share-Bild konnte nicht geladen werden (HTTP ${response.status}).`
+      );
+    }
+
+    const blob = await response.blob();
+
+    const safeFileName = fileName.toLowerCase().endsWith(".png")
+      ? fileName
+      : `${fileName}.png`;
+
+    const file = new File([blob], safeFileName, {
+      type: blob.type || "image/png",
+      lastModified: Date.now(),
+    });
+
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.canShare === "function" &&
+      navigator.canShare({ files: [file] })
+    ) {
+      await navigator.share({
+        files: [file],
+      });
+      return "shared";
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = safeFileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    return "downloaded";
+  } catch (error) {
+    console.error(error);
+
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error("Teilen des Bildes fehlgeschlagen.");
   }
-
-  const response = await fetch(imageUrl, {
-    method: "GET",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Share-Bild konnte nicht geladen werden.");
-  }
-
-  const blob = await response.blob();
-
-  const safeFileName = fileName.toLowerCase().endsWith(".png")
-    ? fileName
-    : `${fileName}.png`;
-
-  const file = new File([blob], safeFileName, {
-    type: blob.type || "image/png",
-    lastModified: Date.now(),
-  });
-
-  const shareDataWithFile: ShareData = {
-    title,
-    text,
-    files: [file],
-  };
-
-  if (
-    typeof navigator.canShare === "function" &&
-    navigator.canShare(shareDataWithFile)
-  ) {
-    await navigator.share(shareDataWithFile);
-    return "shared";
-  }
-
-  await navigator.share({
-    title,
-    text,
-    url: imageUrl,
-  });
-
-  return "shared";
 }

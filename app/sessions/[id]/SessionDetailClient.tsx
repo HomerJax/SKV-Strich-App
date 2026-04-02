@@ -18,6 +18,7 @@ import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionTeamsCard from "./SessionTeamsCard";
 import SessionResultCard from "./SessionResultCard";
+import SessionEndModal from "@/components/SessionEndModal";
 
 type ClubSettings = {
   use_strength: boolean;
@@ -75,6 +76,119 @@ function sameIdSet(a: number[], b: number[]) {
   return aSorted.every((value, index) => value === bSorted[index]);
 }
 
+function getResultHighlight(scoreA: number, scoreB: number) {
+  const diff = Math.abs(scoreA - scoreB);
+
+  if (scoreA === scoreB) return "🤝 Alles offen";
+  if (diff >= 3) return "💪 Dominanter Sieg";
+  if (diff === 1) return "😮 Knappe Kiste";
+  return "⚡ Klar entschieden";
+}
+
+function getResultStory(scoreA: number, scoreB: number) {
+  const diff = Math.abs(scoreA - scoreB);
+
+  if (scoreA === scoreB) return "Zwei Teams auf Augenhöhe.";
+  if (diff >= 3) return "Klare Sache heute.";
+  if (diff === 1) return "Bis zum Schluss spannend.";
+  return "Verdient durchgesetzt.";
+}
+
+function hashString(value: string) {
+  let hash = 0;
+
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+
+  return hash;
+}
+
+function pickVariant(seed: string, options: string[]) {
+  if (options.length === 0) return "";
+  return options[hashString(seed) % options.length];
+}
+
+function getAutoTeamNames(
+  sessionId: number,
+  goalsA: number,
+  goalsB: number,
+  teamAPlayers: Player[],
+  teamBPlayers: Player[]
+) {
+  const seed = `${sessionId}-${goalsA}:${goalsB}-${teamAPlayers.length}-${teamBPlayers.length}`;
+  const diff = Math.abs(goalsA - goalsB);
+  const isDraw = goalsA === goalsB;
+
+  const teamAFirst = teamAPlayers[0] ? getPlayerDisplayName(teamAPlayers[0]) : null;
+  const teamBFirst = teamBPlayers[0] ? getPlayerDisplayName(teamBPlayers[0]) : null;
+
+  const neutralA = [
+    "Die Roten",
+    "Die Flinken",
+    "Die Kämpfer",
+    "Die Wilden",
+    "Die Maschinen",
+    "Die Eisernen",
+  ];
+
+  const neutralB = [
+    "Die Blauen",
+    "Die Herausforderer",
+    "Die Raketen",
+    "Die Unbequemen",
+    "Die Jäger",
+    "Die Unermüdlichen",
+  ];
+
+  const stronger = [
+    "Die Favoriten",
+    "Die Dominanten",
+    "Die Formstarken",
+    "Die Titeljäger",
+  ];
+
+  const weaker = [
+    "Die Underdogs",
+    "Die Außenseiter",
+    "Die Herausforderer",
+    "Die Spätstarter",
+  ];
+
+  if (teamAFirst && teamBFirst && diff <= 1) {
+    return {
+      a: `Team ${teamAFirst}`,
+      b: `Team ${teamBFirst}`,
+    };
+  }
+
+  if (isDraw) {
+    return {
+      a: pickVariant(`${seed}-a`, neutralA),
+      b: pickVariant(`${seed}-b`, neutralB),
+    };
+  }
+
+  if (diff >= 3) {
+    const winnerIsA = goalsA > goalsB;
+
+    return winnerIsA
+      ? {
+          a: pickVariant(`${seed}-strong-a`, stronger),
+          b: pickVariant(`${seed}-weak-b`, weaker),
+        }
+      : {
+          a: pickVariant(`${seed}-weak-a`, weaker),
+          b: pickVariant(`${seed}-strong-b`, stronger),
+        };
+  }
+
+  return {
+    a: pickVariant(`${seed}-neutral-a`, neutralA),
+    b: pickVariant(`${seed}-neutral-b`, neutralB),
+  };
+}
+
 export default function SessionDetailClient({
   sessionId,
   initialSession,
@@ -117,6 +231,8 @@ export default function SessionDetailClient({
   const [goalsB, setGoalsB] = useState(initialGoalsB);
   const [hasResult, setHasResult] = useState(initialHasResult);
 
+  const [showSessionEndModal, setShowSessionEndModal] = useState(false);
+
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [guestPosition, setGuestPosition] = useState<
@@ -135,6 +251,7 @@ export default function SessionDetailClient({
   const [photoBusy, setPhotoBusy] = useState(false);
   const [sharingLineup, setSharingLineup] = useState(false);
   const [sharingResult, setSharingResult] = useState(false);
+  const [sharingInternal, setSharingInternal] = useState(false);
   const [deletingSession, setDeletingSession] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -241,6 +358,14 @@ export default function SessionDetailClient({
 
   const canUploadWinnerPhoto = teamsComplete && !saving && !deletingSession;
 
+  const scoreAValue = Number(goalsA) || 0;
+  const scoreBValue = Number(goalsB) || 0;
+
+  const autoTeamNames = useMemo(
+    () => getAutoTeamNames(sessionId, scoreAValue, scoreBValue, teamA, teamB),
+    [sessionId, scoreAValue, scoreBValue, teamA, teamB]
+  );
+
   const nextStepLabel = hasResult
     ? "Ergebnis ist gespeichert"
     : attendanceDirty
@@ -309,6 +434,49 @@ export default function SessionDetailClient({
     }
   }
 
+  async function handleShareInternalResult() {
+    try {
+      setSharingInternal(true);
+      setErr(null);
+      setMsg(null);
+
+      if (!canShareResult) {
+        throw new Error(
+          "Bitte zuerst Teams und Ergebnis vollständig eintragen."
+        );
+      }
+
+      const highlight = getResultHighlight(scoreAValue, scoreBValue);
+      const story = getResultStory(scoreAValue, scoreBValue);
+      const sessionUrl = `${window.location.origin}/sessions/${sessionId}`;
+      const teamLine = `${autoTeamNames.a} vs ${autoTeamNames.b}`;
+
+      const shareTextValue = `🔥 ${scoreAValue}:${scoreBValue}
+
+${teamLine}
+${highlight}
+${story}
+
+Schau dir das Ergebnis an, prüf deine Stats und teile die SiegerCard weiter 👀
+${sessionUrl}`;
+
+      const result = await shareText(
+        shareTextValue,
+        "Ergebnis & Stats in Gruppe teilen"
+      );
+
+      setMsg(
+        result === "copied"
+          ? "Text zum Gruppenteilen in die Zwischenablage kopiert."
+          : "Ergebnis erfolgreich in der Gruppe geteilt."
+      );
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Ergebnis konnte nicht in der Gruppe geteilt werden."));
+    } finally {
+      setSharingInternal(false);
+    }
+  }
+
   async function handleShareResult() {
     try {
       setSharingResult(true);
@@ -321,16 +489,16 @@ export default function SessionDetailClient({
         );
       }
 
+      const imageUrl = `${window.location.origin}/api/share/result/${sessionId}/image`;
+
       await shareImageFromUrl({
-        imageUrl: `/api/share/result/${sessionId}/image`,
-        fileName: `strikr-ergebnis-${sessionId}.png`,
-        title: "Ergebnis teilen",
-        text: "Ergebnis geteilt mit Strikr",
+        imageUrl,
+        fileName: `strikr-result-${sessionId}.png`,
       });
 
-      setMsg("Ergebnis erfolgreich als Bild geteilt.");
+      setMsg("SiegerCard erfolgreich geteilt.");
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Ergebnis konnte nicht geteilt werden."));
+      setErr(getErrorMessage(e, "SiegerCard konnte nicht geteilt werden."));
     } finally {
       setSharingResult(false);
     }
@@ -733,6 +901,10 @@ export default function SessionDetailClient({
         setAttendanceCollapsed(true);
         setTeamsCollapsed(true);
         setMsg(result.message);
+
+        if (result.hasResult) {
+          setShowSessionEndModal(true);
+        }
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Fehler beim Speichern."));
@@ -765,6 +937,7 @@ export default function SessionDetailClient({
         setGoalsB(result.goalsB);
         setAttendanceCollapsed(false);
         setTeamsCollapsed(false);
+        setShowSessionEndModal(false);
         setMsg(result.message);
       }
     } catch (e: unknown) {
@@ -881,126 +1054,175 @@ export default function SessionDetailClient({
   }
 
   return (
-    <div className="space-y-4">
-      <button
-        type="button"
-        onClick={() => router.push("/sessions")}
-        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-      >
-        <span aria-hidden="true">←</span>
-        <span>Zurück zu Trainings</span>
-      </button>
+    <>
+      <div className="space-y-4">
+        <button
+          type="button"
+          onClick={() => router.push("/sessions")}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Zurück zu Trainings</span>
+        </button>
 
-      <SessionHeaderCard
-        date={session.date}
-        notes={session.notes ?? null}
-        presentCount={presentPlayers.length}
-        teamACount={teamA.length}
-        teamBCount={teamB.length}
-        hasResult={hasResult}
-        nextStepLabel={nextStepLabel}
-        isAdmin={isAdmin}
-        deletingSession={deletingSession}
-        primaryColorKey={primaryColorKey}
-        onDeleteSession={handleDeleteSession}
-        onScrollToTeams={() =>
-          teamsRef.current?.scrollIntoView({ behavior: "smooth" })
-        }
-        onScrollToResult={() =>
-          resultRef.current?.scrollIntoView({ behavior: "smooth" })
-        }
-      />
-
-      {!hasResult && (
-        <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
-          Empfohlene Reihenfolge: Anwesenheit festlegen → Anwesenheit speichern →
-          Teams aufteilen → Ergebnis speichern.
-        </div>
-      )}
-
-      {err && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-          {err}
-        </div>
-      )}
-
-      {msg && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-          {msg}
-        </div>
-      )}
-
-      <div ref={attendanceRef}>
-        <SessionAttendanceCard
-          players={players}
-          presentIds={draftPresentIds}
+        <SessionHeaderCard
+          date={session.date}
+          notes={session.notes ?? null}
+          presentCount={presentPlayers.length}
+          teamACount={teamA.length}
+          teamBCount={teamB.length}
           hasResult={hasResult}
+          nextStepLabel={nextStepLabel}
           isAdmin={isAdmin}
-          showGuestForm={showGuestForm}
-          guestName={guestName}
-          guestPosition={guestPosition}
-          guestAgeGroup={guestAgeGroup}
-          guestSaving={guestSaving}
-          clubSettings={clubSettings}
-          collapsed={attendanceCollapsed}
-          savingPresence={savingPresence}
-          dirty={attendanceDirty}
-          onToggleCollapsed={() =>
-            setAttendanceCollapsed((prev) => !prev)
+          deletingSession={deletingSession}
+          primaryColorKey={primaryColorKey}
+          onDeleteSession={handleDeleteSession}
+          onScrollToTeams={() =>
+            teamsRef.current?.scrollIntoView({ behavior: "smooth" })
           }
-          onToggleShowGuestForm={toggleGuestForm}
-          onGuestNameChange={setGuestName}
-          onGuestPositionChange={setGuestPosition}
-          onGuestAgeGroupChange={setGuestAgeGroup}
-          onAddGuestPlayer={addGuestPlayer}
-          onTogglePresence={togglePresence}
-          onSavePresence={savePresence}
+          onScrollToResult={() =>
+            resultRef.current?.scrollIntoView({ behavior: "smooth" })
+          }
         />
+
+        {!hasResult && (
+          <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+            Empfohlene Reihenfolge: Anwesenheit festlegen → Anwesenheit speichern →
+            Teams aufteilen → Ergebnis speichern.
+          </div>
+        )}
+
+        {err && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+            {err}
+          </div>
+        )}
+
+        {msg && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+            {msg}
+          </div>
+        )}
+
+        {hasResult ? (
+          <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold text-slate-500">
+                  Letztes Ergebnis
+                </div>
+                <div className="mt-1 text-base font-bold text-slate-950">
+                  Ergebnis ansehen und teilen
+                </div>
+                <div className="mt-1 text-sm text-slate-600">
+                  Öffne die Ergebnisansicht, um die SiegerCard nach außen zu teilen
+                  oder das Ergebnis mit CTA zurück in eure Gruppe zu posten.
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSessionEndModal(true)}
+                className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                🔥 Ergebnis ansehen & teilen
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <div ref={attendanceRef}>
+          <SessionAttendanceCard
+            players={players}
+            presentIds={draftPresentIds}
+            hasResult={hasResult}
+            isAdmin={isAdmin}
+            showGuestForm={showGuestForm}
+            guestName={guestName}
+            guestPosition={guestPosition}
+            guestAgeGroup={guestAgeGroup}
+            guestSaving={guestSaving}
+            clubSettings={clubSettings}
+            collapsed={attendanceCollapsed}
+            savingPresence={savingPresence}
+            dirty={attendanceDirty}
+            onToggleCollapsed={() => setAttendanceCollapsed((prev) => !prev)}
+            onToggleShowGuestForm={toggleGuestForm}
+            onGuestNameChange={setGuestName}
+            onGuestPositionChange={setGuestPosition}
+            onGuestAgeGroupChange={setGuestAgeGroup}
+            onAddGuestPlayer={addGuestPlayer}
+            onTogglePresence={togglePresence}
+            onSavePresence={savePresence}
+          />
+        </div>
+
+        <div ref={teamsRef}>
+          <SessionTeamsCard
+            teamA={teamA}
+            teamB={teamB}
+            unassigned={unassigned}
+            metaA={metaA}
+            metaB={metaB}
+            hasResult={hasResult}
+            saving={saving}
+            teamsComplete={teamsComplete}
+            canShareLineup={canShareLineup}
+            sharingLineup={sharingLineup}
+            collapsed={teamsCollapsed}
+            attendanceDirty={attendanceDirty}
+            onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
+            onGenerateTeams={generateTeams}
+            onShareLineup={handleShareLineup}
+            onSetSide={setSide}
+          />
+        </div>
+
+        <div ref={resultRef}>
+          <SessionResultCard
+            hasResult={hasResult}
+            saving={saving}
+            photoBusy={photoBusy}
+            goalsA={goalsA}
+            goalsB={goalsB}
+            canShareResult={canShareResult}
+            canUploadWinnerPhoto={canUploadWinnerPhoto}
+            winnerPhotoUrl={winnerPhotoUrl}
+            hasWinnerPhoto={Boolean(session.winner_photo_path)}
+            sharingResult={sharingResult}
+            sharingInternal={sharingInternal}
+            winnerPhotoInputRef={winnerPhotoInputRef}
+            onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
+            onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
+            onDeleteResult={deleteResult}
+            onWinnerPhotoUpload={handleWinnerPhotoUpload}
+            onWinnerPhotoDelete={handleWinnerPhotoDelete}
+            onSaveResult={saveResult}
+            onShareResult={handleShareResult}
+            onShareInternal={handleShareInternalResult}
+          />
+        </div>
       </div>
 
-      <div ref={teamsRef}>
-        <SessionTeamsCard
-          teamA={teamA}
-          teamB={teamB}
-          unassigned={unassigned}
-          metaA={metaA}
-          metaB={metaB}
-          hasResult={hasResult}
-          saving={saving}
-          teamsComplete={teamsComplete}
-          canShareLineup={canShareLineup}
-          sharingLineup={sharingLineup}
-          collapsed={teamsCollapsed}
-          attendanceDirty={attendanceDirty}
-          onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
-          onGenerateTeams={generateTeams}
-          onShareLineup={handleShareLineup}
-          onSetSide={setSide}
-        />
-      </div>
-
-      <div ref={resultRef}>
-        <SessionResultCard
-          hasResult={hasResult}
-          saving={saving}
-          photoBusy={photoBusy}
-          goalsA={goalsA}
-          goalsB={goalsB}
-          canShareResult={canShareResult}
-          canUploadWinnerPhoto={canUploadWinnerPhoto}
-          winnerPhotoUrl={winnerPhotoUrl}
-          hasWinnerPhoto={Boolean(session.winner_photo_path)}
-          sharingResult={sharingResult}
-          winnerPhotoInputRef={winnerPhotoInputRef}
-          onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
-          onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
-          onDeleteResult={deleteResult}
-          onWinnerPhotoUpload={handleWinnerPhotoUpload}
-          onWinnerPhotoDelete={handleWinnerPhotoDelete}
-          onSaveResult={saveResult}
-          onShareResult={handleShareResult}
-        />
-      </div>
-    </div>
+      <SessionEndModal
+        open={showSessionEndModal}
+        onClose={() => setShowSessionEndModal(false)}
+        teamA={{
+          name: autoTeamNames.a,
+          players: teamA.map((player) => getPlayerDisplayName(player)),
+        }}
+        teamB={{
+          name: autoTeamNames.b,
+          players: teamB.map((player) => getPlayerDisplayName(player)),
+        }}
+        scoreA={scoreAValue}
+        scoreB={scoreBValue}
+        wasUnderdog={false}
+        onShareInternal={handleShareInternalResult}
+        onShareSocial={handleShareResult}
+        sharingInternal={sharingInternal}
+        sharingSocial={sharingResult}
+      />
+    </>
   );
 }

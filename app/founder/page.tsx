@@ -94,9 +94,9 @@ export default async function FounderPage() {
   await requireFounder();
 
   const supabase = await createClient();
-  const sevenDaysAgoIso = new Date(
-    Date.now() - 7 * 24 * 60 * 60 * 1000
-  ).toISOString();
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgoIso = sevenDaysAgo.toISOString();
 
   const [
     clubsCountResult,

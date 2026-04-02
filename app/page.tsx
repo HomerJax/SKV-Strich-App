@@ -11,13 +11,6 @@ type ClubRow = {
   primary_color: string | null;
 };
 
-type SetupState = {
-  playersCount: number;
-  invitesCount: number;
-  sessionsCount: number;
-  seasonsCount: number;
-};
-
 const COLOR_MAP: Record<string, string> = {
   black: "#020617",
   blue: "#1d4ed8",
@@ -69,8 +62,30 @@ function StepCard({
   );
 }
 
+function QuickStartCard({
+  title,
+  text,
+  href,
+}: {
+  title: string;
+  text: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-xl border border-black/10 bg-white p-3 transition hover:bg-slate-50"
+    >
+      <div className="text-sm font-semibold leading-5 text-slate-900">
+        {title}
+      </div>
+      <div className="mt-1 text-xs leading-5 text-slate-600">{text}</div>
+    </Link>
+  );
+}
+
 export default async function HomePage() {
-  const { clubId, memberships } = await requireClub();
+  const { clubId } = await requireClub();
   const supabase = await createClient();
 
   const [
@@ -107,7 +122,6 @@ export default async function HomePage() {
 
   const club = (clubData ?? null) as ClubRow | null;
   const clubName = club?.display_name?.trim() || "Dein Team";
-  const hasMultipleClubs = memberships.length > 1;
 
   const selectedColor = club?.primary_color ?? "black";
   const primaryColor = COLOR_MAP[selectedColor] ?? COLOR_MAP.black;
@@ -133,6 +147,7 @@ export default async function HomePage() {
   }
 
   const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
+  const hasSessions = (sessionsCount ?? 0) > 0;
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
@@ -180,6 +195,31 @@ export default async function HomePage() {
             </p>
           </div>
         </div>
+
+        <section className="rounded-[20px] border border-black/10 bg-white p-4 shadow-sm">
+          <div className="mb-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Direkt loslegen
+            </div>
+            <div className="mt-1 text-sm font-semibold text-slate-900">
+              Schnellzugriff
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <QuickStartCard
+              title="Session starten"
+              text="Training anlegen"
+              href="/sessions/new"
+            />
+
+            <QuickStartCard
+              title="Stats & Sessions"
+              text={hasSessions ? "Verlauf ansehen" : "Stats ansehen"}
+              href={hasSessions ? "/sessions" : "/stats"}
+            />
+          </div>
+        </section>
 
         <Link
           href="/about"
@@ -232,10 +272,17 @@ export default async function HomePage() {
               cta="Einladen"
             />
 
-            <div className="rounded-[24px] border bg-white p-5">
-              <a href={feedbackHref}>Feedback senden</a>
+            <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
+              <a href={feedbackHref} className="text-sm font-medium text-slate-900">
+                Feedback senden
+              </a>
               <br />
-              <Link href="/about">Über Strikr ansehen</Link>
+              <Link
+                href="/about"
+                className="mt-2 inline-block text-sm font-medium text-slate-900"
+              >
+                Über Strikr ansehen
+              </Link>
             </div>
           </section>
         ) : null}

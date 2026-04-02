@@ -9,6 +9,24 @@ function hasText(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function getResultHighlight(goalsA: number, goalsB: number) {
+  const diff = Math.abs(goalsA - goalsB);
+
+  if (goalsA === goalsB) return "🤝 Alles offen";
+  if (diff >= 3) return "💪 Dominanter Sieg";
+  if (diff === 1) return "😮 Knappe Kiste";
+  return "⚡ Klar entschieden";
+}
+
+function getResultStory(goalsA: number, goalsB: number) {
+  const diff = Math.abs(goalsA - goalsB);
+
+  if (goalsA === goalsB) return "Zwei Teams auf Augenhöhe.";
+  if (diff >= 3) return "Klare Sache heute.";
+  if (diff === 1) return "Bis zum Schluss spannend.";
+  return "Verdient durchgesetzt.";
+}
+
 function hashString(value: string) {
   let hash = 0;
 
@@ -34,76 +52,29 @@ function getHeadline(goalsA: number, goalsB: number, seed: string) {
       "Alles offen",
       "Kein Sieger",
       "Enge Kiste",
-      "Bis zuletzt offen",
     ]);
   }
 
   if (diff >= 6) {
     return pickVariant(seed, [
       "Statement-Sieg",
-      "Klar dominiert",
       "Richtig abgeliefert",
-      "Deutliche Ansage",
-      "Souverän gewonnen",
+      "Klare Ansage",
     ]);
   }
 
   if (diff >= 3) {
     return pickVariant(seed, [
-      "Klarer Sieg",
       "Starkes Ding",
-      "Sauber gemacht",
-      "Überzeugend gewonnen",
-      "Starker Abend",
+      "Sauber gewonnen",
+      "Überzeugend",
     ]);
   }
 
   return pickVariant(seed, [
-    "Knapp durchgesetzt",
-    "Bis zum Schluss",
-    "Enge Nummer",
-    "Wichtiger Sieg",
     "Ganz enges Ding",
-  ]);
-}
-
-function getSubline(
-  goalsA: number,
-  goalsB: number,
-  winnerLabel: string,
-  seed: string
-) {
-  const diff = Math.abs(goalsA - goalsB);
-  const isDraw = goalsA === goalsB;
-
-  if (isDraw) {
-    return pickVariant(seed + "-draw", [
-      "Intensives Spiel ohne Sieger.",
-      "Zwei Teams auf Augenhöhe.",
-      "Am Ende bleibt alles offen.",
-    ]);
-  }
-
-  if (diff >= 6) {
-    return pickVariant(seed + "-big", [
-      `${winnerLabel} mit einer klaren Vorstellung.`,
-      "Heute lief vieles in die richtige Richtung.",
-      "Ein Abend mit klarer Linie.",
-    ]);
-  }
-
-  if (diff >= 3) {
-    return pickVariant(seed + "-mid", [
-      `${winnerLabel} setzt sich verdient durch.`,
-      "Guter Abend, klares Ergebnis.",
-      "Solide Leistung mit klarem Ausgang.",
-    ]);
-  }
-
-  return pickVariant(seed + "-small", [
-    `${winnerLabel} holt sich das Ding knapp.`,
-    "Knapp, intensiv und am Ende erfolgreich.",
-    "Ein enges Spiel mit dem besseren Ende.",
+    "Bis zum Schluss",
+    "Knapper Sieg",
   ]);
 }
 
@@ -111,6 +82,28 @@ async function getStrikrLogoDataUrl() {
   const iconPath = path.join(process.cwd(), "app", "icon.png");
   const file = await readFile(iconPath);
   return `data:image/png;base64,${file.toString("base64")}`;
+}
+
+async function remoteImageToDataUrl(url: string | null) {
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get("content-type") || "image/png";
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+    return `data:${contentType};base64,${base64}`;
+  } catch {
+    return null;
+  }
 }
 
 export async function GET(
@@ -130,22 +123,23 @@ export async function GET(
       : null;
 
     const date = hasText(data.date) ? data.date : "";
-    const winnerLabel = hasText(data.winnerLabel)
-      ? data.winnerLabel
-      : "Unentschieden";
-    const winnerPhotoUrl = hasText(data.winnerPhotoUrl) ? data.winnerPhotoUrl : null;
+    const winnerPhotoUrl = hasText(data.winnerPhotoUrl)
+      ? data.winnerPhotoUrl
+      : null;
 
-    const goalsAValue = Number(data.goalsA ?? 0);
-    const goalsBValue = Number(data.goalsB ?? 0);
-
-    const goalsA = Number.isFinite(goalsAValue) ? goalsAValue : 0;
-    const goalsB = Number.isFinite(goalsBValue) ? goalsBValue : 0;
+    const goalsA = Number(data.goalsA ?? 0);
+    const goalsB = Number(data.goalsB ?? 0);
 
     const scoreText = `${goalsA}:${goalsB}`;
-    const seed = `${id}-${date}-${scoreText}-${winnerLabel}`;
+    const seed = `${id}-${date}-${scoreText}`;
+
     const headline = getHeadline(goalsA, goalsB, seed);
-    const subline = getSubline(goalsA, goalsB, winnerLabel, seed);
+    const highlight = getResultHighlight(goalsA, goalsB);
+    const story = getResultStory(goalsA, goalsB);
+
     const strikrLogoDataUrl = await getStrikrLogoDataUrl();
+    const winnerPhotoDataUrl = await remoteImageToDataUrl(winnerPhotoUrl);
+    const clubCrestDataUrl = await remoteImageToDataUrl(clubCrestUrl);
 
     return new ImageResponse(
       (
@@ -154,12 +148,13 @@ export async function GET(
             width: 1080,
             height: 1350,
             display: "flex",
+            flexDirection: "column",
+            background: "#0A0A0A",
+            color: "#fff",
+            padding: "60px 50px 110px 50px",
+            fontFamily: "sans-serif",
             position: "relative",
             overflow: "hidden",
-            background: "#0A0A0A",
-            color: "#FFFFFF",
-            fontFamily:
-              'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           }}
         >
           <div
@@ -206,7 +201,6 @@ export async function GET(
               height: "100%",
               display: "flex",
               flexDirection: "column",
-              padding: "40px 40px 54px 40px",
             }}
           >
             <div
@@ -217,9 +211,9 @@ export async function GET(
                 maxWidth: 860,
               }}
             >
-              {clubCrestUrl ? (
+              {clubCrestDataUrl ? (
                 <img
-                  src={clubCrestUrl}
+                  src={clubCrestDataUrl}
                   alt=""
                   width={84}
                   height={84}
@@ -271,16 +265,32 @@ export async function GET(
               style={{
                 display: "flex",
                 flexDirection: "column",
-                marginTop: 34,
+                marginTop: 30,
                 gap: 12,
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  fontSize: 92,
+                  alignSelf: "flex-start",
+                  padding: "12px 18px",
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.92)",
+                }}
+              >
+                {highlight}
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 82,
                   fontWeight: 900,
-                  lineHeight: 0.94,
+                  lineHeight: 0.95,
                   letterSpacing: -3,
                   maxWidth: 940,
                 }}
@@ -291,14 +301,14 @@ export async function GET(
               <div
                 style={{
                   display: "flex",
-                  fontSize: 34,
+                  fontSize: 32,
                   fontWeight: 600,
                   lineHeight: 1.2,
                   color: "rgba(255,255,255,0.72)",
                   maxWidth: 940,
                 }}
               >
-                {subline}
+                {story}
               </div>
             </div>
 
@@ -307,30 +317,26 @@ export async function GET(
                 display: "flex",
                 width: "100%",
                 marginTop: 32,
-                borderRadius: 34,
-                padding: 16,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.12)",
               }}
             >
               <div
                 style={{
-                  display: "flex",
                   position: "relative",
                   width: "100%",
-                  height: 700,
-                  borderRadius: 26,
+                  height: 720,
+                  borderRadius: 32,
                   overflow: "hidden",
                   background: "rgba(255,255,255,0.04)",
                   border: "1px solid rgba(255,255,255,0.10)",
+                  display: "flex",
                 }}
               >
-                {winnerPhotoUrl ? (
+                {winnerPhotoDataUrl ? (
                   <img
-                    src={winnerPhotoUrl}
+                    src={winnerPhotoDataUrl}
                     alt=""
-                    width={968}
-                    height={700}
+                    width={1080}
+                    height={720}
                     style={{
                       width: "100%",
                       height: "100%",
@@ -346,57 +352,113 @@ export async function GET(
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      background: "rgba(255,255,255,0.03)",
-                      color: "rgba(255,255,255,0.58)",
-                      fontSize: 34,
+                      color: "rgba(255,255,255,0.5)",
+                      fontSize: 32,
                       fontWeight: 700,
                     }}
                   >
                     Kein Siegerfoto
                   </div>
                 )}
+
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      "linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.72) 100%)",
+                    display: "flex",
+                  }}
+                />
+
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 32,
+                    left: 32,
+                    right: 32,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-end",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                      padding: "18px 22px",
+                      borderRadius: 20,
+                      background: "rgba(0,0,0,0.45)",
+                      backdropFilter: "blur(6px)",
+                      border: "1px solid rgba(255,255,255,0.18)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 800,
+                        color: "rgba(255,255,255,0.7)",
+                        textTransform: "uppercase",
+                        letterSpacing: 1.5,
+                        display: "flex",
+                      }}
+                    >
+                      Endstand
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 110,
+                        fontWeight: 900,
+                        lineHeight: 0.9,
+                        letterSpacing: -4,
+                        display: "flex",
+                      }}
+                    >
+                      {scoreText}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div
               style={{
+                marginTop: "auto",
                 display: "flex",
-                alignItems: "flex-end",
                 justifyContent: "space-between",
-                marginTop: 42,
-                gap: 24,
+                alignItems: "flex-end",
+                gap: 20,
               }}
             >
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: 8,
+                  gap: 4,
                 }}
               >
                 <div
                   style={{
-                    display: "flex",
-                    fontSize: 23,
-                    fontWeight: 800,
+                    fontSize: 18,
                     color: "rgba(255,255,255,0.58)",
-                    letterSpacing: 1.8,
-                    textTransform: "uppercase",
+                    fontWeight: 700,
+                    display: "flex",
                   }}
                 >
-                  Endstand
+                  Taggt uns beim Teilen
                 </div>
 
                 <div
                   style={{
-                    display: "flex",
-                    fontSize: 124,
+                    fontSize: 24,
                     fontWeight: 900,
-                    lineHeight: 0.9,
-                    letterSpacing: -5,
+                    lineHeight: 1.1,
+                    display: "flex",
                   }}
                 >
-                  {scoreText}
+                  @strikr.app
                 </div>
               </div>
 
@@ -405,71 +467,45 @@ export async function GET(
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "flex-end",
-                  gap: 12,
-                  maxWidth: 420,
+                  gap: 10,
+                  textAlign: "right",
                 }}
               >
                 <div
                   style={{
                     display: "flex",
-                    fontSize: 20,
-                    color: "rgba(255,255,255,0.58)",
-                    fontWeight: 700,
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: 4,
                   }}
                 >
-                  Training managed by:
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 24,
-                    fontWeight: 900,
-                    lineHeight: 1.15,
-                    textAlign: "right",
-                  }}
-                >
-                  strikr – Das System für euer Training
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                    padding: "12px 18px",
-                    borderRadius: 18,
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                  }}
-                >
-                  <img
-                    src={strikrLogoDataUrl}
-                    alt="strikr"
-                    width={52}
-                    height={52}
+                  <div
                     style={{
-                      width: 52,
-                      height: 52,
-                      objectFit: "contain",
-                      display: "block",
-                      borderRadius: 12,
-                      flexShrink: 0,
+                      fontSize: 16,
+                      color: "rgba(255,255,255,0.58)",
+                      fontWeight: 700,
+                      display: "flex",
                     }}
-                  />
+                  >
+                    Session powered by strikr
+                  </div>
 
                   <div
                     style={{
                       display: "flex",
                       flexDirection: "column",
-                      alignItems: "flex-start",
+                      alignItems: "flex-end",
                       gap: 2,
                     }}
                   >
                     <div
                       style={{
-                        fontSize: 20,
+                        fontSize: 32,
                         fontWeight: 900,
+                        lineHeight: 1,
+                        color: "rgba(255,255,255,0.96)",
+                        letterSpacing: -0.6,
+                        display: "flex",
                       }}
                     >
                       strikr
@@ -478,14 +514,32 @@ export async function GET(
                     <div
                       style={{
                         fontSize: 16,
-                        color: "rgba(255,255,255,0.65)",
                         fontWeight: 700,
+                        lineHeight: 1.15,
+                        color: "rgba(255,255,255,0.78)",
+                        maxWidth: 320,
+                        display: "flex",
                       }}
                     >
-                      #getstrikr
+                      das System für euer Training!
                     </div>
                   </div>
                 </div>
+
+                <img
+                  src={strikrLogoDataUrl}
+                  alt="strikr"
+                  width={60}
+                  height={60}
+                  style={{
+                    width: 60,
+                    height: 60,
+                    objectFit: "contain",
+                    display: "block",
+                    borderRadius: 14,
+                    opacity: 0.95,
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -498,7 +552,9 @@ export async function GET(
     );
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Share-Bild konnte nicht erzeugt werden.";
+      error instanceof Error
+        ? error.message
+        : "Share-Bild konnte nicht erzeugt werden.";
 
     return new Response(message, {
       status: 500,

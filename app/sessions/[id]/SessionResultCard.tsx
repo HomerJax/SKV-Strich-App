@@ -14,6 +14,7 @@ type Props = {
   winnerPhotoUrl: string | null;
   hasWinnerPhoto: boolean;
   sharingResult: boolean;
+  sharingInternal: boolean;
   winnerPhotoInputRef: RefObject<HTMLInputElement | null>;
   onGoalsAChange: (value: string) => void;
   onGoalsBChange: (value: string) => void;
@@ -22,6 +23,7 @@ type Props = {
   onWinnerPhotoDelete: () => void;
   onSaveResult: () => void;
   onShareResult: () => void;
+  onShareInternal: () => void;
 };
 
 export default function SessionResultCard({
@@ -35,6 +37,7 @@ export default function SessionResultCard({
   winnerPhotoUrl,
   hasWinnerPhoto,
   sharingResult,
+  sharingInternal,
   winnerPhotoInputRef,
   onGoalsAChange,
   onGoalsBChange,
@@ -43,6 +46,7 @@ export default function SessionResultCard({
   onWinnerPhotoDelete,
   onSaveResult,
   onShareResult,
+  onShareInternal,
 }: Props) {
   return (
     <section className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
@@ -191,11 +195,24 @@ export default function SessionResultCard({
               disabled={!canShareResult || sharingResult}
               className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {sharingResult ? "Teilt..." : "Ergebnis teilen"}
+              {sharingResult
+                ? "Teilt SiegerCard..."
+                : "📸 SiegerCard auf Social Media teilen"}
             </button>
 
-            <div className="text-[11px] text-slate-400">
-              Ergebnistext wird geteilt, Siegerfoto bleibt separat in der Session.
+            <button
+              onClick={onShareInternal}
+              disabled={!canShareResult || sharingInternal}
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {sharingInternal
+                ? "Postet Ergebnis..."
+                : "💬 Ergebnis in Gruppe posten"}
+            </button>
+
+            <div className="max-w-[300px] text-right text-[11px] text-slate-400">
+              Social Media teilen = fertige SiegerCard als Bild. In Gruppe posten =
+              kurzer Teaser mit Ergebnis, Emotion und Link zurück in die App.
             </div>
           </div>
         </div>

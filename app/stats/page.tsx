@@ -287,7 +287,7 @@ export default async function StatsPage() {
     )
   );
 
-  let teamScoreById = new Map<number, number>();
+  const teamScoreById = new Map<number, number>();
 
   if (relevantTeamIds.length > 0) {
     const { data: teamPlayersData, error: teamPlayersError } = await supabase
@@ -345,12 +345,14 @@ export default async function StatsPage() {
     }
   }
 
-  let wins = 0;
-  let losses = 0;
-  let draws = 0;
-  let impactTotal = 0;
-  let impactGames = 0;
-  let impactWins = 0;
+  const totals = {
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    impactTotal: 0,
+    impactGames: 0,
+    impactWins: 0,
+  };
 
   const recentResults: RecentResult[] = myResults.map((result) => {
     const myTeamIsA =
@@ -363,13 +365,13 @@ export default async function StatsPage() {
 
     if (goalsA === goalsB) {
       outcome = "draw";
-      draws += 1;
+      totals.draws += 1;
     } else if ((myTeamIsA && goalsA > goalsB) || (!myTeamIsA && goalsB > goalsA)) {
       outcome = "win";
-      wins += 1;
+      totals.wins += 1;
     } else {
       outcome = "loss";
-      losses += 1;
+      totals.losses += 1;
     }
 
     const myTeamId = myTeamIsA ? result.team_a_id : result.team_b_id;
@@ -390,10 +392,10 @@ export default async function StatsPage() {
       goalsAgainst,
     });
 
-    impactTotal += impactValue;
-    impactGames += 1;
+    totals.impactTotal += impactValue;
+    totals.impactGames += 1;
     if (outcome === "win") {
-      impactWins += 1;
+      totals.impactWins += 1;
     }
 
     return {
@@ -412,7 +414,8 @@ export default async function StatsPage() {
   });
 
   const lastFive = recentResults.slice(0, 5);
-  const completedResults = wins + losses + draws;
+  const completedResults =
+    totals.wins + totals.losses + totals.draws;
 
   const trendPoints = [...lastFive].reverse().map((item, index) => ({
     id: `${item.sessionId}-${index}`,
@@ -420,7 +423,10 @@ export default async function StatsPage() {
     value: trendValueForOutcome(item.outcome),
   }));
 
-  const impactPerMatch = impactGames > 0 ? impactTotal / impactGames : 0;
+  const impactPerMatch =
+    totals.impactGames > 0
+      ? totals.impactTotal / totals.impactGames
+      : 0;
   const impactMeta = getImpactMeta(impactPerMatch);
 
   return (
@@ -460,7 +466,7 @@ export default async function StatsPage() {
               Siege
             </div>
             <div className="mt-2 text-3xl font-extrabold tracking-tight text-emerald-900">
-              {wins}
+              {totals.wins}
             </div>
           </div>
 
@@ -469,7 +475,7 @@ export default async function StatsPage() {
               Niederlagen
             </div>
             <div className="mt-2 text-3xl font-extrabold tracking-tight text-rose-900">
-              {losses}
+              {totals.losses}
             </div>
           </div>
 
@@ -478,7 +484,7 @@ export default async function StatsPage() {
               Unentschieden
             </div>
             <div className="mt-2 text-3xl font-extrabold tracking-tight text-amber-900">
-              {draws}
+              {totals.draws}
             </div>
           </div>
 
@@ -487,7 +493,7 @@ export default async function StatsPage() {
               Siegquote
             </div>
             <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-              {percentage(wins, completedResults)}
+              {percentage(totals.wins, completedResults)}
             </div>
           </div>
         </div>
@@ -570,7 +576,7 @@ export default async function StatsPage() {
                 Spiele mit dir
               </div>
               <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-                {impactGames}
+                {totals.impactGames}
               </div>
             </div>
 
@@ -579,7 +585,7 @@ export default async function StatsPage() {
                 Siege mit dir
               </div>
               <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-                {impactWins}
+                {totals.impactWins}
               </div>
             </div>
 
@@ -588,7 +594,7 @@ export default async function StatsPage() {
                 Impact gesamt
               </div>
               <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-                {formatImpactValue(impactTotal)}
+                {formatImpactValue(totals.impactTotal)}
               </div>
             </div>
 

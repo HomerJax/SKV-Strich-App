@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { getResultShareData } from "@/lib/share/result-share";
 import SessionDetailClient from "./SessionDetailClient";
 import type { Player, SessionRow } from "./session-types";
 
@@ -43,6 +45,123 @@ type PageProps = {
 
 function isAdminRole(role: string | null | undefined) {
   return role === "admin" || role === "owner";
+}
+
+function getBaseUrl() {
+  const envUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    "";
+
+  if (envUrl) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  return "http://localhost:3000";
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const resolvedParams = await params;
+  const sessionId = resolvedParams.id;
+  const baseUrl = getBaseUrl();
+  const sessionUrl = `${baseUrl}/sessions/${sessionId}`;
+  const shareImageUrl = `${baseUrl}/api/share/result/${sessionId}/image`;
+
+  try {
+    const data = await getResultShareData(sessionId);
+
+    const clubName =
+      typeof data.branding?.clubName === "string" && data.branding.clubName.trim()
+        ? data.branding.clubName.trim()
+        : "Strikr Club";
+
+    const goalsA = Number(data.goalsA ?? 0);
+    const goalsB = Number(data.goalsB ?? 0);
+    const winnerLabel =
+      typeof data.winnerLabel === "string" && data.winnerLabel.trim()
+        ? data.winnerLabel.trim()
+        : "Ergebnis in Strikr";
+
+    const diff = Math.abs(goalsA - goalsB);
+
+    let highlight = "⚡ Klar entschieden";
+    let story = "Schau dir das Ergebnis in Strikr an.";
+
+    if (goalsA === goalsB) {
+      highlight = "🤝 Alles offen";
+      story = "Zwei Teams auf Augenhöhe. Schau dir das Ergebnis in Strikr an.";
+    } else if (diff >= 3) {
+      highlight = "💪 Dominanter Sieg";
+      story = "Klare Sache heute. Schau dir das Ergebnis in Strikr an.";
+    } else if (diff === 1) {
+      highlight = "😮 Knappe Kiste";
+      story = "Bis zum Schluss spannend. Schau dir das Ergebnis in Strikr an.";
+    }
+
+    const title = `${winnerLabel} • ${goalsA}:${goalsB}`;
+    const description = `${highlight} · ${story}`;
+
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: sessionUrl,
+      },
+      openGraph: {
+        title,
+        description,
+        url: sessionUrl,
+        siteName: clubName,
+        type: "article",
+        images: [
+          {
+            url: shareImageUrl,
+            width: 1080,
+            height: 1350,
+            alt: `${clubName} – Ergebnis ${goalsA}:${goalsB}`,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [shareImageUrl],
+      },
+    };
+  } catch {
+    return {
+      title: "Session in Strikr",
+      description: "Ergebnis, Teams und Stats in Strikr ansehen.",
+      alternates: {
+        canonical: sessionUrl,
+      },
+      openGraph: {
+        title: "Session in Strikr",
+        description: "Ergebnis, Teams und Stats in Strikr ansehen.",
+        url: sessionUrl,
+        siteName: "Strikr",
+        type: "article",
+        images: [
+          {
+            url: shareImageUrl,
+            width: 1080,
+            height: 1350,
+            alt: "Strikr Session",
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: "Session in Strikr",
+        description: "Ergebnis, Teams und Stats in Strikr ansehen.",
+        images: [shareImageUrl],
+      },
+    };
+  }
 }
 
 export default async function SessionDetailPage({ params }: PageProps) {

@@ -43,9 +43,9 @@ export default async function FounderSessionsPage({
   const range = resolvedSearchParams?.range === "7d" ? "7d" : "all";
 
   const supabase = await createClient();
-  const sevenDaysAgoIso = new Date(
-    Date.now() - 7 * 24 * 60 * 60 * 1000
-  ).toISOString();
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgoIso = sevenDaysAgo.toISOString();
 
   let sessionsQuery = supabase
     .from("sessions")
