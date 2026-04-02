@@ -27,6 +27,7 @@ type StandingRow = {
   nickname?: string | null;
   wins: number;
   sessions: number;
+  mvps: number;
 };
 
 type RankRow = StandingRow & {
@@ -61,6 +62,11 @@ type TeamPlayerRow = {
   player_id: number;
 };
 
+type MvpVoteRow = {
+  session_id: number;
+  voted_player_id: number;
+};
+
 async function fetchSessions(
   clubId: string,
   seasonIdOrAll: string,
@@ -83,6 +89,52 @@ async function fetchSessions(
   }
 
   return (data ?? []) as Session[];
+}
+
+function buildMvpWinsMap(votes: MvpVoteRow[]) {
+  const sessionVoteMap = new Map<number, Map<number, number>>();
+
+  for (const vote of votes) {
+    const sessionId = Number(vote.session_id);
+    const playerId = Number(vote.voted_player_id);
+
+    if (!Number.isFinite(sessionId) || !Number.isFinite(playerId)) {
+      continue;
+    }
+
+    if (!sessionVoteMap.has(sessionId)) {
+      sessionVoteMap.set(sessionId, new Map<number, number>());
+    }
+
+    const playerCounts = sessionVoteMap.get(sessionId)!;
+    playerCounts.set(playerId, (playerCounts.get(playerId) ?? 0) + 1);
+  }
+
+  const mvpWinsMap = new Map<number, number>();
+
+  for (const [, playerCounts] of sessionVoteMap) {
+    let maxVotes = 0;
+
+    for (const [, count] of playerCounts) {
+      if (count > maxVotes) {
+        maxVotes = count;
+      }
+    }
+
+    if (maxVotes <= 0) {
+      continue;
+    }
+
+    const winners = Array.from(playerCounts.entries())
+      .filter(([, count]) => count === maxVotes)
+      .map(([playerId]) => playerId);
+
+    for (const playerId of winners) {
+      mvpWinsMap.set(playerId, (mvpWinsMap.get(playerId) ?? 0) + 1);
+    }
+  }
+
+  return mvpWinsMap;
 }
 
 async function computeStandings(
@@ -233,8 +285,24 @@ async function computeStandings(
     }
   }
 
+  const { data: mvpVotesData, error: mvpVotesError } = await supabase
+    .from("session_mvp_votes")
+    .select("session_id, voted_player_id")
+    .eq("club_id", clubId)
+    .in("session_id", sessionIds);
+
+  if (mvpVotesError) {
+    throw new Error(mvpVotesError.message);
+  }
+
+  const mvpWinsMap = buildMvpWinsMap((mvpVotesData ?? []) as MvpVoteRow[]);
+
   const allPlayers = Array.from(
-    new Set([...Array.from(sessionsCount.keys()), ...Array.from(winsCount.keys())])
+    new Set([
+      ...Array.from(sessionsCount.keys()),
+      ...Array.from(winsCount.keys()),
+      ...Array.from(mvpWinsMap.keys()),
+    ])
   );
 
   return allPlayers.map((playerId) => {
@@ -248,6 +316,7 @@ async function computeStandings(
       nickname: player?.nickname ?? null,
       wins: winsCount.get(playerId) ?? 0,
       sessions: sessionsCount.get(playerId) ?? 0,
+      mvps: mvpWinsMap.get(playerId) ?? 0,
     };
   });
 }

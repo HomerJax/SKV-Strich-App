@@ -25,6 +25,7 @@ export type StandingRow = {
   nickname?: string | null;
   wins: number;
   sessions: number;
+  mvps: number;
 };
 
 export type RankRow = StandingRow & {

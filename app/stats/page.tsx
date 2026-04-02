@@ -45,6 +45,11 @@ type RecentResult = {
   myTeamLabel: "Team 1" | "Team 2";
 };
 
+type MvpVoteRow = {
+  session_id: number;
+  voted_player_id: number;
+};
+
 function formatGermanDate(date: string | null) {
   if (!date) return "Unbekanntes Datum";
   return new Date(date).toLocaleDateString("de-DE");
@@ -65,6 +70,11 @@ function outcomeClasses(outcome: RecentResult["outcome"]) {
 function percentage(part: number, total: number) {
   if (total <= 0) return "0%";
   return `${Math.round((part / total) * 100)}%`;
+}
+
+function formatRatio(value: number) {
+  if (!Number.isFinite(value)) return "0,00";
+  return value.toFixed(2).replace(".", ",");
 }
 
 function trendValueForOutcome(outcome: RecentResult["outcome"]) {
@@ -198,6 +208,65 @@ export default async function StatsPage() {
 
   const sessionsPlayed = ((sessionPlayerRows ?? []) as SessionPlayerRow[]).length;
 
+  let mvpWins = 0;
+  let mvpPerGame = 0;
+
+  if (flags.session_mvp_voting) {
+    const { data: mvpVotesData, error: mvpVotesError } = await supabase
+      .from("session_mvp_votes")
+      .select("session_id, voted_player_id")
+      .eq("club_id", clubId);
+
+    if (mvpVotesError) {
+      throw new Error(
+        `MVP-Stimmen konnten nicht geladen werden: ${mvpVotesError.message}`
+      );
+    }
+
+    const votes = (mvpVotesData ?? []) as MvpVoteRow[];
+    const sessionVoteMap = new Map<number, Map<number, number>>();
+
+    for (const vote of votes) {
+      const sessionId = Number(vote.session_id);
+      const votedPlayerId = Number(vote.voted_player_id);
+
+      if (!Number.isFinite(sessionId) || !Number.isFinite(votedPlayerId)) {
+        continue;
+      }
+
+      const playerCounts = sessionVoteMap.get(sessionId) ?? new Map<number, number>();
+      playerCounts.set(votedPlayerId, (playerCounts.get(votedPlayerId) ?? 0) + 1);
+      sessionVoteMap.set(sessionId, playerCounts);
+    }
+
+    let wins = 0;
+
+    for (const [, playerCounts] of sessionVoteMap) {
+      let maxVotes = 0;
+
+      for (const [, count] of playerCounts) {
+        if (count > maxVotes) {
+          maxVotes = count;
+        }
+      }
+
+      if (maxVotes <= 0) {
+        continue;
+      }
+
+      const winnerIds = Array.from(playerCounts.entries())
+        .filter(([, count]) => count === maxVotes)
+        .map(([playerId]) => playerId);
+
+      if (winnerIds.includes(player.id)) {
+        wins += 1;
+      }
+    }
+
+    mvpWins = wins;
+    mvpPerGame = sessionsPlayed > 0 ? wins / sessionsPlayed : 0;
+  }
+
   if (teamIds.length === 0) {
     return (
       <main className="mx-auto w-full max-w-5xl px-4 py-6 pb-24">
@@ -223,9 +292,23 @@ export default async function StatsPage() {
             Stats hier automatisch auf.
           </p>
 
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-            Teilnahmen erfasst:{" "}
-            <span className="font-semibold">{sessionsPlayed}</span>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
+              Teilnahmen erfasst:{" "}
+              <span className="font-semibold">{sessionsPlayed}</span>
+            </div>
+
+            {flags.session_mvp_voting ? (
+              <>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                  MVPs: <span className="font-semibold">{mvpWins}</span>
+                </div>
+                <div className="rounded-2xl border border-amber-200 bg-white px-4 py-4 text-sm text-slate-700">
+                  MVP / Spiel:{" "}
+                  <span className="font-semibold">{formatRatio(mvpPerGame)}</span>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -451,7 +534,7 @@ export default async function StatsPage() {
           Deine persönliche Übersicht auf Basis gespeicherter Sessions und Ergebnisse.
         </p>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Einsätze
@@ -496,6 +579,28 @@ export default async function StatsPage() {
               {percentage(totals.wins, completedResults)}
             </div>
           </div>
+
+          {flags.session_mvp_voting ? (
+            <>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                  MVPs
+                </div>
+                <div className="mt-2 text-3xl font-extrabold tracking-tight text-amber-900">
+                  {mvpWins}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-200 bg-white p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  MVP / Spiel
+                </div>
+                <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
+                  {formatRatio(mvpPerGame)}
+                </div>
+              </div>
+            </>
+          ) : null}
         </div>
       </section>
 
@@ -549,6 +654,58 @@ export default async function StatsPage() {
           )}
         </section>
       </div>
+
+      {flags.session_mvp_voting ? (
+        <section className="mt-5 rounded-[28px] border border-amber-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-slate-950">
+                MVP Übersicht
+              </div>
+              <div className="mt-1 text-sm text-slate-600">
+                Zeigt, wie oft du bisher zum MVP gewählt wurdest.
+              </div>
+            </div>
+
+            <span className="inline-flex w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+              {mvpWins === 0
+                ? "Noch kein MVP"
+                : mvpWins === 1
+                  ? "1x MVP"
+                  : `${mvpWins}x MVP`}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                MVPs gesamt
+              </div>
+              <div className="mt-2 text-3xl font-extrabold tracking-tight text-amber-900">
+                {mvpWins}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                MVP / Spiel
+              </div>
+              <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
+                {formatRatio(mvpPerGame)}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <div className="font-semibold text-slate-900">So wird gezählt</div>
+            <div className="mt-2 space-y-1">
+              <div>• Pro Session zählt ein MVP-Gewinn</div>
+              <div>• Bei Gleichstand erhalten alle Gewinner einen MVP</div>
+              <div>• MVP / Spiel = MVPs geteilt durch deine Einsätze</div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {flags.team_impact ? (
         <section className="mt-5 rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6">

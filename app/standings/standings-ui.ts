@@ -72,7 +72,7 @@ export function buildStandingsShareText(
 
   const lines = cardRows.map((r) => {
     const movement = movementText(r.deltaRank);
-    return `${r.rank}. ${getPlayerDisplayName(r)} · Siege ${r.wins} · Teilnahmen ${r.sessions} · ${movement}`;
+    return `${r.rank}. ${getPlayerDisplayName(r)} · Siege ${r.wins} · MVPs ${r.mvps} · Teilnahmen ${r.sessions} · ${movement}`;
   });
 
   return [

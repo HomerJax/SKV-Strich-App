@@ -18,6 +18,7 @@ import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionTeamsCard from "./SessionTeamsCard";
 import SessionResultCard from "./SessionResultCard";
+import SessionMvpCard from "./SessionMvpCard";
 import SessionEndModal from "@/components/SessionEndModal";
 
 type ClubSettings = {
@@ -45,6 +46,7 @@ type SessionDetailClientProps = {
   initialGoalsB: string;
   initialHasResult: boolean;
   initialPrimaryColor?: string | null;
+  initialMvpVotingEnabled: boolean;
 };
 
 type ApiSuccess =
@@ -189,6 +191,31 @@ function getAutoTeamNames(
   };
 }
 
+function SectionDoneHint({
+  label,
+  detail,
+}: {
+  label: string;
+  detail?: string;
+}) {
+  return (
+    <div className="mb-2 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+      <div className="flex items-center gap-2">
+        <span
+          aria-hidden="true"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white"
+        >
+          ✓
+        </span>
+        <div className="text-sm font-semibold text-emerald-900">{label}</div>
+      </div>
+      {detail ? (
+        <div className="text-xs font-medium text-emerald-700">{detail}</div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function SessionDetailClient({
   sessionId,
   initialSession,
@@ -203,6 +230,7 @@ export default function SessionDetailClient({
   initialGoalsB,
   initialHasResult,
   initialPrimaryColor,
+  initialMvpVotingEnabled,
 }: SessionDetailClientProps) {
   const router = useRouter();
 
@@ -222,6 +250,7 @@ export default function SessionDetailClient({
   const [isAdmin] = useState(initialIsAdmin);
   const [clubSettings] = useState<ClubSettings | null>(initialClubSettings);
   const [primaryColorKey] = useState<string | null>(initialPrimaryColor ?? "black");
+  const [mvpVotingEnabled] = useState<boolean>(initialMvpVotingEnabled);
 
   const [winnerPhotoUrl, setWinnerPhotoUrl] = useState<string | null>(
     initialWinnerPhotoUrl
@@ -365,6 +394,15 @@ export default function SessionDetailClient({
     () => getAutoTeamNames(sessionId, scoreAValue, scoreBValue, teamA, teamB),
     [sessionId, scoreAValue, scoreBValue, teamA, teamB]
   );
+
+  const attendanceDone =
+    presentIds.length > 0 && !attendanceDirty && attendanceCollapsed;
+
+  const teamsDone = teamsComplete && teamsCollapsed;
+
+  const resultDone = hasResult;
+
+  const showMvpSection = mvpVotingEnabled && hasResult;
 
   const nextStepLabel = hasResult
     ? "Ergebnis ist gespeichert"
@@ -1131,7 +1169,16 @@ ${sessionUrl}`;
           </div>
         ) : null}
 
+        {showMvpSection ? <SessionMvpCard sessionId={sessionId} /> : null}
+
         <div ref={attendanceRef}>
+          {attendanceDone ? (
+            <SectionDoneHint
+              label="Anwesenheit erledigt"
+              detail={`${presentPlayers.length} anwesend`}
+            />
+          ) : null}
+
           <SessionAttendanceCard
             players={players}
             presentIds={draftPresentIds}
@@ -1158,6 +1205,13 @@ ${sessionUrl}`;
         </div>
 
         <div ref={teamsRef}>
+          {teamsDone ? (
+            <SectionDoneHint
+              label="Teams erledigt"
+              detail={`${teamA.length} vs ${teamB.length}`}
+            />
+          ) : null}
+
           <SessionTeamsCard
             teamA={teamA}
             teamB={teamB}
@@ -1179,6 +1233,13 @@ ${sessionUrl}`;
         </div>
 
         <div ref={resultRef}>
+          {resultDone ? (
+            <SectionDoneHint
+              label="Ergebnis erledigt"
+              detail={`${scoreAValue}:${scoreBValue}`}
+            />
+          ) : null}
+
           <SessionResultCard
             hasResult={hasResult}
             saving={saving}

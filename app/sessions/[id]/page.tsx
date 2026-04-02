@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getResultShareData } from "@/lib/share/result-share";
+import {
+  ensureFeatureFlagRowsForClub,
+  getFeatureFlagsForClub,
+} from "@/lib/feature-flags";
 import SessionDetailClient from "./SessionDetailClient";
 import type { Player, SessionRow } from "./session-types";
 
@@ -174,6 +178,10 @@ export default async function SessionDetailPage({ params }: PageProps) {
     redirect("/sessions");
   }
 
+  await ensureFeatureFlagRowsForClub(clubId);
+  const featureFlags = await getFeatureFlagsForClub(clubId);
+  const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
+
   const [
     { data: clubData, error: clubError },
     { data: settingsData, error: settingsError },
@@ -327,6 +335,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialGoalsB={goalsB}
       initialHasResult={hasResult}
       initialPrimaryColor={clubData?.primary_color ?? "black"}
+      initialMvpVotingEnabled={mvpVotingEnabled}
     />
   );
 }

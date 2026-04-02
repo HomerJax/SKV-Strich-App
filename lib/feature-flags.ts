@@ -14,6 +14,7 @@ export const FEATURE_FLAG_KEYS = [
   "new_share_cards",
   "experimental_generator",
   "founder_tools",
+  "session_mvp_voting",
 ] as const;
 
 export type FeatureFlagKey = (typeof FEATURE_FLAG_KEYS)[number];
@@ -95,6 +96,13 @@ export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
     description:
       "Interne Founder-Funktionen, Debug-Hilfen und erweiterte Kontrollmöglichkeiten.",
     audience: "internal",
+  },
+  {
+    key: "session_mvp_voting",
+    title: "MVP Voting nach Training",
+    description:
+      "Ermöglicht nach abgeschlossenen Trainingssessions ein MVP-Voting unter den anwesenden Teilnehmern. Ideal für Pilotclubs und gestaffelte Rollouts.",
+    audience: "players",
   },
 ];
 

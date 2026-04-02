@@ -1,118 +1,116 @@
-export function formatDate(dateInput: string | Date) {
-  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+export type ShareImageFromUrlParams = {
+  imageUrl: string;
+  fileName?: string;
+  title?: string;
+  text?: string;
+};
 
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
 
-  return new Intl.DateTimeFormat("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
+  const ua = navigator.userAgent || navigator.vendor || "";
+  return /iPad|iPhone|iPod/.test(ua);
 }
 
-export function trimName(name: string, max = 18) {
-  if (name.length <= max) {
-    return name;
-  }
+function openImageFallback(url: string) {
+  if (typeof window === "undefined") return;
 
-  return `${name.slice(0, max - 1)}…`;
+  const absoluteUrl = new URL(url, window.location.origin).toString();
+
+  // iPhone / Safari ist oft zuverlässiger, wenn das Bild direkt geöffnet wird.
+  // Dann kann der Nutzer sauber über den Browser teilen oder speichern.
+  window.open(absoluteUrl, "_blank", "noopener,noreferrer");
 }
 
-export function buildPlayerDisplayName(player: {
-  name?: string | null;
-  first_name?: string | null;
-  last_name?: string | null;
-  nickname?: string | null;
-}) {
-  if (player.name && player.name.trim().length > 0) {
-    return player.name.trim();
+async function fetchImageAsFile(url: string, fileName: string) {
+  const response = await fetch(url, {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Bild konnte nicht geladen werden.");
   }
 
-  if (player.nickname && player.nickname.trim().length > 0) {
-    return player.nickname.trim();
-  }
+  const blob = await response.blob();
 
-  const fullName = [player.first_name, player.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+  const contentType =
+    blob.type && blob.type.startsWith("image/") ? blob.type : "image/png";
 
-  if (fullName.length > 0) {
-    return fullName;
-  }
+  const safeFileName = fileName.includes(".") ? fileName : `${fileName}.png`;
 
-  return "Spieler";
+  return new File([blob], safeFileName, {
+    type: contentType,
+    lastModified: Date.now(),
+  });
 }
 
-/**
- * Externer Share:
- * - natives Share-Menü mit Bild
- * - Fallback: Download
- */
 export async function shareImageFromUrl({
   imageUrl,
-  fileName,
-}: {
-  imageUrl: string;
-  fileName: string;
-}) {
-  try {
-    const response = await fetch(imageUrl, {
-      method: "GET",
-      cache: "no-store",
-      credentials: "same-origin",
-    });
+  fileName = "strikr-share.png",
+  title = "SiegerCard",
+  text = "SiegerCard aus Strikr",
+}: ShareImageFromUrlParams) {
+  if (typeof window === "undefined") {
+    throw new Error("Teilen ist hier nicht verfügbar.");
+  }
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      throw new Error(
-        errorText?.trim().length > 0
-          ? errorText
-          : `Share-Bild konnte nicht geladen werden (HTTP ${response.status}).`
-      );
-    }
+  const absoluteUrl = new URL(imageUrl, window.location.origin).toString();
+  const canUseNavigatorShare =
+    typeof navigator !== "undefined" && typeof navigator.share === "function";
 
-    const blob = await response.blob();
-
-    const safeFileName = fileName.toLowerCase().endsWith(".png")
-      ? fileName
-      : `${fileName}.png`;
-
-    const file = new File([blob], safeFileName, {
-      type: blob.type || "image/png",
-      lastModified: Date.now(),
-    });
-
-    if (
-      typeof navigator !== "undefined" &&
-      typeof navigator.canShare === "function" &&
-      navigator.canShare({ files: [file] })
-    ) {
-      await navigator.share({
+  // 1) Best Case: echtes File-Sharing
+  if (canUseNavigatorShare) {
+    try {
+      const file = await fetchImageAsFile(absoluteUrl, fileName);
+      const shareDataWithFile = {
+        title,
+        text,
         files: [file],
+      };
+
+      if (
+        typeof navigator.canShare === "function" &&
+        navigator.canShare(shareDataWithFile)
+      ) {
+        await navigator.share(shareDataWithFile);
+        return;
+      }
+    } catch {
+      // absichtlich still -> wir fallen auf robustere Varianten zurück
+    }
+  }
+
+  // 2) Fallback: URL teilen
+  if (canUseNavigatorShare) {
+    try {
+      await navigator.share({
+        title,
+        text,
+        url: absoluteUrl,
       });
-      return "shared";
+      return;
+    } catch {
+      // absichtlich still -> nächster Fallback
     }
+  }
 
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = safeFileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
+  // 3) iPhone/Safari bzw. letzter robuster Fallback:
+  // Bild direkt öffnen, damit der User es im Browser teilen/sichern kann.
+  openImageFallback(absoluteUrl);
 
-    return "downloaded";
-  } catch (error) {
-    console.error(error);
-
-    if (error instanceof Error) {
-      throw error;
+  // Falls das Popup geblockt wird, zusätzlich noch Clipboard versuchen.
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(absoluteUrl);
     }
+  } catch {
+    // kein weiterer Fehlerwurf nötig
+  }
 
-    throw new Error("Teilen des Bildes fehlgeschlagen.");
+  // Für iOS lieber nicht als Fehler behandeln, wenn wir das Bild geöffnet haben.
+  if (!isIOS()) {
+    return;
   }
 }

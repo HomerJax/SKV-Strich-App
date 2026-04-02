@@ -325,6 +325,7 @@ export default function StandingsClient({
                       <th className="w-20 px-2 py-2 text-left">Platz</th>
                       <th className="px-2 py-2 text-left">Spieler</th>
                       <th className="w-20 px-2 py-2 text-right">Siege</th>
+                      <th className="w-20 px-2 py-2 text-right">MVPs</th>
                       <th className="w-28 px-2 py-2 text-right">Teilnahmen</th>
                     </tr>
                   </thead>
@@ -348,6 +349,9 @@ export default function StandingsClient({
                         </td>
                         <td className="px-2 py-2 text-right font-semibold text-slate-900">
                           {row.wins}
+                        </td>
+                        <td className="px-2 py-2 text-right font-semibold text-amber-700">
+                          {row.mvps}
                         </td>
                         <td className="px-2 py-2 text-right text-slate-700">
                           {row.sessions}

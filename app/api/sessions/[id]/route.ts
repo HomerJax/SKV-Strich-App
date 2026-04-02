@@ -125,6 +125,18 @@ export async function POST(
         }
       }
 
+      const { error: mvpVotesDeleteError } = await supabase
+        .from("session_mvp_votes")
+        .delete()
+        .eq("session_id", sessionId);
+
+      if (mvpVotesDeleteError) {
+        return fail(
+          `MVP-Stimmen konnten nicht gelöscht werden: ${mvpVotesDeleteError.message}`,
+          500
+        );
+      }
+
       const { error: resultsDeleteError } = await supabase
         .from("results")
         .delete()
