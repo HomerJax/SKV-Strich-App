@@ -458,7 +458,7 @@ export async function GET(
                     display: "flex",
                   }}
                 >
-                  @strikr.app
+                  @getstrikr
                 </div>
               </div>
 
@@ -467,79 +467,61 @@ export async function GET(
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "flex-end",
-                  gap: 10,
+                  gap: 8,
                   textAlign: "right",
                 }}
               >
                 <div
                   style={{
+                    fontSize: 16,
+                    color: "rgba(255,255,255,0.58)",
+                    fontWeight: 700,
                     display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-end",
-                    gap: 4,
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 16,
-                      color: "rgba(255,255,255,0.58)",
-                      fontWeight: 700,
-                      display: "flex",
-                    }}
-                  >
-                    Session powered by strikr
-                  </div>
+                  Session powered by strikr
+                </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-end",
-                      gap: 2,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 32,
-                        fontWeight: 900,
-                        lineHeight: 1,
-                        color: "rgba(255,255,255,0.96)",
-                        letterSpacing: -0.6,
-                        display: "flex",
-                      }}
-                    >
-                      strikr
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 700,
-                        lineHeight: 1.15,
-                        color: "rgba(255,255,255,0.78)",
-                        maxWidth: 320,
-                        display: "flex",
-                      }}
-                    >
-                      das System für euer Training!
-                    </div>
-                  </div>
+                <div
+                  style={{
+                    fontSize: 32,
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    color: "rgba(255,255,255,0.96)",
+                    letterSpacing: -0.6,
+                    display: "flex",
+                  }}
+                >
+                  strikr
                 </div>
 
                 <img
                   src={strikrLogoDataUrl}
                   alt="strikr"
-                  width={60}
-                  height={60}
+                  width={72}
+                  height={72}
                   style={{
-                    width: 60,
-                    height: 60,
+                    width: 72,
+                    height: 72,
                     objectFit: "contain",
                     display: "block",
                     borderRadius: 14,
                     opacity: 0.95,
                   }}
                 />
+
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    lineHeight: 1.15,
+                    color: "rgba(255,255,255,0.78)",
+                    maxWidth: 320,
+                    display: "flex",
+                  }}
+                >
+                  das System für euer Training!
+                </div>
               </div>
             </div>
           </div>
