@@ -5,6 +5,55 @@ export type ShareImageFromUrlParams = {
   text?: string;
 };
 
+type ShareNameLike = {
+  name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  nickname?: string | null;
+};
+
+export function trimName(value: string, maxLength = 18) {
+  const clean = value.trim();
+
+  if (clean.length <= maxLength) {
+    return clean;
+  }
+
+  return `${clean.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+export function buildPlayerDisplayName(player: ShareNameLike) {
+  const nickname = player.nickname?.trim();
+  if (nickname) return nickname;
+
+  const firstName = player.first_name?.trim();
+  const lastName = player.last_name?.trim();
+
+  if (firstName && lastName) return `${firstName} ${lastName}`;
+  if (firstName) return firstName;
+  if (lastName) return lastName;
+
+  const fallback = player.name?.trim();
+  if (fallback) return fallback;
+
+  return "Unbekannt";
+}
+
+export function formatDate(date: string | null | undefined) {
+  if (!date) return "Unbekanntes Datum";
+
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
+
+  return parsed.toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 function isIOS() {
   if (typeof navigator === "undefined") return false;
 
@@ -16,9 +65,6 @@ function openImageFallback(url: string) {
   if (typeof window === "undefined") return;
 
   const absoluteUrl = new URL(url, window.location.origin).toString();
-
-  // iPhone / Safari ist oft zuverlässiger, wenn das Bild direkt geöffnet wird.
-  // Dann kann der Nutzer sauber über den Browser teilen oder speichern.
   window.open(absoluteUrl, "_blank", "noopener,noreferrer");
 }
 
@@ -60,7 +106,6 @@ export async function shareImageFromUrl({
   const canUseNavigatorShare =
     typeof navigator !== "undefined" && typeof navigator.share === "function";
 
-  // 1) Best Case: echtes File-Sharing
   if (canUseNavigatorShare) {
     try {
       const file = await fetchImageAsFile(absoluteUrl, fileName);
@@ -78,11 +123,10 @@ export async function shareImageFromUrl({
         return;
       }
     } catch {
-      // absichtlich still -> wir fallen auf robustere Varianten zurück
+      // fallback below
     }
   }
 
-  // 2) Fallback: URL teilen
   if (canUseNavigatorShare) {
     try {
       await navigator.share({
@@ -92,24 +136,20 @@ export async function shareImageFromUrl({
       });
       return;
     } catch {
-      // absichtlich still -> nächster Fallback
+      // fallback below
     }
   }
 
-  // 3) iPhone/Safari bzw. letzter robuster Fallback:
-  // Bild direkt öffnen, damit der User es im Browser teilen/sichern kann.
   openImageFallback(absoluteUrl);
 
-  // Falls das Popup geblockt wird, zusätzlich noch Clipboard versuchen.
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(absoluteUrl);
     }
   } catch {
-    // kein weiterer Fehlerwurf nötig
+    // ignore clipboard errors
   }
 
-  // Für iOS lieber nicht als Fehler behandeln, wenn wir das Bild geöffnet haben.
   if (!isIOS()) {
     return;
   }
