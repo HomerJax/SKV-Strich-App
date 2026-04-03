@@ -1,14 +1,10 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
 import { ErrorMessage, SuccessMessage } from "./MembersMessages";
 import type { InviteRow, MemberRow } from "./members-types";
-import {
-  buildInviteUrl,
-  formatDate,
-  getMemberRoleLabel,
-} from "./members-utils";
+import { formatDate, getMemberRoleLabel } from "./members-utils";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import InviteActions from "./InviteActions";
 
@@ -47,6 +43,30 @@ function getRoleChipClass(role: string | null | undefined) {
   return "bg-sky-100 text-sky-700";
 }
 
+async function getRequestOrigin() {
+  const headerStore = await headers();
+
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const host = forwardedHost || headerStore.get("host");
+
+  if (host) {
+    return `${forwardedProto || "https"}://${host}`;
+  }
+
+  const envUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    "";
+
+  return envUrl.replace(/\/$/, "");
+}
+
+function buildAbsoluteInviteUrl(origin: string, token: string) {
+  return `${origin.replace(/\/$/, "")}/join?token=${encodeURIComponent(token)}`;
+}
+
 export default async function AdminMembersPage({
   searchParams,
 }: {
@@ -60,6 +80,7 @@ export default async function AdminMembersPage({
     typeof params.success === "string" ? params.success : undefined;
 
   const supabase = await getSupabaseServerClient();
+  const origin = await getRequestOrigin();
 
   const {
     data: { user },
@@ -111,6 +132,9 @@ export default async function AdminMembersPage({
 
   const memberRows = (members || []) as MemberRow[];
   const inviteRows = (invites || []) as InviteRow[];
+  const createdInviteUrl = created
+    ? buildAbsoluteInviteUrl(origin, created)
+    : undefined;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-6">
@@ -166,7 +190,7 @@ export default async function AdminMembersPage({
         </div>
       </div>
 
-      <SuccessMessage token={created} action={success} />
+      <SuccessMessage inviteUrl={createdInviteUrl} action={success} />
       <ErrorMessage code={error} />
 
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -317,7 +341,7 @@ export default async function AdminMembersPage({
         ) : (
           <div className="divide-y divide-slate-100">
             {inviteRows.map((invite) => {
-              const inviteUrl = buildInviteUrl(invite.token);
+              const inviteUrl = buildAbsoluteInviteUrl(origin, invite.token);
 
               return (
                 <div key={invite.id} className="flex flex-col gap-4 px-5 py-4">

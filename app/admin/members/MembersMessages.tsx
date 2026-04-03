@@ -1,5 +1,5 @@
 import InviteActions from "./InviteActions";
-import { buildInviteUrl, getErrorText, getSuccessText } from "./members-utils";
+import { getErrorText, getSuccessText } from "./members-utils";
 
 export function ErrorMessage({ code }: { code?: string }) {
   const text = getErrorText(code);
@@ -13,15 +13,13 @@ export function ErrorMessage({ code }: { code?: string }) {
 }
 
 export function SuccessMessage({
-  token,
+  inviteUrl,
   action,
 }: {
-  token?: string;
+  inviteUrl?: string;
   action?: string;
 }) {
-  if (token) {
-    const inviteUrl = buildInviteUrl(token);
-
+  if (inviteUrl) {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
         <div className="font-medium">Einladung erstellt</div>
