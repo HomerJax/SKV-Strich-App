@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 
 function buildRedirect(url: URL, pathname: string, params?: Record<string, string>) {
   const nextUrl = new URL(pathname, url.origin);
@@ -26,13 +27,13 @@ export async function POST(request: Request) {
 
   if (!token) {
     return buildRedirect(requestUrl, "/join", {
-      error: "Invite-Token fehlt.",
+      error: "Einladungstoken fehlt.",
     });
   }
 
   const cookieStore = await cookies();
 
-  const supabase = createServerClient(
+  const authSupabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -49,9 +50,14 @@ export async function POST(request: Request) {
     }
   );
 
+  const adminSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await authSupabase.auth.getUser();
 
   if (!user) {
     return buildRedirect(requestUrl, "/login", {
@@ -59,13 +65,20 @@ export async function POST(request: Request) {
     });
   }
 
-  const { data: player } = await supabase
+  const { data: player, error: playerError } = await authSupabase
     .from("players")
-    .select("id")
+    .select("id, club_id")
     .eq("user_id", user.id)
     .eq("is_guest", false)
     .limit(1)
     .maybeSingle();
+
+  if (playerError) {
+    return buildRedirect(requestUrl, "/join", {
+      token,
+      error: "Spielerprofil konnte nicht geladen werden.",
+    });
+  }
 
   if (!player) {
     return buildRedirect(requestUrl, "/onboarding", {
@@ -73,9 +86,9 @@ export async function POST(request: Request) {
     });
   }
 
-  const { data: invite, error: inviteError } = await supabase
-    .from("club_invites")
-    .select("id, club_id, role, expires_at, used_at, is_active")
+  const { data: invite, error: inviteError } = await adminSupabase
+    .from("invites")
+    .select("id, club_id, role, expires_at")
     .eq("token", token)
     .maybeSingle();
 
@@ -86,20 +99,6 @@ export async function POST(request: Request) {
     });
   }
 
-  if (invite.is_active === false) {
-    return buildRedirect(requestUrl, "/join", {
-      token,
-      error: "Diese Einladung ist nicht mehr aktiv.",
-    });
-  }
-
-  if (invite.used_at) {
-    return buildRedirect(requestUrl, "/join", {
-      token,
-      error: "Diese Einladung wurde bereits verwendet.",
-    });
-  }
-
   if (isInviteExpired(invite.expires_at)) {
     return buildRedirect(requestUrl, "/join", {
       token,
@@ -107,17 +106,18 @@ export async function POST(request: Request) {
     });
   }
 
-  const membershipPayload = {
-    club_id: invite.club_id,
-    user_id: user.id,
-    role: invite.role === "admin" ? "admin" : "member",
-  };
-
-  const { error: membershipError } = await supabase
+  const { error: membershipError } = await adminSupabase
     .from("club_memberships")
-    .upsert(membershipPayload, {
-      onConflict: "club_id,user_id",
-    });
+    .upsert(
+      {
+        club_id: invite.club_id,
+        user_id: user.id,
+        role: invite.role === "admin" ? "admin" : "member",
+      },
+      {
+        onConflict: "club_id,user_id",
+      }
+    );
 
   if (membershipError) {
     return buildRedirect(requestUrl, "/join", {
@@ -126,22 +126,31 @@ export async function POST(request: Request) {
     });
   }
 
-  const { error: inviteUpdateError } = await supabase
-    .from("club_invites")
-    .update({
-      used_at: new Date().toISOString(),
-      is_active: false,
-    })
-    .eq("id", invite.id);
+  if (player.club_id !== invite.club_id) {
+    const { error: playerUpdateError } = await adminSupabase
+      .from("players")
+      .update({
+        club_id: invite.club_id,
+      })
+      .eq("id", player.id);
 
-  if (inviteUpdateError) {
-    return buildRedirect(requestUrl, "/join", {
-      token,
-      error: "Clubbeitritt gespeichert, aber Invite konnte nicht finalisiert werden.",
-    });
+    if (playerUpdateError) {
+      return buildRedirect(requestUrl, "/join", {
+        token,
+        error: "Clubbeitritt gespeichert, aber Spielerprofil konnte nicht aktualisiert werden.",
+      });
+    }
   }
 
-  return buildRedirect(requestUrl, "/", {
-    message: "Einladung erfolgreich angenommen.",
+  const response = buildRedirect(requestUrl, "/", {
+    message: "Club erfolgreich beigetreten.",
   });
+
+  response.cookies.set("active_club_id", invite.club_id, {
+    path: "/",
+    sameSite: "lax",
+    httpOnly: false,
+  });
+
+  return response;
 }

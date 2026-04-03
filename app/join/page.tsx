@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 
 type SearchParams = {
   token?: string | string[];
@@ -36,7 +37,7 @@ export default async function JoinPage({
             Einladung ungültig
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
-            Es wurde kein Invite-Token übergeben.
+            Es wurde kein Einladungstoken übergeben.
           </p>
         </div>
       </main>
@@ -45,7 +46,7 @@ export default async function JoinPage({
 
   const cookieStore = await cookies();
 
-  const supabase = createServerClient(
+  const authSupabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -58,9 +59,14 @@ export default async function JoinPage({
     }
   );
 
+  const adminSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await authSupabase.auth.getUser();
 
   const joinPath = `/join?token=${encodeURIComponent(token)}`;
 
@@ -68,7 +74,7 @@ export default async function JoinPage({
     redirect(`/login?next=${encodeURIComponent(joinPath)}`);
   }
 
-  const { data: player } = await supabase
+  const { data: player } = await authSupabase
     .from("players")
     .select("id")
     .eq("user_id", user.id)
@@ -80,9 +86,9 @@ export default async function JoinPage({
     redirect(`/onboarding?next=${encodeURIComponent(joinPath)}`);
   }
 
-  const { data: invite, error: inviteError } = await supabase
-    .from("club_invites")
-    .select("club_id, role, expires_at, used_at, is_active")
+  const { data: invite, error: inviteError } = await adminSupabase
+    .from("invites")
+    .select("club_id, role, expires_at")
     .eq("token", token)
     .maybeSingle();
 
@@ -102,22 +108,6 @@ export default async function JoinPage({
   }
 
   const expired = isInviteExpired(invite.expires_at);
-  const alreadyUsed = invite.used_at !== null;
-  const inactive = invite.is_active === false;
-
-  let inviteStateMessage = "";
-  let inviteStateIsError = false;
-
-  if (expired) {
-    inviteStateMessage = "Diese Einladung ist abgelaufen.";
-    inviteStateIsError = true;
-  } else if (alreadyUsed) {
-    inviteStateMessage = "Diese Einladung wurde bereits verwendet.";
-    inviteStateIsError = true;
-  } else if (inactive) {
-    inviteStateMessage = "Diese Einladung ist nicht mehr aktiv.";
-    inviteStateIsError = true;
-  }
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
@@ -144,26 +134,24 @@ export default async function JoinPage({
           </div>
         ) : null}
 
-        {inviteStateMessage ? (
-          <div
-            className={`mb-4 rounded-xl px-4 py-3 text-sm ${
-              inviteStateIsError
-                ? "border border-red-200 bg-red-50 text-red-800"
-                : "border border-neutral-200 bg-neutral-50 text-neutral-800"
-            }`}
-          >
-            {inviteStateMessage}
+        {expired ? (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            Diese Einladung ist abgelaufen.
           </div>
         ) : null}
 
-        <div className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+        <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
           <div className="text-sm text-neutral-500">Rolle</div>
           <div className="mt-1 font-medium text-neutral-900">
             {invite.role === "admin" ? "Admin" : "Mitglied"}
           </div>
         </div>
 
-        {expired || alreadyUsed || inactive ? null : (
+        <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Dieser Einladungslink ist mehrfach nutzbar, bis er im Adminbereich gelöscht wird.
+        </div>
+
+        {expired ? null : (
           <form method="post" action="/api/join">
             <input type="hidden" name="token" value={token} />
             <button
