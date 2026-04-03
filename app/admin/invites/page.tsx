@@ -1,5 +1,4 @@
-import { createServerClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
 
 function getBaseUrl() {
   const envUrl =
@@ -11,13 +10,11 @@ function getBaseUrl() {
     return envUrl.replace(/\/$/, "");
   }
 
-  // ⚠️ wichtig: KEIN localhost für echte User
-  // fallback leer → relative URLs funktionieren im Browser
   return "";
 }
 
 export default async function InvitesPage() {
-  const supabase = await createServerClient();
+  const supabase = await createClient();
 
   const { data: invites } = await supabase
     .from("invites")
@@ -43,13 +40,14 @@ export default async function InvitesPage() {
             >
               <div className="text-sm break-all">{inviteUrl}</div>
 
-              <Button
+              <button
+                className="text-sm px-3 py-1 border rounded"
                 onClick={() => {
                   navigator.clipboard.writeText(inviteUrl);
                 }}
               >
                 Kopieren
-              </Button>
+              </button>
             </div>
           );
         })}
