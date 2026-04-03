@@ -1,15 +1,14 @@
 import type { MemberRole } from "./members-types";
 
 export function getBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000"
-  ).replace(/\/$/, "");
+  const envUrl =
+    process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "";
+
+  return envUrl.replace(/\/$/, "");
 }
 
 export function buildInviteUrl(token: string) {
-  return `${getBaseUrl()}/invite/${token}`;
+  return `${getBaseUrl()}/join?token=${encodeURIComponent(token)}`;
 }
 
 export function formatDate(dateString: string) {
