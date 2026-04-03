@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 function getBaseUrl() {
   const envUrl =
@@ -14,12 +15,32 @@ function getBaseUrl() {
 }
 
 export default async function InvitesPage() {
-  const supabase = await createClient();
+  const cookieStore = cookies();
 
-  const { data: invites } = await supabase
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {
+          // read-only → nichts setzen
+        },
+      },
+    }
+  );
+
+  const { data: invites, error } = await supabase
     .from("invites")
     .select("*")
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("INVITES ERROR:", error);
+    return <div className="p-6">Fehler beim Laden der Einladungen</div>;
+  }
 
   const baseUrl = getBaseUrl();
 
