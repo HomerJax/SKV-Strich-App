@@ -1,14 +1,24 @@
 import type { MemberRole } from "./members-types";
 
 export function getBaseUrl() {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin.replace(/\/$/, "");
+  }
+
   const envUrl =
-    process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "";
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    "";
 
   return envUrl.replace(/\/$/, "");
 }
 
 export function buildInviteUrl(token: string) {
-  return `${getBaseUrl()}/join?token=${encodeURIComponent(token)}`;
+  const path = `/join?token=${encodeURIComponent(token)}`;
+  const baseUrl = getBaseUrl();
+
+  return baseUrl ? `${baseUrl}${path}` : path;
 }
 
 export function formatDate(dateString: string) {
