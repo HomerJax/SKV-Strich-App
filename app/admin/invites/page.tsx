@@ -1,56 +1,45 @@
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+"use client";
+
+import { useEffect, useState } from "react";
 
 function getBaseUrl() {
-  const envUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.SITE_URL;
-
-  if (envUrl) {
-    return envUrl.replace(/\/$/, "");
+  if (typeof window !== "undefined") {
+    return window.location.origin;
   }
-
   return "";
 }
 
-export default async function InvitesPage() {
-  const cookieStore = await cookies(); // ✅ FIX
+export default function InvitesPage() {
+  const [invites, setInvites] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {
-          // read-only
-        },
-      },
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch("/api/invites");
+        const json = await res.json();
+        setInvites(json.invites || []);
+      } catch (err) {
+        console.error("LOAD INVITES ERROR:", err);
+      } finally {
+        setLoading(false);
+      }
     }
-  );
 
-  const { data: invites, error } = await supabase
-    .from("invites")
-    .select("*")
-    .order("created_at", { ascending: false });
+    load();
+  }, []);
 
-  if (error) {
-    console.error("INVITES ERROR:", error);
-    return <div className="p-6">Fehler beim Laden der Einladungen</div>;
+  if (loading) {
+    return <div className="p-6">Lade Einladungen...</div>;
   }
-
-  const baseUrl = getBaseUrl();
 
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Einladungen</h1>
 
       <div className="space-y-2">
-        {invites?.map((invite) => {
-          const inviteUrl = `${baseUrl}/join?token=${encodeURIComponent(
+        {invites.map((invite) => {
+          const inviteUrl = `${getBaseUrl()}/join?token=${encodeURIComponent(
             invite.token
           )}`;
 
