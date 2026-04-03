@@ -15,7 +15,7 @@ function getBaseUrl() {
 }
 
 export default async function InvitesPage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies(); // ✅ FIX
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,7 +26,7 @@ export default async function InvitesPage() {
           return cookieStore.getAll();
         },
         setAll() {
-          // read-only → nichts setzen
+          // read-only
         },
       },
     }
