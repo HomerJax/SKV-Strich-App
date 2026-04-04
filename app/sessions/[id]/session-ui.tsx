@@ -111,13 +111,40 @@ export function positionRank(pos: Player["preferred_position"]) {
   return 3;
 }
 
+function playerSortName(player: Player) {
+  const firstName = (player.first_name || "").trim();
+  const lastName = (player.last_name || "").trim();
+  const fallbackName = (player.name || "").trim();
+
+  return {
+    firstName,
+    lastName,
+    fallbackName,
+  };
+}
+
 export function sortForTeamView(a: Player, b: Player) {
   const ra = positionRank(a.preferred_position);
   const rb = positionRank(b.preferred_position);
 
   if (ra !== rb) return ra - rb;
 
-  return getPlayerDisplayName(a).localeCompare(getPlayerDisplayName(b), "de");
+  const aName = playerSortName(a);
+  const bName = playerSortName(b);
+
+  const firstCompare = aName.firstName.localeCompare(bName.firstName, "de", {
+    sensitivity: "base",
+  });
+  if (firstCompare !== 0) return firstCompare;
+
+  const lastCompare = aName.lastName.localeCompare(bName.lastName, "de", {
+    sensitivity: "base",
+  });
+  if (lastCompare !== 0) return lastCompare;
+
+  return aName.fallbackName.localeCompare(bName.fallbackName, "de", {
+    sensitivity: "base",
+  });
 }
 
 export function formatGermanDate(date: string) {

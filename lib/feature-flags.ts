@@ -15,6 +15,7 @@ export const FEATURE_FLAG_KEYS = [
   "experimental_generator",
   "founder_tools",
   "session_mvp_voting",
+  "use_nicknames",
 ] as const;
 
 export type FeatureFlagKey = (typeof FEATURE_FLAG_KEYS)[number];
@@ -102,6 +103,13 @@ export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
     title: "MVP Voting nach Training",
     description:
       "Ermöglicht nach abgeschlossenen Trainingssessions ein MVP-Voting unter den anwesenden Teilnehmern. Ideal für Pilotclubs und gestaffelte Rollouts.",
+    audience: "players",
+  },
+  {
+    key: "use_nicknames",
+    title: "Spitznamen anzeigen",
+    description:
+      "Steuert, ob im Club Spitznamen statt Vor- und Nachname angezeigt werden.",
     audience: "players",
   },
 ];

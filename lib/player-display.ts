@@ -5,22 +5,34 @@ export type PlayerDisplayFields = {
   nickname?: string | null;
 };
 
+type PlayerDisplayOptions = {
+  useNicknames?: boolean;
+};
+
 function clean(value?: string | null) {
-  return value?.trim() || '';
+  return value?.trim() || "";
 }
 
-export function getPlayerDisplayName(player: PlayerDisplayFields) {
-  const nickname = clean(player.nickname);
-  if (nickname) return nickname;
+export function getPlayerDisplayName(
+  player: PlayerDisplayFields,
+  options?: PlayerDisplayOptions
+) {
+  const useNicknames = options?.useNicknames ?? false;
 
   const firstName = clean(player.first_name);
   const lastName = clean(player.last_name);
+  const nickname = clean(player.nickname);
+  const legacyName = clean(player.name);
 
-  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  if (useNicknames && nickname) {
+    return nickname;
+  }
+
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
   if (fullName) return fullName;
 
-  const legacyName = clean(player.name);
   if (legacyName) return legacyName;
+  if (nickname) return nickname;
 
-  return 'Unbekannter Spieler';
+  return "Unbekannter Spieler";
 }
