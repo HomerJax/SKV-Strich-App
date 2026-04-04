@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
@@ -44,6 +44,7 @@ export default async function JoinPage({
     );
   }
 
+  const joinPath = `/join?token=${encodeURIComponent(token)}`;
   const cookieStore = await cookies();
 
   const authSupabase = createServerClient(
@@ -63,28 +64,6 @@ export default async function JoinPage({
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-
-  const {
-    data: { user },
-  } = await authSupabase.auth.getUser();
-
-  const joinPath = `/join?token=${encodeURIComponent(token)}`;
-
-  if (!user) {
-    redirect(`/login?next=${encodeURIComponent(joinPath)}`);
-  }
-
-  const { data: player } = await authSupabase
-    .from("players")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("is_guest", false)
-    .limit(1)
-    .maybeSingle();
-
-  if (!player) {
-    redirect(`/onboarding?next=${encodeURIComponent(joinPath)}`);
-  }
 
   const { data: invite, error: inviteError } = await adminSupabase
     .from("invites")
@@ -108,6 +87,27 @@ export default async function JoinPage({
   }
 
   const expired = isInviteExpired(invite.expires_at);
+
+  const {
+    data: { user },
+  } = await authSupabase.auth.getUser();
+
+  let hasPlayer = false;
+
+  if (user) {
+    const { data: player } = await authSupabase
+      .from("players")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("is_guest", false)
+      .limit(1)
+      .maybeSingle();
+
+    hasPlayer = Boolean(player);
+  }
+
+  const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;
+  const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
@@ -148,10 +148,39 @@ export default async function JoinPage({
         </div>
 
         <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Dieser Einladungslink ist mehrfach nutzbar, bis er im Adminbereich gelöscht wird.
+          Dieser Link ist mehrfach nutzbar und kann direkt in eure Gruppe
+          geschickt werden.
         </div>
 
-        {expired ? null : (
+        {expired ? null : !user ? (
+          <div className="space-y-3">
+            <Link
+              href={loginHref}
+              className="flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+            >
+              Einloggen und Einladung annehmen
+            </Link>
+
+            <p className="text-center text-xs text-neutral-500">
+              Du siehst diese Einladungsseite immer zuerst. Nach dem Login geht
+              es automatisch mit diesem Club-Link weiter.
+            </p>
+          </div>
+        ) : !hasPlayer ? (
+          <div className="space-y-3">
+            <Link
+              href={onboardingHref}
+              className="flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+            >
+              Profil anlegen und Einladung annehmen
+            </Link>
+
+            <p className="text-center text-xs text-neutral-500">
+              Bevor du dem Club beitreten kannst, brauchen wir noch dein
+              Spielerprofil.
+            </p>
+          </div>
+        ) : (
           <form method="post" action="/api/join">
             <input type="hidden" name="token" value={token} />
             <button

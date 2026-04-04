@@ -216,6 +216,27 @@ function SectionDoneHint({
   );
 }
 
+function sortPlayersByFirstName(players: Player[]) {
+  return [...players].sort((a, b) => {
+    const firstA = (a.first_name || "").trim().toLocaleLowerCase("de");
+    const firstB = (b.first_name || "").trim().toLocaleLowerCase("de");
+
+    const firstCompare = firstA.localeCompare(firstB, "de");
+    if (firstCompare !== 0) return firstCompare;
+
+    const lastA = (a.last_name || "").trim().toLocaleLowerCase("de");
+    const lastB = (b.last_name || "").trim().toLocaleLowerCase("de");
+
+    const lastCompare = lastA.localeCompare(lastB, "de");
+    if (lastCompare !== 0) return lastCompare;
+
+    const nameA = (a.name || "").trim().toLocaleLowerCase("de");
+    const nameB = (b.name || "").trim().toLocaleLowerCase("de");
+
+    return nameA.localeCompare(nameB, "de");
+  });
+}
+
 export default function SessionDetailClient({
   sessionId,
   initialSession,
@@ -240,7 +261,9 @@ export default function SessionDetailClient({
   const winnerPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [session, setSession] = useState<SessionRow | null>(initialSession);
-  const [players, setPlayers] = useState<Player[]>(initialPlayers);
+  const [players, setPlayers] = useState<Player[]>(
+    sortPlayersByFirstName(initialPlayers)
+  );
 
   const [presentIds, setPresentIds] = useState<number[]>(initialPresentIds);
   const [draftPresentIds, setDraftPresentIds] = useState<number[]>(initialPresentIds);
@@ -695,14 +718,7 @@ ${sessionUrl}`;
       if ("player" in result) {
         const nextPlayer = result.player;
 
-        setPlayers((prev) =>
-          [...prev, nextPlayer].slice().sort((a, b) => {
-            return getPlayerDisplayName(a).localeCompare(
-              getPlayerDisplayName(b),
-              "de"
-            );
-          })
-        );
+        setPlayers((prev) => sortPlayersByFirstName([...prev, nextPlayer]));
 
         setPresentIds((prev) =>
           prev.includes(nextPlayer.id) ? prev : [...prev, nextPlayer.id]
