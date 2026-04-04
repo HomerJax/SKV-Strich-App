@@ -94,9 +94,11 @@ export async function POST(request: NextRequest) {
     const intent = String(formData.get("intent") ?? "").trim();
     const supabase = await createClient();
 
+    // 🔥 CREATE SEASON FIX
     if (intent === "create") {
       const name = String(formData.get("name") ?? "").trim();
       const startDate = String(formData.get("start_date") ?? "").trim();
+      const endDate = String(formData.get("end_date") ?? "").trim(); // ✅ NEU
 
       if (!name) {
         return redirectToPath(request, "/admin/seasons", {
@@ -108,6 +110,7 @@ export async function POST(request: NextRequest) {
         club_id: access.clubId,
         name,
         start_date: startDate || null,
+        end_date: endDate || null, // 🔥 DAS HAT GEFEHLT
       });
 
       if (error) {
@@ -118,6 +121,40 @@ export async function POST(request: NextRequest) {
 
       return redirectToPath(request, "/admin/seasons", {
         message: "Saison angelegt.",
+      });
+    }
+
+    // 🔥 OPTIONAL: UPDATE (falls du später bearbeiten willst)
+    if (intent === "update") {
+      const id = Number(formData.get("season_id") ?? 0);
+      const name = String(formData.get("name") ?? "").trim();
+      const startDate = String(formData.get("start_date") ?? "").trim();
+      const endDate = String(formData.get("end_date") ?? "").trim();
+
+      if (!id) {
+        return redirectToPath(request, "/admin/seasons", {
+          error: "Ungültige Saison.",
+        });
+      }
+
+      const { error } = await supabase
+        .from("seasons")
+        .update({
+          name,
+          start_date: startDate || null,
+          end_date: endDate || null,
+        })
+        .eq("id", id)
+        .eq("club_id", access.clubId);
+
+      if (error) {
+        return redirectToPath(request, "/admin/seasons", {
+          error: error.message || "Fehler beim Speichern.",
+        });
+      }
+
+      return redirectToPath(request, "/admin/seasons", {
+        message: "Saison aktualisiert.",
       });
     }
 
