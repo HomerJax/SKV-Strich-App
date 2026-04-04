@@ -23,10 +23,6 @@ type TeamPlayerRow = {
   player_id: number;
 };
 
-type SessionPlayerRow = {
-  session_id: number;
-};
-
 type SessionRow = {
   id: number;
   date: string;
@@ -162,7 +158,6 @@ export default async function StatsPage() {
   const [
     { data: clubSettingsData, error: clubSettingsError },
     { data: teamPlayerRowsForPlayer, error: teamPlayerError },
-    { data: sessionPlayerRows, error: sessionPlayerError },
   ] = await Promise.all([
     supabase
       .from("club_settings")
@@ -170,10 +165,6 @@ export default async function StatsPage() {
       .eq("club_id", clubId)
       .maybeSingle<ClubSettingsRow>(),
     supabase.from("team_players").select("team_id").eq("player_id", player.id),
-    supabase
-      .from("session_players")
-      .select("session_id")
-      .eq("player_id", player.id),
   ]);
 
   if (clubSettingsError) {
@@ -185,12 +176,6 @@ export default async function StatsPage() {
   if (teamPlayerError) {
     throw new Error(
       `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayerError.message}`
-    );
-  }
-
-  if (sessionPlayerError) {
-    throw new Error(
-      `Session-Teilnahmen konnten nicht geladen werden: ${sessionPlayerError.message}`
     );
   }
 
@@ -206,66 +191,8 @@ export default async function StatsPage() {
     .map((row) => row.team_id)
     .filter((value) => Number.isFinite(value));
 
-  const sessionsPlayed = ((sessionPlayerRows ?? []) as SessionPlayerRow[]).length;
-
   let mvpWins = 0;
   let mvpPerGame = 0;
-
-  if (flags.session_mvp_voting) {
-    const { data: mvpVotesData, error: mvpVotesError } = await supabase
-      .from("session_mvp_votes")
-      .select("session_id, voted_player_id")
-      .eq("club_id", clubId);
-
-    if (mvpVotesError) {
-      throw new Error(
-        `MVP-Stimmen konnten nicht geladen werden: ${mvpVotesError.message}`
-      );
-    }
-
-    const votes = (mvpVotesData ?? []) as MvpVoteRow[];
-    const sessionVoteMap = new Map<number, Map<number, number>>();
-
-    for (const vote of votes) {
-      const sessionId = Number(vote.session_id);
-      const votedPlayerId = Number(vote.voted_player_id);
-
-      if (!Number.isFinite(sessionId) || !Number.isFinite(votedPlayerId)) {
-        continue;
-      }
-
-      const playerCounts = sessionVoteMap.get(sessionId) ?? new Map<number, number>();
-      playerCounts.set(votedPlayerId, (playerCounts.get(votedPlayerId) ?? 0) + 1);
-      sessionVoteMap.set(sessionId, playerCounts);
-    }
-
-    let wins = 0;
-
-    for (const [, playerCounts] of sessionVoteMap) {
-      let maxVotes = 0;
-
-      for (const [, count] of playerCounts) {
-        if (count > maxVotes) {
-          maxVotes = count;
-        }
-      }
-
-      if (maxVotes <= 0) {
-        continue;
-      }
-
-      const winnerIds = Array.from(playerCounts.entries())
-        .filter(([, count]) => count === maxVotes)
-        .map(([playerId]) => playerId);
-
-      if (winnerIds.includes(player.id)) {
-        wins += 1;
-      }
-    }
-
-    mvpWins = wins;
-    mvpPerGame = sessionsPlayed > 0 ? wins / sessionsPlayed : 0;
-  }
 
   if (teamIds.length === 0) {
     return (
@@ -294,8 +221,7 @@ export default async function StatsPage() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-              Teilnahmen erfasst:{" "}
-              <span className="font-semibold">{sessionsPlayed}</span>
+              Bewertete Einsätze: <span className="font-semibold">0</span>
             </div>
 
             {flags.session_mvp_voting ? (
@@ -338,6 +264,74 @@ export default async function StatsPage() {
       (result.team_b_id !== null && teamIds.includes(result.team_b_id))
     );
   });
+
+  const sessionsPlayed = myResults.length;
+
+  if (flags.session_mvp_voting) {
+    const { data: mvpVotesData, error: mvpVotesError } = await supabase
+      .from("session_mvp_votes")
+      .select("session_id, voted_player_id")
+      .eq("club_id", clubId);
+
+    if (mvpVotesError) {
+      throw new Error(
+        `MVP-Stimmen konnten nicht geladen werden: ${mvpVotesError.message}`
+      );
+    }
+
+    const relevantSessionIds = new Set(
+      myResults
+        .map((result) => result.session_id)
+        .filter((value) => Number.isFinite(value))
+    );
+
+    const votes = (mvpVotesData ?? []) as MvpVoteRow[];
+    const sessionVoteMap = new Map<number, Map<number, number>>();
+
+    for (const vote of votes) {
+      const sessionId = Number(vote.session_id);
+      const votedPlayerId = Number(vote.voted_player_id);
+
+      if (
+        !Number.isFinite(sessionId) ||
+        !Number.isFinite(votedPlayerId) ||
+        !relevantSessionIds.has(sessionId)
+      ) {
+        continue;
+      }
+
+      const playerCounts = sessionVoteMap.get(sessionId) ?? new Map<number, number>();
+      playerCounts.set(votedPlayerId, (playerCounts.get(votedPlayerId) ?? 0) + 1);
+      sessionVoteMap.set(sessionId, playerCounts);
+    }
+
+    let wins = 0;
+
+    for (const [, playerCounts] of sessionVoteMap) {
+      let maxVotes = 0;
+
+      for (const [, count] of playerCounts) {
+        if (count > maxVotes) {
+          maxVotes = count;
+        }
+      }
+
+      if (maxVotes <= 0) {
+        continue;
+      }
+
+      const winnerIds = Array.from(playerCounts.entries())
+        .filter(([, count]) => count === maxVotes)
+        .map(([playerId]) => playerId);
+
+      if (winnerIds.includes(player.id)) {
+        wins += 1;
+      }
+    }
+
+    mvpWins = wins;
+    mvpPerGame = sessionsPlayed > 0 ? wins / sessionsPlayed : 0;
+  }
 
   const sessionIds = myResults
     .map((result) => result.session_id)
@@ -497,8 +491,7 @@ export default async function StatsPage() {
   });
 
   const lastFive = recentResults.slice(0, 5);
-  const completedResults =
-    totals.wins + totals.losses + totals.draws;
+  const completedResults = totals.wins + totals.losses + totals.draws;
 
   const trendPoints = [...lastFive].reverse().map((item, index) => ({
     id: `${item.sessionId}-${index}`,
