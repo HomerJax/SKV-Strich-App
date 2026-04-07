@@ -83,8 +83,8 @@ export async function acceptInviteAction(formData: FormData) {
   }
 
   const { data: invite, error: inviteLookupError } = await adminSupabase
-    .from("club_invites")
-    .select("club_id, expires_at, is_active")
+    .from("invites")
+    .select("club_id, expires_at")
     .eq("token", token)
     .maybeSingle();
 
@@ -93,15 +93,6 @@ export async function acceptInviteAction(formData: FormData) {
       buildJoinRedirect({
         token,
         error: "Diese Einladung ist ungültig.",
-      })
-    );
-  }
-
-  if (invite.is_active !== true) {
-    redirect(
-      buildJoinRedirect({
-        token,
-        error: "Diese Einladung ist deaktiviert.",
       })
     );
   }
@@ -130,7 +121,7 @@ export async function acceptInviteAction(formData: FormData) {
       message = "Diese Einladung ist nicht mehr aktiv.";
     } else if (raw.includes("not found") || raw.includes("invalid")) {
       message = "Diese Einladung ist ungültig.";
-    } else if (raw.includes("not found") || raw.includes("nicht gefunden")) {
+    } else if (raw.includes("nicht gefunden")) {
       message = "Diese Einladung ist ungültig.";
     } else if (raw.includes("already a member")) {
       cookieStore.set("active_club_id", invite.club_id, {
