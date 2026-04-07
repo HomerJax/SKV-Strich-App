@@ -1,35 +1,24 @@
-import { redirect } from "next/navigation";
 import LoginForm from "./LoginForm";
-import { getAuthContext } from "@/lib/auth/context";
-import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 type LoginPageProps = {
   searchParams?: Promise<{
-      email?: string;
-          error?: string;
-            }>;
-            };
+    email?: string;
+    error?: string;
+    next?: string;
+  }>;
+};
 
-            export default async function LoginPage({ searchParams }: LoginPageProps) {
-              const resolvedSearchParams = await searchParams;
-                const ctx = await getAuthContext();
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const email = resolvedSearchParams?.email ?? "";
+  const error = resolvedSearchParams?.error ?? "";
+  const next = resolvedSearchParams?.next ?? "";
 
-                  if (ctx.user) {
-                      if (!ctx.player) {
-                            redirect(AUTH_ROUTES.onboarding);
-                                }
-
-                                    if (!ctx.memberships.length || !ctx.activeClubId) {
-                                          redirect(AUTH_ROUTES.selectClub);
-                                              }
-
-                                                  redirect(AUTH_ROUTES.dashboard);
-                                                    }
-
-                                                      return (
-                                                          <LoginForm
-                                                                initialEmail={resolvedSearchParams?.email ?? ""}
-                                                                      initialError={resolvedSearchParams?.error ?? ""}
-                                                                          />
-                                                                            );
-                                                                            }
+  return (
+    <LoginForm
+      initialEmail={email}
+      initialError={error}
+      initialNext={next}
+    />
+  );
+}
