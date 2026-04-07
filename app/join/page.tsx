@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { acceptInviteAction } from "./actions";
@@ -72,8 +71,8 @@ export default async function JoinPage({
   );
 
   const { data: invite, error: inviteError } = await adminSupabase
-    .from("invites")
-    .select("club_id, role, expires_at")
+    .from("club_invites")
+    .select("club_id, role, expires_at, is_active")
     .eq("token", token)
     .maybeSingle();
 
@@ -115,7 +114,14 @@ export default async function JoinPage({
   const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;
   const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
 
-  if (!expired && user && hasPlayer && !error && !message) {
+  if (
+    !expired &&
+    invite.is_active === true &&
+    user &&
+    hasPlayer &&
+    !error &&
+    !message
+  ) {
     return (
       <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
         <div className="w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -174,6 +180,12 @@ export default async function JoinPage({
           </div>
         ) : null}
 
+        {invite.is_active !== true ? (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            Diese Einladung ist deaktiviert.
+          </div>
+        ) : null}
+
         {expired ? (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             Diese Einladung ist abgelaufen.
@@ -192,7 +204,7 @@ export default async function JoinPage({
           geschickt werden.
         </div>
 
-        {expired ? null : !user ? (
+        {expired || invite.is_active !== true ? null : !user ? (
           <div className="space-y-3">
             <Link
               href={loginHref}
