@@ -1,3 +1,4 @@
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 
@@ -8,6 +9,24 @@ export type SessionRow = {
   winner_photo_path: string | null;
   club_id: string;
 };
+
+function createServiceRoleClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw new Error(
+      "Service Role Client konnte nicht erstellt werden: fehlende Supabase ENV Variablen."
+    );
+  }
+
+  return createAdminClient(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
 
 export async function requireSessionAccess(sessionId: number) {
   const ctx = await getAuthContext();
@@ -34,9 +53,9 @@ export async function requireSessionAccess(sessionId: number) {
     };
   }
 
-  const supabase = await createClient();
+  const supabaseUser = await createClient();
 
-  const { data: sessionData, error: sessionError } = await supabase
+  const { data: sessionData, error: sessionError } = await supabaseUser
     .from("sessions")
     .select("id, date, notes, winner_photo_path, club_id")
     .eq("id", sessionId)
@@ -50,6 +69,8 @@ export async function requireSessionAccess(sessionId: number) {
   if (!sessionData) {
     return { error: "Session nicht gefunden.", status: 404 as const };
   }
+
+  const supabase = createServiceRoleClient();
 
   return {
     supabase,

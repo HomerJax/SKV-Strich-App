@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
 type ClubRow = {
   id: string;
@@ -91,11 +92,14 @@ export default async function ClubAdminPage({
 
   const supabase = await createClient();
 
-  const { data: clubData, error: clubError } = await supabase
-    .from("clubs")
-    .select("id, display_name, logo_path, primary_color")
-    .eq("id", clubId)
-    .maybeSingle();
+  const [{ data: clubData, error: clubError }, flags] = await Promise.all([
+    supabase
+      .from("clubs")
+      .select("id, display_name, logo_path, primary_color")
+      .eq("id", clubId)
+      .maybeSingle(),
+    getFeatureFlagsForClub(clubId),
+  ]);
 
   if (clubError) {
     throw new Error(clubError.message);
@@ -124,6 +128,7 @@ export default async function ClubAdminPage({
 
   const errorMessage = getErrorMessage(resolvedSearchParams?.error);
   const saved = resolvedSearchParams?.saved === "1";
+  const useNicknames = flags.use_nicknames ?? false;
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -141,10 +146,11 @@ export default async function ClubAdminPage({
           <div className="mb-5">
             <div className="text-sm font-semibold text-slate-500">Admin</div>
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
-              Clubname, Logo & Farbe
+              Club, Branding & allgemeine Einstellungen
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Diese Angaben erscheinen im Branding eures Clubs innerhalb der App.
+              Hier pflegst du Namen, Logo, Farbe und grundlegende Anzeigeoptionen
+              für euren Club.
             </p>
           </div>
 
@@ -191,7 +197,15 @@ export default async function ClubAdminPage({
                   <div className="truncate text-lg font-bold text-slate-950">
                     {club.display_name?.trim() || "Dein Team"}
                   </div>
-                  <div className="text-sm text-slate-500">Anzeige im Header</div>
+                  <div className="text-sm text-slate-500">
+                    Anzeige im Header
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Spielernamen:{" "}
+                    <span className="font-semibold text-slate-700">
+                      {useNicknames ? "Spitznamen aktiv" : "Vor- und Nachname"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -201,7 +215,7 @@ export default async function ClubAdminPage({
             method="post"
             action="/api/admin/club"
             encType="multipart/form-data"
-            className="space-y-4"
+            className="space-y-5"
           >
             <div className="space-y-2">
               <label
@@ -269,6 +283,31 @@ export default async function ClubAdminPage({
               <p className="text-xs text-slate-500">
                 Die Farbe wird als dezenter Akzent für euren Club in der App genutzt.
               </p>
+            </div>
+
+            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+              <div className="mb-3 text-sm font-semibold text-slate-500">
+                Allgemeine Anzeige
+              </div>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                <input
+                  type="checkbox"
+                  name="use_nicknames"
+                  value="1"
+                  defaultChecked={useNicknames}
+                  className="mt-1 h-4 w-4 rounded border-neutral-300"
+                />
+                <div>
+                  <div className="text-sm font-semibold text-slate-950">
+                    Spitznamen anzeigen
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    Wenn aktiv, werden Spieler in Sessions, Teams, Stats und
+                    weiteren Ansichten bevorzugt mit ihrem Spitznamen angezeigt.
+                  </div>
+                </div>
+              </label>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">

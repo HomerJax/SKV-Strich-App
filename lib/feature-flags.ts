@@ -16,6 +16,7 @@ export const FEATURE_FLAG_KEYS = [
   "founder_tools",
   "session_mvp_voting",
   "use_nicknames",
+  "use_field_view",
 ] as const;
 
 export type FeatureFlagKey = (typeof FEATURE_FLAG_KEYS)[number];
@@ -111,6 +112,13 @@ export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
     description:
       "Steuert, ob im Club Spitznamen statt Vor- und Nachname angezeigt werden.",
     audience: "players",
+  },
+  {
+    key: "use_field_view",
+    title: "Spielfeldansicht",
+    description:
+      "Zeigt die Teamaufstellung in Trainingssessions als kompakte Spielfeldansicht statt als klassische Teamliste.",
+    audience: "internal",
   },
 ];
 

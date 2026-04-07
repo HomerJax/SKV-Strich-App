@@ -34,24 +34,11 @@ export function ageBadgeColor(age: Player["age_group"]) {
   return "bg-slate-100 text-slate-700";
 }
 
-/**
- * Individuelle Stärke bleibt 1–5.
- * Wenn nichts gepflegt ist, wird konservativ 3 angenommen.
- */
 export const strengthScore = (s: number | null) => {
   if (typeof s !== "number" || Number.isNaN(s)) return 3;
   return Math.max(1, Math.min(5, s));
 };
 
-/**
- * Harte Kategorietrennung:
- * AH 1–5   => 1–5
- * Ü32 1–5  => 6–10
- *
- * Damit gilt:
- * - AH 5 = 5
- * - Ü32 1 = 6
- */
 export const categoryBaseScore = (age: Player["age_group"]) => {
   if (age === "Ü32") return 5;
   if (age === "AH") return 0;
@@ -74,14 +61,6 @@ export function teamPositionCounts(team: Player[]) {
   };
 }
 
-/**
- * Positionen sind KEIN Qualitätsbonus / -malus.
- * Es wird nur bewertet, wie ähnlich die Positionsverteilung
- * zwischen Team A und Team B ist.
- *
- * Torhüter zählen etwas stärker, weil dort ein Ungleichgewicht
- * besonders auffällt.
- */
 export function positionBalancePenalty(teamA: Player[], teamB: Player[]) {
   const a = teamPositionCounts(teamA);
   const b = teamPositionCounts(teamB);
@@ -111,40 +90,24 @@ export function positionRank(pos: Player["preferred_position"]) {
   return 3;
 }
 
-function playerSortName(player: Player) {
-  const firstName = (player.first_name || "").trim();
-  const lastName = (player.last_name || "").trim();
-  const fallbackName = (player.name || "").trim();
-
-  return {
-    firstName,
-    lastName,
-    fallbackName,
-  };
+function getFirstName(name: string) {
+  return name.split(" ")[0] ?? name;
 }
 
-export function sortForTeamView(a: Player, b: Player) {
+export function sortForTeamView(
+  a: Player,
+  b: Player,
+  useNicknames: boolean = false
+) {
   const ra = positionRank(a.preferred_position);
   const rb = positionRank(b.preferred_position);
 
   if (ra !== rb) return ra - rb;
 
-  const aName = playerSortName(a);
-  const bName = playerSortName(b);
+  const nameA = getFirstName(getPlayerDisplayName(a, { useNicknames }));
+  const nameB = getFirstName(getPlayerDisplayName(b, { useNicknames }));
 
-  const firstCompare = aName.firstName.localeCompare(bName.firstName, "de", {
-    sensitivity: "base",
-  });
-  if (firstCompare !== 0) return firstCompare;
-
-  const lastCompare = aName.lastName.localeCompare(bName.lastName, "de", {
-    sensitivity: "base",
-  });
-  if (lastCompare !== 0) return lastCompare;
-
-  return aName.fallbackName.localeCompare(bName.fallbackName, "de", {
-    sensitivity: "base",
-  });
+  return nameA.localeCompare(nameB, "de");
 }
 
 export function formatGermanDate(date: string) {
@@ -157,15 +120,16 @@ export function normalizeGoalValue(value: string) {
   return digitsOnly;
 }
 
-function sharePlayerLabel(player: Player) {
-  const base = getPlayerDisplayName(player);
+function sharePlayerLabel(player: Player, useNicknames: boolean) {
+  const base = getPlayerDisplayName(player, { useNicknames });
   return player.is_guest ? `${base} (Gast)` : base;
 }
 
 export function buildLineupShareText(
   session: SessionRow | null,
   teamA: Player[],
-  teamB: Player[]
+  teamB: Player[],
+  useNicknames: boolean = false
 ) {
   const header = session
     ? `Aufstellung vom ${formatGermanDate(session.date)}`
@@ -175,9 +139,10 @@ export function buildLineupShareText(
     teamA.length > 0
       ? teamA.map(
           (player, index) =>
-            `${index + 1}. ${sharePlayerLabel(player)} (${positionLabel(
-              player.preferred_position
-            )})`
+            `${index + 1}. ${sharePlayerLabel(
+              player,
+              useNicknames
+            )} (${positionLabel(player.preferred_position)})`
         )
       : ["Noch keine Spieler zugewiesen."];
 
@@ -185,9 +150,10 @@ export function buildLineupShareText(
     teamB.length > 0
       ? teamB.map(
           (player, index) =>
-            `${index + 1}. ${sharePlayerLabel(player)} (${positionLabel(
-              player.preferred_position
-            )})`
+            `${index + 1}. ${sharePlayerLabel(
+              player,
+              useNicknames
+            )} (${positionLabel(player.preferred_position)})`
         )
       : ["Noch keine Spieler zugewiesen."];
 
@@ -210,7 +176,8 @@ export function buildResultShareText(
   goalsA: string,
   goalsB: string,
   teamA: Player[],
-  teamB: Player[]
+  teamB: Player[],
+  useNicknames: boolean = false
 ) {
   const header = session
     ? `Ergebnis vom ${formatGermanDate(session.date)}`
@@ -224,8 +191,8 @@ export function buildResultShareText(
       ? Number(goalsA) === Number(goalsB)
         ? "Unentschieden"
         : Number(goalsA) > Number(goalsB)
-          ? "Sieger: Team 1"
-          : "Sieger: Team 2"
+        ? "Sieger: Team 1"
+        : "Sieger: Team 2"
       : "Ergebnis noch unvollständig";
 
   return [

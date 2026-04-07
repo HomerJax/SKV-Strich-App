@@ -22,6 +22,9 @@ export default async function AdminFeaturesPage() {
 
   const flags = await getFeatureFlagsForClub(clubId);
   const useNicknames = flags.use_nicknames;
+  const useFieldView = Boolean(
+    (flags as Record<string, boolean | undefined>).use_field_view
+  );
 
   async function toggleNicknameFlag(formData: FormData) {
     "use server";
@@ -46,6 +49,27 @@ export default async function AdminFeaturesPage() {
     revalidatePath("/sessions");
   }
 
+  async function toggleFieldViewFlag(formData: FormData) {
+    "use server";
+
+    const { clubId, membership } = await requireClub();
+
+    if (!isAdminRole(membership.role)) {
+      redirect(AUTH_ROUTES.dashboard);
+    }
+
+    const nextEnabled = formData.get("enabled") === "1";
+
+    await setFeatureFlagForClub(
+      clubId,
+      "use_field_view" as FeatureFlagKey,
+      nextEnabled
+    );
+
+    revalidatePath("/admin/features");
+    revalidatePath("/sessions");
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-6">
       <div className="mb-4 flex items-center gap-2">
@@ -65,52 +89,101 @@ export default async function AdminFeaturesPage() {
           Anzeige & Feature Flags
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Hier steuerst du clubweit, wie Spielernamen angezeigt werden.
+          Hier steuerst du clubweit, wie Spielernamen angezeigt werden und welche
+          neuen Ansichten zum Testen aktiv sind.
         </p>
 
-        <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-base font-semibold text-slate-950">
-                Spitznamen anzeigen
+        <div className="mt-6 space-y-4">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-base font-semibold text-slate-950">
+                  Spitznamen anzeigen
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  Wenn aktiv, werden im Club bevorzugt Spitznamen angezeigt. Wenn
+                  deaktiviert, werden Vor- und Nachname verwendet.
+                </p>
               </div>
-              <p className="mt-1 text-sm text-slate-600">
-                Wenn aktiv, werden im Club bevorzugt Spitznamen angezeigt.
-                Wenn deaktiviert, werden Vor- und Nachname verwendet.
-              </p>
+
+              <span
+                className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                  useNicknames
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-slate-200 text-slate-700"
+                }`}
+              >
+                {useNicknames ? "Aktiv" : "Aus"}
+              </span>
             </div>
 
-            <span
-              className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                useNicknames
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-slate-200 text-slate-700"
-              }`}
-            >
-              {useNicknames ? "Aktiv" : "Aus"}
-            </span>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <form action={toggleNicknameFlag}>
+                <input type="hidden" name="enabled" value="1" />
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Spitznamen aktivieren
+                </button>
+              </form>
+
+              <form action={toggleNicknameFlag}>
+                <input type="hidden" name="enabled" value="0" />
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Spitznamen deaktivieren
+                </button>
+              </form>
+            </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-3">
-            <form action={toggleNicknameFlag}>
-              <input type="hidden" name="enabled" value="1" />
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Spitznamen aktivieren
-              </button>
-            </form>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-base font-semibold text-slate-950">
+                  Spielfeldansicht testen
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  Wenn aktiv, wird in der Trainingssession statt der klassischen
+                  Teamliste eine kompakte Spielfeldansicht angezeigt.
+                </p>
+              </div>
 
-            <form action={toggleNicknameFlag}>
-              <input type="hidden" name="enabled" value="0" />
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              <span
+                className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                  useFieldView
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-slate-200 text-slate-700"
+                }`}
               >
-                Spitznamen deaktivieren
-              </button>
-            </form>
+                {useFieldView ? "Aktiv" : "Aus"}
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <form action={toggleFieldViewFlag}>
+                <input type="hidden" name="enabled" value="1" />
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Spielfeldansicht aktivieren
+                </button>
+              </form>
+
+              <form action={toggleFieldViewFlag}>
+                <input type="hidden" name="enabled" value="0" />
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Spielfeldansicht deaktivieren
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </section>

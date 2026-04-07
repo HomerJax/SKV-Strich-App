@@ -3,6 +3,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { setFeatureFlagForClub } from "@/lib/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -114,17 +115,10 @@ function isUploadedFile(value: FormDataEntryValue | null): value is File {
 async function getAdminClubContext(): Promise<AdminClubContext> {
   const ctx = await getAuthContext();
 
-  if (!ctx.user) {
-    return { error: "login" };
-  }
-
-  if (!ctx.player) {
-    return { error: "onboarding" };
-  }
-
-  if (!ctx.memberships.length || !ctx.activeClubId) {
+  if (!ctx.user) return { error: "login" };
+  if (!ctx.player) return { error: "onboarding" };
+  if (!ctx.memberships.length || !ctx.activeClubId)
     return { error: "select_club" };
-  }
 
   const membership =
     ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ?? null;
@@ -147,10 +141,7 @@ async function getAdminClubContext(): Promise<AdminClubContext> {
   }
 
   const club = (clubData as ClubRow | null) ?? null;
-
-  if (!club) {
-    return { error: "missing_club" };
-  }
+  if (!club) return { error: "missing_club" };
 
   return { club };
 }
@@ -163,15 +154,12 @@ export async function POST(request: NextRequest) {
       if (context.error === "login") {
         return redirectToPath(request, AUTH_ROUTES.login);
       }
-
       if (context.error === "onboarding") {
         return redirectToPath(request, AUTH_ROUTES.onboarding);
       }
-
       if (context.error === "select_club") {
         return redirectToPath(request, AUTH_ROUTES.selectClub);
       }
-
       if (context.error === "missing_club") {
         return redirectToClubAdmin(request, { error: "missing_club" });
       }
@@ -187,37 +175,25 @@ export async function POST(request: NextRequest) {
 
     if (removeLogo) {
       if (club.logo_path) {
-        const { error: storageRemoveError } = await supabase.storage
-          .from("club-logos")
-          .remove([club.logo_path]);
-
-        if (storageRemoveError) {
-          console.error("club logo remove storage error", storageRemoveError);
-        }
+        await supabase.storage.from("club-logos").remove([club.logo_path]);
       }
 
-      const { error: updateError } = await supabase
+      await supabase
         .from("clubs")
         .update({ logo_path: null })
         .eq("id", club.id);
 
-      if (updateError) {
-        console.error("club remove logo db error", updateError);
-        return redirectToClubAdmin(request, { error: "remove_failed" });
-      }
-
       return redirectToClubAdmin(request, { saved: "1" });
     }
 
-    const rawDisplayName = formData.get("display_name");
-    const displayName =
-      typeof rawDisplayName === "string" ? rawDisplayName.trim() : "";
+    const displayName = String(formData.get("display_name") ?? "").trim();
 
-    const rawPrimaryColor = formData.get("primary_color");
-    const primaryColor =
-      typeof rawPrimaryColor === "string" && ALLOWED_COLORS.has(rawPrimaryColor)
-        ? rawPrimaryColor
-        : "black";
+    const primaryColorRaw = String(formData.get("primary_color") ?? "");
+    const primaryColor = ALLOWED_COLORS.has(primaryColorRaw)
+      ? primaryColorRaw
+      : "black";
+
+    const useNicknames = formData.get("use_nicknames") === "1";
 
     const logoEntry = formData.get("logo");
     let nextLogoPath = club.logo_path;
@@ -237,21 +213,16 @@ export async function POST(request: NextRequest) {
         return redirectToClubAdmin(request, { error: "file_too_large" });
       }
 
-      const safeName = safeFileName(file.name || "club-logo.png");
-      const filePath = `${club.id}/${Date.now()}-${safeName}`;
-
-      const arrayBuffer = await file.arrayBuffer();
-      const fileBuffer = Buffer.from(arrayBuffer);
+      const filePath = `${club.id}/${Date.now()}-${safeFileName(file.name)}`;
+      const buffer = Buffer.from(await file.arrayBuffer());
 
       const { error: uploadError } = await supabase.storage
         .from("club-logos")
-        .upload(filePath, fileBuffer, {
+        .upload(filePath, buffer, {
           contentType: file.type,
-          upsert: false,
         });
 
       if (uploadError) {
-        console.error("club logo upload error", uploadError);
         return redirectToClubAdmin(request, { error: "save_failed" });
       }
 
@@ -268,33 +239,11 @@ export async function POST(request: NextRequest) {
       .eq("id", club.id);
 
     if (updateError) {
-      console.error("club update error", updateError);
-
-      if (nextLogoPath && nextLogoPath !== club.logo_path) {
-        const { error: rollbackRemoveError } = await supabase.storage
-          .from("club-logos")
-          .remove([nextLogoPath]);
-
-        if (rollbackRemoveError) {
-          console.error(
-            "uploaded logo rollback remove error",
-            rollbackRemoveError
-          );
-        }
-      }
-
       return redirectToClubAdmin(request, { error: "save_failed" });
     }
 
-    if (club.logo_path && club.logo_path !== nextLogoPath) {
-      const { error: oldRemoveError } = await supabase.storage
-        .from("club-logos")
-        .remove([club.logo_path]);
-
-      if (oldRemoveError) {
-        console.error("old club logo remove error", oldRemoveError);
-      }
-    }
+    // 🔥 NEU: Feature Flag speichern
+    await setFeatureFlagForClub(club.id, "use_nicknames", useNicknames);
 
     return redirectToClubAdmin(request, { saved: "1" });
   } catch (error) {
@@ -308,23 +257,11 @@ export async function GET() {
     const context = await getAdminClubContext();
 
     if ("error" in context) {
-      const status =
-        context.error === "missing_club" || context.error === "select_club"
-          ? 400
-          : context.error === "login"
-            ? 401
-            : 403;
-
-      return NextResponse.json({ error: context.error }, { status });
+      return NextResponse.json({ error: context.error }, { status: 403 });
     }
 
     return NextResponse.json({
-      club: {
-        id: context.club.id,
-        display_name: context.club.display_name,
-        logo_path: context.club.logo_path,
-        primary_color: context.club.primary_color,
-      },
+      club: context.club,
     });
   } catch (error) {
     console.error("GET /api/admin/club failed", error);

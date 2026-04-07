@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 
+type Invite = {
+  id: number;
+  token: string;
+};
+
 function getBaseUrl() {
   if (typeof window !== "undefined") {
     return window.location.origin;
@@ -10,7 +15,7 @@ function getBaseUrl() {
 }
 
 export default function InvitesPage() {
-  const [invites, setInvites] = useState<any[]>([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,7 +23,7 @@ export default function InvitesPage() {
       try {
         const res = await fetch("/api/invites");
         const json = await res.json();
-        setInvites(json.invites || []);
+        setInvites((json.invites || []) as Invite[]);
       } catch (err) {
         console.error("LOAD INVITES ERROR:", err);
       } finally {

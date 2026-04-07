@@ -19,6 +19,8 @@ type ClubSettings = {
   attack_label: string | null;
   defense_label: string | null;
   goalkeeper_label: string | null;
+  use_nicknames?: boolean;
+  use_field_view?: boolean;
 };
 
 type ClubRow = {
@@ -181,6 +183,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
   await ensureFeatureFlagRowsForClub(clubId);
   const featureFlags = await getFeatureFlagsForClub(clubId);
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
+  const useNicknames = featureFlags.use_nicknames === true;
+  const useFieldView = featureFlags.use_field_view === true;
 
   const [
     { data: clubData, error: clubError },
@@ -259,7 +263,11 @@ export default async function SessionDetailPage({ params }: PageProps) {
   }
 
   const session = sessionData as SessionRow;
-  const clubSettings = settingsData as ClubSettings;
+  const clubSettings: ClubSettings = {
+    ...(settingsData as ClubSettings),
+    use_nicknames: useNicknames,
+    use_field_view: useFieldView,
+  };
   const players = ((playersData ?? []).filter(
     (player) => player.is_active !== false
   ) ?? []) as Player[];
@@ -336,6 +344,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialHasResult={hasResult}
       initialPrimaryColor={clubData?.primary_color ?? "black"}
       initialMvpVotingEnabled={mvpVotingEnabled}
+      initialUseNicknames={useNicknames}
+      initialUseFieldView={useFieldView}
     />
   );
 }

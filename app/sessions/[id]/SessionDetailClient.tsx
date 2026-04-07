@@ -9,7 +9,6 @@ import {
   normalizeGoalValue,
   positionBalancePenalty,
   shuffle,
-  sortForTeamView,
   sumTeamScore,
 } from "./session-ui";
 import { getPlayerDisplayName } from "@/lib/player-display";
@@ -30,6 +29,8 @@ type ClubSettings = {
   attack_label: string | null;
   defense_label: string | null;
   goalkeeper_label: string | null;
+  use_nicknames?: boolean;
+  use_field_view?: boolean;
 };
 
 type SessionDetailClientProps = {
@@ -47,6 +48,8 @@ type SessionDetailClientProps = {
   initialHasResult: boolean;
   initialPrimaryColor?: string | null;
   initialMvpVotingEnabled: boolean;
+  initialUseNicknames?: boolean;
+  initialUseFieldView?: boolean;
 };
 
 type ApiSuccess =
@@ -116,14 +119,19 @@ function getAutoTeamNames(
   goalsA: number,
   goalsB: number,
   teamAPlayers: Player[],
-  teamBPlayers: Player[]
+  teamBPlayers: Player[],
+  useNicknames: boolean
 ) {
   const seed = `${sessionId}-${goalsA}:${goalsB}-${teamAPlayers.length}-${teamBPlayers.length}`;
   const diff = Math.abs(goalsA - goalsB);
   const isDraw = goalsA === goalsB;
 
-  const teamAFirst = teamAPlayers[0] ? getPlayerDisplayName(teamAPlayers[0]) : null;
-  const teamBFirst = teamBPlayers[0] ? getPlayerDisplayName(teamBPlayers[0]) : null;
+  const teamAFirst = teamAPlayers[0]
+    ? getPlayerDisplayName(teamAPlayers[0], { useNicknames })
+    : null;
+  const teamBFirst = teamBPlayers[0]
+    ? getPlayerDisplayName(teamBPlayers[0], { useNicknames })
+    : null;
 
   const neutralA = [
     "Die Roten",
@@ -237,6 +245,17 @@ function sortPlayersByFirstName(players: Player[]) {
   });
 }
 
+function withDisplayName(player: Player, useNicknames: boolean): Player {
+  return {
+    ...player,
+    name: getPlayerDisplayName(player, { useNicknames }),
+  };
+}
+
+function withDisplayNames(players: Player[], useNicknames: boolean): Player[] {
+  return players.map((player) => withDisplayName(player, useNicknames));
+}
+
 export default function SessionDetailClient({
   sessionId,
   initialSession,
@@ -252,6 +271,8 @@ export default function SessionDetailClient({
   initialHasResult,
   initialPrimaryColor,
   initialMvpVotingEnabled,
+  initialUseNicknames,
+  initialUseFieldView,
 }: SessionDetailClientProps) {
   const router = useRouter();
 
@@ -272,6 +293,12 @@ export default function SessionDetailClient({
   const [clubId] = useState<string | null>(initialClubId);
   const [isAdmin] = useState(initialIsAdmin);
   const [clubSettings] = useState<ClubSettings | null>(initialClubSettings);
+  const [useNicknames] = useState<boolean>(
+    initialUseNicknames ?? initialClubSettings.use_nicknames ?? false
+  );
+  const [useFieldView] = useState<boolean>(
+    initialUseFieldView ?? initialClubSettings.use_field_view ?? false
+  );
   const [primaryColorKey] = useState<string | null>(initialPrimaryColor ?? "black");
   const [mvpVotingEnabled] = useState<boolean>(initialMvpVotingEnabled);
 
@@ -373,29 +400,46 @@ export default function SessionDetailClient({
 
   const teamA = useMemo(
     () =>
-      presentPlayers
-        .filter((player) => manualTeams[player.id] === "A")
-        .slice()
-        .sort(sortForTeamView),
+      sortPlayersByFirstName(
+        presentPlayers.filter((player) => manualTeams[player.id] === "A")
+      ),
     [presentPlayers, manualTeams]
   );
 
   const teamB = useMemo(
     () =>
-      presentPlayers
-        .filter((player) => manualTeams[player.id] === "B")
-        .slice()
-        .sort(sortForTeamView),
+      sortPlayersByFirstName(
+        presentPlayers.filter((player) => manualTeams[player.id] === "B")
+      ),
     [presentPlayers, manualTeams]
   );
 
   const unassigned = useMemo(
     () =>
-      presentPlayers
-        .filter((player) => !manualTeams[player.id])
-        .slice()
-        .sort(sortForTeamView),
+      sortPlayersByFirstName(
+        presentPlayers.filter((player) => !manualTeams[player.id])
+      ),
     [presentPlayers, manualTeams]
+  );
+
+  const displayPlayers = useMemo(
+    () => withDisplayNames(players, useNicknames),
+    [players, useNicknames]
+  );
+
+  const displayTeamA = useMemo(
+    () => withDisplayNames(teamA, useNicknames),
+    [teamA, useNicknames]
+  );
+
+  const displayTeamB = useMemo(
+    () => withDisplayNames(teamB, useNicknames),
+    [teamB, useNicknames]
+  );
+
+  const displayUnassigned = useMemo(
+    () => withDisplayNames(unassigned, useNicknames),
+    [unassigned, useNicknames]
   );
 
   const canShareLineup = teamA.length > 0 && teamB.length > 0;
@@ -414,8 +458,16 @@ export default function SessionDetailClient({
   const scoreBValue = Number(goalsB) || 0;
 
   const autoTeamNames = useMemo(
-    () => getAutoTeamNames(sessionId, scoreAValue, scoreBValue, teamA, teamB),
-    [sessionId, scoreAValue, scoreBValue, teamA, teamB]
+    () =>
+      getAutoTeamNames(
+        sessionId,
+        scoreAValue,
+        scoreBValue,
+        teamA,
+        teamB,
+        useNicknames
+      ),
+    [sessionId, scoreAValue, scoreBValue, teamA, teamB, useNicknames]
   );
 
   const attendanceDone =
@@ -480,7 +532,13 @@ export default function SessionDetailClient({
         throw new Error("Bitte zuerst beide Teams zuweisen.");
       }
 
-      const text = buildLineupShareText(session, teamA, teamB);
+      const text = buildLineupShareText(
+        session,
+        displayTeamA,
+        displayTeamB,
+        useNicknames
+      );
+
       const result = await shareText(text, "Aufstellung teilen");
 
       setMsg(
@@ -532,7 +590,9 @@ ${sessionUrl}`;
           : "Ergebnis erfolgreich in der Gruppe geteilt."
       );
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Ergebnis konnte nicht in der Gruppe geteilt werden."));
+      setErr(
+        getErrorMessage(e, "Ergebnis konnte nicht in der Gruppe geteilt werden.")
+      );
     } finally {
       setSharingInternal(false);
     }
@@ -1196,7 +1256,7 @@ ${sessionUrl}`;
           ) : null}
 
           <SessionAttendanceCard
-            players={players}
+            players={displayPlayers}
             presentIds={draftPresentIds}
             hasResult={hasResult}
             isAdmin={isAdmin}
@@ -1229,9 +1289,9 @@ ${sessionUrl}`;
           ) : null}
 
           <SessionTeamsCard
-            teamA={teamA}
-            teamB={teamB}
-            unassigned={unassigned}
+            teamA={displayTeamA}
+            teamB={displayTeamB}
+            unassigned={displayUnassigned}
             metaA={metaA}
             metaB={metaB}
             hasResult={hasResult}
@@ -1241,6 +1301,7 @@ ${sessionUrl}`;
             sharingLineup={sharingLineup}
             collapsed={teamsCollapsed}
             attendanceDirty={attendanceDirty}
+            enableFieldView={useFieldView}
             onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
             onGenerateTeams={generateTeams}
             onShareLineup={handleShareLineup}
@@ -1286,11 +1347,15 @@ ${sessionUrl}`;
         onClose={() => setShowSessionEndModal(false)}
         teamA={{
           name: autoTeamNames.a,
-          players: teamA.map((player) => getPlayerDisplayName(player)),
+          players: teamA.map((player) =>
+            getPlayerDisplayName(player, { useNicknames })
+          ),
         }}
         teamB={{
           name: autoTeamNames.b,
-          players: teamB.map((player) => getPlayerDisplayName(player)),
+          players: teamB.map((player) =>
+            getPlayerDisplayName(player, { useNicknames })
+          ),
         }}
         scoreA={scoreAValue}
         scoreB={scoreBValue}
