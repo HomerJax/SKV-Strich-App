@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { acceptInviteAction } from "./actions";
 
 type SearchParams = {
   token?: string | string[];
@@ -55,7 +57,11 @@ export default async function JoinPage({
         getAll() {
           return cookieStore.getAll();
         },
-        setAll() {},
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        },
       },
     }
   );
@@ -108,6 +114,40 @@ export default async function JoinPage({
 
   const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;
   const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
+
+  if (!expired && user && hasPlayer && !error && !message) {
+    return (
+      <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
+        <div className="w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="mb-4">
+            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
+              Einladung wird angenommen
+            </h1>
+            <p className="mt-2 text-sm text-neutral-600">
+              Du bist eingeloggt. Wir verbinden dich jetzt direkt mit dem Club.
+            </p>
+          </div>
+
+          <form action={acceptInviteAction}>
+            <input type="hidden" name="token" value={token} />
+            <button
+              type="submit"
+              autoFocus
+              className="w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+            >
+              Jetzt beitreten
+            </button>
+          </form>
+
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `document.forms[0]?.submit();`,
+            }}
+          />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
@@ -162,8 +202,8 @@ export default async function JoinPage({
             </Link>
 
             <p className="text-center text-xs text-neutral-500">
-              Du siehst diese Einladungsseite immer zuerst. Nach dem Login geht
-              es automatisch mit diesem Club-Link weiter.
+              Nach dem Login kommst du automatisch zurück zu diesem
+              Einladungslink.
             </p>
           </div>
         ) : !hasPlayer ? (
@@ -181,7 +221,7 @@ export default async function JoinPage({
             </p>
           </div>
         ) : (
-          <form method="post" action="/api/join">
+          <form action={acceptInviteAction}>
             <input type="hidden" name="token" value={token} />
             <button
               type="submit"

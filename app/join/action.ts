@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 
 function normalizeText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
@@ -54,6 +55,11 @@ export async function acceptInviteAction(formData: FormData) {
     }
   );
 
+  const adminSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -76,6 +82,30 @@ export async function acceptInviteAction(formData: FormData) {
     redirect(`/onboarding?next=${encodeURIComponent(joinUrl)}`);
   }
 
+  const { data: invite, error: inviteLookupError } = await adminSupabase
+    .from("invites")
+    .select("club_id, expires_at")
+    .eq("token", token)
+    .maybeSingle();
+
+  if (inviteLookupError || !invite) {
+    redirect(
+      buildJoinRedirect({
+        token,
+        error: "Diese Einladung ist ungültig.",
+      })
+    );
+  }
+
+  if (invite.expires_at && new Date(invite.expires_at).getTime() < Date.now()) {
+    redirect(
+      buildJoinRedirect({
+        token,
+        error: "Diese Einladung ist abgelaufen.",
+      })
+    );
+  }
+
   const { error } = await supabase.rpc("accept_club_invite", {
     p_token: token,
   });
@@ -88,13 +118,22 @@ export async function acceptInviteAction(formData: FormData) {
     if (raw.includes("expired")) {
       message = "Diese Einladung ist abgelaufen.";
     } else if (raw.includes("already used")) {
-      message = "Diese Einladung wurde bereits verwendet.";
+      message =
+        "Dieser Link wurde serverseitig bereits als verwendet markiert. Bitte prüfe die Datenbankfunktion accept_club_invite.";
     } else if (raw.includes("inactive")) {
       message = "Diese Einladung ist nicht mehr aktiv.";
     } else if (raw.includes("not found") || raw.includes("invalid")) {
       message = "Diese Einladung ist ungültig.";
     } else if (raw.includes("already a member")) {
-      message = "Du bist bereits Mitglied dieses Clubs.";
+      cookieStore.set("active_club_id", invite.club_id, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+
+      redirect("/?message=Du bist bereits Mitglied dieses Clubs.");
     }
 
     redirect(
@@ -104,6 +143,14 @@ export async function acceptInviteAction(formData: FormData) {
       })
     );
   }
+
+  cookieStore.set("active_club_id", invite.club_id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
 
   redirect("/?message=Club erfolgreich beigetreten.");
 }

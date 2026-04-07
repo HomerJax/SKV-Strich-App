@@ -1168,7 +1168,7 @@ ${sessionUrl}`;
     return null;
   }
 
-  return (
+    return (
     <>
       <div className="space-y-4">
         <button
@@ -1202,8 +1202,8 @@ ${sessionUrl}`;
 
         {!hasResult && (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
-            Empfohlene Reihenfolge: Anwesenheit festlegen → Anwesenheit speichern →
-            Teams aufteilen → Ergebnis speichern.
+            Empfohlene Reihenfolge: Anwesenheit festlegen → Anwesenheit speichern
+            → Teams aufteilen → Siegerfoto hochladen → Ergebnis speichern.
           </div>
         )}
 
@@ -1230,8 +1230,9 @@ ${sessionUrl}`;
                   Ergebnis ansehen und teilen
                 </div>
                 <div className="mt-1 text-sm text-slate-600">
-                  Öffne die Ergebnisansicht, um die SiegerCard nach außen zu teilen
-                  oder das Ergebnis mit CTA zurück in eure Gruppe zu posten.
+                  Öffne die Ergebnisansicht, um die SiegerCard nach außen zu
+                  teilen oder das Ergebnis mit CTA zurück in eure Gruppe zu
+                  posten.
                 </div>
               </div>
 
@@ -1310,69 +1311,87 @@ ${sessionUrl}`;
           />
         </div>
 
-       {/* 📸 Siegerfoto (NEU) */}
-<div className="space-y-2">
-  {winnerPhotoUrl ? (
-    <SectionDoneHint label="Siegerfoto hinzugefügt" />
-  ) : null}
+        {!hasResult ? (
+          <div className="space-y-2">
+            {winnerPhotoUrl ? (
+              <SectionDoneHint
+                label="Siegerfoto hinzugefügt"
+                detail="Foto vorhanden"
+              />
+            ) : null}
 
-  <SessionResultCard
-    hasResult={false}
-    saving={saving}
-    photoBusy={photoBusy}
-    goalsA={goalsA}
-    goalsB={goalsB}
-    canShareResult={false}
-    canUploadWinnerPhoto={canUploadWinnerPhoto}
-    winnerPhotoUrl={winnerPhotoUrl}
-    hasWinnerPhoto={Boolean(session.winner_photo_path)}
-    sharingResult={false}
-    sharingInternal={false}
-    winnerPhotoInputRef={winnerPhotoInputRef}
-    onGoalsAChange={() => {}}
-    onGoalsBChange={() => {}}
-    onDeleteResult={() => {}}
-    onWinnerPhotoUpload={handleWinnerPhotoUpload}
-    onWinnerPhotoDelete={handleWinnerPhotoDelete}
-    onSaveResult={() => {}}
-    onShareResult={() => {}}
-    onShareInternal={() => {}}
-  />
-</div>
+            <SessionResultCard
+              hasResult={false}
+              saving={saving}
+              photoBusy={photoBusy}
+              goalsA={goalsA}
+              goalsB={goalsB}
+              canShareResult={false}
+              canUploadWinnerPhoto={canUploadWinnerPhoto}
+              winnerPhotoUrl={winnerPhotoUrl}
+              hasWinnerPhoto={Boolean(session.winner_photo_path)}
+              sharingResult={false}
+              sharingInternal={false}
+              winnerPhotoInputRef={winnerPhotoInputRef}
+              onGoalsAChange={() => {}}
+              onGoalsBChange={() => {}}
+              onDeleteResult={() => {}}
+              onWinnerPhotoUpload={handleWinnerPhotoUpload}
+              onWinnerPhotoDelete={handleWinnerPhotoDelete}
+              onSaveResult={() => {}}
+              onShareResult={() => {}}
+              onShareInternal={() => {}}
+              title="Siegerfoto hochladen"
+              description="Optional: Direkt nach dem Training ein Siegerfoto aufnehmen oder hochladen."
+              showResultSection={false}
+              showPhotoSection={true}
+              showShareSection={false}
+            />
+          </div>
+        ) : (
+          <SectionDoneHint
+            label="Siegerfoto erledigt"
+            detail={session.winner_photo_path ? "Foto vorhanden" : "Ohne Foto"}
+          />
+        )}
 
-{/* 🧮 Ergebnis */}
-<div ref={resultRef}>
-  {resultDone ? (
-    <SectionDoneHint
-      label="Ergebnis erledigt"
-      detail={`${scoreAValue}:${scoreBValue}`}
-    />
-  ) : null}
-
-  <SessionResultCard
-    hasResult={hasResult}
-    saving={saving}
-    photoBusy={photoBusy}
-    goalsA={goalsA}
-    goalsB={goalsB}
-    canShareResult={canShareResult}
-    canUploadWinnerPhoto={false}
-    winnerPhotoUrl={winnerPhotoUrl}
-    hasWinnerPhoto={Boolean(session.winner_photo_path)}
-    sharingResult={sharingResult}
-    sharingInternal={sharingInternal}
-    winnerPhotoInputRef={winnerPhotoInputRef}
-    onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
-    onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
-    onDeleteResult={deleteResult}
-    onWinnerPhotoUpload={handleWinnerPhotoUpload}
-    onWinnerPhotoDelete={handleWinnerPhotoDelete}
-    onSaveResult={saveResult}
-    onShareResult={handleShareResult}
-    onShareInternal={handleShareInternalResult}
-  />
-</div>
-</div>
+        <div ref={resultRef}>
+          {hasResult ? (
+            <SectionDoneHint
+              label="Ergebnis erledigt"
+              detail={`${scoreAValue}:${scoreBValue}`}
+            />
+          ) : (
+            <SessionResultCard
+              hasResult={hasResult}
+              saving={saving}
+              photoBusy={photoBusy}
+              goalsA={goalsA}
+              goalsB={goalsB}
+              canShareResult={canShareResult}
+              canUploadWinnerPhoto={false}
+              winnerPhotoUrl={winnerPhotoUrl}
+              hasWinnerPhoto={Boolean(session.winner_photo_path)}
+              sharingResult={sharingResult}
+              sharingInternal={sharingInternal}
+              winnerPhotoInputRef={winnerPhotoInputRef}
+              onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
+              onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
+              onDeleteResult={deleteResult}
+              onWinnerPhotoUpload={handleWinnerPhotoUpload}
+              onWinnerPhotoDelete={handleWinnerPhotoDelete}
+              onSaveResult={saveResult}
+              onShareResult={handleShareResult}
+              onShareInternal={handleShareInternalResult}
+              title="Ergebnis eintragen"
+              description="Trage das Endergebnis ein und speichere es."
+              showResultSection={true}
+              showPhotoSection={false}
+              showShareSection={false}
+            />
+          )}
+        </div>
+      </div>
 
       <SessionEndModal
         open={showSessionEndModal}

@@ -5,6 +5,9 @@ import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import MobileUserMenu from "@/components/MobileUserMenu";
+import PowerClubSwitcher, {
+  type PowerClubSwitcherClub,
+} from "@/components/PowerClubSwitcher";
 
 type ClubRow = {
   id: string;
@@ -26,6 +29,36 @@ function getInitial(value: string | null) {
   return value.trim().charAt(0).toUpperCase();
 }
 
+function getClubLabel(club: ClubRow | null | undefined) {
+  return club?.display_name ?? club?.name ?? "Unbenannter Verein";
+}
+
+function isPowerUserFromContext(ctx: Awaited<ReturnType<typeof getAuthContext>>) {
+  const user = ctx.user as
+    | {
+        app_metadata?: Record<string, unknown>;
+        user_metadata?: Record<string, unknown>;
+        is_power_user?: boolean;
+      }
+    | null;
+
+  if (!user) return false;
+
+  if (typeof user.is_power_user === "boolean") {
+    return user.is_power_user;
+  }
+
+  if (typeof user.app_metadata?.is_power_user === "boolean") {
+    return Boolean(user.app_metadata.is_power_user);
+  }
+
+  if (typeof user.user_metadata?.is_power_user === "boolean") {
+    return Boolean(user.user_metadata.is_power_user);
+  }
+
+  return false;
+}
+
 export default async function AppHeader() {
   const ctx = await getAuthContext();
 
@@ -37,22 +70,42 @@ export default async function AppHeader() {
   let logoSrc: string | null = null;
   let primaryColor = COLOR_MAP.black;
   let showPlayerStatsLink = false;
+  let powerUserClubs: PowerClubSwitcherClub[] = [];
 
-  if (ctx.user && fallbackClubId) {
+  const isPowerUser = isPowerUserFromContext(ctx);
+
+  if (ctx.user) {
     const supabase = await createClient();
 
-    const [{ data: club }, flags] = await Promise.all([
-      supabase
-        .from("clubs")
-        .select("id, display_name, name, logo_path, primary_color")
-        .eq("id", fallbackClubId)
-        .maybeSingle<ClubRow>(),
-      getFeatureFlagsForClub(fallbackClubId),
+    const activeClubPromise = fallbackClubId
+      ? supabase
+          .from("clubs")
+          .select("id, display_name, name, logo_path, primary_color")
+          .eq("id", fallbackClubId)
+          .maybeSingle<ClubRow>()
+      : Promise.resolve({ data: null, error: null });
+
+    const flagsPromise = fallbackClubId
+      ? getFeatureFlagsForClub(fallbackClubId)
+      : Promise.resolve({ player_stats_overview: false });
+
+    const allClubsPromise = isPowerUser
+      ? supabase
+          .from("clubs")
+          .select("id, display_name, name, logo_path, primary_color")
+          .order("display_name", { ascending: true })
+          .returns<ClubRow[]>()
+      : Promise.resolve({ data: [], error: null });
+
+    const [{ data: club }, flags, { data: allClubs }] = await Promise.all([
+      activeClubPromise,
+      flagsPromise,
+      allClubsPromise,
     ]);
 
-    clubName = club?.display_name ?? club?.name ?? null;
+    clubName = getClubLabel(club);
     primaryColor = COLOR_MAP[club?.primary_color ?? "black"] ?? COLOR_MAP.black;
-    showPlayerStatsLink = flags.player_stats_overview;
+    showPlayerStatsLink = Boolean(flags.player_stats_overview);
 
     if (club?.logo_path) {
       const { data } = supabase.storage
@@ -60,6 +113,26 @@ export default async function AppHeader() {
         .getPublicUrl(club.logo_path);
 
       logoSrc = data?.publicUrl ?? null;
+    }
+
+    if (isPowerUser && allClubs?.length) {
+      powerUserClubs = allClubs.map((clubRow) => {
+        let clubLogoSrc: string | null = null;
+
+        if (clubRow.logo_path) {
+          const { data } = supabase.storage
+            .from("club-logos")
+            .getPublicUrl(clubRow.logo_path);
+
+          clubLogoSrc = data?.publicUrl ?? null;
+        }
+
+        return {
+          id: clubRow.id,
+          name: getClubLabel(clubRow),
+          logoSrc: clubLogoSrc,
+        };
+      });
     }
   }
 
@@ -136,28 +209,14 @@ export default async function AppHeader() {
                 </Link>
               </div>
 
-              <div
-                className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-white shadow-md"
-                style={{ borderColor: `${primaryColor}33` }}
-              >
-                {logoSrc ? (
-                  <Image
-                    src={logoSrc}
-                    alt={clubName ?? "Club Logo"}
-                    fill
-                    sizes="48px"
-                    className="object-contain p-1.5"
-                  />
-                ) : (
-                  <Image
-                    src="/icon-dark.png"
-                    alt="strikr"
-                    width={28}
-                    height={28}
-                    className="opacity-70"
-                  />
-                )}
-              </div>
+              <PowerClubSwitcher
+                isPowerUser={isPowerUser}
+                activeClubId={fallbackClubId}
+                activeClubName={clubName}
+                activeLogoSrc={logoSrc}
+                primaryColor={primaryColor}
+                clubs={powerUserClubs}
+              />
             </div>
           ) : null}
         </div>
