@@ -97,6 +97,7 @@ export async function signupAction(
       maxAge: 60 * 60 * 24 * 365,
       sameSite: "lax",
       httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
     });
   }
 
@@ -121,6 +122,7 @@ export async function signupAction(
     maxAge: 60 * 60 * 24 * 365,
     sameSite: "lax",
     httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
   });
 
   redirect(AUTH_ROUTES.dashboard);

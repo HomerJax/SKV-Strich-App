@@ -2,7 +2,6 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
-import { acceptInviteAction } from "./actions";
 
 type SearchParams = {
   token?: string | string[];
@@ -56,11 +55,7 @@ export default async function JoinPage({
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        },
+        setAll() {},
       },
     }
   );
@@ -111,43 +106,9 @@ export default async function JoinPage({
     hasPlayer = Boolean(player);
   }
 
- const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;
-const registerHref = `/signup?next=${encodeURIComponent(joinPath)}`;
-const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
-
-  if (!expired && user && hasPlayer && !error && !message) {
-    return (
-      <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
-        <div className="w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="mb-4">
-            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-              Einladung wird angenommen
-            </h1>
-            <p className="mt-2 text-sm text-neutral-600">
-              Du bist eingeloggt. Wir verbinden dich jetzt direkt mit dem Club.
-            </p>
-          </div>
-
-          <form action={acceptInviteAction}>
-            <input type="hidden" name="token" value={token} />
-            <button
-              type="submit"
-              autoFocus
-              className="w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
-            >
-              Jetzt beitreten
-            </button>
-          </form>
-
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `document.forms[0]?.submit();`,
-            }}
-          />
-        </div>
-      </main>
-    );
-  }
+  const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;
+  const signupHref = `/signup?next=${encodeURIComponent(joinPath)}`;
+  const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
@@ -202,7 +163,7 @@ const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
             </Link>
 
             <Link
-              href={registerHref}
+              href={signupHref}
               className="flex w-full items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-neutral-50"
             >
               Neu registrieren
@@ -223,12 +184,11 @@ const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
             </Link>
 
             <p className="text-center text-xs text-neutral-500">
-              Bevor du dem Club beitreten kannst, brauchen wir noch dein
-              Spielerprofil.
+              Danach geht es direkt mit deiner Einladung weiter.
             </p>
           </div>
         ) : (
-          <form action={acceptInviteAction}>
+          <form method="post" action="/api/join">
             <input type="hidden" name="token" value={token} />
             <button
               type="submit"

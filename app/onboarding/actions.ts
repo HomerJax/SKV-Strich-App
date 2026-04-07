@@ -12,6 +12,16 @@ function toText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
 }
 
+function normalizeNext(value: FormDataEntryValue | null) {
+  const next = String(value ?? "").trim();
+
+  if (!next) return "";
+  if (!next.startsWith("/")) return "";
+  if (next.startsWith("//")) return "";
+
+  return next;
+}
+
 export async function completeOnboarding(
   _prevState: OnboardingState,
   formData: FormData
@@ -34,6 +44,7 @@ export async function completeOnboarding(
   const nickname = toText(formData.get("nickname"));
   const intention = toText(formData.get("intention"));
   const clubName = toText(formData.get("clubName"));
+  const next = normalizeNext(formData.get("next"));
 
   if (!firstName || !lastName) {
     return {
@@ -72,10 +83,7 @@ export async function completeOnboarding(
       ? existingPlayers[0]
       : null;
 
-  if (
-    Array.isArray(existingPlayers) &&
-    existingPlayers.length > 1
-  ) {
+  if (Array.isArray(existingPlayers) && existingPlayers.length > 1) {
     return {
       error:
         "Für diesen Benutzer existieren mehrere Spielerprofile. Bitte bereinige die doppelten Player-Datensätze in Supabase.",
@@ -122,6 +130,10 @@ export async function completeOnboarding(
             "Spielerprofil konnte nicht aktualisiert werden.",
         };
       }
+    }
+
+    if (next) {
+      redirect(next);
     }
 
     redirect("/waiting-for-invite");
@@ -214,6 +226,8 @@ export async function completeOnboarding(
     path: "/",
     sameSite: "lax",
     httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 365,
   });
 
   redirect("/");
