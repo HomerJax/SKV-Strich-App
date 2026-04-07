@@ -111,8 +111,9 @@ export default async function JoinPage({
     hasPlayer = Boolean(player);
   }
 
-  const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;
-  const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
+ const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;
+const registerHref = `/signup?next=${encodeURIComponent(joinPath)}`;
+const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
 
   if (!expired && user && hasPlayer && !error && !message) {
     return (
@@ -197,12 +198,19 @@ export default async function JoinPage({
               href={loginHref}
               className="flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
             >
-              Einloggen und Einladung annehmen
+              Einloggen
+            </Link>
+
+            <Link
+              href={registerHref}
+              className="flex w-full items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-neutral-50"
+            >
+              Neu registrieren
             </Link>
 
             <p className="text-center text-xs text-neutral-500">
-              Nach dem Login kommst du automatisch zurück zu diesem
-              Einladungslink.
+              Nach Login oder Registrierung kommst du automatisch zurück zu
+              diesem Einladungslink.
             </p>
           </div>
         ) : !hasPlayer ? (

@@ -117,8 +117,6 @@ export async function acceptInviteAction(formData: FormData) {
 
     if (raw.includes("expired") || raw.includes("abgelaufen")) {
       message = "Diese Einladung ist abgelaufen.";
-    } else if (raw.includes("inactive") || raw.includes("deaktiviert")) {
-      message = "Diese Einladung ist nicht mehr aktiv.";
     } else if (raw.includes("not found") || raw.includes("invalid")) {
       message = "Diese Einladung ist ungültig.";
     } else if (raw.includes("nicht gefunden")) {

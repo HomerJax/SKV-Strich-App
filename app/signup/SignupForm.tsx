@@ -8,6 +8,7 @@ import { signupAction, type SignupState } from "./actions";
 type SignupFormProps = {
   initialEmail?: string;
   initialError?: string;
+  initialNext?: string;
 };
 
 function getErrorMessage(error: string) {
@@ -38,6 +39,7 @@ const INITIAL_STATE: SignupState = {
 export default function SignupForm({
   initialEmail = "",
   initialError = "",
+  initialNext = "",
 }: SignupFormProps) {
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
@@ -57,6 +59,10 @@ export default function SignupForm({
     () => getErrorMessage(activeErrorCode),
     [activeErrorCode]
   );
+
+  const loginHref = initialNext
+    ? `/login?next=${encodeURIComponent(initialNext)}`
+    : "/login";
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -80,7 +86,8 @@ export default function SignupForm({
             Registrieren
           </h1>
           <p className="mt-1 text-sm text-neutral-600">
-            Erstelle deinen Account und starte danach direkt mit dem Onboarding.
+            Erstelle deinen Account und kehre danach direkt zu deiner Einladung
+            zurück.
           </p>
 
           {errorMessage ? (
@@ -94,6 +101,8 @@ export default function SignupForm({
             onSubmit={() => setHasEditedSinceSubmit(false)}
             className="mt-6 space-y-4"
           >
+            <input type="hidden" name="next" value={initialNext} />
+
             <div>
               <label className="mb-1 block text-sm font-medium text-neutral-800">
                 E-Mail
@@ -164,7 +173,7 @@ export default function SignupForm({
           <div className="mt-6 text-center text-sm text-neutral-600">
             Bereits registriert?{" "}
             <Link
-              href="/login"
+              href={loginHref}
               className="font-medium text-neutral-900 hover:underline"
             >
               Zum Login

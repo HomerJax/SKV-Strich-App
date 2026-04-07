@@ -10,6 +10,16 @@ export type SignupState = {
   error: string;
 };
 
+function normalizeNext(value: FormDataEntryValue | null) {
+  const next = String(value ?? "").trim();
+
+  if (!next) return "";
+  if (!next.startsWith("/")) return "";
+  if (next.startsWith("//")) return "";
+
+  return next;
+}
+
 export async function signupAction(
   _prevState: SignupState,
   formData: FormData
@@ -17,6 +27,7 @@ export async function signupAction(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const passwordConfirm = String(formData.get("password_confirm") ?? "");
+  const next = normalizeNext(formData.get("next"));
 
   if (!email || !password || !passwordConfirm) {
     return { error: "missing-fields" };
@@ -79,6 +90,19 @@ export async function signupAction(
   }
 
   const cookieStore = await cookies();
+
+  if (ctx.activeClubId) {
+    cookieStore.set("active_club_id", ctx.activeClubId, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      httpOnly: false,
+    });
+  }
+
+  if (next) {
+    redirect(next);
+  }
 
   if (!ctx.player) {
     redirect(AUTH_ROUTES.onboarding);
