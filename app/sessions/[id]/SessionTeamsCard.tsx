@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import type { Player, TeamSide } from "./session-types";
 import { ageBadgeColor, badgeColor, positionLabel } from "./session-ui";
@@ -209,7 +209,9 @@ function sortForList(players: Player[]) {
 }
 
 function preferKeeperFromDefense(players: Player[]) {
-  const explicitKeeper = players.find((player) => player.preferred_position === "goalkeeper");
+  const explicitKeeper = players.find(
+    (player) => player.preferred_position === "goalkeeper"
+  );
   if (explicitKeeper) return explicitKeeper;
 
   const defender = players.find((player) => player.preferred_position === "defense");
@@ -308,15 +310,27 @@ function buildFormationBuckets(players: Player[]) {
     pool = fillAtt.rest;
   }
 
-  const extraDef = takePlayers(pool, () => true, Math.min(4 - def.length, pool.length));
+  const extraDef = takePlayers(
+    pool,
+    () => true,
+    Math.min(4 - def.length, pool.length)
+  );
   def.push(...extraDef.picked);
   pool = extraDef.rest;
 
-  const extraMid = takePlayers(pool, () => true, Math.min(4 - mid.length, pool.length));
+  const extraMid = takePlayers(
+    pool,
+    () => true,
+    Math.min(4 - mid.length, pool.length)
+  );
   mid.push(...extraMid.picked);
   pool = extraMid.rest;
 
-  const extraAtt = takePlayers(pool, () => true, Math.min(2 - att.length, pool.length));
+  const extraAtt = takePlayers(
+    pool,
+    () => true,
+    Math.min(2 - att.length, pool.length)
+  );
   att.push(...extraAtt.picked);
 
   return {
@@ -625,11 +639,8 @@ export default function SessionTeamsCard({
 }: SessionTeamsCardProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
-  useEffect(() => {
-    if (!enableFieldView && viewMode === "field") {
-      setViewMode("list");
-    }
-  }, [enableFieldView, viewMode]);
+  const effectiveViewMode: ViewMode =
+    enableFieldView && viewMode === "field" ? "field" : "list";
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -685,11 +696,11 @@ export default function SessionTeamsCard({
         <div className="space-y-3 p-2.5">
           {enableFieldView ? (
             <div className="flex justify-start">
-              <ViewToggle value={viewMode} onChange={setViewMode} />
+              <ViewToggle value={effectiveViewMode} onChange={setViewMode} />
             </div>
           ) : null}
 
-          {enableFieldView && viewMode === "field" ? (
+          {enableFieldView && effectiveViewMode === "field" ? (
             <CombinedTeamField
               teamA={teamA}
               teamB={teamB}

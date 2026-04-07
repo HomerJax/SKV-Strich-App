@@ -177,7 +177,7 @@ export function buildResultShareText(
   goalsB: string,
   teamA: Player[],
   teamB: Player[],
-  useNicknames: boolean = false
+  _useNicknames: boolean = false
 ) {
   const header = session
     ? `Ergebnis vom ${formatGermanDate(session.date)}`
@@ -191,8 +191,8 @@ export function buildResultShareText(
       ? Number(goalsA) === Number(goalsB)
         ? "Unentschieden"
         : Number(goalsA) > Number(goalsB)
-        ? "Sieger: Team 1"
-        : "Sieger: Team 2"
+          ? "Sieger: Team 1"
+          : "Sieger: Team 2"
       : "Ergebnis noch unvollständig";
 
   return [

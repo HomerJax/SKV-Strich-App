@@ -452,7 +452,8 @@ export default function SessionDetailClient({
   const teamsComplete =
     teamA.length > 0 && teamB.length > 0 && unassigned.length === 0;
 
-  const canUploadWinnerPhoto = teamsComplete && !saving && !deletingSession;
+const canUploadWinnerPhoto =
+  teamsComplete && !photoBusy && !saving && !deletingSession;
 
   const scoreAValue = Number(goalsA) || 0;
   const scoreBValue = Number(goalsB) || 0;
@@ -1309,38 +1310,69 @@ ${sessionUrl}`;
           />
         </div>
 
-        <div ref={resultRef}>
-          {resultDone ? (
-            <SectionDoneHint
-              label="Ergebnis erledigt"
-              detail={`${scoreAValue}:${scoreBValue}`}
-            />
-          ) : null}
+       {/* 📸 Siegerfoto (NEU) */}
+<div className="space-y-2">
+  {winnerPhotoUrl ? (
+    <SectionDoneHint label="Siegerfoto hinzugefügt" />
+  ) : null}
 
-          <SessionResultCard
-            hasResult={hasResult}
-            saving={saving}
-            photoBusy={photoBusy}
-            goalsA={goalsA}
-            goalsB={goalsB}
-            canShareResult={canShareResult}
-            canUploadWinnerPhoto={canUploadWinnerPhoto}
-            winnerPhotoUrl={winnerPhotoUrl}
-            hasWinnerPhoto={Boolean(session.winner_photo_path)}
-            sharingResult={sharingResult}
-            sharingInternal={sharingInternal}
-            winnerPhotoInputRef={winnerPhotoInputRef}
-            onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
-            onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
-            onDeleteResult={deleteResult}
-            onWinnerPhotoUpload={handleWinnerPhotoUpload}
-            onWinnerPhotoDelete={handleWinnerPhotoDelete}
-            onSaveResult={saveResult}
-            onShareResult={handleShareResult}
-            onShareInternal={handleShareInternalResult}
-          />
-        </div>
-      </div>
+  <SessionResultCard
+    hasResult={false}
+    saving={saving}
+    photoBusy={photoBusy}
+    goalsA={goalsA}
+    goalsB={goalsB}
+    canShareResult={false}
+    canUploadWinnerPhoto={canUploadWinnerPhoto}
+    winnerPhotoUrl={winnerPhotoUrl}
+    hasWinnerPhoto={Boolean(session.winner_photo_path)}
+    sharingResult={false}
+    sharingInternal={false}
+    winnerPhotoInputRef={winnerPhotoInputRef}
+    onGoalsAChange={() => {}}
+    onGoalsBChange={() => {}}
+    onDeleteResult={() => {}}
+    onWinnerPhotoUpload={handleWinnerPhotoUpload}
+    onWinnerPhotoDelete={handleWinnerPhotoDelete}
+    onSaveResult={() => {}}
+    onShareResult={() => {}}
+    onShareInternal={() => {}}
+  />
+</div>
+
+{/* 🧮 Ergebnis */}
+<div ref={resultRef}>
+  {resultDone ? (
+    <SectionDoneHint
+      label="Ergebnis erledigt"
+      detail={`${scoreAValue}:${scoreBValue}`}
+    />
+  ) : null}
+
+  <SessionResultCard
+    hasResult={hasResult}
+    saving={saving}
+    photoBusy={photoBusy}
+    goalsA={goalsA}
+    goalsB={goalsB}
+    canShareResult={canShareResult}
+    canUploadWinnerPhoto={false}
+    winnerPhotoUrl={winnerPhotoUrl}
+    hasWinnerPhoto={Boolean(session.winner_photo_path)}
+    sharingResult={sharingResult}
+    sharingInternal={sharingInternal}
+    winnerPhotoInputRef={winnerPhotoInputRef}
+    onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
+    onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
+    onDeleteResult={deleteResult}
+    onWinnerPhotoUpload={handleWinnerPhotoUpload}
+    onWinnerPhotoDelete={handleWinnerPhotoDelete}
+    onSaveResult={saveResult}
+    onShareResult={handleShareResult}
+    onShareInternal={handleShareInternalResult}
+  />
+</div>
+</div>
 
       <SessionEndModal
         open={showSessionEndModal}
