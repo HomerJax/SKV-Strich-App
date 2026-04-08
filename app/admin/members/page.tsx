@@ -198,7 +198,7 @@ export default async function AdminMembersPage({
     return {
       user_id: membership.user_id,
       role: membership.role,
-      email: player?.email ?? null,
+      email: player?.email ?? "",
       full_name:
         player != null
           ? buildFullName(player)
@@ -321,7 +321,7 @@ export default async function AdminMembersPage({
                       </div>
 
                       <div className="truncate text-sm text-slate-500">
-                        {member.email ?? "Keine E-Mail hinterlegt"}
+                        {member.email || "Keine E-Mail hinterlegt"}
                       </div>
                     </div>
 
