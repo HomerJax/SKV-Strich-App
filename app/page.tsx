@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { getAuthContext } from "@/lib/auth/context";
 import WhatsNewModal from "@/components/WhatsNewModal";
 
 type ClubRow = {
@@ -85,12 +86,11 @@ function QuickStartCard({
 }
 
 export default async function HomePage() {
-  const { clubId } = await requireClub();
+  const [{ clubId }, ctx] = await Promise.all([requireClub(), getAuthContext()]);
   const supabase = await createClient();
 
   const [
     { data: clubData },
-    { count: playersCount },
     { count: invitesCount },
     { count: sessionsCount },
     { count: seasonsCount },
@@ -101,15 +101,9 @@ export default async function HomePage() {
       .eq("id", clubId)
       .maybeSingle<ClubRow>(),
     supabase
-      .from("players")
+      .from("invites")
       .select("*", { count: "exact", head: true })
-      .eq("club_id", clubId)
-      .eq("is_guest", false),
-    supabase
-      .from("club_invites")
-      .select("*", { count: "exact", head: true })
-      .eq("club_id", clubId)
-      .eq("is_active", true),
+      .eq("club_id", clubId),
     supabase
       .from("sessions")
       .select("*", { count: "exact", head: true })
@@ -132,9 +126,10 @@ export default async function HomePage() {
       : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 78%)`;
 
   const showGettingStarted =
-    (playersCount ?? 0) === 0 ||
-    (sessionsCount ?? 0) === 0 ||
-    (seasonsCount ?? 0) === 0;
+    !ctx.isPowerUser &&
+    ((sessionsCount ?? 0) === 0 ||
+      (seasonsCount ?? 0) === 0 ||
+      (invitesCount ?? 0) === 0);
 
   let clubLogoUrl: string | null = null;
 
@@ -193,6 +188,12 @@ export default async function HomePage() {
             <p className="text-sm text-white/80">
               faire Teams – effektives Training – echte Stats
             </p>
+
+            {ctx.isPowerUser ? (
+              <div className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/90">
+                Power User Ansicht
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -249,14 +250,6 @@ export default async function HomePage() {
         {showGettingStarted ? (
           <section className="flex flex-col gap-3">
             <StepCard
-              done={(playersCount ?? 0) > 0}
-              title="Spieler anlegen"
-              text="Grundlage für alles"
-              href="/admin/players"
-              cta="Spieler verwalten"
-            />
-
-            <StepCard
               done={(sessionsCount ?? 0) > 0}
               title="Training starten"
               text="Erstes Training erstellen"
@@ -273,7 +266,10 @@ export default async function HomePage() {
             />
 
             <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
-              <a href={feedbackHref} className="text-sm font-medium text-slate-900">
+              <a
+                href={feedbackHref}
+                className="text-sm font-medium text-slate-900"
+              >
                 Feedback senden
               </a>
               <br />
