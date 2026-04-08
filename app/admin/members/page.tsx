@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { ErrorMessage, SuccessMessage } from "./MembersMessages";
 import type { InviteRow, MemberRow } from "./members-types";
 import { formatDate, getMemberRoleLabel } from "./members-utils";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import InviteActions from "./InviteActions";
+import { getAuthContext } from "@/lib/auth/context";
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -27,6 +29,13 @@ async function getSupabaseServerClient() {
   );
 }
 
+function getAdminSupabase() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
 function isAdminRole(role: string | null | undefined) {
   return role === "admin" || role === "owner";
 }
@@ -38,6 +47,10 @@ function getRoleChipClass(role: string | null | undefined) {
 
   if (role === "admin") {
     return "bg-slate-100 text-slate-700";
+  }
+
+  if (role === "power_user") {
+    return "bg-violet-100 text-violet-700";
   }
 
   return "bg-sky-100 text-sky-700";
@@ -67,6 +80,24 @@ function buildAbsoluteInviteUrl(origin: string, token: string) {
   return `${origin.replace(/\/$/, "")}/join?token=${encodeURIComponent(token)}`;
 }
 
+function buildFullName(player: {
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  email: string | null;
+  user_id: string | null;
+}) {
+  const first = player.first_name?.trim() ?? "";
+  const last = player.last_name?.trim() ?? "";
+  const nickname = player.nickname?.trim() ?? "";
+  const fullName = [first, last].filter(Boolean).join(" ").trim();
+
+  if (nickname) return nickname;
+  if (fullName) return fullName;
+  if (player.email?.trim()) return player.email.trim();
+  return player.user_id ?? "Unbekannter User";
+}
+
 export default async function AdminMembersPage({
   searchParams,
 }: {
@@ -80,48 +111,62 @@ export default async function AdminMembersPage({
     typeof params.success === "string" ? params.success : undefined;
 
   const supabase = await getSupabaseServerClient();
+  const adminSupabase = getAdminSupabase();
   const origin = await getRequestOrigin();
+  const ctx = await getAuthContext();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
+  if (!ctx.user) {
     redirect(AUTH_ROUTES.login);
   }
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("user_id", user.id)
-    .single();
+  if (!ctx.activeClubId) {
+    redirect(AUTH_ROUTES.selectClub);
+  }
 
-  if (membershipError || !membership) {
+  const activeMembership =
+    ctx.memberships.find((membership) => membership.club_id === ctx.activeClubId) ??
+    null;
+
+  const hasAdminAccess =
+    ctx.isPowerUser || isAdminRole(activeMembership?.role ?? null);
+
+  if (!hasAdminAccess) {
     redirect(AUTH_ROUTES.dashboard);
   }
 
-  if (!isAdminRole(membership.role)) {
-    redirect(AUTH_ROUTES.dashboard);
-  }
+  const clubId = ctx.activeClubId;
 
   const [
-    { data: members, error: membersError },
+    { data: memberships, error: membershipsError },
+    { data: players, error: playersError },
     { data: invites, error: invitesError },
   ] = await Promise.all([
-    supabase.rpc("get_club_members_admin"),
-    supabase
+    adminSupabase
+      .from("club_memberships")
+      .select("user_id, role")
+      .eq("club_id", clubId)
+      .order("role", { ascending: false }),
+    adminSupabase
+      .from("players")
+      .select("user_id, first_name, last_name, nickname, email")
+      .eq("club_id", clubId)
+      .eq("is_guest", false),
+    adminSupabase
       .from("invites")
       .select("id, token, role, created_at, expires_at, accepted_at")
-      .eq("club_id", membership.club_id)
+      .eq("club_id", clubId)
       .is("accepted_at", null)
       .order("created_at", { ascending: false }),
   ]);
 
-  if (membersError) {
+  if (membershipsError) {
     throw new Error(
-      `Mitglieder konnten nicht geladen werden: ${membersError.message}`
+      `Mitgliedschaften konnten nicht geladen werden: ${membershipsError.message}`
     );
+  }
+
+  if (playersError) {
+    throw new Error(`Spieler konnten nicht geladen werden: ${playersError.message}`);
   }
 
   if (invitesError) {
@@ -130,7 +175,37 @@ export default async function AdminMembersPage({
     );
   }
 
-  const memberRows = (members || []) as MemberRow[];
+  const playerByUserId = new Map<
+    string,
+    {
+      user_id: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      nickname: string | null;
+      email: string | null;
+    }
+  >();
+
+  for (const player of players ?? []) {
+    if (player.user_id) {
+      playerByUserId.set(player.user_id, player);
+    }
+  }
+
+  const memberRows: MemberRow[] = (memberships ?? []).map((membership) => {
+    const player = playerByUserId.get(membership.user_id);
+
+    return {
+      user_id: membership.user_id,
+      role: membership.role,
+      email: player?.email ?? null,
+      full_name:
+        player != null
+          ? buildFullName(player)
+          : membership.user_id ?? "Unbekannter User",
+    };
+  });
+
   const inviteRows = (invites || []) as InviteRow[];
   const createdInviteUrl = created
     ? buildAbsoluteInviteUrl(origin, created)
@@ -164,6 +239,12 @@ export default async function AdminMembersPage({
             <p className="mt-1 text-sm text-slate-600">
               Verwalte Mitglieder, Rollen und Einladungen.
             </p>
+
+            {ctx.isPowerUser ? (
+              <div className="mt-2 inline-flex rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-800">
+                Power User Ansicht für diesen Verein
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -207,7 +288,7 @@ export default async function AdminMembersPage({
             </div>
           ) : (
             memberRows.map((member) => {
-              const isCurrentUser = member.user_id === user.id;
+              const isCurrentUser = member.user_id === ctx.user?.id;
               const isOwner = member.role === "owner";
               const canChangeRole = !isCurrentUser && !isOwner;
               const canRemoveMember = !isCurrentUser && !isOwner;
@@ -240,7 +321,7 @@ export default async function AdminMembersPage({
                       </div>
 
                       <div className="truncate text-sm text-slate-500">
-                        {member.email}
+                        {member.email ?? "Keine E-Mail hinterlegt"}
                       </div>
                     </div>
 
@@ -269,7 +350,7 @@ export default async function AdminMembersPage({
 
                           <select
                             name="role"
-                            defaultValue={member.role}
+                            defaultValue={member.role ?? "member"}
                             className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-slate-400"
                           >
                             <option value="member">Mitglied</option>
