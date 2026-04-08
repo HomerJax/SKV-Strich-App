@@ -642,6 +642,50 @@ export default function SessionTeamsCard({
   const effectiveViewMode: ViewMode =
     enableFieldView && viewMode === "field" ? "field" : "list";
 
+  const done = teamA.length > 0 || teamB.length > 0;
+
+  if (collapsed) {
+    return (
+      <section className="rounded-[24px] border border-slate-200 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className={`flex w-full items-center justify-between gap-4 rounded-[24px] px-4 py-4 text-left ${
+            done ? "border border-emerald-200 bg-emerald-50" : ""
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            {done ? (
+              <span
+                aria-hidden="true"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white"
+              >
+                ✓
+              </span>
+            ) : null}
+
+            <div>
+              <div className={`text-base font-bold ${done ? "text-emerald-950" : "text-slate-950"}`}>
+                {done ? "Teams erledigt" : "Teams"}
+              </div>
+
+              {!done ? (
+                <div className="mt-1 text-sm text-slate-600">
+                  {teamA.length} in Team 1 · {teamB.length} in Team 2
+                  {unassigned.length > 0 ? ` · ${unassigned.length} offen` : ""}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+            Aufklappen
+          </div>
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-col gap-2 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -653,14 +697,13 @@ export default function SessionTeamsCard({
           </div>
           {enableFieldView ? (
             <div className="mt-0.5 text-[10px] text-slate-500">
-              Du kannst zwischen Liste und Spielfeld wechseln. Spieler mit × aus
-              dem Team nehmen und unten neu zuweisen.
+              Zwischen Liste und Spielfeld wechseln. Spieler mit × entfernen und unten neu zuweisen.
             </div>
           ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          {!collapsed && !hasResult ? (
+          {!hasResult ? (
             <>
               <button
                 type="button"
@@ -685,85 +728,78 @@ export default function SessionTeamsCard({
           <button
             type="button"
             onClick={onToggleCollapsed}
-            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            {collapsed ? "Aufklappen" : "Einklappen"}
+            Einklappen
           </button>
         </div>
       </div>
 
-      {!collapsed ? (
-        <div className="space-y-3 p-2.5">
-          {enableFieldView ? (
-            <div className="flex justify-start">
-              <ViewToggle value={effectiveViewMode} onChange={setViewMode} />
+      <div className="space-y-3 p-2.5">
+        {enableFieldView ? (
+          <div className="flex justify-start">
+            <ViewToggle value={effectiveViewMode} onChange={setViewMode} />
+          </div>
+        ) : null}
+
+        {enableFieldView && effectiveViewMode === "field" ? (
+          <CombinedTeamField
+            teamA={teamA}
+            teamB={teamB}
+            metaA={metaA}
+            metaB={metaB}
+            hasResult={hasResult}
+            onSetSide={onSetSide}
+          />
+        ) : (
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+            <div className="grid grid-cols-2 gap-2">
+              <TeamColumn
+                title="Team 1"
+                players={teamA}
+                meta={metaA}
+                hasResult={hasResult}
+                side="A"
+                onSetSide={onSetSide}
+              />
+
+              <TeamColumn
+                title="Team 2"
+                players={teamB}
+                meta={metaB}
+                hasResult={hasResult}
+                side="B"
+                onSetSide={onSetSide}
+              />
             </div>
-          ) : null}
+          </div>
+        )}
 
-          {enableFieldView && effectiveViewMode === "field" ? (
-            <CombinedTeamField
-              teamA={teamA}
-              teamB={teamB}
-              metaA={metaA}
-              metaB={metaB}
-              hasResult={hasResult}
-              onSetSide={onSetSide}
-            />
+        <div className="space-y-1.5">
+          <div className="text-[11px] font-semibold text-slate-900">
+            Noch nicht zugewiesen
+          </div>
+
+          {unassigned.length === 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-[10px] text-slate-500">
+              {teamsComplete
+                ? "Alle anwesenden Spieler sind einem Team zugewiesen."
+                : "Aktuell keine offenen Spieler."}
+            </div>
           ) : (
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-2">
-              <div className="grid grid-cols-2 gap-2">
-                <TeamColumn
-                  title="Team 1"
-                  players={teamA}
-                  meta={metaA}
+            <div className="grid gap-1 sm:grid-cols-2">
+              {unassigned.map((player) => (
+                <UnassignedPlayerRow
+                  key={`unassigned-${player.id}`}
+                  player={player}
                   hasResult={hasResult}
-                  side="A"
                   onSetSide={onSetSide}
                 />
-
-                <TeamColumn
-                  title="Team 2"
-                  players={teamB}
-                  meta={metaB}
-                  hasResult={hasResult}
-                  side="B"
-                  onSetSide={onSetSide}
-                />
-              </div>
+              ))}
             </div>
           )}
-
-          <div className="space-y-1.5">
-            <div className="text-[11px] font-semibold text-slate-900">
-              Noch nicht zugewiesen
-            </div>
-
-            {unassigned.length === 0 ? (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-[10px] text-slate-500">
-                {teamsComplete
-                  ? "Alle anwesenden Spieler sind einem Team zugewiesen."
-                  : "Aktuell keine offenen Spieler."}
-              </div>
-            ) : (
-              <div className="grid gap-1 sm:grid-cols-2">
-                {unassigned.map((player) => (
-                  <UnassignedPlayerRow
-                    key={`unassigned-${player.id}`}
-                    player={player}
-                    hasResult={hasResult}
-                    onSetSide={onSetSide}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
         </div>
-      ) : (
-        <div className="px-3 py-2 text-[11px] text-slate-500">
-          Team 1: {teamA.length} · Team 2: {teamB.length}
-          {unassigned.length > 0 ? ` · Offen: ${unassigned.length}` : ""}
-        </div>
-      )}
+      </div>
     </section>
   );
 }

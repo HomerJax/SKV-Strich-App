@@ -294,7 +294,7 @@ export async function GET(
     return fail(access.error ?? "Unbekannter Fehler.", access.status);
   }
 
-  const { supabase, clubId, session } = access;
+  const { supabase, adminSupabase, clubId, session } = access;
 
   try {
     const isEnabled = await ensureMvpVotingEnabled(clubId);

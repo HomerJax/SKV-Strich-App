@@ -53,9 +53,9 @@ export async function requireSessionAccess(sessionId: number) {
     };
   }
 
-  const supabaseUser = await createClient();
+  const userSupabase = await createClient();
 
-  const { data: sessionData, error: sessionError } = await supabaseUser
+  const { data: sessionData, error: sessionError } = await userSupabase
     .from("sessions")
     .select("id, date, notes, winner_photo_path, club_id")
     .eq("id", sessionId)
@@ -70,10 +70,11 @@ export async function requireSessionAccess(sessionId: number) {
     return { error: "Session nicht gefunden.", status: 404 as const };
   }
 
-  const supabase = createServiceRoleClient();
+  const adminSupabase = createServiceRoleClient();
 
   return {
-    supabase,
+    supabase: userSupabase,
+    adminSupabase,
     clubId: ctx.activeClubId,
     membership,
     session: sessionData as SessionRow,
