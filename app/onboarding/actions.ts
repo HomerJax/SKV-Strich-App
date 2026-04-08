@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 export type OnboardingState = {
   error: string;
@@ -22,11 +23,19 @@ function normalizeNext(value: FormDataEntryValue | null) {
   return next;
 }
 
+function isInviteJoinNext(next: string) {
+  return next.startsWith("/join?token=");
+}
+
 export async function completeOnboarding(
   _prevState: OnboardingState,
   formData: FormData
 ): Promise<OnboardingState> {
   const supabase = await createClient();
+  const adminSupabase = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   const {
     data: { user },
@@ -42,9 +51,12 @@ export async function completeOnboarding(
   const firstName = toText(formData.get("firstName"));
   const lastName = toText(formData.get("lastName"));
   const nickname = toText(formData.get("nickname"));
-  const intention = toText(formData.get("intention"));
+  const rawIntention = toText(formData.get("intention"));
   const clubName = toText(formData.get("clubName"));
   const next = normalizeNext(formData.get("next"));
+
+  const inviteFlow = isInviteJoinNext(next);
+  const intention = inviteFlow ? "wait-for-invite" : rawIntention;
 
   if (!firstName || !lastName) {
     return {
@@ -70,6 +82,7 @@ export async function completeOnboarding(
     .from("players")
     .select("id, club_id, user_id, email")
     .eq("user_id", user.id)
+    .eq("is_guest", false)
     .limit(5);
 
   if (existingPlayerError) {
@@ -101,6 +114,7 @@ export async function completeOnboarding(
         name: fullName,
         email: user.email ?? null,
         is_guest: false,
+        is_active: true,
       });
 
       if (insertPlayerError) {
@@ -120,6 +134,7 @@ export async function completeOnboarding(
           name: fullName,
           email: user.email ?? null,
           is_guest: false,
+          is_active: true,
         })
         .eq("id", existingPlayer.id);
 
@@ -139,14 +154,14 @@ export async function completeOnboarding(
     redirect("/waiting-for-invite");
   }
 
-  const { data: club, error: clubError } = await supabase
+  const { data: club, error: clubError } = await adminSupabase
     .from("clubs")
     .insert({
       name: clubName,
       display_name: clubName,
     })
     .select("id")
-    .single();
+    .single<{ id: string }>();
 
   if (clubError || !club) {
     return {
@@ -164,6 +179,7 @@ export async function completeOnboarding(
       name: fullName,
       email: user.email ?? null,
       is_guest: false,
+      is_active: true,
     });
 
     if (insertPlayerError) {
@@ -184,6 +200,7 @@ export async function completeOnboarding(
         name: fullName,
         email: user.email ?? null,
         is_guest: false,
+        is_active: true,
       })
       .eq("id", existingPlayer.id);
 
@@ -196,11 +213,13 @@ export async function completeOnboarding(
     }
   }
 
-  const { error: membershipError } = await supabase.from("club_memberships").insert({
-    user_id: user.id,
-    club_id: club.id,
-    role: "admin",
-  });
+  const { error: membershipError } = await adminSupabase
+    .from("club_memberships")
+    .insert({
+      user_id: user.id,
+      club_id: club.id,
+      role: "admin",
+    });
 
   if (membershipError) {
     return {
@@ -209,9 +228,11 @@ export async function completeOnboarding(
     };
   }
 
-  const { error: settingsError } = await supabase.from("club_settings").insert({
-    club_id: club.id,
-  });
+  const { error: settingsError } = await adminSupabase
+    .from("club_settings")
+    .insert({
+      club_id: club.id,
+    });
 
   if (settingsError) {
     return {

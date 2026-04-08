@@ -1,199 +1,224 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState, useMemo, useState } from "react";
 import { completeOnboarding, type OnboardingState } from "./actions";
 
-const initialState: OnboardingState = {
-  error: "",
-};
-
 type OnboardingFormProps = {
   initialNext?: string;
+  inviteFlow?: boolean;
+};
+
+const INITIAL_STATE: OnboardingState = {
+  error: "",
 };
 
 export default function OnboardingForm({
   initialNext = "",
+  inviteFlow = false,
 }: OnboardingFormProps) {
-  const [state, formAction, pending] = useActionState(
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [intention, setIntention] = useState<"create-team" | "wait-for-invite">(
+    inviteFlow ? "wait-for-invite" : "create-team"
+  );
+  const [clubName, setClubName] = useState("");
+  const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
+
+  const [state, formAction, isPending] = useActionState(
     completeOnboarding,
-    initialState
+    INITIAL_STATE
   );
 
-  const defaultIntention =
-    initialNext && initialNext.startsWith("/join?")
-      ? "wait-for-invite"
-      : "create-team";
+  const errorMessage = useMemo(() => {
+    return hasEditedSinceSubmit ? "" : state.error;
+  }, [hasEditedSinceSubmit, state.error]);
 
-  const [intention, setIntention] = useState<
-    "create-team" | "wait-for-invite"
-  >(defaultIntention);
-
-  const introText = useMemo(() => {
-    if (initialNext && initialNext.startsWith("/join?")) {
-      return "Lege zuerst dein Profil an. Danach führen wir dich direkt zurück zu deiner Einladung.";
-    }
-
-    return "Lege zuerst dein Profil an und entscheide danach, wie du starten möchtest.";
-  }, [initialNext]);
-
-  const helperText = useMemo(() => {
-    if (initialNext && initialNext.startsWith("/join?")) {
-      return "Nach dem Speichern geht es automatisch mit deiner Einladung weiter.";
-    }
-
-    return "Nach dem Speichern wirst du direkt in den passenden nächsten Schritt weitergeleitet.";
-  }, [initialNext]);
+  const showClubName = !inviteFlow && intention === "create-team";
 
   return (
-    <main className="min-h-screen bg-neutral-100">
-      <section className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center px-4 py-10 sm:px-6">
-        <div className="w-full rounded-[32px] border border-black/10 bg-white p-8 shadow-sm sm:p-10">
-          <div className="mx-auto max-w-2xl">
-            <div className="text-center">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] bg-slate-950 shadow-sm">
-                <Image
-                  src="/icon-dark.png"
-                  alt="strikr Logo"
-                  width={42}
-                  height={42}
-                  className="h-10 w-10 object-contain"
-                  priority
-                />
-              </div>
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-3xl items-center px-4 py-10">
+      <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            Profil vervollständigen
+          </h1>
 
-              <div className="mt-5 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-                strikr
-              </div>
+          {inviteFlow ? (
+            <p className="mt-2 text-sm text-slate-600">
+              Du bist fast fertig. Ergänze kurz dein Profil, dann trittst du dem
+              Team direkt bei.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-slate-600">
+              Ergänze kurz dein Profil und entscheide, wie du mit STRIKR starten
+              möchtest.
+            </p>
+          )}
+        </div>
 
-              <h1 className="mt-3 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-                Willkommen — richte dein Profil ein
-              </h1>
+        {errorMessage ? (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
 
-              <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">
-                {introText}
-              </p>
+        <form
+          action={formAction}
+          onSubmit={() => setHasEditedSinceSubmit(false)}
+          className="space-y-5"
+        >
+          <input type="hidden" name="next" value={initialNext} />
+          {inviteFlow ? (
+            <input type="hidden" name="intention" value="wait-for-invite" />
+          ) : null}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-800">
+                Vorname
+              </label>
+              <input
+                name="firstName"
+                type="text"
+                value={firstName}
+                onChange={(event) => {
+                  setFirstName(event.target.value);
+                  setHasEditedSinceSubmit(true);
+                }}
+                required
+                disabled={isPending}
+                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-400"
+              />
             </div>
 
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              {helperText}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-800">
+                Nachname
+              </label>
+              <input
+                name="lastName"
+                type="text"
+                value={lastName}
+                onChange={(event) => {
+                  setLastName(event.target.value);
+                  setHasEditedSinceSubmit(true);
+                }}
+                required
+                disabled={isPending}
+                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-400"
+              />
             </div>
+          </div>
 
-            <form action={formAction} className="mt-8 space-y-6">
-              <input type="hidden" name="next" value={initialNext} />
-              <input type="hidden" name="intention" value={intention} />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-800">
+              Spitzname
+            </label>
+            <input
+              name="nickname"
+              type="text"
+              value={nickname}
+              onChange={(event) => {
+                setNickname(event.target.value);
+                setHasEditedSinceSubmit(true);
+              }}
+              disabled={isPending}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-400"
+            />
+          </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-800">
-                    Vorname
-                  </span>
-                  <input
-                    name="firstName"
-                    type="text"
-                    required
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-slate-500"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-800">
-                    Nachname
-                  </span>
-                  <input
-                    name="lastName"
-                    type="text"
-                    required
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-slate-500"
-                  />
-                </label>
+          {!inviteFlow ? (
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-slate-800">
+                Wie möchtest du starten?
               </div>
 
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-800">
-                  Spitzname
-                </span>
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50">
                 <input
-                  name="nickname"
-                  type="text"
-                  placeholder="optional, z. B. Homi"
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-slate-500"
+                  type="radio"
+                  name="intention"
+                  value="create-team"
+                  checked={intention === "create-team"}
+                  onChange={() => {
+                    setIntention("create-team");
+                    setHasEditedSinceSubmit(true);
+                  }}
+                  disabled={isPending}
+                  className="mt-1"
                 />
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">
+                    Ich erstelle einen neuen Club
+                  </div>
+                  <div className="mt-1 text-sm text-slate-600">
+                    Du legst direkt dein eigenes Team an und startest als Admin.
+                  </div>
+                </div>
               </label>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setIntention("create-team")}
-                  className={`rounded-[24px] border p-5 text-left transition ${
-                    intention === "create-team"
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-slate-300 bg-white hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="text-base font-semibold text-slate-950">
-                    Ich möchte ein Team erstellen
-                  </div>
-                  <div className="mt-2 text-sm leading-6 text-slate-600">
-                    Du legst direkt dein eigenes Team an und kannst sofort
-                    loslegen.
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIntention("wait-for-invite")}
-                  className={`rounded-[24px] border p-5 text-left transition ${
-                    intention === "wait-for-invite"
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-slate-300 bg-white hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="text-base font-semibold text-slate-950">
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50">
+                <input
+                  type="radio"
+                  name="intention"
+                  value="wait-for-invite"
+                  checked={intention === "wait-for-invite"}
+                  onChange={() => {
+                    setIntention("wait-for-invite");
+                    setHasEditedSinceSubmit(true);
+                  }}
+                  disabled={isPending}
+                  className="mt-1"
+                />
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">
                     Ich warte auf eine Einladung
                   </div>
-                  <div className="mt-2 text-sm leading-6 text-slate-600">
-                    Dein Profil wird angelegt und du kannst danach direkt deiner
-                    Einladung folgen.
+                  <div className="mt-1 text-sm text-slate-600">
+                    Dein Profil wird angelegt, damit du später einem Team
+                    beitreten kannst.
                   </div>
-                </button>
-              </div>
-
-              {intention === "create-team" ? (
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-800">
-                    Teamname
-                  </span>
-                  <input
-                    name="clubName"
-                    type="text"
-                    required
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-slate-500"
-                  />
-                  <span className="mt-2 block text-xs text-slate-500">
-                    Name, Logo und weitere Details kannst du später jederzeit
-                    anpassen.
-                  </span>
-                </label>
-              ) : null}
-
-              {state.error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {state.error}
                 </div>
-              ) : null}
+              </label>
+            </div>
+          ) : null}
 
-              <button
-                type="submit"
-                disabled={pending}
-                className="w-full rounded-2xl bg-slate-950 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {pending ? "Wird gespeichert..." : "Weiter"}
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
+          {showClubName ? (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-800">
+                Clubname
+              </label>
+              <input
+                name="clubName"
+                type="text"
+                value={clubName}
+                onChange={(event) => {
+                  setClubName(event.target.value);
+                  setHasEditedSinceSubmit(true);
+                }}
+                required
+                disabled={isPending}
+                placeholder="z. B. FC STRIKR Mittwoch"
+                className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-400"
+              />
+            </div>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isPending
+              ? "Wird gespeichert..."
+              : inviteFlow
+                ? "Profil speichern und Team beitreten"
+                : intention === "create-team"
+                  ? "Profil speichern und Club erstellen"
+                  : "Profil speichern"}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

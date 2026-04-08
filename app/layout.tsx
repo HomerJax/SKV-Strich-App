@@ -16,7 +16,15 @@ export default async function RootLayout({
 }>) {
   const ctx = await getAuthContext();
 
-  const isAdmin = ctx.memberships.some((membership) => membership.role === "admin");
+  const activeMembership =
+    ctx.activeClubId
+      ? ctx.memberships.find(
+          (membership) => membership.club_id === ctx.activeClubId
+        ) ?? null
+      : null;
+
+  const isAdmin =
+    ctx.isPowerUser || activeMembership?.role === "admin";
 
   return (
     <html lang="de">
