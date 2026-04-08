@@ -44,23 +44,26 @@ export async function getAuthContext(): Promise<AuthContext> {
     };
   }
 
-  const [{ data: player, error: playerError }, { data: memberships, error: membershipsError }, { data: roleRow, error: roleError }] =
-    await Promise.all([
-      supabase
-        .from("players")
-        .select("id, user_id, first_name, last_name, nickname")
-        .eq("user_id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("club_memberships")
-        .select("id, club_id, user_id, role")
-        .eq("user_id", user.id),
-      supabase
-        .from("user_roles")
-        .select("is_power_user")
-        .eq("user_id", user.id)
-        .maybeSingle<{ is_power_user: boolean }>(),
-    ]);
+  const [
+    { data: player, error: playerError },
+    { data: memberships, error: membershipsError },
+    { data: roleRow, error: roleError },
+  ] = await Promise.all([
+    supabase
+      .from("players")
+      .select("id, user_id, first_name, last_name, nickname")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("club_memberships")
+      .select("id, club_id, user_id, role")
+      .eq("user_id", user.id),
+    supabase
+      .from("user_roles")
+      .select("is_power_user")
+      .eq("user_id", user.id)
+      .maybeSingle<{ is_power_user: boolean }>(),
+  ]);
 
   if (playerError) {
     throw new Error(`Failed to load player: ${playerError.message}`);
@@ -78,22 +81,63 @@ export async function getAuthContext(): Promise<AuthContext> {
   const cookieClubId = cookieStore.get("active_club_id")?.value ?? null;
   const isPowerUser = roleRow?.is_power_user === true;
 
-  const hasCookieMembership = cookieClubId
-    ? normalizedMemberships.some((membership) => membership.club_id === cookieClubId)
-    : false;
+  let activeClubId: string | null = null;
+  let finalMemberships = [...normalizedMemberships];
 
-  const activeClubId = isPowerUser
-    ? cookieClubId
-    : hasCookieMembership
+  if (isPowerUser) {
+    if (cookieClubId) {
+      const { data: selectedClub, error: selectedClubError } = await supabase
+        .from("clubs")
+        .select("id")
+        .eq("id", cookieClubId)
+        .maybeSingle<{ id: string }>();
+
+      if (selectedClubError) {
+        throw new Error(
+          `Failed to validate active club for power user: ${selectedClubError.message}`
+        );
+      }
+
+      if (selectedClub) {
+        activeClubId = selectedClub.id;
+
+        const alreadyInMemberships = finalMemberships.some(
+          (membership) => membership.club_id === selectedClub.id
+        );
+
+        if (!alreadyInMemberships) {
+          finalMemberships = [
+            ...finalMemberships,
+            {
+              id: -1,
+              club_id: selectedClub.id,
+              user_id: user.id,
+              role: "power_user",
+            },
+          ];
+        }
+      }
+    }
+
+    if (!activeClubId && finalMemberships.length === 1) {
+      activeClubId = finalMemberships[0].club_id;
+    }
+  } else {
+    const hasCookieMembership = cookieClubId
+      ? finalMemberships.some((membership) => membership.club_id === cookieClubId)
+      : false;
+
+    activeClubId = hasCookieMembership
       ? cookieClubId
-      : normalizedMemberships.length === 1
-        ? normalizedMemberships[0].club_id
+      : finalMemberships.length === 1
+        ? finalMemberships[0].club_id
         : null;
+  }
 
   return {
     user,
     player: (player as AuthPlayer | null) ?? null,
-    memberships: normalizedMemberships,
+    memberships: finalMemberships,
     activeClubId,
     isPowerUser,
   };
