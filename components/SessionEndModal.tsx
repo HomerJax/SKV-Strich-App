@@ -128,11 +128,9 @@ ${sessionUrl}`;
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
             <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-semibold text-slate-500">Spielmoment</div>
-
               <div className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950">
                 {headline}
               </div>
-
               <div className="mt-3 text-4xl font-black tracking-tight text-slate-950">
                 {scoreA}:{scoreB}
               </div>
@@ -142,36 +140,6 @@ ${sessionUrl}`;
                   Underdog-Moment
                 </div>
               ) : null}
-
-              <div className="mt-4 grid gap-3">
-                <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {teamA.name}
-                  </div>
-                  <div className="mt-1 text-sm text-slate-700">
-                    {teamA.players.length > 0 ? teamA.players.join(", ") : "Keine Spieler"}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {teamB.name}
-                  </div>
-                  <div className="mt-1 text-sm text-slate-700">
-                    {teamB.players.length > 0 ? teamB.players.join(", ") : "Keine Spieler"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <div className="text-sm font-semibold text-amber-900">
-                MVP Voting beginnt jetzt
-              </div>
-              <div className="mt-1 text-sm text-amber-800">
-                Teile den Link mit eurer Gruppe. Abgestimmt wird direkt in dieser
-                Session im Bereich „MVP Voting“.
-              </div>
             </div>
 
             <div className="mt-4 grid gap-3">
@@ -196,6 +164,16 @@ ${sessionUrl}`;
                   ? "Teilt Gruppenpost..."
                   : "💬 Ergebnis in Gruppe posten"}
               </button>
+
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <div className="text-sm font-semibold text-amber-900">
+                  MVP Voting beginnt jetzt
+                </div>
+                <div className="mt-1 text-sm text-amber-800">
+                  Teile den Link mit eurer Gruppe. Abgestimmt wird direkt in dieser
+                  Session im Bereich „MVP Voting“.
+                </div>
+              </div>
 
               <button
                 type="button"
