@@ -68,6 +68,7 @@ export default function PowerClubSwitcher({
   async function handleSelectClub(clubId: string) {
     if (!isPowerUser) return;
     if (!clubId) return;
+
     if (clubId === activeClubId) {
       setOpen(false);
       return;
@@ -189,9 +190,7 @@ export default function PowerClubSwitcher({
                     onClick={() => handleSelectClub(club.id)}
                     disabled={pending}
                     className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition ${
-                      isActive
-                        ? "bg-slate-100"
-                        : "hover:bg-slate-50"
+                      isActive ? "bg-slate-100" : "hover:bg-slate-50"
                     } ${pending ? "opacity-60" : ""}`}
                     role="menuitem"
                   >

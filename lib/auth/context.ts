@@ -22,6 +22,7 @@ export type AuthContext = {
   player: AuthPlayer | null;
   memberships: AuthMembership[];
   activeClubId: string | null;
+  isPowerUser: boolean;
 };
 
 export async function getAuthContext(): Promise<AuthContext> {
@@ -39,45 +40,61 @@ export async function getAuthContext(): Promise<AuthContext> {
       player: null,
       memberships: [],
       activeClubId: null,
+      isPowerUser: false,
     };
   }
 
-  const { data: player, error: playerError } = await supabase
-    .from("players")
-    .select("id, user_id, first_name, last_name, nickname")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: player, error: playerError }, { data: memberships, error: membershipsError }, { data: roleRow, error: roleError }] =
+    await Promise.all([
+      supabase
+        .from("players")
+        .select("id, user_id, first_name, last_name, nickname")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("club_memberships")
+        .select("id, club_id, user_id, role")
+        .eq("user_id", user.id),
+      supabase
+        .from("user_roles")
+        .select("is_power_user")
+        .eq("user_id", user.id)
+        .maybeSingle<{ is_power_user: boolean }>(),
+    ]);
 
   if (playerError) {
     throw new Error(`Failed to load player: ${playerError.message}`);
   }
 
-  const { data: memberships, error: membershipsError } = await supabase
-    .from("club_memberships")
-    .select("id, club_id, user_id, role")
-    .eq("user_id", user.id);
-
   if (membershipsError) {
     throw new Error(`Failed to load memberships: ${membershipsError.message}`);
   }
 
+  if (roleError) {
+    throw new Error(`Failed to load user role: ${roleError.message}`);
+  }
+
   const normalizedMemberships = (memberships ?? []) as AuthMembership[];
   const cookieClubId = cookieStore.get("active_club_id")?.value ?? null;
+  const isPowerUser = roleRow?.is_power_user === true;
 
   const hasCookieMembership = cookieClubId
     ? normalizedMemberships.some((membership) => membership.club_id === cookieClubId)
     : false;
 
-  const activeClubId = hasCookieMembership
+  const activeClubId = isPowerUser
     ? cookieClubId
-    : normalizedMemberships.length === 1
-      ? normalizedMemberships[0].club_id
-      : null;
+    : hasCookieMembership
+      ? cookieClubId
+      : normalizedMemberships.length === 1
+        ? normalizedMemberships[0].club_id
+        : null;
 
   return {
     user,
     player: (player as AuthPlayer | null) ?? null,
     memberships: normalizedMemberships,
     activeClubId,
+    isPowerUser,
   };
 }

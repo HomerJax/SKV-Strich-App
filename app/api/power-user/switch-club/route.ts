@@ -7,32 +7,6 @@ type RequestBody = {
   clubId?: string;
 };
 
-function isPowerUserFromContext(ctx: Awaited<ReturnType<typeof getAuthContext>>) {
-  const user = ctx.user as
-    | {
-        app_metadata?: Record<string, unknown>;
-        user_metadata?: Record<string, unknown>;
-        is_power_user?: boolean;
-      }
-    | null;
-
-  if (!user) return false;
-
-  if (typeof user.is_power_user === "boolean") {
-    return user.is_power_user;
-  }
-
-  if (typeof user.app_metadata?.is_power_user === "boolean") {
-    return Boolean(user.app_metadata.is_power_user);
-  }
-
-  if (typeof user.user_metadata?.is_power_user === "boolean") {
-    return Boolean(user.user_metadata.is_power_user);
-  }
-
-  return false;
-}
-
 export async function POST(request: Request) {
   try {
     const ctx = await getAuthContext();
@@ -41,9 +15,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 });
     }
 
-    const isPowerUser = isPowerUserFromContext(ctx);
-
-    if (!isPowerUser) {
+    if (!ctx.isPowerUser) {
       return NextResponse.json(
         { error: "Keine Berechtigung" },
         { status: 403 }
@@ -54,10 +26,7 @@ export async function POST(request: Request) {
     const clubId = body?.clubId?.trim();
 
     if (!clubId) {
-      return NextResponse.json(
-        { error: "clubId fehlt" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "clubId fehlt" }, { status: 400 });
     }
 
     const supabase = await createClient();

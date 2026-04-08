@@ -33,32 +33,6 @@ function getClubLabel(club: ClubRow | null | undefined) {
   return club?.display_name ?? club?.name ?? "Unbenannter Verein";
 }
 
-function isPowerUserFromContext(ctx: Awaited<ReturnType<typeof getAuthContext>>) {
-  const user = ctx.user as
-    | {
-        app_metadata?: Record<string, unknown>;
-        user_metadata?: Record<string, unknown>;
-        is_power_user?: boolean;
-      }
-    | null;
-
-  if (!user) return false;
-
-  if (typeof user.is_power_user === "boolean") {
-    return user.is_power_user;
-  }
-
-  if (typeof user.app_metadata?.is_power_user === "boolean") {
-    return Boolean(user.app_metadata.is_power_user);
-  }
-
-  if (typeof user.user_metadata?.is_power_user === "boolean") {
-    return Boolean(user.user_metadata.is_power_user);
-  }
-
-  return false;
-}
-
 export default async function AppHeader() {
   const ctx = await getAuthContext();
 
@@ -71,8 +45,6 @@ export default async function AppHeader() {
   let primaryColor = COLOR_MAP.black;
   let showPlayerStatsLink = false;
   let powerUserClubs: PowerClubSwitcherClub[] = [];
-
-  const isPowerUser = isPowerUserFromContext(ctx);
 
   if (ctx.user) {
     const supabase = await createClient();
@@ -89,7 +61,7 @@ export default async function AppHeader() {
       ? getFeatureFlagsForClub(fallbackClubId)
       : Promise.resolve({ player_stats_overview: false });
 
-    const allClubsPromise = isPowerUser
+    const allClubsPromise = ctx.isPowerUser
       ? supabase
           .from("clubs")
           .select("id, display_name, name, logo_path, primary_color")
@@ -103,7 +75,7 @@ export default async function AppHeader() {
       allClubsPromise,
     ]);
 
-    clubName = getClubLabel(club);
+    clubName = club ? getClubLabel(club) : null;
     primaryColor = COLOR_MAP[club?.primary_color ?? "black"] ?? COLOR_MAP.black;
     showPlayerStatsLink = Boolean(flags.player_stats_overview);
 
@@ -115,7 +87,7 @@ export default async function AppHeader() {
       logoSrc = data?.publicUrl ?? null;
     }
 
-    if (isPowerUser && allClubs?.length) {
+    if (ctx.isPowerUser && allClubs?.length) {
       powerUserClubs = allClubs.map((clubRow) => {
         let clubLogoSrc: string | null = null;
 
@@ -210,7 +182,7 @@ export default async function AppHeader() {
               </div>
 
               <PowerClubSwitcher
-                isPowerUser={isPowerUser}
+                isPowerUser={ctx.isPowerUser}
                 activeClubId={fallbackClubId}
                 activeClubName={clubName}
                 activeLogoSrc={logoSrc}
