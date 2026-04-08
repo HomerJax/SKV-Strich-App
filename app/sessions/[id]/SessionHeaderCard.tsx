@@ -25,25 +25,6 @@ function fmtLongDate(iso: string) {
   });
 }
 
-function StatCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
-  return (
-    <div className="rounded-[24px] bg-slate-50 p-5">
-      <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </div>
-      <div className="mt-2 text-4xl font-extrabold tracking-tight text-slate-950">
-        {value}
-      </div>
-    </div>
-  );
-}
-
 export default function SessionHeaderCard({
   date,
   notes,
@@ -70,30 +51,40 @@ export default function SessionHeaderCard({
           background: heroGradient,
         }}
       >
-        <div className="p-6 sm:p-7">
-          <div className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
+        <div className="p-5 sm:p-6">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
             Trainingssession
           </div>
 
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
             {fmtLongDate(date)}
           </h1>
 
-          <p className="mt-4 text-base text-white/80">
+          <p className="mt-3 max-w-2xl text-sm text-white/80">
             {notes?.trim() || "Kein zusätzlicher Hinweis für diese Session hinterlegt."}
           </p>
 
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
               {hasResult ? "Ergebnis gespeichert" : nextStepLabel}
             </div>
+
+            <div className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 shadow-sm">
+              {presentCount} anwesend
+            </div>
+
+            {teamACount > 0 || teamBCount > 0 ? (
+              <div className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 shadow-sm">
+                {teamACount} vs {teamBCount}
+              </div>
+            ) : null}
 
             {isAdmin ? (
               <button
                 type="button"
                 onClick={onDeleteSession}
                 disabled={deletingSession}
-                className="inline-flex items-center justify-center rounded-full border border-white/15 bg-transparent px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center rounded-full border border-white/15 bg-transparent px-3 py-1.5 text-xs font-semibold text-white/90 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {deletingSession ? "Löscht..." : "Session löschen"}
               </button>
@@ -102,18 +93,12 @@ export default function SessionHeaderCard({
         </div>
       </div>
 
-      <div className="grid gap-4 p-5 sm:grid-cols-3">
-        <StatCard label="Anwesend" value={presentCount} />
-        <StatCard label="Team A" value={teamACount} />
-        <StatCard label="Team B" value={teamBCount} />
-      </div>
-
-      <div className="border-t border-slate-200 p-5">
-        <div className="flex flex-col gap-3">
+      <div className="p-4 sm:p-5">
+        <div className="grid gap-3 sm:grid-cols-2">
           <button
             type="button"
             onClick={onScrollToTeams}
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-800 transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
           >
             Zu den Teams
           </button>
@@ -121,7 +106,7 @@ export default function SessionHeaderCard({
           <button
             type="button"
             onClick={onScrollToResult}
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-800 transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
           >
             Zum Ergebnis
           </button>
