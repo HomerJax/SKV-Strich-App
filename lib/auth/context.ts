@@ -25,6 +25,27 @@ export type AuthContext = {
   isPowerUser: boolean;
 };
 
+export function getActiveMembership(
+  ctx: Pick<AuthContext, "memberships" | "activeClubId">
+): AuthMembership | null {
+  if (!ctx.activeClubId) return null;
+
+  return (
+    ctx.memberships.find(
+      (membership) => membership.club_id === ctx.activeClubId
+    ) ?? null
+  );
+}
+
+export function isActiveClubAdmin(
+  ctx: Pick<AuthContext, "memberships" | "activeClubId" | "isPowerUser">
+): boolean {
+  if (ctx.isPowerUser) return true;
+
+  const activeMembership = getActiveMembership(ctx);
+  return activeMembership?.role === "admin";
+}
+
 export async function getAuthContext(): Promise<AuthContext> {
   const supabase = await createClient();
   const cookieStore = await cookies();

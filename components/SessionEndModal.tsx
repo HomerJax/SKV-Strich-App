@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 type SessionEndModalProps = {
   open: boolean;
   onClose: () => void;
@@ -42,9 +44,58 @@ export default function SessionEndModal({
   sharingInternal = false,
   sharingSocial = false,
 }: SessionEndModalProps) {
+  const [sharingMvpVoting, setSharingMvpVoting] = useState(false);
+  const [mvpShareMessage, setMvpShareMessage] = useState<string | null>(null);
+
   if (!open) return null;
 
   const headline = getHeadline(scoreA, scoreB);
+
+  async function handleShareMvpVoting() {
+    try {
+      setSharingMvpVoting(true);
+      setMvpShareMessage(null);
+
+      const sessionUrl =
+        typeof window !== "undefined" ? window.location.href : "/sessions";
+
+      const shareText = `⭐ MVP Voting läuft jetzt bei STRIKR!
+
+Das Training ist vorbei und das Voting ist eröffnet.
+Alle Teilnehmer dürfen abstimmen.
+
+Das Voting läuft bis morgen 10:00 Uhr.
+
+Jetzt abstimmen:
+${sessionUrl}`;
+
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: "MVP Voting läuft jetzt",
+          text: shareText,
+        });
+
+        setMvpShareMessage("MVP Voting erfolgreich geteilt.");
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        setMvpShareMessage(
+          "Voting-Text in die Zwischenablage kopiert. Jetzt in eure Gruppe einfügen."
+        );
+        return;
+      }
+
+      throw new Error("Teilen wird auf diesem Gerät nicht unterstützt.");
+    } catch {
+      setMvpShareMessage(
+        "MVP Voting konnte nicht direkt geteilt werden. Bitte Link manuell kopieren."
+      );
+    } finally {
+      setSharingMvpVoting(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-4 sm:items-center">
@@ -58,8 +109,9 @@ export default function SessionEndModal({
               Training abgeschlossen
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Teile jetzt die SiegerCard nach außen oder poste das Ergebnis mit
-              App-Link in eure Gruppe.
+              Teile jetzt die SiegerCard nach außen, poste das Ergebnis mit
+              App-Link in eure Gruppe oder starte direkt das MVP Voting in eurer
+              WhatsApp-Gruppe.
             </p>
           </div>
 
@@ -120,6 +172,16 @@ export default function SessionEndModal({
             </div>
           </div>
 
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+            <div className="text-sm font-semibold text-amber-900">
+              MVP Voting beginnt jetzt
+            </div>
+            <div className="mt-1 text-sm text-amber-800">
+              Alle Teilnehmer dürfen jetzt abstimmen. Das Voting läuft bis morgen
+              10:00 Uhr.
+            </div>
+          </div>
+
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <button
               type="button"
@@ -144,9 +206,30 @@ export default function SessionEndModal({
             </button>
           </div>
 
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={handleShareMvpVoting}
+              disabled={sharingMvpVoting}
+              className="inline-flex min-h-[56px] w-full items-center justify-center rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {sharingMvpVoting
+                ? "Teilt MVP Voting..."
+                : "⭐ MVP Voting in Gruppe teilen"}
+            </button>
+          </div>
+
+          {mvpShareMessage ? (
+            <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
+              {mvpShareMessage}
+            </div>
+          ) : null}
+
           <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
             Social Media teilen = fertige SiegerCard als Bild. In Gruppe posten =
-            kurzer Teaser mit Ergebnis, Emotion und Link zurück in die App.
+            kurzer Teaser mit Ergebnis, Emotion und Link zurück in die App. MVP
+            Voting teilen = kurzer Call-to-Action zum Abstimmen für alle
+            Teilnehmer.
           </div>
         </div>
 
