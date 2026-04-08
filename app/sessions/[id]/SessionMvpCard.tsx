@@ -114,7 +114,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         throw new Error(payload?.error || "MVP-Stimme konnte nicht gespeichert werden.");
       }
 
-      setMsg(`Deine Stimme wurde gezählt 👍 Ergebnis: ${payload.revealLabel}`);
+      setMsg(`Deine Stimme wurde gezählt 👍 Ergebnis ab ${payload.revealLabel}`);
       await loadMvpState();
     } catch (error) {
       const message =
@@ -141,6 +141,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         <div className="mt-2 text-sm text-red-700">
           {err ?? "MVP-Bereich konnte nicht geladen werden."}
         </div>
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={loadMvpState}
+            className="inline-flex items-center justify-center rounded-2xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+          >
+            Erneut laden
+          </button>
+        </div>
       </section>
     );
   }
@@ -151,11 +160,10 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         <div>
           <div className="text-sm font-semibold text-amber-700">⭐ MVP Voting</div>
           <h2 className="mt-1 text-lg font-extrabold tracking-tight text-slate-950">
-            MVP nach dem Training
+            Spieler des Trainings wählen
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Nur anwesende Teilnehmer können abstimmen. Das Ergebnis wird erst nach
-            Ablauf der Voting-Zeit sichtbar.
+            Alle anwesenden Teilnehmer können hier direkt ihren MVP wählen.
           </p>
         </div>
 
@@ -163,7 +171,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           text={
             state.votingOpen
               ? `Offen bis ${state.revealLabel}`
-              : `Reveal seit ${state.revealLabel}`
+              : `Ergebnis seit ${state.revealLabel}`
           }
         />
       </div>
@@ -191,7 +199,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 {selectedPlayerName
                   ? `Aktuell gewählt: ${selectedPlayerName}.`
                   : "Du hast bereits abgestimmt."}{" "}
-                Das Ergebnis gibt es ab {state.revealLabel}.
+                Du kannst deine Stimme bis {state.revealLabel} noch ändern.
               </div>
 
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -230,7 +238,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           ) : (
             <div className="mt-4">
               <div className="mb-3 text-sm font-semibold text-slate-900">
-                Wer war heute MVP?
+                Wer war heute euer Spieler des Trainings?
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2">
@@ -266,14 +274,14 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 </button>
 
                 <div className="text-xs text-slate-500">
-                  Reveal ab {state.revealLabel}
+                  Ergebnis ab {state.revealLabel}
                 </div>
               </div>
             </div>
           )
         ) : (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
-            Dieses Voting ist nur für anwesende Teilnehmer mit verknüpftem Spielerprofil möglich.
+            Abstimmen können nur anwesende Teilnehmer mit verknüpftem Spielerprofil.
           </div>
         )
       ) : (

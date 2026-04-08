@@ -33,6 +33,31 @@ type Props = {
   collapsedByDefault?: boolean;
 };
 
+function SectionDoneHint({
+  label,
+  detail,
+}: {
+  label: string;
+  detail?: string;
+}) {
+  return (
+    <div className="mb-2 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+      <div className="flex items-center gap-2">
+        <span
+          aria-hidden="true"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white"
+        >
+          ✓
+        </span>
+        <div className="text-sm font-semibold text-emerald-900">{label}</div>
+      </div>
+      {detail ? (
+        <div className="text-xs font-medium text-emerald-700">{detail}</div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function SessionResultCard({
   hasResult,
   saving,
@@ -112,18 +137,14 @@ export default function SessionResultCard({
   const sectionDescription =
     description ??
     (showResultSection && !showPhotoSection
-      ? "Ergebnis eintragen oder später ändern."
+      ? "Ergebnis speichern, ändern oder löschen."
       : !showResultSection && showPhotoSection
         ? "Foto ansehen, hochladen, ersetzen oder löschen."
         : "Ergebnis und Siegerfoto verwalten.");
 
-  const statusPill = showResultSection
-    ? hasResult
-      ? "Gespeichert"
-      : "Offen"
-    : hasWinnerPhoto || previewUrl
-      ? "Foto vorhanden"
-      : "Optional";
+  const isDone =
+    (showResultSection && hasResult) ||
+    (!showResultSection && showPhotoSection && (hasWinnerPhoto || Boolean(previewUrl)));
 
   const summaryParts: string[] = [];
 
@@ -142,203 +163,224 @@ export default function SessionResultCard({
   }
 
   return (
-    <section className="rounded-[24px] border border-black/10 bg-white shadow-sm">
-      <button
-        type="button"
-        onClick={() => setCollapsed((prev) => !prev)}
-        className="flex w-full items-start justify-between gap-4 px-5 py-5 text-left"
-      >
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-slate-500">{sectionLabel}</div>
-          <h2 className="mt-1 text-lg font-bold text-slate-950 sm:text-xl">{sectionTitle}</h2>
-          <p className="mt-1 text-sm text-slate-600">{sectionDescription}</p>
+    <div className="space-y-2">
+      {showPhotoSection && !showResultSection && isDone ? (
+        <SectionDoneHint label="Foto erledigt" detail="Foto vorhanden" />
+      ) : null}
 
-          {collapsed ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {summaryParts.map((part) => (
-                <span
-                  key={part}
-                  className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
-                >
-                  {part}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
+      {showResultSection && !showPhotoSection && hasResult ? (
+        <SectionDoneHint
+          label="Ergebnis erledigt"
+          detail={`${goalsA || "0"}:${goalsB || "0"}`}
+        />
+      ) : null}
 
-        <div className="flex shrink-0 items-center gap-2">
-          <div
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              (showResultSection && hasResult) || (!showResultSection && (hasWinnerPhoto || previewUrl))
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-slate-100 text-slate-700"
-            }`}
-          >
-            {statusPill}
-          </div>
+      <section className="rounded-[24px] border border-black/10 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={() => setCollapsed((prev) => !prev)}
+          className="flex w-full items-start justify-between gap-4 px-5 py-5 text-left"
+        >
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-500">{sectionLabel}</div>
+            <h2 className="mt-1 text-lg font-bold text-slate-950 sm:text-xl">
+              {sectionTitle}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">{sectionDescription}</p>
 
-          <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
-            {collapsed ? "Öffnen" : "Zuklappen"}
-          </div>
-        </div>
-      </button>
-
-      {!collapsed ? (
-        <div className="border-t border-slate-200 px-5 pb-5 pt-4">
-          {showResultSection ? (
-            <>
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:max-w-xs">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-500">
-                    Team A
-                  </label>
-                  <input
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={goalsA}
-                    onChange={(event) => onGoalsAChange(event.target.value)}
-                    disabled={saving}
-                    className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-center text-lg font-bold text-slate-950 outline-none transition focus:border-slate-500 disabled:bg-slate-50"
-                  />
-                </div>
-
-                <div className="pt-5 text-lg font-bold text-slate-500">:</div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-500">
-                    Team B
-                  </label>
-                  <input
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={goalsB}
-                    onChange={(event) => onGoalsBChange(event.target.value)}
-                    disabled={saving}
-                    className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-center text-lg font-bold text-slate-950 outline-none transition focus:border-slate-500 disabled:bg-slate-50"
-                  />
-                </div>
+            {collapsed ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {summaryParts.map((part) => (
+                  <span
+                    key={part}
+                    className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+                  >
+                    {part}
+                  </span>
+                ))}
               </div>
+            ) : null}
+          </div>
 
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={onSaveResult}
-                  disabled={saving}
-                  className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving
-                    ? "Speichert..."
-                    : hasResult
-                      ? "Ergebnis aktualisieren"
-                      : "Ergebnis speichern"}
-                </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <div
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                isDone ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {isDone
+                ? showResultSection
+                  ? "Gespeichert"
+                  : "Foto vorhanden"
+                : showResultSection
+                  ? "Offen"
+                  : "Optional"}
+            </div>
 
-                {hasResult ? (
+            <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+              {collapsed ? "Aufklappen" : "Einklappen"}
+            </div>
+          </div>
+        </button>
+
+        {!collapsed ? (
+          <div className="border-t border-slate-200 px-5 pb-5 pt-4">
+            {showResultSection ? (
+              <>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:max-w-xs">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">
+                      Team A
+                    </label>
+                    <input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={goalsA}
+                      onChange={(event) => onGoalsAChange(event.target.value)}
+                      disabled={saving}
+                      className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-center text-lg font-bold text-slate-950 outline-none transition focus:border-slate-500 disabled:bg-slate-50"
+                    />
+                  </div>
+
+                  <div className="pt-5 text-lg font-bold text-slate-500">:</div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">
+                      Team B
+                    </label>
+                    <input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={goalsB}
+                      onChange={(event) => onGoalsBChange(event.target.value)}
+                      disabled={saving}
+                      className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-center text-lg font-bold text-slate-950 outline-none transition focus:border-slate-500 disabled:bg-slate-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                   <button
                     type="button"
-                    onClick={onDeleteResult}
+                    onClick={onSaveResult}
                     disabled={saving}
-                    className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Ergebnis löschen
+                    {saving
+                      ? "Speichert..."
+                      : hasResult
+                        ? "Ergebnis aktualisieren"
+                        : "Ergebnis speichern"}
                   </button>
-                ) : null}
-              </div>
-            </>
-          ) : null}
 
-          {showPhotoSection ? (
-            <div className={showResultSection ? "mt-6 border-t border-slate-200 pt-5" : ""}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-sm font-semibold text-slate-500">Siegerfoto</div>
-                  <h3 className="mt-1 text-base font-bold text-slate-950">Foto verwalten</h3>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Hochladen, ersetzen oder löschen.
-                  </p>
+                  {hasResult ? (
+                    <button
+                      type="button"
+                      onClick={onDeleteResult}
+                      disabled={saving}
+                      className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Ergebnis löschen
+                    </button>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+
+            {showPhotoSection ? (
+              <div className={showResultSection ? "mt-6 border-t border-slate-200 pt-5" : ""}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-500">Siegerfoto</div>
+                    <h3 className="mt-1 text-base font-bold text-slate-950">
+                      Foto verwalten
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Hochladen, ersetzen oder löschen.
+                    </p>
+                  </div>
+
+                  {hasWinnerPhoto || previewUrl ? (
+                    <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      Vorhanden
+                    </div>
+                  ) : null}
                 </div>
 
-                {hasWinnerPhoto || previewUrl ? (
-                  <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                    Vorhanden
-                  </div>
-                ) : null}
-              </div>
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                      {previewUrl ? (
+                        <Image
+                          key={previewUrl}
+                          src={previewUrl}
+                          alt="Siegerfoto"
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="text-[10px] font-medium text-slate-400">
+                          Kein Foto
+                        </div>
+                      )}
+                    </div>
 
-              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                    {previewUrl ? (
-                      <Image
-                        key={previewUrl}
-                        src={previewUrl}
-                        alt="Siegerfoto"
-                        fill
-                        sizes="80px"
-                        className="object-cover"
+                    <div className="flex flex-col gap-2">
+                      <input
+                        ref={winnerPhotoInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileChange}
+                        disabled={!canUploadWinnerPhoto || photoBusy || saving}
+                        className="block text-xs text-slate-500 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-200 disabled:opacity-60"
                       />
-                    ) : (
-                      <div className="text-[10px] font-medium text-slate-400">
-                        Kein Foto
-                      </div>
-                    )}
+
+                      {hasWinnerPhoto || previewUrl ? (
+                        <button
+                          type="button"
+                          onClick={onWinnerPhotoDelete}
+                          disabled={photoBusy || saving}
+                          className="inline-flex w-fit items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {photoBusy ? "Löscht..." : "Foto löschen"}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <input
-                      ref={winnerPhotoInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleFileChange}
-                      disabled={!canUploadWinnerPhoto || photoBusy || saving}
-                      className="block text-xs text-slate-500 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-200 disabled:opacity-60"
-                    />
-
-                    {hasWinnerPhoto || previewUrl ? (
+                  {showShareSection ? (
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[260px]">
                       <button
                         type="button"
-                        onClick={onWinnerPhotoDelete}
-                        disabled={photoBusy || saving}
-                        className="inline-flex w-fit items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={onShareResult}
+                        disabled={!canShareResult || sharingResult}
+                        className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {photoBusy ? "Löscht..." : "Foto löschen"}
+                        {sharingResult
+                          ? "Teilt SiegerCard..."
+                          : "📸 SiegerCard auf Social Media teilen"}
                       </button>
-                    ) : null}
-                  </div>
+
+                      <button
+                        type="button"
+                        onClick={onShareInternal}
+                        disabled={!canShareResult || sharingInternal}
+                        className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {sharingInternal
+                          ? "Postet Ergebnis..."
+                          : "💬 Ergebnis in Gruppe posten"}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
-
-                {showShareSection ? (
-                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[260px]">
-                    <button
-                      type="button"
-                      onClick={onShareResult}
-                      disabled={!canShareResult || sharingResult}
-                      className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {sharingResult
-                        ? "Teilt SiegerCard..."
-                        : "📸 SiegerCard auf Social Media teilen"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={onShareInternal}
-                      disabled={!canShareResult || sharingInternal}
-                      className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {sharingInternal
-                        ? "Postet Ergebnis..."
-                        : "💬 Ergebnis in Gruppe posten"}
-                    </button>
-                  </div>
-                ) : null}
               </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-    </section>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+    </div>
   );
 }

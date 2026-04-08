@@ -66,19 +66,16 @@ export default function SessionEndModal({
       const sessionUrl =
         typeof window !== "undefined" ? window.location.href : "/sessions";
 
-      const shareText = `⭐ MVP Voting läuft jetzt bei STRIKR!
+      const shareText = `Training ist vorbei und das MVP Voting ist eröffnet.
 
-Das Training ist vorbei und das Voting ist eröffnet.
-Alle Teilnehmer dürfen abstimmen.
+Alle Teilnehmer können jetzt ihren Spieler des Trainings wählen.
 
-Das Voting läuft bis morgen 10:00 Uhr.
-
-Jetzt abstimmen:
+Direkt zur Session und dort im Bereich "MVP Voting" abstimmen:
 ${sessionUrl}`;
 
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({
-          title: "MVP Voting läuft jetzt",
+          title: "MVP Voting ist eröffnet",
           text: shareText,
         });
         setMvpShareMessage("MVP Voting erfolgreich geteilt.");
@@ -114,7 +111,7 @@ ${sessionUrl}`;
                 Training abgeschlossen
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Ergebnis teilen oder MVP Voting starten.
+                Teile jetzt Ergebnis oder starte das MVP Voting.
               </p>
             </div>
 
@@ -172,7 +169,8 @@ ${sessionUrl}`;
                 MVP Voting beginnt jetzt
               </div>
               <div className="mt-1 text-sm text-amber-800">
-                Alle Teilnehmer dürfen jetzt abstimmen.
+                Teile den Link mit eurer Gruppe. Abgestimmt wird direkt in dieser
+                Session im Bereich „MVP Voting“.
               </div>
             </div>
 

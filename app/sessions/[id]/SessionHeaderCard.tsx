@@ -37,8 +37,6 @@ export default function SessionHeaderCard({
   deletingSession,
   primaryColorKey,
   onDeleteSession,
-  onScrollToTeams,
-  onScrollToResult,
 }: Props) {
   const { heroGradient, borderColor } = getClubHeroStyles(primaryColorKey);
 
@@ -90,26 +88,6 @@ export default function SessionHeaderCard({
               </button>
             ) : null}
           </div>
-        </div>
-      </div>
-
-      <div className="p-4 sm:p-5">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={onScrollToTeams}
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-          >
-            Zu den Teams
-          </button>
-
-          <button
-            type="button"
-            onClick={onScrollToResult}
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-          >
-            Zum Ergebnis
-          </button>
         </div>
       </div>
     </section>
