@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 
 export type PowerClubSwitcherClub = {
   id: string;
@@ -27,7 +26,6 @@ export default function PowerClubSwitcher({
   primaryColor,
   clubs,
 }: PowerClubSwitcherProps) {
-  const router = useRouter();
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const [open, setOpen] = useState(false);
@@ -82,19 +80,26 @@ export default function PowerClubSwitcher({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ clubId }),
+          cache: "no-store",
         });
 
         if (!response.ok) {
           const body = (await response.json().catch(() => null)) as
-            | { error?: string }
+            | { error?: string; redirectTo?: string }
             | null;
 
           throw new Error(body?.error || "Club-Wechsel fehlgeschlagen");
         }
 
+        const body = (await response.json().catch(() => null)) as
+          | { ok?: boolean; redirectTo?: string }
+          | null;
+
+        const redirectTo = body?.redirectTo || "/";
+
         setOpen(false);
-        router.push("/");
-        router.refresh();
+
+        window.location.assign(redirectTo);
       } catch (error) {
         console.error(error);
         window.alert("Club-Wechsel fehlgeschlagen.");
@@ -119,8 +124,9 @@ export default function PowerClubSwitcher({
         }}
         className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-white shadow-md transition ${
           isPowerUser ? "hover:scale-[1.02] active:scale-[0.98]" : ""
-        }`}
+        } ${pending ? "opacity-70" : ""}`}
         style={{ borderColor: `${primaryColor}33` }}
+        disabled={pending}
       >
         {activeLogoSrc ? (
           <Image
