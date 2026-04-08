@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import AutoJoinForm from "./AutoJoinForm";
 
 type SearchParams = {
   token?: string | string[];
@@ -122,6 +123,14 @@ export default async function JoinPage({
             Du wurdest eingeladen, einem Club in{" "}
             <span className="font-semibold">strikr</span> beizutreten.
           </p>
+
+          {!user ? (
+            <div className="mt-4 text-sm text-neutral-500">
+              Neu bei strikr? Registriere dich.
+              <br />
+              Bereits registriert? Melde dich einfach an.
+            </div>
+          ) : null}
         </div>
 
         {message ? (
@@ -191,29 +200,10 @@ export default async function JoinPage({
         ) : shouldAutoAccept ? (
           <>
             <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              Einladung wird automatisch angenommen …
+              Einladung wird angenommen und du wirst weitergeleitet...
             </div>
 
-            <form id="auto-join-form" method="post" action="/api/join">
-              <input type="hidden" name="token" value={token} />
-              <noscript>
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
-                >
-                  Einladung annehmen
-                </button>
-              </noscript>
-            </form>
-
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  const form = document.getElementById("auto-join-form");
-                  if (form) form.submit();
-                `,
-              }}
-            />
+            <AutoJoinForm token={token} />
           </>
         ) : (
           <form method="post" action="/api/join">

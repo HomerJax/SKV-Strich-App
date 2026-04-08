@@ -94,9 +94,9 @@ export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
   },
   {
     key: "founder_tools",
-    title: "Founder Tools",
+    title: "Power User Tools",
     description:
-      "Interne Founder-Funktionen, Debug-Hilfen und erweiterte Kontrollmöglichkeiten.",
+      "Interne Power-User-Funktionen, Debug-Hilfen und erweiterte Kontrollmöglichkeiten.",
     audience: "internal",
   },
   {

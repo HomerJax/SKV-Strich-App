@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function isAdminRole(role: string | null | undefined) {
-  return role === "admin" || role === "owner";
+  return role === "admin";
 }
 
 function getRequestOrigin(request: NextRequest) {

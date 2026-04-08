@@ -12,7 +12,6 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
-import { isFounderEmail } from "@/lib/auth/founder";
 
 type ClubRow = {
   id: string;
@@ -20,7 +19,7 @@ type ClubRow = {
 };
 
 function isAdminRole(role: string | null | undefined) {
-  return role === "admin" || role === "owner";
+  return role === "admin";
 }
 
 function getRoleLabel(params: {
@@ -28,7 +27,6 @@ function getRoleLabel(params: {
   isPowerUser: boolean;
 }) {
   if (params.isPowerUser) return "Power User";
-  if (params.role === "owner") return "Owner";
   if (params.role === "admin") return "Admin";
   return "Mitglied";
 }
@@ -97,14 +95,11 @@ export default async function AdminPage() {
 
   const supabase = await createClient();
 
-  const [{ data: clubData, error: clubError }, authResult] = await Promise.all([
-    supabase
-      .from("clubs")
-      .select("id, display_name")
-      .eq("id", ctx.activeClubId)
-      .maybeSingle<ClubRow>(),
-    supabase.auth.getUser(),
-  ]);
+  const { data: clubData, error: clubError } = await supabase
+    .from("clubs")
+    .select("id, display_name")
+    .eq("id", ctx.activeClubId)
+    .maybeSingle<ClubRow>();
 
   if (clubError) {
     throw new Error(
@@ -122,8 +117,6 @@ export default async function AdminPage() {
     role: membership?.role,
     isPowerUser: ctx.isPowerUser,
   });
-  const userEmail = authResult.data.user?.email ?? null;
-  const founderAccess = isFounderEmail(userEmail);
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -209,19 +202,19 @@ export default async function AdminPage() {
             icon={<CalendarRange className="h-6 w-6" strokeWidth={2.1} />}
           />
 
-          {founderAccess ? (
+          {ctx.isPowerUser ? (
             <>
               <AdminCard
-                href="/founder"
-                eyebrow="Founder"
-                title="Founder Dashboard"
-                description="Globale KPIs über Clubs, User, Registrierungen und Trainings. Zentrale Sicht auf die Entwicklung von Strikr."
+                href="/power-user"
+                eyebrow="Power User"
+                title="Power User Dashboard"
+                description="Globale KPIs über Clubs, User, Registrierungen und Trainings. Zentrale Sicht auf die Entwicklung von STRIKR."
                 icon={<Shield className="h-6 w-6" strokeWidth={2.1} />}
               />
 
               <AdminCard
-                href="/founder/flags"
-                eyebrow="Founder"
+                href="/power-user/flags"
+                eyebrow="Power User"
                 title="Feature Flags"
                 description="Steuere neue Features gezielt pro Club oder schalte sie gesammelt für alle Clubs frei."
                 icon={<ToggleLeft className="h-6 w-6" strokeWidth={2.1} />}

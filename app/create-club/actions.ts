@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 export type CreateClubState = {
@@ -28,6 +29,10 @@ export async function createClubAction(
   }
 
   const supabase = await createClient();
+  const adminSupabase = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   const {
     data: { user },
@@ -38,10 +43,11 @@ export async function createClubAction(
     return { error: "not-authenticated" };
   }
 
-  const { data: club, error: clubError } = await supabase
+  const { data: club, error: clubError } = await adminSupabase
     .from("clubs")
     .insert({
       name: clubName,
+      display_name: clubName,
     })
     .select("id")
     .maybeSingle<{ id: string }>();
@@ -50,12 +56,12 @@ export async function createClubAction(
     return { error: "club-create-failed" };
   }
 
-  const { error: membershipError } = await supabase
+  const { error: membershipError } = await adminSupabase
     .from("club_memberships")
     .insert({
       club_id: club.id,
       user_id: user.id,
-      role: "owner",
+      role: "admin",
     });
 
   if (membershipError) {

@@ -120,7 +120,8 @@ export default async function AppHeader() {
   }
 
   const nickname = ctx.player?.nickname?.trim() || null;
-  const profileLabel = nickname ?? "Spieler";
+  const firstName = ctx.player?.first_name?.trim() || null;
+  const profileLabel = nickname ?? firstName ?? "Spieler";
   const profileInitial = getInitial(profileLabel);
 
   return (

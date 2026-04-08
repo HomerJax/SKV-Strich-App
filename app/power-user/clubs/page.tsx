@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { Building2, CalendarDays, Mail, Shield, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { requireFounder } from "@/lib/auth/founder";
+import { requirePowerUser } from "@/lib/auth/power-user";
 import {
-  FounderAuthUser,
+  PowerUserAuthUser,
   listAllAuthUsers,
-} from "@/lib/supabase/founder-admin";
+} from "@/lib/supabase/power-user-admin";
 
 type ClubRow = {
   id: string;
   display_name: string | null;
+  name: string | null;
   created_at: string;
 };
 
@@ -49,15 +50,15 @@ function formatDate(value: string | null | undefined) {
 }
 
 function getDisplayClubName(club: ClubRow) {
-  return club.display_name?.trim() || "Unbenannter Club";
+  return club.display_name?.trim() || club.name?.trim() || "Unbenannter Club";
 }
 
-function getUserEmailById(users: FounderAuthUser[]) {
+function getUserEmailById(users: PowerUserAuthUser[]) {
   return new Map(users.map((user) => [user.id, user.email?.trim() || user.id]));
 }
 
-export default async function FounderClubsPage() {
-  await requireFounder();
+export default async function PowerUserClubsPage() {
+  await requirePowerUser();
 
   const supabase = await createClient();
 
@@ -65,7 +66,7 @@ export default async function FounderClubsPage() {
     await Promise.all([
       supabase
         .from("clubs")
-        .select("id, display_name, created_at")
+        .select("id, display_name, name, created_at")
         .order("created_at", { ascending: true }),
 
       supabase
@@ -73,7 +74,7 @@ export default async function FounderClubsPage() {
         .select("id, user_id, club_id, role, created_at")
         .order("created_at", { ascending: true }),
 
-      supabase.from("club_invites").select("club_id"),
+      supabase.from("invites").select("club_id"),
 
       supabase
         .from("sessions")
@@ -135,9 +136,7 @@ export default async function FounderClubsPage() {
       a.created_at.localeCompare(b.created_at)
     );
 
-    const earliestAdmin = members.find(
-      (member) => member.role === "owner" || member.role === "admin"
-    );
+    const earliestAdmin = members.find((member) => member.role === "admin");
 
     return earliestAdmin ?? members[0] ?? null;
   }
@@ -147,10 +146,10 @@ export default async function FounderClubsPage() {
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link
-            href="/founder"
+            href="/power-user"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Founder Dashboard
+            ← Zurück zum Power User Dashboard
           </Link>
         </div>
 
@@ -162,14 +161,14 @@ export default async function FounderClubsPage() {
 
             <div>
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Founder / Clubs
+                Power User / Clubs
               </div>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
                 Alle Clubs
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Pro Club siehst du hier Lead/Gründer-Näherung, Mitglieder,
-                Einladungen und Trainingsaktivität.
+                Pro Club siehst du hier Admin-Näherung, Mitglieder, Einladungen
+                und Trainingsaktivität.
               </p>
             </div>
           </div>
@@ -211,13 +210,15 @@ export default async function FounderClubsPage() {
 
                     <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-violet-950">
                       <div className="text-xs font-medium uppercase tracking-wide">
-                        Lead / Gründer-Näherung
+                        Lead / Admin-Näherung
                       </div>
                       <div className="mt-1 text-sm font-semibold">
                         {lead ? lead.email : "–"}
                       </div>
                       <div className="mt-1 text-xs">
-                        {lead ? `${lead.role} seit ${formatDateTime(lead.created_at)}` : "Keine Membership gefunden"}
+                        {lead
+                          ? `${lead.role} seit ${formatDateTime(lead.created_at)}`
+                          : "Keine Membership gefunden"}
                       </div>
                     </div>
                   </div>

@@ -39,7 +39,7 @@ export async function handleAddGuestPlayer({
 }: AddGuestPlayerInput) {
   const role = membership.role;
 
-  if (!(role === "admin" || role === "owner")) {
+  if (role !== "admin") {
     return fail(
       "Gastspieler können aktuell nur von Admins angelegt werden.",
       403

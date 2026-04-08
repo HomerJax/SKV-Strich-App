@@ -1,10 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { getAuthContext } from "@/lib/auth/context";
-import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 export type SignupState = {
   error: string;
@@ -83,47 +80,9 @@ export async function signupAction(
     return { error: "login-after-signup-failed" };
   }
 
-  const ctx = await getAuthContext();
-
-  if (!ctx.user) {
-    return { error: "session-not-ready" };
-  }
-
-  const cookieStore = await cookies();
-
-  if (ctx.activeClubId) {
-    cookieStore.set("active_club_id", ctx.activeClubId, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: "lax",
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-    });
-  }
-
   if (next) {
-    redirect(next);
+    redirect(`/onboarding?next=${encodeURIComponent(next)}`);
   }
 
-  if (!ctx.player) {
-    redirect(AUTH_ROUTES.onboarding);
-  }
-
-  if (!ctx.memberships.length) {
-    redirect(AUTH_ROUTES.waitingForInvite);
-  }
-
-  if (!ctx.activeClubId) {
-    redirect(AUTH_ROUTES.selectClub);
-  }
-
-  cookieStore.set("active_club_id", ctx.activeClubId, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-    httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-  });
-
-  redirect(AUTH_ROUTES.dashboard);
+  redirect("/onboarding");
 }

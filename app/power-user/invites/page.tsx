@@ -1,24 +1,23 @@
 import Link from "next/link";
 import { Mail, MailCheck, MailOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { requireFounder } from "@/lib/auth/founder";
-import { listAllAuthUsers } from "@/lib/supabase/founder-admin";
+import { requirePowerUser } from "@/lib/auth/power-user";
+import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
 
 type InviteRow = {
-  id: number;
+  id: string;
   club_id: string;
   role: "admin" | "member";
   created_at: string;
   expires_at: string | null;
-  used_at: string | null;
-  is_active: boolean;
-  created_by: string | null;
-  used_by: string | null;
+  accepted_at: string | null;
+  invited_by: string | null;
 };
 
 type ClubRow = {
   id: string;
   display_name: string | null;
+  name: string | null;
 };
 
 type PageProps = {
@@ -32,28 +31,28 @@ function formatDateTime(value: string | null | undefined) {
   return new Date(value).toLocaleString("de-DE");
 }
 
-export default async function FounderInvitesPage({ searchParams }: PageProps) {
-  await requireFounder();
+export default async function PowerUserInvitesPage({
+  searchParams,
+}: PageProps) {
+  await requirePowerUser();
   const resolvedSearchParams = await searchParams;
 
   const status =
-    resolvedSearchParams?.status === "used"
-      ? "used"
+    resolvedSearchParams?.status === "accepted"
+      ? "accepted"
       : resolvedSearchParams?.status === "open"
-      ? "open"
-      : "all";
+        ? "open"
+        : "all";
 
   const supabase = await createClient();
 
   const [invitesResult, clubsResult, authUsers] = await Promise.all([
     supabase
-      .from("club_invites")
-      .select(
-        "id, club_id, role, created_at, expires_at, used_at, is_active, created_by, used_by"
-      )
+      .from("invites")
+      .select("id, club_id, role, created_at, expires_at, accepted_at, invited_by")
       .order("created_at", { ascending: false }),
 
-    supabase.from("clubs").select("id, display_name"),
+    supabase.from("clubs").select("id, display_name, name"),
 
     listAllAuthUsers().catch(() => []),
   ]);
@@ -67,7 +66,7 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
   const clubNameById = new Map(
     clubs.map((club) => [
       club.id,
-      club.display_name?.trim() || "Unbenannter Club",
+      club.display_name?.trim() || club.name?.trim() || "Unbenannter Club",
     ])
   );
 
@@ -76,8 +75,8 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
   );
 
   const filteredInvites = invites.filter((invite) => {
-    if (status === "used") return !!invite.used_at;
-    if (status === "open") return invite.is_active && !invite.used_at;
+    if (status === "accepted") return !!invite.accepted_at;
+    if (status === "open") return !invite.accepted_at;
     return true;
   });
 
@@ -86,10 +85,10 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link
-            href="/founder"
+            href="/power-user"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Founder Dashboard
+            ← Zurück zum Power User Dashboard
           </Link>
         </div>
 
@@ -101,14 +100,14 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
 
             <div>
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Founder / Invites
+                Power User / Invites
               </div>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
                 Einladungen
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Überblick über offene und genutzte Einladungen inklusive
-                Ersteller und Nutzung.
+                Überblick über offene und angenommene Einladungen inklusive
+                Ersteller.
               </p>
             </div>
           </div>
@@ -116,7 +115,7 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
 
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/founder/invites"
+            href="/power-user/invites"
             className={`rounded-xl px-4 py-2 text-sm font-semibold ${
               status === "all"
                 ? "bg-slate-950 text-white"
@@ -127,7 +126,7 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
           </Link>
 
           <Link
-            href="/founder/invites?status=open"
+            href="/power-user/invites?status=open"
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold ${
               status === "open"
                 ? "bg-slate-950 text-white"
@@ -139,15 +138,15 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
           </Link>
 
           <Link
-            href="/founder/invites?status=used"
+            href="/power-user/invites?status=accepted"
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold ${
-              status === "used"
+              status === "accepted"
                 ? "bg-slate-950 text-white"
                 : "border border-slate-300 bg-white text-slate-700"
             }`}
           >
             <MailCheck className="h-4 w-4" />
-            Genutzt
+            Angenommen
           </Link>
         </div>
 
@@ -163,21 +162,12 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
                   clubNameById.get(invite.club_id) ?? "Unbekannter Club";
                 const roleLabel = invite.role === "admin" ? "Admin" : "Mitglied";
 
-                const statusLabel = invite.used_at
-                  ? "verwendet"
-                  : invite.is_active
-                  ? "offen"
-                  : "deaktiviert";
+                const statusLabel = invite.accepted_at ? "angenommen" : "offen";
 
                 const createdBy =
-                  invite.created_by && emailByUserId.has(invite.created_by)
-                    ? emailByUserId.get(invite.created_by)
-                    : invite.created_by ?? "–";
-
-                const usedBy =
-                  invite.used_by && emailByUserId.has(invite.used_by)
-                    ? emailByUserId.get(invite.used_by)
-                    : invite.used_by ?? "–";
+                  invite.invited_by && emailByUserId.has(invite.invited_by)
+                    ? emailByUserId.get(invite.invited_by)
+                    : invite.invited_by ?? "–";
 
                 return (
                   <div
@@ -230,20 +220,13 @@ export default async function FounderInvitesPage({ searchParams }: PageProps) {
                         </div>
                       </div>
 
-                      <div className="rounded-xl bg-slate-50 px-3 py-3">
+                      <div className="rounded-xl bg-slate-50 px-3 py-3 md:col-span-2 xl:col-span-3">
                         <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Verwendet am
+                          Angenommen am
                         </div>
                         <div className="mt-1 text-sm text-slate-950">
-                          {formatDateTime(invite.used_at)}
+                          {formatDateTime(invite.accepted_at)}
                         </div>
-                      </div>
-
-                      <div className="rounded-xl bg-slate-50 px-3 py-3 md:col-span-2 xl:col-span-2">
-                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Verwendet von
-                        </div>
-                        <div className="mt-1 text-sm text-slate-950">{usedBy}</div>
                       </div>
                     </div>
                   </div>

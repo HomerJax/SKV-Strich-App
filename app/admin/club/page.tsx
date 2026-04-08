@@ -47,7 +47,7 @@ function getErrorMessage(error?: string) {
 }
 
 function isAdminRole(role: string | null | undefined) {
-  return role === "admin" || role === "owner";
+  return role === "admin";
 }
 
 export default async function ClubAdminPage({

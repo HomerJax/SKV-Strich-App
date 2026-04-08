@@ -50,7 +50,7 @@ type PageProps = {
 };
 
 function isAdminRole(role: string | null | undefined) {
-  return role === "admin" || role === "owner";
+  return role === "admin";
 }
 
 function getBaseUrl() {

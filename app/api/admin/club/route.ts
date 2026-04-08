@@ -100,7 +100,7 @@ function getSupabaseServiceClient() {
 }
 
 function isAdminRole(role: string | null | undefined) {
-  return role === "admin" || role === "owner";
+  return role === "admin";
 }
 
 function isUploadedFile(value: FormDataEntryValue | null): value is File {

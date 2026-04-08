@@ -21,18 +21,26 @@ export function buildInviteUrl(token: string) {
   return baseUrl ? `${baseUrl}${path}` : path;
 }
 
-export function formatDate(dateString: string) {
+export function formatDate(dateString: string | null | undefined) {
+  if (!dateString) return "—";
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
   return new Intl.DateTimeFormat("de-DE", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(dateString));
+  }).format(date);
 }
 
 export function getMemberRoleLabel(
   role: MemberRole | string | null | undefined
 ) {
-  if (role === "owner") return "Owner";
   if (role === "admin") return "Administrator";
+  if (role === "power_user") return "Power User";
   return "Mitglied";
 }
 

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { requireFounder } from "@/lib/auth/founder";
+import { requirePowerUser } from "@/lib/auth/power-user";
 import {
-  FounderAuthUser,
+  PowerUserAuthUser,
   listAllAuthUsers,
-} from "@/lib/supabase/founder-admin";
+} from "@/lib/supabase/power-user-admin";
 
 type MembershipRow = {
   id: string;
@@ -18,6 +18,7 @@ type MembershipRow = {
 type ClubRow = {
   id: string;
   display_name: string | null;
+  name: string | null;
 };
 
 type UserClubAssignment = {
@@ -31,8 +32,8 @@ function formatDateTime(value: string | null | undefined) {
   return new Date(value).toLocaleString("de-DE");
 }
 
-export default async function FounderUsersPage() {
-  await requireFounder();
+export default async function PowerUserUsersPage() {
+  await requirePowerUser();
 
   const supabase = await createClient();
 
@@ -42,7 +43,7 @@ export default async function FounderUsersPage() {
       .from("club_memberships")
       .select("id, user_id, club_id, role, created_at")
       .order("created_at", { ascending: true }),
-    supabase.from("clubs").select("id, display_name"),
+    supabase.from("clubs").select("id, display_name, name"),
   ]);
 
   const memberships = membershipsResult.error
@@ -54,7 +55,7 @@ export default async function FounderUsersPage() {
   const clubNameById = new Map(
     clubs.map((club) => [
       club.id,
-      club.display_name?.trim() || "Unbenannter Club",
+      club.display_name?.trim() || club.name?.trim() || "Unbenannter Club",
     ])
   );
 
@@ -81,10 +82,10 @@ export default async function FounderUsersPage() {
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link
-            href="/founder"
+            href="/power-user"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Founder Dashboard
+            ← Zurück zum Power User Dashboard
           </Link>
         </div>
 
@@ -96,7 +97,7 @@ export default async function FounderUsersPage() {
 
             <div>
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Founder / Users
+                Power User / Users
               </div>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
                 Alle User
@@ -113,7 +114,7 @@ export default async function FounderUsersPage() {
             <div className="text-sm text-slate-600">Keine User gefunden.</div>
           ) : (
             <div className="space-y-3">
-              {sortedUsers.map((user: FounderAuthUser) => {
+              {sortedUsers.map((user: PowerUserAuthUser) => {
                 const assignments = assignmentsByUserId.get(user.id) ?? [];
 
                 return (

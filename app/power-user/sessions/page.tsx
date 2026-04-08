@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { requireFounder } from "@/lib/auth/founder";
+import { requirePowerUser } from "@/lib/auth/power-user";
 
 type SessionRow = {
   id: number;
@@ -16,6 +16,7 @@ type SessionRow = {
 type ClubRow = {
   id: string;
   display_name: string | null;
+  name: string | null;
 };
 
 type PageProps = {
@@ -34,10 +35,10 @@ function formatDate(value: string | null | undefined) {
   return new Date(value).toLocaleDateString("de-DE");
 }
 
-export default async function FounderSessionsPage({
+export default async function PowerUserSessionsPage({
   searchParams,
 }: PageProps) {
-  await requireFounder();
+  await requirePowerUser();
   const resolvedSearchParams = await searchParams;
 
   const range = resolvedSearchParams?.range === "7d" ? "7d" : "all";
@@ -58,7 +59,7 @@ export default async function FounderSessionsPage({
 
   const [sessionsResult, clubsResult] = await Promise.all([
     sessionsQuery,
-    supabase.from("clubs").select("id, display_name"),
+    supabase.from("clubs").select("id, display_name, name"),
   ]);
 
   const sessions = sessionsResult.error
@@ -70,7 +71,7 @@ export default async function FounderSessionsPage({
   const clubNameById = new Map(
     clubs.map((club) => [
       club.id,
-      club.display_name?.trim() || "Unbenannter Club",
+      club.display_name?.trim() || club.name?.trim() || "Unbenannter Club",
     ])
   );
 
@@ -79,10 +80,10 @@ export default async function FounderSessionsPage({
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link
-            href="/founder"
+            href="/power-user"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Founder Dashboard
+            ← Zurück zum Power User Dashboard
           </Link>
         </div>
 
@@ -94,7 +95,7 @@ export default async function FounderSessionsPage({
 
             <div>
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Founder / Sessions
+                Power User / Sessions
               </div>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
                 Trainings
@@ -108,7 +109,7 @@ export default async function FounderSessionsPage({
 
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/founder/sessions"
+            href="/power-user/sessions"
             className={`rounded-xl px-4 py-2 text-sm font-semibold ${
               range === "all"
                 ? "bg-slate-950 text-white"
@@ -119,7 +120,7 @@ export default async function FounderSessionsPage({
           </Link>
 
           <Link
-            href="/founder/sessions?range=7d"
+            href="/power-user/sessions?range=7d"
             className={`rounded-xl px-4 py-2 text-sm font-semibold ${
               range === "7d"
                 ? "bg-slate-950 text-white"

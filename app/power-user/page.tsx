@@ -9,20 +9,21 @@ import {
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { requireFounder } from "@/lib/auth/founder";
-import { listAllAuthUsers } from "@/lib/supabase/founder-admin";
+import { requirePowerUser } from "@/lib/auth/power-user";
+import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
 
 type ClubRow = {
   id: string;
   display_name: string | null;
+  name: string | null;
 };
 
 type InviteUsageRow = {
-  id: number;
+  id: string;
   club_id: string;
   role: "admin" | "member";
   created_at: string;
-  used_at: string | null;
+  accepted_at: string | null;
 };
 
 type SessionRow = {
@@ -90,8 +91,8 @@ function getSafeCount(
   return result.count ?? 0;
 }
 
-export default async function FounderPage() {
-  await requireFounder();
+export default async function PowerUserPage() {
+  await requirePowerUser();
 
   const supabase = await createClient();
   const now = new Date();
@@ -100,7 +101,7 @@ export default async function FounderPage() {
 
   const [
     clubsCountResult,
-    usedInvitesCountResult,
+    acceptedInvitesCountResult,
     openInvitesCountResult,
     sessionsCountResult,
     sessionsLast7DaysCountResult,
@@ -112,15 +113,14 @@ export default async function FounderPage() {
     supabase.from("clubs").select("id", { count: "exact", head: true }),
 
     supabase
-      .from("club_invites")
+      .from("invites")
       .select("id", { count: "exact", head: true })
-      .not("used_at", "is", null),
+      .not("accepted_at", "is", null),
 
     supabase
-      .from("club_invites")
+      .from("invites")
       .select("id", { count: "exact", head: true })
-      .eq("is_active", true)
-      .is("used_at", null),
+      .is("accepted_at", null),
 
     supabase.from("sessions").select("id", { count: "exact", head: true }),
 
@@ -131,14 +131,14 @@ export default async function FounderPage() {
 
     supabase
       .from("clubs")
-      .select("id, display_name")
+      .select("id, display_name, name")
       .order("display_name", { ascending: true }),
 
     supabase
-      .from("club_invites")
-      .select("id, club_id, role, created_at, used_at")
-      .not("used_at", "is", null)
-      .order("used_at", { ascending: false })
+      .from("invites")
+      .select("id, club_id, role, created_at, accepted_at")
+      .not("accepted_at", "is", null)
+      .order("accepted_at", { ascending: false })
       .limit(8),
 
     supabase
@@ -155,7 +155,7 @@ export default async function FounderPage() {
   const clubNameById = new Map(
     clubs.map((club) => [
       club.id,
-      club.display_name?.trim() || "Unbenannter Club",
+      club.display_name?.trim() || club.name?.trim() || "Unbenannter Club",
     ])
   );
 
@@ -169,7 +169,7 @@ export default async function FounderPage() {
 
   const clubsCount = getSafeCount(clubsCountResult);
   const usersCount = authUsers.length;
-  const usedInvitesCount = getSafeCount(usedInvitesCountResult);
+  const acceptedInvitesCount = getSafeCount(acceptedInvitesCountResult);
   const openInvitesCount = getSafeCount(openInvitesCountResult);
   const sessionsCount = getSafeCount(sessionsCountResult);
   const sessionsLast7DaysCount = getSafeCount(sessionsLast7DaysCountResult);
@@ -190,30 +190,29 @@ export default async function FounderPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-3xl">
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Founder
+                Power User
               </div>
 
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-                Strikr Dashboard
+                STRIKR Dashboard
               </h1>
 
               <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-                Hier siehst du auf einen Blick, ob sich deine Piloten registriert
-                haben, wie viele Clubs angelegt wurden und wie viel Bewegung
-                gerade im System ist.
+                Hier siehst du auf einen Blick, wie viele Clubs, Registrierungen,
+                Einladungen und Trainings es systemweit gibt.
               </p>
             </div>
 
             <div className="rounded-3xl border border-violet-200 bg-violet-50 px-5 py-4 text-violet-950">
               <div className="text-sm font-medium">Zugriff</div>
-              <div className="mt-1 text-2xl font-bold">Founder</div>
+              <div className="mt-1 text-2xl font-bold">Power User</div>
             </div>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <KpiCard
-            href="/founder/clubs"
+            href="/power-user/clubs"
             label="Clubs"
             value={String(clubsCount)}
             description="So viele Clubs existieren aktuell insgesamt."
@@ -221,7 +220,7 @@ export default async function FounderPage() {
           />
 
           <KpiCard
-            href="/founder/users"
+            href="/power-user/users"
             label="User gesamt"
             value={String(usersCount)}
             description="Alle registrierten Auth-User im System."
@@ -229,23 +228,23 @@ export default async function FounderPage() {
           />
 
           <KpiCard
-            href="/founder/invites?status=used"
-            label="Einladungen genutzt"
-            value={String(usedInvitesCount)}
-            description="Daran erkennst du direkt, ob Registrierungen stattfinden."
+            href="/power-user/invites?status=accepted"
+            label="Einladungen angenommen"
+            value={String(acceptedInvitesCount)}
+            description="Daran erkennst du direkt, ob Registrierungen und Join-Flows funktionieren."
             icon={<MailCheck className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
-            href="/founder/invites?status=open"
+            href="/power-user/invites?status=open"
             label="Einladungen offen"
             value={String(openInvitesCount)}
-            description="Aktive Invite-Links, die noch nicht verwendet wurden."
+            description="Invite-Links, die noch nicht angenommen wurden."
             icon={<MailOpen className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
-            href="/founder/sessions"
+            href="/power-user/sessions"
             label="Trainings gesamt"
             value={String(sessionsCount)}
             description="Alle bisher angelegten Sessions im System."
@@ -253,7 +252,7 @@ export default async function FounderPage() {
           />
 
           <KpiCard
-            href="/founder/sessions?range=7d"
+            href="/power-user/sessions?range=7d"
             label="Trainings letzte 7 Tage"
             value={String(sessionsLast7DaysCount)}
             description="Damit siehst du schnell, ob gerade echter Betrieb drin ist."
@@ -269,7 +268,7 @@ export default async function FounderPage() {
                   Registrierungen
                 </div>
                 <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                  Letzte genutzte Einladungen
+                  Letzte angenommene Einladungen
                 </h2>
               </div>
 
@@ -281,7 +280,7 @@ export default async function FounderPage() {
             <div className="mt-5">
               {latestInviteUsages.length === 0 ? (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  Noch keine genutzten Einladungen.
+                  Noch keine angenommenen Einladungen.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -307,7 +306,7 @@ export default async function FounderPage() {
                           </div>
 
                           <div className="text-xs text-slate-500">
-                            Verwendet: {formatDateTime(invite.used_at)}
+                            Angenommen: {formatDateTime(invite.accepted_at)}
                           </div>
                         </div>
                       </div>
@@ -382,7 +381,7 @@ export default async function FounderPage() {
             </div>
 
             <Link
-              href="/founder/clubs"
+              href="/power-user/clubs"
               className="text-sm font-medium text-slate-900 hover:underline"
             >
               Alle Clubs →
@@ -398,11 +397,13 @@ export default async function FounderPage() {
               clubs.map((club) => (
                 <Link
                   key={club.id}
-                  href="/founder/clubs"
+                  href="/power-user/clubs"
                   className="rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50"
                 >
                   <div className="text-sm font-semibold text-slate-950">
-                    {club.display_name?.trim() || "Unbenannter Club"}
+                    {club.display_name?.trim() ||
+                      club.name?.trim() ||
+                      "Unbenannter Club"}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">
                     ID: {club.id}

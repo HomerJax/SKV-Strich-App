@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireFounder } from "@/lib/auth/founder";
+import { requirePowerUser } from "@/lib/auth/power-user";
 import {
   ensureFeatureFlagRowsForClub,
   FEATURE_FLAG_DEFINITIONS,
@@ -27,7 +27,11 @@ type PageProps = {
 };
 
 function getClubLabel(club: ClubRow) {
-  return club.display_name?.trim() || club.name?.trim() || `Club ${club.id.slice(0, 8)}`;
+  return (
+    club.display_name?.trim() ||
+    club.name?.trim() ||
+    `Club ${club.id.slice(0, 8)}`
+  );
 }
 
 function audienceLabel(audience: "players" | "internal" | "mixed") {
@@ -36,8 +40,8 @@ function audienceLabel(audience: "players" | "internal" | "mixed") {
   return "Gemischt";
 }
 
-export default async function FounderFlagsPage({ searchParams }: PageProps) {
-  await requireFounder();
+export default async function PowerUserFlagsPage({ searchParams }: PageProps) {
+  await requirePowerUser();
 
   const resolvedSearchParams = (await searchParams) ?? {};
   const selectedClubId = resolvedSearchParams.club ?? "";
@@ -74,7 +78,7 @@ export default async function FounderFlagsPage({ searchParams }: PageProps) {
   async function toggleFlagAction(formData: FormData) {
     "use server";
 
-    await requireFounder();
+    await requirePowerUser();
 
     const clubId = String(formData.get("club_id") ?? "").trim();
     const featureKeyRaw = String(formData.get("feature_key") ?? "").trim();
@@ -94,14 +98,14 @@ export default async function FounderFlagsPage({ searchParams }: PageProps) {
       nextEnabled
     );
 
-    revalidatePath("/founder/flags");
-    revalidatePath("/founder");
+    revalidatePath("/power-user/flags");
+    revalidatePath("/power-user");
   }
 
   async function toggleFlagForAllAction(formData: FormData) {
     "use server";
 
-    await requireFounder();
+    await requirePowerUser();
 
     const featureKeyRaw = String(formData.get("feature_key") ?? "").trim();
     const nextEnabled = formData.get("enabled") === "1";
@@ -115,18 +119,18 @@ export default async function FounderFlagsPage({ searchParams }: PageProps) {
       nextEnabled
     );
 
-    revalidatePath("/founder/flags");
-    revalidatePath("/founder");
+    revalidatePath("/power-user/flags");
+    revalidatePath("/power-user");
   }
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-20">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Link
-          href="/founder"
+          href="/power-user"
           className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
         >
-          ← Zurück zum Founder Dashboard
+          ← Zurück zum Power User Dashboard
         </Link>
 
         <Link
@@ -139,15 +143,14 @@ export default async function FounderFlagsPage({ searchParams }: PageProps) {
 
       <div className="mb-6 rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
         <div className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
-          Founder
+          Power User
         </div>
         <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
           Feature Flags pro Club
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Hier steuerst nur du, welche neuen Features in welchem Club sichtbar
-          sind. Club-Admins bekommen diese Schalter nicht zu sehen. Perfekt für
-          gestaffelte Releases, Pilot-Rollouts und kontrollierte Tests.
+          Hier steuerst du zentral, welche neuen Features in welchem Club sichtbar
+          sind. Club-Admins bekommen diese Schalter nicht zu sehen.
         </p>
 
         {saved ? (
@@ -172,7 +175,7 @@ export default async function FounderFlagsPage({ searchParams }: PageProps) {
               return (
                 <Link
                   key={club.id}
-                  href={`/founder/flags?club=${encodeURIComponent(club.id)}`}
+                  href={`/power-user/flags?club=${encodeURIComponent(club.id)}`}
                   className={[
                     "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition",
                     active
@@ -222,7 +225,9 @@ export default async function FounderFlagsPage({ searchParams }: PageProps) {
                               : "bg-slate-100 text-slate-700",
                           ].join(" ")}
                         >
-                          {enabled ? "Im gewählten Club aktiv" : "Im gewählten Club inaktiv"}
+                          {enabled
+                            ? "Im gewählten Club aktiv"
+                            : "Im gewählten Club inaktiv"}
                         </span>
                       </div>
 

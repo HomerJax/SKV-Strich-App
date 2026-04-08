@@ -2,19 +2,19 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
-export type FounderAuthUser = {
+export type PowerUserAuthUser = {
   id: string;
   email: string | null;
   created_at: string | null;
 };
 
-function getFounderAdminClient() {
+function getPowerUserAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
     throw new Error(
-      "Founder Admin Client konnte nicht erstellt werden: fehlende Supabase ENV Variablen."
+      "Power User Admin Client konnte nicht erstellt werden: fehlende Supabase ENV Variablen."
     );
   }
 
@@ -26,10 +26,10 @@ function getFounderAdminClient() {
   });
 }
 
-export async function listAllAuthUsers(): Promise<FounderAuthUser[]> {
-  const supabase = getFounderAdminClient();
+export async function listAllAuthUsers(): Promise<PowerUserAuthUser[]> {
+  const supabase = getPowerUserAdminClient();
 
-  const allUsers: FounderAuthUser[] = [];
+  const allUsers: PowerUserAuthUser[] = [];
   const perPage = 200;
   let page = 1;
 

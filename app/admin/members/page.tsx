@@ -1,33 +1,13 @@
 import { redirect } from "next/navigation";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createServerClient } from "@supabase/ssr";
 import { ErrorMessage, SuccessMessage } from "./MembersMessages";
 import type { InviteRow, MemberRow } from "./members-types";
 import { formatDate, getMemberRoleLabel } from "./members-utils";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import InviteActions from "./InviteActions";
 import { getAuthContext } from "@/lib/auth/context";
-
-async function getSupabaseServerClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {
-          // in Server Components nicht benötigt
-        },
-      },
-    }
-  );
-}
 
 function getAdminSupabase() {
   return createAdminClient(
@@ -37,14 +17,10 @@ function getAdminSupabase() {
 }
 
 function isAdminRole(role: string | null | undefined) {
-  return role === "admin" || role === "owner";
+  return role === "admin";
 }
 
 function getRoleChipClass(role: string | null | undefined) {
-  if (role === "owner") {
-    return "bg-amber-100 text-amber-800";
-  }
-
   if (role === "admin") {
     return "bg-slate-100 text-slate-700";
   }
@@ -110,7 +86,6 @@ export default async function AdminMembersPage({
   const success =
     typeof params.success === "string" ? params.success : undefined;
 
-  const supabase = await getSupabaseServerClient();
   const adminSupabase = getAdminSupabase();
   const origin = await getRequestOrigin();
   const ctx = await getAuthContext();
@@ -289,9 +264,8 @@ export default async function AdminMembersPage({
           ) : (
             memberRows.map((member) => {
               const isCurrentUser = member.user_id === ctx.user?.id;
-              const isOwner = member.role === "owner";
-              const canChangeRole = !isCurrentUser && !isOwner;
-              const canRemoveMember = !isCurrentUser && !isOwner;
+              const canChangeRole = !isCurrentUser;
+              const canRemoveMember = !isCurrentUser;
 
               return (
                 <div
@@ -366,9 +340,7 @@ export default async function AdminMembersPage({
                         </form>
                       ) : (
                         <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
-                          {isOwner
-                            ? "Owner wird hier bewusst nicht zur Rollenänderung angeboten."
-                            : "Deine eigene Rolle kannst du hier nicht ändern."}
+                          Deine eigene Rolle kannst du hier nicht ändern.
                         </div>
                       )}
                     </div>
@@ -394,9 +366,7 @@ export default async function AdminMembersPage({
                         </form>
                       ) : (
                         <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
-                          {isOwner
-                            ? "Owner wird hier bewusst nicht entfernt."
-                            : "Du kannst dich nicht selbst entfernen."}
+                          Du kannst dich nicht selbst entfernen.
                         </div>
                       )}
                     </div>
