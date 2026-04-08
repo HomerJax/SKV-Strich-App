@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 export type PowerClubSwitcherClub = {
   id: string;
@@ -16,6 +17,8 @@ type PowerClubSwitcherProps = {
   activeLogoSrc: string | null;
   primaryColor: string;
   clubs: PowerClubSwitcherClub[];
+  canCreateClub?: boolean;
+  createClubHref?: string;
 };
 
 export default function PowerClubSwitcher({
@@ -25,6 +28,8 @@ export default function PowerClubSwitcher({
   activeLogoSrc,
   primaryColor,
   clubs,
+  canCreateClub = false,
+  createClubHref = "/create-club",
 }: PowerClubSwitcherProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -63,8 +68,7 @@ export default function PowerClubSwitcher({
     return clubs.filter((club) => club.name.toLowerCase().includes(normalized));
   }, [clubs, query]);
 
-  async function handleSelectClub(clubId: string) {
-    if (!isPowerUser) return;
+  function handleSelectClub(clubId: string) {
     if (!clubId) return;
 
     if (clubId === activeClubId) {
@@ -72,59 +76,27 @@ export default function PowerClubSwitcher({
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const response = await fetch("/api/power-user/switch-club", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ clubId }),
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          const body = (await response.json().catch(() => null)) as
-            | { error?: string; redirectTo?: string }
-            | null;
-
-          throw new Error(body?.error || "Club-Wechsel fehlgeschlagen");
-        }
-
-        const body = (await response.json().catch(() => null)) as
-          | { ok?: boolean; redirectTo?: string }
-          | null;
-
-        const redirectTo = body?.redirectTo || "/";
-
-        setOpen(false);
-
-        window.location.assign(redirectTo);
-      } catch (error) {
-        console.error(error);
-        window.alert("Club-Wechsel fehlgeschlagen.");
-      }
+    startTransition(() => {
+      setOpen(false);
+      window.location.assign(
+        `/api/select-club?clubId=${encodeURIComponent(clubId)}`
+      );
     });
   }
+
+  const shouldShowSearch = isPowerUser && clubs.length > 0;
 
   return (
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        aria-label={
-          isPowerUser
-            ? "Aktiven Verein wechseln"
-            : activeClubName ?? "Aktiver Verein"
-        }
-        aria-haspopup={isPowerUser ? "menu" : undefined}
-        aria-expanded={isPowerUser ? open : undefined}
-        onClick={() => {
-          if (!isPowerUser) return;
-          setOpen((prev) => !prev);
-        }}
-        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-white shadow-md transition ${
-          isPowerUser ? "hover:scale-[1.02] active:scale-[0.98]" : ""
-        } ${pending ? "opacity-70" : ""}`}
+        aria-label="Aktiven Verein öffnen"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-white shadow-md transition hover:scale-[1.02] active:scale-[0.98] ${
+          pending ? "opacity-70" : ""
+        }`}
         style={{ borderColor: `${primaryColor}33` }}
         disabled={pending}
       >
@@ -153,32 +125,34 @@ export default function PowerClubSwitcher({
         ) : null}
       </button>
 
-      {isPowerUser && open ? (
+      {open ? (
         <div
           className="absolute right-0 top-14 z-50 w-[320px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
           role="menu"
         >
           <div className="border-b border-slate-100 px-4 py-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              PowerUser
+              {isPowerUser ? "PowerUser" : "Verein"}
             </div>
             <div className="mt-1 text-sm font-semibold text-slate-900">
-              Verein wechseln
+              {clubs.length > 1 ? "Verein wechseln" : "Aktiver Verein"}
             </div>
             <div className="mt-1 text-xs text-slate-500">
               Aktuell: {activeClubName ?? "Kein Verein gewählt"}
             </div>
           </div>
 
-          <div className="border-b border-slate-100 p-3">
-            <input
-              type="text"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Verein suchen..."
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-300"
-            />
-          </div>
+          {shouldShowSearch ? (
+            <div className="border-b border-slate-100 p-3">
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Verein suchen..."
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-300"
+              />
+            </div>
+          ) : null}
 
           <div className="max-h-[320px] overflow-y-auto p-2">
             {filteredClubs.length === 0 ? (
@@ -239,6 +213,29 @@ export default function PowerClubSwitcher({
               })
             )}
           </div>
+
+          {canCreateClub ? (
+            <div className="border-t border-slate-100 p-2">
+              <Link
+                href={createClubHref}
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-slate-50"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-lg font-semibold text-slate-700">
+                  +
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-slate-900">
+                    Club erstellen
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    Neuen Verein anlegen und direkt öffnen
+                  </div>
+                </div>
+              </Link>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

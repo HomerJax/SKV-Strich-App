@@ -44,10 +44,14 @@ export default async function AppHeader() {
   let logoSrc: string | null = null;
   let primaryColor = COLOR_MAP.black;
   let showPlayerStatsLink = false;
-  let powerUserClubs: PowerClubSwitcherClub[] = [];
+  let switcherClubs: PowerClubSwitcherClub[] = [];
 
   if (ctx.user) {
     const supabase = await createClient();
+
+    const membershipClubIds = Array.from(
+      new Set(ctx.memberships.map((membership) => membership.club_id))
+    );
 
     const activeClubPromise = fallbackClubId
       ? supabase
@@ -61,18 +65,25 @@ export default async function AppHeader() {
       ? getFeatureFlagsForClub(fallbackClubId)
       : Promise.resolve({ player_stats_overview: false });
 
-    const allClubsPromise = ctx.isPowerUser
+    const visibleClubsPromise = ctx.isPowerUser
       ? supabase
           .from("clubs")
           .select("id, display_name, name, logo_path, primary_color")
           .order("display_name", { ascending: true })
           .returns<ClubRow[]>()
-      : Promise.resolve({ data: [], error: null });
+      : membershipClubIds.length > 0
+        ? supabase
+            .from("clubs")
+            .select("id, display_name, name, logo_path, primary_color")
+            .in("id", membershipClubIds)
+            .order("display_name", { ascending: true })
+            .returns<ClubRow[]>()
+        : Promise.resolve({ data: [], error: null });
 
-    const [{ data: club }, flags, { data: allClubs }] = await Promise.all([
+    const [{ data: club }, flags, { data: visibleClubs }] = await Promise.all([
       activeClubPromise,
       flagsPromise,
-      allClubsPromise,
+      visibleClubsPromise,
     ]);
 
     clubName = club ? getClubLabel(club) : null;
@@ -87,8 +98,8 @@ export default async function AppHeader() {
       logoSrc = data?.publicUrl ?? null;
     }
 
-    if (ctx.isPowerUser && allClubs?.length) {
-      powerUserClubs = allClubs.map((clubRow) => {
+    if (visibleClubs?.length) {
+      switcherClubs = visibleClubs.map((clubRow) => {
         let clubLogoSrc: string | null = null;
 
         if (clubRow.logo_path) {
@@ -187,7 +198,9 @@ export default async function AppHeader() {
                 activeClubName={clubName}
                 activeLogoSrc={logoSrc}
                 primaryColor={primaryColor}
-                clubs={powerUserClubs}
+                clubs={switcherClubs}
+                canCreateClub={true}
+                createClubHref="/create-club"
               />
             </div>
           ) : null}

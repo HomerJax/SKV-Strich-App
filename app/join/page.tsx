@@ -67,7 +67,7 @@ export default async function JoinPage({
 
   const { data: invite, error: inviteError } = await adminSupabase
     .from("invites")
-    .select("club_id, role, expires_at")
+    .select("id, club_id, role, expires_at, accepted_at")
     .eq("token", token)
     .maybeSingle();
 
@@ -100,7 +100,6 @@ export default async function JoinPage({
       .select("id")
       .eq("user_id", user.id)
       .eq("is_guest", false)
-      .limit(1)
       .maybeSingle();
 
     hasPlayer = Boolean(player);
@@ -109,6 +108,8 @@ export default async function JoinPage({
   const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;
   const signupHref = `/signup?next=${encodeURIComponent(joinPath)}`;
   const onboardingHref = `/onboarding?next=${encodeURIComponent(joinPath)}`;
+
+  const shouldAutoAccept = !expired && !!user && hasPlayer;
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
@@ -187,6 +188,33 @@ export default async function JoinPage({
               Danach geht es direkt mit deiner Einladung weiter.
             </p>
           </div>
+        ) : shouldAutoAccept ? (
+          <>
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Einladung wird automatisch angenommen …
+            </div>
+
+            <form id="auto-join-form" method="post" action="/api/join">
+              <input type="hidden" name="token" value={token} />
+              <noscript>
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+                >
+                  Einladung annehmen
+                </button>
+              </noscript>
+            </form>
+
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  const form = document.getElementById("auto-join-form");
+                  if (form) form.submit();
+                `,
+              }}
+            />
+          </>
         ) : (
           <form method="post" action="/api/join">
             <input type="hidden" name="token" value={token} />

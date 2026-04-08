@@ -12,7 +12,7 @@ function buildRedirect(url: URL, pathname: string, params?: Record<string, strin
     }
   }
 
-  return NextResponse.redirect(nextUrl);
+  return NextResponse.redirect(nextUrl, { status: 303 });
 }
 
 function isInviteExpired(expiresAt: string | null) {
@@ -70,7 +70,6 @@ export async function POST(request: Request) {
     .select("id, club_id")
     .eq("user_id", user.id)
     .eq("is_guest", false)
-    .limit(1)
     .maybeSingle();
 
   if (playerError) {
@@ -88,7 +87,7 @@ export async function POST(request: Request) {
 
   const { data: invite, error: inviteError } = await adminSupabase
     .from("invites")
-    .select("id, club_id, role, expires_at")
+    .select("id, club_id, role, expires_at, accepted_at")
     .eq("token", token)
     .maybeSingle();
 
@@ -106,13 +105,15 @@ export async function POST(request: Request) {
     });
   }
 
+  const membershipRole = invite.role === "admin" ? "admin" : "member";
+
   const { error: membershipError } = await adminSupabase
     .from("club_memberships")
     .upsert(
       {
         club_id: invite.club_id,
         user_id: user.id,
-        role: invite.role === "admin" ? "admin" : "member",
+        role: membershipRole,
       },
       {
         onConflict: "club_id,user_id",
@@ -142,14 +143,32 @@ export async function POST(request: Request) {
     }
   }
 
+  if (!invite.accepted_at) {
+    const { error: inviteUpdateError } = await adminSupabase
+      .from("invites")
+      .update({
+        accepted_at: new Date().toISOString(),
+      })
+      .eq("id", invite.id);
+
+    if (inviteUpdateError) {
+      return buildRedirect(requestUrl, "/join", {
+        token,
+        error: "Clubbeitritt gespeichert, aber Einladung konnte nicht finalisiert werden.",
+      });
+    }
+  }
+
   const response = buildRedirect(requestUrl, "/", {
     message: "Club erfolgreich beigetreten.",
   });
 
   response.cookies.set("active_club_id", invite.club_id, {
     path: "/",
+    maxAge: 60 * 60 * 24 * 365,
     sameSite: "lax",
     httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
   });
 
   return response;

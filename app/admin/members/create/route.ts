@@ -1,7 +1,9 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { getAuthContext } from "@/lib/auth/context";
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -45,44 +47,49 @@ export async function POST(request: Request) {
 
     const supabase = await getSupabaseServerClient();
     const origin = await getRequestOrigin();
+    const ctx = await getAuthContext();
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.redirect(new URL("/login", origin));
+    if (!ctx.user) {
+      return NextResponse.redirect(new URL("/login", origin), { status: 303 });
     }
 
-    const { data: membership, error: membershipError } = await supabase
-      .from("club_memberships")
-      .select("club_id, role")
-      .eq("user_id", user.id)
-      .single();
+    if (!ctx.activeClubId) {
+      return NextResponse.redirect(new URL("/select-club", origin), {
+        status: 303,
+      });
+    }
 
-    if (membershipError || !membership || !isAdminRole(membership.role)) {
-      return NextResponse.redirect(new URL("/sessions", origin));
+    const activeMembership =
+      ctx.memberships.find((membership) => membership.club_id === ctx.activeClubId) ??
+      null;
+
+    const hasAdminAccess =
+      ctx.isPowerUser || isAdminRole(activeMembership?.role ?? null);
+
+    if (!hasAdminAccess) {
+      return NextResponse.redirect(new URL("/sessions", origin), { status: 303 });
     }
 
     const token = randomBytes(24).toString("hex");
 
     const { error: insertError } = await supabase.from("invites").insert({
-      club_id: membership.club_id,
+      club_id: ctx.activeClubId,
       token,
       role,
-      invited_by: user.id,
+      invited_by: ctx.user.id,
     });
 
     if (insertError) {
       console.error("create invite insertError:", insertError);
       return NextResponse.redirect(
-        new URL("/admin/members?error=invite_create_failed", origin)
+        new URL("/admin/members?error=invite_create_failed", origin),
+        { status: 303 }
       );
     }
 
     return NextResponse.redirect(
-      new URL(`/admin/members?created=${token}`, origin)
+      new URL(`/admin/members?created=${token}`, origin),
+      { status: 303 }
     );
   } catch (error) {
     console.error("create invite unexpected error:", error);
@@ -90,7 +97,8 @@ export async function POST(request: Request) {
     const origin = await getRequestOrigin();
 
     return NextResponse.redirect(
-      new URL("/admin/members?error=invite_create_failed", origin)
+      new URL("/admin/members?error=invite_create_failed", origin),
+      { status: 303 }
     );
   }
 }

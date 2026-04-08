@@ -119,7 +119,7 @@ export async function getAuthContext(): Promise<AuthContext> {
       }
     }
 
-    if (!activeClubId && finalMemberships.length === 1) {
+    if (!activeClubId && finalMemberships.length > 0) {
       activeClubId = finalMemberships[0].club_id;
     }
   } else {
@@ -127,11 +127,13 @@ export async function getAuthContext(): Promise<AuthContext> {
       ? finalMemberships.some((membership) => membership.club_id === cookieClubId)
       : false;
 
-    activeClubId = hasCookieMembership
-      ? cookieClubId
-      : finalMemberships.length === 1
-        ? finalMemberships[0].club_id
-        : null;
+    if (hasCookieMembership) {
+      activeClubId = cookieClubId;
+    } else if (finalMemberships.length === 1) {
+      activeClubId = finalMemberships[0].club_id;
+    } else {
+      activeClubId = null;
+    }
   }
 
   return {
