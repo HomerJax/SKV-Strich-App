@@ -316,21 +316,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         </div>
       </div>
 
-      <SessionEndModal
+            <SessionEndModal
         open={showSessionEndModal}
         onClose={() => setShowSessionEndModal(false)}
-        teamA={{
-          name: autoTeamNames.a,
-          players: teamA.map((player) =>
-            getPlayerDisplayName(player, { useNicknames })
-          ),
-        }}
-        teamB={{
-          name: autoTeamNames.b,
-          players: teamB.map((player) =>
-            getPlayerDisplayName(player, { useNicknames })
-          ),
-        }}
         scoreA={scoreAValue}
         scoreB={scoreBValue}
         wasUnderdog={false}
