@@ -117,7 +117,9 @@ ${sessionUrl}`;
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
             <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm font-semibold text-slate-500">Spielmoment</div>
+              <div className="text-sm font-semibold text-slate-500">
+                Spielmoment
+              </div>
               <div className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950">
                 {headline}
               </div>
@@ -160,8 +162,8 @@ ${sessionUrl}`;
                   MVP Voting beginnt jetzt
                 </div>
                 <div className="mt-1 text-sm text-amber-800">
-                  Teile den Link mit eurer Gruppe. Abgestimmt wird direkt in dieser
-                  Session im Bereich „MVP Voting“.
+                  Teile den Link mit eurer Gruppe. Abgestimmt wird direkt in
+                  dieser Session im Bereich „MVP Voting“.
                 </div>
               </div>
 
