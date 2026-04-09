@@ -12,12 +12,35 @@ type ClubRow = {
   primary_color: string | null;
 };
 
+type SessionRow = {
+  id: number;
+  date: string;
+  notes: string | null;
+};
+
 const COLOR_MAP: Record<string, string> = {
   black: "#020617",
   blue: "#1d4ed8",
   red: "#dc2626",
   green: "#16a34a",
 };
+
+function fmtDateShort(iso: string) {
+  return new Date(iso).toLocaleDateString("de-DE", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
+function fmtDateLong(iso: string) {
+  return new Date(iso).toLocaleDateString("de-DE", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
 function StepCard({
   done,
@@ -85,15 +108,56 @@ function QuickStartCard({
   );
 }
 
+function HomeActionCard({
+  eyebrow,
+  title,
+  text,
+  href,
+  cta,
+  accent = "slate",
+}: {
+  eyebrow: string;
+  title: string;
+  text: string;
+  href: string;
+  cta: string;
+  accent?: "slate" | "amber";
+}) {
+  const accentClasses =
+    accent === "amber"
+      ? "border-amber-200 bg-amber-50"
+      : "border-black/10 bg-white";
+
+  return (
+    <section className={`rounded-[24px] border p-5 shadow-sm ${accentClasses}`}>
+      <div className="text-sm font-semibold text-slate-500">{eyebrow}</div>
+      <h2 className="mt-1 text-xl font-bold text-slate-950">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+
+      <div className="mt-4">
+        <Link
+          href={href}
+          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+        >
+          {cta}
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export default async function HomePage() {
   const [{ clubId }, ctx] = await Promise.all([requireClub(), getAuthContext()]);
   const supabase = await createClient();
+
+  const today = new Date().toISOString().slice(0, 10);
 
   const [
     { data: clubData },
     { count: invitesCount },
     { count: sessionsCount },
     { count: seasonsCount },
+    { data: nextSessionData },
   ] = await Promise.all([
     supabase
       .from("clubs")
@@ -112,9 +176,19 @@ export default async function HomePage() {
       .from("seasons")
       .select("*", { count: "exact", head: true })
       .eq("club_id", clubId),
+    supabase
+      .from("sessions")
+      .select("id, date, notes")
+      .eq("club_id", clubId)
+      .gte("date", today)
+      .order("date", { ascending: true })
+      .limit(1)
+      .maybeSingle<SessionRow>(),
   ]);
 
   const club = (clubData ?? null) as ClubRow | null;
+  const nextSession = (nextSessionData ?? null) as SessionRow | null;
+
   const clubName = club?.display_name?.trim() || "Dein Team";
 
   const selectedColor = club?.primary_color ?? "black";
@@ -134,15 +208,14 @@ export default async function HomePage() {
   let clubLogoUrl: string | null = null;
 
   if (club?.logo_path) {
-    const { data } = supabase.storage
-      .from("club-logos")
-      .getPublicUrl(club.logo_path);
-
+    const { data } = supabase.storage.from("club-logos").getPublicUrl(club.logo_path);
     clubLogoUrl = data?.publicUrl ?? null;
   }
 
   const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
   const hasSessions = (sessionsCount ?? 0) > 0;
+
+  const showCompactQuickStart = Boolean(nextSession);
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
@@ -197,6 +270,37 @@ export default async function HomePage() {
           </div>
         </div>
 
+        {nextSession ? (
+          <HomeActionCard
+            eyebrow="Nächstes Training"
+            title={fmtDateLong(nextSession.date)}
+            text={
+              nextSession.notes?.trim()
+                ? nextSession.notes.trim()
+                : "Dein nächstes Training ist bereits angelegt."
+            }
+            href={`/sessions/${nextSession.id}`}
+            cta="Zur Session"
+          />
+        ) : (
+          <HomeActionCard
+            eyebrow="Nächstes Training"
+            title="Noch kein Training geplant"
+            text="Lege direkt eine neue Session an, damit euer nächstes Training vorbereitet ist."
+            href="/sessions/new"
+            cta="Training anlegen"
+          />
+        )}
+
+        <HomeActionCard
+          eyebrow="MVP Voting"
+          title="Laufendes Voting kompakt im Blick"
+          text="Sobald ein Voting aktiv ist, sollte hier ein kompakter Hinweis mit direktem Sprung zur Session erscheinen."
+          href="/sessions"
+          cta="Zu den Sessions"
+          accent="amber"
+        />
+
         <section className="rounded-[20px] border border-black/10 bg-white p-4 shadow-sm">
           <div className="mb-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -215,37 +319,12 @@ export default async function HomePage() {
             />
 
             <QuickStartCard
-              title="Stats & Sessions"
+              title={showCompactQuickStart ? "Alle Sessions" : "Stats & Sessions"}
               text={hasSessions ? "Verlauf ansehen" : "Stats ansehen"}
               href={hasSessions ? "/sessions" : "/stats"}
             />
           </div>
         </section>
-
-        <Link
-          href="/about"
-          className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="text-sm font-semibold text-slate-500">
-            Über Strikr
-          </div>
-
-          <h2 className="mt-1 text-xl font-bold text-slate-950">
-            Vom Bierdeckel zur Web-App 🍻⚽
-          </h2>
-
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Angefangen mit Strichen auf Papier, dann Excel und irgendwann die
-            Frage: Warum sind Teams eigentlich immer unfair?
-            <br />
-            Daraus entstand Strikr – mit dem Ziel, Training besser, fairer und
-            spannender zu machen.
-          </p>
-
-          <div className="mt-3 text-sm font-semibold text-slate-900">
-            Geschichte lesen →
-          </div>
-        </Link>
 
         {showGettingStarted ? (
           <section className="flex flex-col gap-3">
@@ -278,6 +357,54 @@ export default async function HomePage() {
                 className="mt-2 inline-block text-sm font-medium text-slate-900"
               >
                 Über Strikr ansehen
+              </Link>
+            </div>
+          </section>
+        ) : (
+          <Link
+            href="/about"
+            className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="text-sm font-semibold text-slate-500">Über Strikr</div>
+
+            <h2 className="mt-1 text-xl font-bold text-slate-950">
+              Vom Bierdeckel zur Web-App 🍻⚽
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Angefangen mit Strichen auf Papier, dann Excel und irgendwann die
+              Frage: Warum sind Teams eigentlich immer unfair?
+              <br />
+              Daraus entstand Strikr – mit dem Ziel, Training besser, fairer und
+              spannender zu machen.
+            </p>
+
+            <div className="mt-3 text-sm font-semibold text-slate-900">
+              Geschichte lesen →
+            </div>
+          </Link>
+        )}
+
+        {nextSession ? (
+          <section className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
+            <div className="text-sm font-semibold text-slate-500">
+              Kommendes Training
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                {fmtDateShort(nextSession.date)}
+              </div>
+              <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                Session #{nextSession.id}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <Link
+                href={`/sessions/${nextSession.id}`}
+                className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Training öffnen
               </Link>
             </div>
           </section>
