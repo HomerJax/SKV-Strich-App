@@ -181,16 +181,29 @@ export function useSessionDetail({
     return payload;
   }
 
+  function preserveScrollPosition() {
+    if (typeof window === "undefined") {
+      return () => {};
+    }
+
+    const x = window.scrollX;
+    const y = window.scrollY;
+
+    return () => {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({
+          left: x,
+          top: y,
+          behavior: "auto",
+        });
+      });
+    };
+  }
+
   useEffect(() => {
     if (initialHasResult) {
-      const id = window.setTimeout(() => {
-        resultRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 120);
-
-      return () => window.clearTimeout(id);
+      setAttendanceCollapsed(true);
+      setTeamsCollapsed(true);
     }
   }, [initialHasResult]);
 
@@ -448,6 +461,8 @@ ${sessionUrl}`;
 
     if (!okConfirm) return;
 
+    const restoreScroll = preserveScrollPosition();
+
     try {
       setDeletingSession(true);
       setErr(null);
@@ -466,6 +481,7 @@ ${sessionUrl}`;
       setErr(getErrorMessage(e, "Session konnte nicht gelöscht werden."));
     } finally {
       setDeletingSession(false);
+      restoreScroll();
     }
   }
 
@@ -489,6 +505,8 @@ ${sessionUrl}`;
     if (hasResult || savingPresence || !attendanceDirty || deletingSession) {
       return;
     }
+
+    const restoreScroll = preserveScrollPosition();
 
     try {
       setSavingPresence(true);
@@ -533,21 +551,17 @@ ${sessionUrl}`;
 
       setAttendanceCollapsed(true);
       setMsg("Anwesenheit gespeichert.");
-
-      window.setTimeout(() => {
-        teamsRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 120);
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Anwesenheit konnte nicht gespeichert werden."));
     } finally {
       setSavingPresence(false);
+      restoreScroll();
     }
   }
 
   async function addGuestPlayer() {
+    const restoreScroll = preserveScrollPosition();
+
     try {
       if (!isAdmin) {
         throw new Error(
@@ -606,6 +620,7 @@ ${sessionUrl}`;
       setErr(getErrorMessage(e, "Gastspieler konnte nicht angelegt werden."));
     } finally {
       setGuestSaving(false);
+      restoreScroll();
     }
   }
 
@@ -622,12 +637,15 @@ ${sessionUrl}`;
       return;
     }
 
+    const restoreScroll = preserveScrollPosition();
+
     setErr(null);
     setMsg(null);
 
     const present = presentPlayers;
     if (present.length < 2) {
       setErr("Mindestens 2 Spieler nötig.");
+      restoreScroll();
       return;
     }
 
@@ -713,6 +731,7 @@ ${sessionUrl}`;
 
     if (bestA.length === 0 && bestB.length === 0) {
       setErr("Konnte keine gültige Aufteilung finden (unerwartet).");
+      restoreScroll();
       return;
     }
 
@@ -748,13 +767,7 @@ ${sessionUrl}`;
     }
 
     setTeamsCollapsed(false);
-
-    window.setTimeout(() => {
-      resultRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 120);
+    restoreScroll();
   }
 
   function setSide(playerId: number, side: TeamSide | null) {
@@ -802,6 +815,8 @@ ${sessionUrl}`;
     );
     if (!okConfirm) return;
 
+    const restoreScroll = preserveScrollPosition();
+
     try {
       setSaving(true);
       setErr(null);
@@ -831,6 +846,7 @@ ${sessionUrl}`;
       setErr(getErrorMessage(e, "Fehler beim Speichern."));
     } finally {
       setSaving(false);
+      restoreScroll();
     }
   }
 
@@ -841,6 +857,8 @@ ${sessionUrl}`;
       "Ergebnis wirklich löschen?\nDanach sind Aufstellungen & Anwesenheit wieder bearbeitbar."
     );
     if (!okConfirm) return;
+
+    const restoreScroll = preserveScrollPosition();
 
     try {
       setSaving(true);
@@ -865,6 +883,7 @@ ${sessionUrl}`;
       setErr(getErrorMessage(e, "Fehler beim Löschen des Ergebnisses."));
     } finally {
       setSaving(false);
+      restoreScroll();
     }
   }
 
@@ -887,6 +906,8 @@ ${sessionUrl}`;
     }
 
     if (photoBusy || saving || deletingSession) return;
+
+    const restoreScroll = preserveScrollPosition();
 
     try {
       setPhotoBusy(true);
@@ -913,6 +934,7 @@ ${sessionUrl}`;
       setErr(getErrorMessage(e, "Siegerfoto konnte nicht hochgeladen werden."));
     } finally {
       setPhotoBusy(false);
+      restoreScroll();
     }
   }
 
@@ -926,6 +948,8 @@ ${sessionUrl}`;
 
     const okConfirm = window.confirm("Siegerfoto wirklich löschen?");
     if (!okConfirm) return;
+
+    const restoreScroll = preserveScrollPosition();
 
     try {
       setPhotoBusy(true);
@@ -951,6 +975,7 @@ ${sessionUrl}`;
       setErr(getErrorMessage(e, "Siegerfoto konnte nicht gelöscht werden."));
     } finally {
       setPhotoBusy(false);
+      restoreScroll();
     }
   }
 
