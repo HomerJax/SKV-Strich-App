@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getAuthContext } from "@/lib/auth/context";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
 
 type ClubRow = {
@@ -146,11 +147,65 @@ function HomeActionCard({
   );
 }
 
+function getPartsInBerlin(date: Date) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return {
+    dateKey: `${map.year}-${map.month}-${map.day}`,
+    timeKey: `${map.hour}:${map.minute}`,
+  };
+}
+
+function addOneDay(dateString: string) {
+  const [year, month, day] = dateString.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return dateString;
+  }
+
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  date.setUTCDate(date.getUTCDate() + 1);
+
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getRevealInfo(sessionDate: string) {
+  const revealDate = addOneDay(sessionDate);
+  const now = getPartsInBerlin(new Date());
+
+  const votingOpen =
+    now.dateKey < revealDate ||
+    (now.dateKey === revealDate && now.timeKey < "10:00");
+
+  return {
+    revealDate,
+    revealLabel: `${revealDate} 10:00`,
+    votingOpen,
+  };
+}
+
 export default async function HomePage() {
   const [{ clubId }, ctx] = await Promise.all([requireClub(), getAuthContext()]);
   const supabase = await createClient();
 
   const today = new Date().toISOString().slice(0, 10);
+  const featureFlags = await getFeatureFlagsForClub(clubId);
+  const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
 
   const [
     { data: clubData },
@@ -158,6 +213,7 @@ export default async function HomePage() {
     { count: sessionsCount },
     { count: seasonsCount },
     { data: nextSessionData },
+    { data: recentSessionsData },
   ] = await Promise.all([
     supabase
       .from("clubs")
@@ -184,10 +240,17 @@ export default async function HomePage() {
       .order("date", { ascending: true })
       .limit(1)
       .maybeSingle<SessionRow>(),
+    supabase
+      .from("sessions")
+      .select("id, date, notes")
+      .eq("club_id", clubId)
+      .order("date", { ascending: false })
+      .limit(12),
   ]);
 
   const club = (clubData ?? null) as ClubRow | null;
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
+  const recentSessions = (recentSessionsData ?? []) as SessionRow[];
 
   const clubName = club?.display_name?.trim() || "Dein Team";
 
@@ -214,8 +277,23 @@ export default async function HomePage() {
 
   const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
   const hasSessions = (sessionsCount ?? 0) > 0;
-
   const showCompactQuickStart = Boolean(nextSession);
+
+  let activeVotingSession: SessionRow | null = null;
+
+  if (mvpVotingEnabled) {
+    for (const session of recentSessions) {
+      const reveal = getRevealInfo(session.date);
+      if (reveal.votingOpen) {
+        activeVotingSession = session;
+        break;
+      }
+    }
+  }
+
+  const activeVotingReveal = activeVotingSession
+    ? getRevealInfo(activeVotingSession.date)
+    : null;
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
@@ -292,14 +370,27 @@ export default async function HomePage() {
           />
         )}
 
-        <HomeActionCard
-          eyebrow="MVP Voting"
-          title="Laufendes Voting kompakt im Blick"
-          text="Sobald ein Voting aktiv ist, sollte hier ein kompakter Hinweis mit direktem Sprung zur Session erscheinen."
-          href="/sessions"
-          cta="Zu den Sessions"
-          accent="amber"
-        />
+        {activeVotingSession && activeVotingReveal ? (
+          <section className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                  MVP Voting läuft
+                </div>
+                <div className="mt-1 text-sm font-semibold text-slate-900">
+                  Offen bis {activeVotingReveal.revealLabel}
+                </div>
+              </div>
+
+              <Link
+                href={`/sessions/${activeVotingSession.id}`}
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Zum Voting
+              </Link>
+            </div>
+          </section>
+        ) : null}
 
         <section className="rounded-[20px] border border-black/10 bg-white p-4 shadow-sm">
           <div className="mb-3">
