@@ -23,6 +23,11 @@ type ResultSessionRow = {
   session_id: number;
 };
 
+type VotingStatusRow = {
+  id: number;
+  mvp_voting_closed_at: string | null;
+};
+
 const COLOR_MAP: Record<string, string> = {
   black: "#020617",
   blue: "#1d4ed8",
@@ -223,10 +228,16 @@ export default async function HomePage() {
   let activeVotingSession: SessionRow | null = null;
 
   if (mvpVotingEnabled && recentSessionIds.length > 0) {
-    const { data: resultsData } = await supabase
-      .from("results")
-      .select("session_id")
-      .in("session_id", recentSessionIds);
+    const [{ data: resultsData }, { data: votingStatusData }] = await Promise.all([
+      supabase
+        .from("results")
+        .select("session_id")
+        .in("session_id", recentSessionIds),
+      supabase
+        .from("sessions")
+        .select("id, mvp_voting_closed_at")
+        .in("id", recentSessionIds),
+    ]);
 
     const resultSessionIds = new Set(
       ((resultsData ?? []) as ResultSessionRow[]).map((row) =>
@@ -234,8 +245,17 @@ export default async function HomePage() {
       )
     );
 
+    const openVotingSessionIds = new Set(
+      ((votingStatusData ?? []) as VotingStatusRow[])
+        .filter((row) => !row.mvp_voting_closed_at)
+        .map((row) => Number(row.id))
+    );
+
     activeVotingSession =
-      recentSessions.find((session) => resultSessionIds.has(session.id)) ?? null;
+      recentSessions.find(
+        (session) =>
+          resultSessionIds.has(session.id) && openVotingSessionIds.has(session.id)
+      ) ?? null;
   }
 
   return (

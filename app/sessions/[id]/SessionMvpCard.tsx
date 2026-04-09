@@ -49,6 +49,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [saving, setSaving] = useState(false);
   const [endingVoting, setEndingVoting] = useState(false);
+  const [reopeningVoting, setReopeningVoting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [forceOpen, setForceOpen] = useState(false);
@@ -89,7 +90,10 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
   const selectedPlayerName = useMemo(() => {
     if (!state || !selectedPlayerId) return null;
-    return state.participants.find((player) => player.id === selectedPlayerId)?.name ?? null;
+    return (
+      state.participants.find((player) => player.id === selectedPlayerId)?.name ??
+      null
+    );
   }, [state, selectedPlayerId]);
 
   async function handleVoteSubmit() {
@@ -163,6 +167,44 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setErr(message);
     } finally {
       setEndingVoting(false);
+    }
+  }
+
+  async function handleReopenVoting() {
+    if (reopeningVoting) return;
+
+    try {
+      setReopeningVoting(true);
+      setErr(null);
+      setMsg(null);
+
+      const response = await fetch(`/api/sessions/${sessionId}/mvp`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "reopenVoting",
+        }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Voting konnte nicht neu gestartet werden.");
+      }
+
+      setForceOpen(false);
+      setSelectedPlayerId(null);
+      setMsg("Voting wurde neu gestartet.");
+      await loadMvpState(false);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Voting konnte nicht neu gestartet werden.";
+      setErr(message);
+    } finally {
+      setReopeningVoting(false);
     }
   }
 
@@ -283,6 +325,17 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               </div>
             </div>
           ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleReopenVoting}
+              disabled={reopeningVoting}
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {reopeningVoting ? "Startet neu..." : "Voting neu starten (Test)"}
+            </button>
+          </div>
         </div>
       ) : state.canVote ? (
         state.userHasVoted ? (

@@ -571,6 +571,58 @@ export async function POST(
       });
     }
 
+    if (body?.action === "reopenVoting") {
+      const admin = createAdminClient();
+
+      const { error: reopenError } = await admin
+        .from("sessions")
+        .update({
+          mvp_voting_closed_at: null,
+        })
+        .eq("id", sessionId)
+        .eq("club_id", clubId);
+
+      if (reopenError) {
+        return fail(
+          `Voting konnte nicht neu gestartet werden: ${reopenError.message}`,
+          500
+        );
+      }
+
+      const { error: deleteVotesError } = await admin
+        .from("session_mvp_votes")
+        .delete()
+        .eq("session_id", sessionId)
+        .eq("club_id", clubId);
+
+      if (deleteVotesError) {
+        return fail(
+          `Votes konnten nicht gelöscht werden: ${deleteVotesError.message}`,
+          500
+        );
+      }
+
+      const { error: deleteNotificationsError } = await admin
+        .from("user_notifications")
+        .delete()
+        .eq("club_id", clubId)
+        .or(
+          `dedupe_key.like.mvp_result_session_${sessionId}_%,dedupe_key.like.mvp_winner_session_${sessionId}_%`
+        );
+
+      if (deleteNotificationsError) {
+        return fail(
+          `Notifications konnten nicht gelöscht werden: ${deleteNotificationsError.message}`,
+          500
+        );
+      }
+
+      return ok({
+        message: "Voting wurde neu gestartet.",
+        reopened: true,
+      });
+    }
+
     const { data: closedSessionData, error: closedSessionError } = await supabase
       .from("sessions")
       .select("mvp_voting_closed_at")
