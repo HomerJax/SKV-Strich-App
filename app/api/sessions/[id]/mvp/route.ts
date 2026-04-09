@@ -311,7 +311,7 @@ function buildResults(
 }
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const resolvedParams = await context.params;
@@ -360,38 +360,7 @@ export async function GET(
     }
 
     const hasResult = Boolean(resultData?.id);
-
     const reveal = getRevealInfo(session.date);
-    const forceOpen = request.nextUrl.searchParams.get("forceOpen") === "1";
-
-    const { data: closedSessionData, error: closedSessionError } = await supabase
-      .from("sessions")
-      .select("mvp_voting_closed_at")
-      .eq("id", sessionId)
-      .eq("club_id", clubId)
-      .maybeSingle();
-
-    if (closedSessionError) {
-      return fail(
-        `Voting-Status konnte nicht geladen werden: ${closedSessionError.message}`,
-        500
-      );
-    }
-
-    const manuallyClosed = Boolean(
-      (closedSessionData as { mvp_voting_closed_at?: string | null } | null)
-        ?.mvp_voting_closed_at
-    );
-
-    if (manuallyClosed) {
-      reveal.votingOpen = false;
-    } else {
-      reveal.votingOpen = true;
-    }
-
-    if (forceOpen) {
-      reveal.votingOpen = true;
-    }
 
     const presentPlayers = await loadPresentPlayers(supabase, clubId, sessionId);
 
@@ -421,7 +390,7 @@ export async function GET(
       totalVotes: number;
     } | null = null;
 
-    if (!reveal.votingOpen && !forceOpen) {
+    if (!reveal.votingOpen) {
       const { data: votesData, error: votesError } = await supabase
         .from("session_mvp_votes")
         .select("voted_player_id")
@@ -522,139 +491,14 @@ export async function POST(
     }
 
     const reveal = getRevealInfo(session.date);
-    const forceOpen = request.nextUrl.searchParams.get("forceOpen") === "1";
-
-    const body = (await request.json().catch(() => null)) as
-      | { votedPlayerId?: number | string | null; action?: string | null }
-      | null;
-
-    if (body?.action === "endVoting") {
-      const { error: closeError } = await supabase
-        .from("sessions")
-        .update({
-          mvp_voting_closed_at: new Date().toISOString(),
-        })
-        .eq("id", sessionId)
-        .eq("club_id", clubId);
-
-      if (closeError) {
-        return fail(`Voting konnte nicht beendet werden: ${closeError.message}`, 500);
-      }
-
-      const presentPlayers = await loadPresentPlayers(supabase, clubId, sessionId);
-
-      const { data: votesData, error: votesError } = await supabase
-        .from("session_mvp_votes")
-        .select("voted_player_id")
-        .eq("session_id", sessionId);
-
-      if (votesError) {
-        return fail(
-          `MVP-Stimmen konnten nicht geladen werden: ${votesError.message}`,
-          500
-        );
-      }
-
-      const results = buildResults(presentPlayers, (votesData ?? []) as VoteRow[]);
-
-      await createMvpNotifications({
-        clubId,
-        sessionId,
-        participants: presentPlayers,
-        winners: results.winners,
-      });
-
-      return ok({
-        message: "Voting wurde beendet.",
-        ended: true,
-        results,
-      });
-    }
-
-    if (body?.action === "reopenVoting") {
-      const admin = createAdminClient();
-
-      const { error: reopenError } = await admin
-        .from("sessions")
-        .update({
-          mvp_voting_closed_at: null,
-        })
-        .eq("id", sessionId)
-        .eq("club_id", clubId);
-
-      if (reopenError) {
-        return fail(
-          `Voting konnte nicht neu gestartet werden: ${reopenError.message}`,
-          500
-        );
-      }
-
-      const { error: deleteVotesError } = await admin
-        .from("session_mvp_votes")
-        .delete()
-        .eq("session_id", sessionId)
-        .eq("club_id", clubId);
-
-      if (deleteVotesError) {
-        return fail(
-          `Votes konnten nicht gelöscht werden: ${deleteVotesError.message}`,
-          500
-        );
-      }
-
-      const { error: deleteNotificationsError } = await admin
-        .from("user_notifications")
-        .delete()
-        .eq("club_id", clubId)
-        .or(
-          `dedupe_key.like.mvp_result_session_${sessionId}_%,dedupe_key.like.mvp_winner_session_${sessionId}_%`
-        );
-
-      if (deleteNotificationsError) {
-        return fail(
-          `Notifications konnten nicht gelöscht werden: ${deleteNotificationsError.message}`,
-          500
-        );
-      }
-
-      return ok({
-        message: "Voting wurde neu gestartet.",
-        reopened: true,
-      });
-    }
-
-    const { data: closedSessionData, error: closedSessionError } = await supabase
-      .from("sessions")
-      .select("mvp_voting_closed_at")
-      .eq("id", sessionId)
-      .eq("club_id", clubId)
-      .maybeSingle();
-
-    if (closedSessionError) {
-      return fail(
-        `Voting-Status konnte nicht geladen werden: ${closedSessionError.message}`,
-        500
-      );
-    }
-
-    const manuallyClosed = Boolean(
-      (closedSessionData as { mvp_voting_closed_at?: string | null } | null)
-        ?.mvp_voting_closed_at
-    );
-
-    if (manuallyClosed) {
-      reveal.votingOpen = false;
-    } else {
-      reveal.votingOpen = true;
-    }
-
-    if (forceOpen) {
-      reveal.votingOpen = true;
-    }
 
     if (!reveal.votingOpen) {
       return fail("Das MVP Voting ist bereits beendet.", 400);
     }
+
+    const body = (await request.json().catch(() => null)) as
+      | { votedPlayerId?: number | string | null }
+      | null;
 
     const votedPlayerId = Number(body?.votedPlayerId);
 

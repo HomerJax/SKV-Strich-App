@@ -51,19 +51,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [saving, setSaving] = useState(false);
-  const [endingVoting, setEndingVoting] = useState(false);
-  const [reopeningVoting, setReopeningVoting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [forceOpen, setForceOpen] = useState(false);
 
-  async function loadMvpState(force = forceOpen) {
+  async function loadMvpState() {
     try {
       setLoadState("loading");
       setErr(null);
 
-      const suffix = force ? "?forceOpen=1" : "";
-      const response = await fetch(`/api/sessions/${sessionId}/mvp${suffix}`, {
+      const response = await fetch(`/api/sessions/${sessionId}/mvp`, {
         method: "GET",
         credentials: "same-origin",
         cache: "no-store",
@@ -87,9 +83,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   }
 
   useEffect(() => {
-    loadMvpState(forceOpen);
+    loadMvpState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, forceOpen]);
+  }, [sessionId]);
 
   const selectedPlayerName = useMemo(() => {
     if (!state || !selectedPlayerId) return null;
@@ -107,8 +103,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setErr(null);
       setMsg(null);
 
-      const suffix = forceOpen ? "?forceOpen=1" : "";
-      const response = await fetch(`/api/sessions/${sessionId}/mvp${suffix}`, {
+      const response = await fetch(`/api/sessions/${sessionId}/mvp`, {
         method: "POST",
         credentials: "same-origin",
         headers: {
@@ -125,8 +120,8 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         throw new Error(payload?.error || "MVP-Stimme konnte nicht gespeichert werden.");
       }
 
-      setMsg("Deine Stimme wurde gezählt.");
-      await loadMvpState(forceOpen);
+      setMsg(`Deine Stimme wurde gezählt. Ergebnis ab ${payload.revealLabel}`);
+      await loadMvpState();
       router.refresh();
     } catch (error) {
       const message =
@@ -134,83 +129,6 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setErr(message);
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleEndVoting() {
-    if (endingVoting) return;
-
-    try {
-      setEndingVoting(true);
-      setErr(null);
-      setMsg(null);
-
-      const response = await fetch(`/api/sessions/${sessionId}/mvp`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "endVoting",
-        }),
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload?.error || "Voting konnte nicht beendet werden.");
-      }
-
-      setForceOpen(false);
-      setMsg("Voting wurde beendet.");
-      await loadMvpState(false);
-      router.refresh();
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Voting konnte nicht beendet werden.";
-      setErr(message);
-    } finally {
-      setEndingVoting(false);
-    }
-  }
-
-  async function handleReopenVoting() {
-    if (reopeningVoting) return;
-
-    try {
-      setReopeningVoting(true);
-      setErr(null);
-      setMsg(null);
-
-      const response = await fetch(`/api/sessions/${sessionId}/mvp`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "reopenVoting",
-        }),
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload?.error || "Voting konnte nicht neu gestartet werden.");
-      }
-
-      setForceOpen(false);
-      setSelectedPlayerId(null);
-      setMsg("Voting wurde neu gestartet.");
-      await loadMvpState(false);
-      router.refresh();
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Voting konnte nicht neu gestartet werden.";
-      setErr(message);
-    } finally {
-      setReopeningVoting(false);
     }
   }
 
@@ -233,18 +151,10 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => loadMvpState(forceOpen)}
+            onClick={loadMvpState}
             className="inline-flex items-center justify-center rounded-2xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
           >
             Erneut laden
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setForceOpen((prev) => !prev)}
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            {forceOpen ? "Testmodus aus" : "Für Test öffnen"}
           </button>
         </div>
       </section>
@@ -266,7 +176,13 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           </p>
         </div>
 
-        <ResultPill text={votingOpen ? "Voting läuft" : "Voting beendet"} />
+        <ResultPill
+          text={
+            votingOpen
+              ? `Offen bis ${state.revealLabel}`
+              : `Ergebnis seit ${state.revealLabel}`
+          }
+        />
       </div>
 
       {err ? (
@@ -281,7 +197,103 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         </div>
       ) : null}
 
-      {!votingOpen ? (
+      {votingOpen ? (
+        state.canVote ? (
+          state.userHasVoted ? (
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-white px-4 py-4">
+              <div className="text-sm font-semibold text-emerald-800">
+                Deine Stimme wurde gezählt
+              </div>
+              <div className="mt-1 text-sm text-slate-600">
+                {selectedPlayerName
+                  ? `Aktuell gewählt: ${selectedPlayerName}.`
+                  : "Du hast bereits abgestimmt."}{" "}
+                Du kannst deine Stimme bis {state.revealLabel} noch ändern.
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {state.participants.map((player) => {
+                  const active = selectedPlayerId === player.id;
+
+                  return (
+                    <button
+                      key={player.id}
+                      type="button"
+                      onClick={() => setSelectedPlayerId(player.id)}
+                      className={[
+                        "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
+                        active
+                          ? "border-amber-400 bg-amber-100 text-amber-900"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                      ].join(" ")}
+                    >
+                      {player.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleVoteSubmit}
+                  disabled={!selectedPlayerId || saving}
+                  className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? "Speichere…" : "Stimme ändern"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <div className="mb-3 text-sm font-semibold text-slate-900">
+                Wer war heute euer Spieler des Trainings?
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                {state.participants.map((player) => {
+                  const active = selectedPlayerId === player.id;
+
+                  return (
+                    <button
+                      key={player.id}
+                      type="button"
+                      onClick={() => setSelectedPlayerId(player.id)}
+                      className={[
+                        "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
+                        active
+                          ? "border-amber-400 bg-amber-100 text-amber-900"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                      ].join(" ")}
+                    >
+                      {player.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleVoteSubmit}
+                  disabled={!selectedPlayerId || saving}
+                  className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? "Speichere…" : "Stimme abgeben"}
+                </button>
+
+                <div className="text-xs text-slate-500">
+                  Ergebnis ab {state.revealLabel}
+                </div>
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
+            Abstimmen können nur anwesende Teilnehmer mit verknüpftem Spielerprofil.
+          </div>
+        )
+      ) : (
         <div className="mt-4 space-y-4">
           {state.results?.winners && state.results.winners.length > 0 ? (
             <div className="rounded-2xl border border-amber-200 bg-white px-4 py-4">
@@ -331,149 +343,6 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               </div>
             </div>
           ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={handleReopenVoting}
-              disabled={reopeningVoting}
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {reopeningVoting ? "Startet neu..." : "Voting neu starten (Test)"}
-            </button>
-          </div>
-        </div>
-      ) : state.canVote ? (
-        state.userHasVoted ? (
-          <div className="mt-4 rounded-2xl border border-emerald-200 bg-white px-4 py-4">
-            <div className="text-sm font-semibold text-emerald-800">
-              Deine Stimme wurde gezählt
-            </div>
-            <div className="mt-1 text-sm text-slate-600">
-              {selectedPlayerName
-                ? `Aktuell gewählt: ${selectedPlayerName}.`
-                : "Du hast bereits abgestimmt."}{" "}
-              Du kannst deine Stimme noch ändern, solange das Voting läuft.
-            </div>
-
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {state.participants.map((player) => {
-                const active = selectedPlayerId === player.id;
-
-                return (
-                  <button
-                    key={player.id}
-                    type="button"
-                    onClick={() => setSelectedPlayerId(player.id)}
-                    className={[
-                      "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
-                      active
-                        ? "border-amber-400 bg-amber-100 text-amber-900"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                    ].join(" ")}
-                  >
-                    {player.name}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleVoteSubmit}
-                disabled={!selectedPlayerId || saving}
-                className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? "Speichere…" : "Stimme ändern"}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleEndVoting}
-                disabled={endingVoting}
-                className="inline-flex items-center justify-center rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {endingVoting ? "Beendet..." : "Voting beenden (Test)"}
-              </button>
-
-              {forceOpen ? (
-                <button
-                  type="button"
-                  onClick={() => setForceOpen(false)}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Testmodus beenden
-                </button>
-              ) : null}
-            </div>
-          </div>
-        ) : (
-          <div className="mt-4">
-            <div className="mb-3 text-sm font-semibold text-slate-900">
-              Wer war heute euer Spieler des Trainings?
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2">
-              {state.participants.map((player) => {
-                const active = selectedPlayerId === player.id;
-
-                return (
-                  <button
-                    key={player.id}
-                    type="button"
-                    onClick={() => setSelectedPlayerId(player.id)}
-                    className={[
-                      "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
-                      active
-                        ? "border-amber-400 bg-amber-100 text-amber-900"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                    ].join(" ")}
-                  >
-                    {player.name}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={handleVoteSubmit}
-                disabled={!selectedPlayerId || saving}
-                className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? "Speichere…" : "Stimme abgeben"}
-              </button>
-
-              <div className="text-xs text-slate-500">
-                Voting läuft aktuell.
-              </div>
-
-              <button
-                type="button"
-                onClick={handleEndVoting}
-                disabled={endingVoting}
-                className="inline-flex items-center justify-center rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {endingVoting ? "Beendet..." : "Voting beenden (Test)"}
-              </button>
-
-              {forceOpen ? (
-                <button
-                  type="button"
-                  onClick={() => setForceOpen(false)}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Testmodus beenden
-                </button>
-              ) : null}
-            </div>
-          </div>
-        )
-      ) : (
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
-          Abstimmen können nur anwesende Teilnehmer mit verknüpftem Spielerprofil.
         </div>
       )}
     </section>
