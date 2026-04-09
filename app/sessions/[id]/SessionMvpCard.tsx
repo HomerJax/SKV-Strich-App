@@ -50,13 +50,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [forceOpen, setForceOpen] = useState(false);
 
-  async function loadMvpState() {
+  async function loadMvpState(force = forceOpen) {
     try {
       setLoadState("loading");
       setErr(null);
 
-      const response = await fetch(`/api/sessions/${sessionId}/mvp`, {
+      const suffix = force ? "?forceOpen=1" : "";
+      const response = await fetch(`/api/sessions/${sessionId}/mvp${suffix}`, {
         method: "GET",
         credentials: "same-origin",
         cache: "no-store",
@@ -80,9 +82,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   }
 
   useEffect(() => {
-    loadMvpState();
+    loadMvpState(forceOpen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [sessionId, forceOpen]);
 
   const selectedPlayerName = useMemo(() => {
     if (!state || !selectedPlayerId) return null;
@@ -97,7 +99,8 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setErr(null);
       setMsg(null);
 
-      const response = await fetch(`/api/sessions/${sessionId}/mvp`, {
+      const suffix = forceOpen ? "?forceOpen=1" : "";
+      const response = await fetch(`/api/sessions/${sessionId}/mvp${suffix}`, {
         method: "POST",
         credentials: "same-origin",
         headers: {
@@ -115,7 +118,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       }
 
       setMsg(`Deine Stimme wurde gezählt 👍 Ergebnis ab ${payload.revealLabel}`);
-      await loadMvpState();
+      await loadMvpState(forceOpen);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "MVP-Stimme konnte nicht gespeichert werden.";
@@ -141,18 +144,28 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         <div className="mt-2 text-sm text-red-700">
           {err ?? "MVP-Bereich konnte nicht geladen werden."}
         </div>
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={loadMvpState}
+            onClick={() => loadMvpState(forceOpen)}
             className="inline-flex items-center justify-center rounded-2xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
           >
             Erneut laden
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setForceOpen((prev) => !prev)}
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            {forceOpen ? "Testmodus aus" : "Für Test öffnen"}
           </button>
         </div>
       </section>
     );
   }
+
+  const votingActuallyOpen = state.votingOpen;
 
   return (
     <section className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm">
@@ -169,12 +182,36 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
         <ResultPill
           text={
-            state.votingOpen
+            votingActuallyOpen
               ? `Offen bis ${state.revealLabel}`
               : `Ergebnis seit ${state.revealLabel}`
           }
         />
       </div>
+
+      {!votingActuallyOpen ? (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <div className="text-sm font-semibold text-slate-900">Voting beendet</div>
+          <div className="mt-1 text-sm text-slate-600">
+            Für den Test kannst du das Voting hier temporär wieder öffnen.
+          </div>
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => setForceOpen(true)}
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Für Test öffnen
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {forceOpen ? (
+        <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          Testmodus aktiv: Voting ist temporär geöffnet.
+        </div>
+      ) : null}
 
       {err ? (
         <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -224,7 +261,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 })}
               </div>
 
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={handleVoteSubmit}
@@ -233,6 +270,16 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 >
                   {saving ? "Speichere…" : "Stimme ändern"}
                 </button>
+
+                {forceOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setForceOpen(false)}
+                    className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Testmodus beenden
+                  </button>
+                ) : null}
               </div>
             </div>
           ) : (
@@ -276,6 +323,16 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 <div className="text-xs text-slate-500">
                   Ergebnis ab {state.revealLabel}
                 </div>
+
+                {forceOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setForceOpen(false)}
+                    className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Testmodus beenden
+                  </button>
+                ) : null}
               </div>
             </div>
           )
@@ -305,35 +362,6 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               Noch keine Stimmen abgegeben.
             </div>
           )}
-
-          {state.results?.leaderboard && state.results.leaderboard.length > 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-              <div className="text-sm font-semibold text-slate-900">
-                Voting-Ergebnis
-              </div>
-
-              <div className="mt-3 space-y-2">
-                {state.results.leaderboard.map((entry, index) => (
-                  <div
-                    key={entry.playerId}
-                    className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
-                        {index + 1}
-                      </div>
-                      <div className="text-sm font-semibold text-slate-900">
-                        {entry.name}
-                      </div>
-                    </div>
-                    <div className="text-sm font-semibold text-slate-600">
-                      {entry.votes} {entry.votes === 1 ? "Stimme" : "Stimmen"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </div>
       )}
     </section>

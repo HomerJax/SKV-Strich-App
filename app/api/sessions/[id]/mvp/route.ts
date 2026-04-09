@@ -97,7 +97,9 @@ function formatRevealLabel(sessionDate: string) {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(utcNoon).replace("12:00", "10:00");
+  })
+    .format(utcNoon)
+    .replace("12:00", "10:00");
 }
 
 function getRevealInfo(sessionDate: string) {
@@ -269,16 +271,11 @@ async function createMvpNotifications(params: {
 
 async function ensureMvpVotingEnabled(clubId: string) {
   const flags = await getFeatureFlagsForClub(clubId);
-
-  if (!flags.session_mvp_voting) {
-    return false;
-  }
-
-  return true;
+  return flags.session_mvp_voting === true;
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const resolvedParams = await context.params;
@@ -294,7 +291,7 @@ export async function GET(
     return fail(access.error ?? "Unbekannter Fehler.", access.status);
   }
 
-  const { supabase, adminSupabase, clubId, session } = access;
+  const { supabase, clubId, session } = access;
 
   try {
     const isEnabled = await ensureMvpVotingEnabled(clubId);
@@ -327,7 +324,14 @@ export async function GET(
     }
 
     const hasResult = Boolean(resultData?.id);
+
     const reveal = getRevealInfo(session.date);
+    const forceOpen = request.nextUrl.searchParams.get("forceOpen") === "1";
+
+    if (forceOpen) {
+      reveal.votingOpen = true;
+    }
+
     const presentPlayers = await loadPresentPlayers(supabase, clubId, sessionId);
 
     const currentUserPlayer = presentPlayers.find(
@@ -356,7 +360,7 @@ export async function GET(
       totalVotes: number;
     } | null = null;
 
-    if (!reveal.votingOpen) {
+    if (!reveal.votingOpen && !forceOpen) {
       const { data: votesData, error: votesError } = await supabase
         .from("session_mvp_votes")
         .select("voted_player_id")
@@ -484,6 +488,11 @@ export async function POST(
     }
 
     const reveal = getRevealInfo(session.date);
+    const forceOpen = request.nextUrl.searchParams.get("forceOpen") === "1";
+
+    if (forceOpen) {
+      reveal.votingOpen = true;
+    }
 
     if (!reveal.votingOpen) {
       return fail("Das MVP Voting ist bereits beendet.", 400);

@@ -31,31 +31,6 @@ type SessionDetailClientProps = {
   initialUseFieldView?: boolean;
 };
 
-function SectionDoneHint({
-  label,
-  detail,
-}: {
-  label: string;
-  detail?: string;
-}) {
-  return (
-    <div className="mb-2 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2">
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden="true"
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white"
-        >
-          ✓
-        </span>
-        <div className="text-sm font-semibold text-emerald-900">{label}</div>
-      </div>
-      {detail ? (
-        <div className="text-xs font-medium text-emerald-700">{detail}</div>
-      ) : null}
-    </div>
-  );
-}
-
 export default function SessionDetailClient(props: SessionDetailClientProps) {
   const {
     router,
@@ -121,8 +96,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     scoreBValue,
     autoTeamNames,
 
-    attendanceDone,
-    teamsDone,
     showMvpSection,
     nextStepLabel,
 
@@ -235,13 +208,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         {showMvpSection ? <SessionMvpCard sessionId={props.sessionId} /> : null}
 
         <div ref={attendanceRef}>
-          {attendanceDone ? (
-            <SectionDoneHint
-              label="Anwesenheit erledigt"
-              detail={`${presentPlayers.length} anwesend`}
-            />
-          ) : null}
-
           <SessionAttendanceCard
             players={displayPlayers}
             presentIds={draftPresentIds}
@@ -268,13 +234,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         </div>
 
         <div ref={teamsRef}>
-          {teamsDone ? (
-            <SectionDoneHint
-              label="Teams erledigt"
-              detail={`${teamA.length} vs ${teamB.length}`}
-            />
-          ) : null}
-
           <SessionTeamsCard
             teamA={displayTeamA}
             teamB={displayTeamB}
