@@ -48,6 +48,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [saving, setSaving] = useState(false);
+  const [endingVoting, setEndingVoting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [forceOpen, setForceOpen] = useState(false);
@@ -117,7 +118,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         throw new Error(payload?.error || "MVP-Stimme konnte nicht gespeichert werden.");
       }
 
-      setMsg(`Deine Stimme wurde gezählt. Ergebnis ab ${payload.revealLabel}`);
+      setMsg("Deine Stimme wurde gezählt.");
       await loadMvpState(forceOpen);
     } catch (error) {
       const message =
@@ -125,6 +126,43 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setErr(message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleEndVoting() {
+    if (endingVoting) return;
+
+    try {
+      setEndingVoting(true);
+      setErr(null);
+      setMsg(null);
+
+      const response = await fetch(`/api/sessions/${sessionId}/mvp`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "endVoting",
+        }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Voting konnte nicht beendet werden.");
+      }
+
+      setForceOpen(false);
+      setMsg("Voting wurde beendet.");
+      await loadMvpState(false);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Voting konnte nicht beendet werden.";
+      setErr(message);
+    } finally {
+      setEndingVoting(false);
     }
   }
 
@@ -245,16 +283,6 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               </div>
             </div>
           ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setForceOpen(true)}
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Für Test öffnen
-            </button>
-          </div>
         </div>
       ) : state.canVote ? (
         state.userHasVoted ? (
@@ -266,7 +294,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               {selectedPlayerName
                 ? `Aktuell gewählt: ${selectedPlayerName}.`
                 : "Du hast bereits abgestimmt."}{" "}
-              Du kannst deine Stimme bis {state.revealLabel} noch ändern.
+              Du kannst deine Stimme noch ändern, solange das Voting läuft.
             </div>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -299,6 +327,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Speichere…" : "Stimme ändern"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleEndVoting}
+                disabled={endingVoting}
+                className="inline-flex items-center justify-center rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {endingVoting ? "Beendet..." : "Voting beenden (Test)"}
               </button>
 
               {forceOpen ? (
@@ -351,8 +388,17 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               </button>
 
               <div className="text-xs text-slate-500">
-                Offen bis {state.revealLabel}
+                Voting läuft aktuell.
               </div>
+
+              <button
+                type="button"
+                onClick={handleEndVoting}
+                disabled={endingVoting}
+                className="inline-flex items-center justify-center rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {endingVoting ? "Beendet..." : "Voting beenden (Test)"}
+              </button>
 
               {forceOpen ? (
                 <button

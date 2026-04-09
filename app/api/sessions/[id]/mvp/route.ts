@@ -274,6 +274,42 @@ async function ensureMvpVotingEnabled(clubId: string) {
   return flags.session_mvp_voting === true;
 }
 
+function buildResults(
+  presentPlayers: PresentPlayerRow[],
+  votesData: VoteRow[] | null
+): {
+  winners: Array<{ playerId: number; name: string; votes: number }>;
+  leaderboard: Array<{ playerId: number; name: string; votes: number }>;
+  totalVotes: number;
+} {
+  const countMap = new Map<number, number>();
+
+  for (const vote of (votesData ?? []) as VoteRow[]) {
+    const votedPlayerId = Number(vote.voted_player_id);
+    countMap.set(votedPlayerId, (countMap.get(votedPlayerId) ?? 0) + 1);
+  }
+
+  const leaderboard = presentPlayers
+    .map((player) => ({
+      playerId: player.id,
+      name: getPlayerDisplayName(player),
+      votes: countMap.get(player.id) ?? 0,
+    }))
+    .filter((entry) => entry.votes > 0)
+    .sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name, "de"));
+
+  const maxVotes = leaderboard[0]?.votes ?? 0;
+
+  const winners =
+    maxVotes > 0 ? leaderboard.filter((entry) => entry.votes === maxVotes) : [];
+
+  return {
+    winners,
+    leaderboard,
+    totalVotes: leaderboard.reduce((sum, entry) => sum + entry.votes, 0),
+  };
+}
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -328,8 +364,30 @@ export async function GET(
     const reveal = getRevealInfo(session.date);
     const forceOpen = request.nextUrl.searchParams.get("forceOpen") === "1";
 
-    // TEMP: Voting für Testing immer offen halten
-    reveal.votingOpen = true;
+    const { data: closedSessionData, error: closedSessionError } = await supabase
+      .from("sessions")
+      .select("mvp_voting_closed_at")
+      .eq("id", sessionId)
+      .eq("club_id", clubId)
+      .maybeSingle();
+
+    if (closedSessionError) {
+      return fail(
+        `Voting-Status konnte nicht geladen werden: ${closedSessionError.message}`,
+        500
+      );
+    }
+
+    const manuallyClosed = Boolean(
+      (closedSessionData as { mvp_voting_closed_at?: string | null } | null)
+        ?.mvp_voting_closed_at
+    );
+
+    if (manuallyClosed) {
+      reveal.votingOpen = false;
+    } else {
+      reveal.votingOpen = true;
+    }
 
     if (forceOpen) {
       reveal.votingOpen = true;
@@ -363,7 +421,6 @@ export async function GET(
       totalVotes: number;
     } | null = null;
 
-    // TEMP: Ergebnisberechnung deaktiviert, solange Voting immer offen ist
     if (!reveal.votingOpen && !forceOpen) {
       const { data: votesData, error: votesError } = await supabase
         .from("session_mvp_votes")
@@ -377,40 +434,13 @@ export async function GET(
         );
       }
 
-      const countMap = new Map<number, number>();
-
-      for (const vote of (votesData ?? []) as VoteRow[]) {
-        const votedPlayerId = Number(vote.voted_player_id);
-        countMap.set(votedPlayerId, (countMap.get(votedPlayerId) ?? 0) + 1);
-      }
-
-      const leaderboard = presentPlayers
-        .map((player) => ({
-          playerId: player.id,
-          name: getPlayerDisplayName(player),
-          votes: countMap.get(player.id) ?? 0,
-        }))
-        .filter((entry) => entry.votes > 0)
-        .sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name, "de"));
-
-      const maxVotes = leaderboard[0]?.votes ?? 0;
-
-      const winners =
-        maxVotes > 0
-          ? leaderboard.filter((entry) => entry.votes === maxVotes)
-          : [];
-
-      results = {
-        winners,
-        leaderboard,
-        totalVotes: leaderboard.reduce((sum, entry) => sum + entry.votes, 0),
-      };
+      results = buildResults(presentPlayers, (votesData ?? []) as VoteRow[]);
 
       await createMvpNotifications({
         clubId,
         sessionId,
         participants: presentPlayers,
-        winners,
+        winners: results.winners,
       });
     }
 
@@ -494,8 +524,77 @@ export async function POST(
     const reveal = getRevealInfo(session.date);
     const forceOpen = request.nextUrl.searchParams.get("forceOpen") === "1";
 
-    // TEMP: Voting für Testing immer offen halten
-    reveal.votingOpen = true;
+    const body = (await request.json().catch(() => null)) as
+      | { votedPlayerId?: number | string | null; action?: string | null }
+      | null;
+
+    if (body?.action === "endVoting") {
+      const { error: closeError } = await supabase
+        .from("sessions")
+        .update({
+          mvp_voting_closed_at: new Date().toISOString(),
+        })
+        .eq("id", sessionId)
+        .eq("club_id", clubId);
+
+      if (closeError) {
+        return fail(`Voting konnte nicht beendet werden: ${closeError.message}`, 500);
+      }
+
+      const presentPlayers = await loadPresentPlayers(supabase, clubId, sessionId);
+
+      const { data: votesData, error: votesError } = await supabase
+        .from("session_mvp_votes")
+        .select("voted_player_id")
+        .eq("session_id", sessionId);
+
+      if (votesError) {
+        return fail(
+          `MVP-Stimmen konnten nicht geladen werden: ${votesError.message}`,
+          500
+        );
+      }
+
+      const results = buildResults(presentPlayers, (votesData ?? []) as VoteRow[]);
+
+      await createMvpNotifications({
+        clubId,
+        sessionId,
+        participants: presentPlayers,
+        winners: results.winners,
+      });
+
+      return ok({
+        message: "Voting wurde beendet.",
+        ended: true,
+        results,
+      });
+    }
+
+    const { data: closedSessionData, error: closedSessionError } = await supabase
+      .from("sessions")
+      .select("mvp_voting_closed_at")
+      .eq("id", sessionId)
+      .eq("club_id", clubId)
+      .maybeSingle();
+
+    if (closedSessionError) {
+      return fail(
+        `Voting-Status konnte nicht geladen werden: ${closedSessionError.message}`,
+        500
+      );
+    }
+
+    const manuallyClosed = Boolean(
+      (closedSessionData as { mvp_voting_closed_at?: string | null } | null)
+        ?.mvp_voting_closed_at
+    );
+
+    if (manuallyClosed) {
+      reveal.votingOpen = false;
+    } else {
+      reveal.votingOpen = true;
+    }
 
     if (forceOpen) {
       reveal.votingOpen = true;
@@ -504,10 +603,6 @@ export async function POST(
     if (!reveal.votingOpen) {
       return fail("Das MVP Voting ist bereits beendet.", 400);
     }
-
-    const body = (await request.json().catch(() => null)) as
-      | { votedPlayerId?: number | string | null }
-      | null;
 
     const votedPlayerId = Number(body?.votedPlayerId);
 
