@@ -19,6 +19,10 @@ type SessionRow = {
   notes: string | null;
 };
 
+type ResultSessionRow = {
+  session_id: number;
+};
+
 const COLOR_MAP: Record<string, string> = {
   black: "#020617",
   blue: "#1d4ed8",
@@ -204,24 +208,34 @@ export default async function HomePage() {
   let clubLogoUrl: string | null = null;
 
   if (club?.logo_path) {
-    const { data } = supabase.storage.from("club-logos").getPublicUrl(club.logo_path);
+    const { data } = supabase.storage
+      .from("club-logos")
+      .getPublicUrl(club.logo_path);
+
     clubLogoUrl = data?.publicUrl ?? null;
   }
 
   const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
   const hasSessions = (sessionsCount ?? 0) > 0;
 
+  const recentSessionIds = recentSessions.map((session) => session.id);
+
   let activeVotingSession: SessionRow | null = null;
 
-  if (mvpVotingEnabled) {
+  if (mvpVotingEnabled && recentSessionIds.length > 0) {
+    const { data: resultsData } = await supabase
+      .from("results")
+      .select("session_id")
+      .in("session_id", recentSessionIds);
+
+    const resultSessionIds = new Set(
+      ((resultsData ?? []) as ResultSessionRow[]).map((row) =>
+        Number(row.session_id)
+      )
+    );
+
     activeVotingSession =
-      recentSessions.find((session) => {
-        const sessionDate = new Date(session.date);
-        const now = new Date();
-        const diffMs = now.getTime() - sessionDate.getTime();
-        const diffHours = diffMs / (1000 * 60 * 60);
-        return diffHours >= 0 && diffHours <= 48;
-      }) ?? null;
+      recentSessions.find((session) => resultSessionIds.has(session.id)) ?? null;
   }
 
   return (
