@@ -180,9 +180,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           </p>
         </div>
 
-        <ResultPill
-          text={votingOpen ? `Offen bis ${state.revealLabel}` : "Voting beendet"}
-        />
+        <ResultPill text={votingOpen ? "Voting läuft" : "Voting beendet"} />
       </div>
 
       {err ? (

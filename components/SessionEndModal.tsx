@@ -5,14 +5,6 @@ import { useEffect, useState } from "react";
 type SessionEndModalProps = {
   open: boolean;
   onClose: () => void;
-  teamA: {
-    name: string;
-    players: string[];
-  };
-  teamB: {
-    name: string;
-    players: string[];
-  };
   scoreA: number;
   scoreB: number;
   wasUnderdog?: boolean;
@@ -34,8 +26,6 @@ function getHeadline(scoreA: number, scoreB: number) {
 export default function SessionEndModal({
   open,
   onClose,
-  teamA,
-  teamB,
   scoreA,
   scoreB,
   wasUnderdog = false,

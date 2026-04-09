@@ -26,14 +26,6 @@ const COLOR_MAP: Record<string, string> = {
   green: "#16a34a",
 };
 
-function fmtDateShort(iso: string) {
-  return new Date(iso).toLocaleDateString("de-DE", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-  });
-}
-
 function fmtDateLong(iso: string) {
   return new Date(iso).toLocaleDateString("de-DE", {
     weekday: "long",
@@ -87,7 +79,7 @@ function StepCard({
   );
 }
 
-function QuickStartCard({
+function QuickActionCard({
   title,
   text,
   href,
@@ -99,104 +91,45 @@ function QuickStartCard({
   return (
     <Link
       href={href}
-      className="rounded-xl border border-black/10 bg-white p-3 transition hover:bg-slate-50"
+      className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm transition hover:bg-slate-50"
     >
-      <div className="text-sm font-semibold leading-5 text-slate-900">
-        {title}
-      </div>
+      <div className="text-sm font-semibold text-slate-900">{title}</div>
       <div className="mt-1 text-xs leading-5 text-slate-600">{text}</div>
     </Link>
   );
 }
 
-function HomeActionCard({
+function MainActionCard({
   eyebrow,
   title,
   text,
   href,
   cta,
-  accent = "slate",
 }: {
   eyebrow: string;
   title: string;
   text: string;
   href: string;
   cta: string;
-  accent?: "slate" | "amber";
 }) {
-  const accentClasses =
-    accent === "amber"
-      ? "border-amber-200 bg-amber-50"
-      : "border-black/10 bg-white";
-
   return (
-    <section className={`rounded-[24px] border p-5 shadow-sm ${accentClasses}`}>
+    <section className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
       <div className="text-sm font-semibold text-slate-500">{eyebrow}</div>
-      <h2 className="mt-1 text-xl font-bold text-slate-950">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+      <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
+        {title}
+      </h2>
+      <p className="mt-3 text-sm leading-7 text-slate-600">{text}</p>
 
-      <div className="mt-4">
+      <div className="mt-5">
         <Link
           href={href}
-          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
           {cta}
         </Link>
       </div>
     </section>
   );
-}
-
-function getPartsInBerlin(date: Date) {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Berlin",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-
-  const parts = formatter.formatToParts(date);
-  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-
-  return {
-    dateKey: `${map.year}-${map.month}-${map.day}`,
-    timeKey: `${map.hour}:${map.minute}`,
-  };
-}
-
-function addOneDay(dateString: string) {
-  const [year, month, day] = dateString.split("-").map(Number);
-
-  if (!year || !month || !day) {
-    return dateString;
-  }
-
-  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  date.setUTCDate(date.getUTCDate() + 1);
-
-  const yyyy = date.getUTCFullYear();
-  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(date.getUTCDate()).padStart(2, "0");
-
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function getRevealInfo(sessionDate: string) {
-  const revealDate = addOneDay(sessionDate);
-  const now = getPartsInBerlin(new Date());
-
-  const votingOpen =
-    now.dateKey < revealDate ||
-    (now.dateKey === revealDate && now.timeKey < "10:00");
-
-  return {
-    revealDate,
-    revealLabel: `${revealDate} 10:00`,
-    votingOpen,
-  };
 }
 
 export default async function HomePage() {
@@ -277,23 +210,19 @@ export default async function HomePage() {
 
   const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
   const hasSessions = (sessionsCount ?? 0) > 0;
-  const showCompactQuickStart = Boolean(nextSession);
 
   let activeVotingSession: SessionRow | null = null;
 
   if (mvpVotingEnabled) {
-    for (const session of recentSessions) {
-      const reveal = getRevealInfo(session.date);
-      if (reveal.votingOpen) {
-        activeVotingSession = session;
-        break;
-      }
-    }
+    activeVotingSession =
+      recentSessions.find((session) => {
+        const sessionDate = new Date(session.date);
+        const now = new Date();
+        const diffMs = now.getTime() - sessionDate.getTime();
+        const diffHours = diffMs / (1000 * 60 * 60);
+        return diffHours >= 0 && diffHours <= 48;
+      }) ?? null;
   }
-
-  const activeVotingReveal = activeVotingSession
-    ? getRevealInfo(activeVotingSession.date)
-    : null;
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
@@ -349,7 +278,7 @@ export default async function HomePage() {
         </div>
 
         {nextSession ? (
-          <HomeActionCard
+          <MainActionCard
             eyebrow="Nächstes Training"
             title={fmtDateLong(nextSession.date)}
             text={
@@ -361,7 +290,7 @@ export default async function HomePage() {
             cta="Zur Session"
           />
         ) : (
-          <HomeActionCard
+          <MainActionCard
             eyebrow="Nächstes Training"
             title="Noch kein Training geplant"
             text="Lege direkt eine neue Session an, damit euer nächstes Training vorbereitet ist."
@@ -370,7 +299,7 @@ export default async function HomePage() {
           />
         )}
 
-        {activeVotingSession && activeVotingReveal ? (
+        {activeVotingSession ? (
           <section className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -378,7 +307,7 @@ export default async function HomePage() {
                   MVP Voting läuft
                 </div>
                 <div className="mt-1 text-sm font-semibold text-slate-900">
-                  Offen bis {activeVotingReveal.revealLabel}
+                  Stimme jetzt direkt in der Session ab
                 </div>
               </div>
 
@@ -392,25 +321,20 @@ export default async function HomePage() {
           </section>
         ) : null}
 
-        <section className="rounded-[20px] border border-black/10 bg-white p-4 shadow-sm">
-          <div className="mb-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Direkt loslegen
-            </div>
-            <div className="mt-1 text-sm font-semibold text-slate-900">
-              Schnellzugriff
-            </div>
+        <section className="space-y-2">
+          <div className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Schnellzugriff
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <QuickStartCard
-              title="Session starten"
-              text="Training anlegen"
+            <QuickActionCard
+              title="Training anlegen"
+              text="Neue Session starten"
               href="/sessions/new"
             />
 
-            <QuickStartCard
-              title={showCompactQuickStart ? "Alle Sessions" : "Stats & Sessions"}
+            <QuickActionCard
+              title={hasSessions ? "Sessions" : "Stats & Sessions"}
               text={hasSessions ? "Verlauf ansehen" : "Stats ansehen"}
               href={hasSessions ? "/sessions" : "/stats"}
             />
@@ -475,31 +399,6 @@ export default async function HomePage() {
             </div>
           </Link>
         )}
-
-        {nextSession ? (
-          <section className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
-            <div className="text-sm font-semibold text-slate-500">
-              Kommendes Training
-            </div>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                {fmtDateShort(nextSession.date)}
-              </div>
-              <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                Session #{nextSession.id}
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <Link
-                href={`/sessions/${nextSession.id}`}
-                className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Training öffnen
-              </Link>
-            </div>
-          </section>
-        ) : null}
       </section>
     </main>
   );
