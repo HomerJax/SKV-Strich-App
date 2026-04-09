@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Participant = {
   id: number;
@@ -44,6 +45,8 @@ function ResultPill({ text }: { text: string }) {
 }
 
 export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
+  const router = useRouter();
+
   const [state, setState] = useState<MvpState | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("idle");
@@ -124,6 +127,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       setMsg("Deine Stimme wurde gezählt.");
       await loadMvpState(forceOpen);
+      router.refresh();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "MVP-Stimme konnte nicht gespeichert werden.";
@@ -161,6 +165,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setForceOpen(false);
       setMsg("Voting wurde beendet.");
       await loadMvpState(false);
+      router.refresh();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Voting konnte nicht beendet werden.";
@@ -199,6 +204,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setSelectedPlayerId(null);
       setMsg("Voting wurde neu gestartet.");
       await loadMvpState(false);
+      router.refresh();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Voting konnte nicht neu gestartet werden.";

@@ -5,6 +5,8 @@ import { requireClub } from "@/lib/auth/guards";
 import { getAuthContext } from "@/lib/auth/context";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type ClubRow = {
   id: string;
