@@ -328,6 +328,9 @@ export async function GET(
     const reveal = getRevealInfo(session.date);
     const forceOpen = request.nextUrl.searchParams.get("forceOpen") === "1";
 
+    // TEMP: Voting für Testing immer offen halten
+    reveal.votingOpen = true;
+
     if (forceOpen) {
       reveal.votingOpen = true;
     }
@@ -360,6 +363,7 @@ export async function GET(
       totalVotes: number;
     } | null = null;
 
+    // TEMP: Ergebnisberechnung deaktiviert, solange Voting immer offen ist
     if (!reveal.votingOpen && !forceOpen) {
       const { data: votesData, error: votesError } = await supabase
         .from("session_mvp_votes")
@@ -489,6 +493,9 @@ export async function POST(
 
     const reveal = getRevealInfo(session.date);
     const forceOpen = request.nextUrl.searchParams.get("forceOpen") === "1";
+
+    // TEMP: Voting für Testing immer offen halten
+    reveal.votingOpen = true;
 
     if (forceOpen) {
       reveal.votingOpen = true;
