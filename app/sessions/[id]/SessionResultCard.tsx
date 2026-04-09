@@ -30,6 +30,7 @@ type Props = {
   showResultSection?: boolean;
   showPhotoSection?: boolean;
   showShareSection?: boolean;
+  collapsedByDefault?: boolean;
 };
 
 export default function SessionResultCard({
