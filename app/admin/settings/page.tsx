@@ -1,218 +1,62 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
-import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
 
-type ClubRow = {
-  id: string;
-  display_name: string | null;
-  logo_path: string | null;
-  primary_color: string | null;
-};
-
 type ClubSettingsRow = {
-  club_id: string;
   use_strength: boolean | null;
   use_categories: boolean | null;
-  category_label: string | null;
   season_start_day: number | null;
   season_start_month: number | null;
   season_end_day: number | null;
   season_end_month: number | null;
-  season_year_mode: "start_year" | "end_year" | null;
 };
 
-type CategoryRow = {
-  id: number;
-  key: string;
-  label: string;
-  sort_order: number;
-  is_active: boolean;
+type SettingsSectionProps = {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
 };
-
-type PageProps = {
-  searchParams?: Promise<{
-    error?: string;
-    saved?: string;
-    category_saved?: string;
-    category_error?: string;
-  }>;
-};
-
-const COLOR_OPTIONS = [
-  { value: "black", label: "Schwarz", color: "#020617" },
-  { value: "blue", label: "Blau", color: "#1d4ed8" },
-  { value: "red", label: "Rot", color: "#dc2626" },
-  { value: "green", label: "Grün", color: "#16a34a" },
-] as const;
-
-const MONTHS = [
-  { value: 1, label: "Januar" },
-  { value: 2, label: "Februar" },
-  { value: 3, label: "März" },
-  { value: 4, label: "April" },
-  { value: 5, label: "Mai" },
-  { value: 6, label: "Juni" },
-  { value: 7, label: "Juli" },
-  { value: 8, label: "August" },
-  { value: 9, label: "September" },
-  { value: 10, label: "Oktober" },
-  { value: 11, label: "November" },
-  { value: 12, label: "Dezember" },
-];
-
-const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
 function isAdminRole(role: string | null | undefined) {
   return role === "admin";
 }
 
-function getErrorMessage(error?: string) {
-  switch (error) {
-    case "unauthorized":
-      return "Du hast keinen Zugriff auf diesen Bereich.";
-    case "missing_club":
-      return "Es konnte kein Club gefunden werden.";
-    case "invalid_file":
-      return "Bitte lade nur PNG, JPG, JPEG oder WEBP hoch.";
-    case "file_too_large":
-      return "Die Datei ist zu groß. Maximal 2 MB sind erlaubt.";
-    case "save_failed":
-      return "Die Änderungen konnten nicht gespeichert werden.";
-    case "remove_failed":
-      return "Das Logo konnte nicht entfernt werden.";
-    case "invalid_season_start_day":
-      return "Bitte wähle einen gültigen Start-Tag.";
-    case "invalid_season_start_month":
-      return "Bitte wähle einen gültigen Start-Monat.";
-    case "invalid_season_end_day":
-      return "Bitte wähle einen gültigen End-Tag.";
-    case "invalid_season_end_month":
-      return "Bitte wähle einen gültigen End-Monat.";
-    case "invalid_season_year_mode":
-      return "Bitte wähle eine gültige Benennung.";
-    default:
-      return "";
-  }
-}
-
-function monthLabel(value: number) {
-  return MONTHS.find((month) => month.value === value)?.label ?? "?";
-}
-
-function getSeasonPreview(
-  seasonStartDay: number,
-  seasonStartMonth: number,
-  seasonEndDay: number,
-  seasonEndMonth: number,
-  seasonYearMode: "start_year" | "end_year"
-) {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-
-  const nowMonthDay = (now.getMonth() + 1) * 100 + now.getDate();
-  const startMonthDay = seasonStartMonth * 100 + seasonStartDay;
-  const endMonthDay = seasonEndMonth * 100 + seasonEndDay;
-
-  const crossesYear = startMonthDay > endMonthDay;
-
-  let seasonStartYear = currentYear;
-
-  if (crossesYear) {
-    seasonStartYear =
-      nowMonthDay >= startMonthDay ? currentYear : currentYear - 1;
-  } else {
-    seasonStartYear = currentYear;
-  }
-
-  const seasonEndYear = crossesYear ? seasonStartYear + 1 : seasonStartYear;
-
-  const seasonName =
-    seasonYearMode === "end_year"
-      ? String(seasonEndYear)
-      : String(seasonStartYear);
-
-  return {
-    seasonStartLabel: `${String(seasonStartDay).padStart(2, "0")}. ${monthLabel(
-      seasonStartMonth
-    )} ${seasonStartYear}`,
-    seasonEndLabel: `${String(seasonEndDay).padStart(2, "0")}. ${monthLabel(
-      seasonEndMonth
-    )} ${seasonEndYear}`,
-    seasonName,
-    crossesYear,
-  };
-}
-
 async function getAdminContext() {
-  const { clubId, membership, memberships } = await requireClub();
+  const { clubId, membership } = await requireClub();
 
   if (!isAdminRole(membership.role)) {
     redirect("/admin");
   }
 
   const supabase = await createClient();
-
-  return { supabase, clubId, membership, memberships };
+  return { supabase, clubId };
 }
 
 function SettingsSection({
   title,
-  subtitle,
   children,
   defaultOpen = false,
-}: {
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) {
+}: SettingsSectionProps) {
   return (
-    <details
-      open={defaultOpen}
-      className="group rounded-[24px] border border-black/10 bg-white shadow-sm"
-    >
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-5 py-4 sm:px-6 sm:py-5">
-        <div>
-          <div className="text-lg font-semibold text-slate-950">{title}</div>
-          <div className="mt-1 text-sm text-slate-600">{subtitle}</div>
-        </div>
-
-        <div className="mt-1 rounded-full border border-black/10 px-3 py-1 text-xs font-semibold text-slate-600 transition group-open:bg-slate-950 group-open:text-white">
-          Aufklappen
-        </div>
+    <details open={defaultOpen} className="rounded-2xl border bg-white">
+      <summary className="cursor-pointer px-4 py-3 font-semibold">
+        {title}
       </summary>
-
-      <div className="border-t border-black/10 px-5 py-5 sm:px-6 sm:py-6">
-        {children}
-      </div>
+      <div className="border-t p-4 space-y-5">{children}</div>
     </details>
   );
 }
 
-export default async function AdminSettingsPage({ searchParams }: PageProps) {
-  const resolvedSearchParams = (await searchParams) ?? {};
+export default async function AdminSettingsPage() {
   const { supabase, clubId } = await getAdminContext();
 
-  const [
-    { data: clubData, error: clubError },
-    { data: settingsData, error: settingsError },
-    { data: categoriesData, error: categoriesError },
-    flags,
-    playersCountResult,
-  ] = await Promise.all([
-    supabase
-      .from("clubs")
-      .select("id, display_name, logo_path, primary_color")
-      .eq("id", clubId)
-      .maybeSingle(),
+  const [{ data: settingsData }, { data: categoriesData }] = await Promise.all([
     supabase
       .from("club_settings")
       .select(
-        "club_id, use_strength, use_categories, category_label, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
+        "use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month"
       )
       .eq("club_id", clubId)
       .maybeSingle(),
@@ -220,678 +64,247 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
       .from("club_categories")
       .select("id, key, label, sort_order, is_active")
       .eq("club_id", clubId)
-      .order("sort_order", { ascending: true })
-      .order("id", { ascending: true }),
-    getFeatureFlagsForClub(clubId),
-    supabase
-      .from("players")
-      .select("id", { count: "exact", head: true })
-      .eq("club_id", clubId),
+      .order("sort_order", { ascending: true }),
   ]);
 
-  if (clubError) {
-    throw new Error(clubError.message);
-  }
-
-  if (settingsError) {
-    throw new Error(settingsError.message);
-  }
-
-  if (categoriesError) {
-    throw new Error(categoriesError.message);
-  }
-
-  const club = (clubData as ClubRow | null) ?? null;
   const settings = (settingsData as ClubSettingsRow | null) ?? null;
-  const categories = (categoriesData as CategoryRow[] | null) ?? [];
+  const categories = categoriesData ?? [];
 
-  if (!club) {
-    redirect("/admin?error=missing_club");
-  }
-
-  const selectedColor = club.primary_color ?? "black";
-  const previewColor =
-    COLOR_OPTIONS.find((option) => option.value === selectedColor)?.color ??
-    "#020617";
-
-  let logoUrl: string | null = null;
-
-  if (club.logo_path) {
-    const { data } = supabase.storage
-      .from("club-logos")
-      .getPublicUrl(club.logo_path);
-
-    logoUrl = data.publicUrl;
-  }
-
-  const useNicknames = flags.use_nicknames ?? false;
-  const useStrength = settings?.use_strength ?? false;
   const useCategories = settings?.use_categories ?? false;
-  const categoryLabel = settings?.category_label?.trim() || "Kategorie";
-
-  const seasonStartDay = settings?.season_start_day ?? 1;
-  const seasonStartMonth = settings?.season_start_month ?? 1;
-  const seasonEndDay = settings?.season_end_day ?? 31;
-  const seasonEndMonth = settings?.season_end_month ?? 12;
-  const seasonYearMode = settings?.season_year_mode ?? "end_year";
-
-  const preview = getSeasonPreview(
-    seasonStartDay,
-    seasonStartMonth,
-    seasonEndDay,
-    seasonEndMonth,
-    seasonYearMode
-  );
-
-  const activeCategories = categories.filter((category) => category.is_active);
-  const flashError = getErrorMessage(resolvedSearchParams.error);
-  const flashSaved = resolvedSearchParams.saved === "1";
-  const categorySaved = resolvedSearchParams.category_saved === "1";
-  const categoryError =
-    typeof resolvedSearchParams.category_error === "string"
-      ? resolvedSearchParams.category_error
-      : "";
-
-  const playersCount = playersCountResult.count ?? 0;
+  const useStrength = settings?.use_strength ?? false;
 
   return (
-    <main className="min-h-screen bg-neutral-100">
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-6 sm:px-5">
-        <div className="flex items-center">
-          <Link
-            href="/admin"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück zum Adminbereich
-          </Link>
-        </div>
+    <main className="mx-auto max-w-4xl space-y-4 p-4">
+      <div className="flex items-center">
+        <Link
+          href="/admin"
+          className="rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-semibold"
+        >
+          ← Zurück
+        </Link>
+      </div>
 
-        <div className="rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
-          <div className="text-sm font-semibold text-slate-500">Admin</div>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-            Einstellungen
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-600">
-            Hier pflegst du die wichtigsten Club-Einstellungen an einem Ort:
-            Club-Auftritt, Kategorien, Teamgenerator und Saisonlogik.
+      <div className="rounded-2xl border border-black/10 bg-white p-5">
+        <h1 className="text-2xl font-bold text-slate-950">Einstellungen</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Zentrale Verwaltung deines Clubs.
+        </p>
+      </div>
+
+      {/* CLUB */}
+      <SettingsSection title="Club & Branding" defaultOpen>
+        <p className="text-sm text-slate-600">
+          Name, Logo und Farbe deines Clubs verwaltest du hier.
+        </p>
+
+        <Link
+          href="/admin/club"
+          className="inline-block rounded-lg border px-4 py-2 text-sm"
+        >
+          Club bearbeiten
+        </Link>
+      </SettingsSection>
+
+      {/* SAISON */}
+      <SettingsSection title="Saison" defaultOpen>
+        {/* LOGIK */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-slate-900">
+            Saison-Zeitraum
+          </h3>
+
+          <p className="text-sm text-slate-600">
+            Definiert, wann eine Saison beginnt und endet. Darauf basieren alle
+            Statistiken und Auswertungen.
           </p>
-        </div>
 
-        {flashError ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            {flashError}
-          </div>
-        ) : null}
-
-        {flashSaved ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            Änderungen gespeichert.
-          </div>
-        ) : null}
-
-        {categorySaved ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            Kategorien gespeichert.
-          </div>
-        ) : null}
-
-        {categoryError ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            {categoryError}
-          </div>
-        ) : null}
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Spieler
-            </div>
-            <div className="mt-2 text-2xl font-bold text-slate-950">
-              {playersCount}
-            </div>
-            <div className="mt-1 text-sm text-slate-600">
-              aktive Spieler im Club
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Kategorien
-            </div>
-            <div className="mt-2 text-2xl font-bold text-slate-950">
-              {activeCategories.length}
-            </div>
-            <div className="mt-1 text-sm text-slate-600">
-              aktiv im Generator berücksichtigt
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Saisonname
-            </div>
-            <div className="mt-2 text-2xl font-bold text-slate-950">
-              {preview.seasonName}
-            </div>
-            <div className="mt-1 text-sm text-slate-600">
-              aktuelle Benennungslogik
-            </div>
-          </div>
-        </div>
-
-        <SettingsSection
-          defaultOpen
-          title="Teamgenerator"
-          subtitle="Hier steuerst du, welche Grundlagen der Generator bei der Aufteilung berücksichtigt."
-        >
-          <form method="post" action="/api/admin/settings" className="space-y-5">
-            <input
-              type="hidden"
-              name="season_start_day"
-              value={String(seasonStartDay)}
-            />
-            <input
-              type="hidden"
-              name="season_start_month"
-              value={String(seasonStartMonth)}
-            />
-            <input
-              type="hidden"
-              name="season_end_day"
-              value={String(seasonEndDay)}
-            />
-            <input
-              type="hidden"
-              name="season_end_month"
-              value={String(seasonEndMonth)}
-            />
-            <input
-              type="hidden"
-              name="season_year_mode"
-              value={seasonYearMode}
-            />
-
-            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-              <div className="text-sm font-semibold text-slate-950">
-                So funktioniert der Teamgenerator
-              </div>
-              <p className="mt-1 text-sm text-slate-600">
-                Der Generator erstellt automatisch möglichst ausgeglichene Teams
-                auf Basis eurer Einstellungen. Je nach Aktivierung werden
-                Kategorien und/oder Spielstärken berücksichtigt, um faire
-                Verteilungen zu erreichen.
+          <form method="post" action="/api/admin/settings" className="space-y-3">
+            <div>
+              <p className="mb-1 text-xs font-medium text-slate-500">
+                Saisonstart
               </p>
-            </div>
-
-            <div className="space-y-3">
-              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
-                <input
-                  type="checkbox"
-                  name="use_categories"
-                  value="1"
-                  defaultChecked={useCategories}
-                  className="mt-1 h-4 w-4 rounded border-neutral-300"
-                />
-                <div>
-                  <div className="text-sm font-semibold text-slate-950">
-                    Kategorien berücksichtigen
-                  </div>
-                  <div className="text-sm text-slate-600">
-                    Der Teamgenerator nutzt eure aktiven Kategorien bei der
-                    Aufteilung.
-                  </div>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
-                <input
-                  type="checkbox"
-                  name="use_strength"
-                  value="1"
-                  defaultChecked={useStrength}
-                  className="mt-1 h-4 w-4 rounded border-neutral-300"
-                />
-                <div>
-                  <div className="text-sm font-semibold text-slate-950">
-                    Stärke berücksichtigen
-                  </div>
-                  <div className="text-sm text-slate-600">
-                    Wenn aktiv, bezieht der Generator die hinterlegte
-                    Spielerstärke in die Verteilung ein.
-                  </div>
-                </div>
-              </label>
-            </div>
-
-            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-              <div className="text-sm font-semibold text-slate-950">
-                Einordnung
-              </div>
-              <p className="mt-1 text-sm text-slate-600">
-                Wenn ihr Stärke nicht aktiv nutzen möchtet, könnt ihr sie bei
-                euren Spielern einfach einheitlich lassen. Der Schalter bleibt
-                trotzdem hilfreich, damit die Generator-Logik klar erkennbar
-                ist.
-              </p>
-            </div>
-
-            <div className="flex">
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Generator speichern
-              </button>
-            </div>
-          </form>
-        </SettingsSection>
-
-        <SettingsSection
-          defaultOpen
-          title={`${categoryLabel}n verwalten`}
-          subtitle="Diese Kategorien können später vom Teamgenerator berücksichtigt werden."
-        >
-          <CategorySettingsSection
-            categoryLabel={categoryLabel}
-            useCategories={useCategories}
-            activeCategoriesCount={activeCategories.length}
-            categories={categories}
-          />
-        </SettingsSection>
-
-        <SettingsSection
-          title="Saisonlogik"
-          subtitle="Lege fest, wann eure Saison beginnt und endet und ob sie nach Start- oder Endjahr benannt wird."
-        >
-          <form method="post" action="/api/admin/settings" className="space-y-6">
-            {useCategories ? (
-              <input type="hidden" name="use_categories" value="1" />
-            ) : null}
-            {useStrength ? (
-              <input type="hidden" name="use_strength" value="1" />
-            ) : null}
-
-            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4 sm:p-5">
-              <div className="mb-1 text-sm font-semibold text-slate-500">
-                Zeitraum
-              </div>
-              <p className="mb-4 text-sm text-slate-600">
-                Trainings werden automatisch einer Saison zugeordnet, wenn ihr
-                Datum zwischen Start und Ende dieser Saison liegt.
-              </p>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-2xl border border-black/10 bg-white p-4">
-                  <div className="mb-3 text-sm font-semibold text-slate-950">
-                    Saisonbeginn
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="season_start_day"
-                        className="block text-sm font-medium text-slate-900"
-                      >
-                        Tag
-                      </label>
-                      <select
-                        id="season_start_day"
-                        name="season_start_day"
-                        defaultValue={String(seasonStartDay)}
-                        className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
-                      >
-                        {DAYS.map((day) => (
-                          <option key={day} value={String(day)}>
-                            {day}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="season_start_month"
-                        className="block text-sm font-medium text-slate-900"
-                      >
-                        Monat
-                      </label>
-                      <select
-                        id="season_start_month"
-                        name="season_start_month"
-                        defaultValue={String(seasonStartMonth)}
-                        className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
-                      >
-                        {MONTHS.map((month) => (
-                          <option key={month.value} value={String(month.value)}>
-                            {month.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-black/10 bg-white p-4">
-                  <div className="mb-3 text-sm font-semibold text-slate-950">
-                    Saisonende
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="season_end_day"
-                        className="block text-sm font-medium text-slate-900"
-                      >
-                        Tag
-                      </label>
-                      <select
-                        id="season_end_day"
-                        name="season_end_day"
-                        defaultValue={String(seasonEndDay)}
-                        className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
-                      >
-                        {DAYS.map((day) => (
-                          <option key={day} value={String(day)}>
-                            {day}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="season_end_month"
-                        className="block text-sm font-medium text-slate-900"
-                      >
-                        Monat
-                      </label>
-                      <select
-                        id="season_end_month"
-                        name="season_end_month"
-                        defaultValue={String(seasonEndMonth)}
-                        className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
-                      >
-                        {MONTHS.map((month) => (
-                          <option key={month.value} value={String(month.value)}>
-                            {month.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
-                <label
-                  htmlFor="season_year_mode"
-                  className="block text-sm font-medium text-slate-900"
-                >
-                  Saison benennen
-                </label>
-                <p className="mt-1 text-sm text-slate-600">
-                  Die Benennung kann wahlweise nach Startjahr oder Endjahr
-                  erfolgen.
-                </p>
+              <div className="grid grid-cols-2 gap-2">
                 <select
-                  id="season_year_mode"
-                  name="season_year_mode"
-                  defaultValue={seasonYearMode}
-                  className="mt-3 w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
+                  name="season_start_day"
+                  defaultValue={String(settings?.season_start_day ?? 1)}
+                  className="rounded-lg border p-2"
                 >
-                  <option value="start_year">Nach Startjahr</option>
-                  <option value="end_year">Nach Endjahr</option>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  name="season_start_month"
+                  defaultValue={String(settings?.season_start_month ?? 1)}
+                  className="rounded-lg border p-2"
+                >
+                  {[
+                    "Januar",
+                    "Februar",
+                    "März",
+                    "April",
+                    "Mai",
+                    "Juni",
+                    "Juli",
+                    "August",
+                    "September",
+                    "Oktober",
+                    "November",
+                    "Dezember",
+                  ].map((label, index) => (
+                    <option key={label} value={index + 1}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
-
-              <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
-                <div className="text-sm font-semibold text-slate-950">
-                  Vorschau der aktuellen Einstellung
-                </div>
-
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl bg-neutral-50 p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Beginn
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-950">
-                      {preview.seasonStartLabel}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-neutral-50 p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Ende
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-950">
-                      {preview.seasonEndLabel}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-slate-950 p-3 text-white">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
-                      Anzeigename
-                    </div>
-                    <div className="mt-1 text-lg font-bold">
-                      {preview.seasonName}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 text-sm text-slate-600">
-                  {preview.crossesYear
-                    ? "Diese Saison überschreitet einen Jahreswechsel."
-                    : "Diese Saison liegt innerhalb eines Kalenderjahres."}
-                </div>
-              </div>
             </div>
 
-            <div className="flex">
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Saisonlogik speichern
-              </button>
-            </div>
-          </form>
-        </SettingsSection>
-
-        <SettingsSection
-          title="Club & Branding"
-          subtitle="Name, Logo, Farbe und grundlegende Anzeigeoptionen für euren Club."
-        >
-          <div className="mb-6 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-            <div className="mb-3 text-sm font-semibold text-slate-500">
-              Aktuelle Vorschau
-            </div>
-
-            <div
-              className="rounded-2xl border border-slate-200 bg-white p-4"
-              style={{ borderTop: `4px solid ${previewColor}` }}
-            >
-              <div className="flex items-center gap-3">
-                {logoUrl ? (
-                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
-                    <Image
-                      src={logoUrl}
-                      alt={club.display_name || "Clublogo"}
-                      width={80}
-                      height={80}
-                      unoptimized
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
-                    Logo
-                  </div>
-                )}
-
-                <div className="min-w-0">
-                  <div className="truncate text-lg font-bold text-slate-950">
-                    {club.display_name?.trim() || "Dein Team"}
-                  </div>
-                  <div className="text-sm text-slate-500">
-                    Anzeige im Header
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Spielernamen:{" "}
-                    <span className="font-semibold text-slate-700">
-                      {useNicknames ? "Spitznamen aktiv" : "Vor- und Nachname"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <form
-            method="post"
-            action="/api/admin/club"
-            encType="multipart/form-data"
-            className="space-y-5"
-          >
-            <div className="space-y-2">
-              <label
-                htmlFor="display_name"
-                className="block text-sm font-medium text-slate-900"
-              >
-                Vereinsname
-              </label>
-              <input
-                id="display_name"
-                name="display_name"
-                type="text"
-                maxLength={80}
-                defaultValue={club.display_name ?? ""}
-                placeholder="z. B. SKV Rutesheim"
-                className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="logo"
-                className="block text-sm font-medium text-slate-900"
-              >
-                Vereinslogo
-              </label>
-              <input
-                id="logo"
-                name="logo"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/jpg"
-                className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
-              />
-              <p className="text-xs text-slate-500">
-                Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="block text-sm font-medium text-slate-900">
-                Vereinsfarbe
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {COLOR_OPTIONS.map((option) => (
-                  <label
-                    key={option.value}
-                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"
-                  >
-                    <input
-                      type="radio"
-                      name="primary_color"
-                      value={option.value}
-                      defaultChecked={option.value === selectedColor}
-                    />
-                    <span
-                      className="h-4 w-4 rounded-full border border-black/10"
-                      style={{ backgroundColor: option.color }}
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </div>
-
-              <p className="text-xs text-slate-500">
-                Die Farbe wird als dezenter Akzent für euren Club in der App
-                genutzt.
-              </p>
-            </div>
-
-            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-              <div className="mb-3 text-sm font-semibold text-slate-500">
-                Allgemeine Anzeige
-              </div>
-
-              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
-                <input
-                  type="checkbox"
-                  name="use_nicknames"
-                  value="1"
-                  defaultChecked={useNicknames}
-                  className="mt-1 h-4 w-4 rounded border-neutral-300"
-                />
-                <div>
-                  <div className="text-sm font-semibold text-slate-950">
-                    Spitznamen anzeigen
-                  </div>
-                  <div className="text-sm text-slate-600">
-                    Wenn aktiv, werden Spieler in Sessions, Teams, Stats und
-                    weiteren Ansichten bevorzugt mit ihrem Spitznamen angezeigt.
-                  </div>
-                </div>
-              </label>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Club speichern
-              </button>
-
-              {club.logo_path ? (
-                <button
-                  type="submit"
-                  name="remove_logo"
-                  value="1"
-                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
-                >
-                  Logo entfernen
-                </button>
-              ) : null}
-            </div>
-          </form>
-        </SettingsSection>
-
-        <SettingsSection
-          title="Saisonverwaltung"
-          subtitle="Bestehende Saisons anlegen, ansehen oder löschen bleibt auf der bisherigen Seite, damit dieser Bereich kompakt bleibt."
-        >
-          <div className="flex flex-col gap-4 rounded-[20px] border border-black/10 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm font-semibold text-slate-950">
-                Bestehende Saisons verwalten
-              </div>
-              <div className="mt-1 text-sm text-slate-600">
-                Für das Anlegen und Löschen einzelner Saisons nutzt ihr weiter
-                die bestehende Saisonseite.
+              <p className="mb-1 text-xs font-medium text-slate-500">
+                Saisonende
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  name="season_end_day"
+                  defaultValue={String(settings?.season_end_day ?? 31)}
+                  className="rounded-lg border p-2"
+                >
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  name="season_end_month"
+                  defaultValue={String(settings?.season_end_month ?? 12)}
+                  className="rounded-lg border p-2"
+                >
+                  {[
+                    "Januar",
+                    "Februar",
+                    "März",
+                    "April",
+                    "Mai",
+                    "Juni",
+                    "Juli",
+                    "August",
+                    "September",
+                    "Oktober",
+                    "November",
+                    "Dezember",
+                  ].map((label, index) => (
+                    <option key={label} value={index + 1}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            <Link
-              href="/admin/seasons"
-              className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-            >
-              Saisonseite öffnen
-            </Link>
+            <button className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white">
+              Zeitraum speichern
+            </button>
+          </form>
+        </div>
+
+        {/* VERWALTUNG (future ready) */}
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-semibold text-slate-900">
+            Saisonverwaltung
+          </h3>
+
+          <p className="text-sm text-slate-600">
+            Hier kannst du später mehrere Saisons verwalten (z. B. 2024/25,
+            2025/26). Aktuell wird automatisch eine Saison basierend auf dem
+            Zeitraum verwendet.
+          </p>
+        </div>
+      </SettingsSection>
+
+      {/* KATEGORIEN */}
+      <SettingsSection title="Kategorien">
+        <CategorySettingsSection
+          categories={categories}
+          useCategories={useCategories}
+        />
+      </SettingsSection>
+
+      {/* TEAMGENERATOR */}
+      <SettingsSection title="Teamgenerator" defaultOpen>
+        <details className="rounded-xl border border-black/10 p-3">
+          <summary className="cursor-pointer font-semibold">
+            Wie funktioniert der Teamgenerator?
+          </summary>
+
+          <div className="mt-3 space-y-2 text-sm text-slate-600">
+            <p>
+              Der Generator erstellt automatisch faire Teams basierend auf euren
+              Einstellungen.
+            </p>
+
+            <p>
+              Kategorien wie <strong>AH</strong> oder <strong>Ü32</strong> werden
+              gleichmäßig verteilt.
+            </p>
+
+            <p>
+              Wenn Stärke aktiv ist, werden die Teams zusätzlich nach
+              Spielstärke ausgeglichen.
+            </p>
+
+            <p>
+              Wenn beides aus ist, werden Teams zufällig erstellt.
+            </p>
+
+            <p className="font-medium text-slate-800">
+              Beispiel:
+            </p>
+
+            <p>
+              10 Spieler: 4 AH, 6 Ü32 → beide Teams haben ähnliche Verteilung und
+              Stärke.
+            </p>
+
+            <p>Ziel: faire Teams ohne Diskussion.</p>
           </div>
-        </SettingsSection>
-      </section>
+        </details>
+
+        <form
+          method="post"
+          action="/api/admin/settings"
+          className="mt-4 space-y-3"
+        >
+          <label className="flex gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="use_categories"
+              value="1"
+              defaultChecked={useCategories}
+            />
+            Kategorien nutzen
+          </label>
+
+          <label className="flex gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="use_strength"
+              value="1"
+              defaultChecked={useStrength}
+            />
+            Stärke nutzen
+          </label>
+
+          <button className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white">
+            Speichern
+          </button>
+        </form>
+      </SettingsSection>
     </main>
   );
 }
