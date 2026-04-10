@@ -43,6 +43,26 @@ function redirectToPath(
   return NextResponse.redirect(url, { status: 303 });
 }
 
+function getSafeRedirectPath(value: FormDataEntryValue | null) {
+  const fallback = "/admin/seasons";
+
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed.startsWith("/")) {
+    return fallback;
+  }
+
+  if (trimmed.startsWith("//")) {
+    return fallback;
+  }
+
+  return trimmed || fallback;
+}
+
 async function requireSeasonAdmin() {
   const ctx = await getAuthContext();
 
@@ -92,17 +112,17 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const intent = String(formData.get("intent") ?? "").trim();
+    const redirectPath = getSafeRedirectPath(formData.get("redirect_to"));
     const supabase = await createClient();
 
-    // 🔥 CREATE SEASON FIX
     if (intent === "create") {
       const name = String(formData.get("name") ?? "").trim();
       const startDate = String(formData.get("start_date") ?? "").trim();
-      const endDate = String(formData.get("end_date") ?? "").trim(); // ✅ NEU
+      const endDate = String(formData.get("end_date") ?? "").trim();
 
       if (!name) {
-        return redirectToPath(request, "/admin/seasons", {
-          error: "Name darf nicht leer sein.",
+        return redirectToPath(request, redirectPath, {
+          season_error: "Name darf nicht leer sein.",
         });
       }
 
@@ -110,30 +130,35 @@ export async function POST(request: NextRequest) {
         club_id: access.clubId,
         name,
         start_date: startDate || null,
-        end_date: endDate || null, // 🔥 DAS HAT GEFEHLT
+        end_date: endDate || null,
       });
 
       if (error) {
-        return redirectToPath(request, "/admin/seasons", {
-          error: error.message || "Fehler beim Anlegen.",
+        return redirectToPath(request, redirectPath, {
+          season_error: error.message || "Fehler beim Anlegen.",
         });
       }
 
-      return redirectToPath(request, "/admin/seasons", {
-        message: "Saison angelegt.",
+      return redirectToPath(request, redirectPath, {
+        season_message: "Saison angelegt.",
       });
     }
 
-    // 🔥 OPTIONAL: UPDATE (falls du später bearbeiten willst)
     if (intent === "update") {
       const id = Number(formData.get("season_id") ?? 0);
       const name = String(formData.get("name") ?? "").trim();
       const startDate = String(formData.get("start_date") ?? "").trim();
       const endDate = String(formData.get("end_date") ?? "").trim();
 
-      if (!id) {
-        return redirectToPath(request, "/admin/seasons", {
-          error: "Ungültige Saison.",
+      if (!Number.isFinite(id) || id <= 0) {
+        return redirectToPath(request, redirectPath, {
+          season_error: "Ungültige Saison.",
+        });
+      }
+
+      if (!name) {
+        return redirectToPath(request, redirectPath, {
+          season_error: "Name darf nicht leer sein.",
         });
       }
 
@@ -148,13 +173,13 @@ export async function POST(request: NextRequest) {
         .eq("club_id", access.clubId);
 
       if (error) {
-        return redirectToPath(request, "/admin/seasons", {
-          error: error.message || "Fehler beim Speichern.",
+        return redirectToPath(request, redirectPath, {
+          season_error: error.message || "Fehler beim Speichern.",
         });
       }
 
-      return redirectToPath(request, "/admin/seasons", {
-        message: "Saison aktualisiert.",
+      return redirectToPath(request, redirectPath, {
+        season_message: "Saison aktualisiert.",
       });
     }
 
@@ -162,8 +187,8 @@ export async function POST(request: NextRequest) {
       const id = Number(formData.get("season_id") ?? 0);
 
       if (!Number.isFinite(id) || id <= 0) {
-        return redirectToPath(request, "/admin/seasons", {
-          error: "Ungültige Saison.",
+        return redirectToPath(request, redirectPath, {
+          season_error: "Ungültige Saison.",
         });
       }
 
@@ -174,24 +199,24 @@ export async function POST(request: NextRequest) {
         .eq("club_id", access.clubId);
 
       if (error) {
-        return redirectToPath(request, "/admin/seasons", {
-          error: error.message || "Fehler beim Löschen.",
+        return redirectToPath(request, redirectPath, {
+          season_error: error.message || "Fehler beim Löschen.",
         });
       }
 
-      return redirectToPath(request, "/admin/seasons", {
-        message: "Saison gelöscht.",
+      return redirectToPath(request, redirectPath, {
+        season_message: "Saison gelöscht.",
       });
     }
 
-    return redirectToPath(request, "/admin/seasons", {
-      error: "Ungültige Aktion.",
+    return redirectToPath(request, redirectPath, {
+      season_error: "Ungültige Aktion.",
     });
   } catch (error) {
     console.error("POST /api/admin/seasons failed", error);
 
-    return redirectToPath(request, "/admin/seasons", {
-      error: "Fehler beim Speichern.",
+    return redirectToPath(request, "/admin/settings", {
+      season_error: "Fehler beim Speichern.",
     });
   }
 }
