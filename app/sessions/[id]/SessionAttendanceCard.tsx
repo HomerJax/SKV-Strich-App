@@ -290,8 +290,8 @@ export default function SessionAttendanceCard({
                   <PlayerBadge
                     mvpCount={mvpCount}
                     size="sm"
-                    showLabel={false}
-                    showCount={true}
+                    hideIfNone
+                    iconOnly
                   />
                   {guestBadge(player)}
                 </span>

@@ -354,8 +354,8 @@ export default function StandingsClient({
                             <PlayerBadge
                               mvpCount={row.mvps}
                               size="sm"
-                              showLabel={false}
-                              showCount={true}
+                              hideIfNone
+                              iconOnly
                             />
                           </div>
                         </td>
