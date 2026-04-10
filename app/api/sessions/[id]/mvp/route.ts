@@ -17,7 +17,6 @@ type SessionRow = {
 
 type PlayerRow = {
   id: number;
-  display_name?: string | null;
   first_name: string | null;
   last_name: string | null;
   user_id: string | null;
@@ -30,7 +29,6 @@ type SessionPlayerRow = {
 
 type VoteRow = {
   voted_player_id: number;
-  voter_user_id: string | null;
 };
 
 type UserVoteRow = {
@@ -43,7 +41,8 @@ type NotificationInsert = {
   type: string;
   title: string;
   body: string;
-  cta_href: string | null;
+  cta_url?: string | null;
+  cta_href?: string | null;
   dedupe_key: string;
 };
 
@@ -63,9 +62,6 @@ function normalizePlayerRelation(
 
 function getPlayerName(player: PlayerRow | null) {
   if (!player) return "Spieler";
-
-  const displayName = player.display_name?.trim();
-  if (displayName) return displayName;
 
   const fullName = [player.first_name, player.last_name]
     .map((value) => value?.trim())
@@ -116,12 +112,10 @@ function getBerlinParts(date: Date) {
 function getVotingWindow(sessionDate: string) {
   const revealDate = addOneDay(sessionDate);
   const revealLabel = `${revealDate}, 10:00 Uhr`;
-  const revealAtIso = `${revealDate}T10:00:00+02:00`;
 
   return {
     revealDate,
     revealLabel,
-    revealAtIso,
   };
 }
 
@@ -231,7 +225,6 @@ async function loadParticipantsAndVotes(params: {
           player_id,
           players (
             id,
-            display_name,
             first_name,
             last_name,
             user_id
@@ -247,7 +240,7 @@ async function loadParticipantsAndVotes(params: {
       .maybeSingle<UserVoteRow>(),
     supabase
       .from("session_mvp_votes")
-      .select("voted_player_id, voter_user_id")
+      .select("voted_player_id")
       .eq("session_id", sessionId),
   ]);
 
@@ -286,20 +279,6 @@ async function loadParticipantsAndVotes(params: {
   const voteCount = voteRows.length;
   const eligibleVoterCount = participants.length;
 
-  const votedUserIds = new Set(
-    voteRows
-      .map((row) => row.voter_user_id)
-      .filter((value): value is string => Boolean(value))
-  );
-
-  const voters = participants
-    .filter((participant) => participant.userId && votedUserIds.has(participant.userId))
-    .map((participant) => ({
-      userId: participant.userId as string,
-      name: participant.name,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name, "de"));
-
   return {
     participants,
     userVotePlayerId,
@@ -307,7 +286,6 @@ async function loadParticipantsAndVotes(params: {
     voteRows,
     voteCount,
     eligibleVoterCount,
-    voters,
   };
 }
 
@@ -460,21 +438,19 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       hasResult: false,
       votingOpen: false,
       revealLabel: null,
-      revealAtIso: null,
       canVote: false,
       userHasVoted: false,
       userVotePlayerId: null,
       participants: [],
       voteCount: 0,
       eligibleVoterCount: 0,
-      voters: [],
       results: null,
     });
   }
 
   try {
     const votingOpen = isVotingOpen(session.date);
-    const { revealLabel, revealAtIso } = getVotingWindow(session.date);
+    const { revealLabel } = getVotingWindow(session.date);
 
     const {
       participants,
@@ -483,7 +459,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       voteRows,
       voteCount,
       eligibleVoterCount,
-      voters,
     } = await loadParticipantsAndVotes({
       sessionId,
       userId: user.id,
@@ -514,7 +489,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       hasResult: true,
       votingOpen,
       revealLabel,
-      revealAtIso,
       canVote,
       userHasVoted,
       userVotePlayerId,
@@ -524,7 +498,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       })),
       voteCount,
       eligibleVoterCount,
-      voters,
       results,
     });
   } catch (error) {
