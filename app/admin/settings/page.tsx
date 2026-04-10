@@ -1,18 +1,53 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+
+type ClubRow = {
+  id: string;
+  display_name: string | null;
+  logo_path: string | null;
+  primary_color: string | null;
+};
 
 type ClubSettingsRow = {
   club_id: string;
   use_strength: boolean | null;
   use_categories: boolean | null;
+  category_label: string | null;
   season_start_day: number | null;
   season_start_month: number | null;
   season_end_day: number | null;
   season_end_month: number | null;
   season_year_mode: "start_year" | "end_year" | null;
 };
+
+type CategoryRow = {
+  id: number;
+  key: string;
+  label: string;
+  sort_order: number;
+  is_active: boolean;
+};
+
+type PageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    saved?: string;
+    category_saved?: string;
+    category_error?: string;
+  }>;
+};
+
+const COLOR_OPTIONS = [
+  { value: "black", label: "Schwarz", color: "#020617" },
+  { value: "blue", label: "Blau", color: "#1d4ed8" },
+  { value: "red", label: "Rot", color: "#dc2626" },
+  { value: "green", label: "Grün", color: "#16a34a" },
+] as const;
 
 const MONTHS = [
   { value: 1, label: "Januar" },
@@ -31,14 +66,24 @@ const MONTHS = [
 
 const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
+function isAdminRole(role: string | null | undefined) {
+  return role === "admin";
+}
+
 function getErrorMessage(error?: string) {
   switch (error) {
     case "unauthorized":
       return "Du hast keinen Zugriff auf diesen Bereich.";
     case "missing_club":
       return "Es konnte kein Club gefunden werden.";
+    case "invalid_file":
+      return "Bitte lade nur PNG, JPG, JPEG oder WEBP hoch.";
+    case "file_too_large":
+      return "Die Datei ist zu groß. Maximal 2 MB sind erlaubt.";
     case "save_failed":
-      return "Die Saison-Einstellungen konnten nicht gespeichert werden.";
+      return "Die Änderungen konnten nicht gespeichert werden.";
+    case "remove_failed":
+      return "Das Logo konnte nicht entfernt werden.";
     case "invalid_season_start_day":
       return "Bitte wähle einen gültigen Start-Tag.";
     case "invalid_season_start_month":
@@ -52,6 +97,17 @@ function getErrorMessage(error?: string) {
     default:
       return "";
   }
+}
+
+function slugifyKey(input: string) {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
 }
 
 function monthLabel(value: number) {
@@ -102,43 +158,224 @@ function getSeasonPreview(
   };
 }
 
-type PageProps = {
-  searchParams?: Promise<{
-    error?: string;
-    saved?: string;
-  }>;
-};
+async function getAdminContext() {
+  const { clubId, membership, memberships } = await requireClub();
 
-export default async function AdminSettingsPage({
-  searchParams,
-}: PageProps) {
-  const resolvedSearchParams = await searchParams;
-  const { clubId, membership } = await requireClub();
-
-  if (membership.role !== "admin") {
+  if (!isAdminRole(membership.role)) {
     redirect("/admin");
   }
 
   const supabase = await createClient();
 
-  const { data: settingsData, error: settingsError } = await supabase
-    .from("club_settings")
-    .select(
-      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
-    )
+  return { supabase, clubId, membership, memberships };
+}
+
+async function addCategoryAction(formData: FormData) {
+  "use server";
+
+  const { supabase, clubId } = await getAdminContext();
+
+  const label = String(formData.get("label") ?? "").trim();
+  const keyInput = String(formData.get("key") ?? "").trim();
+
+  if (!label) {
+    redirect("/admin/settings?category_error=Bitte%20Bezeichnung%20eingeben");
+  }
+
+  const key = slugifyKey(keyInput || label);
+
+  if (!key) {
+    redirect("/admin/settings?category_error=Ung%C3%BCltiger%20Schl%C3%BCssel");
+  }
+
+  const { data: maxRow } = await supabase
+    .from("club_categories")
+    .select("sort_order")
     .eq("club_id", clubId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  const nextSortOrder = (maxRow?.sort_order ?? 0) + 1;
+
+  const { error } = await supabase.from("club_categories").insert({
+    club_id: clubId,
+    key,
+    label,
+    sort_order: nextSortOrder,
+    is_active: true,
+  });
+
+  if (error) {
+    redirect(
+      `/admin/settings?category_error=${encodeURIComponent(error.message)}`
+    );
+  }
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/categories");
+  revalidatePath("/onboarding");
+
+  redirect("/admin/settings?category_saved=1");
+}
+
+async function updateCategoryAction(formData: FormData) {
+  "use server";
+
+  const { supabase, clubId } = await getAdminContext();
+
+  const id = Number(String(formData.get("id") ?? ""));
+  const label = String(formData.get("label") ?? "").trim();
+  const keyInput = String(formData.get("key") ?? "").trim();
+  const sortOrder = Number(String(formData.get("sort_order") ?? "0"));
+  const isActive = formData.get("is_active") === "on";
+
+  if (!id || !label) {
+    redirect("/admin/settings?category_error=Ung%C3%BCltige%20Kategorie");
+  }
+
+  const key = slugifyKey(keyInput || label);
+
+  if (!key) {
+    redirect("/admin/settings?category_error=Ung%C3%BCltiger%20Schl%C3%BCssel");
+  }
+
+  const safeSortOrder = Number.isFinite(sortOrder) ? sortOrder : 0;
+
+  const { error } = await supabase
+    .from("club_categories")
+    .update({
+      label,
+      key,
+      sort_order: safeSortOrder,
+      is_active: isActive,
+    })
+    .eq("id", id)
+    .eq("club_id", clubId);
+
+  if (error) {
+    redirect(
+      `/admin/settings?category_error=${encodeURIComponent(error.message)}`
+    );
+  }
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/categories");
+  revalidatePath("/onboarding");
+
+  redirect("/admin/settings?category_saved=1");
+}
+
+function SettingsSection({
+  title,
+  subtitle,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  return (
+    <details
+      open={defaultOpen}
+      className="group rounded-[24px] border border-black/10 bg-white shadow-sm"
+    >
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-5 py-4 sm:px-6 sm:py-5">
+        <div>
+          <div className="text-lg font-semibold text-slate-950">{title}</div>
+          <div className="mt-1 text-sm text-slate-600">{subtitle}</div>
+        </div>
+
+        <div className="mt-1 rounded-full border border-black/10 px-3 py-1 text-xs font-semibold text-slate-600 transition group-open:bg-slate-950 group-open:text-white">
+          Aufklappen
+        </div>
+      </summary>
+
+      <div className="border-t border-black/10 px-5 py-5 sm:px-6 sm:py-6">
+        {children}
+      </div>
+    </details>
+  );
+}
+
+export default async function AdminSettingsPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const { supabase, clubId } = await getAdminContext();
+
+  const [
+    { data: clubData, error: clubError },
+    { data: settingsData, error: settingsError },
+    { data: categoriesData, error: categoriesError },
+    flags,
+    playersCountResult,
+  ] = await Promise.all([
+    supabase
+      .from("clubs")
+      .select("id, display_name, logo_path, primary_color")
+      .eq("id", clubId)
+      .maybeSingle(),
+    supabase
+      .from("club_settings")
+      .select(
+        "club_id, use_strength, use_categories, category_label, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
+      )
+      .eq("club_id", clubId)
+      .maybeSingle(),
+    supabase
+      .from("club_categories")
+      .select("id, key, label, sort_order, is_active")
+      .eq("club_id", clubId)
+      .order("sort_order", { ascending: true })
+      .order("id", { ascending: true }),
+    getFeatureFlagsForClub(clubId),
+    supabase
+      .from("players")
+      .select("id", { count: "exact", head: true })
+      .eq("club_id", clubId),
+  ]);
+
+  if (clubError) {
+    throw new Error(clubError.message);
+  }
 
   if (settingsError) {
     throw new Error(settingsError.message);
   }
 
-  const settings = (settingsData as ClubSettingsRow | null) ?? null;
-  const flashError = getErrorMessage(resolvedSearchParams?.error);
-  const flashSaved = resolvedSearchParams?.saved === "1";
+  if (categoriesError) {
+    throw new Error(categoriesError.message);
+  }
 
+  const club = (clubData as ClubRow | null) ?? null;
+  const settings = (settingsData as ClubSettingsRow | null) ?? null;
+  const categories = (categoriesData as CategoryRow[] | null) ?? [];
+
+  if (!club) {
+    redirect("/admin?error=missing_club");
+  }
+
+  const selectedColor = club.primary_color ?? "black";
+  const previewColor =
+    COLOR_OPTIONS.find((option) => option.value === selectedColor)?.color ??
+    "#020617";
+
+  let logoUrl: string | null = null;
+
+  if (club.logo_path) {
+    const { data } = supabase.storage
+      .from("club-logos")
+      .getPublicUrl(club.logo_path);
+
+    logoUrl = data.publicUrl;
+  }
+
+  const useNicknames = flags.use_nicknames ?? false;
   const useStrength = settings?.use_strength ?? false;
   const useCategories = settings?.use_categories ?? false;
+  const categoryLabel = settings?.category_label?.trim() || "Kategorie";
+
   const seasonStartDay = settings?.season_start_day ?? 1;
   const seasonStartMonth = settings?.season_start_month ?? 1;
   const seasonEndDay = settings?.season_end_day ?? 31;
@@ -153,9 +390,20 @@ export default async function AdminSettingsPage({
     seasonYearMode
   );
 
+  const activeCategories = categories.filter((category) => category.is_active);
+  const flashError = getErrorMessage(resolvedSearchParams.error);
+  const flashSaved = resolvedSearchParams.saved === "1";
+  const categorySaved = resolvedSearchParams.category_saved === "1";
+  const categoryError =
+    typeof resolvedSearchParams.category_error === "string"
+      ? resolvedSearchParams.category_error
+      : "";
+
+  const playersCount = playersCountResult.count ?? 0;
+
   return (
     <main className="min-h-screen bg-neutral-100">
-      <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:px-5">
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-6 sm:px-5">
         <div className="flex items-center">
           <Link
             href="/admin"
@@ -165,84 +413,551 @@ export default async function AdminSettingsPage({
           </Link>
         </div>
 
-        <div className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm sm:p-6">
-          <div className="mb-5">
-            <div className="text-sm font-semibold text-slate-500">Admin</div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-              Neue Saison erstellen
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Hier definierst du Saison-Zeitraum, Benennung und wichtige
-              Einstellungen für den Teamgenerator.
-            </p>
+        <div className="rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
+          <div className="text-sm font-semibold text-slate-500">Admin</div>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+            Einstellungen
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm text-slate-600">
+            Hier pflegst du die wichtigsten Club-Einstellungen an einem Ort:
+            Club-Auftritt, Spieler-Grundlagen, Kategorien, Teamgenerator und
+            Saisonlogik.
+          </p>
+        </div>
+
+        {flashError ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            {flashError}
+          </div>
+        ) : null}
+
+        {flashSaved ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            Änderungen gespeichert.
+          </div>
+        ) : null}
+
+        {categorySaved ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            Kategorien gespeichert.
+          </div>
+        ) : null}
+
+        {categoryError ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            {categoryError}
+          </div>
+        ) : null}
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Spieler
+            </div>
+            <div className="mt-2 text-2xl font-bold text-slate-950">
+              {playersCount}
+            </div>
+            <div className="mt-1 text-sm text-slate-600">
+              aktive Spieler im Club
+            </div>
           </div>
 
-          {flashError ? (
-            <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-              {flashError}
+          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Kategorien
             </div>
-          ) : null}
-
-          {flashSaved ? (
-            <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              Saison-Einstellungen gespeichert.
+            <div className="mt-2 text-2xl font-bold text-slate-950">
+              {activeCategories.length}
             </div>
-          ) : null}
+            <div className="mt-1 text-sm text-slate-600">
+              aktiv im Generator berücksichtigt
+            </div>
+          </div>
 
-          <form method="post" action="/api/admin/settings" className="space-y-6">
-            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4 sm:p-5">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Saisonname
+            </div>
+            <div className="mt-2 text-2xl font-bold text-slate-950">
+              {preview.seasonName}
+            </div>
+            <div className="mt-1 text-sm text-slate-600">
+              aktuelle Benennungslogik
+            </div>
+          </div>
+        </div>
+
+        <SettingsSection
+          defaultOpen
+          title="Club & Branding"
+          subtitle="Name, Logo, Farbe und grundlegende Anzeigeoptionen für euren Club."
+        >
+          <div className="mb-6 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-500">
+              Aktuelle Vorschau
+            </div>
+
+            <div
+              className="rounded-2xl border border-slate-200 bg-white p-4"
+              style={{ borderTop: `4px solid ${previewColor}` }}
+            >
+              <div className="flex items-center gap-3">
+                {logoUrl ? (
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
+                    <Image
+                      src={logoUrl}
+                      alt={club.display_name || "Clublogo"}
+                      width={80}
+                      height={80}
+                      unoptimized
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
+                    Logo
+                  </div>
+                )}
+
+                <div className="min-w-0">
+                  <div className="truncate text-lg font-bold text-slate-950">
+                    {club.display_name?.trim() || "Dein Team"}
+                  </div>
+                  <div className="text-sm text-slate-500">
+                    Anzeige im Header
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Spielernamen:{" "}
+                    <span className="font-semibold text-slate-700">
+                      {useNicknames ? "Spitznamen aktiv" : "Vor- und Nachname"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <form
+            method="post"
+            action="/api/admin/club"
+            encType="multipart/form-data"
+            className="space-y-5"
+          >
+            <div className="space-y-2">
+              <label
+                htmlFor="display_name"
+                className="block text-sm font-medium text-slate-900"
+              >
+                Vereinsname
+              </label>
+              <input
+                id="display_name"
+                name="display_name"
+                type="text"
+                maxLength={80}
+                defaultValue={club.display_name ?? ""}
+                placeholder="z. B. SKV Rutesheim"
+                className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="logo"
+                className="block text-sm font-medium text-slate-900"
+              >
+                Vereinslogo
+              </label>
+              <input
+                id="logo"
+                name="logo"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+              />
+              <p className="text-xs text-slate-500">
+                Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="block text-sm font-medium text-slate-900">
+                Vereinsfarbe
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {COLOR_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"
+                  >
+                    <input
+                      type="radio"
+                      name="primary_color"
+                      value={option.value}
+                      defaultChecked={option.value === selectedColor}
+                    />
+                    <span
+                      className="h-4 w-4 rounded-full border border-black/10"
+                      style={{ backgroundColor: option.color }}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Die Farbe wird als dezenter Akzent für euren Club in der App
+                genutzt.
+              </p>
+            </div>
+
+            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
               <div className="mb-3 text-sm font-semibold text-slate-500">
-                Teamgenerator
+                Allgemeine Anzeige
               </div>
 
-              <div className="space-y-3">
-                <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
-                  <input
-                    type="checkbox"
-                    name="use_strength"
-                    value="1"
-                    defaultChecked={useStrength}
-                    className="mt-1 h-4 w-4 rounded border-neutral-300"
-                  />
-                  <div>
-                    <div className="text-sm font-semibold text-slate-950">
-                      Stärke berücksichtigen
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      Der Teamgenerator bezieht die Spielerstärke in die
-                      Verteilung ein.
-                    </div>
+              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                <input
+                  type="checkbox"
+                  name="use_nicknames"
+                  value="1"
+                  defaultChecked={useNicknames}
+                  className="mt-1 h-4 w-4 rounded border-neutral-300"
+                />
+                <div>
+                  <div className="text-sm font-semibold text-slate-950">
+                    Spitznamen anzeigen
                   </div>
-                </label>
+                  <div className="text-sm text-slate-600">
+                    Wenn aktiv, werden Spieler in Sessions, Teams, Stats und
+                    weiteren Ansichten bevorzugt mit ihrem Spitznamen angezeigt.
+                  </div>
+                </div>
+              </label>
+            </div>
 
-                <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
-                  <input
-                    type="checkbox"
-                    name="use_categories"
-                    value="1"
-                    defaultChecked={useCategories}
-                    className="mt-1 h-4 w-4 rounded border-neutral-300"
-                  />
-                  <div>
-                    <div className="text-sm font-semibold text-slate-950">
-                      Kategorien berücksichtigen
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      Der Teamgenerator nutzt eure Club-Kategorien bei der
-                      Aufteilung.
-                    </div>
-                  </div>
-                </label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Club speichern
+              </button>
+
+              {club.logo_path ? (
+                <button
+                  type="submit"
+                  name="remove_logo"
+                  value="1"
+                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                >
+                  Logo entfernen
+                </button>
+              ) : null}
+            </div>
+          </form>
+        </SettingsSection>
+
+        <SettingsSection
+          title="Spieler"
+          subtitle="Spielerprofile, Positionen, Stärken und Zuordnungen verwaltest du weiterhin in der Spielerverwaltung."
+        >
+          <div className="flex flex-col gap-4 rounded-[20px] border border-black/10 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-slate-950">
+                Spieler zentral verwalten
+              </div>
+              <div className="mt-1 text-sm text-slate-600">
+                Die Spielerliste bleibt bewusst separat, damit dieser Bereich
+                kompakt und scanbar bleibt.
               </div>
             </div>
+
+            <Link
+              href="/admin/players"
+              className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Spieler öffnen
+            </Link>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection
+          defaultOpen
+          title={`${categoryLabel}n`}
+          subtitle="Diese Kategorien können später vom Teamgenerator berücksichtigt werden."
+        >
+          <div className="mb-5 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+            <div className="text-sm font-semibold text-slate-950">
+              Kurzer Hinweis
+            </div>
+            <p className="mt-1 text-sm text-slate-600">
+              Kategorien helfen dem Teamgenerator bei einer faireren Aufteilung,
+              zum Beispiel nach <span className="font-semibold">Vorne</span>,{" "}
+              <span className="font-semibold">Hinten</span>,{" "}
+              <span className="font-semibold">Ü32</span> oder{" "}
+              <span className="font-semibold">AH</span>.
+            </p>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span
+                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                  useCategories
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                {useCategories
+                  ? "Im Generator aktiv"
+                  : "Im Generator aktuell aus"}
+              </span>
+
+              <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                {activeCategories.length} aktive Kategorien
+              </span>
+            </div>
+          </div>
+
+          <section className="mb-6 rounded-[20px] border border-black/10 bg-white p-4">
+            <h3 className="mb-4 text-base font-semibold text-slate-950">
+              Neue Kategorie anlegen
+            </h3>
+
+            <form action={addCategoryAction} className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-900">
+                  Bezeichnung
+                </label>
+                <input
+                  name="label"
+                  required
+                  placeholder="z. B. AH"
+                  className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-900">
+                  Schlüssel (optional)
+                </label>
+                <input
+                  name="key"
+                  placeholder="z. B. ah"
+                  className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Wird leer automatisch aus der Bezeichnung erzeugt.
+                </p>
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  className="w-full rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Kategorie anlegen
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="rounded-[20px] border border-black/10 bg-white p-4">
+            <h3 className="mb-4 text-base font-semibold text-slate-950">
+              Bestehende Kategorien
+            </h3>
+
+            {!categories.length ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                Noch keine Kategorien vorhanden.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {categories.map((category) => (
+                  <form
+                    key={category.id}
+                    action={updateCategoryAction}
+                    className="rounded-xl border border-slate-200 p-4"
+                  >
+                    <input type="hidden" name="id" value={category.id} />
+
+                    <div className="grid gap-4 md:grid-cols-4">
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-900">
+                          Bezeichnung
+                        </label>
+                        <input
+                          name="label"
+                          defaultValue={category.label}
+                          required
+                          className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-900">
+                          Schlüssel
+                        </label>
+                        <input
+                          name="key"
+                          defaultValue={category.key}
+                          required
+                          className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-900">
+                          Reihenfolge
+                        </label>
+                        <input
+                          type="number"
+                          name="sort_order"
+                          defaultValue={category.sort_order}
+                          className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                        />
+                      </div>
+
+                      <div className="flex items-center pt-6">
+                        <label className="flex items-center gap-2 text-sm text-slate-900">
+                          <input
+                            type="checkbox"
+                            name="is_active"
+                            defaultChecked={category.is_active}
+                          />
+                          Aktiv
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-black/10 px-4 py-2 text-sm font-semibold text-slate-900"
+                      >
+                        Speichern
+                      </button>
+                    </div>
+                  </form>
+                ))}
+              </div>
+            )}
+          </section>
+        </SettingsSection>
+
+        <SettingsSection
+          title="Teamgenerator"
+          subtitle="Hier steuerst du, welche Grundlagen der Generator bei der Aufteilung berücksichtigt."
+        >
+          <form method="post" action="/api/admin/settings" className="space-y-5">
+            <input
+              type="hidden"
+              name="season_start_day"
+              value={String(seasonStartDay)}
+            />
+            <input
+              type="hidden"
+              name="season_start_month"
+              value={String(seasonStartMonth)}
+            />
+            <input
+              type="hidden"
+              name="season_end_day"
+              value={String(seasonEndDay)}
+            />
+            <input
+              type="hidden"
+              name="season_end_month"
+              value={String(seasonEndMonth)}
+            />
+            <input
+              type="hidden"
+              name="season_year_mode"
+              value={seasonYearMode}
+            />
+
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                <input
+                  type="checkbox"
+                  name="use_categories"
+                  value="1"
+                  defaultChecked={useCategories}
+                  className="mt-1 h-4 w-4 rounded border-neutral-300"
+                />
+                <div>
+                  <div className="text-sm font-semibold text-slate-950">
+                    Kategorien berücksichtigen
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    Der Teamgenerator nutzt eure aktiven Kategorien bei der
+                    Aufteilung.
+                  </div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                <input
+                  type="checkbox"
+                  name="use_strength"
+                  value="1"
+                  defaultChecked={useStrength}
+                  className="mt-1 h-4 w-4 rounded border-neutral-300"
+                />
+                <div>
+                  <div className="text-sm font-semibold text-slate-950">
+                    Stärke berücksichtigen
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    Wenn aktiv, bezieht der Generator die hinterlegte
+                    Spielerstärke in die Verteilung ein.
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+              <div className="text-sm font-semibold text-slate-950">
+                Einordnung
+              </div>
+              <p className="mt-1 text-sm text-slate-600">
+                Wenn ihr Stärke nicht aktiv nutzen möchtet, könnt ihr sie bei
+                euren Spielern einfach einheitlich lassen. Der Schalter bleibt
+                trotzdem hilfreich, damit die Generator-Logik klar erkennbar
+                ist.
+              </p>
+            </div>
+
+            <div className="flex">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Generator speichern
+              </button>
+            </div>
+          </form>
+        </SettingsSection>
+
+        <SettingsSection
+          title="Saisonlogik"
+          subtitle="Lege fest, wann eure Saison beginnt und endet und ob sie nach Start- oder Endjahr benannt wird."
+        >
+          <form method="post" action="/api/admin/settings" className="space-y-6">
+            {useCategories ? (
+              <input type="hidden" name="use_categories" value="1" />
+            ) : null}
+            {useStrength ? (
+              <input type="hidden" name="use_strength" value="1" />
+            ) : null}
 
             <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4 sm:p-5">
               <div className="mb-1 text-sm font-semibold text-slate-500">
-                Saison-Zeitraum
+                Zeitraum
               </div>
               <p className="mb-4 text-sm text-slate-600">
-                Lege fest, wann eure Saison beginnt und endet. Die Benennung
-                kann wahlweise nach Startjahr oder Endjahr erfolgen.
+                Trainings werden automatisch einer Saison zugeordnet, wenn ihr
+                Datum zwischen Start und Ende dieser Saison liegt.
               </p>
 
               <div className="grid gap-4 lg:grid-cols-2">
@@ -355,8 +1070,8 @@ export default async function AdminSettingsPage({
                   Saison benennen
                 </label>
                 <p className="mt-1 text-sm text-slate-600">
-                  Beispiel: Eine Saison von Dezember bis Dezember kann nach
-                  Beginn oder Ende benannt werden.
+                  Die Benennung kann wahlweise nach Startjahr oder Endjahr
+                  erfolgen.
                 </p>
                 <select
                   id="season_year_mode"
@@ -411,23 +1126,40 @@ export default async function AdminSettingsPage({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex">
               <button
                 type="submit"
                 className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Neue Saison speichern
+                Saisonlogik speichern
               </button>
-
-              <Link
-                href="/admin"
-                className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-              >
-                Zurück
-              </Link>
             </div>
           </form>
-        </div>
+        </SettingsSection>
+
+        <SettingsSection
+          title="Saisonverwaltung"
+          subtitle="Bestehende Saisons anlegen, ansehen oder löschen bleibt auf der bisherigen Seite, damit dieser Bereich kompakt bleibt."
+        >
+          <div className="flex flex-col gap-4 rounded-[20px] border border-black/10 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-slate-950">
+                Bestehende Saisons verwalten
+              </div>
+              <div className="mt-1 text-sm text-slate-600">
+                Für das Anlegen und Löschen einzelner Saisons nutzt ihr weiter
+                die bestehende Saisonseite.
+              </div>
+            </div>
+
+            <Link
+              href="/admin/seasons"
+              className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+            >
+              Saisonseite öffnen
+            </Link>
+          </div>
+        </SettingsSection>
       </section>
     </main>
   );

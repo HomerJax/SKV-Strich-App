@@ -4,8 +4,7 @@ import {
   Users,
   Mail,
   UserRound,
-  Palette,
-  CalendarRange,
+  Settings,
   Shield,
   ToggleLeft,
 } from "lucide-react";
@@ -142,8 +141,9 @@ export default async function AdminPage() {
               </h1>
 
               <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-                Hier verwaltest du die wichtigsten Einstellungen für dein Team:
-                Spieler, Mitglieder, Club-Auftritt und Saisonlogik.
+                Hier verwaltest du die wichtigsten Bereiche für dein Team:
+                Mitglieder, Einladungen, Spieler und zentrale Einstellungen für
+                Club, Kategorien, Teamgenerator und Saisonlogik.
               </p>
 
               {ctx.isPowerUser ? (
@@ -181,25 +181,17 @@ export default async function AdminPage() {
           <AdminCard
             href="/admin/players"
             eyebrow="Spielbetrieb"
-            title="Spieler & Team-Generator"
-            description="Pflege Spielerprofile, Positionen, Kategorien und Stärken und prüfe die Grundlagen für faire Teamaufteilungen."
+            title="Spieler"
+            description="Pflege Spielerprofile, Positionen, Stärken und weitere Grundlagen für euren Trainings- und Teamgenerator-Workflow."
             icon={<UserRound className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <AdminCard
-            href="/admin/club"
-            eyebrow="Branding"
-            title="Club & Branding"
-            description="Hinterlege Teamname, Logo und weitere sichtbare Club-Informationen für eine saubere Identität in der App."
-            icon={<Palette className="h-6 w-6" strokeWidth={2.1} />}
-          />
-
-          <AdminCard
-            href="/admin/seasons"
-            eyebrow="Saison"
-            title="Saison-Einstellungen"
-            description="Lege fest, wie die Saison heißt und ab welchem Datum sie beginnt, damit Tabellen und Auswertungen sauber zugeordnet werden."
-            icon={<CalendarRange className="h-6 w-6" strokeWidth={2.1} />}
+            href="/admin/settings"
+            eyebrow="Einstellungen"
+            title="Club, Kategorien & Generator"
+            description="Verwalte Club-Auftritt, Kategorien, Teamgenerator und Saisonlogik zentral an einem Ort."
+            icon={<Settings className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           {ctx.isPowerUser ? (
