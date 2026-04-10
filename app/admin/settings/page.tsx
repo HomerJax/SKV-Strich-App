@@ -27,6 +27,37 @@ function isAdminRole(role: string | null | undefined) {
   return role === "admin";
 }
 
+function SettingsShell({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group rounded-[24px] border border-black/10 bg-white shadow-sm">
+      <summary className="list-none cursor-pointer px-5 py-4 [&::-webkit-details-marker]:hidden">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold tracking-tight text-slate-950">
+              {title}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">{description}</p>
+          </div>
+
+          <div className="mt-0.5 shrink-0 rounded-full border border-black/10 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500 transition group-open:rotate-180">
+            ⌄
+          </div>
+        </div>
+      </summary>
+
+      <div className="border-t border-black/10 px-5 py-5">{children}</div>
+    </details>
+  );
+}
+
 export default async function AdminSettingsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const { clubId, membership } = await requireClub();
@@ -67,55 +98,49 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6">
-        <div className="rounded-[24px] border border-black/10 bg-white p-6 shadow-sm">
-          <div className="text-sm font-semibold text-slate-500">Admin</div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
+        <div className="rounded-[24px] border border-black/10 bg-white px-5 py-5 shadow-sm">
+          <h1 className="text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
             Einstellungen
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 max-w-2xl text-sm text-slate-600">
             Verwalte Club, Saisons, Kategorien und Teamgenerator zentral an
             einem Ort.
           </p>
         </div>
 
-        <ClubSettingsCard saved={clubSaved} error={clubError} />
+        <SettingsShell
+          title="Club & Branding"
+          description="Name, Logo, Farbe und Anzeigeoptionen verwalten."
+        >
+          <ClubSettingsCard saved={clubSaved} error={clubError} />
+        </SettingsShell>
 
-        <SeasonSettingsCard message={seasonMessage} error={seasonError} />
+        <SettingsShell
+          title="Saisons"
+          description="Saisons anlegen, bearbeiten und löschen."
+        >
+          <SeasonSettingsCard message={seasonMessage} error={seasonError} />
+        </SettingsShell>
 
-        <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
-          <details>
-            <summary className="cursor-pointer list-none">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-slate-500">
-                    Einstellungen
-                  </div>
-                  <h2 className="text-xl font-extrabold tracking-tight text-slate-950">
-                    Kategorien
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Kategorien kompakt verwalten.
-                  </p>
-                </div>
-                <span className="text-sm font-semibold text-slate-500">
-                  Öffnen
-                </span>
-              </div>
-            </summary>
+        <SettingsShell
+          title="Kategorien"
+          description="Kategorien kompakt verwalten."
+        >
+          <CategorySettingsSection
+            categories={categories}
+            useCategories={settings?.use_categories ?? false}
+          />
+        </SettingsShell>
 
-            <div className="mt-5 border-t border-black/10 pt-5">
-              <CategorySettingsSection
-                categories={categories}
-                useCategories={settings?.use_categories ?? false}
-              />
-            </div>
-          </details>
-        </div>
-
-        <TeamGeneratorSettingsCard
-          useStrength={settings?.use_strength ?? false}
-          useCategories={settings?.use_categories ?? false}
-        />
+        <SettingsShell
+          title="Teamgenerator"
+          description="Regeln und Erklärung für automatische Teams."
+        >
+          <TeamGeneratorSettingsCard
+            useStrength={settings?.use_strength ?? false}
+            useCategories={settings?.use_categories ?? false}
+          />
+        </SettingsShell>
       </section>
     </main>
   );
