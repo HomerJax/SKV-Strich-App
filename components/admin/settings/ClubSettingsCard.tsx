@@ -97,196 +97,206 @@ export default async function ClubSettingsCard({
 
   return (
     <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
-      <div className="mb-5">
-        <div className="text-sm font-semibold text-slate-500">Admin</div>
-        <h2 className="text-2xl font-extrabold tracking-tight text-slate-950">
-          Club, Branding & allgemeine Einstellungen
-        </h2>
-        <p className="mt-2 text-sm text-slate-600">
-          Hier pflegst du Namen, Logo, Farbe und grundlegende Anzeigeoptionen
-          für euren Club.
-        </p>
-      </div>
-
-      {errorMessage ? (
-        <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {errorMessage}
-        </div>
-      ) : null}
-
-      {saved ? (
-        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Änderungen gespeichert.
-        </div>
-      ) : null}
-
-      <div className="mb-6 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-        <div className="mb-3 text-sm font-semibold text-slate-500">
-          Aktuelle Vorschau
-        </div>
-
-        <div
-          className="rounded-2xl border border-slate-200 bg-white p-4"
-          style={{ borderTop: `4px solid ${previewColor}` }}
-        >
-          <div className="flex items-center gap-3">
-            {logoUrl ? (
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
-                <Image
-                  src={logoUrl}
-                  alt={club.display_name || "Clublogo"}
-                  width={80}
-                  height={80}
-                  unoptimized
-                  className="h-full w-full object-contain"
-                />
-              </div>
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
-                Logo
-              </div>
-            )}
-
-            <div className="min-w-0">
-              <div className="truncate text-lg font-bold text-slate-950">
-                {club.display_name?.trim() || "Dein Team"}
-              </div>
-              <div className="text-sm text-slate-500">Anzeige im Header</div>
-              <div className="mt-1 text-xs text-slate-500">
-                Spielernamen:{" "}
-                <span className="font-semibold text-slate-700">
-                  {useNicknames ? "Spitznamen aktiv" : "Vor- und Nachname"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <form
-        method="post"
-        action="/api/admin/club"
-        encType="multipart/form-data"
-        className="space-y-5"
-      >
-        <input type="hidden" name="redirect_to" value="/admin/settings" />
-
-        <div className="space-y-2">
-          <label
-            htmlFor="display_name"
-            className="block text-sm font-medium text-slate-900"
-          >
-            Vereinsname
-          </label>
-          <input
-            id="display_name"
-            name="display_name"
-            type="text"
-            maxLength={80}
-            defaultValue={club.display_name ?? ""}
-            placeholder="z. B. SKV Rutesheim"
-            className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label
-            htmlFor="logo"
-            className="block text-sm font-medium text-slate-900"
-          >
-            Vereinslogo
-          </label>
-          <input
-            id="logo"
-            name="logo"
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/jpg"
-            className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
-          />
-          <p className="text-xs text-slate-500">
-            Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <div className="block text-sm font-medium text-slate-900">
-            Vereinsfarbe
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {COLOR_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"
-              >
-                <input
-                  type="radio"
-                  name="primary_color"
-                  value={option.value}
-                  defaultChecked={option.value === selectedColor}
-                />
-                <span
-                  className="h-4 w-4 rounded-full border border-black/10"
-                  style={{ backgroundColor: option.color }}
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </div>
-
-          <p className="text-xs text-slate-500">
-            Die Farbe wird als dezenter Akzent für euren Club in der App
-            genutzt.
-          </p>
-        </div>
-
-        <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-          <div className="mb-3 text-sm font-semibold text-slate-500">
-            Allgemeine Anzeige
-          </div>
-
-          <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
-            <input
-              type="checkbox"
-              name="use_nicknames"
-              value="1"
-              defaultChecked={useNicknames}
-              className="mt-1 h-4 w-4 rounded border-neutral-300"
-            />
+      <details>
+        <summary className="cursor-pointer list-none">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-slate-950">
-                Spitznamen anzeigen
-              </div>
-              <div className="text-sm text-slate-600">
-                Wenn aktiv, werden Spieler in Sessions, Teams, Stats und
-                weiteren Ansichten bevorzugt mit ihrem Spitznamen angezeigt.
+              <div className="text-sm font-semibold text-slate-500">Admin</div>
+              <h2 className="text-2xl font-extrabold tracking-tight text-slate-950">
+                Club, Branding & allgemeine Einstellungen
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Name, Logo, Farbe und Anzeigeoptionen verwalten.
+              </p>
+            </div>
+            <span className="text-sm font-semibold text-slate-500">
+              Öffnen
+            </span>
+          </div>
+        </summary>
+
+        <div className="mt-5 border-t border-black/10 pt-5">
+          {errorMessage ? (
+            <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          {saved ? (
+            <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Änderungen gespeichert.
+            </div>
+          ) : null}
+
+          <div className="mb-6 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-500">
+              Aktuelle Vorschau
+            </div>
+
+            <div
+              className="rounded-2xl border border-slate-200 bg-white p-4"
+              style={{ borderTop: `4px solid ${previewColor}` }}
+            >
+              <div className="flex items-center gap-3">
+                {logoUrl ? (
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
+                    <Image
+                      src={logoUrl}
+                      alt={club.display_name || "Clublogo"}
+                      width={80}
+                      height={80}
+                      unoptimized
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
+                    Logo
+                  </div>
+                )}
+
+                <div className="min-w-0">
+                  <div className="truncate text-lg font-bold text-slate-950">
+                    {club.display_name?.trim() || "Dein Team"}
+                  </div>
+                  <div className="text-sm text-slate-500">Anzeige im Header</div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Spielernamen:{" "}
+                    <span className="font-semibold text-slate-700">
+                      {useNicknames ? "Spitznamen aktiv" : "Vor- und Nachname"}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </label>
-        </div>
+          </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          <form
+            method="post"
+            action="/api/admin/club"
+            encType="multipart/form-data"
+            className="space-y-5"
           >
-            Speichern
-          </button>
-        </div>
-      </form>
+            <input type="hidden" name="redirect_to" value="/admin/settings" />
 
-      {club.logo_path ? (
-        <form method="post" action="/api/admin/club" className="mt-6">
-          <input type="hidden" name="redirect_to" value="/admin/settings" />
-          <input type="hidden" name="remove_logo" value="1" />
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
-          >
-            Logo entfernen
-          </button>
-        </form>
-      ) : null}
+            <div className="space-y-2">
+              <label
+                htmlFor="display_name"
+                className="block text-sm font-medium text-slate-900"
+              >
+                Vereinsname
+              </label>
+              <input
+                id="display_name"
+                name="display_name"
+                type="text"
+                maxLength={80}
+                defaultValue={club.display_name ?? ""}
+                placeholder="z. B. SKV Rutesheim"
+                className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="logo"
+                className="block text-sm font-medium text-slate-900"
+              >
+                Vereinslogo
+              </label>
+              <input
+                id="logo"
+                name="logo"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+              />
+              <p className="text-xs text-slate-500">
+                Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="block text-sm font-medium text-slate-900">
+                Vereinsfarbe
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {COLOR_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"
+                  >
+                    <input
+                      type="radio"
+                      name="primary_color"
+                      value={option.value}
+                      defaultChecked={option.value === selectedColor}
+                    />
+                    <span
+                      className="h-4 w-4 rounded-full border border-black/10"
+                      style={{ backgroundColor: option.color }}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Die Farbe wird als dezenter Akzent für euren Club in der App
+                genutzt.
+              </p>
+            </div>
+
+            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+              <div className="mb-3 text-sm font-semibold text-slate-500">
+                Allgemeine Anzeige
+              </div>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                <input
+                  type="checkbox"
+                  name="use_nicknames"
+                  value="1"
+                  defaultChecked={useNicknames}
+                  className="mt-1 h-4 w-4 rounded border-neutral-300"
+                />
+                <div>
+                  <div className="text-sm font-semibold text-slate-950">
+                    Spitznamen anzeigen
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    Wenn aktiv, werden Spieler in Sessions, Teams, Stats und
+                    weiteren Ansichten bevorzugt mit ihrem Spitznamen angezeigt.
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Speichern
+              </button>
+            </div>
+          </form>
+
+          {club.logo_path ? (
+            <form method="post" action="/api/admin/club" className="mt-6">
+              <input type="hidden" name="redirect_to" value="/admin/settings" />
+              <input type="hidden" name="remove_logo" value="1" />
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+              >
+                Logo entfernen
+              </button>
+            </form>
+          ) : null}
+        </div>
+      </details>
     </div>
   );
 }

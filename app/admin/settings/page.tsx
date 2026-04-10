@@ -80,29 +80,36 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
         <ClubSettingsCard saved={clubSaved} error={clubError} />
 
-        <SeasonSettingsCard
-          message={seasonMessage}
-          error={seasonError}
-        />
+        <SeasonSettingsCard message={seasonMessage} error={seasonError} />
 
         <div className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
-          <div className="mb-4">
-            <div className="text-sm font-semibold text-slate-500">
-              Einstellungen
-            </div>
-            <h2 className="text-xl font-extrabold tracking-tight text-slate-950">
-              Kategorien
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Verwalte eure Kategorien kompakt. Im UI sehen Spieler nur das
-              Label, nie den technischen Key.
-            </p>
-          </div>
+          <details>
+            <summary className="cursor-pointer list-none">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-slate-500">
+                    Einstellungen
+                  </div>
+                  <h2 className="text-xl font-extrabold tracking-tight text-slate-950">
+                    Kategorien
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Kategorien kompakt verwalten.
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-slate-500">
+                  Öffnen
+                </span>
+              </div>
+            </summary>
 
-          <CategorySettingsSection
-            categories={categories}
-            useCategories={settings?.use_categories ?? false}
-          />
+            <div className="mt-5 border-t border-black/10 pt-5">
+              <CategorySettingsSection
+                categories={categories}
+                useCategories={settings?.use_categories ?? false}
+              />
+            </div>
+          </details>
         </div>
 
         <TeamGeneratorSettingsCard
