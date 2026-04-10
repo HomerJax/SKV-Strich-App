@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/finalize-mvp-votings",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}
