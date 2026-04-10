@@ -17,7 +17,7 @@ type SessionRow = {
 
 type PlayerRow = {
   id: number;
-  display_name: string | null;
+  display_name?: string | null;
   first_name: string | null;
   last_name: string | null;
   user_id: string | null;
@@ -228,12 +228,11 @@ async function loadParticipantsAndVotes(params: {
         `
           player_id,
           players (
-            id,
-            display_name,
-            first_name,
-            last_name,
-            user_id
-          )
+  id,
+  first_name,
+  last_name,
+  user_id
+)
         `
       )
       .eq("session_id", sessionId),
