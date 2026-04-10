@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/finalize-mvp-votings",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 10 * * *"
     }
   ]
 }
