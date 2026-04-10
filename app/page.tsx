@@ -26,9 +26,8 @@ type ResultSessionRow = {
   session_id: number;
 };
 
-type AttendanceRow = {
+type SessionPlayerCountRow = {
   session_id: number;
-  status: string | null;
 };
 
 type VoteRow = {
@@ -284,14 +283,16 @@ export default async function HomePage() {
     | null = null;
 
   if (mvpVotingEnabled && recentSessionIds.length > 0) {
-    const [{ data: resultsData }, { data: attendanceData }, { data: votesData }] =
+    const [{ data: resultsData }, { data: sessionPlayersData }, { data: votesData }] =
       await Promise.all([
-        supabase.from("results").select("session_id").in("session_id", recentSessionIds),
         supabase
-          .from("session_attendance")
-          .select("session_id, status")
-          .in("session_id", recentSessionIds)
-          .eq("status", "present"),
+          .from("results")
+          .select("session_id")
+          .in("session_id", recentSessionIds),
+        supabase
+          .from("session_players")
+          .select("session_id")
+          .in("session_id", recentSessionIds),
         supabase
           .from("session_mvp_votes")
           .select("session_id")
@@ -305,7 +306,7 @@ export default async function HomePage() {
     );
 
     const eligibleCountBySession = new Map<number, number>();
-    for (const row of (attendanceData ?? []) as AttendanceRow[]) {
+    for (const row of (sessionPlayersData ?? []) as SessionPlayerCountRow[]) {
       const sessionId = Number(row.session_id);
       eligibleCountBySession.set(
         sessionId,
@@ -316,7 +317,10 @@ export default async function HomePage() {
     const voteCountBySession = new Map<number, number>();
     for (const row of (votesData ?? []) as VoteRow[]) {
       const sessionId = Number(row.session_id);
-      voteCountBySession.set(sessionId, (voteCountBySession.get(sessionId) ?? 0) + 1);
+      voteCountBySession.set(
+        sessionId,
+        (voteCountBySession.get(sessionId) ?? 0) + 1
+      );
     }
 
     const found =
@@ -420,8 +424,8 @@ export default async function HomePage() {
                   Stimme jetzt direkt in der Session ab
                 </div>
                 <div className="mt-1 text-xs text-slate-600">
-                  {activeVotingSession.voteCount}/{activeVotingSession.eligibleVoterCount}{" "}
-                  Stimmen
+                  {activeVotingSession.voteCount}/
+                  {activeVotingSession.eligibleVoterCount} Stimmen
                 </div>
               </div>
 
@@ -494,7 +498,9 @@ export default async function HomePage() {
             href="/about"
             className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
-            <div className="text-sm font-semibold text-slate-500">Über Strikr</div>
+            <div className="text-sm font-semibold text-slate-500">
+              Über Strikr
+            </div>
 
             <h2 className="mt-1 text-xl font-bold text-slate-950">
               Vom Bierdeckel zur Web-App 🍻⚽

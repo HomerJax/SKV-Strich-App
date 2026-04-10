@@ -23,9 +23,8 @@ type PlayerRow = {
   user_id: string | null;
 };
 
-type AttendanceRow = {
+type SessionPlayerRow = {
   player_id: number;
-  status: string | null;
   players: PlayerRow | PlayerRow[] | null;
 };
 
@@ -54,7 +53,9 @@ type Participant = {
   userId: string | null;
 };
 
-function normalizePlayerRelation(player: AttendanceRow["players"]): PlayerRow | null {
+function normalizePlayerRelation(
+  player: SessionPlayerRow["players"]
+): PlayerRow | null {
   if (!player) return null;
   if (Array.isArray(player)) return player[0] ?? null;
   return player;
@@ -159,7 +160,10 @@ async function loadSessionBase(sessionId: number) {
 
   if (!sessionData) {
     return {
-      error: NextResponse.json({ error: "Session nicht gefunden." }, { status: 404 }),
+      error: NextResponse.json(
+        { error: "Session nicht gefunden." },
+        { status: 404 }
+      ),
     };
   }
 
@@ -172,7 +176,10 @@ async function loadSessionBase(sessionId: number) {
 
   if (membershipError) {
     return {
-      error: NextResponse.json({ error: membershipError.message }, { status: 500 }),
+      error: NextResponse.json(
+        { error: membershipError.message },
+        { status: 500 }
+      ),
     };
   }
 
@@ -211,16 +218,15 @@ async function loadParticipantsAndVotes(params: {
   const supabase = await createClient();
 
   const [
-    { data: attendanceData, error: attendanceError },
+    { data: sessionPlayerData, error: sessionPlayerError },
     { data: userVoteData, error: userVoteError },
     { data: allVotesData, error: allVotesError },
   ] = await Promise.all([
     supabase
-      .from("session_attendance")
+      .from("session_players")
       .select(
         `
           player_id,
-          status,
           players (
             id,
             display_name,
@@ -230,8 +236,7 @@ async function loadParticipantsAndVotes(params: {
           )
         `
       )
-      .eq("session_id", sessionId)
-      .eq("status", "present"),
+      .eq("session_id", sessionId),
     supabase
       .from("session_mvp_votes")
       .select("voted_player_id")
@@ -244,8 +249,8 @@ async function loadParticipantsAndVotes(params: {
       .eq("session_id", sessionId),
   ]);
 
-  if (attendanceError) {
-    throw new Error(attendanceError.message);
+  if (sessionPlayerError) {
+    throw new Error(sessionPlayerError.message);
   }
 
   if (userVoteError) {
@@ -256,9 +261,9 @@ async function loadParticipantsAndVotes(params: {
     throw new Error(allVotesError.message);
   }
 
-  const attendanceRows = (attendanceData ?? []) as AttendanceRow[];
+  const sessionPlayerRows = (sessionPlayerData ?? []) as SessionPlayerRow[];
 
-  const participants: Participant[] = attendanceRows
+  const participants: Participant[] = sessionPlayerRows
     .map((row) => {
       const player = normalizePlayerRelation(row.players);
 
@@ -408,7 +413,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   const sessionId = Number(id);
 
   if (!Number.isFinite(sessionId)) {
-    return NextResponse.json({ error: "Ungültige Session-ID." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ungültige Session-ID." },
+      { status: 400 }
+    );
   }
 
   const base = await loadSessionBase(sessionId);
@@ -463,7 +471,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       userId: user.id,
     });
 
-    const canVote = participants.some((participant) => participant.userId === user.id);
+    const canVote = participants.some(
+      (participant) => participant.userId === user.id
+    );
 
     const results = votingOpen
       ? null
@@ -499,7 +509,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "MVP-Daten konnten nicht geladen werden.";
+      error instanceof Error
+        ? error.message
+        : "MVP-Daten konnten nicht geladen werden.";
 
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -510,7 +522,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const sessionId = Number(id);
 
   if (!Number.isFinite(sessionId)) {
-    return NextResponse.json({ error: "Ungültige Session-ID." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ungültige Session-ID." },
+      { status: 400 }
+    );
   }
 
   const base = await loadSessionBase(sessionId);
@@ -588,17 +603,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { error: upsertError } = await supabase.from("session_mvp_votes").upsert(
-      {
-        session_id: sessionId,
-        club_id: session.club_id,
-        user_id: user.id,
-        voted_player_id: votedPlayerId,
-      },
-      {
-        onConflict: "session_id,user_id",
-      }
-    );
+    const { error: upsertError } = await supabase
+      .from("session_mvp_votes")
+      .upsert(
+        {
+          session_id: sessionId,
+          club_id: session.club_id,
+          user_id: user.id,
+          voted_player_id: votedPlayerId,
+        },
+        {
+          onConflict: "session_id,user_id",
+        }
+      );
 
     if (upsertError) {
       return NextResponse.json({ error: upsertError.message }, { status: 500 });
@@ -620,7 +637,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "MVP-Stimme konnte nicht gespeichert werden.";
+      error instanceof Error
+        ? error.message
+        : "MVP-Stimme konnte nicht gespeichert werden.";
 
     return NextResponse.json({ error: message }, { status: 500 });
   }
