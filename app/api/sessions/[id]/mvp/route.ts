@@ -240,7 +240,7 @@ async function loadParticipantsAndVotes(params: {
       .from("session_mvp_votes")
       .select("voted_player_id")
       .eq("session_id", sessionId)
-      .eq("user_id", userId)
+      .eq("voter_user_id", userId)
       .maybeSingle<UserVoteRow>(),
     supabase
       .from("session_mvp_votes")
@@ -608,11 +608,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
         {
           session_id: sessionId,
           club_id: session.club_id,
-          user_id: user.id,
+          voter_user_id: user.id,
           voted_player_id: votedPlayerId,
         },
         {
-          onConflict: "session_id,user_id",
+          onConflict: "session_id,voter_user_id",
         }
       );
 
