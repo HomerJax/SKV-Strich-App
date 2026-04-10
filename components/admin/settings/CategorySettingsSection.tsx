@@ -21,11 +21,11 @@ export function CategorySettingsSection({
 }) {
   return (
     <>
-      <div className="mb-5 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+      <div className="mb-6 rounded-[20px] border border-black/10 bg-neutral-50 p-5">
         <div className="text-sm font-semibold text-slate-950">
           Kurzer Hinweis
         </div>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-2 text-sm leading-6 text-slate-600">
           Kategorien helfen dem Teamgenerator bei einer faireren Aufteilung,
           zum Beispiel nach <span className="font-semibold">Vorne</span>,{" "}
           <span className="font-semibold">Hinten</span>,{" "}
@@ -33,7 +33,7 @@ export function CategorySettingsSection({
           <span className="font-semibold">AH</span>.
         </p>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           <span
             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
               useCategories
@@ -52,7 +52,7 @@ export function CategorySettingsSection({
         </div>
       </div>
 
-      <section className="mb-6 rounded-[20px] border border-black/10 bg-white p-4">
+      <section className="mb-8 rounded-[20px] border border-black/10 bg-white p-5">
         <h3 className="mb-4 text-base font-semibold text-slate-950">
           Neue Kategorie anlegen
         </h3>
@@ -66,7 +66,7 @@ export function CategorySettingsSection({
               name="label"
               required
               placeholder="z. B. AH"
-              className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-black/5 bg-white px-3 py-2 text-sm"
             />
           </div>
 
@@ -77,7 +77,7 @@ export function CategorySettingsSection({
             <input
               name="key"
               placeholder="z. B. ah"
-              className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-black/5 bg-white px-3 py-2 text-sm"
             />
             <p className="mt-1 text-xs text-slate-500">
               Wird leer automatisch aus der Bezeichnung erzeugt.
@@ -95,8 +95,8 @@ export function CategorySettingsSection({
         </form>
       </section>
 
-      <section className="rounded-[20px] border border-black/10 bg-white p-4">
-        <h3 className="mb-4 text-base font-semibold text-slate-950">
+      <section className="rounded-[20px] border border-black/10 bg-white p-5">
+        <h3 className="mb-5 text-base font-semibold text-slate-950">
           Bestehende Kategorien
         </h3>
 
@@ -105,12 +105,12 @@ export function CategorySettingsSection({
             Noch keine Kategorien vorhanden.
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {categories.map((category) => (
               <form
                 key={category.id}
                 action={updateCategoryAction}
-                className="rounded-xl border border-slate-200 p-4"
+                className="rounded-2xl border border-black/10 bg-neutral-50 p-4"
               >
                 <input type="hidden" name="id" value={category.id} />
 
@@ -123,7 +123,7 @@ export function CategorySettingsSection({
                       name="label"
                       defaultValue={category.label}
                       required
-                      className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-black/5 bg-white px-3 py-2 text-sm"
                     />
                   </div>
 
@@ -135,7 +135,7 @@ export function CategorySettingsSection({
                       name="key"
                       defaultValue={category.key}
                       required
-                      className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-black/5 bg-white px-3 py-2 text-sm"
                     />
                   </div>
 
@@ -147,7 +147,7 @@ export function CategorySettingsSection({
                       type="number"
                       name="sort_order"
                       defaultValue={category.sort_order}
-                      className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-black/5 bg-white px-3 py-2 text-sm"
                     />
                   </div>
 
@@ -163,10 +163,10 @@ export function CategorySettingsSection({
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-end">
+                <div className="mt-5 flex justify-end">
                   <button
                     type="submit"
-                    className="rounded-lg border border-black/10 px-4 py-2 text-sm font-semibold text-slate-900"
+                    className="rounded-lg border border-black/10 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-neutral-100"
                   >
                     Speichern
                   </button>

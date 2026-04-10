@@ -1,12 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
-import { slugifyKey } from "./helpers";
 
 type ClubRow = {
   id: string;
@@ -315,8 +313,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">
             Hier pflegst du die wichtigsten Club-Einstellungen an einem Ort:
-            Club-Auftritt, Spieler-Grundlagen, Kategorien, Teamgenerator und
-            Saisonlogik.
+            Club-Auftritt, Kategorien, Teamgenerator und Saisonlogik.
           </p>
         </div>
 
@@ -384,216 +381,6 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
         <SettingsSection
           defaultOpen
-          title="Club & Branding"
-          subtitle="Name, Logo, Farbe und grundlegende Anzeigeoptionen für euren Club."
-        >
-          <div className="mb-6 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-            <div className="mb-3 text-sm font-semibold text-slate-500">
-              Aktuelle Vorschau
-            </div>
-
-            <div
-              className="rounded-2xl border border-slate-200 bg-white p-4"
-              style={{ borderTop: `4px solid ${previewColor}` }}
-            >
-              <div className="flex items-center gap-3">
-                {logoUrl ? (
-                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
-                    <Image
-                      src={logoUrl}
-                      alt={club.display_name || "Clublogo"}
-                      width={80}
-                      height={80}
-                      unoptimized
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
-                    Logo
-                  </div>
-                )}
-
-                <div className="min-w-0">
-                  <div className="truncate text-lg font-bold text-slate-950">
-                    {club.display_name?.trim() || "Dein Team"}
-                  </div>
-                  <div className="text-sm text-slate-500">
-                    Anzeige im Header
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Spielernamen:{" "}
-                    <span className="font-semibold text-slate-700">
-                      {useNicknames ? "Spitznamen aktiv" : "Vor- und Nachname"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <form
-            method="post"
-            action="/api/admin/club"
-            encType="multipart/form-data"
-            className="space-y-5"
-          >
-            <div className="space-y-2">
-              <label
-                htmlFor="display_name"
-                className="block text-sm font-medium text-slate-900"
-              >
-                Vereinsname
-              </label>
-              <input
-                id="display_name"
-                name="display_name"
-                type="text"
-                maxLength={80}
-                defaultValue={club.display_name ?? ""}
-                placeholder="z. B. SKV Rutesheim"
-                className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="logo"
-                className="block text-sm font-medium text-slate-900"
-              >
-                Vereinslogo
-              </label>
-              <input
-                id="logo"
-                name="logo"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/jpg"
-                className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
-              />
-              <p className="text-xs text-slate-500">
-                Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="block text-sm font-medium text-slate-900">
-                Vereinsfarbe
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {COLOR_OPTIONS.map((option) => (
-                  <label
-                    key={option.value}
-                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"
-                  >
-                    <input
-                      type="radio"
-                      name="primary_color"
-                      value={option.value}
-                      defaultChecked={option.value === selectedColor}
-                    />
-                    <span
-                      className="h-4 w-4 rounded-full border border-black/10"
-                      style={{ backgroundColor: option.color }}
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </div>
-
-              <p className="text-xs text-slate-500">
-                Die Farbe wird als dezenter Akzent für euren Club in der App
-                genutzt.
-              </p>
-            </div>
-
-            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-              <div className="mb-3 text-sm font-semibold text-slate-500">
-                Allgemeine Anzeige
-              </div>
-
-              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
-                <input
-                  type="checkbox"
-                  name="use_nicknames"
-                  value="1"
-                  defaultChecked={useNicknames}
-                  className="mt-1 h-4 w-4 rounded border-neutral-300"
-                />
-                <div>
-                  <div className="text-sm font-semibold text-slate-950">
-                    Spitznamen anzeigen
-                  </div>
-                  <div className="text-sm text-slate-600">
-                    Wenn aktiv, werden Spieler in Sessions, Teams, Stats und
-                    weiteren Ansichten bevorzugt mit ihrem Spitznamen angezeigt.
-                  </div>
-                </div>
-              </label>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Club speichern
-              </button>
-
-              {club.logo_path ? (
-                <button
-                  type="submit"
-                  name="remove_logo"
-                  value="1"
-                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
-                >
-                  Logo entfernen
-                </button>
-              ) : null}
-            </div>
-          </form>
-        </SettingsSection>
-
-        <SettingsSection
-          title="Spieler"
-          subtitle="Spielerprofile, Positionen, Stärken und Zuordnungen verwaltest du weiterhin in der Spielerverwaltung."
-        >
-          <div className="flex flex-col gap-4 rounded-[20px] border border-black/10 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-slate-950">
-                Spieler zentral verwalten
-              </div>
-              <div className="mt-1 text-sm text-slate-600">
-                Die Spielerliste bleibt bewusst separat, damit dieser Bereich
-                kompakt und scanbar bleibt.
-              </div>
-            </div>
-
-            <Link
-              href="/admin/players"
-              className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              Spieler öffnen
-            </Link>
-          </div>
-        </SettingsSection>
-
-        <SettingsSection
-          defaultOpen
-          title={`${categoryLabel}n`}
-          subtitle="Diese Kategorien können später vom Teamgenerator berücksichtigt werden."
-        >
-          <CategorySettingsSection
-            categoryLabel={categoryLabel}
-            useCategories={useCategories}
-            activeCategoriesCount={activeCategories.length}
-            categories={categories}
-          />
-        </SettingsSection>
-
-
-
-        <SettingsSection
           title="Teamgenerator"
           subtitle="Hier steuerst du, welche Grundlagen der Generator bei der Aufteilung berücksichtigt."
         >
@@ -623,6 +410,18 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
               name="season_year_mode"
               value={seasonYearMode}
             />
+
+            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+              <div className="text-sm font-semibold text-slate-950">
+                So funktioniert der Teamgenerator
+              </div>
+              <p className="mt-1 text-sm text-slate-600">
+                Der Generator erstellt automatisch möglichst ausgeglichene Teams
+                auf Basis eurer Einstellungen. Je nach Aktivierung werden
+                Kategorien und/oder Spielstärken berücksichtigt, um faire
+                Verteilungen zu erreichen.
+              </p>
+            </div>
 
             <div className="space-y-3">
               <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
@@ -685,6 +484,19 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
               </button>
             </div>
           </form>
+        </SettingsSection>
+
+        <SettingsSection
+          defaultOpen
+          title={`${categoryLabel}n verwalten`}
+          subtitle="Diese Kategorien können später vom Teamgenerator berücksichtigt werden."
+        >
+          <CategorySettingsSection
+            categoryLabel={categoryLabel}
+            useCategories={useCategories}
+            activeCategoriesCount={activeCategories.length}
+            categories={categories}
+          />
         </SettingsSection>
 
         <SettingsSection
@@ -881,6 +693,177 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
               >
                 Saisonlogik speichern
               </button>
+            </div>
+          </form>
+        </SettingsSection>
+
+        <SettingsSection
+          title="Club & Branding"
+          subtitle="Name, Logo, Farbe und grundlegende Anzeigeoptionen für euren Club."
+        >
+          <div className="mb-6 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-500">
+              Aktuelle Vorschau
+            </div>
+
+            <div
+              className="rounded-2xl border border-slate-200 bg-white p-4"
+              style={{ borderTop: `4px solid ${previewColor}` }}
+            >
+              <div className="flex items-center gap-3">
+                {logoUrl ? (
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
+                    <Image
+                      src={logoUrl}
+                      alt={club.display_name || "Clublogo"}
+                      width={80}
+                      height={80}
+                      unoptimized
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
+                    Logo
+                  </div>
+                )}
+
+                <div className="min-w-0">
+                  <div className="truncate text-lg font-bold text-slate-950">
+                    {club.display_name?.trim() || "Dein Team"}
+                  </div>
+                  <div className="text-sm text-slate-500">
+                    Anzeige im Header
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Spielernamen:{" "}
+                    <span className="font-semibold text-slate-700">
+                      {useNicknames ? "Spitznamen aktiv" : "Vor- und Nachname"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <form
+            method="post"
+            action="/api/admin/club"
+            encType="multipart/form-data"
+            className="space-y-5"
+          >
+            <div className="space-y-2">
+              <label
+                htmlFor="display_name"
+                className="block text-sm font-medium text-slate-900"
+              >
+                Vereinsname
+              </label>
+              <input
+                id="display_name"
+                name="display_name"
+                type="text"
+                maxLength={80}
+                defaultValue={club.display_name ?? ""}
+                placeholder="z. B. SKV Rutesheim"
+                className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="logo"
+                className="block text-sm font-medium text-slate-900"
+              >
+                Vereinslogo
+              </label>
+              <input
+                id="logo"
+                name="logo"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+              />
+              <p className="text-xs text-slate-500">
+                Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="block text-sm font-medium text-slate-900">
+                Vereinsfarbe
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {COLOR_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"
+                  >
+                    <input
+                      type="radio"
+                      name="primary_color"
+                      value={option.value}
+                      defaultChecked={option.value === selectedColor}
+                    />
+                    <span
+                      className="h-4 w-4 rounded-full border border-black/10"
+                      style={{ backgroundColor: option.color }}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Die Farbe wird als dezenter Akzent für euren Club in der App
+                genutzt.
+              </p>
+            </div>
+
+            <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+              <div className="mb-3 text-sm font-semibold text-slate-500">
+                Allgemeine Anzeige
+              </div>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                <input
+                  type="checkbox"
+                  name="use_nicknames"
+                  value="1"
+                  defaultChecked={useNicknames}
+                  className="mt-1 h-4 w-4 rounded border-neutral-300"
+                />
+                <div>
+                  <div className="text-sm font-semibold text-slate-950">
+                    Spitznamen anzeigen
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    Wenn aktiv, werden Spieler in Sessions, Teams, Stats und
+                    weiteren Ansichten bevorzugt mit ihrem Spitznamen angezeigt.
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Club speichern
+              </button>
+
+              {club.logo_path ? (
+                <button
+                  type="submit"
+                  name="remove_logo"
+                  value="1"
+                  className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                >
+                  Logo entfernen
+                </button>
+              ) : null}
             </div>
           </form>
         </SettingsSection>
