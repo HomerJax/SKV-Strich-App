@@ -1,85 +1,115 @@
-async function ensureResultNotifications(params: {
-  clubId: string;
-  sessionId: number;
-  winners: Array<{ playerId: number; name: string; votes: number }>;
-  participants: Participant[];
-}) {
-  const { clubId, sessionId, winners, participants } = params;
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
-  const admin = createAdminClient();
+type NotificationRow = {
+  id: number;
+  user_id: string;
+  club_id: string | null;
+  type: string;
+  title: string;
+  body: string;
+  created_at: string;
+  read_at?: string | null;
+};
 
-  // ✅ CHECK: wurde schon einmal getriggert?
-  const { data: existing, error: existingError } = await admin
-    .from("user_notifications")
-    .select("id")
-    .like("dedupe_key", `mvp_result:${sessionId}:%`)
-    .limit(1);
+export async function GET(_request: NextRequest) {
+  const supabase = await createClient();
 
-  if (existingError) {
-    console.error("Notification check failed:", existingError.message);
-    return;
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    return NextResponse.json({ error: authError.message }, { status: 500 });
   }
 
-  if (existing && existing.length > 0) {
-    return; // 👉 schon vorhanden → nichts tun
+  if (!user) {
+    return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });
   }
 
-  // 🏆 Gewinner bestimmen
-  const winnerIds = new Set(winners.map((winner) => winner.playerId));
-
-  const winnerUserIds = participants
-    .filter(
-      (participant) =>
-        winnerIds.has(participant.id) && participant.userId
-    )
-    .map((participant) => participant.userId as string);
-
-  // 👥 Alle Teilnehmer
-  const participantUserIds = participants
-    .map((participant) => participant.userId)
-    .filter(Boolean) as string[];
-
-  const uniqueParticipants = [...new Set(participantUserIds)];
-  const uniqueWinners = [...new Set(winnerUserIds)];
-
-  // 📢 Ergebnis-Notifications
-  const resultNotifications = uniqueParticipants.map((userId) => ({
-    user_id: userId,
-    club_id: clubId,
-    type: "mvp_result",
-    title: "MVP Voting beendet",
-    body:
-      winners.length === 0
-        ? "Das MVP Voting ist beendet."
-        : winners.length === 1
-        ? `${winners[0].name} ist MVP dieser Session.`
-        : "Das MVP Voting ist beendet. Es gibt mehrere Gewinner.",
-    cta_href: `/sessions/${sessionId}`,
-    dedupe_key: `mvp_result:${sessionId}:${userId}`,
-  }));
-
-  // 🏆 Gewinner-Notification
-  const winnerNotifications = uniqueWinners.map((userId) => ({
-    user_id: userId,
-    club_id: clubId,
-    type: "mvp_winner",
-    title: "Glückwunsch! Du bist MVP 🏆",
-    body: "Du wurdest zum MVP gewählt!",
-    cta_href: `/sessions/${sessionId}`,
-    dedupe_key: `mvp_winner:${sessionId}:${userId}`,
-  }));
-
-  const inserts = [...resultNotifications, ...winnerNotifications];
-
-  if (inserts.length === 0) return;
-
-  const { error } = await admin
+  const { data, error } = await supabase
     .from("user_notifications")
-    .upsert(inserts, {
-      onConflict: "dedupe_key",
-    });
+    .select("id, user_id, club_id, type, title, body, created_at, read_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(50);
 
   if (error) {
-    console.error("MVP notifications failed:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const notifications = ((data ?? []) as NotificationRow[]).map((item) => ({
+    id: item.id,
+    userId: item.user_id,
+    clubId: item.club_id ?? null,
+    type: item.type,
+    title: item.title,
+    body: item.body,
+    createdAt: item.created_at,
+    readAt: item.read_at ?? null,
+  }));
+
+  return NextResponse.json({
+    notifications,
+    unreadCount: notifications.filter((item) => !item.readAt).length,
+  });
+}
+
+export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    return NextResponse.json({ error: authError.message }, { status: 500 });
+  }
+
+  if (!user) {
+    return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const notificationId =
+    typeof body?.notificationId === "number" ? body.notificationId : null;
+  const markAll = body?.markAll === true;
+
+  if (!markAll && !notificationId) {
+    return NextResponse.json(
+      { error: "Es wurde keine Notification-ID übergeben." },
+      { status: 400 }
+    );
+  }
+
+  if (markAll) {
+    const { error } = await supabase
+      .from("user_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .is("read_at", null);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, markAll: true });
+  }
+
+  const { error } = await supabase
+    .from("user_notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", notificationId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    notificationId,
+  });
 }
