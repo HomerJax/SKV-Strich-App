@@ -26,6 +26,15 @@ type ResultSessionRow = {
   session_id: number;
 };
 
+type AttendanceRow = {
+  session_id: number;
+  status: string | null;
+};
+
+type VoteRow = {
+  session_id: number;
+};
+
 const COLOR_MAP: Record<string, string> = {
   black: "#020617",
   blue: "#1d4ed8",
@@ -270,13 +279,24 @@ export default async function HomePage() {
 
   const recentSessionIds = recentSessions.map((session) => session.id);
 
-  let activeVotingSession: SessionRow | null = null;
+  let activeVotingSession:
+    | (SessionRow & { voteCount: number; eligibleVoterCount: number })
+    | null = null;
 
   if (mvpVotingEnabled && recentSessionIds.length > 0) {
-    const { data: resultsData } = await supabase
-      .from("results")
-      .select("session_id")
-      .in("session_id", recentSessionIds);
+    const [{ data: resultsData }, { data: attendanceData }, { data: votesData }] =
+      await Promise.all([
+        supabase.from("results").select("session_id").in("session_id", recentSessionIds),
+        supabase
+          .from("session_attendance")
+          .select("session_id, status")
+          .in("session_id", recentSessionIds)
+          .eq("status", "present"),
+        supabase
+          .from("session_mvp_votes")
+          .select("session_id")
+          .in("session_id", recentSessionIds),
+      ]);
 
     const resultSessionIds = new Set(
       ((resultsData ?? []) as ResultSessionRow[]).map((row) =>
@@ -284,11 +304,34 @@ export default async function HomePage() {
       )
     );
 
-    activeVotingSession =
+    const eligibleCountBySession = new Map<number, number>();
+    for (const row of (attendanceData ?? []) as AttendanceRow[]) {
+      const sessionId = Number(row.session_id);
+      eligibleCountBySession.set(
+        sessionId,
+        (eligibleCountBySession.get(sessionId) ?? 0) + 1
+      );
+    }
+
+    const voteCountBySession = new Map<number, number>();
+    for (const row of (votesData ?? []) as VoteRow[]) {
+      const sessionId = Number(row.session_id);
+      voteCountBySession.set(sessionId, (voteCountBySession.get(sessionId) ?? 0) + 1);
+    }
+
+    const found =
       recentSessions.find(
         (session) =>
           resultSessionIds.has(session.id) && isVotingOpen(session.date)
       ) ?? null;
+
+    activeVotingSession = found
+      ? {
+          ...found,
+          voteCount: voteCountBySession.get(found.id) ?? 0,
+          eligibleVoterCount: eligibleCountBySession.get(found.id) ?? 0,
+        }
+      : null;
   }
 
   return (
@@ -375,6 +418,10 @@ export default async function HomePage() {
                 </div>
                 <div className="mt-1 text-sm font-semibold text-slate-900">
                   Stimme jetzt direkt in der Session ab
+                </div>
+                <div className="mt-1 text-xs text-slate-600">
+                  {activeVotingSession.voteCount}/{activeVotingSession.eligibleVoterCount}{" "}
+                  Stimmen
                 </div>
               </div>
 

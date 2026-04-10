@@ -23,6 +23,8 @@ type MvpState = {
   userHasVoted: boolean;
   userVotePlayerId: number | null;
   participants: Participant[];
+  voteCount: number;
+  eligibleVoterCount: number;
   results: {
     winners: ResultEntry[];
     leaderboard: ResultEntry[];
@@ -39,6 +41,26 @@ type LoadState = "idle" | "loading" | "ready" | "error";
 function ResultPill({ text }: { text: string }) {
   return (
     <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+      {text}
+    </span>
+  );
+}
+
+function VoteCountPill({
+  voteCount,
+  eligibleVoterCount,
+  votingOpen,
+}: {
+  voteCount: number;
+  eligibleVoterCount: number;
+  votingOpen: boolean;
+}) {
+  const text = votingOpen
+    ? `${voteCount} von ${eligibleVoterCount} Stimmen`
+    : `${voteCount} ${voteCount === 1 ? "Stimme" : "Stimmen"} gesamt`;
+
+  return (
+    <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-black/10">
       {text}
     </span>
   );
@@ -174,6 +196,14 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
             Alle anwesenden Teilnehmer können hier direkt ihren MVP wählen.
           </p>
+
+          <div className="mt-3">
+            <VoteCountPill
+              voteCount={state.voteCount}
+              eligibleVoterCount={state.eligibleVoterCount}
+              votingOpen={votingOpen}
+            />
+          </div>
         </div>
 
         <ResultPill
@@ -283,7 +313,8 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 </button>
 
                 <div className="text-xs text-slate-500">
-                  Ergebnis ab {state.revealLabel}
+                  {state.voteCount} von {state.eligibleVoterCount} Stimmen · Ergebnis ab{" "}
+                  {state.revealLabel}
                 </div>
               </div>
             </div>
@@ -317,8 +348,13 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
           {state.results?.leaderboard && state.results.leaderboard.length > 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-              <div className="text-sm font-semibold text-slate-900">
-                Voting-Ergebnis
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-slate-900">
+                  Voting-Ergebnis
+                </div>
+                <div className="text-xs font-semibold text-slate-500">
+                  {state.voteCount} {state.voteCount === 1 ? "Stimme" : "Stimmen"}
+                </div>
               </div>
 
               <div className="mt-3 space-y-2">
