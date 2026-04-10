@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import ExportButtons from "@/components/ExportButtons";
 import PageHero from "@/components/PageHero";
+import PlayerBadge from "@/components/badges/PlayerBadge";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import StandingsShareCard from "./StandingsShareCard";
 import type { RankRow, Season } from "./standings-types";
@@ -42,6 +43,7 @@ export default function StandingsClient({
   initialPrimaryColor,
 }: StandingsClientProps) {
   void initialClubId;
+  void initialPrimaryColor;
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -180,8 +182,8 @@ export default function StandingsClient({
 
       const title =
         card.startRank === card.endRank
-          ? `${selectedLabel} – Platz ${card.startRank}`
-          : `${selectedLabel} – Plätze ${card.startRank}-${card.endRank}`;
+          ? `Platz ${card.startRank}`
+          : `Plätze ${card.startRank}-${card.endRank}`;
 
       const result = await shareText(text, title);
 
@@ -344,8 +346,18 @@ export default function StandingsClient({
                             {movementText(row.deltaRank)}
                           </div>
                         </td>
-                        <td className="px-2 py-2 align-middle font-medium text-slate-900">
-                          {getPlayerDisplayName(row)}
+                        <td className="px-2 py-2 align-middle">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-900">
+                              {getPlayerDisplayName(row)}
+                            </span>
+                            <PlayerBadge
+                              mvpCount={row.mvps}
+                              size="sm"
+                              showLabel={false}
+                              showCount={true}
+                            />
+                          </div>
                         </td>
                         <td className="px-2 py-2 text-right font-semibold text-slate-900">
                           {row.wins}

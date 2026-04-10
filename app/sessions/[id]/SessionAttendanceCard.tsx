@@ -1,4 +1,5 @@
 import { getPlayerDisplayName } from "@/lib/player-display";
+import PlayerBadge from "@/components/badges/PlayerBadge";
 import type { Player } from "./session-types";
 import { ageBadgeColor, badgeColor, positionLabel } from "./session-ui";
 
@@ -43,6 +44,13 @@ function guestBadge(player: Player) {
       Gast
     </span>
   ) : null;
+}
+
+function getPlayerMvpCount(player: Player) {
+  const candidate = (player as Player & { mvp_count?: number | null }).mvp_count;
+  return typeof candidate === "number" && Number.isFinite(candidate)
+    ? candidate
+    : 0;
 }
 
 export default function SessionAttendanceCard({
@@ -93,7 +101,11 @@ export default function SessionAttendanceCard({
             ) : null}
 
             <div>
-              <div className={`text-base font-bold ${done ? "text-emerald-950" : "text-slate-950"}`}>
+              <div
+                className={`text-base font-bold ${
+                  done ? "text-emerald-950" : "text-slate-950"
+                }`}
+              >
                 {done ? "Anwesenheit erledigt" : "Anwesenheit"}
               </div>
               {!done ? (
@@ -252,6 +264,7 @@ export default function SessionAttendanceCard({
         <div className="grid gap-2">
           {players.map((player) => {
             const on = presentIds.includes(player.id);
+            const mvpCount = getPlayerMvpCount(player);
 
             return (
               <button
@@ -274,6 +287,12 @@ export default function SessionAttendanceCard({
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate">{getPlayerDisplayName(player)}</span>
+                  <PlayerBadge
+                    mvpCount={mvpCount}
+                    size="sm"
+                    showLabel={false}
+                    showCount={true}
+                  />
                   {guestBadge(player)}
                 </span>
 

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import BadgeProgressCard from "@/components/badges/BadgeProgressCard";
 import PlayerTrendCard from "@/components/stats/PlayerTrendCard";
 import StatsHero from "@/components/stats/StatsHero";
 import RecentResultsCard from "@/components/stats/RecentResultsCard";
@@ -120,6 +121,10 @@ export default async function StatsPage() {
           mvpWins={0}
           mvpPerGame={0}
         />
+
+        <div className="mt-5">
+          <BadgeProgressCard mvpCount={0} title="Dein Badge" />
+        </div>
 
         {flags.session_mvp_voting ? <MvpCards mvpWins={0} mvpPerGame={0} /> : null}
 
@@ -417,6 +422,10 @@ export default async function StatsPage() {
         mvpWins={mvpWins}
         mvpPerGame={mvpPerGame}
       />
+
+      <div className="mt-5">
+        <BadgeProgressCard mvpCount={mvpWins} title="Dein Badge" />
+      </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
         {flags.player_trends ? (
