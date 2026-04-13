@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { isAdminRole } from "@/lib/auth/access";
 import { getResultShareData } from "@/lib/share/result-share";
 import {
   ensureFeatureFlagRowsForClub,
@@ -48,10 +49,6 @@ type SessionPlayerRow = {
 type PageProps = {
   params: Promise<{ id: string }>;
 };
-
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
 
 function getBaseUrl() {
   const envUrl =
@@ -173,7 +170,7 @@ export async function generateMetadata({
 export default async function SessionDetailPage({ params }: PageProps) {
   const resolvedParams = await params;
   const sessionId = Number(resolvedParams.id);
-  const { clubId, membership } = await requireClub();
+  const { clubId, membership, isPowerUser } = await requireClub();
   const supabase = await createClient();
 
   if (!Number.isFinite(sessionId)) {
@@ -336,7 +333,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialPresentIds={presentIds}
       initialManualTeams={manualTeams}
       initialClubId={clubId}
-      initialIsAdmin={isAdminRole(membership.role)}
+      initialIsAdmin={isPowerUser || isAdminRole(membership.role)}
       initialClubSettings={clubSettings}
       initialWinnerPhotoUrl={winnerPhotoUrl}
       initialGoalsA={goalsA}

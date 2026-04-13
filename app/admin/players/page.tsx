@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { canManageClub } from "@/lib/auth/access";
 import PlayerSettingsCard from "@/components/admin/PlayerSettingsCard";
 
 type PlayerRow = {
@@ -43,10 +44,6 @@ type PageProps = {
     message?: string;
   }>;
 };
-
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
 
 function boolToYesNo(value: boolean | null | undefined) {
   return value ? "1" : "0";
@@ -95,9 +92,9 @@ export default async function AdminPlayersPage({
   searchParams,
 }: PageProps) {
   const resolvedSearchParams = await searchParams;
-  const { clubId, membership } = await requireClub();
+  const { clubId, membership, isPowerUser } = await requireClub();
 
-  if (!isAdminRole(membership.role)) {
+  if (!canManageClub({ isPowerUser, role: membership.role })) {
     redirect(AUTH_ROUTES.dashboard);
   }
 

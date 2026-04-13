@@ -19,13 +19,14 @@ export async function requirePlayer() {
     redirect(AUTH_ROUTES.login);
   }
 
-  if (!ctx.player) {
+  if (!ctx.player && !ctx.isPowerUser) {
     redirect(AUTH_ROUTES.onboarding);
   }
 
   return {
     user: ctx.user,
     player: ctx.player,
+    isPowerUser: ctx.isPowerUser,
   };
 }
 
@@ -36,7 +37,7 @@ export async function requireClub() {
     redirect(AUTH_ROUTES.login);
   }
 
-  if (!ctx.player) {
+  if (!ctx.player && !ctx.isPowerUser) {
     redirect(AUTH_ROUTES.onboarding);
   }
 
@@ -44,7 +45,8 @@ export async function requireClub() {
     redirect(AUTH_ROUTES.selectClub);
   }
 
-  const membership = ctx.memberships.find((m) => m.club_id === ctx.activeClubId);
+  const membership =
+    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ?? null;
 
   if (!membership) {
     redirect(AUTH_ROUTES.selectClub);
@@ -56,5 +58,6 @@ export async function requireClub() {
     clubId: ctx.activeClubId,
     membership,
     memberships: ctx.memberships,
+    isPowerUser: ctx.isPowerUser,
   };
 }

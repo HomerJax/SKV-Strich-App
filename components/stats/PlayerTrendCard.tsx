@@ -19,10 +19,27 @@ function average(values: number[]) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+/**
+ * Unterstützt beide Skalen:
+ * - alt: Sieg=3, Unentschieden=1, Niederlage=0
+ * - neu: Sieg=1, Unentschieden=0, Niederlage=-1
+ */
+function normalizePointValue(value: number) {
+  if (value >= 3) return 3;
+  if (value <= -1) return 0;
+  if (value === 1) return 3;
+  if (value === 0) return 1;
+  return value;
+}
+
+function normalizedValues(points: TrendPoint[]) {
+  return points.map((point) => normalizePointValue(point.value));
+}
+
 function getTrendState(points: TrendPoint[]): TrendState {
   if (points.length < 3) return "flat";
 
-  const values = points.map((p) => p.value);
+  const values = normalizedValues(points);
   const firstPart = values.slice(0, Math.ceil(values.length / 2));
   const secondPart = values.slice(Math.floor(values.length / 2));
 
@@ -114,19 +131,22 @@ function getTrendCopy(state: TrendState) {
 }
 
 function pointLabel(value: number) {
-  if (value >= 3) return "S";
-  if (value >= 1) return "U";
+  const normalized = normalizePointValue(value);
+  if (normalized >= 3) return "S";
+  if (normalized >= 1) return "U";
   return "N";
 }
 
 function pointClasses(value: number, isLast: boolean) {
-  if (value >= 3) {
+  const normalized = normalizePointValue(value);
+
+  if (normalized >= 3) {
     return isLast
       ? "bg-emerald-100 text-emerald-800 ring-emerald-200"
       : "bg-emerald-50 text-emerald-700 ring-emerald-100";
   }
 
-  if (value >= 1) {
+  if (normalized >= 1) {
     return isLast
       ? "bg-amber-100 text-amber-800 ring-amber-200"
       : "bg-amber-50 text-amber-700 ring-amber-100";
@@ -135,6 +155,13 @@ function pointClasses(value: number, isLast: boolean) {
   return isLast
     ? "bg-rose-100 text-rose-800 ring-rose-200"
     : "bg-rose-50 text-rose-700 ring-rose-100";
+}
+
+function resultWord(value: number) {
+  const normalized = normalizePointValue(value);
+  if (normalized >= 3) return "Sieg";
+  if (normalized >= 1) return "Unentschieden";
+  return "Niederlage";
 }
 
 function buildChart(
@@ -153,8 +180,9 @@ function buildChart(
   const stepX = points.length === 1 ? 0 : width / (points.length - 1);
 
   const circles = points.map((point, index) => {
+    const normalizedPoint = normalizePointValue(point.value);
     const x = index * stepX;
-    const normalized = maxValue === 0 ? 0 : point.value / maxValue;
+    const normalized = maxValue === 0 ? 0 : normalizedPoint / maxValue;
     const y = height - normalized * height;
 
     return {
@@ -170,6 +198,20 @@ function buildChart(
   return { polyline, circles };
 }
 
+function summary(points: TrendPoint[]) {
+  const values = normalizedValues(points);
+  const wins = values.filter((value) => value >= 3).length;
+  const draws = values.filter((value) => value >= 1 && value < 3).length;
+  const losses = values.filter((value) => value < 1).length;
+
+  return {
+    total: points.length,
+    wins,
+    draws,
+    losses,
+  };
+}
+
 export default function PlayerTrendCard({
   enabled,
   points,
@@ -177,9 +219,9 @@ export default function PlayerTrendCard({
 }: PlayerTrendCardProps) {
   if (!enabled) return null;
 
-  const lastFive = points.slice(-5);
+  const allPoints = points;
 
-  if (lastFive.length === 0) {
+  if (allPoints.length === 0) {
     return (
       <section
         className={`rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6 ${className}`}
@@ -188,7 +230,7 @@ export default function PlayerTrendCard({
           <div>
             <div className="text-sm font-semibold text-slate-950">Meine Form</div>
             <div className="mt-1 text-sm text-slate-600">
-              Letzte 5 bewertete Sessions
+              Verlauf über alle bewerteten Sessions
             </div>
           </div>
 
@@ -209,13 +251,20 @@ export default function PlayerTrendCard({
     );
   }
 
-  const trendState = getTrendState(lastFive);
+  const trendState = getTrendState(allPoints);
   const trendCopy = getTrendCopy(trendState);
+  const stats = summary(allPoints);
 
-  const chartWidth = 176;
+  const chartWidth = Math.max(176, allPoints.length * 34);
   const chartHeight = 42;
-  const maxValue = Math.max(...lastFive.map((p) => p.value), 3);
-  const { polyline, circles } = buildChart(lastFive, chartWidth, chartHeight, maxValue);
+  const maxValue = 3;
+
+  const { polyline, circles } = buildChart(
+    allPoints,
+    chartWidth,
+    chartHeight,
+    maxValue
+  );
 
   return (
     <section
@@ -225,7 +274,7 @@ export default function PlayerTrendCard({
         <div>
           <div className="text-sm font-semibold text-slate-950">Meine Form</div>
           <div className="mt-1 text-sm text-slate-600">
-            Letzte {lastFive.length} bewertete Sessions
+            Verlauf über alle {allPoints.length} bewerteten Sessions
           </div>
         </div>
 
@@ -235,14 +284,29 @@ export default function PlayerTrendCard({
         </span>
       </div>
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+          {stats.total} Spiele
+        </span>
+        <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+          {stats.wins} Siege
+        </span>
+        <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+          {stats.draws} Unentschieden
+        </span>
+        <span className="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+          {stats.losses} Niederlagen
+        </span>
+      </div>
+
       <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/90 px-4 py-4 sm:px-5">
         <div className="text-[28px] font-bold leading-none tracking-tight text-slate-950">
           {trendCopy.title}
         </div>
 
-        <div className="mt-4 flex justify-center">
-          <div className="w-full max-w-[220px]">
-            <div className="relative h-[64px]">
+        <div className="mt-4 overflow-x-auto pb-2">
+          <div className="w-max min-w-full">
+            <div className="relative h-[64px] min-w-[220px]">
               <div className="pointer-events-none absolute inset-x-2 top-[10px] h-px bg-slate-200" />
               <div className="pointer-events-none absolute inset-x-2 top-[26px] h-px bg-slate-200/65" />
               <div className="pointer-events-none absolute inset-x-2 top-[42px] h-px bg-slate-200/35" />
@@ -274,10 +338,10 @@ export default function PlayerTrendCard({
               </svg>
 
               <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 px-[2px]">
-                {lastFive.map((point) => (
+                {allPoints.map((point) => (
                   <div
                     key={`${point.id}-label`}
-                    className="flex flex-1 items-center justify-center text-[10px] font-medium text-slate-500"
+                    className="flex min-w-[26px] flex-1 items-center justify-center text-[10px] font-medium text-slate-500"
                   >
                     {point.label}
                   </div>
@@ -286,17 +350,17 @@ export default function PlayerTrendCard({
             </div>
 
             <div className="mt-2.5 flex items-center justify-between gap-2">
-              {lastFive.map((point, index) => {
-                const isLast = index === lastFive.length - 1;
+              {allPoints.map((point, index) => {
+                const isLast = index === allPoints.length - 1;
 
                 return (
                   <div
                     key={`${point.id}-chip`}
-                    className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold ring-1 ${pointClasses(
+                    className={`inline-flex h-7 w-7 flex-none items-center justify-center rounded-full text-[10px] font-semibold ring-1 ${pointClasses(
                       point.value,
                       isLast
                     )}`}
-                    title={`Session ${point.label}`}
+                    title={`${point.label}: ${resultWord(point.value)}`}
                   >
                     {pointLabel(point.value)}
                   </div>
