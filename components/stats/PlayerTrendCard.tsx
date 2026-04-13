@@ -12,7 +12,17 @@ type PlayerTrendCardProps = {
   className?: string;
 };
 
-type TrendState = "up" | "down" | "mixed" | "flat";
+type TrendMood =
+  | "heater"
+  | "bounce_back"
+  | "steady_up"
+  | "collapse"
+  | "slump"
+  | "volatile_positive"
+  | "volatile_negative"
+  | "streaky"
+  | "balanced"
+  | "flat";
 
 function average(values: number[]) {
   if (values.length === 0) return 0;
@@ -20,9 +30,14 @@ function average(values: number[]) {
 }
 
 /**
- * Unterstützt beide Skalen:
+ * Unterstützt:
  * - alt: Sieg=3, Unentschieden=1, Niederlage=0
  * - neu: Sieg=1, Unentschieden=0, Niederlage=-1
+ *
+ * Intern normalisieren wir auf:
+ * - Sieg = 3
+ * - Unentschieden = 1
+ * - Niederlage = 0
  */
 function normalizePointValue(value: number) {
   if (value >= 3) return 3;
@@ -36,105 +51,18 @@ function normalizedValues(points: TrendPoint[]) {
   return points.map((point) => normalizePointValue(point.value));
 }
 
-function getTrendState(points: TrendPoint[]): TrendState {
-  if (points.length < 3) return "flat";
-
-  const values = normalizedValues(points);
-  const firstPart = values.slice(0, Math.ceil(values.length / 2));
-  const secondPart = values.slice(Math.floor(values.length / 2));
-
-  const firstAvg = average(firstPart);
-  const secondAvg = average(secondPart);
-  const delta = secondAvg - firstAvg;
-
-  const wins = values.filter((v) => v >= 3).length;
-  const losses = values.filter((v) => v === 0).length;
-
-  let rises = 0;
-  let drops = 0;
-
-  for (let i = 1; i < values.length; i += 1) {
-    if (values[i] > values[i - 1]) rises += 1;
-    if (values[i] < values[i - 1]) drops += 1;
-  }
-
-  const lastTwo = values.slice(-2);
-  const lastThree = values.slice(-3);
-  const lastTwoAvg = average(lastTwo);
-  const lastThreeAvg = average(lastThree);
-  const overallAvg = average(values);
-
-  if (
-    losses >= 3 &&
-    wins <= 1 &&
-    !(lastTwoAvg >= 2.5 && delta >= 1.0)
-  ) {
-    return "mixed";
-  }
-
-  if (
-    delta >= 1.0 &&
-    lastTwoAvg >= 2 &&
-    lastThreeAvg >= firstAvg &&
-    drops <= rises
-  ) {
-    return "up";
-  }
-
-  if (
-    delta <= -1.0 &&
-    lastTwoAvg <= 1 &&
-    lastThreeAvg <= firstAvg &&
-    drops >= rises
-  ) {
-    return "down";
-  }
-
-  if (overallAvg <= 0.8 && wins <= 1) {
-    return "mixed";
-  }
-
-  if (rises > 0 && drops > 0) {
-    return "mixed";
-  }
-
-  return "flat";
-}
-
-function getTrendCopy(state: TrendState) {
-  switch (state) {
-    case "up":
-      return {
-        title: "Du wirst stärker",
-        icon: "↗",
-        badge: "Aufwärtstrend",
-      };
-    case "down":
-      return {
-        title: "Du wirst schwächer",
-        icon: "↘",
-        badge: "Abwärtstrend",
-      };
-    case "mixed":
-      return {
-        title: "Form schwankt",
-        icon: "↕",
-        badge: "Wechselhaft",
-      };
-    default:
-      return {
-        title: "Noch kein klarer Trend",
-        icon: "→",
-        badge: "Neutral",
-      };
-  }
-}
-
-function pointLabel(value: number) {
+function resultLetter(value: number) {
   const normalized = normalizePointValue(value);
   if (normalized >= 3) return "S";
   if (normalized >= 1) return "U";
   return "N";
+}
+
+function resultWord(value: number) {
+  const normalized = normalizePointValue(value);
+  if (normalized >= 3) return "Sieg";
+  if (normalized >= 1) return "Unentschieden";
+  return "Niederlage";
 }
 
 function pointClasses(value: number, isLast: boolean) {
@@ -157,11 +85,225 @@ function pointClasses(value: number, isLast: boolean) {
     : "bg-rose-50 text-rose-700 ring-rose-100";
 }
 
-function resultWord(value: number) {
-  const normalized = normalizePointValue(value);
-  if (normalized >= 3) return "Sieg";
-  if (normalized >= 1) return "Unentschieden";
-  return "Niederlage";
+function summary(points: TrendPoint[]) {
+  const values = normalizedValues(points);
+  const wins = values.filter((value) => value >= 3).length;
+  const draws = values.filter((value) => value >= 1 && value < 3).length;
+  const losses = values.filter((value) => value < 1).length;
+
+  return {
+    total: points.length,
+    wins,
+    draws,
+    losses,
+  };
+}
+
+function countStreaks(values: number[]) {
+  let currentWins = 0;
+  let currentLosses = 0;
+  let bestWinStreak = 0;
+  let bestLossStreak = 0;
+
+  for (const value of values) {
+    if (value >= 3) {
+      currentWins += 1;
+      currentLosses = 0;
+    } else if (value < 1) {
+      currentLosses += 1;
+      currentWins = 0;
+    } else {
+      currentWins = 0;
+      currentLosses = 0;
+    }
+
+    bestWinStreak = Math.max(bestWinStreak, currentWins);
+    bestLossStreak = Math.max(bestLossStreak, currentLosses);
+  }
+
+  return {
+    bestWinStreak,
+    bestLossStreak,
+  };
+}
+
+function buildSequence(points: TrendPoint[]) {
+  return normalizedValues(points).map((value) => {
+    if (value >= 3) return "W";
+    if (value >= 1) return "D";
+    return "L";
+  });
+}
+
+function hasPattern(sequence: string[], pattern: string[]) {
+  if (pattern.length === 0 || sequence.length < pattern.length) return false;
+
+  for (let i = 0; i <= sequence.length - pattern.length; i += 1) {
+    let match = true;
+
+    for (let j = 0; j < pattern.length; j += 1) {
+      if (sequence[i + j] !== pattern[j]) {
+        match = false;
+        break;
+      }
+    }
+
+    if (match) return true;
+  }
+
+  return false;
+}
+
+function getTrendMood(points: TrendPoint[]): TrendMood {
+  if (points.length < 3) return "flat";
+
+  const values = normalizedValues(points);
+  const sequence = buildSequence(points);
+  const { wins, draws, losses } = summary(points);
+  const { bestWinStreak, bestLossStreak } = countStreaks(values);
+
+  const firstHalf = values.slice(0, Math.ceil(values.length / 2));
+  const secondHalf = values.slice(Math.floor(values.length / 2));
+  const firstAvg = average(firstHalf);
+  const secondAvg = average(secondHalf);
+  const delta = secondAvg - firstAvg;
+
+  const lastThree = values.slice(-3);
+  const lastFour = values.slice(-4);
+  const lastThreeWins = lastThree.filter((value) => value >= 3).length;
+  const lastFourWins = lastFour.filter((value) => value >= 3).length;
+  const lastThreeLosses = lastThree.filter((value) => value < 1).length;
+
+  const rises = values.slice(1).filter((value, index) => value > values[index]).length;
+  const drops = values.slice(1).filter((value, index) => value < values[index]).length;
+
+  if (bestWinStreak >= 4 && lastThreeWins >= 2) {
+    return "heater";
+  }
+
+  if (
+    hasPattern(sequence, ["W", "W", "W", "L", "W", "W"]) ||
+    hasPattern(sequence, ["W", "W", "L", "W", "W", "W"]) ||
+    (delta >= 0.8 && lastFourWins >= 3 && lastThreeLosses <= 1 && wins >= 4)
+  ) {
+    return "bounce_back";
+  }
+
+  if (delta >= 0.7 && lastThreeWins >= 2 && rises >= drops && wins > losses) {
+    return "steady_up";
+  }
+
+  if (bestLossStreak >= 3 && lastThreeLosses >= 2) {
+    return "collapse";
+  }
+
+  if (delta <= -0.7 && losses > wins && drops >= rises) {
+    return "slump";
+  }
+
+  if (wins >= losses + 2 && rises > 0 && drops > 0) {
+    return "volatile_positive";
+  }
+
+  if (losses >= wins + 2 && rises > 0 && drops > 0) {
+    return "volatile_negative";
+  }
+
+  if (bestWinStreak >= 2 && bestLossStreak >= 2) {
+    return "streaky";
+  }
+
+  if (Math.abs(delta) < 0.35 && Math.abs(wins - losses) <= 1 && draws >= 1) {
+    return "balanced";
+  }
+
+  return "flat";
+}
+
+function getTrendCopy(mood: TrendMood, points: TrendPoint[]) {
+  const stats = summary(points);
+
+  switch (mood) {
+    case "heater":
+      return {
+        title: "Heißer Lauf",
+        subtitle: `Starke Serie: ${stats.wins} Siege insgesamt und zuletzt richtig Druck auf dem Kessel.`,
+        badge: "On fire",
+        icon: "🔥",
+      };
+    case "bounce_back":
+      return {
+        title: "Kurz gewackelt, stark zurückgekommen",
+        subtitle:
+          "Zwischendurch ein Dämpfer, danach aber wieder klar gefangen. Gute Reaktion statt langer Hänger.",
+        badge: "Bounce Back",
+        icon: "↺",
+      };
+    case "steady_up":
+      return {
+        title: "Stabiler Aufwärtstrend",
+        subtitle:
+          "Die Kurve zeigt nach oben. Nicht komplett wild, sondern sauber Schritt für Schritt besser.",
+        badge: "Steigend",
+        icon: "↗",
+      };
+    case "collapse":
+      return {
+        title: "Gerade ziemlich zäh",
+        subtitle:
+          "Im Moment läuft es eher schwer. Da steckt Qualität drin, aber die Punktekurve ist zuletzt klar eingebrochen.",
+        badge: "Tiefphase",
+        icon: "↘",
+      };
+    case "slump":
+      return {
+        title: "Form rutscht ab",
+        subtitle:
+          "Aktuell eher Abwärtstrend. Weniger Punch, weniger Stabilität, mehr Arbeit gegen den Rhythmus.",
+        badge: "Abwärts",
+        icon: "↓",
+      };
+    case "volatile_positive":
+      return {
+        title: "Gefährlich gut mit Ausreißern",
+        subtitle:
+          "Nicht komplett sauber, aber insgesamt stark. Zwischen Top-Momenten liegt noch etwas Chaos.",
+        badge: "Wild, aber gut",
+        icon: "⚡",
+      };
+    case "volatile_negative":
+      return {
+        title: "Zu unruhig für Konstanz",
+        subtitle:
+          "Es blitzt mal auf, kippt aber zu oft wieder weg. Mehr Stabilität würde hier sofort helfen.",
+        badge: "Zu wechselhaft",
+        icon: "↕",
+      };
+    case "streaky":
+      return {
+        title: "Serienspieler-Modus",
+        subtitle:
+          "Nicht linear, eher in Läufen. Gute Phasen sind da – die Kunst ist, die Dellen kürzer zu halten.",
+        badge: "In Wellen",
+        icon: "〰",
+      };
+    case "balanced":
+      return {
+        title: "Ordentlich, aber noch ohne klaren Ausschlag",
+        subtitle:
+          "Solide Mischung aus Licht und Arbeit. Noch kein harter Trend, aber auch kein echter Absturz.",
+        badge: "Ausgeglichen",
+        icon: "→",
+      };
+    default:
+      return {
+        title: "Noch kein klarer Trend",
+        subtitle:
+          "Es sind Ansätze zu sehen, aber noch kein Muster, das sich wirklich festsetzt.",
+        badge: "Neutral",
+        icon: "→",
+      };
+  }
 }
 
 function buildChart(
@@ -177,13 +319,16 @@ function buildChart(
     };
   }
 
+  const topPadding = 5;
+  const bottomPadding = 5;
+  const drawableHeight = Math.max(height - topPadding - bottomPadding, 1);
   const stepX = points.length === 1 ? 0 : width / (points.length - 1);
 
   const circles = points.map((point, index) => {
     const normalizedPoint = normalizePointValue(point.value);
     const x = index * stepX;
     const normalized = maxValue === 0 ? 0 : normalizedPoint / maxValue;
-    const y = height - normalized * height;
+    const y = topPadding + (1 - normalized) * drawableHeight;
 
     return {
       id: point.id,
@@ -196,20 +341,6 @@ function buildChart(
   const polyline = circles.map((point) => `${point.x},${point.y}`).join(" ");
 
   return { polyline, circles };
-}
-
-function summary(points: TrendPoint[]) {
-  const values = normalizedValues(points);
-  const wins = values.filter((value) => value >= 3).length;
-  const draws = values.filter((value) => value >= 1 && value < 3).length;
-  const losses = values.filter((value) => value < 1).length;
-
-  return {
-    total: points.length,
-    wins,
-    draws,
-    losses,
-  };
 }
 
 export default function PlayerTrendCard({
@@ -251,12 +382,12 @@ export default function PlayerTrendCard({
     );
   }
 
-  const trendState = getTrendState(allPoints);
-  const trendCopy = getTrendCopy(trendState);
+  const mood = getTrendMood(allPoints);
+  const trendCopy = getTrendCopy(mood, allPoints);
   const stats = summary(allPoints);
 
   const chartWidth = Math.max(176, allPoints.length * 34);
-  const chartHeight = 42;
+  const chartHeight = 48;
   const maxValue = 3;
 
   const { polyline, circles } = buildChart(
@@ -304,16 +435,20 @@ export default function PlayerTrendCard({
           {trendCopy.title}
         </div>
 
+        <div className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          {trendCopy.subtitle}
+        </div>
+
         <div className="mt-4 overflow-x-auto pb-2">
           <div className="w-max min-w-full">
-            <div className="relative h-[64px] min-w-[220px]">
-              <div className="pointer-events-none absolute inset-x-2 top-[10px] h-px bg-slate-200" />
-              <div className="pointer-events-none absolute inset-x-2 top-[26px] h-px bg-slate-200/65" />
-              <div className="pointer-events-none absolute inset-x-2 top-[42px] h-px bg-slate-200/35" />
+            <div className="relative h-[70px] min-w-[220px]">
+              <div className="pointer-events-none absolute inset-x-2 top-[12px] h-px bg-slate-200" />
+              <div className="pointer-events-none absolute inset-x-2 top-[30px] h-px bg-slate-200/65" />
+              <div className="pointer-events-none absolute inset-x-2 top-[48px] h-px bg-slate-200/35" />
 
               <svg
                 viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-                className="absolute inset-0 h-[48px] w-full overflow-visible"
+                className="absolute inset-0 h-[54px] w-full overflow-visible"
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
@@ -362,7 +497,7 @@ export default function PlayerTrendCard({
                     )}`}
                     title={`${point.label}: ${resultWord(point.value)}`}
                   >
-                    {pointLabel(point.value)}
+                    {resultLetter(point.value)}
                   </div>
                 );
               })}

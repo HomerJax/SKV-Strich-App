@@ -7,7 +7,6 @@ import BadgeProgressCard from "@/components/badges/BadgeProgressCard";
 import PlayerTrendCard from "@/components/stats/PlayerTrendCard";
 import StatsHero from "@/components/stats/StatsHero";
 import RecentResultsCard from "@/components/stats/RecentResultsCard";
-import MvpCards from "@/components/stats/MvpCards";
 import TeamImpactCard from "@/components/stats/TeamImpactCard";
 import StatsSection from "@/components/stats/StatsSection";
 import {
@@ -54,6 +53,60 @@ function trendValueForOutcome(outcome: RecentResult["outcome"]) {
   if (outcome === "win") return 1;
   if (outcome === "loss") return -1;
   return 0;
+}
+
+function EmptyStatsContent({ showMvp }: { showMvp: boolean }) {
+  return (
+    <>
+      <div className="mt-5">
+        <StatsSection
+          title="Form"
+          subtitle="Verlauf über alle gespielten Einheiten."
+          defaultOpen={true}
+        >
+          <PlayerTrendCard enabled={true} points={[]} />
+        </StatsSection>
+      </div>
+
+      <div className="mt-5">
+        <StatsSection
+          title="Team Impact"
+          subtitle="Wie stark dein Einfluss auf Ergebnisse und Team-Balance war."
+          defaultOpen={false}
+        >
+          <TeamImpactCard
+            impactGames={0}
+            impactWins={0}
+            impactTotal={0}
+            impactPerMatch={0}
+            impactMeta={getImpactMeta(0)}
+          />
+        </StatsSection>
+      </div>
+
+      <div className="mt-5">
+        <StatsSection
+          title="Letzte Ergebnisse"
+          subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
+          defaultOpen={true}
+        >
+          <RecentResultsCard results={[]} />
+        </StatsSection>
+      </div>
+
+      {showMvp ? (
+        <div className="mt-5">
+          <StatsSection
+            title="Badges"
+            subtitle="Dein aktueller Badge-Status auf Basis deiner MVP-Erfolge."
+            defaultOpen={true}
+          >
+            <BadgeProgressCard mvpCount={0} title="Badge-Fortschritt" />
+          </StatsSection>
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 export default async function StatsPage() {
@@ -109,40 +162,7 @@ export default async function StatsPage() {
           mvpPerGame={0}
         />
 
-        {flags.player_trends ? (
-          <div className="mt-5">
-            <StatsSection
-              title="Form"
-              subtitle="Verlauf über alle gespielten Einheiten."
-              defaultOpen={true}
-            >
-              <PlayerTrendCard enabled={true} points={[]} />
-            </StatsSection>
-          </div>
-        ) : null}
-
-        <div className="mt-5">
-          <StatsSection
-            title="Letzte Ergebnisse"
-            subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
-            defaultOpen={true}
-          >
-            <RecentResultsCard results={[]} />
-          </StatsSection>
-        </div>
-
-        <div className="mt-5">
-          <StatsSection
-            title="MVP & Badges"
-            subtitle="Dein aktueller Badge-Status und deine MVP-Werte."
-            defaultOpen={true}
-          >
-            <div className="space-y-5">
-              <BadgeProgressCard mvpCount={0} title="Dein Badge" />
-              {flags.session_mvp_voting ? <MvpCards mvpWins={0} mvpPerGame={0} /> : null}
-            </div>
-          </StatsSection>
-        </div>
+        <EmptyStatsContent showMvp={flags.session_mvp_voting} />
       </main>
     );
   }
@@ -188,58 +208,7 @@ export default async function StatsPage() {
           mvpPerGame={0}
         />
 
-        {flags.player_trends ? (
-          <div className="mt-5">
-            <StatsSection
-              title="Form"
-              subtitle="Verlauf über alle gespielten Einheiten."
-              defaultOpen={true}
-            >
-              <PlayerTrendCard enabled={true} points={[]} />
-            </StatsSection>
-          </div>
-        ) : null}
-
-        <div className="mt-5">
-          <StatsSection
-            title="Letzte Ergebnisse"
-            subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
-            defaultOpen={true}
-          >
-            <RecentResultsCard results={[]} />
-          </StatsSection>
-        </div>
-
-        <div className="mt-5">
-          <StatsSection
-            title="MVP & Badges"
-            subtitle="Dein aktueller Badge-Status und deine MVP-Werte."
-            defaultOpen={true}
-          >
-            <div className="space-y-5">
-              <BadgeProgressCard mvpCount={0} title="Dein Badge" />
-              {flags.session_mvp_voting ? <MvpCards mvpWins={0} mvpPerGame={0} /> : null}
-            </div>
-          </StatsSection>
-        </div>
-
-        {flags.team_impact ? (
-          <div className="mt-5">
-            <StatsSection
-              title="Team Impact"
-              subtitle="Wie stark dein Einfluss auf Ergebnisse und Team-Balance war."
-              defaultOpen={false}
-            >
-              <TeamImpactCard
-                impactGames={0}
-                impactWins={0}
-                impactTotal={0}
-                impactPerMatch={0}
-                impactMeta={getImpactMeta(0)}
-              />
-            </StatsSection>
-          </div>
-        ) : null}
+        <EmptyStatsContent showMvp={flags.session_mvp_voting} />
       </main>
     );
   }
@@ -543,31 +512,6 @@ export default async function StatsPage() {
         </div>
       ) : null}
 
-      <div className="mt-5">
-        <StatsSection
-          title="Letzte Ergebnisse"
-          subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
-          defaultOpen={true}
-        >
-          <RecentResultsCard results={lastFive} />
-        </StatsSection>
-      </div>
-
-      <div className="mt-5">
-        <StatsSection
-          title="MVP & Badges"
-          subtitle="Dein aktueller Badge-Status und deine MVP-Werte."
-          defaultOpen={true}
-        >
-          <div className="space-y-5">
-            <BadgeProgressCard mvpCount={mvpWins} title="Dein Badge" />
-            {flags.session_mvp_voting ? (
-              <MvpCards mvpWins={mvpWins} mvpPerGame={mvpPerGame} />
-            ) : null}
-          </div>
-        </StatsSection>
-      </div>
-
       {flags.team_impact ? (
         <div className="mt-5">
           <StatsSection
@@ -582,6 +526,28 @@ export default async function StatsPage() {
               impactPerMatch={impactPerMatch}
               impactMeta={impactMeta}
             />
+          </StatsSection>
+        </div>
+      ) : null}
+
+      <div className="mt-5">
+        <StatsSection
+          title="Letzte Ergebnisse"
+          subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
+          defaultOpen={true}
+        >
+          <RecentResultsCard results={lastFive} />
+        </StatsSection>
+      </div>
+
+      {flags.session_mvp_voting ? (
+        <div className="mt-5">
+          <StatsSection
+            title="Badges"
+            subtitle="Dein aktueller Badge-Status auf Basis deiner MVP-Erfolge."
+            defaultOpen={true}
+          >
+            <BadgeProgressCard mvpCount={mvpWins} title="Badge-Fortschritt" />
           </StatsSection>
         </div>
       ) : null}
