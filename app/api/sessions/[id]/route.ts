@@ -13,57 +13,38 @@ import { canManageClub } from "@/lib/auth/access";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_WINNER_PHOTO_SIZE = 10 * 1024 * 1024;
-const WINNER_PHOTO_MAX_WIDTH = 2200;
-const WINNER_PHOTO_MAX_HEIGHT = 2200;
+const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_OUTPUT_WIDTH = 1800;
+const MAX_OUTPUT_HEIGHT = 1800;
 
-function getOutputExtension(inputType: string) {
-  if (inputType === "image/png") return "png";
-  if (inputType === "image/webp") return "webp";
-  return "jpg";
-}
-
-function getOutputContentType(extension: string) {
-  if (extension === "png") return "image/png";
-  if (extension === "webp") return "image/webp";
-  return "image/jpeg";
-}
-
-async function normalizeWinnerPhoto(file: File) {
+async function normalizeWinnerPhoto(file: File): Promise<{
+  buffer: Buffer;
+  contentType: "image/jpeg";
+  extension: "jpg";
+}> {
   const inputBuffer = Buffer.from(await file.arrayBuffer());
 
-  const image = sharp(inputBuffer, { failOn: "none" }).rotate();
-
-  const metadata = await image.metadata();
-
-  if (!metadata.width || !metadata.height) {
-    throw new Error("Das Bild konnte nicht gelesen werden.");
-  }
-
-  const extension = getOutputExtension(file.type);
-  const contentType = getOutputContentType(extension);
-
-  let pipeline = image.resize({
-    width: WINNER_PHOTO_MAX_WIDTH,
-    height: WINNER_PHOTO_MAX_HEIGHT,
-    fit: "inside",
-    withoutEnlargement: true,
-  });
-
-  if (extension === "png") {
-    pipeline = pipeline.png({ compressionLevel: 9 });
-  } else if (extension === "webp") {
-    pipeline = pipeline.webp({ quality: 88 });
-  } else {
-    pipeline = pipeline.jpeg({ quality: 88, mozjpeg: true });
-  }
-
-  const outputBuffer = await pipeline.toBuffer();
+  const normalizedBuffer = await sharp(inputBuffer, {
+    failOn: "none",
+    limitInputPixels: 40_000_000,
+  })
+    .rotate()
+    .resize({
+      width: MAX_OUTPUT_WIDTH,
+      height: MAX_OUTPUT_HEIGHT,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .jpeg({
+      quality: 88,
+      mozjpeg: true,
+    })
+    .toBuffer();
 
   return {
-    buffer: outputBuffer,
-    extension,
-    contentType,
+    buffer: normalizedBuffer,
+    contentType: "image/jpeg",
+    extension: "jpg",
   };
 }
 
@@ -287,11 +268,25 @@ export async function POST(
         return fail("Bitte ein Bild auswählen.");
       }
 
-      if (file.size > MAX_WINNER_PHOTO_SIZE) {
+      if (file.size > MAX_UPLOAD_SIZE_BYTES) {
         return fail("Das Bild ist zu groß. Bitte maximal 10 MB verwenden.");
       }
 
-      const normalizedPhoto = await normalizeWinnerPhoto(file);
+      let normalizedPhoto: {
+        buffer: Buffer;
+        contentType: "image/jpeg";
+        extension: "jpg";
+      };
+
+      try {
+        normalizedPhoto = await normalizeWinnerPhoto(file);
+      } catch (error) {
+        console.error("normalizeWinnerPhoto failed", error);
+        return fail(
+          "Das Bild konnte nicht verarbeitet werden. Bitte ein anderes Foto versuchen.",
+          400
+        );
+      }
 
       const newPath = `sessions/${sessionId}/${Date.now()}-winner.${normalizedPhoto.extension}`;
       const oldPath = session.winner_photo_path ?? null;
