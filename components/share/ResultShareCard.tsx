@@ -130,7 +130,7 @@ function buildPalette(
     accentGlow: hexToRgba(accent, 0.34),
     loser: "rgba(255,255,255,0.72)",
     textPrimary: "#FFFFFF",
-    textSecondary: "rgba(255,255,255,0.72)",
+    textSecondary: "rgba(255,255,255,0.74)",
     badgeBg: "rgba(255,255,255,0.08)",
     panelBg: "rgba(7,18,47,0.42)",
   };
@@ -249,108 +249,88 @@ function renderBrandFooter(params: {
       style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
+        gap: 10,
       }}
     >
+      {params.strikrLogoUrl ? (
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 9,
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: params.dark ? "rgba(255,255,255,0.08)" : "#FFFFFF",
+            border: params.dark
+              ? "1px solid rgba(255,255,255,0.12)"
+              : "1px solid rgba(15,23,42,0.08)",
+            flexShrink: 0,
+          }}
+        >
+          <img
+            src={params.strikrLogoUrl}
+            alt="Strikr"
+            width={30}
+            height={30}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              display: "block",
+              padding: 4,
+            }}
+          />
+        </div>
+      ) : (
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 9,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: params.dark ? "#FFFFFF" : params.palette.accent,
+            color: params.dark ? "#0F172A" : "#FFFFFF",
+            fontSize: 14,
+            fontWeight: 900,
+            flexShrink: 0,
+          }}
+        >
+          S
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: 10,
+          flexDirection: "column",
+          gap: 1,
         }}
       >
-        {params.strikrLogoUrl ? (
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              overflow: "hidden",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: params.dark ? "rgba(255,255,255,0.08)" : "#FFFFFF",
-              border: params.dark
-                ? "1px solid rgba(255,255,255,0.12)"
-                : "1px solid rgba(15,23,42,0.08)",
-            }}
-          >
-            <img
-              src={params.strikrLogoUrl}
-              alt="Strikr"
-              width={34}
-              height={34}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "contain",
-                display: "block",
-                padding: 4,
-              }}
-            />
-          </div>
-        ) : (
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: params.palette.accent,
-              color: params.dark ? "#0F172A" : "#FFFFFF",
-              fontSize: 16,
-              fontWeight: 900,
-            }}
-          >
-            S
-          </div>
-        )}
-
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            gap: 1,
+            fontSize: 11,
+            fontWeight: 900,
+            color: params.palette.textPrimary,
+            letterSpacing: "-0.3px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              fontSize: 13,
-              fontWeight: 900,
-              color: params.palette.textPrimary,
-              letterSpacing: "-0.4px",
-            }}
-          >
-            Strikr
-          </div>
-          <div
-            style={{
-              display: "flex",
-              fontSize: 10,
-              fontWeight: 600,
-              color: params.palette.textSecondary,
-            }}
-          >
-            powered by strikr
-          </div>
+          Strikr
         </div>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          fontSize: 10,
-          fontWeight: 700,
-          color: params.palette.textSecondary,
-          textTransform: "uppercase",
-          letterSpacing: "1.4px",
-        }}
-      >
-        #getstrikr
+        <div
+          style={{
+            display: "flex",
+            fontSize: 9,
+            fontWeight: 600,
+            color: params.palette.textSecondary,
+          }}
+        >
+          powered by strikr
+        </div>
       </div>
     </div>
   );
@@ -441,18 +421,6 @@ function renderClubBadge(params: {
           }}
         >
           {params.clubName}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            fontSize: 10,
-            fontWeight: 700,
-            color: params.palette.textSecondary,
-            textTransform: "uppercase",
-            letterSpacing: "1.4px",
-          }}
-        >
-          Result Story
         </div>
       </div>
     </div>
@@ -997,7 +965,7 @@ function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(to top, rgba(3,6,11,0.94) 0%, rgba(3,6,11,0.18) 40%, rgba(3,6,11,0.28) 100%)",
+              "linear-gradient(to top, rgba(3,6,11,0.94) 0%, rgba(3,6,11,0.14) 40%, rgba(3,6,11,0.24) 100%)",
           }}
         />
 
@@ -1024,33 +992,12 @@ function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 4,
+              fontSize: 18,
+              fontWeight: 700,
+              color: palette.textSecondary,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                color: palette.textSecondary,
-              }}
-            >
-              {copy.kicker}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                fontSize: 18,
-                fontWeight: 700,
-                color: palette.textSecondary,
-              }}
-            >
-              {data.date}
-            </div>
+            {data.date}
           </div>
         </div>
 
@@ -1062,7 +1009,7 @@ function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
             bottom: 28,
             display: "flex",
             flexDirection: "column",
-            gap: 18,
+            gap: 16,
           }}
         >
           <div
@@ -1078,17 +1025,17 @@ function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                maxWidth: "55%",
+                maxWidth: "56%",
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: 800,
-                  color: palette.textSecondary,
+                  color: "rgba(255,255,255,0.68)",
                   textTransform: "uppercase",
-                  letterSpacing: "2px",
+                  letterSpacing: "1.8px",
                 }}
               >
                 Winner Moment
@@ -1110,13 +1057,25 @@ function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
               <div
                 style={{
                   display: "flex",
-                  fontSize: 20,
-                  lineHeight: 1.45,
-                  fontWeight: 600,
-                  color: palette.textSecondary,
+                  maxWidth: 560,
+                  padding: "14px 16px",
+                  borderRadius: 18,
+                  background: "rgba(3,6,11,0.56)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: "0 10px 24px rgba(0,0,0,0.2)",
                 }}
               >
-                {copy.subline}
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: 20,
+                    lineHeight: 1.45,
+                    fontWeight: 600,
+                    color: "#FFFFFF",
+                  }}
+                >
+                  {copy.subline}
+                </div>
               </div>
             </div>
 
@@ -1129,9 +1088,10 @@ function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
                 minWidth: 310,
                 padding: "24px 30px",
                 borderRadius: 34,
-                background: palette.panelBg,
-                border: "1px solid rgba(255,255,255,0.14)",
-                boxShadow: `0 18px 44px rgba(0,0,0,0.28), 0 0 28px ${palette.accentGlow}`,
+                background: "rgba(3,6,11,0.72)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                boxShadow: `0 18px 44px rgba(0,0,0,0.34), 0 0 28px ${palette.accentGlow}`,
+                backdropFilter: "blur(8px)",
               }}
             >
               <div
@@ -1204,10 +1164,12 @@ function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
           <div
             style={{
               display: "flex",
-              padding: "18px 20px",
-              borderRadius: 24,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              alignItems: "center",
+              padding: "12px 14px",
+              borderRadius: 18,
+              background: "rgba(3,6,11,0.42)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              width: "fit-content",
             }}
           >
             {renderBrandFooter({
