@@ -20,6 +20,7 @@ type PlayerRow = {
   first_name: string | null;
   last_name: string | null;
   user_id: string | null;
+  mvp_count?: number | null;
 };
 
 type SessionPlayerRow = {
@@ -50,6 +51,21 @@ type Participant = {
   id: number;
   name: string;
   userId: string | null;
+  mvpCount: number;
+};
+
+type ResultEntry = {
+  playerId: number;
+  name: string;
+  votes: number;
+  mvpCount: number;
+};
+
+type BadgeUpgrade = {
+  playerId: number;
+  playerName: string;
+  previousMvpCount: number;
+  newMvpCount: number;
 };
 
 function normalizePlayerRelation(
@@ -70,6 +86,10 @@ function getPlayerName(player: PlayerRow | null) {
     .trim();
 
   return fullName || "Spieler";
+}
+
+function safeMvpCount(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 function addOneDay(dateString: string) {
@@ -227,7 +247,8 @@ async function loadParticipantsAndVotes(params: {
             id,
             first_name,
             last_name,
-            user_id
+            user_id,
+            mvp_count
           )
         `
       )
@@ -270,6 +291,7 @@ async function loadParticipantsAndVotes(params: {
         id: row.player_id,
         name: getPlayerName(player),
         userId: player.user_id ?? null,
+        mvpCount: safeMvpCount(player.mvp_count),
       };
     })
     .filter((value): value is Participant => value !== null);
@@ -297,14 +319,15 @@ function buildResults(params: {
 
   if (voteRows.length === 0) {
     return {
-      winners: [],
-      leaderboard: [],
+      winners: [] as ResultEntry[],
+      leaderboard: [] as ResultEntry[],
       totalVotes: 0,
+      badgeUpgrade: null as BadgeUpgrade | null,
     };
   }
 
-  const nameByPlayerId = new Map(
-    participants.map((participant) => [participant.id, participant.name])
+  const participantByPlayerId = new Map(
+    participants.map((participant) => [participant.id, participant])
   );
 
   const counts = new Map<number, number>();
@@ -314,12 +337,17 @@ function buildResults(params: {
     counts.set(playerId, (counts.get(playerId) ?? 0) + 1);
   }
 
-  const leaderboard = [...counts.entries()]
-    .map(([playerId, votes]) => ({
-      playerId,
-      name: nameByPlayerId.get(playerId) ?? "Spieler",
-      votes,
-    }))
+  const leaderboard: ResultEntry[] = [...counts.entries()]
+    .map(([playerId, votes]) => {
+      const participant = participantByPlayerId.get(playerId);
+
+      return {
+        playerId,
+        name: participant?.name ?? "Spieler",
+        votes,
+        mvpCount: safeMvpCount(participant?.mvpCount),
+      };
+    })
     .sort((a, b) => {
       if (b.votes !== a.votes) return b.votes - a.votes;
       return a.name.localeCompare(b.name, "de");
@@ -328,10 +356,26 @@ function buildResults(params: {
   const topVotes = leaderboard[0]?.votes ?? 0;
   const winners = leaderboard.filter((entry) => entry.votes === topVotes);
 
+  let badgeUpgrade: BadgeUpgrade | null = null;
+
+  if (winners.length === 1) {
+    const winner = winners[0];
+    const newMvpCount = safeMvpCount(winner.mvpCount);
+    const previousMvpCount = Math.max(newMvpCount - 1, 0);
+
+    badgeUpgrade = {
+      playerId: winner.playerId,
+      playerName: winner.name,
+      previousMvpCount,
+      newMvpCount,
+    };
+  }
+
   return {
     winners,
     leaderboard,
     totalVotes: voteRows.length,
+    badgeUpgrade,
   };
 }
 
@@ -367,8 +411,8 @@ async function ensureResultNotifications(params: {
         winners.length === 0
           ? "Das MVP Voting ist beendet."
           : winners.length === 1
-          ? `${winners[0].name} ist MVP dieser Session.`
-          : "Das MVP Voting ist beendet. Es gibt mehrere Gewinner.",
+            ? `${winners[0].name} ist MVP dieser Session.`
+            : "Das MVP Voting ist beendet. Es gibt mehrere Gewinner.",
       cta_href: `/sessions/${sessionId}`,
       dedupe_key: `mvp_result:${sessionId}:${userId}`,
     })
@@ -492,9 +536,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       canVote,
       userHasVoted,
       userVotePlayerId,
-      participants: participants.map(({ id: playerId, name }) => ({
+      participants: participants.map(({ id: playerId, name, mvpCount }) => ({
         id: playerId,
         name,
+        mvpCount,
       })),
       voteCount,
       eligibleVoterCount,

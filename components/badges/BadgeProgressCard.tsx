@@ -1,4 +1,7 @@
-import PlayerBadge, { getPlayerBadgeTier } from "@/components/badges/PlayerBadge";
+import PlayerBadge, {
+  getBadgeTiers,
+  getPlayerBadgeTier,
+} from "@/components/badges/PlayerBadge";
 
 type BadgeProgressCardProps = {
   mvpCount: number | null | undefined;
@@ -24,6 +27,7 @@ export default function BadgeProgressCard({
   const safeCount = Math.max(0, mvpCount ?? 0);
   const tier = getPlayerBadgeTier(safeCount);
   const nextThreshold = getNextThreshold(safeCount);
+  const allTiers = getBadgeTiers();
 
   const progressText = nextThreshold
     ? `${nextThreshold - safeCount} MVP bis zum nächsten Badge`
@@ -77,6 +81,58 @@ export default function BadgeProgressCard({
           </div>
 
           <div className="mt-2 text-xs text-slate-500">{progressText}</div>
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-slate-100 pt-4">
+        <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+          Badge-Stufen
+        </div>
+
+        <div className="grid grid-cols-5 gap-2">
+          {allTiers.map((badgeTier) => {
+            const unlocked = safeCount >= badgeTier.minMvp;
+            const effectiveCount = unlocked ? badgeTier.minMvp : badgeTier.minMvp;
+
+            return (
+              <div
+                key={badgeTier.key}
+                className={cn(
+                  "rounded-2xl border p-3 text-center",
+                  unlocked
+                    ? "border-slate-200 bg-white"
+                    : "border-slate-200 bg-slate-50"
+                )}
+              >
+                <div className="flex justify-center">
+                  <PlayerBadge
+                    mvpCount={effectiveCount}
+                    size="md"
+                    iconOnly
+                    grayscale={!unlocked}
+                  />
+                </div>
+
+                <div
+                  className={cn(
+                    "mt-2 text-xs font-semibold",
+                    unlocked ? "text-slate-900" : "text-slate-400"
+                  )}
+                >
+                  {badgeTier.label}
+                </div>
+
+                <div
+                  className={cn(
+                    "mt-1 text-[11px]",
+                    unlocked ? "text-slate-500" : "text-slate-400"
+                  )}
+                >
+                  ab {badgeTier.minMvp} MVP
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

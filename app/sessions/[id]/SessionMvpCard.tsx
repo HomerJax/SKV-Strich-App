@@ -2,16 +2,28 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import PlayerBadge, {
+  getPlayerBadgeTier,
+} from "@/components/badges/PlayerBadge";
 
 type Participant = {
   id: number;
   name: string;
+  mvpCount?: number | null;
 };
 
 type ResultEntry = {
   playerId: number;
   name: string;
   votes: number;
+  mvpCount?: number | null;
+};
+
+type BadgeUpgrade = {
+  playerId: number;
+  playerName: string;
+  previousMvpCount: number;
+  newMvpCount: number;
 };
 
 type MvpState = {
@@ -29,6 +41,7 @@ type MvpState = {
     winners: ResultEntry[];
     leaderboard: ResultEntry[];
     totalVotes: number;
+    badgeUpgrade?: BadgeUpgrade | null;
   } | null;
 };
 
@@ -63,6 +76,97 @@ function VoteCountPill({
     <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-black/10">
       {text}
     </span>
+  );
+}
+
+function safeMvpCount(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function BadgeUpgradeCard({ upgrade }: { upgrade: BadgeUpgrade }) {
+  const previousCount = safeMvpCount(upgrade.previousMvpCount);
+  const newCount = safeMvpCount(upgrade.newMvpCount);
+
+  const previousTier = getPlayerBadgeTier(previousCount);
+  const nextTier = getPlayerBadgeTier(newCount);
+
+  const tierChanged = previousTier?.key !== nextTier?.key;
+  const delta = Math.max(newCount - previousCount, 0);
+
+  return (
+    <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white px-4 py-4">
+      <div className="text-sm font-semibold text-violet-700">✨ Badge-Fortschritt</div>
+
+      <div className="mt-1 text-lg font-extrabold text-slate-950">
+        {upgrade.playerName}
+      </div>
+
+      {tierChanged ? (
+        <>
+          <div className="mt-2 text-sm text-slate-600">
+            Neues Badge freigeschaltet.
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex flex-col items-center gap-1">
+              {previousCount > 0 ? (
+                <PlayerBadge
+                  mvpCount={previousCount}
+                  size="md"
+                  iconOnly
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-slate-200 bg-slate-100 text-[11px] font-semibold text-slate-400">
+                  —
+                </div>
+              )}
+              <div className="text-[11px] font-medium text-slate-500">
+                {previousTier?.label ?? "Kein Badge"}
+              </div>
+            </div>
+
+            <div className="text-lg font-bold text-slate-400">→</div>
+
+            <div className="flex flex-col items-center gap-1">
+              <PlayerBadge
+                mvpCount={newCount}
+                size="md"
+                iconOnly
+              />
+              <div className="text-[11px] font-semibold text-slate-700">
+                {nextTier?.label ?? "Badge"}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 text-xs text-slate-500">
+            MVP gesamt: {previousCount} → {newCount}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="mt-2 text-sm text-slate-600">
+            Kein neues Tier, aber Fortschritt im aktuellen Badge.
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <PlayerBadge
+              mvpCount={newCount}
+              size="md"
+              iconOnly
+            />
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-slate-900">
+                {nextTier?.label ?? "Badge"}
+              </div>
+              <div className="text-xs text-slate-500">
+                +{delta} MVP · jetzt insgesamt {newCount}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -184,6 +288,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   }
 
   const votingOpen = state.votingOpen;
+  const badgeUpgrade = state.results?.badgeUpgrade ?? null;
 
   return (
     <section className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm">
@@ -257,7 +362,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                           : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
                       ].join(" ")}
                     >
-                      {player.name}
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">{player.name}</span>
+                        <PlayerBadge
+                          mvpCount={safeMvpCount(player.mvpCount)}
+                          size="sm"
+                          hideIfNone
+                          iconOnly
+                        />
+                      </div>
                     </button>
                   );
                 })}
@@ -296,7 +409,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                           : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
                       ].join(" ")}
                     >
-                      {player.name}
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">{player.name}</span>
+                        <PlayerBadge
+                          mvpCount={safeMvpCount(player.mvpCount)}
+                          size="sm"
+                          hideIfNone
+                          iconOnly
+                        />
+                      </div>
                     </button>
                   );
                 })}
@@ -329,11 +450,24 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           {state.results?.winners && state.results.winners.length > 0 ? (
             <div className="rounded-2xl border border-amber-200 bg-white px-4 py-4">
               <div className="text-sm font-semibold text-amber-700">🏆 MVP</div>
-              <div className="mt-1 text-lg font-extrabold text-slate-950">
-                {state.results.winners.length === 1
-                  ? state.results.winners[0].name
-                  : state.results.winners.map((winner) => winner.name).join(", ")}
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="text-lg font-extrabold text-slate-950">
+                  {state.results.winners.length === 1
+                    ? state.results.winners[0].name
+                    : state.results.winners.map((winner) => winner.name).join(", ")}
+                </div>
+
+                {state.results.winners.length === 1 ? (
+                  <PlayerBadge
+                    mvpCount={safeMvpCount(state.results.winners[0].mvpCount)}
+                    size="sm"
+                    hideIfNone
+                    iconOnly
+                  />
+                ) : null}
               </div>
+
               <div className="mt-1 text-sm text-slate-600">
                 {state.results.winners.length === 1
                   ? `${state.results.winners[0].votes} Stimmen`
@@ -345,6 +479,8 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               Noch keine Stimmen abgegeben.
             </div>
           )}
+
+          {badgeUpgrade ? <BadgeUpgradeCard upgrade={badgeUpgrade} /> : null}
 
           {state.results?.leaderboard && state.results.leaderboard.length > 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
@@ -363,15 +499,25 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                     key={entry.playerId}
                     className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
                         {index + 1}
                       </div>
-                      <div className="text-sm font-semibold text-slate-900">
-                        {entry.name}
+
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="truncate text-sm font-semibold text-slate-900">
+                          {entry.name}
+                        </div>
+                        <PlayerBadge
+                          mvpCount={safeMvpCount(entry.mvpCount)}
+                          size="sm"
+                          hideIfNone
+                          iconOnly
+                        />
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-slate-600">
+
+                    <div className="shrink-0 text-sm font-semibold text-slate-600">
                       {entry.votes} {entry.votes === 1 ? "Stimme" : "Stimmen"}
                     </div>
                   </div>
