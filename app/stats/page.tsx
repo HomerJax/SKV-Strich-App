@@ -66,27 +66,15 @@ export default async function StatsPage() {
 
   const supabase = await createClient();
 
-  const [
-    { data: clubSettingsData, error: clubSettingsError },
-    { data: teamPlayerRowsForPlayer, error: teamPlayerError },
-  ] = await Promise.all([
-    supabase
-      .from("club_settings")
-      .select("use_strength, strength_default")
-      .eq("club_id", clubId)
-      .maybeSingle<ClubSettingsRow>(),
-    supabase.from("team_players").select("team_id").eq("player_id", player.id),
-  ]);
+  const { data: clubSettingsData, error: clubSettingsError } = await supabase
+    .from("club_settings")
+    .select("use_strength, strength_default")
+    .eq("club_id", clubId)
+    .maybeSingle<ClubSettingsRow>();
 
   if (clubSettingsError) {
     throw new Error(
       `Club-Settings konnten nicht geladen werden: ${clubSettingsError.message}`
-    );
-  }
-
-  if (teamPlayerError) {
-    throw new Error(
-      `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayerError.message}`
     );
   }
 
@@ -97,6 +85,78 @@ export default async function StatsPage() {
 
   const useStrength = clubSettings.use_strength ?? true;
   const strengthDefault = clubSettings.strength_default ?? 3;
+
+  if (!player) {
+    return (
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
+        <div className="mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück
+          </Link>
+        </div>
+
+        <StatsHero
+          sessionsPlayed={0}
+          wins={0}
+          losses={0}
+          draws={0}
+          completedResults={0}
+          showMvp={flags.session_mvp_voting}
+          mvpWins={0}
+          mvpPerGame={0}
+        />
+
+        {flags.player_trends ? (
+          <div className="mt-5">
+            <StatsSection
+              title="Form"
+              subtitle="Verlauf über alle gespielten Einheiten."
+              defaultOpen={true}
+            >
+              <PlayerTrendCard enabled={true} points={[]} />
+            </StatsSection>
+          </div>
+        ) : null}
+
+        <div className="mt-5">
+          <StatsSection
+            title="Letzte Ergebnisse"
+            subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
+            defaultOpen={true}
+          >
+            <RecentResultsCard results={[]} />
+          </StatsSection>
+        </div>
+
+        <div className="mt-5">
+          <StatsSection
+            title="MVP & Badges"
+            subtitle="Dein aktueller Badge-Status und deine MVP-Werte."
+            defaultOpen={true}
+          >
+            <div className="space-y-5">
+              <BadgeProgressCard mvpCount={0} title="Dein Badge" />
+              {flags.session_mvp_voting ? <MvpCards mvpWins={0} mvpPerGame={0} /> : null}
+            </div>
+          </StatsSection>
+        </div>
+      </main>
+    );
+  }
+
+  const { data: teamPlayerRowsForPlayer, error: teamPlayerError } = await supabase
+    .from("team_players")
+    .select("team_id")
+    .eq("player_id", player.id);
+
+  if (teamPlayerError) {
+    throw new Error(
+      `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayerError.message}`
+    );
+  }
 
   const teamIds = ((teamPlayerRowsForPlayer ?? []) as { team_id: number }[])
     .map((row) => row.team_id)
@@ -142,6 +202,16 @@ export default async function StatsPage() {
 
         <div className="mt-5">
           <StatsSection
+            title="Letzte Ergebnisse"
+            subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
+            defaultOpen={true}
+          >
+            <RecentResultsCard results={[]} />
+          </StatsSection>
+        </div>
+
+        <div className="mt-5">
+          <StatsSection
             title="MVP & Badges"
             subtitle="Dein aktueller Badge-Status und deine MVP-Werte."
             defaultOpen={true}
@@ -152,6 +222,24 @@ export default async function StatsPage() {
             </div>
           </StatsSection>
         </div>
+
+        {flags.team_impact ? (
+          <div className="mt-5">
+            <StatsSection
+              title="Team Impact"
+              subtitle="Wie stark dein Einfluss auf Ergebnisse und Team-Balance war."
+              defaultOpen={false}
+            >
+              <TeamImpactCard
+                impactGames={0}
+                impactWins={0}
+                impactTotal={0}
+                impactPerMatch={0}
+                impactMeta={getImpactMeta(0)}
+              />
+            </StatsSection>
+          </div>
+        ) : null}
       </main>
     );
   }
@@ -227,21 +315,21 @@ export default async function StatsPage() {
     const sessionVoteMap = new Map<number, Map<number, number>>();
 
     for (const vote of votes) {
-      const sessionId = Number(vote.session_id);
+      const voteSessionId = Number(vote.session_id);
       const votedPlayerId = Number(vote.voted_player_id);
 
       if (
-        !Number.isFinite(sessionId) ||
+        !Number.isFinite(voteSessionId) ||
         !Number.isFinite(votedPlayerId) ||
-        !relevantSessionIds.has(sessionId) ||
-        !revealedSessionIds.has(sessionId)
+        !relevantSessionIds.has(voteSessionId) ||
+        !revealedSessionIds.has(voteSessionId)
       ) {
         continue;
       }
 
-      const playerCounts = sessionVoteMap.get(sessionId) ?? new Map<number, number>();
+      const playerCounts = sessionVoteMap.get(voteSessionId) ?? new Map<number, number>();
       playerCounts.set(votedPlayerId, (playerCounts.get(votedPlayerId) ?? 0) + 1);
-      sessionVoteMap.set(sessionId, playerCounts);
+      sessionVoteMap.set(voteSessionId, playerCounts);
     }
 
     let wins = 0;
@@ -409,7 +497,6 @@ export default async function StatsPage() {
   });
 
   const lastFive = recentResults.slice(0, 5);
-
   const completedResults = totals.wins + totals.losses + totals.draws;
 
   const trendPoints = [...recentResults].reverse().map((item, index) => ({
