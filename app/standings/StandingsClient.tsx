@@ -245,25 +245,25 @@ export default function StandingsClient({
           </div>
         </div>
 
-        {msg && (
+        {msg ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
             {msg}
           </div>
-        )}
+        ) : null}
 
-        {loading && (
+        {loading ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
             Lade Tabelle…
           </div>
-        )}
+        ) : null}
 
-        {err && (
+        {err ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {err}
           </div>
-        )}
+        ) : null}
 
-        {!loading && !err && rows.length === 0 && (
+        {!loading && !err && rows.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="max-w-lg">
               <div className="text-sm font-semibold text-slate-500">
@@ -297,9 +297,9 @@ export default function StandingsClient({
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {!loading && !err && rows.length > 0 && (
+        {!loading && !err && rows.length > 0 ? (
           <>
             <div
               id="export-standings"
@@ -451,10 +451,10 @@ export default function StandingsClient({
               </div>
             </div>
           </>
-        )}
+        ) : null}
       </div>
 
-      {!loading && !err && rankingCards.length > 0 && (
+      {!loading && !err && rankingCards.length > 0 ? (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed -left-[99999px] top-0 opacity-0"
@@ -470,7 +470,7 @@ export default function StandingsClient({
             />
           ))}
         </div>
-      )}
+      ) : null}
     </>
   );
 }
