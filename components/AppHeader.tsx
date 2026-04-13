@@ -30,15 +30,60 @@ function getInitial(value: string | null) {
 }
 
 function getClubLabel(club: ClubRow | null | undefined) {
-  return club?.display_name ?? club?.name ?? "Unbenannter Verein";
+  const displayName = club?.display_name?.trim();
+  const legacyName = club?.name?.trim();
+  return displayName || legacyName || "Unbenannter Verein";
+}
+
+function dedupeSwitcherClubs(
+  clubs: PowerClubSwitcherClub[],
+  activeClubId: string | null,
+  activeClubName: string | null,
+  activeLogoSrc: string | null
+) {
+  const byId = new Map<string, PowerClubSwitcherClub>();
+
+  for (const club of clubs) {
+    const existing = byId.get(club.id);
+    const isActive = activeClubId !== null && club.id === activeClubId;
+
+    const nextClub: PowerClubSwitcherClub = {
+      id: club.id,
+      name: isActive && activeClubName ? activeClubName : club.name,
+      logoSrc: isActive ? activeLogoSrc ?? club.logoSrc : club.logoSrc,
+    };
+
+    if (!existing) {
+      byId.set(club.id, nextClub);
+      continue;
+    }
+
+    const existingHasNoLogo = !existing.logoSrc && !!nextClub.logoSrc;
+    const shouldPreferNextName =
+      isActive && activeClubName && existing.name !== activeClubName;
+
+    if (shouldPreferNextName || existingHasNoLogo) {
+      byId.set(club.id, {
+        id: existing.id,
+        name: shouldPreferNextName ? nextClub.name : existing.name,
+        logoSrc: existingHasNoLogo ? nextClub.logoSrc : existing.logoSrc,
+      });
+    }
+  }
+
+  return Array.from(byId.values()).sort((a, b) =>
+    a.name.localeCompare(b.name, "de", { sensitivity: "base" })
+  );
 }
 
 export default async function AppHeader() {
   const ctx = await getAuthContext();
 
-  const fallbackClubId =
+  const activeClubId =
     ctx.activeClubId ??
-    (ctx.memberships.length === 1 ? ctx.memberships[0].club_id : null);
+    (!ctx.isPowerUser && ctx.memberships.length === 1
+      ? ctx.memberships[0].club_id
+      : null);
 
   let clubName: string | null = null;
   let logoSrc: string | null = null;
@@ -53,16 +98,16 @@ export default async function AppHeader() {
       new Set(ctx.memberships.map((membership) => membership.club_id))
     );
 
-    const activeClubPromise = fallbackClubId
+    const activeClubPromise = activeClubId
       ? supabase
           .from("clubs")
           .select("id, display_name, name, logo_path, primary_color")
-          .eq("id", fallbackClubId)
+          .eq("id", activeClubId)
           .maybeSingle<ClubRow>()
       : Promise.resolve({ data: null, error: null });
 
-    const flagsPromise = fallbackClubId
-      ? getFeatureFlagsForClub(fallbackClubId)
+    const flagsPromise = activeClubId
+      ? getFeatureFlagsForClub(activeClubId)
       : Promise.resolve({ player_stats_overview: false });
 
     const visibleClubsPromise = ctx.isPowerUser
@@ -99,7 +144,7 @@ export default async function AppHeader() {
     }
 
     if (visibleClubs?.length) {
-      switcherClubs = visibleClubs.map((clubRow) => {
+      const mappedClubs = visibleClubs.map((clubRow) => {
         let clubLogoSrc: string | null = null;
 
         if (clubRow.logo_path) {
@@ -116,6 +161,13 @@ export default async function AppHeader() {
           logoSrc: clubLogoSrc,
         };
       });
+
+      switcherClubs = dedupeSwitcherClubs(
+        mappedClubs,
+        activeClubId,
+        clubName,
+        logoSrc
+      );
     }
   }
 
@@ -195,7 +247,7 @@ export default async function AppHeader() {
 
               <PowerClubSwitcher
                 isPowerUser={ctx.isPowerUser}
-                activeClubId={fallbackClubId}
+                activeClubId={activeClubId}
                 activeClubName={clubName}
                 activeLogoSrc={logoSrc}
                 primaryColor={primaryColor}
