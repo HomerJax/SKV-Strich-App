@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { canManageClub } from "@/lib/auth/access";
 
 type Season = {
   id: number;
@@ -14,10 +15,6 @@ type SeasonSettingsCardProps = {
   error?: string;
   message?: string;
 };
-
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
 
 function formatDate(date: string | null) {
   if (!date) return "nicht gesetzt";
@@ -43,9 +40,14 @@ export default async function SeasonSettingsCard({
   error = "",
   message = "",
 }: SeasonSettingsCardProps) {
-  const { clubId, membership } = await requireClub();
+  const { clubId, membership, isPowerUser } = await requireClub();
 
-  if (!isAdminRole(membership.role)) {
+  const hasAdminAccess = canManageClub({
+    isPowerUser,
+    role: membership.role,
+  });
+
+  if (!hasAdminAccess) {
     redirect("/admin");
   }
 

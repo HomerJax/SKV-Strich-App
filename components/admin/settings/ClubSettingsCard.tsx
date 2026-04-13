@@ -2,6 +2,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { canManageClub } from "@/lib/auth/access";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
 type ClubRow = {
@@ -42,17 +43,18 @@ function getErrorMessage(error?: string) {
   }
 }
 
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
-
 export default async function ClubSettingsCard({
   saved = false,
   error = "",
 }: ClubSettingsCardProps) {
-  const { clubId, membership } = await requireClub();
+  const { clubId, membership, isPowerUser } = await requireClub();
 
-  if (!isAdminRole(membership.role)) {
+  const hasAdminAccess = canManageClub({
+    isPowerUser,
+    role: membership.role,
+  });
+
+  if (!hasAdminAccess) {
     redirect("/admin");
   }
 
