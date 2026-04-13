@@ -7,13 +7,10 @@ import { handleAddGuestPlayer } from "@/lib/session-detail/actions/add-guest-pla
 import { handleSaveResult } from "@/lib/session-detail/actions/save-result";
 import { handleDeleteResult } from "@/lib/session-detail/actions/delete-result";
 import { handleDeleteWinnerPhoto } from "@/lib/session-detail/actions/delete-winner-photo";
+import { canManageClub } from "@/lib/auth/access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
 
 export async function POST(
   request: NextRequest,
@@ -32,7 +29,7 @@ export async function POST(
     return fail(access.error ?? "Unbekannter Fehler.", access.status);
   }
 
-  const { supabase, clubId, membership, session } = access;
+  const { supabase, clubId, membership, session, isPowerUser } = access;
 
   try {
     const formData = await request.formData();
@@ -96,7 +93,12 @@ export async function POST(
     }
 
     if (intent === "delete_session") {
-      if (!isAdminRole(membership.role)) {
+      const hasAdminAccess = canManageClub({
+        isPowerUser,
+        role: membership.role,
+      });
+
+      if (!hasAdminAccess) {
         return fail("Nur Admins dürfen eine Session löschen.", 403);
       }
 
@@ -106,10 +108,15 @@ export async function POST(
         .eq("session_id", sessionId);
 
       if (teamsError) {
-        return fail(`Teams konnten nicht geladen werden: ${teamsError.message}`, 500);
+        return fail(
+          `Teams konnten nicht geladen werden: ${teamsError.message}`,
+          500
+        );
       }
 
-      const teamIds = (teamsData ?? []).map((team) => Number(team.id)).filter(Boolean);
+      const teamIds = (teamsData ?? [])
+        .map((team) => Number(team.id))
+        .filter(Boolean);
 
       if (teamIds.length > 0) {
         const { error: teamPlayersDeleteError } = await supabase
@@ -155,7 +162,10 @@ export async function POST(
         .eq("session_id", sessionId);
 
       if (teamsDeleteError) {
-        return fail(`Teams konnten nicht gelöscht werden: ${teamsDeleteError.message}`, 500);
+        return fail(
+          `Teams konnten nicht gelöscht werden: ${teamsDeleteError.message}`,
+          500
+        );
       }
 
       const { error: sessionPlayersDeleteError } = await supabase
@@ -171,7 +181,9 @@ export async function POST(
       }
 
       if (session.winner_photo_path) {
-        await supabase.storage.from("session-photos").remove([session.winner_photo_path]);
+        await supabase.storage
+          .from("session-photos")
+          .remove([session.winner_photo_path]);
       }
 
       const { error: sessionDeleteError } = await supabase
@@ -181,7 +193,10 @@ export async function POST(
         .eq("club_id", clubId);
 
       if (sessionDeleteError) {
-        return fail(`Session konnte nicht gelöscht werden: ${sessionDeleteError.message}`, 500);
+        return fail(
+          `Session konnte nicht gelöscht werden: ${sessionDeleteError.message}`,
+          500
+        );
       }
 
       return ok({

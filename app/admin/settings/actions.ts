@@ -4,22 +4,24 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { canManageClub } from "@/lib/auth/access";
 import { slugifyKey } from "./helpers";
 
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
-
 async function getAdminContext() {
-  const { clubId, membership, memberships } = await requireClub();
+  const { clubId, membership, memberships, isPowerUser } = await requireClub();
 
-  if (!isAdminRole(membership.role)) {
+  const hasAdminAccess = canManageClub({
+    isPowerUser,
+    role: membership.role,
+  });
+
+  if (!hasAdminAccess) {
     redirect("/admin");
   }
 
   const supabase = await createClient();
 
-  return { supabase, clubId, membership, memberships };
+  return { supabase, clubId, membership, memberships, isPowerUser };
 }
 
 export async function addCategoryAction(formData: FormData) {

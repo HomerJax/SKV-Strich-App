@@ -3,20 +3,22 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { canManageClub } from "@/lib/auth/access";
 import {
   getFeatureFlagsForClub,
   setFeatureFlagForClub,
   type FeatureFlagKey,
 } from "@/lib/feature-flags";
 
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
-
 export default async function AdminFeaturesPage() {
-  const { clubId, membership } = await requireClub();
+  const { clubId, membership, isPowerUser } = await requireClub();
 
-  if (!isAdminRole(membership.role)) {
+  const hasAdminAccess = canManageClub({
+    isPowerUser,
+    role: membership.role,
+  });
+
+  if (!hasAdminAccess) {
     redirect(AUTH_ROUTES.dashboard);
   }
 
@@ -29,9 +31,14 @@ export default async function AdminFeaturesPage() {
   async function toggleNicknameFlag(formData: FormData) {
     "use server";
 
-    const { clubId, membership } = await requireClub();
+    const { clubId, membership, isPowerUser } = await requireClub();
 
-    if (!isAdminRole(membership.role)) {
+    const hasAdminAccess = canManageClub({
+      isPowerUser,
+      role: membership.role,
+    });
+
+    if (!hasAdminAccess) {
       redirect(AUTH_ROUTES.dashboard);
     }
 
@@ -52,9 +59,14 @@ export default async function AdminFeaturesPage() {
   async function toggleFieldViewFlag(formData: FormData) {
     "use server";
 
-    const { clubId, membership } = await requireClub();
+    const { clubId, membership, isPowerUser } = await requireClub();
 
-    if (!isAdminRole(membership.role)) {
+    const hasAdminAccess = canManageClub({
+      isPowerUser,
+      role: membership.role,
+    });
+
+    if (!hasAdminAccess) {
       redirect(AUTH_ROUTES.dashboard);
     }
 
@@ -92,6 +104,12 @@ export default async function AdminFeaturesPage() {
           Hier steuerst du clubweit, wie Spielernamen angezeigt werden und welche
           neuen Ansichten zum Testen aktiv sind.
         </p>
+
+        {isPowerUser ? (
+          <div className="mt-4 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900">
+            Power User Modus: Du prüfst diesen Verein ohne echte Mitgliedschaft.
+          </div>
+        ) : null}
 
         <div className="mt-6 space-y-4">
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">

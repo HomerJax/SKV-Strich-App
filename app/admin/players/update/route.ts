@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { canManageClub } from "@/lib/auth/access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,10 +18,6 @@ function toNullableText(value: FormDataEntryValue | null) {
 
 function toBool(value: FormDataEntryValue | null) {
   return String(value ?? "") === "1";
-}
-
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
 }
 
 function getRequestOrigin(request: NextRequest) {
@@ -75,18 +72,33 @@ async function requireAdminClubContext() {
     return { error: "login" as const };
   }
 
-  if (!ctx.player) {
+  if (!ctx.player && !ctx.isPowerUser) {
     return { error: "onboarding" as const };
   }
 
-  if (!ctx.memberships.length || !ctx.activeClubId) {
+  if (!ctx.activeClubId) {
+    return { error: "select_club" as const };
+  }
+
+  if (!ctx.memberships.length && !ctx.isPowerUser) {
     return { error: "select_club" as const };
   }
 
   const membership =
-    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ?? null;
+    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ??
+    (ctx.isPowerUser
+      ? {
+          club_id: ctx.activeClubId,
+          role: "power_user",
+        }
+      : null);
 
-  if (!membership || !isAdminRole(membership.role)) {
+  const hasAdminAccess = canManageClub({
+    isPowerUser: ctx.isPowerUser,
+    role: membership?.role ?? null,
+  });
+
+  if (!hasAdminAccess) {
     return { error: "unauthorized" as const };
   }
 

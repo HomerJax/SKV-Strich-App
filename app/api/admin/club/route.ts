@@ -4,6 +4,7 @@ import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { setFeatureFlagForClub } from "@/lib/feature-flags";
+import { canManageClub } from "@/lib/auth/access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -99,10 +100,6 @@ function getSupabaseServiceClient() {
   );
 }
 
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
-
 function isUploadedFile(value: FormDataEntryValue | null): value is File {
   return (
     typeof value !== "string" &&
@@ -116,14 +113,27 @@ async function getAdminClubContext(): Promise<AdminClubContext> {
   const ctx = await getAuthContext();
 
   if (!ctx.user) return { error: "login" };
-  if (!ctx.player) return { error: "onboarding" };
-  if (!ctx.memberships.length || !ctx.activeClubId)
+  if (!ctx.player && !ctx.isPowerUser) return { error: "onboarding" };
+  if (!ctx.activeClubId) return { error: "select_club" };
+  if (!ctx.memberships.length && !ctx.isPowerUser) {
     return { error: "select_club" };
+  }
 
   const membership =
-    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ?? null;
+    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ??
+    (ctx.isPowerUser
+      ? {
+          club_id: ctx.activeClubId,
+          role: "power_user",
+        }
+      : null);
 
-  if (!membership || !isAdminRole(membership.role)) {
+  const hasAdminAccess = canManageClub({
+    isPowerUser: ctx.isPowerUser,
+    role: membership?.role ?? null,
+  });
+
+  if (!hasAdminAccess) {
     return { error: "unauthorized" };
   }
 
@@ -242,7 +252,6 @@ export async function POST(request: NextRequest) {
       return redirectToClubAdmin(request, { error: "save_failed" });
     }
 
-    // 🔥 NEU: Feature Flag speichern
     await setFeatureFlagForClub(club.id, "use_nicknames", useNicknames);
 
     return redirectToClubAdmin(request, { saved: "1" });

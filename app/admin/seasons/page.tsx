@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { canManageClub } from "@/lib/auth/access";
 
 type Season = {
   id: number;
@@ -19,10 +20,6 @@ type PageProps = {
   }>;
 };
 
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
-
 function formatDate(date: string | null) {
   if (!date) return "nicht gesetzt";
   return new Date(date).toLocaleDateString("de-DE");
@@ -30,9 +27,14 @@ function formatDate(date: string | null) {
 
 export default async function SeasonsAdminPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
-  const { clubId, membership } = await requireClub();
+  const { clubId, membership, isPowerUser } = await requireClub();
 
-  if (!isAdminRole(membership.role)) {
+  const hasAdminAccess = canManageClub({
+    isPowerUser,
+    role: membership.role,
+  });
+
+  if (!hasAdminAccess) {
     redirect(AUTH_ROUTES.dashboard);
   }
 
@@ -73,11 +75,18 @@ export default async function SeasonsAdminPage({ searchParams }: PageProps) {
             gelten.
           </p>
 
+          {isPowerUser ? (
+            <div className="mt-4 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900">
+              Power User Modus: Du prüfst diesen Verein ohne echte
+              Mitgliedschaft.
+            </div>
+          ) : null}
+
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
             Trainings werden automatisch einer Saison zugeordnet, wenn ihr Datum
             zwischen <span className="font-semibold text-slate-900">Start</span>{" "}
-            und <span className="font-semibold text-slate-900">Ende</span> dieser
-            Saison liegt.
+            und <span className="font-semibold text-slate-900">Ende</span>{" "}
+            dieser Saison liegt.
           </div>
 
           <form
@@ -86,6 +95,7 @@ export default async function SeasonsAdminPage({ searchParams }: PageProps) {
             className="mt-6 space-y-4 rounded-2xl border border-black/10 bg-neutral-50 p-4"
           >
             <input type="hidden" name="intent" value="create" />
+            <input type="hidden" name="redirect_to" value="/admin/seasons" />
 
             <div className="text-sm font-semibold text-slate-800">
               Neue Saison
@@ -195,6 +205,7 @@ export default async function SeasonsAdminPage({ searchParams }: PageProps) {
 
                     <form method="post" action="/api/admin/seasons">
                       <input type="hidden" name="intent" value="delete" />
+                      <input type="hidden" name="redirect_to" value="/admin/seasons" />
                       <input
                         type="hidden"
                         name="season_id"

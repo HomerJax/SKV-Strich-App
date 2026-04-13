@@ -10,6 +10,11 @@ export type SessionRow = {
   club_id: string;
 };
 
+type SessionAccessMembership = {
+  club_id: string;
+  role: string;
+};
+
 function createServiceRoleClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -35,16 +40,26 @@ export async function requireSessionAccess(sessionId: number) {
     return { error: "Nicht eingeloggt.", status: 401 as const };
   }
 
-  if (!ctx.player) {
+  if (!ctx.player && !ctx.isPowerUser) {
     return { error: "Onboarding unvollständig.", status: 403 as const };
   }
 
-  if (!ctx.memberships.length || !ctx.activeClubId) {
+  if (!ctx.activeClubId) {
     return { error: "Kein aktiver Club gewählt.", status: 403 as const };
   }
 
-  const membership =
-    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ?? null;
+  if (!ctx.memberships.length && !ctx.isPowerUser) {
+    return { error: "Kein aktiver Club gewählt.", status: 403 as const };
+  }
+
+  const membership: SessionAccessMembership | null =
+    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ??
+    (ctx.isPowerUser
+      ? {
+          club_id: ctx.activeClubId,
+          role: "power_user",
+        }
+      : null);
 
   if (!membership) {
     return {
@@ -77,6 +92,7 @@ export async function requireSessionAccess(sessionId: number) {
     adminSupabase,
     clubId: ctx.activeClubId,
     membership,
+    isPowerUser: ctx.isPowerUser,
     session: sessionData as SessionRow,
   };
 }

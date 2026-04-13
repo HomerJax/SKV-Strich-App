@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { canManageClub } from "@/lib/auth/access";
 import ClubSettingsCard from "@/components/admin/settings/ClubSettingsCard";
 import SeasonSettingsCard from "@/components/admin/settings/SeasonSettingsCard";
 import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
@@ -22,10 +23,6 @@ type ClubSettingsRow = {
   use_strength: boolean | null;
   use_categories: boolean | null;
 };
-
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
 
 function SettingsShell({
   title,
@@ -60,9 +57,14 @@ function SettingsShell({
 
 export default async function AdminSettingsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
-  const { clubId, membership } = await requireClub();
+  const { clubId, membership, isPowerUser } = await requireClub();
 
-  if (!isAdminRole(membership.role)) {
+  const hasAdminAccess = canManageClub({
+    isPowerUser,
+    role: membership.role,
+  });
+
+  if (!hasAdminAccess) {
     redirect("/admin");
   }
 
@@ -106,6 +108,12 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
             Verwalte Club, Saisons, Kategorien und Teamgenerator zentral an
             einem Ort.
           </p>
+
+          {isPowerUser ? (
+            <div className="mt-4 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900">
+              Power User Modus: Du prüfst diesen Verein ohne echte Mitgliedschaft.
+            </div>
+          ) : null}
         </div>
 
         <SettingsShell

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import { canManageClub } from "@/lib/auth/access";
 
 type ClubRow = {
   id: string;
@@ -46,17 +47,18 @@ function getErrorMessage(error?: string) {
   }
 }
 
-function isAdminRole(role: string | null | undefined) {
-  return role === "admin";
-}
-
 export default async function ClubAdminPage({
   searchParams,
 }: ClubAdminPageProps) {
   const resolvedSearchParams = await searchParams;
-  const { clubId, membership, memberships } = await requireClub();
+  const { clubId, membership, memberships, isPowerUser } = await requireClub();
 
-  if (!isAdminRole(membership.role)) {
+  const hasAdminAccess = canManageClub({
+    isPowerUser,
+    role: membership.role,
+  });
+
+  if (!hasAdminAccess) {
     return (
       <main className="min-h-screen bg-neutral-100">
         <section className="mx-auto w-full max-w-3xl px-4 py-6">
@@ -152,6 +154,13 @@ export default async function ClubAdminPage({
               Hier pflegst du Namen, Logo, Farbe und grundlegende Anzeigeoptionen
               für euren Club.
             </p>
+
+            {isPowerUser ? (
+              <div className="mt-4 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900">
+                Power User Modus: Du prüfst diesen Verein ohne echte
+                Mitgliedschaft.
+              </div>
+            ) : null}
           </div>
 
           {errorMessage ? (
@@ -281,7 +290,8 @@ export default async function ClubAdminPage({
               </div>
 
               <p className="text-xs text-slate-500">
-                Die Farbe wird als dezenter Akzent für euren Club in der App genutzt.
+                Die Farbe wird als dezenter Akzent für euren Club in der App
+                genutzt.
               </p>
             </div>
 
