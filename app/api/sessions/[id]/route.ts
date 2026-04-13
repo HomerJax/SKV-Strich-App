@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import sharp from "sharp";
 import { fail, ok } from "@/lib/session-detail/response";
 import { requireSessionAccess } from "@/lib/session-detail/access";
 import { createSignedPhotoUrl } from "@/lib/session-detail/photo";
@@ -11,6 +12,60 @@ import { canManageClub } from "@/lib/auth/access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const MAX_WINNER_PHOTO_SIZE = 10 * 1024 * 1024;
+const WINNER_PHOTO_MAX_WIDTH = 2200;
+const WINNER_PHOTO_MAX_HEIGHT = 2200;
+
+function getOutputExtension(inputType: string) {
+  if (inputType === "image/png") return "png";
+  if (inputType === "image/webp") return "webp";
+  return "jpg";
+}
+
+function getOutputContentType(extension: string) {
+  if (extension === "png") return "image/png";
+  if (extension === "webp") return "image/webp";
+  return "image/jpeg";
+}
+
+async function normalizeWinnerPhoto(file: File) {
+  const inputBuffer = Buffer.from(await file.arrayBuffer());
+
+  const image = sharp(inputBuffer, { failOn: "none" }).rotate();
+
+  const metadata = await image.metadata();
+
+  if (!metadata.width || !metadata.height) {
+    throw new Error("Das Bild konnte nicht gelesen werden.");
+  }
+
+  const extension = getOutputExtension(file.type);
+  const contentType = getOutputContentType(extension);
+
+  let pipeline = image.resize({
+    width: WINNER_PHOTO_MAX_WIDTH,
+    height: WINNER_PHOTO_MAX_HEIGHT,
+    fit: "inside",
+    withoutEnlargement: true,
+  });
+
+  if (extension === "png") {
+    pipeline = pipeline.png({ compressionLevel: 9 });
+  } else if (extension === "webp") {
+    pipeline = pipeline.webp({ quality: 88 });
+  } else {
+    pipeline = pipeline.jpeg({ quality: 88, mozjpeg: true });
+  }
+
+  const outputBuffer = await pipeline.toBuffer();
+
+  return {
+    buffer: outputBuffer,
+    extension,
+    contentType,
+  };
+}
 
 export async function POST(
   request: NextRequest,
@@ -232,23 +287,21 @@ export async function POST(
         return fail("Bitte ein Bild auswählen.");
       }
 
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > MAX_WINNER_PHOTO_SIZE) {
         return fail("Das Bild ist zu groß. Bitte maximal 10 MB verwenden.");
       }
 
-      const extension = file.name.includes(".")
-        ? file.name.split(".").pop()?.toLowerCase() || "jpg"
-        : "jpg";
+      const normalizedPhoto = await normalizeWinnerPhoto(file);
 
-      const safeExt = extension.replace(/[^a-z0-9]/gi, "") || "jpg";
-      const newPath = `sessions/${sessionId}/${Date.now()}-winner.${safeExt}`;
+      const newPath = `sessions/${sessionId}/${Date.now()}-winner.${normalizedPhoto.extension}`;
       const oldPath = session.winner_photo_path ?? null;
 
       const { error: uploadError } = await supabase.storage
         .from("session-photos")
-        .upload(newPath, file, {
+        .upload(newPath, normalizedPhoto.buffer, {
           cacheControl: "3600",
           upsert: false,
+          contentType: normalizedPhoto.contentType,
         });
 
       if (uploadError) {
