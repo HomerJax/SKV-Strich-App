@@ -12,7 +12,7 @@ export type SessionRow = {
 
 type SessionAccessMembership = {
   club_id: string;
-  role: string;
+  role: string | null;
 };
 
 function createServiceRoleClient() {
