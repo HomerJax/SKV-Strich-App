@@ -69,17 +69,18 @@ async function getWinnerPhotoUrl(
     return null;
   }
 
-  const { data, error } = await supabase.storage
-    .from("session-photos")
-    .createSignedUrl(winnerPhotoPath, 60 * 60);
-
-  if (error || !data?.signedUrl) {
-    return null;
-  }
-
   try {
+    const { data, error } = await supabase.storage
+      .from("session-photos")
+      .createSignedUrl(winnerPhotoPath, 60 * 60);
+
+    if (error || !data?.signedUrl) {
+      return null;
+    }
+
     return await toDataUrlFromSignedUrl(data.signedUrl);
-  } catch {
+  } catch (error) {
+    console.error("Failed to prepare winner photo for result share:", error);
     return null;
   }
 }
@@ -184,7 +185,7 @@ export async function getResultShareData(
   const goalsB = result.goals_team_b ?? 0;
   const storyFlags = buildStoryFlags(goalsA, goalsB);
 
-  const payload: ResultSharePayload = {
+  return {
     sessionId: session.id,
     title: "Ergebnis",
     subtitle: "match result by strikr",
@@ -208,6 +209,4 @@ export async function getResultShareData(
     upsetWin: storyFlags.upsetWin,
     dramaticFinish: storyFlags.dramaticFinish,
   };
-
-  return payload;
 }
