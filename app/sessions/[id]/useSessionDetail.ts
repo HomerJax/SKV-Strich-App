@@ -165,6 +165,8 @@ export function useSessionDetail({
   const [homeSessionRsvpEnabled] = useState<boolean>(
     initialHomeSessionRsvpEnabled ?? false
   );
+  const [attendanceMultiSelectEnabled, setAttendanceMultiSelectEnabled] =
+    useState(false);
 
   const [winnerPhotoUrl, setWinnerPhotoUrl] = useState<string | null>(
     initialWinnerPhotoUrl
@@ -204,6 +206,9 @@ export function useSessionDetail({
   );
   const [preparingResultShare, setPreparingResultShare] = useState(false);
   const [resultShareMessage, setResultShareMessage] = useState<string | null>(null);
+
+  const directAttendanceSaveEnabled =
+    homeSessionRsvpEnabled && !attendanceMultiSelectEnabled;
 
   async function postForm(formData: FormData): Promise<ApiSuccess> {
     const response = await fetch(`/api/sessions/${sessionId}`, {
@@ -272,12 +277,12 @@ export function useSessionDetail({
   }, [initialHasResult]);
 
   const attendanceDirty = useMemo(() => {
-    if (homeSessionRsvpEnabled) {
+    if (directAttendanceSaveEnabled) {
       return false;
     }
 
     return !sameIdSet(draftPresentIds, presentIds);
-  }, [draftPresentIds, presentIds, homeSessionRsvpEnabled]);
+  }, [draftPresentIds, presentIds, directAttendanceSaveEnabled]);
 
   const presentPlayers = useMemo(
     () => players.filter((player) => presentIds.includes(player.id)),
@@ -357,7 +362,7 @@ export function useSessionDetail({
     [sessionId, scoreAValue, scoreBValue, teamA, teamB, useNicknames]
   );
 
-  const attendanceDone = homeSessionRsvpEnabled
+  const attendanceDone = directAttendanceSaveEnabled
     ? presentIds.length > 0
     : presentIds.length > 0 && !attendanceDirty && attendanceCollapsed;
 
@@ -369,7 +374,7 @@ export function useSessionDetail({
 
   const nextStepLabel = hasResult
     ? "Ergebnis ist gespeichert"
-    : !homeSessionRsvpEnabled && attendanceDirty
+    : attendanceDirty
       ? "Anwesenheit speichern"
       : presentPlayers.length < 2
         ? "Mehr Spieler auf anwesend setzen"
@@ -461,6 +466,17 @@ export function useSessionDetail({
     }
 
     setShowGuestForm(true);
+  }
+
+  function toggleAttendanceMultiSelect() {
+    if (hasResult || savingPresence) {
+      return;
+    }
+
+    setErr(null);
+    setMsg(null);
+
+    setAttendanceMultiSelectEnabled((prev) => !prev);
   }
 
   async function handleShareLineup() {
@@ -665,7 +681,7 @@ ${sessionUrl}`;
     setErr(null);
     setMsg(null);
 
-    if (!homeSessionRsvpEnabled) {
+    if (!directAttendanceSaveEnabled) {
       setDraftPresentIds((prev) =>
         prev.includes(id)
           ? prev.filter((playerId) => playerId !== id)
@@ -720,7 +736,6 @@ ${sessionUrl}`;
 
   async function savePresence() {
     if (
-      homeSessionRsvpEnabled ||
       hasResult ||
       savingPresence ||
       !attendanceDirty ||
@@ -855,7 +870,7 @@ ${sessionUrl}`;
       return;
     }
 
-    if (!homeSessionRsvpEnabled && attendanceDirty) {
+    if (attendanceDirty) {
       setErr("Bitte zuerst die Anwesenheit speichern.");
       return;
     }
@@ -1001,7 +1016,7 @@ ${sessionUrl}`;
       return;
     }
 
-    if (!homeSessionRsvpEnabled && attendanceDirty) {
+    if (attendanceDirty) {
       setErr("Bitte zuerst die Anwesenheit speichern.");
       return;
     }
@@ -1016,7 +1031,7 @@ ${sessionUrl}`;
     const cleanA = normalizeGoalValue(goalsA);
     const cleanB = normalizeGoalValue(goalsB);
 
-    if (!homeSessionRsvpEnabled && attendanceDirty) {
+    if (attendanceDirty) {
       setErr("Bitte zuerst die Anwesenheit speichern.");
       return;
     }
@@ -1243,6 +1258,8 @@ ${sessionUrl}`;
     primaryColorKey,
     mvpVotingEnabled,
     homeSessionRsvpEnabled,
+    attendanceMultiSelectEnabled,
+    directAttendanceSaveEnabled,
 
     winnerPhotoUrl,
     goalsA,
@@ -1312,6 +1329,7 @@ ${sessionUrl}`;
     metaB,
 
     toggleGuestForm,
+    toggleAttendanceMultiSelect,
     handleShareLineup,
     handleShareInternalResult,
     handleShareResult,

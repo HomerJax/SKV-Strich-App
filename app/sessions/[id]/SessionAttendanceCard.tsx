@@ -29,6 +29,8 @@ type SessionAttendanceCardProps = {
   savingPresence: boolean;
   dirty: boolean;
   directSaveEnabled: boolean;
+  multiSelectEnabled: boolean;
+  onToggleMultiSelect: () => void;
   onToggleCollapsed: () => void;
   onToggleShowGuestForm: () => void;
   onGuestNameChange: (value: string) => void;
@@ -69,6 +71,8 @@ export default function SessionAttendanceCard({
   savingPresence,
   dirty,
   directSaveEnabled,
+  multiSelectEnabled,
+  onToggleMultiSelect,
   onToggleCollapsed,
   onToggleShowGuestForm,
   onGuestNameChange,
@@ -168,25 +172,54 @@ export default function SessionAttendanceCard({
       </div>
 
       <div className="space-y-3 p-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-[11px] text-slate-500">
             {directSaveEnabled
               ? "Spieler antippen – Änderungen werden direkt gespeichert."
-              : "Spieler antippen, dann gesammelt speichern."}
+              : multiSelectEnabled
+                ? "Mehrfachauswahl aktiv – Spieler antippen und danach speichern."
+                : "Spieler antippen, dann gesammelt speichern."}
           </div>
 
-          {isAdmin ? (
+          <div className="flex flex-wrap items-center gap-3">
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={onToggleShowGuestForm}
+                disabled={hasResult || guestSaving}
+                className={`rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs shadow-sm ${
+                  hasResult || guestSaving ? "cursor-not-allowed opacity-60" : ""
+                }`}
+              >
+                {showGuestForm ? "Gastformular schließen" : "Gast hinzufügen"}
+              </button>
+            ) : null}
+
             <button
               type="button"
-              onClick={onToggleShowGuestForm}
-              disabled={hasResult || guestSaving}
-              className={`rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs shadow-sm ${
-                hasResult || guestSaving ? "cursor-not-allowed opacity-60" : ""
-              }`}
+              onClick={onToggleMultiSelect}
+              disabled={hasResult || savingPresence}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                multiSelectEnabled
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              } ${hasResult || savingPresence ? "cursor-not-allowed opacity-60" : ""}`}
+              title="Mehrfachauswahl aktivieren oder deaktivieren"
             >
-              {showGuestForm ? "Gastformular schließen" : "Gast hinzufügen"}
+              <span
+                className={`inline-flex h-4 w-7 items-center rounded-full transition ${
+                  multiSelectEnabled ? "bg-white/20" : "bg-slate-200"
+                }`}
+              >
+                <span
+                  className={`h-3 w-3 rounded-full bg-white transition ${
+                    multiSelectEnabled ? "translate-x-3.5" : "translate-x-0.5 bg-slate-500"
+                  }`}
+                />
+              </span>
+              Mehrfachauswahl
             </button>
-          ) : null}
+          </div>
         </div>
 
         {isAdmin && showGuestForm && !hasResult ? (
