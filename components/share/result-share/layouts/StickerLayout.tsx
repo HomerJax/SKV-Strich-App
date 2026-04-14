@@ -4,7 +4,6 @@ import {
   getClubLogoUrl,
   getDisplayClubName,
   getScoreModel,
-  renderBrandFooter,
   renderPhotoOrFallback,
   renderClubBadge,
 } from "../result-share.helpers";
@@ -116,10 +115,10 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
-                fontSize: 42,
+                fontSize: 46,
                 fontWeight: 900,
-                lineHeight: 0.95,
-                letterSpacing: -1.4,
+                lineHeight: 0.93,
+                letterSpacing: -1.6,
                 color: "#0F172A",
               }}
             >
@@ -139,7 +138,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
                 style={{
                   display: "flex",
                   fontSize: 16,
-                  lineHeight: 1.4,
+                  lineHeight: 1.42,
                   fontWeight: 600,
                   color: "#475569",
                 }}
@@ -177,7 +176,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
                   display: "flex",
                   alignItems: "baseline",
                   gap: 8,
-                  fontSize: 68,
+                  fontSize: 72,
                   fontWeight: 900,
                   lineHeight: 1,
                   letterSpacing: -2.6,
@@ -212,14 +211,97 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
+                flexDirection: "column",
+                gap: 10,
                 marginTop: "auto",
+                paddingTop: 6,
               }}
             >
-              {renderBrandFooter({
-                palette,
-                dark: false,
-                strikrLogoUrl: data.strikrLogoUrl,
-              })}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                {data.strikrLogoUrl ? (
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "#0F172A",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img
+                      src={data.strikrLogoUrl}
+                      alt="Strikr"
+                      width={40}
+                      height={40}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        display: "block",
+                        padding: 6,
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "#0F172A",
+                      color: "#FFFFFF",
+                      fontSize: 18,
+                      fontWeight: 900,
+                      flexShrink: 0,
+                    }}
+                  >
+                    S
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      fontSize: 18,
+                      fontWeight: 900,
+                      color: "#0F172A",
+                      letterSpacing: -0.4,
+                    }}
+                  >
+                    STRIKR
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#64748B",
+                    }}
+                  >
+                    Training managed by STRIKR
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
