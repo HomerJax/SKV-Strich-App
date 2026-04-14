@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getResultShareData } from "@/lib/share/result-share";
 import ShareCardShell from "@/components/share/ShareCardShell";
-import ResultShareCard from "@/components/share/ResultShareCard";
+import ResultShareCard from "@/components/share/result-share/ResultShareCard";
 
 export const runtime = "nodejs";
 

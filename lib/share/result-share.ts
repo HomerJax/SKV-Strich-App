@@ -25,7 +25,7 @@ type ResultRow = {
   goals_team_b: number | null;
 };
 
-type ResultSharePayload = ResultShareData & {
+export type ResultSharePayload = ResultShareData & {
   clubName?: string | null;
   clubLogoUrl?: string | null;
   strikrLogoUrl?: string | null;
@@ -35,9 +35,74 @@ type ResultSharePayload = ResultShareData & {
   dramaticFinish?: boolean;
 };
 
+function buildWinnerLabel(goalsA: number, goalsB: number) {
+  if (goalsA === goalsB) {
+    return "Remis";
+  }
+
+  return goalsA > goalsB ? "Team A gewinnt" : "Team B gewinnt";
+}
+
+async function getWinnerPhotoUrl(
+  winnerPhotoPath: string | null,
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
+  if (!winnerPhotoPath) {
+    return null;
+  }
+
+  const { data, error } = await supabase.storage
+    .from("session-photos")
+    .createSignedUrl(winnerPhotoPath, 60 * 60);
+
+  if (error) {
+    return null;
+  }
+
+  return data?.signedUrl ?? null;
+}
+
+async function getClubShareData(
+  clubId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
+  const { data } = await supabase
+    .from("clubs")
+    .select("id, display_name, logo_path, primary_color")
+    .eq("id", clubId)
+    .maybeSingle();
+
+  const club = (data ?? null) as ClubRow | null;
+
+  let clubLogoUrl: string | null = null;
+
+  if (club?.logo_path) {
+    const { data: logoData } = supabase.storage
+      .from("club-logos")
+      .getPublicUrl(club.logo_path);
+
+    clubLogoUrl = logoData?.publicUrl ?? null;
+  }
+
+  return {
+    club,
+    clubLogoUrl,
+  };
+}
+
+function buildStoryFlags(goalsA: number, goalsB: number) {
+  const goalDiff = Math.abs(goalsA - goalsB);
+
+  return {
+    winnerWasShorthanded: false,
+    upsetWin: false,
+    dramaticFinish: goalDiff <= 1,
+  };
+}
+
 export async function getResultShareData(
   sessionIdRaw: string
-): Promise<ResultShareData> {
+): Promise<ResultSharePayload> {
   const sessionId = Number(sessionIdRaw);
 
   if (!Number.isFinite(sessionId)) {
@@ -80,54 +145,22 @@ export async function getResultShareData(
   }
 
   const branding = await getBaseShareBranding();
-
-  const { data: clubData } = await supabase
-    .from("clubs")
-    .select("id, display_name, logo_path, primary_color")
-    .eq("id", session.club_id)
-    .maybeSingle();
-
-  const club = (clubData ?? null) as ClubRow | null;
+  const [{ club, clubLogoUrl }, winnerPhotoUrl] = await Promise.all([
+    getClubShareData(session.club_id, supabase),
+    getWinnerPhotoUrl(session.winner_photo_path, supabase),
+  ]);
 
   if (club?.display_name) {
     branding.clubName = club.display_name;
   }
 
-  let clubLogoUrl: string | null = null;
-
-  if (club?.logo_path) {
-    const { data: logoData } = supabase.storage
-      .from("club-logos")
-      .getPublicUrl(club.logo_path);
-
-    clubLogoUrl = logoData?.publicUrl ?? null;
+  if (clubLogoUrl) {
     branding.clubCrestUrl = clubLogoUrl;
   }
 
   const goalsA = result.goals_team_a ?? 0;
   const goalsB = result.goals_team_b ?? 0;
-
-  let winnerLabel = "Remis";
-
-  if (goalsA > goalsB) {
-    winnerLabel = "Team A gewinnt";
-  } else if (goalsB > goalsA) {
-    winnerLabel = "Team B gewinnt";
-  }
-
-  let winnerPhotoUrl: string | null = null;
-
-  if (session.winner_photo_path) {
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from("session-photos")
-      .createSignedUrl(session.winner_photo_path, 60 * 60);
-
-    if (!signedError) {
-      winnerPhotoUrl = signedData?.signedUrl ?? null;
-    }
-  }
-
-  const goalDiff = Math.abs(goalsA - goalsB);
+  const storyFlags = buildStoryFlags(goalsA, goalsB);
 
   const payload: ResultSharePayload = {
     title: "Ergebnis",
@@ -135,20 +168,23 @@ export async function getResultShareData(
     date: session.date ? formatDate(session.date) : "",
     goalsA: String(goalsA),
     goalsB: String(goalsB),
-    teamAName: "Team A",
-    teamBName: "Team B",
-    winnerLabel,
+
+    // Bleiben im Payload kompatibel erhalten, werden aber in den Styles nicht mehr genutzt.
+    teamAName: "",
+    teamBName: "",
+
+    winnerLabel: buildWinnerLabel(goalsA, goalsB),
     winnerPhotoUrl,
     branding,
 
     clubName: club?.display_name ?? branding.clubName ?? null,
     clubLogoUrl,
-    strikrLogoUrl: null,
+    strikrLogoUrl: branding.appLogoUrl ?? null,
     clubPrimaryColor: club?.primary_color ?? null,
 
-    winnerWasShorthanded: false,
-    upsetWin: false,
-    dramaticFinish: goalDiff <= 1,
+    winnerWasShorthanded: storyFlags.winnerWasShorthanded,
+    upsetWin: storyFlags.upsetWin,
+    dramaticFinish: storyFlags.dramaticFinish,
   };
 
   return payload;
