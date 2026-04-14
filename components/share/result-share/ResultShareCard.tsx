@@ -6,25 +6,14 @@ import {
   ResultShareLayout,
 } from "./result-share.types";
 
-function hashString(input: string) {
-  let hash = 0;
-
-  for (let index = 0; index < input.length; index += 1) {
-    hash = (hash * 31 + input.charCodeAt(index)) >>> 0;
-  }
-
-  return hash;
-}
-
 function chooseLayout(data: ExtendedResultShareData): ResultShareLayout {
-  const seed = [
-    data.clubName ?? data.branding.clubName ?? "club",
-    data.date ?? "date",
-    `${data.goalsA}:${data.goalsB}`,
-  ].join("|");
-
   const layouts: ResultShareLayout[] = ["poster", "sticker", "floodlight"];
-  return layouts[hashString(seed) % layouts.length];
+
+  const seed = Math.abs(Number(data.sessionId) || 0);
+  const mixed = (seed * 9301 + 49297) % 233280;
+  const index = mixed % layouts.length;
+
+  return layouts[index];
 }
 
 export default function ResultShareCard({

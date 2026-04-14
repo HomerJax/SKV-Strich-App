@@ -3,6 +3,7 @@ import { ResultShareData } from "@/lib/share/types";
 export type ResultShareLayout = "poster" | "sticker" | "floodlight";
 
 export type ExtendedResultShareData = ResultShareData & {
+  sessionId: number;
   clubLogoUrl?: string | null;
   clubName?: string | null;
   strikrLogoUrl?: string | null;

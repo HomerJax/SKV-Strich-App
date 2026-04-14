@@ -26,6 +26,7 @@ type ResultRow = {
 };
 
 export type ResultSharePayload = ResultShareData & {
+  sessionId: number;
   clubName?: string | null;
   clubLogoUrl?: string | null;
   strikrLogoUrl?: string | null;
@@ -163,6 +164,7 @@ export async function getResultShareData(
   const storyFlags = buildStoryFlags(goalsA, goalsB);
 
   const payload: ResultSharePayload = {
+    sessionId: session.id,
     title: "Ergebnis",
     subtitle: "match result by strikr",
     date: session.date ? formatDate(session.date) : "",
