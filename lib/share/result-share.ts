@@ -44,6 +44,23 @@ function buildWinnerLabel(goalsA: number, goalsB: number) {
   return goalsA > goalsB ? "Team A gewinnt" : "Team B gewinnt";
 }
 
+async function toDataUrlFromSignedUrl(url: string) {
+  const response = await fetch(url, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Siegerfoto konnte nicht geladen werden (HTTP ${response.status}).`);
+  }
+
+  const contentType = response.headers.get("content-type") ?? "image/jpeg";
+  const arrayBuffer = await response.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+  return `data:${contentType};base64,${base64}`;
+}
+
 async function getWinnerPhotoUrl(
   winnerPhotoPath: string | null,
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -56,11 +73,15 @@ async function getWinnerPhotoUrl(
     .from("session-photos")
     .createSignedUrl(winnerPhotoPath, 60 * 60);
 
-  if (error) {
+  if (error || !data?.signedUrl) {
     return null;
   }
 
-  return data?.signedUrl ?? null;
+  try {
+    return await toDataUrlFromSignedUrl(data.signedUrl);
+  } catch {
+    return null;
+  }
 }
 
 async function getClubShareData(

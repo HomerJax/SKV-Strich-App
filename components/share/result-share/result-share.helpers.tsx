@@ -217,42 +217,42 @@ export function renderPhotoOrFallback(params: {
   height: number;
   borderRadius: number;
 }) {
-  if (params.winnerPhotoUrl) {
+  if (!params.winnerPhotoUrl) {
     return (
-      <img
-        src={params.winnerPhotoUrl}
-        alt="Siegerfoto"
-        width={params.width}
-        height={params.height}
+      <div
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
-          display: "block",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           borderRadius: params.borderRadius,
+          background: params.dark
+            ? "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))"
+            : "linear-gradient(135deg, rgba(15,23,42,0.06), rgba(15,23,42,0.02))",
+          color: params.palette.textSecondary,
+          fontSize: 28,
+          fontWeight: 700,
         }}
-      />
+      >
+        Kein Siegerfoto
+      </div>
     );
   }
 
   return (
-    <div
+    <img
+      src={params.winnerPhotoUrl}
+      alt="Siegerfoto"
+      width={params.width}
+      height={params.height}
       style={{
         width: "100%",
         height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        objectFit: "cover",
+        display: "block",
         borderRadius: params.borderRadius,
-        background: params.dark
-          ? "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))"
-          : "linear-gradient(135deg, rgba(15,23,42,0.06), rgba(15,23,42,0.02))",
-        color: params.palette.textSecondary,
-        fontSize: 28,
-        fontWeight: 700,
       }}
-    >
-      Kein Siegerfoto
-    </div>
+    />
   );
 }

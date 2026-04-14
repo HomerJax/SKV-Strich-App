@@ -5,6 +5,7 @@ import {
   getDisplayClubName,
   getScoreModel,
   renderBrandFooter,
+  renderPhotoOrFallback,
   renderClubBadge,
 } from "../result-share.helpers";
 import { buildPalette } from "../result-share.palette";
@@ -33,7 +34,6 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
         `,
       }}
     >
-      {/* HEADER */}
       <div
         style={{
           display: "flex",
@@ -61,6 +61,7 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
           <div
             style={{
               display: "flex",
+              alignItems: "center",
               padding: "8px 12px",
               borderRadius: 999,
               background: "rgba(255,255,255,0.62)",
@@ -77,6 +78,7 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
 
           <div
             style={{
+              display: "flex",
               fontSize: 16,
               fontWeight: 700,
               color: palette.textSecondary,
@@ -87,7 +89,6 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
         </div>
       </div>
 
-      {/* MAIN */}
       <div
         style={{
           display: "flex",
@@ -96,17 +97,15 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
           gap: 24,
         }}
       >
-        {/* LEFT */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            width: "100%",
+            width: "41%",
             justifyContent: "space-between",
             gap: 22,
           }}
         >
-          {/* SCORE */}
           <div
             style={{
               display: "flex",
@@ -119,7 +118,7 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
                 display: "flex",
                 alignItems: "baseline",
                 gap: 10,
-                fontSize: 120,
+                fontSize: 104,
                 fontWeight: 900,
                 lineHeight: 0.9,
                 letterSpacing: "-4px",
@@ -136,9 +135,7 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
               >
                 {score.goalsA}
               </span>
-
               <span style={{ color: palette.textSecondary }}>:</span>
-
               <span
                 style={{
                   color: score.isDraw
@@ -154,6 +151,8 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
 
             <div
               style={{
+                display: "flex",
+                alignItems: "center",
                 padding: "9px 14px",
                 borderRadius: 999,
                 background: "rgba(255,255,255,0.68)",
@@ -163,14 +162,12 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
                 fontWeight: 800,
                 letterSpacing: "1.3px",
                 textTransform: "uppercase",
-                width: "fit-content",
               }}
             >
               Endstand
             </div>
           </div>
 
-          {/* TEXT */}
           <div
             style={{
               display: "flex",
@@ -180,10 +177,12 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
           >
             <div
               style={{
-                fontSize: 44,
+                display: "flex",
+                fontSize: 42,
                 fontWeight: 900,
-                lineHeight: 1,
+                lineHeight: 0.96,
                 letterSpacing: "-1.6px",
+                color: palette.textPrimary,
               }}
             >
               {copy.headline}
@@ -191,16 +190,19 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
 
             <div
               style={{
+                display: "flex",
                 padding: "14px 16px",
                 borderRadius: 18,
                 background: "rgba(255,255,255,0.6)",
                 border: "1px solid rgba(15,23,42,0.08)",
+                boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
               }}
             >
               <div
                 style={{
+                  display: "flex",
                   fontSize: 18,
-                  lineHeight: 1.5,
+                  lineHeight: 1.48,
                   color: palette.textSecondary,
                   fontWeight: 600,
                 }}
@@ -210,7 +212,6 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
             </div>
           </div>
 
-          {/* FOOTER */}
           <div>
             {renderBrandFooter({
               palette,
@@ -218,6 +219,27 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
               strikrLogoUrl: data.strikrLogoUrl,
             })}
           </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            width: "59%",
+            borderRadius: 34,
+            overflow: "hidden",
+            background: "#FFFFFF",
+            border: "1px solid rgba(15,23,42,0.06)",
+            boxShadow: "0 24px 54px rgba(15,23,42,0.14)",
+          }}
+        >
+          {renderPhotoOrFallback({
+            winnerPhotoUrl: data.winnerPhotoUrl,
+            palette,
+            dark: false,
+            width: 720,
+            height: 960,
+            borderRadius: 34,
+          })}
         </div>
       </div>
     </div>
