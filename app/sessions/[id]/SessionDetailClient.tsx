@@ -1,6 +1,5 @@
 "use client";
 
-import { getPlayerDisplayName } from "@/lib/player-display";
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionTeamsCard from "./SessionTeamsCard";
@@ -42,7 +41,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     session,
     isAdmin,
     clubSettings,
-    useNicknames,
     useFieldView,
     primaryColorKey,
     winnerPhotoUrl,
@@ -98,7 +96,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     canUploadWinnerPhoto,
     scoreAValue,
     scoreBValue,
-    autoTeamNames,
 
     showMvpSection,
     nextStepLabel,

@@ -175,8 +175,7 @@ ${sessionUrl}`;
 
               {!resultShareReady && preparingResultShare ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  SiegerCard wird gerade vorbereitet. Danach einfach nochmal auf
-                  Teilen tippen.
+                  SiegerCard wird gerade vorbereitet. Sobald sie bereit ist, kannst du direkt nochmal auf Teilen tippen.
                 </div>
               ) : null}
 
