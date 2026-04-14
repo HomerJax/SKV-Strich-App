@@ -73,7 +73,6 @@ export async function POST(
     membership,
     session,
     isPowerUser,
-    currentPlayerId,
     currentUserEmail,
   } = access;
 
@@ -83,29 +82,9 @@ export async function POST(
 
     if (intent === "toggle_presence") {
       const requestedPlayerId = Number(String(formData.get("player_id") ?? ""));
-      const hasAdminAccess = canManageClub({
-        isPowerUser,
-        role: membership.role,
-      });
 
       if (!Number.isFinite(requestedPlayerId)) {
         return fail("Ungültige Spieler-ID.", 400);
-      }
-
-      if (!hasAdminAccess) {
-        if (!Number.isFinite(currentPlayerId)) {
-          return fail(
-            "Dein Spielerprofil konnte nicht eindeutig aufgelöst werden.",
-            403
-          );
-        }
-
-        if (requestedPlayerId !== currentPlayerId) {
-          return fail(
-            "Du darfst nur deine eigene Anwesenheit ändern.",
-            403
-          );
-        }
       }
 
       return handleTogglePresence({
