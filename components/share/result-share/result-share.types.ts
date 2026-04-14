@@ -1,6 +1,6 @@
 import { ResultShareData } from "@/lib/share/types";
 
-export type ResultShareLayout = "poster" | "sticker" | "floodlight";
+export type ResultShareLayout = "sticker" | "floodlight";
 
 export type ExtendedResultShareData = ResultShareData & {
   sessionId: number;
