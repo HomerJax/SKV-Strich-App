@@ -25,32 +25,29 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
         height: "100%",
         display: "flex",
         padding: 24,
-        color: palette.textPrimary,
-        background: `
-          radial-gradient(circle at 16% 14%, ${palette.accentGlow}, transparent 22%),
-          linear-gradient(180deg, #0A0F17 0%, #141B27 100%)
-        `,
+        background: "#0F172A",
+        color: "#FFFFFF",
       }}
     >
       <div
         style={{
-          position: "relative",
-          display: "flex",
           width: "100%",
           height: "100%",
-          borderRadius: 40,
+          display: "flex",
+          position: "relative",
           overflow: "hidden",
-          border: "1px solid rgba(255,255,255,0.1)",
-          boxShadow: "0 28px 72px rgba(0,0,0,0.34)",
+          borderRadius: 36,
+          background: "#111827",
+          border: "1px solid rgba(255,255,255,0.08)",
         }}
       >
         {renderPhotoOrFallback({
           winnerPhotoUrl: data.winnerPhotoUrl,
           palette,
           dark: true,
-          width: 1200,
-          height: 1440,
-          borderRadius: 40,
+          width: 1032,
+          height: 1302,
+          borderRadius: 36,
         })}
 
         <div
@@ -58,41 +55,17 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             position: "absolute",
             inset: 0,
             display: "flex",
-            background: `
-              linear-gradient(
-                to top,
-                rgba(4,8,14,0.92) 0%,
-                rgba(4,8,14,0.72) 26%,
-                rgba(4,8,14,0.18) 58%,
-                rgba(4,8,14,0.18) 100%
-              )
-            `,
+            background:
+              "linear-gradient(to top, rgba(2,6,12,0.92) 0%, rgba(2,6,12,0.78) 26%, rgba(2,6,12,0.2) 58%, rgba(2,6,12,0.12) 100%)",
           }}
         />
 
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            display: "flex",
-            background: `
-              linear-gradient(
-                90deg,
-                rgba(4,8,14,0.18) 0%,
-                rgba(4,8,14,0.04) 34%,
-                rgba(4,8,14,0) 56%,
-                rgba(4,8,14,0.12) 100%
-              )
-            `,
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            top: 24,
-            left: 24,
-            right: 24,
+            top: 28,
+            left: 28,
+            right: 28,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
@@ -110,15 +83,13 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              padding: "9px 14px",
+              padding: "10px 14px",
               borderRadius: 999,
-              background: "rgba(5,12,20,0.54)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.74)",
+              background: "rgba(15,23,42,0.7)",
+              border: "1px solid rgba(255,255,255,0.08)",
               fontSize: 12,
               fontWeight: 800,
-              letterSpacing: "1.3px",
+              color: "rgba(255,255,255,0.78)",
               textTransform: "uppercase",
             }}
           >
@@ -129,13 +100,13 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
         <div
           style={{
             position: "absolute",
-            left: 30,
-            right: 30,
+            left: 28,
+            right: 28,
             bottom: 28,
             display: "flex",
-            alignItems: "flex-end",
             justifyContent: "space-between",
-            gap: 22,
+            alignItems: "flex-end",
+            gap: 24,
           }}
         >
           <div
@@ -143,23 +114,20 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               display: "flex",
               flexDirection: "column",
               gap: 14,
-              maxWidth: 540,
-              minWidth: 0,
+              maxWidth: 580,
             }}
           >
             <div
               style={{
                 display: "flex",
-                width: "fit-content",
-                alignItems: "center",
-                padding: "9px 14px",
+                alignSelf: "flex-start",
+                padding: "10px 14px",
                 borderRadius: 999,
-                background: "rgba(5,12,20,0.5)",
+                background: "rgba(15,23,42,0.7)",
                 border: "1px solid rgba(255,255,255,0.08)",
-                color: "rgba(255,255,255,0.72)",
                 fontSize: 12,
                 fontWeight: 800,
-                letterSpacing: "1.4px",
+                color: "rgba(255,255,255,0.78)",
                 textTransform: "uppercase",
               }}
             >
@@ -169,12 +137,11 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
-                fontSize: 60,
+                fontSize: 58,
                 fontWeight: 900,
-                lineHeight: 0.94,
-                letterSpacing: "-2px",
+                lineHeight: 0.95,
+                letterSpacing: -2,
                 color: "#FFFFFF",
-                textShadow: "0 10px 26px rgba(0,0,0,0.32)",
               }}
             >
               {copy.headline}
@@ -183,12 +150,10 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
-                maxWidth: 520,
-                padding: "13px 15px",
+                padding: "14px 16px",
                 borderRadius: 18,
-                background: "rgba(5,12,20,0.66)",
+                background: "rgba(15,23,42,0.74)",
                 border: "1px solid rgba(255,255,255,0.08)",
-                boxShadow: "0 12px 24px rgba(0,0,0,0.22)",
               }}
             >
               <div
@@ -207,12 +172,11 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignSelf: "flex-start",
                 padding: "12px 14px",
                 borderRadius: 18,
-                background: "rgba(5,12,20,0.5)",
+                background: "rgba(15,23,42,0.74)",
                 border: "1px solid rgba(255,255,255,0.08)",
-                width: "fit-content",
               }}
             >
               {renderBrandFooter({
@@ -229,26 +193,21 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              minWidth: 292,
+              minWidth: 280,
               padding: "24px 28px",
-              borderRadius: 30,
-              background: "rgba(8,18,32,0.92)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              boxShadow: `
-                0 18px 42px rgba(0,0,0,0.34),
-                inset 0 1px 0 rgba(255,255,255,0.04)
-              `,
+              borderRadius: 28,
+              background: "rgba(2,6,12,0.86)",
+              border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
             <div
               style={{
                 display: "flex",
+                marginBottom: 10,
                 fontSize: 13,
                 fontWeight: 800,
-                color: "rgba(255,255,255,0.62)",
+                color: "rgba(255,255,255,0.66)",
                 textTransform: "uppercase",
-                letterSpacing: "1.4px",
-                marginBottom: 10,
               }}
             >
               Endstand
@@ -259,11 +218,10 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
                 display: "flex",
                 alignItems: "baseline",
                 gap: 10,
-                fontSize: 88,
+                fontSize: 86,
                 fontWeight: 900,
                 lineHeight: 1,
-                letterSpacing: "-3px",
-                textShadow: "0 12px 24px rgba(0,0,0,0.28)",
+                letterSpacing: -3,
               }}
             >
               <span
@@ -277,7 +235,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               >
                 {score.goalsA}
               </span>
-              <span style={{ color: "rgba(255,255,255,0.34)" }}>:</span>
+              <span style={{ color: "rgba(255,255,255,0.36)" }}>:</span>
               <span
                 style={{
                   color: score.isDraw
