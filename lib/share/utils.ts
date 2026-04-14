@@ -54,21 +54,7 @@ export function formatDate(date: string | null | undefined) {
   });
 }
 
-function isIOS() {
-  if (typeof navigator === "undefined") return false;
-
-  const ua = navigator.userAgent || navigator.vendor || "";
-  return /iPad|iPhone|iPod/.test(ua);
-}
-
-function openImageFallback(url: string) {
-  if (typeof window === "undefined") return;
-
-  const absoluteUrl = new URL(url, window.location.origin).toString();
-  window.open(absoluteUrl, "_blank", "noopener,noreferrer");
-}
-
-async function fetchImageAsFile(url: string, fileName: string) {
+async function fetchImageBlob(url: string) {
   const response = await fetch(url, {
     method: "GET",
     credentials: "include",
@@ -79,7 +65,11 @@ async function fetchImageAsFile(url: string, fileName: string) {
     throw new Error("Bild konnte nicht geladen werden.");
   }
 
-  const blob = await response.blob();
+  return response.blob();
+}
+
+async function fetchImageAsFile(url: string, fileName: string) {
+  const blob = await fetchImageBlob(url);
 
   const contentType =
     blob.type && blob.type.startsWith("image/") ? blob.type : "image/png";
@@ -90,6 +80,27 @@ async function fetchImageAsFile(url: string, fileName: string) {
     type: contentType,
     lastModified: Date.now(),
   });
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  if (typeof window === "undefined") {
+    throw new Error("Download ist hier nicht verfügbar.");
+  }
+
+  const safeFileName = fileName.includes(".") ? fileName : `${fileName}.png`;
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = safeFileName;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }
 }
 
 export async function shareImageFromUrl({
@@ -106,6 +117,8 @@ export async function shareImageFromUrl({
   const canUseNavigatorShare =
     typeof navigator !== "undefined" && typeof navigator.share === "function";
 
+  let lastError: unknown = null;
+
   if (canUseNavigatorShare) {
     try {
       const file = await fetchImageAsFile(absoluteUrl, fileName);
@@ -120,37 +133,37 @@ export async function shareImageFromUrl({
         navigator.canShare(shareDataWithFile)
       ) {
         await navigator.share(shareDataWithFile);
-        return;
+        return {
+          mode: "shared_file" as const,
+        };
       }
-    } catch {
-      // fallback below
+    } catch (error) {
+      lastError = error;
     }
   }
-
-  if (canUseNavigatorShare) {
-    try {
-      await navigator.share({
-        title,
-        text,
-        url: absoluteUrl,
-      });
-      return;
-    } catch {
-      // fallback below
-    }
-  }
-
-  openImageFallback(absoluteUrl);
 
   try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(absoluteUrl);
+    const blob = await fetchImageBlob(absoluteUrl);
+    downloadBlob(blob, fileName);
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(absoluteUrl);
+      }
+    } catch {
+      // ignore clipboard errors
     }
-  } catch {
-    // ignore clipboard errors
+
+    return {
+      mode: "downloaded" as const,
+    };
+  } catch (error) {
+    lastError = error;
   }
 
-  if (!isIOS()) {
-    return;
-  }
+  throw new Error(
+    lastError instanceof Error
+      ? lastError.message
+      : "SiegerCard konnte weder geteilt noch heruntergeladen werden."
+  );
 }
