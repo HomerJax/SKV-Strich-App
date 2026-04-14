@@ -1,107 +1,126 @@
 import { Palette, ResultShareLayout } from "./result-share.types";
 
-export function hexToRgba(hex: string, alpha: number) {
-  const clean = hex.replace("#", "");
-  const expanded =
-    clean.length === 3
-      ? clean
-          .split("")
-          .map((char) => char + char)
-          .join("")
-      : clean;
-
-  const value = Number.parseInt(expanded, 16);
-  const r = (value >> 16) & 255;
-  const g = (value >> 8) & 255;
-  const b = value & 255;
-
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
-export function normalizeHex(input: string) {
-  const clean = input.trim().replace("#", "");
+function hexToRgb(hex: string) {
+  const normalized = hex.replace("#", "").trim();
 
-  if (clean.length === 3) {
-    return `#${clean
-      .split("")
-      .map((char) => char + char)
-      .join("")}`.toUpperCase();
+  if (normalized.length !== 6) {
+    return { r: 34, g: 197, b: 94 };
   }
 
-  if (clean.length === 6) {
-    return `#${clean}`.toUpperCase();
+  const r = Number.parseInt(normalized.slice(0, 2), 16);
+  const g = Number.parseInt(normalized.slice(2, 4), 16);
+  const b = Number.parseInt(normalized.slice(4, 6), 16);
+
+  if ([r, g, b].some((value) => Number.isNaN(value))) {
+    return { r: 34, g: 197, b: 94 };
   }
 
-  return "#3B82F6";
+  return { r, g, b };
 }
 
-export function normalizePrimaryColor(input?: string | null) {
-  const value = input?.trim().toLowerCase();
+function rgbToHex(r: number, g: number, b: number) {
+  const toHex = (value: number) =>
+    clamp(Math.round(value), 0, 255).toString(16).padStart(2, "0");
 
-  if (!value) return "#3B82F6";
-  if (value === "black") return "#020617";
-  if (value === "blue") return "#2563EB";
-  if (value === "red") return "#DC2626";
-  if (value === "green") return "#16A34A";
-  if (value.startsWith("#")) return normalizeHex(value);
-
-  return "#3B82F6";
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-export function getLuminance(hex: string) {
-  const clean = normalizeHex(hex).replace("#", "");
-  const value = Number.parseInt(clean, 16);
+function mix(hexA: string, hexB: string, amount: number) {
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  const ratio = clamp(amount, 0, 1);
 
-  const r = ((value >> 16) & 255) / 255;
-  const g = ((value >> 8) & 255) / 255;
-  const b = (value & 255) / 255;
+  return rgbToHex(
+    a.r + (b.r - a.r) * ratio,
+    a.g + (b.g - a.g) * ratio,
+    a.b + (b.b - a.b) * ratio
+  );
+}
 
-  const convert = (channel: number) =>
-    channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+function normalizePrimaryColor(rawPrimary?: string | null) {
+  if (!rawPrimary) {
+    return "#22C55E";
+  }
 
-  const rr = convert(r);
-  const gg = convert(g);
-  const bb = convert(b);
+  const trimmed = rawPrimary.trim();
 
-  return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
+  if (!trimmed) {
+    return "#22C55E";
+  }
+
+  const withHash = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+  const valid = /^#[0-9A-Fa-f]{6}$/.test(withHash);
+
+  return valid ? withHash.toUpperCase() : "#22C55E";
+}
+
+function getLuminance(hex: string) {
+  const { r, g, b } = hexToRgb(hex);
+
+  const channel = (value: number) => {
+    const normalized = value / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  };
+
+  const sr = channel(r);
+  const sg = channel(g);
+  const sb = channel(b);
+
+  return 0.2126 * sr + 0.7152 * sg + 0.0722 * sb;
 }
 
 export function buildPalette(
-  rawPrimary: string | null | undefined,
-  layout: ResultShareLayout
+  rawPrimary?: string | null,
+  layout?: ResultShareLayout
 ): Palette {
   const base = normalizePrimaryColor(rawPrimary);
   const isDarkBase = getLuminance(base) < 0.18;
-  const darkLayout = layout !== "poster";
+
+  const darkLayout =
+    layout === "sticker" || layout === "floodlight" || !layout;
 
   const accent =
-    darkLayout && isDarkBase
-      ? "#E2E8F0"
-      : layout === "poster" && isDarkBase
-        ? "#334155"
-        : base;
+    darkLayout && isDarkBase ? mix(base, "#FFFFFF", 0.18) : base;
 
-  if (layout === "poster") {
-    return {
-      accent,
-      accentSoft: hexToRgba(accent, 0.12),
-      accentGlow: hexToRgba(accent, 0.18),
-      loser: "#475569",
-      textPrimary: "#0F172A",
-      textSecondary: "#64748B",
-      badgeBg: "#FFFFFF",
-      panelBg: "rgba(255,255,255,0.72)",
-    };
-  }
+  const accentSoft = darkLayout
+    ? mix(accent, "#FFFFFF", 0.78)
+    : mix(accent, "#FFFFFF", 0.86);
+
+  const accentGlow = darkLayout
+    ? mix(accent, "#FFFFFF", 0.5)
+    : mix(accent, "#FFFFFF", 0.65);
+
+  const loser = darkLayout
+    ? "rgba(255,255,255,0.56)"
+    : "rgba(15,23,42,0.36)";
+
+  const textPrimary = darkLayout ? "#FFFFFF" : "#0F172A";
+  const textSecondary = darkLayout
+    ? "rgba(255,255,255,0.72)"
+    : "rgba(15,23,42,0.68)";
+
+  const badgeBg = darkLayout
+    ? "rgba(255,255,255,0.08)"
+    : "rgba(255,255,255,0.78)";
+
+  const panelBg = darkLayout
+    ? "rgba(3,8,16,0.78)"
+    : "rgba(255,255,255,0.72)";
 
   return {
     accent,
-    accentSoft: hexToRgba(accent, 0.16),
-    accentGlow: hexToRgba(accent, 0.34),
-    loser: "rgba(255,255,255,0.72)",
-    textPrimary: "#FFFFFF",
-    textSecondary: "rgba(255,255,255,0.74)",
-    badgeBg: "rgba(255,255,255,0.08)",
-    panelBg: "rgba(7,18,47,0.42)",
+    accentSoft,
+    accentGlow,
+    loser,
+    textPrimary,
+    textSecondary,
+    badgeBg,
+    panelBg,
   };
 }
