@@ -10,6 +10,7 @@ type NextSessionAttendanceCardProps = {
   text: string;
   href: string;
   initialStatus: PresenceStatus;
+  initialPresentCount: number;
 };
 
 function getStatusMeta(status: PresenceStatus) {
@@ -36,14 +37,21 @@ function getStatusMeta(status: PresenceStatus) {
   };
 }
 
+function formatPresentCount(count: number) {
+  if (count === 1) return "1 dabei";
+  return `${count} dabei`;
+}
+
 export default function NextSessionAttendanceCard({
   sessionId,
   title,
   text,
   href,
   initialStatus,
+  initialPresentCount,
 }: NextSessionAttendanceCardProps) {
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
+  const [presentCount, setPresentCount] = useState<number>(initialPresentCount);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -75,7 +83,17 @@ export default function NextSessionAttendanceCard({
         );
       }
 
+      const previousStatus = status;
       setStatus(nextStatus);
+
+      if (previousStatus !== "in" && nextStatus === "in") {
+        setPresentCount((prev) => prev + 1);
+      }
+
+      if (previousStatus === "in" && nextStatus === "out") {
+        setPresentCount((prev) => Math.max(0, prev - 1));
+      }
+
       setMessage(
         nextStatus === "in"
           ? "Du bist dabei beim Training."
@@ -104,8 +122,8 @@ export default function NextSessionAttendanceCard({
 
   return (
     <section className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-sm font-semibold text-slate-500">
               Nächstes Training
@@ -120,14 +138,20 @@ export default function NextSessionAttendanceCard({
 
           <a
             href={href}
-            className="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Zur Session
           </a>
         </div>
 
         <div className={`rounded-2xl border px-4 py-3 ${statusClasses}`}>
-          <div className="text-sm font-semibold">{statusMeta.label}</div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="text-sm font-semibold">{statusMeta.label}</div>
+            <div className="text-xs font-semibold opacity-75">
+              {formatPresentCount(presentCount)}
+            </div>
+          </div>
+
           <div className="mt-1 text-xs leading-5 opacity-80">
             {statusMeta.description}
           </div>
@@ -139,12 +163,12 @@ export default function NextSessionAttendanceCard({
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => updateStatus("in")}
             disabled={busy}
-            className={`inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+            className={`inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
               inButtonActive
                 ? "border border-emerald-200 bg-emerald-50 text-emerald-900"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
@@ -157,7 +181,7 @@ export default function NextSessionAttendanceCard({
             type="button"
             onClick={() => updateStatus("out")}
             disabled={busy}
-            className={`inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+            className={`inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
               outButtonActive
                 ? "border border-slate-300 bg-slate-100 text-slate-900"
                 : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"

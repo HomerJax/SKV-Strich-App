@@ -348,9 +348,21 @@ export default async function HomePage() {
   }
 
   let nextSessionPresenceStatus: "in" | "out" | "open" = "open";
+  let nextSessionPresentCount = 0;
 
   if (homeSessionRsvpEnabled && nextSession) {
-    const userEmail = authResult.data.user?.email?.trim().toLowerCase() ?? null;
+    const [{ count: nextSessionPresentCountValue }, authUserResult] =
+      await Promise.all([
+        supabase
+          .from("session_players")
+          .select("*", { count: "exact", head: true })
+          .eq("session_id", nextSession.id),
+        Promise.resolve(authResult),
+      ]);
+
+    nextSessionPresentCount = nextSessionPresentCountValue ?? 0;
+
+    const userEmail = authUserResult.data.user?.email?.trim().toLowerCase() ?? null;
 
     if (userEmail) {
       const { data: playerData } = await supabase
@@ -440,6 +452,7 @@ export default async function HomePage() {
               }
               href={`/sessions/${nextSession.id}`}
               initialStatus={nextSessionPresenceStatus}
+              initialPresentCount={nextSessionPresentCount}
             />
           ) : (
             <MainActionCard
