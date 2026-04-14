@@ -5,6 +5,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { getAuthContext } from "@/lib/auth/context";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
+import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,6 +33,11 @@ type SessionPlayerCountRow = {
 
 type VoteRow = {
   session_id: number;
+};
+
+type PlayerRow = {
+  id: number;
+  email: string | null;
 };
 
 const COLOR_MAP: Record<string, string> = {
@@ -201,6 +207,7 @@ export default async function HomePage() {
   const today = new Date().toISOString().slice(0, 10);
   const featureFlags = await getFeatureFlagsForClub(clubId);
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
+  const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
 
   const [
     { data: clubData },
@@ -209,6 +216,7 @@ export default async function HomePage() {
     { count: seasonsCount },
     { data: nextSessionData },
     { data: recentSessionsData },
+    authResult,
   ] = await Promise.all([
     supabase
       .from("clubs")
@@ -241,6 +249,7 @@ export default async function HomePage() {
       .eq("club_id", clubId)
       .order("date", { ascending: false })
       .limit(12),
+    supabase.auth.getUser(),
   ]);
 
   const club = (clubData ?? null) as ClubRow | null;
@@ -338,6 +347,34 @@ export default async function HomePage() {
       : null;
   }
 
+  let nextSessionPresenceStatus: "in" | "out" | "open" = "open";
+
+  if (homeSessionRsvpEnabled && nextSession) {
+    const userEmail = authResult.data.user?.email?.trim().toLowerCase() ?? null;
+
+    if (userEmail) {
+      const { data: playerData } = await supabase
+        .from("players")
+        .select("id, email")
+        .eq("club_id", clubId)
+        .eq("email", userEmail)
+        .maybeSingle<PlayerRow>();
+
+      const playerId = playerData?.id ?? null;
+
+      if (playerId) {
+        const { data: selfPresence } = await supabase
+          .from("session_players")
+          .select("player_id")
+          .eq("session_id", nextSession.id)
+          .eq("player_id", playerId)
+          .maybeSingle();
+
+        nextSessionPresenceStatus = selfPresence ? "in" : "open";
+      }
+    }
+  }
+
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
       <WhatsNewModal version="v0.2" />
@@ -392,17 +429,31 @@ export default async function HomePage() {
         </div>
 
         {nextSession ? (
-          <MainActionCard
-            eyebrow="Nächstes Training"
-            title={fmtDateLong(nextSession.date)}
-            text={
-              nextSession.notes?.trim()
-                ? nextSession.notes.trim()
-                : "Dein nächstes Training ist bereits angelegt."
-            }
-            href={`/sessions/${nextSession.id}`}
-            cta="Zur Session"
-          />
+          homeSessionRsvpEnabled ? (
+            <NextSessionAttendanceCard
+              sessionId={nextSession.id}
+              title={fmtDateLong(nextSession.date)}
+              text={
+                nextSession.notes?.trim()
+                  ? nextSession.notes.trim()
+                  : "Dein nächstes Training ist bereits angelegt."
+              }
+              href={`/sessions/${nextSession.id}`}
+              initialStatus={nextSessionPresenceStatus}
+            />
+          ) : (
+            <MainActionCard
+              eyebrow="Nächstes Training"
+              title={fmtDateLong(nextSession.date)}
+              text={
+                nextSession.notes?.trim()
+                  ? nextSession.notes.trim()
+                  : "Dein nächstes Training ist bereits angelegt."
+              }
+              href={`/sessions/${nextSession.id}`}
+              cta="Zur Session"
+            />
+          )
         ) : (
           <MainActionCard
             eyebrow="Nächstes Training"

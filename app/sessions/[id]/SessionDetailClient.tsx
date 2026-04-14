@@ -278,7 +278,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           onShareResult={() => {}}
           onShareInternal={() => {}}
           title="Siegerfoto"
-          description="Foto ansehen, hochladen, ersetzen oder löschen."
+          description="Foto ansehen, hochladen, ersetzen oder löschen. Tipp für die Share Card: möglichst ein Hochformat-Foto verwenden."
           showResultSection={false}
           showPhotoSection={true}
           showShareSection={false}

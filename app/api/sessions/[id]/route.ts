@@ -9,6 +9,7 @@ import { handleSaveResult } from "@/lib/session-detail/actions/save-result";
 import { handleDeleteResult } from "@/lib/session-detail/actions/delete-result";
 import { handleDeleteWinnerPhoto } from "@/lib/session-detail/actions/delete-winner-photo";
 import { canManageClub } from "@/lib/auth/access";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,6 +79,105 @@ export async function POST(
         supabase,
         sessionId,
         playerId,
+      });
+    }
+
+    if (intent === "set_self_presence") {
+      const featureFlags = await getFeatureFlagsForClub(clubId);
+      const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
+
+      if (!homeSessionRsvpEnabled) {
+        return fail(
+          "Die Zu-/Absage über den Homescreen ist für dieses Team noch nicht freigeschaltet.",
+          403
+        );
+      }
+
+      if (session.winner_photo_path) {
+        return fail(
+          "Für diese Session ist bereits alles abgeschlossen. Deine Rückmeldung kann nicht mehr geändert werden.",
+          400
+        );
+      }
+
+      const status = String(formData.get("status") ?? "").trim();
+
+      if (status !== "in" && status !== "out") {
+        return fail("Ungültiger Status.", 400);
+      }
+
+      const authResult = await supabase.auth.getUser();
+      const userEmail = authResult.data.user?.email?.trim().toLowerCase() ?? null;
+
+      if (!userEmail) {
+        return fail("Benutzer konnte nicht aufgelöst werden.", 401);
+      }
+
+      const { data: playerData, error: playerError } = await supabase
+        .from("players")
+        .select("id")
+        .eq("club_id", clubId)
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      if (playerError) {
+        return fail(
+          `Spielerprofil konnte nicht geladen werden: ${playerError.message}`,
+          500
+        );
+      }
+
+      const playerId = Number(playerData?.id);
+
+      if (!Number.isFinite(playerId)) {
+        return fail(
+          "Dein Spielerprofil konnte nicht gefunden werden. Bitte wende dich an einen Admin.",
+          404
+        );
+      }
+
+      if (status === "in") {
+        const { error: insertError } = await supabase
+          .from("session_players")
+          .upsert(
+            {
+              session_id: sessionId,
+              player_id: playerId,
+            },
+            {
+              onConflict: "session_id,player_id",
+            }
+          );
+
+        if (insertError) {
+          return fail(
+            `Zusage konnte nicht gespeichert werden: ${insertError.message}`,
+            500
+          );
+        }
+
+        return ok({
+          message: "Du bist dabei beim Training.",
+          status: "in",
+        });
+      }
+
+      const { error: deleteError } = await supabase
+        .from("session_players")
+        .delete()
+        .eq("session_id", sessionId)
+        .eq("player_id", playerId);
+
+      if (deleteError) {
+        return fail(
+          `Absage konnte nicht gespeichert werden: ${deleteError.message}`,
+          500
+        );
+      }
+
+      return ok({
+        message: "Du setzt dieses Mal aus.",
+        status: "out",
       });
     }
 

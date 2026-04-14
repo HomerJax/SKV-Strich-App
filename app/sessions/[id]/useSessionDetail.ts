@@ -62,11 +62,57 @@ type ApiError = {
   error: string;
 };
 
+type ImageOrientation = "portrait" | "landscape" | "square" | "unknown";
+
 async function fetchShareImageFile(imageUrl: string, fileName: string) {
   const separator = imageUrl.includes("?") ? "&" : "?";
   const freshUrl = `${imageUrl}${separator}ts=${Date.now()}`;
 
   return fetchImageAsFile(freshUrl, fileName);
+}
+
+async function detectImageOrientation(file: File): Promise<ImageOrientation> {
+  if (typeof window === "undefined") {
+    return "unknown";
+  }
+
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        const width = img.naturalWidth;
+        const height = img.naturalHeight;
+
+        if (!width || !height) {
+          resolve("unknown");
+          return;
+        }
+
+        if (height > width) {
+          resolve("portrait");
+          return;
+        }
+
+        if (width > height) {
+          resolve("landscape");
+          return;
+        }
+
+        resolve("square");
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve("unknown");
+    };
+
+    img.src = objectUrl;
+  });
 }
 
 export function useSessionDetail({
@@ -337,43 +383,45 @@ export function useSessionDetail({
   const resultShareReady = !!preparedResultShareFile && !preparingResultShare;
 
   const prepareResultShare = useCallback(async () => {
-  if (!resultShareImageUrl) {
-    setPreparedResultShareFile(null);
-    setResultShareMessage("SiegerCard-URL konnte nicht erzeugt werden.");
-    return {
-      ok: false as const,
-      message: "SiegerCard-URL konnte nicht erzeugt werden.",
-    };
-  }
+    if (!resultShareImageUrl) {
+      setPreparedResultShareFile(null);
+      setResultShareMessage("SiegerCard-URL konnte nicht erzeugt werden.");
+      return {
+        ok: false as const,
+        message: "SiegerCard-URL konnte nicht erzeugt werden.",
+      };
+    }
 
-  setPreparingResultShare(true);
+    setPreparingResultShare(true);
 
-  try {
-    const nextFile = await fetchShareImageFile(
-      resultShareImageUrl,
-      `strikr-result-${sessionId}.png`
-    );
+    try {
+      const nextFile = await fetchShareImageFile(
+        resultShareImageUrl,
+        `strikr-result-${sessionId}.png`
+      );
 
-    setPreparedResultShareFile(nextFile);
-    setResultShareMessage("SiegerCard ist bereit. Bitte jetzt nochmal auf Teilen tippen.");
+      setPreparedResultShareFile(nextFile);
+      setResultShareMessage(
+        "SiegerCard ist bereit. Bitte jetzt nochmal auf Teilen tippen."
+      );
 
-    return { ok: true as const, file: nextFile };
-  } catch (error: unknown) {
-    const message = getErrorMessage(
-      error,
-      "SiegerCard konnte nicht geladen werden."
-    );
+      return { ok: true as const, file: nextFile };
+    } catch (error: unknown) {
+      const message = getErrorMessage(
+        error,
+        "SiegerCard konnte nicht geladen werden."
+      );
 
-    setPreparedResultShareFile(null);
-    setResultShareMessage(message);
+      setPreparedResultShareFile(null);
+      setResultShareMessage(message);
 
-    return { ok: false as const, message };
-  } finally {
-    setPreparingResultShare(false);
-  }
-}, [resultShareImageUrl, sessionId]);
+      return { ok: false as const, message };
+    } finally {
+      setPreparingResultShare(false);
+    }
+  }, [resultShareImageUrl, sessionId]);
 
-    async function shareText(text: string, title: string) {
+  async function shareText(text: string, title: string) {
     if (typeof navigator !== "undefined" && navigator.share) {
       await navigator.share({
         title,
@@ -483,75 +531,75 @@ ${sessionUrl}`;
   }
 
   async function handleShareResult() {
-  try {
-    setSharingResult(true);
-    setErr(null);
-    setMsg(null);
+    try {
+      setSharingResult(true);
+      setErr(null);
+      setMsg(null);
 
-    if (!canShareResult) {
-      throw new Error(
-        "Bitte zuerst Teams und Ergebnis vollständig und gültig eintragen."
-      );
-    }
+      if (!canShareResult) {
+        throw new Error(
+          "Bitte zuerst Teams und Ergebnis vollständig und gültig eintragen."
+        );
+      }
 
-    if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-      throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
-    }
+      if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+        throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+      }
 
-    if (!preparedResultShareFile) {
-      setResultShareMessage("SiegerCard wird vorbereitet ...");
+      if (!preparedResultShareFile) {
+        setResultShareMessage("SiegerCard wird vorbereitet ...");
 
-      const prepared = await prepareResultShare();
+        const prepared = await prepareResultShare();
 
-      if (!prepared.ok) {
+        if (!prepared.ok) {
+          return;
+        }
+
         return;
       }
 
-      return;
-    }
+      if (typeof navigator.canShare === "function") {
+        const canShareFiles = navigator.canShare({
+          files: [preparedResultShareFile],
+        });
 
-    if (typeof navigator.canShare === "function") {
-      const canShareFiles = navigator.canShare({
+        if (!canShareFiles) {
+          throw new Error(
+            "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
+          );
+        }
+      }
+
+      await navigator.share({
         files: [preparedResultShareFile],
       });
 
-      if (!canShareFiles) {
-        throw new Error(
-          "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
-        );
+      setResultShareMessage("SiegerCard erfolgreich geteilt.");
+    } catch (e: unknown) {
+      const error =
+        e instanceof Error ? e : new Error("SiegerCard konnte nicht geteilt werden.");
+
+      const errorName =
+        typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        typeof (error as { name?: unknown }).name === "string"
+          ? (error as { name: string }).name
+          : "";
+
+      if (errorName === "AbortError") {
+        setResultShareMessage(null);
+        setErr(null);
+        return;
       }
+
+      const message = getErrorMessage(error, "SiegerCard konnte nicht geteilt werden.");
+      setErr(message);
+      setResultShareMessage(message);
+    } finally {
+      setSharingResult(false);
     }
-
-    await navigator.share({
-      files: [preparedResultShareFile],
-    });
-
-    setResultShareMessage("SiegerCard erfolgreich geteilt.");
-  } catch (e: unknown) {
-    const error =
-      e instanceof Error ? e : new Error("SiegerCard konnte nicht geteilt werden.");
-
-    const errorName =
-      typeof error === "object" &&
-      error !== null &&
-      "name" in error &&
-      typeof (error as { name?: unknown }).name === "string"
-        ? (error as { name: string }).name
-        : "";
-
-    if (errorName === "AbortError") {
-      setResultShareMessage(null);
-      setErr(null);
-      return;
-    }
-
-    const message = getErrorMessage(error, "SiegerCard konnte nicht geteilt werden.");
-    setErr(message);
-    setResultShareMessage(message);
-  } finally {
-    setSharingResult(false);
   }
-}
 
   async function handleDeleteSession() {
     if (!isAdmin) {
@@ -948,11 +996,11 @@ ${sessionUrl}`;
         setPreparedResultShareFile(null);
         setResultShareMessage("SiegerCard wird vorbereitet ...");
 
-      if (result.hasResult) {
-  setShowSessionEndModal(true);
-  setPreparedResultShareFile(null);
-  setResultShareMessage(null);
-}
+        if (result.hasResult) {
+          setShowSessionEndModal(true);
+          setPreparedResultShareFile(null);
+          setResultShareMessage(null);
+        }
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Fehler beim Speichern."));
@@ -1028,6 +1076,8 @@ ${sessionUrl}`;
       setErr(null);
       setMsg(null);
 
+      const orientation = await detectImageOrientation(file);
+
       const formData = new FormData();
       formData.set("intent", "upload_winner_photo");
       formData.set("file", file);
@@ -1043,8 +1093,14 @@ ${sessionUrl}`;
         setSession(nextSession);
         setWinnerPhotoUrl(result.winnerPhotoUrl);
         setPreparedResultShareFile(null);
-setResultShareMessage(null);
-setMsg(result.message);
+        setResultShareMessage(null);
+
+        const orientationHint =
+          orientation === "landscape" || orientation === "square"
+            ? " Tipp: Für die Share Card funktioniert ein Hochformat-Foto meistens deutlich besser."
+            : "";
+
+        setMsg(`${result.message}${orientationHint}`);
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Siegerfoto konnte nicht hochgeladen werden."));
@@ -1086,8 +1142,8 @@ setMsg(result.message);
         setSession(nextSession);
         setWinnerPhotoUrl(result.winnerPhotoUrl);
         setPreparedResultShareFile(null);
-setResultShareMessage(null);
-setMsg(result.message);
+        setResultShareMessage(null);
+        setMsg(result.message);
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Siegerfoto konnte nicht gelöscht werden."));

@@ -17,6 +17,7 @@ export const FEATURE_FLAG_KEYS = [
   "session_mvp_voting",
   "use_nicknames",
   "use_field_view",
+  "home_session_rsvp",
 ] as const;
 
 export type FeatureFlagKey = (typeof FEATURE_FLAG_KEYS)[number];
@@ -119,6 +120,13 @@ export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
     description:
       "Zeigt die Teamaufstellung in Trainingssessions als kompakte Spielfeldansicht statt als klassische Teamliste.",
     audience: "internal",
+  },
+  {
+    key: "home_session_rsvp",
+    title: "Zu-/Absage auf Homescreen",
+    description:
+      "Zeigt auf dem Homescreen die nächste Session mit eigenem Status und den Aktionen 'Ich bin dabei' oder 'Diesmal nicht'.",
+    audience: "players",
   },
 ];
 
