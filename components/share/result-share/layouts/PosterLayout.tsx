@@ -1,19 +1,13 @@
-/* eslint-disable @next/next/no-img-element */
 import { buildCopy } from "../result-share.copy";
 import {
-  getClubLogoUrl,
   getDisplayClubName,
   getScoreModel,
-  renderBrandFooter,
-  renderPhotoOrFallback,
-  renderClubBadge,
 } from "../result-share.helpers";
 import { buildPalette } from "../result-share.palette";
 import { ExtendedResultShareData } from "../result-share.types";
 
 export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
   const clubName = getDisplayClubName(data);
-  const clubLogoUrl = getClubLogoUrl(data);
   const copy = buildCopy(data);
   const palette = buildPalette(data.clubPrimaryColor, "poster");
   const score = getScoreModel(data);
@@ -42,13 +36,39 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
           gap: 24,
         }}
       >
-        {renderClubBadge({
-          clubName,
-          clubLogoUrl,
-          palette,
-          dark: false,
-          strikrLogoUrl: data.strikrLogoUrl,
-        })}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            maxWidth: "68%",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              fontSize: 14,
+              fontWeight: 800,
+              letterSpacing: "1.2px",
+              textTransform: "uppercase",
+              color: palette.textSecondary,
+            }}
+          >
+            {clubName}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              fontSize: 12,
+              fontWeight: 700,
+              color: palette.textSecondary,
+              opacity: 0.8,
+            }}
+          >
+            by STRIKR
+          </div>
+        </div>
 
         <div
           style={{
@@ -152,7 +172,6 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
-                width: "fit-content",
                 alignItems: "center",
                 padding: "9px 14px",
                 borderRadius: 999,
@@ -213,12 +232,16 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
             </div>
           </div>
 
-          <div>
-            {renderBrandFooter({
-              palette,
-              dark: false,
-              strikrLogoUrl: data.strikrLogoUrl,
-            })}
+          <div
+            style={{
+              display: "flex",
+              fontSize: 12,
+              fontWeight: 700,
+              color: palette.textSecondary,
+              letterSpacing: "0.4px",
+            }}
+          >
+            STRIKR · Match Result
           </div>
         </div>
 
@@ -228,19 +251,70 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
             width: "59%",
             borderRadius: 34,
             overflow: "hidden",
-            background: "#FFFFFF",
+            background: "rgba(255,255,255,0.72)",
             border: "1px solid rgba(15,23,42,0.06)",
             boxShadow: "0 24px 54px rgba(15,23,42,0.14)",
+            padding: 28,
+            justifyContent: "center",
+            alignItems: "center",
           }}
         >
-          {renderPhotoOrFallback({
-            winnerPhotoUrl: data.winnerPhotoUrl,
-            palette,
-            dark: false,
-            width: 720,
-            height: 960,
-            borderRadius: 34,
-          })}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%",
+              borderRadius: 24,
+              border: "2px dashed rgba(15,23,42,0.12)",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 24,
+              gap: 14,
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.28) 100%)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                fontSize: 22,
+                fontWeight: 900,
+                color: palette.textPrimary,
+                textAlign: "center",
+              }}
+            >
+              SiegerCard Debug
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                fontSize: 16,
+                fontWeight: 600,
+                color: palette.textSecondary,
+                textAlign: "center",
+                lineHeight: 1.5,
+              }}
+            >
+              Diese Testversion rendert bewusst ohne Siegerfoto, Clublogo und
+              STRIKR-Logo.
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                marginTop: 8,
+                fontSize: 14,
+                fontWeight: 700,
+                color: palette.textSecondary,
+                textAlign: "center",
+              }}
+            >
+              Wenn diese Version funktioniert, ist sehr wahrscheinlich ein Bild-
+              oder Asset-Block der Auslöser für den 500-Fehler.
+            </div>
+          </div>
         </div>
       </div>
     </div>
