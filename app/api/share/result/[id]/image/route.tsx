@@ -15,6 +15,9 @@ export async function GET(
     return new ImageResponse(<ResultShareCard data={data} />, {
       width: 1080,
       height: 1350,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
     });
   } catch (error) {
     const message =
@@ -24,6 +27,9 @@ export async function GET(
 
     return new Response(message, {
       status: 500,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
     });
   }
 }
