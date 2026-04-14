@@ -17,29 +17,26 @@ function getStatusMeta(status: PresenceStatus) {
   if (status === "in") {
     return {
       label: "Du bist dabei",
-      description: "Du bist aktuell für das Training eingeplant.",
       tone: "emerald" as const,
     };
   }
 
   if (status === "out") {
     return {
-      label: "Du setzt dieses Mal aus",
-      description: "Du bist aktuell für dieses Training nicht dabei.",
+      label: "Du setzt aus",
       tone: "slate" as const,
     };
   }
 
   return {
-    label: "Noch keine Rückmeldung",
-    description: "Gib kurz Bescheid, ob du beim nächsten Training dabei bist.",
+    label: "Noch offen",
     tone: "amber" as const,
   };
 }
 
 function formatPresentCount(count: number) {
-  if (count === 1) return "1 dabei";
-  return `${count} dabei`;
+  if (count === 1) return "1 Zusage";
+  return `${count} Zusagen`;
 }
 
 export default function NextSessionAttendanceCard({
@@ -129,11 +126,11 @@ export default function NextSessionAttendanceCard({
               Nächstes Training
             </div>
 
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">
+            <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-950">
               {title}
             </h2>
 
-            <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+            <p className="mt-1.5 text-sm leading-5 text-slate-600">{text}</p>
           </div>
 
           <a
@@ -144,16 +141,14 @@ export default function NextSessionAttendanceCard({
           </a>
         </div>
 
-        <div className={`rounded-2xl border px-4 py-3 ${statusClasses}`}>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div
+          className={`rounded-2xl border px-3 py-2.5 ${statusClasses}`}
+        >
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <div className="text-sm font-semibold">{statusMeta.label}</div>
             <div className="text-xs font-semibold opacity-75">
-              {formatPresentCount(presentCount)}
+              · {formatPresentCount(presentCount)}
             </div>
-          </div>
-
-          <div className="mt-1 text-xs leading-5 opacity-80">
-            {statusMeta.description}
           </div>
         </div>
 
