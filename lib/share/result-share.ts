@@ -171,7 +171,6 @@ export async function getResultShareData(
     goalsA: String(goalsA),
     goalsB: String(goalsB),
 
-    // Bleiben im Payload kompatibel erhalten, werden aber in den Styles nicht mehr genutzt.
     teamAName: "",
     teamBName: "",
 
