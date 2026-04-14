@@ -12,6 +12,9 @@ type SessionEndModalProps = {
   onShareSocial: () => void;
   sharingInternal?: boolean;
   sharingSocial?: boolean;
+  resultShareReady?: boolean;
+  preparingResultShare?: boolean;
+  resultShareMessage?: string | null;
 };
 
 function getHeadline(scoreA: number, scoreB: number) {
@@ -33,6 +36,9 @@ export default function SessionEndModal({
   onShareSocial,
   sharingInternal = false,
   sharingSocial = false,
+  resultShareReady = false,
+  preparingResultShare = false,
+  resultShareMessage = null,
 }: SessionEndModalProps) {
   const [sharingMvpVoting, setSharingMvpVoting] = useState(false);
   const [mvpShareMessage, setMvpShareMessage] = useState<string | null>(null);
@@ -47,6 +53,12 @@ export default function SessionEndModal({
   if (!open) return null;
 
   const headline = getHeadline(scoreA, scoreB);
+
+  const socialButtonLabel = sharingSocial
+    ? "Teilt SiegerCard..."
+    : preparingResultShare && !resultShareReady
+      ? "SiegerCard wird vorbereitet..."
+      : "📸 SiegerCard auf Social Media teilen";
 
   async function handleShareMvpVoting() {
     try {
@@ -141,9 +153,7 @@ ${sessionUrl}`;
                 disabled={sharingSocial}
                 className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {sharingSocial
-                  ? "Teilt SiegerCard..."
-                  : "📸 SiegerCard auf Social Media teilen"}
+                {socialButtonLabel}
               </button>
 
               <button
@@ -156,6 +166,19 @@ ${sessionUrl}`;
                   ? "Teilt Gruppenpost..."
                   : "💬 Ergebnis in Gruppe posten"}
               </button>
+
+              {resultShareMessage ? (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                  {resultShareMessage}
+                </div>
+              ) : null}
+
+              {!resultShareReady && preparingResultShare ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  SiegerCard wird gerade vorbereitet. Danach einfach nochmal auf
+                  Teilen tippen.
+                </div>
+              ) : null}
 
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <div className="text-sm font-semibold text-amber-900">

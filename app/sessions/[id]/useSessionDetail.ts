@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Player, SessionRow, TeamMap, TeamSide } from "./session-types";
 import {
@@ -149,6 +149,7 @@ export function useSessionDetail({
     null
   );
   const [preparingResultShare, setPreparingResultShare] = useState(false);
+  const [resultShareMessage, setResultShareMessage] = useState<string | null>(null);
 
   async function postForm(formData: FormData): Promise<ApiSuccess> {
     const response = await fetch(`/api/sessions/${sessionId}`, {
@@ -330,12 +331,39 @@ export function useSessionDetail({
     return `${window.location.origin}/api/share/result/${sessionId}/image`;
   }, [canShareResult, sessionId]);
 
+  const resultShareReady = !!preparedResultShareFile && !preparingResultShare;
+
+  const prepareResultShare = useCallback(async () => {
+    if (!resultShareImageUrl) {
+      setPreparedResultShareFile(null);
+      return null;
+    }
+
+    setPreparingResultShare(true);
+
+    try {
+      const nextFile = await fetchShareImageFile(
+        resultShareImageUrl,
+        `strikr-result-${sessionId}.png`
+      );
+
+      setPreparedResultShareFile(nextFile);
+      return nextFile;
+    } catch {
+      setPreparedResultShareFile(null);
+      return null;
+    } finally {
+      setPreparingResultShare(false);
+    }
+  }, [resultShareImageUrl, sessionId]);
+
   useEffect(() => {
     let cancelled = false;
 
-    async function prepareResultShareFile() {
+    async function warmUpResultShare() {
       if (!resultShareImageUrl) {
         setPreparedResultShareFile(null);
+        setResultShareMessage(null);
         return;
       }
 
@@ -349,6 +377,7 @@ export function useSessionDetail({
 
         if (!cancelled) {
           setPreparedResultShareFile(nextFile);
+          setResultShareMessage(null);
         }
       } catch {
         if (!cancelled) {
@@ -361,7 +390,7 @@ export function useSessionDetail({
       }
     }
 
-    void prepareResultShareFile();
+    void warmUpResultShare();
 
     return () => {
       cancelled = true;
@@ -477,70 +506,71 @@ ${sessionUrl}`;
     }
   }
 
-async function handleShareResult() {
-  try {
-    setSharingResult(true);
-    setErr(null);
-    setMsg(null);
+  async function handleShareResult() {
+    try {
+      setSharingResult(true);
+      setErr(null);
+      setMsg(null);
+      setResultShareMessage(null);
 
-    if (!canShareResult) {
-      throw new Error(
-        "Bitte zuerst Teams und Ergebnis vollständig und gültig eintragen."
-      );
-    }
+      if (!canShareResult) {
+        throw new Error(
+          "Bitte zuerst Teams und Ergebnis vollständig und gültig eintragen."
+        );
+      }
 
-    if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-      throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
-    }
+      if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+        throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+      }
 
-    if (!preparedResultShareFile) {
-      throw new Error(
-        preparingResultShare
-          ? "SiegerCard wird gerade vorbereitet. Bitte gleich nochmal tippen."
-          : "SiegerCard ist noch nicht bereit. Bitte kurz erneut versuchen."
-      );
-    }
+      if (!preparedResultShareFile) {
+        setResultShareMessage("SiegerCard wird vorbereitet. Bitte gleich nochmal tippen.");
+        void prepareResultShare();
+        return;
+      }
 
-    if (typeof navigator.canShare === "function") {
-      const canShareFiles = navigator.canShare({
+      if (typeof navigator.canShare === "function") {
+        const canShareFiles = navigator.canShare({
+          files: [preparedResultShareFile],
+        });
+
+        if (!canShareFiles) {
+          throw new Error(
+            "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
+          );
+        }
+      }
+
+      await navigator.share({
         files: [preparedResultShareFile],
       });
 
-      if (!canShareFiles) {
-        throw new Error(
-          "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
-        );
+      setResultShareMessage("SiegerCard erfolgreich geteilt.");
+    } catch (e: unknown) {
+      const error =
+        e instanceof Error ? e : new Error("SiegerCard konnte nicht geteilt werden.");
+
+      const errorName =
+        typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        typeof (error as { name?: unknown }).name === "string"
+          ? (error as { name: string }).name
+          : "";
+
+      if (errorName === "AbortError") {
+        setResultShareMessage(null);
+        setErr(null);
+        return;
       }
+
+      const message = getErrorMessage(error, "SiegerCard konnte nicht geteilt werden.");
+      setErr(message);
+      setResultShareMessage(message);
+    } finally {
+      setSharingResult(false);
     }
-
-    await navigator.share({
-      files: [preparedResultShareFile],
-    });
-
-    setMsg("SiegerCard erfolgreich geteilt.");
-  } catch (e: unknown) {
-    const error =
-      e instanceof Error ? e : new Error("SiegerCard konnte nicht geteilt werden.");
-
-    const errorName =
-      typeof error === "object" &&
-      error !== null &&
-      "name" in error &&
-      typeof (error as { name?: unknown }).name === "string"
-        ? (error as { name: string }).name
-        : "";
-
-    if (errorName === "AbortError") {
-      setMsg(null);
-      setErr(null);
-      return;
-    }
-
-    setErr(getErrorMessage(error, "SiegerCard konnte nicht geteilt werden."));
-  } finally {
-    setSharingResult(false);
   }
-}
 
   async function handleDeleteSession() {
     if (!isAdmin) {
@@ -934,9 +964,18 @@ async function handleShareResult() {
         setAttendanceCollapsed(true);
         setTeamsCollapsed(true);
         setMsg(result.message);
+        setResultShareMessage("SiegerCard wird vorbereitet …");
+        setPreparedResultShareFile(null);
 
         if (result.hasResult) {
           setShowSessionEndModal(true);
+          void prepareResultShare().then((file) => {
+            setResultShareMessage(
+              file
+                ? "SiegerCard ist bereit zum Teilen."
+                : "SiegerCard konnte noch nicht vorbereitet werden."
+            );
+          });
         }
       }
     } catch (e: unknown) {
@@ -975,6 +1014,7 @@ async function handleShareResult() {
         setTeamsCollapsed(false);
         setShowSessionEndModal(false);
         setPreparedResultShareFile(null);
+        setResultShareMessage(null);
         setMsg(result.message);
       }
     } catch (e: unknown) {
@@ -1027,7 +1067,15 @@ async function handleShareResult() {
         setSession(nextSession);
         setWinnerPhotoUrl(result.winnerPhotoUrl);
         setPreparedResultShareFile(null);
+        setResultShareMessage("SiegerCard wird mit neuem Siegerfoto vorbereitet …");
         setMsg(result.message);
+        void prepareResultShare().then((file) => {
+          setResultShareMessage(
+            file
+              ? "SiegerCard mit Siegerfoto ist bereit zum Teilen."
+              : "SiegerCard konnte nach dem Foto-Upload noch nicht vorbereitet werden."
+          );
+        });
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Siegerfoto konnte nicht hochgeladen werden."));
@@ -1069,7 +1117,15 @@ async function handleShareResult() {
         setSession(nextSession);
         setWinnerPhotoUrl(result.winnerPhotoUrl);
         setPreparedResultShareFile(null);
+        setResultShareMessage("SiegerCard wird ohne Siegerfoto vorbereitet …");
         setMsg(result.message);
+        void prepareResultShare().then((file) => {
+          setResultShareMessage(
+            file
+              ? "Aktualisierte SiegerCard ist bereit zum Teilen."
+              : "SiegerCard konnte nach dem Löschen des Fotos noch nicht vorbereitet werden."
+          );
+        });
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Siegerfoto konnte nicht gelöscht werden."));
@@ -1135,6 +1191,12 @@ async function handleShareResult() {
     deletingSession,
     msg,
     err,
+
+    preparedResultShareFile,
+    preparingResultShare,
+    resultShareReady,
+    resultShareMessage,
+    prepareResultShare,
 
     attendanceDirty,
     presentPlayers,

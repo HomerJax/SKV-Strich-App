@@ -79,6 +79,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     msg,
     err,
 
+    preparingResultShare,
+    resultShareReady,
+    resultShareMessage,
+
     attendanceDirty,
     presentPlayers,
     teamA,
@@ -316,7 +320,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         </div>
       </div>
 
-            <SessionEndModal
+      <SessionEndModal
         open={showSessionEndModal}
         onClose={() => setShowSessionEndModal(false)}
         scoreA={scoreAValue}
@@ -326,6 +330,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         onShareSocial={handleShareResult}
         sharingInternal={sharingInternal}
         sharingSocial={sharingResult}
+        resultShareReady={resultShareReady}
+        preparingResultShare={preparingResultShare}
+        resultShareMessage={resultShareMessage}
       />
     </>
   );
