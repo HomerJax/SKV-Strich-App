@@ -38,6 +38,7 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
           position: "relative",
           display: "flex",
           width: "100%",
+          height: "100%",
           borderRadius: 40,
           overflow: "hidden",
           border: "1px solid rgba(255,255,255,0.1)",
@@ -57,16 +58,9 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
           style={{
             position: "absolute",
             inset: 0,
-            background: `
-              linear-gradient(
-                to top,
-                rgba(2,5,10,0.96) 0%,
-                rgba(2,5,10,0.82) 22%,
-                rgba(2,5,10,0.34) 50%,
-                rgba(2,5,10,0.16) 68%,
-                rgba(2,5,10,0.22) 100%
-              )
-            `,
+            display: "flex",
+            background:
+              "linear-gradient(to top, rgba(2,5,10,0.96) 0%, rgba(2,5,10,0.82) 22%, rgba(2,5,10,0.34) 50%, rgba(2,5,10,0.16) 68%, rgba(2,5,10,0.22) 100%)",
           }}
         />
 
@@ -74,15 +68,9 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
           style={{
             position: "absolute",
             inset: 0,
-            background: `
-              linear-gradient(
-                90deg,
-                rgba(2,5,10,0.34) 0%,
-                rgba(2,5,10,0.12) 28%,
-                rgba(2,5,10,0) 52%,
-                rgba(2,5,10,0.08) 100%
-              )
-            `,
+            display: "flex",
+            background:
+              "linear-gradient(90deg, rgba(2,5,10,0.34) 0%, rgba(2,5,10,0.12) 28%, rgba(2,5,10,0) 52%, rgba(2,5,10,0.08) 100%)",
           }}
         />
 
@@ -112,14 +100,13 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
               alignItems: "center",
               padding: "9px 14px",
               borderRadius: 999,
-              background: "rgba(4,10,18,0.56)",
+              background: "rgba(4,10,18,0.72)",
               border: "1px solid rgba(255,255,255,0.1)",
               color: "rgba(255,255,255,0.76)",
               fontSize: 12,
               fontWeight: 800,
               letterSpacing: "1.3px",
               textTransform: "uppercase",
-              backdropFilter: "blur(8px)",
             }}
           >
             {data.date}
@@ -150,11 +137,11 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
-                width: "fit-content",
                 alignItems: "center",
+                alignSelf: "flex-start",
                 padding: "9px 14px",
                 borderRadius: 999,
-                background: "rgba(4,10,18,0.52)",
+                background: "rgba(4,10,18,0.68)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 color: "rgba(255,255,255,0.72)",
                 fontSize: 12,
@@ -186,10 +173,9 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
                 maxWidth: 540,
                 padding: "14px 16px",
                 borderRadius: 18,
-                background: "rgba(4,10,18,0.68)",
+                background: "rgba(4,10,18,0.8)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 boxShadow: "0 12px 28px rgba(0,0,0,0.24)",
-                backdropFilter: "blur(10px)",
               }}
             >
               <div
@@ -209,11 +195,11 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
               style={{
                 display: "flex",
                 alignItems: "center",
+                alignSelf: "flex-start",
                 padding: "12px 14px",
                 borderRadius: 18,
-                background: "rgba(4,10,18,0.5)",
+                background: "rgba(4,10,18,0.7)",
                 border: "1px solid rgba(255,255,255,0.08)",
-                width: "fit-content",
               }}
             >
               {renderBrandFooter({
@@ -233,14 +219,9 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
               minWidth: 320,
               padding: "26px 30px",
               borderRadius: 34,
-              background: "rgba(3,8,16,0.88)",
+              background: "rgba(3,8,16,0.94)",
               border: "1px solid rgba(255,255,255,0.12)",
-              boxShadow: `
-                0 20px 48px rgba(0,0,0,0.38),
-                inset 0 1px 0 rgba(255,255,255,0.04),
-                0 0 0 1px rgba(255,255,255,0.02)
-              `,
-              backdropFilter: "blur(12px)",
+              boxShadow: "0 20px 48px rgba(0,0,0,0.38)",
             }}
           >
             <div
