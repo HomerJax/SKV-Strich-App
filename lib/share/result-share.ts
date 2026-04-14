@@ -1,4 +1,3 @@
-import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { ResultShareData } from "./types";
 import { formatDate } from "./utils";
@@ -53,40 +52,6 @@ function isDataUrl(value: string) {
   return /^data:/i.test(value);
 }
 
-async function toCompressedDataUrlFromUrl(url: string) {
-  const response = await fetch(url, {
-    method: "GET",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Siegerfoto konnte nicht geladen werden (HTTP ${response.status}).`
-    );
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const inputBuffer = Buffer.from(arrayBuffer);
-
-  const outputBuffer = await sharp(inputBuffer)
-    .rotate()
-    .resize({
-      width: 900,
-      height: 900,
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .jpeg({
-      quality: 72,
-      mozjpeg: true,
-    })
-    .toBuffer();
-
-  const base64 = outputBuffer.toString("base64");
-
-  return `data:image/jpeg;base64,${base64}`;
-}
-
 async function getWinnerPhotoUrl(
   winnerPhotoPath: string | null,
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -107,7 +72,7 @@ async function getWinnerPhotoUrl(
     }
 
     if (isAbsoluteUrl(trimmedPath)) {
-      return await toCompressedDataUrlFromUrl(trimmedPath);
+      return trimmedPath;
     }
 
     const { data, error } = await supabase.storage
@@ -119,7 +84,7 @@ async function getWinnerPhotoUrl(
       return null;
     }
 
-    return await toCompressedDataUrlFromUrl(data.signedUrl);
+    return data.signedUrl;
   } catch (error) {
     console.error("Failed to prepare winner photo for result share:", error);
     return null;
