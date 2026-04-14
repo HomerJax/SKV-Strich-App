@@ -122,17 +122,23 @@ export async function shareImageFromUrl({
   if (canUseNavigatorShare) {
     try {
       const file = await fetchImageAsFile(absoluteUrl, fileName);
-      const shareDataWithFile = {
-        title,
-        text,
+
+      const fileOnlyShareData = {
         files: [file],
       };
 
-      if (
-        typeof navigator.canShare === "function" &&
-        navigator.canShare(shareDataWithFile)
-      ) {
-        await navigator.share(shareDataWithFile);
+      const fullShareData = {
+        files: [file],
+        title,
+        text,
+      };
+
+      const canShareFiles =
+        typeof navigator.canShare !== "function" ||
+        navigator.canShare(fileOnlyShareData);
+
+      if (canShareFiles) {
+        await navigator.share(fullShareData);
         return {
           mode: "shared_file" as const,
         };
@@ -145,15 +151,6 @@ export async function shareImageFromUrl({
   try {
     const blob = await fetchImageBlob(absoluteUrl);
     downloadBlob(blob, fileName);
-
-    try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(absoluteUrl);
-      }
-    } catch {
-      // ignore clipboard errors
-    }
-
     return {
       mode: "downloaded" as const,
     };
