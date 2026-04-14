@@ -66,19 +66,53 @@ export async function POST(
     return fail(access.error ?? "Unbekannter Fehler.", access.status);
   }
 
-  const { supabase, clubId, membership, session, isPowerUser } = access;
+  const {
+    supabase,
+    adminSupabase,
+    clubId,
+    membership,
+    session,
+    isPowerUser,
+    currentPlayerId,
+    currentUserEmail,
+  } = access;
 
   try {
     const formData = await request.formData();
     const intent = String(formData.get("intent") ?? "").trim();
 
     if (intent === "toggle_presence") {
-      const playerId = Number(String(formData.get("player_id") ?? ""));
+      const requestedPlayerId = Number(String(formData.get("player_id") ?? ""));
+      const hasAdminAccess = canManageClub({
+        isPowerUser,
+        role: membership.role,
+      });
+
+      if (!Number.isFinite(requestedPlayerId)) {
+        return fail("Ungültige Spieler-ID.", 400);
+      }
+
+      if (!hasAdminAccess) {
+        if (!Number.isFinite(currentPlayerId)) {
+          return fail(
+            "Dein Spielerprofil konnte nicht eindeutig aufgelöst werden.",
+            403
+          );
+        }
+
+        if (requestedPlayerId !== currentPlayerId) {
+          return fail(
+            "Du darfst nur deine eigene Anwesenheit ändern.",
+            403
+          );
+        }
+      }
 
       return handleTogglePresence({
-        supabase,
+        supabase: adminSupabase,
         sessionId,
-        playerId,
+        clubId,
+        playerId: requestedPlayerId,
       });
     }
 
@@ -106,14 +140,13 @@ export async function POST(
         return fail("Ungültiger Status.", 400);
       }
 
-      const authResult = await supabase.auth.getUser();
-      const userEmail = authResult.data.user?.email?.trim().toLowerCase() ?? null;
+      const userEmail = currentUserEmail;
 
       if (!userEmail) {
         return fail("Benutzer konnte nicht aufgelöst werden.", 401);
       }
 
-      const { data: playerData, error: playerError } = await supabase
+      const { data: playerData, error: playerError } = await adminSupabase
         .from("players")
         .select("id")
         .eq("club_id", clubId)
@@ -137,7 +170,7 @@ export async function POST(
       }
 
       if (status === "in") {
-        const { error: insertError } = await supabase
+        const { error: insertError } = await adminSupabase
           .from("session_players")
           .upsert(
             {
@@ -162,7 +195,7 @@ export async function POST(
         });
       }
 
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await adminSupabase
         .from("session_players")
         .delete()
         .eq("session_id", sessionId)

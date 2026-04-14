@@ -87,6 +87,13 @@ export async function requireSessionAccess(sessionId: number) {
 
   const adminSupabase = createServiceRoleClient();
 
+  const currentPlayerId =
+    typeof ctx.player?.id === "number" && Number.isFinite(ctx.player.id)
+      ? ctx.player.id
+      : null;
+
+  const currentUserEmail = ctx.user.email?.trim().toLowerCase() ?? null;
+
   return {
     supabase: userSupabase,
     adminSupabase,
@@ -94,5 +101,7 @@ export async function requireSessionAccess(sessionId: number) {
     membership,
     isPowerUser: ctx.isPowerUser,
     session: sessionData as SessionRow,
+    currentPlayerId,
+    currentUserEmail,
   };
 }

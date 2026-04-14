@@ -1,21 +1,36 @@
-import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { fail, ok } from "@/lib/session-detail/response";
 
-type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
-
 type TogglePresenceInput = {
-  supabase: SessionDetailSupabase;
+  supabase: SupabaseClient;
   sessionId: number;
+  clubId: string;
   playerId: number;
 };
 
 export async function handleTogglePresence({
   supabase,
   sessionId,
+  clubId,
   playerId,
 }: TogglePresenceInput) {
   if (!Number.isFinite(playerId)) {
     return fail("Ungültige Spieler-ID.");
+  }
+
+  const { data: playerData, error: playerError } = await supabase
+    .from("players")
+    .select("id")
+    .eq("id", playerId)
+    .eq("club_id", clubId)
+    .maybeSingle();
+
+  if (playerError) {
+    return fail(`Spieler konnte nicht geladen werden: ${playerError.message}`, 500);
+  }
+
+  if (!playerData?.id) {
+    return fail("Spieler gehört nicht zu diesem Team.", 404);
   }
 
   const { data: existingResult, error: existingResultError } = await supabase
