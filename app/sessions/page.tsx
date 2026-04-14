@@ -3,6 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import PageHero from "@/components/PageHero";
 
+type SessionsPageProps = {
+  searchParams?: Promise<{
+    success?: string;
+  }>;
+};
+
 type Season = {
   id: number;
   name: string;
@@ -32,9 +38,13 @@ function fmtDateDE(iso: string) {
   });
 }
 
-export default async function SessionsPage() {
+export default async function SessionsPage({
+  searchParams,
+}: SessionsPageProps) {
   const { clubId } = await requireClub();
   const supabase = await createClient();
+  const resolvedSearchParams = await searchParams;
+  const successMessage = resolvedSearchParams?.success ?? "";
 
   const [
     { data: clubData },
@@ -98,7 +108,6 @@ export default async function SessionsPage() {
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        {/* BACK */}
         <div className="flex items-center">
           <Link
             href="/"
@@ -108,7 +117,6 @@ export default async function SessionsPage() {
           </Link>
         </div>
 
-        {/* HERO (NEU 🔥) */}
         <PageHero
           eyebrow="Trainings"
           title="Trainingsübersicht"
@@ -124,14 +132,18 @@ export default async function SessionsPage() {
           }
         />
 
-        {/* INFO */}
+        {successMessage ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            {successMessage}
+          </div>
+        ) : null}
+
         {totalSessions > 0 && (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
             {totalSessions} {totalSessions === 1 ? "Training" : "Trainings"} gespeichert.
           </div>
         )}
 
-        {/* EMPTY */}
         {totalSessions === 0 && (
           <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="max-w-lg">
@@ -164,7 +176,6 @@ export default async function SessionsPage() {
           </div>
         )}
 
-        {/* LIST */}
         {totalSessions > 0 && (
           <div className="space-y-4">
             {seasonListSorted.map((season) => {
