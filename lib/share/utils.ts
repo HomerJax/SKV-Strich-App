@@ -62,13 +62,13 @@ async function fetchImageBlob(url: string) {
   });
 
   if (!response.ok) {
-    throw new Error("Bild konnte nicht geladen werden.");
+    throw new Error(`Bild konnte nicht geladen werden (HTTP ${response.status}).`);
   }
 
   return response.blob();
 }
 
-async function fetchImageAsFile(url: string, fileName: string) {
+export async function fetchImageAsFile(url: string, fileName: string) {
   const blob = await fetchImageBlob(url);
 
   const contentType =
@@ -82,27 +82,6 @@ async function fetchImageAsFile(url: string, fileName: string) {
   });
 }
 
-function downloadBlob(blob: Blob, fileName: string) {
-  if (typeof window === "undefined") {
-    throw new Error("Download ist hier nicht verfügbar.");
-  }
-
-  const safeFileName = fileName.includes(".") ? fileName : `${fileName}.png`;
-  const objectUrl = URL.createObjectURL(blob);
-
-  try {
-    const anchor = document.createElement("a");
-    anchor.href = objectUrl;
-    anchor.download = safeFileName;
-    anchor.rel = "noopener";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-  } finally {
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-  }
-}
-
 export async function shareImageFromUrl({
   imageUrl,
   fileName = "strikr-share.png",
@@ -113,54 +92,48 @@ export async function shareImageFromUrl({
     throw new Error("Teilen ist hier nicht verfügbar.");
   }
 
+  if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+    throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+  }
+
   const absoluteUrl = new URL(imageUrl, window.location.origin).toString();
-  const canUseNavigatorShare =
-    typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const file = await fetchImageAsFile(absoluteUrl, fileName);
 
-  let lastError: unknown = null;
+  if (typeof navigator.canShare === "function") {
+    const canShareFiles = navigator.canShare({
+      files: [file],
+    });
 
-  if (canUseNavigatorShare) {
-    try {
-      const file = await fetchImageAsFile(absoluteUrl, fileName);
-
-      const fileOnlyShareData = {
-        files: [file],
-      };
-
-      const fullShareData = {
-        files: [file],
-        title,
-        text,
-      };
-
-      const canShareFiles =
-        typeof navigator.canShare !== "function" ||
-        navigator.canShare(fileOnlyShareData);
-
-      if (canShareFiles) {
-        await navigator.share(fullShareData);
-        return {
-          mode: "shared_file" as const,
-        };
-      }
-    } catch (error) {
-      lastError = error;
+    if (!canShareFiles) {
+      throw new Error(
+        "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
+      );
     }
   }
 
   try {
-    const blob = await fetchImageBlob(absoluteUrl);
-    downloadBlob(blob, fileName);
+    await navigator.share({
+      files: [file],
+      title,
+      text,
+    });
+
     return {
-      mode: "downloaded" as const,
+      mode: "shared_file" as const,
     };
   } catch (error) {
-    lastError = error;
-  }
+    const errorName = error instanceof Error ? error.name : "";
 
-  throw new Error(
-    lastError instanceof Error
-      ? lastError.message
-      : "SiegerCard konnte weder geteilt noch heruntergeladen werden."
-  );
+    if (errorName === "AbortError") {
+      return {
+        mode: "cancelled" as const,
+      };
+    }
+
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "SiegerCard konnte nicht geteilt werden."
+    );
+  }
 }

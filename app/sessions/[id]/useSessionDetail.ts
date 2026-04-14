@@ -11,7 +11,6 @@ import {
   shuffle,
   sumTeamScore,
 } from "./session-ui";
-import { shareImageFromUrl } from "@/lib/share/utils";
 import {
   ClubSettings,
   getAutoTeamNames,
@@ -22,6 +21,7 @@ import {
   teamMeta,
   withDisplayNames,
 } from "./session-detail-helpers";
+import { fetchImageAsFile } from "@/lib/share/utils";
 
 type SessionDetailClientProps = {
   sessionId: number;
@@ -61,6 +61,10 @@ type ApiSuccess =
 type ApiError = {
   error: string;
 };
+
+async function fetchShareImageFile(imageUrl: string, fileName: string) {
+  return fetchImageAsFile(imageUrl, fileName);
+}
 
 export function useSessionDetail({
   sessionId,
@@ -140,6 +144,11 @@ export function useSessionDetail({
   const [deletingSession, setDeletingSession] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  const [preparedResultShareFile, setPreparedResultShareFile] = useState<File | null>(
+    null
+  );
+  const [preparingResultShare, setPreparingResultShare] = useState(false);
 
   async function postForm(formData: FormData): Promise<ApiSuccess> {
     const response = await fetch(`/api/sessions/${sessionId}`, {
@@ -309,6 +318,56 @@ export function useSessionDetail({
           ? "Teams fertig zuweisen"
           : "Ergebnis eintragen und speichern";
 
+  const resultShareImageUrl = useMemo(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    if (!canShareResult) {
+      return null;
+    }
+
+    return `${window.location.origin}/api/share/result/${sessionId}/image`;
+  }, [canShareResult, sessionId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function prepareResultShareFile() {
+      if (!resultShareImageUrl) {
+        setPreparedResultShareFile(null);
+        return;
+      }
+
+      try {
+        setPreparingResultShare(true);
+
+        const nextFile = await fetchShareImageFile(
+          resultShareImageUrl,
+          `strikr-result-${sessionId}.png`
+        );
+
+        if (!cancelled) {
+          setPreparedResultShareFile(nextFile);
+        }
+      } catch {
+        if (!cancelled) {
+          setPreparedResultShareFile(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setPreparingResultShare(false);
+        }
+      }
+    }
+
+    void prepareResultShareFile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resultShareImageUrl, sessionId]);
+
   async function shareText(text: string, title: string) {
     if (typeof navigator !== "undefined" && navigator.share) {
       await navigator.share({
@@ -430,16 +489,66 @@ ${sessionUrl}`;
         );
       }
 
-      const imageUrl = `${window.location.origin}/api/share/result/${sessionId}/image`;
+      if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+        throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+      }
 
-      await shareImageFromUrl({
-        imageUrl,
-        fileName: `strikr-result-${sessionId}.png`,
+      let fileToShare = preparedResultShareFile;
+
+      if (!fileToShare && resultShareImageUrl) {
+        fileToShare = await fetchShareImageFile(
+          resultShareImageUrl,
+          `strikr-result-${sessionId}.png`
+        );
+        setPreparedResultShareFile(fileToShare);
+      }
+
+      if (!fileToShare) {
+        throw new Error(
+          preparingResultShare
+            ? "SiegerCard wird gerade vorbereitet. Bitte in 1–2 Sekunden erneut tippen."
+            : "SiegerCard konnte nicht vorbereitet werden."
+        );
+      }
+
+      if (typeof navigator.canShare === "function") {
+        const canShareFiles = navigator.canShare({
+          files: [fileToShare],
+        });
+
+        if (!canShareFiles) {
+          throw new Error(
+            "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
+          );
+        }
+      }
+
+      await navigator.share({
+        files: [fileToShare],
+        title: "STRIKR SiegerCard",
+        text: "SiegerCard aus Strikr",
       });
 
       setMsg("SiegerCard erfolgreich geteilt.");
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "SiegerCard konnte nicht geteilt werden."));
+      const error =
+        e instanceof Error ? e : new Error("SiegerCard konnte nicht geteilt werden.");
+
+      const errorName =
+        typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        typeof (error as { name?: unknown }).name === "string"
+          ? (error as { name: string }).name
+          : "";
+
+      if (errorName === "AbortError") {
+        setMsg(null);
+        setErr(null);
+        return;
+      }
+
+      setErr(getErrorMessage(error, "SiegerCard konnte nicht geteilt werden."));
     } finally {
       setSharingResult(false);
     }
@@ -877,6 +986,7 @@ ${sessionUrl}`;
         setAttendanceCollapsed(false);
         setTeamsCollapsed(false);
         setShowSessionEndModal(false);
+        setPreparedResultShareFile(null);
         setMsg(result.message);
       }
     } catch (e: unknown) {
@@ -928,6 +1038,7 @@ ${sessionUrl}`;
 
         setSession(nextSession);
         setWinnerPhotoUrl(result.winnerPhotoUrl);
+        setPreparedResultShareFile(null);
         setMsg(result.message);
       }
     } catch (e: unknown) {
@@ -969,6 +1080,7 @@ ${sessionUrl}`;
 
         setSession(nextSession);
         setWinnerPhotoUrl(result.winnerPhotoUrl);
+        setPreparedResultShareFile(null);
         setMsg(result.message);
       }
     } catch (e: unknown) {
