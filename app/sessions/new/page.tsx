@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import NewSessionForm from "./NewSessionForm";
 
 type NewSessionPageProps = {
   searchParams?: Promise<{
@@ -12,21 +13,19 @@ type NewSessionPageProps = {
 
 type SeasonRow = {
   id: number;
+  name: string;
   start_date: string | null;
   end_date: string | null;
 };
 
 type CreateMode = "single" | "series";
 
-const WEEKDAY_OPTIONS = [
-  { value: "1", label: "Montag" },
-  { value: "2", label: "Dienstag" },
-  { value: "3", label: "Mittwoch" },
-  { value: "4", label: "Donnerstag" },
-  { value: "5", label: "Freitag" },
-  { value: "6", label: "Samstag" },
-  { value: "0", label: "Sonntag" },
-] as const;
+type NewSessionFormSeason = {
+  id: number;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
+};
 
 function getTodayIsoDate() {
   const d = new Date();
@@ -75,16 +74,25 @@ function getDatesForWeekdaysInRange(
   const end = parseIsoDate(endDateIso);
 
   if (!start || !end) {
-    return { error: "Bitte gültige Start- und Enddaten wählen.", dates: [] as string[] };
+    return {
+      error: "Bitte gültige Datumswerte wählen.",
+      dates: [] as string[],
+    };
   }
 
   if (start > end) {
-    return { error: "Das Enddatum muss am oder nach dem Startdatum liegen.", dates: [] as string[] };
+    return {
+      error: "Das Startdatum muss vor oder am Saisonende liegen.",
+      dates: [] as string[],
+    };
   }
 
   const weekdaySet = new Set(weekdays);
   if (weekdaySet.size === 0) {
-    return { error: "Bitte mindestens einen Wochentag auswählen.", dates: [] as string[] };
+    return {
+      error: "Bitte mindestens einen Wochentag auswählen.",
+      dates: [] as string[],
+    };
   }
 
   const dates: string[] = [];
@@ -117,7 +125,7 @@ async function findSeasonIdForDate(
     .gte("end_date", date)
     .order("start_date", { ascending: false })
     .limit(1)
-    .maybeSingle<SeasonRow>();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Saison konnte nicht geladen werden: ${error.message}`);
@@ -129,20 +137,35 @@ async function findSeasonIdForDate(
 export default async function NewSessionPage({
   searchParams,
 }: NewSessionPageProps) {
-  await requireClub();
+  const { clubId } = await requireClub();
+  const supabase = await createClient();
   const resolvedSearchParams = await searchParams;
 
   const todayIso = getTodayIsoDate();
-  const initialStartDate = todayIso;
-  const initialEndDate = todayIso;
   const errorMessage = resolvedSearchParams?.error ?? "";
   const successMessage = resolvedSearchParams?.success ?? "";
+
+  const { data: seasonsData, error: seasonsError } = await supabase
+    .from("seasons")
+    .select("id, name, start_date, end_date")
+    .eq("club_id", clubId)
+    .order("start_date", { ascending: false });
+
+  if (seasonsError) {
+    throw new Error(
+      seasonsError.message || "Saisons konnten nicht geladen werden."
+    );
+  }
+
+  const seasons = ((seasonsData as SeasonRow[] | null) ?? []).filter(
+    (season) => season.start_date && season.end_date
+  );
 
   async function createSessionAction(formData: FormData) {
     "use server";
 
-    const { clubId } = await requireClub();
-    const supabase = await createClient();
+    const { clubId: actionClubId } = await requireClub();
+    const actionSupabase = await createClient();
 
     const modeRaw = String(formData.get("mode") ?? "single").trim();
     const mode: CreateMode = modeRaw === "series" ? "series" : "single";
@@ -151,8 +174,13 @@ export default async function NewSessionPage({
     const notesRaw = String(formData.get("notes") ?? "").trim();
     const notes = notesRaw === "" ? null : notesRaw;
 
-    const seriesStartDate = String(formData.get("series_start_date") ?? "").trim();
-    const seriesEndDate = String(formData.get("series_end_date") ?? "").trim();
+    const seriesStartDate = String(
+      formData.get("series_start_date") ?? ""
+    ).trim();
+    const selectedSeasonIdRaw = String(
+      formData.get("series_season_id") ?? ""
+    ).trim();
+    const selectedSeasonId = Number(selectedSeasonIdRaw);
     const weekdayOne = getWeekdayNumber(formData.get("weekday_one"));
     const weekdayTwo = getWeekdayNumber(formData.get("weekday_two"));
 
@@ -162,15 +190,15 @@ export default async function NewSessionPage({
           redirect("/sessions/new?error=Bitte%20Datum%20ausw%C3%A4hlen.");
         }
 
-        const seasonId = await findSeasonIdForDate(supabase, clubId, date);
+        const seasonId = await findSeasonIdForDate(actionSupabase, actionClubId, date);
 
-        const { data: created, error: insertError } = await supabase
+        const { data: created, error: insertError } = await actionSupabase
           .from("sessions")
           .insert({
             date,
             notes,
             season_id: seasonId,
-            club_id: clubId,
+            club_id: actionClubId,
           })
           .select("id")
           .single();
@@ -186,13 +214,62 @@ export default async function NewSessionPage({
         redirect(`/sessions/${created.id}`);
       }
 
+      if (!Number.isFinite(selectedSeasonId)) {
+        redirect("/sessions/new?error=Bitte%20eine%20Saison%20ausw%C3%A4hlen.");
+      }
+
+      const { data: season, error: seasonError } = await actionSupabase
+        .from("seasons")
+        .select("id, name, start_date, end_date")
+        .eq("club_id", actionClubId)
+        .eq("id", selectedSeasonId)
+        .maybeSingle<SeasonRow>();
+
+      if (seasonError) {
+        redirect(
+          `/sessions/new?error=${encodeURIComponent(
+            seasonError.message || "Saison konnte nicht geladen werden."
+          )}`
+        );
+      }
+
+      if (!season?.start_date || !season?.end_date) {
+        redirect(
+          "/sessions/new?error=Die%20gew%C3%A4hlte%20Saison%20hat%20keinen%20g%C3%BCltigen%20Zeitraum."
+        );
+      }
+
+      if (!seriesStartDate) {
+        redirect(
+          "/sessions/new?error=Bitte%20ein%20Startdatum%20f%C3%BCr%20die%20Serie%20w%C3%A4hlen."
+        );
+      }
+
+      const seasonStart = parseIsoDate(season.start_date);
+      const seasonEnd = parseIsoDate(season.end_date);
+      const seriesStart = parseIsoDate(seriesStartDate);
+
+      if (!seasonStart || !seasonEnd || !seriesStart) {
+        redirect(
+          "/sessions/new?error=Die%20Datumswerte%20konnten%20nicht%20verarbeitet%20werden."
+        );
+      }
+
+      if (seriesStart < seasonStart || seriesStart > seasonEnd) {
+        redirect(
+          "/sessions/new?error=Das%20Startdatum%20muss%20innerhalb%20der%20gew%C3%A4hlten%20Saison%20liegen."
+        );
+      }
+
       const selectedWeekdays = Array.from(
-        new Set([weekdayOne, weekdayTwo].filter((value): value is number => value !== null))
+        new Set(
+          [weekdayOne, weekdayTwo].filter((value): value is number => value !== null)
+        )
       );
 
       const generated = getDatesForWeekdaysInRange(
         seriesStartDate,
-        seriesEndDate,
+        season.end_date,
         selectedWeekdays
       );
 
@@ -206,25 +283,30 @@ export default async function NewSessionPage({
         );
       }
 
-      const existingDatesResult = await supabase
+      const existingDatesResult = await actionSupabase
         .from("sessions")
         .select("date")
-        .eq("club_id", clubId)
+        .eq("club_id", actionClubId)
         .in("date", generated.dates);
 
       if (existingDatesResult.error) {
         redirect(
           `/sessions/new?error=${encodeURIComponent(
-            existingDatesResult.error.message || "Bestehende Trainings konnten nicht geprüft werden."
+            existingDatesResult.error.message ||
+              "Bestehende Trainings konnten nicht geprüft werden."
           )}`
         );
       }
 
       const existingDates = new Set(
-        ((existingDatesResult.data as { date: string }[] | null) ?? []).map((row) => row.date)
+        (((existingDatesResult.data as { date: string }[] | null) ?? []).map(
+          (row) => row.date
+        ))
       );
 
-      const datesToCreate = generated.dates.filter((entry) => !existingDates.has(entry));
+      const datesToCreate = generated.dates.filter(
+        (entry) => !existingDates.has(entry)
+      );
 
       if (datesToCreate.length === 0) {
         redirect(
@@ -232,25 +314,14 @@ export default async function NewSessionPage({
         );
       }
 
-      const rowsToInsert: {
-        date: string;
-        notes: string | null;
-        season_id: number | null;
-        club_id: string;
-      }[] = [];
+      const rowsToInsert = datesToCreate.map((currentDate) => ({
+        date: currentDate,
+        notes,
+        season_id: season.id,
+        club_id: actionClubId,
+      }));
 
-      for (const currentDate of datesToCreate) {
-        const seasonId = await findSeasonIdForDate(supabase, clubId, currentDate);
-
-        rowsToInsert.push({
-          date: currentDate,
-          notes,
-          season_id: seasonId,
-          club_id: clubId,
-        });
-      }
-
-      const { error: insertError } = await supabase
+      const { error: insertError } = await actionSupabase
         .from("sessions")
         .insert(rowsToInsert);
 
@@ -263,7 +334,9 @@ export default async function NewSessionPage({
       }
 
       redirect(
-        `/sessions?success=${encodeURIComponent(formatSuccessMessage(rowsToInsert.length))}`
+        `/sessions?success=${encodeURIComponent(
+          formatSuccessMessage(rowsToInsert.length)
+        )}`
       );
     } catch (error) {
       const message =
@@ -271,6 +344,13 @@ export default async function NewSessionPage({
       redirect(`/sessions/new?error=${encodeURIComponent(message)}`);
     }
   }
+
+  const formSeasons: NewSessionFormSeason[] = seasons.map((season) => ({
+    id: season.id,
+    name: season.name,
+    start_date: season.start_date,
+    end_date: season.end_date,
+  }));
 
   return (
     <div className="space-y-4">
@@ -310,132 +390,11 @@ export default async function NewSessionPage({
         </div>
       </div>
 
-      <form
+      <NewSessionForm
         action={createSessionAction}
-        className="space-y-4 rounded-xl border border-slate-200 bg-white p-4"
-      >
-        <fieldset className="space-y-2">
-          <legend className="text-xs font-semibold text-slate-700">
-            Modus
-          </legend>
-
-          <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
-            <input type="radio" name="mode" value="single" defaultChecked />
-            Einzeltermin
-          </label>
-
-          <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
-            <input type="radio" name="mode" value="series" />
-            Serientermin
-          </label>
-        </fieldset>
-
-        <div className="rounded-xl border border-slate-200 p-4">
-          <div className="mb-3 text-sm font-semibold text-slate-900">
-            Einzeltermin
-          </div>
-
-          <label className="block">
-            <div className="mb-1 text-xs font-semibold text-slate-700">Datum</div>
-            <input
-              name="date"
-              type="date"
-              defaultValue={todayIso}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-            />
-          </label>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 p-4">
-          <div className="mb-3 text-sm font-semibold text-slate-900">
-            Serientermin
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <div className="mb-1 text-xs font-semibold text-slate-700">
-                Startdatum
-              </div>
-              <input
-                name="series_start_date"
-                type="date"
-                defaultValue={initialStartDate}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-              />
-            </label>
-
-            <label className="block">
-              <div className="mb-1 text-xs font-semibold text-slate-700">
-                Enddatum
-              </div>
-              <input
-                name="series_end_date"
-                type="date"
-                defaultValue={initialEndDate}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-              />
-            </label>
-          </div>
-
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <div className="mb-1 text-xs font-semibold text-slate-700">
-                Wochentag 1
-              </div>
-              <select
-                name="weekday_one"
-                defaultValue="4"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-              >
-                {WEEKDAY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <div className="mb-1 text-xs font-semibold text-slate-700">
-                Wochentag 2 (optional)
-              </div>
-              <select
-                name="weekday_two"
-                defaultValue=""
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-              >
-                <option value="">Kein zweiter Tag</option>
-                {WEEKDAY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="mt-3 text-xs text-slate-500">
-            Beispiel: Dienstag und Donnerstag im Saisonzeitraum. Bereits vorhandene
-            Trainings am gleichen Datum werden nicht doppelt angelegt.
-          </div>
-        </div>
-
-        <label className="block">
-          <div className="mb-1 text-xs font-semibold text-slate-700">Notiz</div>
-          <input
-            name="notes"
-            placeholder="optional, z. B. Flutlicht oder Hallentraining"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-          />
-        </label>
-
-        <button
-          type="submit"
-          className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          Training anlegen
-        </button>
-      </form>
+        initialDate={todayIso}
+        seasons={formSeasons}
+      />
     </div>
   );
 }
