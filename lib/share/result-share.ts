@@ -45,14 +45,24 @@ function buildWinnerLabel(goalsA: number, goalsB: number) {
   return goalsA > goalsB ? "Team A gewinnt" : "Team B gewinnt";
 }
 
-async function toCompressedDataUrlFromSignedUrl(url: string) {
+function isAbsoluteUrl(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
+function isDataUrl(value: string) {
+  return /^data:/i.test(value);
+}
+
+async function toCompressedDataUrlFromUrl(url: string) {
   const response = await fetch(url, {
     method: "GET",
     cache: "no-store",
   });
 
   if (!response.ok) {
-    throw new Error(`Siegerfoto konnte nicht geladen werden (HTTP ${response.status}).`);
+    throw new Error(
+      `Siegerfoto konnte nicht geladen werden (HTTP ${response.status}).`
+    );
   }
 
   const arrayBuffer = await response.arrayBuffer();
@@ -86,15 +96,30 @@ async function getWinnerPhotoUrl(
   }
 
   try {
-    const { data, error } = await supabase.storage
-      .from("session-photos")
-      .createSignedUrl(winnerPhotoPath, 60 * 60);
+    const trimmedPath = winnerPhotoPath.trim();
 
-    if (error || !data?.signedUrl) {
+    if (!trimmedPath) {
       return null;
     }
 
-    return await toCompressedDataUrlFromSignedUrl(data.signedUrl);
+    if (isDataUrl(trimmedPath)) {
+      return trimmedPath;
+    }
+
+    if (isAbsoluteUrl(trimmedPath)) {
+      return await toCompressedDataUrlFromUrl(trimmedPath);
+    }
+
+    const { data, error } = await supabase.storage
+      .from("session-photos")
+      .createSignedUrl(trimmedPath, 60 * 60);
+
+    if (error || !data?.signedUrl) {
+      console.error("Failed to create signed URL for winner photo:", error);
+      return null;
+    }
+
+    return await toCompressedDataUrlFromUrl(data.signedUrl);
   } catch (error) {
     console.error("Failed to prepare winner photo for result share:", error);
     return null;
@@ -144,7 +169,7 @@ export async function getResultShareData(
 ): Promise<ResultSharePayload> {
   const sessionId = Number(sessionIdRaw);
 
-  if (!Number.isFinite(sessionId)) {
+  if (!Number.isFinite(sessionId) || sessionId <= 0) {
     throw new Error("Ungültige Session-ID");
   }
 
@@ -184,6 +209,7 @@ export async function getResultShareData(
   }
 
   const branding = await getBaseShareBranding();
+
   const [{ club, clubLogoUrl }, winnerPhotoUrl] = await Promise.all([
     getClubShareData(session.club_id, supabase),
     getWinnerPhotoUrl(session.winner_photo_path, supabase),

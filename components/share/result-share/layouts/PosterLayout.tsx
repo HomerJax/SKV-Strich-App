@@ -225,6 +225,7 @@ export function PosterLayout({ data }: { data: ExtendedResultShareData }) {
           style={{
             display: "flex",
             width: "59%",
+            flex: 1,
             borderRadius: 34,
             overflow: "hidden",
             background: "#FFFFFF",

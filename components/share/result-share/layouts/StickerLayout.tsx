@@ -37,6 +37,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
           position: "relative",
           display: "flex",
           width: "100%",
+          height: "100%",
           borderRadius: 40,
           overflow: "hidden",
           border: "1px solid rgba(255,255,255,0.1)",
@@ -56,6 +57,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
           style={{
             position: "absolute",
             inset: 0,
+            display: "flex",
             background: `
               linear-gradient(
                 to top,
@@ -72,6 +74,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
           style={{
             position: "absolute",
             inset: 0,
+            display: "flex",
             background: `
               linear-gradient(
                 90deg,

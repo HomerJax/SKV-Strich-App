@@ -217,11 +217,50 @@ export function renderPhotoOrFallback(params: {
   height: number;
   borderRadius: number;
 }) {
+  if (params.winnerPhotoUrl) {
+    return (
+      <div
+        style={{
+          width: params.width,
+          height: params.height,
+          display: "flex",
+          borderRadius: params.borderRadius,
+          overflow: "hidden",
+          position: "relative",
+          background: params.dark ? "#0F172A" : "#E5E7EB",
+        }}
+      >
+        <img
+          src={params.winnerPhotoUrl}
+          alt="Siegerfoto"
+          width={params.width}
+          height={params.height}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            background:
+              "linear-gradient(to top, rgba(15,23,42,0.34), rgba(15,23,42,0.06) 40%, rgba(15,23,42,0))",
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
-        width: "100%",
-        height: "100%",
+        width: params.width,
+        height: params.height,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -230,11 +269,57 @@ export function renderPhotoOrFallback(params: {
           ? "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))"
           : "linear-gradient(135deg, rgba(15,23,42,0.06), rgba(15,23,42,0.02))",
         color: params.palette.textSecondary,
-        fontSize: 28,
-        fontWeight: 700,
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      Kein Siegerfoto
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          background: `
+            radial-gradient(circle at 30% 25%, ${params.palette.accentGlow}, transparent 28%),
+            linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04))
+          `,
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+          zIndex: 1,
+          textAlign: "center",
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontSize: 30,
+            fontWeight: 900,
+            color: params.palette.textPrimary,
+            letterSpacing: "-0.8px",
+          }}
+        >
+          STRIKR
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            fontSize: 18,
+            fontWeight: 700,
+            color: params.palette.textSecondary,
+          }}
+        >
+          Match Result
+        </div>
+      </div>
     </div>
   );
 }

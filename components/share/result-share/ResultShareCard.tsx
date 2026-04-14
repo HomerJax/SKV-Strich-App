@@ -1,4 +1,5 @@
 import { FloodlightLayout } from "./layouts/FloodlightLayout";
+import { PosterLayout } from "./layouts/PosterLayout";
 import { StickerLayout } from "./layouts/StickerLayout";
 import {
   ExtendedResultShareData,
@@ -18,7 +19,7 @@ function hashNumber(seed: number) {
 }
 
 function chooseLayout(data: ExtendedResultShareData): ResultShareLayout {
-  const layouts: ResultShareLayout[] = ["sticker", "floodlight"];
+  const layouts: ResultShareLayout[] = ["poster", "sticker", "floodlight"];
 
   const sessionSeed = Number.isFinite(data.sessionId) ? data.sessionId : 0;
   const index = hashNumber(sessionSeed) % layouts.length;
@@ -32,6 +33,10 @@ export default function ResultShareCard({
   data: ExtendedResultShareData;
 }) {
   const layout = chooseLayout(data);
+
+  if (layout === "poster") {
+    return <PosterLayout data={data} />;
+  }
 
   if (layout === "sticker") {
     return <StickerLayout data={data} />;
