@@ -1,12 +1,11 @@
-/* eslint-disable @next/next/no-img-element */
 import { ExtendedResultShareData, Palette } from "./result-share.types";
 
 export function getDisplayClubName(data: ExtendedResultShareData) {
   return data.clubName ?? data.branding.clubName ?? "Club Session";
 }
 
-export function getClubLogoUrl(data: ExtendedResultShareData) {
-  return data.clubLogoUrl ?? data.branding.clubCrestUrl ?? null;
+export function getClubLogoUrl(_data: ExtendedResultShareData) {
+  return null;
 }
 
 export function getScoreModel(data: ExtendedResultShareData) {
@@ -34,56 +33,23 @@ export function renderBrandFooter(params: {
         gap: 10,
       }}
     >
-      {params.strikrLogoUrl ? (
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: 9,
-            overflow: "hidden",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: params.dark ? "rgba(255,255,255,0.08)" : "#FFFFFF",
-            border: params.dark
-              ? "1px solid rgba(255,255,255,0.12)"
-              : "1px solid rgba(15,23,42,0.08)",
-            flexShrink: 0,
-          }}
-        >
-          <img
-            src={params.strikrLogoUrl}
-            alt="Strikr"
-            width={30}
-            height={30}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              display: "block",
-              padding: 4,
-            }}
-          />
-        </div>
-      ) : (
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: 9,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: params.dark ? "#FFFFFF" : params.palette.accent,
-            color: params.dark ? "#0F172A" : "#FFFFFF",
-            fontSize: 14,
-            fontWeight: 900,
-            flexShrink: 0,
-          }}
-        >
-          S
-        </div>
-      )}
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: params.dark ? "#FFFFFF" : params.palette.accent,
+          color: params.dark ? "#0F172A" : "#FFFFFF",
+          fontSize: 14,
+          fontWeight: 900,
+          flexShrink: 0,
+        }}
+      >
+        S
+      </div>
 
       <div
         style={{
@@ -125,9 +91,6 @@ export function renderClubBadge(params: {
   dark: boolean;
   strikrLogoUrl?: string | null;
 }) {
-  const fallbackLogo = params.strikrLogoUrl ?? null;
-  const logoSrc = params.clubLogoUrl ?? fallbackLogo;
-
   return (
     <div
       style={{
@@ -141,7 +104,6 @@ export function renderClubBadge(params: {
           width: 58,
           height: 58,
           borderRadius: 16,
-          overflow: "hidden",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -151,38 +113,12 @@ export function renderClubBadge(params: {
             : "1px solid rgba(15,23,42,0.08)",
           boxShadow: "0 12px 28px rgba(0,0,0,0.14)",
           flexShrink: 0,
+          color: params.dark ? "#FFFFFF" : "#0F172A",
+          fontSize: 18,
+          fontWeight: 900,
         }}
       >
-        {logoSrc ? (
-          <img
-            src={logoSrc}
-            alt={params.clubName}
-            width={58}
-            height={58}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              display: "block",
-              padding: 7,
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              width: "100%",
-              height: "100%",
-              alignItems: "center",
-              justifyContent: "center",
-              color: params.dark ? "#FFFFFF" : "#0F172A",
-              fontSize: 18,
-              fontWeight: 900,
-            }}
-          >
-            S
-          </div>
-        )}
+        S
       </div>
 
       <div
@@ -217,42 +153,24 @@ export function renderPhotoOrFallback(params: {
   height: number;
   borderRadius: number;
 }) {
-  if (!params.winnerPhotoUrl) {
-    return (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: params.borderRadius,
-          background: params.dark
-            ? "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))"
-            : "linear-gradient(135deg, rgba(15,23,42,0.06), rgba(15,23,42,0.02))",
-          color: params.palette.textSecondary,
-          fontSize: 28,
-          fontWeight: 700,
-        }}
-      >
-        Kein Siegerfoto
-      </div>
-    );
-  }
-
   return (
-    <img
-      src={params.winnerPhotoUrl}
-      alt="Siegerfoto"
-      width={params.width}
-      height={params.height}
+    <div
       style={{
         width: "100%",
         height: "100%",
-        objectFit: "cover",
-        display: "block",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         borderRadius: params.borderRadius,
+        background: params.dark
+          ? "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))"
+          : "linear-gradient(135deg, rgba(15,23,42,0.06), rgba(15,23,42,0.02))",
+        color: params.palette.textSecondary,
+        fontSize: 28,
+        fontWeight: 700,
       }}
-    />
+    >
+      Kein Siegerfoto
+    </div>
   );
 }
