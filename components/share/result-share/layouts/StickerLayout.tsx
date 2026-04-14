@@ -24,7 +24,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
         width: "100%",
         height: "100%",
         display: "flex",
-        padding: 12,
+        padding: 16,
         background: "#F3F4F6",
         color: "#0F172A",
       }}
@@ -38,15 +38,19 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
           borderRadius: 28,
           overflow: "hidden",
           background: "#FFFFFF",
+          border: "1px solid rgba(15,23,42,0.08)",
         }}
       >
-        {/* HEADER */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            padding: "18px 20px 12px 20px",
+            gap: 16,
+            padding: "18px 18px 12px 18px",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 100%)",
+            borderBottom: "1px solid rgba(15,23,42,0.06)",
           }}
         >
           {renderClubBadge({
@@ -59,43 +63,50 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
 
           <div
             style={{
-              padding: "6px 10px",
+              display: "flex",
+              alignItems: "center",
+              padding: "8px 12px",
               borderRadius: 999,
-              background: "rgba(15,23,42,0.05)",
-              fontSize: 11,
-              fontWeight: 800,
+              background: "rgba(15,23,42,0.04)",
+              border: "1px solid rgba(15,23,42,0.06)",
               color: "#475569",
+              fontSize: 12,
+              fontWeight: 800,
             }}
           >
             {data.date}
           </div>
         </div>
 
-        {/* CONTENT */}
         <div
           style={{
             display: "flex",
             flex: 1,
-            gap: 12,
-            padding: "0 12px 12px 12px",
+            gap: 14,
+            padding: 14,
+            background: "#FFFFFF",
           }}
         >
-          {/* LEFT SIDE */}
           <div
             style={{
-              width: "22%",
               display: "flex",
               flexDirection: "column",
-              gap: 10,
+              width: "24%",
+              minWidth: 0,
+              gap: 12,
             }}
           >
             <div
               style={{
-                padding: "6px 10px",
+                display: "flex",
+                alignSelf: "flex-start",
+                padding: "8px 12px",
                 borderRadius: 999,
                 background: palette.accentSoft,
-                fontSize: 10,
+                color: "#0F172A",
+                fontSize: 11,
                 fontWeight: 900,
+                letterSpacing: 1.1,
                 textTransform: "uppercase",
               }}
             >
@@ -104,9 +115,12 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
 
             <div
               style={{
-                fontSize: 34,
+                display: "flex",
+                fontSize: 42,
                 fontWeight: 900,
-                lineHeight: 1,
+                lineHeight: 0.95,
+                letterSpacing: -1.4,
+                color: "#0F172A",
               }}
             >
               {copy.headline}
@@ -114,30 +128,45 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
 
             <div
               style={{
-                fontSize: 14,
-                color: "#475569",
-                fontWeight: 600,
+                display: "flex",
+                padding: "12px 14px",
+                borderRadius: 16,
+                background: "#F8FAFC",
+                border: "1px solid rgba(15,23,42,0.08)",
               }}
             >
-              {copy.subline}
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 16,
+                  lineHeight: 1.4,
+                  fontWeight: 600,
+                  color: "#475569",
+                }}
+              >
+                {copy.subline}
+              </div>
             </div>
 
-            {/* SCORE */}
             <div
               style={{
-                marginTop: "auto",
-                padding: "12px",
-                borderRadius: 16,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                padding: "16px 16px",
+                borderRadius: 20,
                 background: "#0F172A",
                 color: "#FFFFFF",
               }}
             >
               <div
                 style={{
-                  fontSize: 10,
+                  display: "flex",
+                  fontSize: 12,
                   fontWeight: 800,
+                  letterSpacing: 1.2,
                   textTransform: "uppercase",
-                  opacity: 0.7,
+                  color: "rgba(255,255,255,0.66)",
                 }}
               >
                 Endstand
@@ -147,26 +176,32 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
                 style={{
                   display: "flex",
                   alignItems: "baseline",
-                  gap: 6,
-                  fontSize: 54,
+                  gap: 8,
+                  fontSize: 68,
                   fontWeight: 900,
+                  lineHeight: 1,
+                  letterSpacing: -2.6,
                 }}
               >
                 <span
                   style={{
-                    color: score.teamAIsWinner
-                      ? palette.accent
-                      : "rgba(255,255,255,0.5)",
+                    color: score.isDraw
+                      ? "#FFFFFF"
+                      : score.teamAIsWinner
+                        ? palette.accent
+                        : "rgba(255,255,255,0.5)",
                   }}
                 >
                   {score.goalsA}
                 </span>
-                :
+                <span style={{ color: "rgba(255,255,255,0.3)" }}>:</span>
                 <span
                   style={{
-                    color: !score.teamAIsWinner
-                      ? palette.accent
-                      : "rgba(255,255,255,0.5)",
+                    color: score.isDraw
+                      ? "#FFFFFF"
+                      : score.teamAIsWinner
+                        ? "rgba(255,255,255,0.5)"
+                        : palette.accent,
                   }}
                 >
                   {score.goalsB}
@@ -174,7 +209,12 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               </div>
             </div>
 
-            <div style={{ marginTop: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                marginTop: "auto",
+              }}
+            >
               {renderBrandFooter({
                 palette,
                 dark: false,
@@ -183,34 +223,27 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             </div>
           </div>
 
-          {/* IMAGE SIDE */}
           <div
             style={{
-              width: "78%",
               display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-end",
+              width: "76%",
+              minWidth: 0,
+              height: "100%",
+              borderRadius: 22,
+              overflow: "hidden",
+              background: "#E2E8F0",
+              borderLeft: "1px solid rgba(15,23,42,0.06)",
+              borderBottom: "1px solid rgba(15,23,42,0.06)",
             }}
           >
-            <div
-              style={{
-                borderRadius: 24,
-                overflow: "hidden",
-                position: "relative",
-                marginLeft: 6,
-                marginBottom: 6,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
-              }}
-            >
-              {renderPhotoOrFallback({
-                winnerPhotoUrl: data.winnerPhotoUrl,
-                palette,
-                dark: false,
-                width: 820,
-                height: 1200,
-                borderRadius: 24,
-              })}
-            </div>
+            {renderPhotoOrFallback({
+              winnerPhotoUrl: data.winnerPhotoUrl,
+              palette,
+              dark: false,
+              width: 860,
+              height: 1120,
+              borderRadius: 22,
+            })}
           </div>
         </div>
       </div>
