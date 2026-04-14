@@ -50,7 +50,6 @@ export default function NextSessionAttendanceCard({
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [presentCount, setPresentCount] = useState<number>(initialPresentCount);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   const statusMeta = getStatusMeta(status);
 
@@ -59,7 +58,6 @@ export default function NextSessionAttendanceCard({
 
     try {
       setBusy(true);
-      setMessage(null);
 
       const formData = new FormData();
       formData.set("intent", "set_self_presence");
@@ -90,18 +88,8 @@ export default function NextSessionAttendanceCard({
       if (previousStatus === "in" && nextStatus === "out") {
         setPresentCount((prev) => Math.max(0, prev - 1));
       }
-
-      setMessage(
-        nextStatus === "in"
-          ? "Du bist dabei beim Training."
-          : "Du setzt dieses Mal aus."
-      );
     } catch (error) {
-      const msg =
-        error instanceof Error
-          ? error.message
-          : "Status konnte nicht gespeichert werden.";
-      setMessage(msg);
+      console.error(error);
     } finally {
       setBusy(false);
     }
@@ -149,12 +137,6 @@ export default function NextSessionAttendanceCard({
             </div>
           </div>
         </div>
-
-        {message ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-            {message}
-          </div>
-        ) : null}
 
         <div className="grid grid-cols-2 gap-2">
           <button
