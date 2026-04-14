@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ExtendedResultShareData, Palette } from "./result-share.types";
 
 export function getDisplayClubName(data: ExtendedResultShareData) {
@@ -33,23 +34,56 @@ export function renderBrandFooter(params: {
         gap: 10,
       }}
     >
-      <div
-        style={{
-          width: 30,
-          height: 30,
-          borderRadius: 9,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: params.dark ? "#FFFFFF" : params.palette.accent,
-          color: params.dark ? "#0F172A" : "#FFFFFF",
-          fontSize: 14,
-          fontWeight: 900,
-          flexShrink: 0,
-        }}
-      >
-        S
-      </div>
+      {params.strikrLogoUrl ? (
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 9,
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: params.dark ? "rgba(255,255,255,0.08)" : "#FFFFFF",
+            border: params.dark
+              ? "1px solid rgba(255,255,255,0.12)"
+              : "1px solid rgba(15,23,42,0.08)",
+            flexShrink: 0,
+          }}
+        >
+          <img
+            src={params.strikrLogoUrl}
+            alt="Strikr"
+            width={30}
+            height={30}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              display: "block",
+              padding: 4,
+            }}
+          />
+        </div>
+      ) : (
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 9,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: params.dark ? "#FFFFFF" : params.palette.accent,
+            color: params.dark ? "#0F172A" : "#FFFFFF",
+            fontSize: 14,
+            fontWeight: 900,
+            flexShrink: 0,
+          }}
+        >
+          S
+        </div>
+      )}
 
       <div
         style={{
