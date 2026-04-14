@@ -24,8 +24,8 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
         width: "100%",
         height: "100%",
         display: "flex",
-        padding: 28,
-        background: "#F8FAFC",
+        padding: 24,
+        background: "#F3F4F6",
         color: "#0F172A",
       }}
     >
@@ -35,21 +35,22 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          borderRadius: 38,
+          borderRadius: 34,
           overflow: "hidden",
           background: "#FFFFFF",
-          border: "2px solid rgba(15,23,42,0.08)",
+          border: "1px solid rgba(15,23,42,0.08)",
         }}
       >
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "flex-start",
+            gap: 16,
             padding: "24px 24px 18px 24px",
             background:
-              "linear-gradient(90deg, rgba(34,197,94,0.14), rgba(59,130,246,0.08))",
-            borderBottom: "1px solid rgba(15,23,42,0.08)",
+              "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 100%)",
+            borderBottom: "1px solid rgba(15,23,42,0.06)",
           }}
         >
           {renderClubBadge({
@@ -63,41 +64,17 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 10,
+              alignItems: "center",
+              padding: "8px 12px",
+              borderRadius: 999,
+              background: "rgba(15,23,42,0.04)",
+              border: "1px solid rgba(15,23,42,0.06)",
+              color: "#475569",
+              fontSize: 12,
+              fontWeight: 800,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                padding: "8px 14px",
-                borderRadius: 999,
-                background: "#111827",
-                color: "#FFFFFF",
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: 1.2,
-                textTransform: "uppercase",
-              }}
-            >
-              STICKER STYLE
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                padding: "8px 12px",
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.78)",
-                border: "1px solid rgba(15,23,42,0.08)",
-                color: "#334155",
-                fontSize: 12,
-                fontWeight: 800,
-              }}
-            >
-              {data.date}
-            </div>
+            {data.date}
           </div>
         </div>
 
@@ -115,20 +92,20 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               display: "flex",
               flexDirection: "column",
               width: "38%",
-              gap: 16,
+              gap: 14,
             }}
           >
             <div
               style={{
                 display: "flex",
                 alignSelf: "flex-start",
-                padding: "8px 14px",
+                padding: "8px 12px",
                 borderRadius: 999,
-                background: "rgba(15,23,42,0.06)",
-                color: "#334155",
-                fontSize: 12,
+                background: palette.accentSoft,
+                color: "#0F172A",
+                fontSize: 11,
                 fontWeight: 900,
-                letterSpacing: 1.2,
+                letterSpacing: 1.1,
                 textTransform: "uppercase",
               }}
             >
@@ -138,10 +115,10 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
-                fontSize: 56,
+                fontSize: 54,
                 fontWeight: 900,
                 lineHeight: 0.95,
-                letterSpacing: -2,
+                letterSpacing: -1.8,
                 color: "#0F172A",
               }}
             >
@@ -152,7 +129,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               style={{
                 display: "flex",
                 padding: "14px 16px",
-                borderRadius: 20,
+                borderRadius: 18,
                 background: "#F8FAFC",
                 border: "1px solid rgba(15,23,42,0.08)",
               }}
@@ -174,21 +151,21 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               style={{
                 display: "flex",
                 flexDirection: "column",
+                gap: 10,
                 padding: "18px 18px",
-                borderRadius: 24,
+                borderRadius: 22,
                 background: "#0F172A",
                 color: "#FFFFFF",
-                gap: 10,
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  fontSize: 13,
-                  fontWeight: 900,
-                  letterSpacing: 1.4,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: 1.3,
                   textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.7)",
+                  color: "rgba(255,255,255,0.66)",
                 }}
               >
                 Endstand
@@ -199,7 +176,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
                   display: "flex",
                   alignItems: "baseline",
                   gap: 10,
-                  fontSize: 90,
+                  fontSize: 84,
                   fontWeight: 900,
                   lineHeight: 1,
                   letterSpacing: -3,
@@ -249,7 +226,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             style={{
               display: "flex",
               width: "62%",
-              borderRadius: 30,
+              borderRadius: 28,
               overflow: "hidden",
               background: "#E2E8F0",
               border: "1px solid rgba(15,23,42,0.08)",
@@ -261,7 +238,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               dark: false,
               width: 620,
               height: 980,
-              borderRadius: 30,
+              borderRadius: 28,
             })}
           </div>
         </div>
