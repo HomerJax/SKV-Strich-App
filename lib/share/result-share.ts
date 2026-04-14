@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { ResultShareData } from "./types";
 import { formatDate } from "./utils";
@@ -44,7 +45,7 @@ function buildWinnerLabel(goalsA: number, goalsB: number) {
   return goalsA > goalsB ? "Team A gewinnt" : "Team B gewinnt";
 }
 
-async function toDataUrlFromSignedUrl(url: string) {
+async function toCompressedDataUrlFromSignedUrl(url: string) {
   const response = await fetch(url, {
     method: "GET",
     cache: "no-store",
@@ -54,11 +55,26 @@ async function toDataUrlFromSignedUrl(url: string) {
     throw new Error(`Siegerfoto konnte nicht geladen werden (HTTP ${response.status}).`);
   }
 
-  const contentType = response.headers.get("content-type") ?? "image/jpeg";
   const arrayBuffer = await response.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString("base64");
+  const inputBuffer = Buffer.from(arrayBuffer);
 
-  return `data:${contentType};base64,${base64}`;
+  const outputBuffer = await sharp(inputBuffer)
+    .rotate()
+    .resize({
+      width: 900,
+      height: 900,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .jpeg({
+      quality: 72,
+      mozjpeg: true,
+    })
+    .toBuffer();
+
+  const base64 = outputBuffer.toString("base64");
+
+  return `data:image/jpeg;base64,${base64}`;
 }
 
 async function getWinnerPhotoUrl(
@@ -78,7 +94,7 @@ async function getWinnerPhotoUrl(
       return null;
     }
 
-    return await toDataUrlFromSignedUrl(data.signedUrl);
+    return await toCompressedDataUrlFromSignedUrl(data.signedUrl);
   } catch (error) {
     console.error("Failed to prepare winner photo for result share:", error);
     return null;
