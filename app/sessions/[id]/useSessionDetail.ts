@@ -489,27 +489,21 @@ async function handleShareResult() {
       );
     }
 
-    if (!resultShareImageUrl) {
-      throw new Error("SiegerCard-URL konnte nicht erzeugt werden.");
-    }
-
     if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
       throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
     }
 
-    // Wichtig:
-    // Für den echten Share-Versuch Datei DIREKT im Click-Flow holen.
-    const fileToShare = await fetchShareImageFile(
-      resultShareImageUrl,
-      `strikr-result-${sessionId}.png`
-    );
-
-    // Cache optional aktuell halten
-    setPreparedResultShareFile(fileToShare);
+    if (!preparedResultShareFile) {
+      throw new Error(
+        preparingResultShare
+          ? "SiegerCard wird gerade vorbereitet. Bitte gleich nochmal tippen."
+          : "SiegerCard ist noch nicht bereit. Bitte kurz erneut versuchen."
+      );
+    }
 
     if (typeof navigator.canShare === "function") {
       const canShareFiles = navigator.canShare({
-        files: [fileToShare],
+        files: [preparedResultShareFile],
       });
 
       if (!canShareFiles) {
@@ -519,10 +513,8 @@ async function handleShareResult() {
       }
     }
 
-    // Für iPhone/Safari erstmal nur files senden.
-    // title/text lassen wir bewusst weg, um den Share-Pfad maximal simpel zu halten.
     await navigator.share({
-      files: [fileToShare],
+      files: [preparedResultShareFile],
     });
 
     setMsg("SiegerCard erfolgreich geteilt.");
