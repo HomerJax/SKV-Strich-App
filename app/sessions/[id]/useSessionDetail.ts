@@ -477,82 +477,78 @@ ${sessionUrl}`;
     }
   }
 
-  async function handleShareResult() {
-    try {
-      setSharingResult(true);
-      setErr(null);
-      setMsg(null);
+async function handleShareResult() {
+  try {
+    setSharingResult(true);
+    setErr(null);
+    setMsg(null);
 
-      if (!canShareResult) {
-        throw new Error(
-          "Bitte zuerst Teams und Ergebnis vollständig und gültig eintragen."
-        );
-      }
+    if (!canShareResult) {
+      throw new Error(
+        "Bitte zuerst Teams und Ergebnis vollständig und gültig eintragen."
+      );
+    }
 
-      if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-        throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
-      }
+    if (!resultShareImageUrl) {
+      throw new Error("SiegerCard-URL konnte nicht erzeugt werden.");
+    }
 
-      let fileToShare = preparedResultShareFile;
+    if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+      throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+    }
 
-      if (!fileToShare && resultShareImageUrl) {
-        fileToShare = await fetchShareImageFile(
-          resultShareImageUrl,
-          `strikr-result-${sessionId}.png`
-        );
-        setPreparedResultShareFile(fileToShare);
-      }
+    // Wichtig:
+    // Für den echten Share-Versuch Datei DIREKT im Click-Flow holen.
+    const fileToShare = await fetchShareImageFile(
+      resultShareImageUrl,
+      `strikr-result-${sessionId}.png`
+    );
 
-      if (!fileToShare) {
-        throw new Error(
-          preparingResultShare
-            ? "SiegerCard wird gerade vorbereitet. Bitte in 1–2 Sekunden erneut tippen."
-            : "SiegerCard konnte nicht vorbereitet werden."
-        );
-      }
+    // Cache optional aktuell halten
+    setPreparedResultShareFile(fileToShare);
 
-      if (typeof navigator.canShare === "function") {
-        const canShareFiles = navigator.canShare({
-          files: [fileToShare],
-        });
-
-        if (!canShareFiles) {
-          throw new Error(
-            "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
-          );
-        }
-      }
-
-      await navigator.share({
+    if (typeof navigator.canShare === "function") {
+      const canShareFiles = navigator.canShare({
         files: [fileToShare],
-        title: "STRIKR SiegerCard",
-        text: "SiegerCard aus Strikr",
       });
 
-      setMsg("SiegerCard erfolgreich geteilt.");
-    } catch (e: unknown) {
-      const error =
-        e instanceof Error ? e : new Error("SiegerCard konnte nicht geteilt werden.");
-
-      const errorName =
-        typeof error === "object" &&
-        error !== null &&
-        "name" in error &&
-        typeof (error as { name?: unknown }).name === "string"
-          ? (error as { name: string }).name
-          : "";
-
-      if (errorName === "AbortError") {
-        setMsg(null);
-        setErr(null);
-        return;
+      if (!canShareFiles) {
+        throw new Error(
+          "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
+        );
       }
-
-      setErr(getErrorMessage(error, "SiegerCard konnte nicht geteilt werden."));
-    } finally {
-      setSharingResult(false);
     }
+
+    // Für iPhone/Safari erstmal nur files senden.
+    // title/text lassen wir bewusst weg, um den Share-Pfad maximal simpel zu halten.
+    await navigator.share({
+      files: [fileToShare],
+    });
+
+    setMsg("SiegerCard erfolgreich geteilt.");
+  } catch (e: unknown) {
+    const error =
+      e instanceof Error ? e : new Error("SiegerCard konnte nicht geteilt werden.");
+
+    const errorName =
+      typeof error === "object" &&
+      error !== null &&
+      "name" in error &&
+      typeof (error as { name?: unknown }).name === "string"
+        ? (error as { name: string }).name
+        : "";
+
+    if (errorName === "AbortError") {
+      setMsg(null);
+      setErr(null);
+      return;
+    }
+
+    setErr(getErrorMessage(error, "SiegerCard konnte nicht geteilt werden."));
+  } finally {
+    setSharingResult(false);
   }
+}
 
   async function handleDeleteSession() {
     if (!isAdmin) {
