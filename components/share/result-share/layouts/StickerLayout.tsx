@@ -82,8 +82,8 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
           style={{
             display: "flex",
             flex: 1,
-            gap: 20,
-            padding: 20,
+            gap: 18,
+            padding: 18,
             background: "#FFFFFF",
           }}
         >
@@ -91,7 +91,8 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             style={{
               display: "flex",
               flexDirection: "column",
-              width: "38%",
+              width: "30%",
+              minWidth: 0,
               gap: 14,
             }}
           >
@@ -115,10 +116,10 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
-                fontSize: 54,
+                fontSize: 48,
                 fontWeight: 900,
                 lineHeight: 0.95,
-                letterSpacing: -1.8,
+                letterSpacing: -1.6,
                 color: "#0F172A",
               }}
             >
@@ -137,7 +138,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               <div
                 style={{
                   display: "flex",
-                  fontSize: 18,
+                  fontSize: 17,
                   lineHeight: 1.42,
                   fontWeight: 600,
                   color: "#475569",
@@ -176,7 +177,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
                   display: "flex",
                   alignItems: "baseline",
                   gap: 10,
-                  fontSize: 84,
+                  fontSize: 74,
                   fontWeight: 900,
                   lineHeight: 1,
                   letterSpacing: -3,
@@ -225,8 +226,10 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
           <div
             style={{
               display: "flex",
-              width: "62%",
-              borderRadius: 28,
+              width: "70%",
+              minWidth: 0,
+              height: "100%",
+              borderRadius: 30,
               overflow: "hidden",
               background: "#E2E8F0",
               border: "1px solid rgba(15,23,42,0.08)",
@@ -236,9 +239,9 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
               winnerPhotoUrl: data.winnerPhotoUrl,
               palette,
               dark: false,
-              width: 620,
-              height: 980,
-              borderRadius: 28,
+              width: 720,
+              height: 1100,
+              borderRadius: 30,
             })}
           </div>
         </div>
