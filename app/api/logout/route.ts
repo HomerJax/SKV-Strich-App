@@ -6,21 +6,14 @@ export async function POST() {
 
   await supabase.auth.signOut();
 
-  const response = NextResponse.json(
-    { success: true },
-    {
-      status: 200,
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    }
-  );
+  const response = NextResponse.json({ ok: true });
 
   response.cookies.set("active_club_id", "", {
     path: "/",
     maxAge: 0,
+    sameSite: "lax",
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
   });
 
   return response;

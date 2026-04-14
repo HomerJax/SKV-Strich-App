@@ -3,65 +3,71 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
-import { loginAction, type LoginState } from "./actions";
+import {
+  requestPasswordResetAction,
+  type ForgotPasswordState,
+} from "./actions";
 
-type LoginFormProps = {
+type ForgotPasswordFormProps = {
   initialEmail?: string;
   initialError?: string;
+  initialSuccess?: string;
   initialNext?: string;
+};
+
+const INITIAL_STATE: ForgotPasswordState = {
+  error: "",
+  success: "",
 };
 
 function getErrorMessage(error: string) {
   switch (error) {
-    case "missing-fields":
-      return "Bitte gib E-Mail und Passwort ein.";
-    case "invalid-credentials":
-      return "E-Mail oder Passwort ist nicht korrekt.";
-    case "session-not-ready":
-      return "Die Anmeldung wurde verarbeitet, aber die Session war noch nicht bereit. Bitte versuche es erneut.";
+    case "missing-email":
+      return "Bitte gib deine E-Mail-Adresse ein.";
+    case "reset-failed":
+      return "Die E-Mail zum Zurücksetzen konnte nicht versendet werden.";
     default:
-      return initialErrorMessage(error);
+      return error || "";
   }
 }
 
-function initialErrorMessage(error: string) {
-  return error || "";
+function getSuccessMessage(success: string) {
+  switch (success) {
+    case "reset-sent":
+      return "Wir haben dir eine E-Mail zum Zurücksetzen deines Passworts geschickt.";
+    default:
+      return success || "";
+  }
 }
 
-const INITIAL_STATE: LoginState = {
-  error: "",
-};
-
-export default function LoginForm({
+export default function ForgotPasswordForm({
   initialEmail = "",
   initialError = "",
+  initialSuccess = "",
   initialNext = "",
-}: LoginFormProps) {
+}: ForgotPasswordFormProps) {
   const [email, setEmail] = useState(initialEmail);
-  const [password, setPassword] = useState("");
   const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
 
   const [state, formAction, isPending] = useActionState(
-    loginAction,
+    requestPasswordResetAction,
     INITIAL_STATE
   );
 
-  const activeErrorCode = hasEditedSinceSubmit
+  const activeError = hasEditedSinceSubmit ? "" : state.error || initialError;
+  const activeSuccess = hasEditedSinceSubmit
     ? ""
-    : state.error || initialError || "";
+    : state.success || initialSuccess;
 
-  const errorMessage = useMemo(
-    () => getErrorMessage(activeErrorCode),
-    [activeErrorCode]
+  const errorMessage = useMemo(() => getErrorMessage(activeError), [activeError]);
+  const successMessage = useMemo(
+    () => getSuccessMessage(activeSuccess),
+    [activeSuccess]
   );
 
-  const signupHref = initialNext
-    ? `/signup?next=${encodeURIComponent(initialNext)}`
-    : "/signup";
-
-  const forgotPasswordHref = initialNext
-    ? `/login/forgot-password?email=${encodeURIComponent(email)}&next=${encodeURIComponent(initialNext)}`
-    : `/login/forgot-password?email=${encodeURIComponent(email)}`;
+  const backToLoginHref = initialNext
+    ? `/login?email=${encodeURIComponent(email)}&next=${encodeURIComponent(initialNext)}`
+    : `/login?email=${encodeURIComponent(email)}`;
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -82,15 +88,22 @@ export default function LoginForm({
 
         <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-2xl font-semibold text-neutral-950">
-            Einloggen
+            Passwort vergessen
           </h1>
           <p className="mt-1 text-sm text-neutral-600">
-            Melde dich an und kehre danach direkt zu deiner Einladung zurück.
+            Gib deine E-Mail ein. Wir senden dir einen Link, mit dem du dein
+            Passwort neu setzen kannst.
           </p>
 
           {errorMessage ? (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {errorMessage}
+            </div>
+          ) : null}
+
+          {successMessage ? (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {successMessage}
             </div>
           ) : null}
 
@@ -121,51 +134,21 @@ export default function LoginForm({
               />
             </div>
 
-            <div>
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <label className="block text-sm font-medium text-neutral-800">
-                  Passwort
-                </label>
-
-                <Link
-                  href={forgotPasswordHref}
-                  className="text-xs font-medium text-neutral-700 hover:text-neutral-950 hover:underline"
-                >
-                  Passwort vergessen?
-                </Link>
-              </div>
-
-              <input
-                name="password"
-                type="password"
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  setHasEditedSinceSubmit(true);
-                }}
-                required
-                autoComplete="current-password"
-                className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-                disabled={isPending}
-              />
-            </div>
-
             <button
               type="submit"
               disabled={isPending}
-              className="mt-2 w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isPending ? "Einloggen..." : "Einloggen"}
+              {isPending ? "Senden..." : "Reset-Link senden"}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-neutral-600">
-            Noch kein Account?{" "}
             <Link
-              href={signupHref}
+              href={backToLoginHref}
               className="font-medium text-neutral-900 hover:underline"
             >
-              Jetzt registrieren
+              Zurück zum Login
             </Link>
           </div>
         </div>

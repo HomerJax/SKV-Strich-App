@@ -18,7 +18,7 @@ export default function LogoutButton({
     setIsSubmitting(true);
 
     try {
-      await fetch("/api/logout", {
+      const response = await fetch("/api/logout", {
         method: "POST",
         credentials: "include",
         cache: "no-store",
@@ -26,11 +26,13 @@ export default function LogoutButton({
           "Content-Type": "application/json",
         },
       });
+
+      if (!response.ok) {
+        console.error("Logout API returned non-OK status:", response.status);
+      }
     } catch (error) {
       console.error("Logout failed:", error);
     } finally {
-      // Harte Navigation ist hier absichtlich robuster als rein clientseitiges router.push,
-      // weil wir sicherstellen wollen, dass nach Cookie-/Session-Löschung alles frisch geladen wird.
       window.location.assign("/login");
     }
   }

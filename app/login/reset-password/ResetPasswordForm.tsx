@@ -3,65 +3,51 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
-import { loginAction, type LoginState } from "./actions";
+import { updatePasswordAction, type ResetPasswordState } from "./actions";
 
-type LoginFormProps = {
-  initialEmail?: string;
+type ResetPasswordFormProps = {
   initialError?: string;
   initialNext?: string;
 };
 
-function getErrorMessage(error: string) {
-  switch (error) {
-    case "missing-fields":
-      return "Bitte gib E-Mail und Passwort ein.";
-    case "invalid-credentials":
-      return "E-Mail oder Passwort ist nicht korrekt.";
-    case "session-not-ready":
-      return "Die Anmeldung wurde verarbeitet, aber die Session war noch nicht bereit. Bitte versuche es erneut.";
-    default:
-      return initialErrorMessage(error);
-  }
-}
-
-function initialErrorMessage(error: string) {
-  return error || "";
-}
-
-const INITIAL_STATE: LoginState = {
+const INITIAL_STATE: ResetPasswordState = {
   error: "",
 };
 
-export default function LoginForm({
-  initialEmail = "",
+function getErrorMessage(error: string) {
+  switch (error) {
+    case "missing-password":
+      return "Bitte gib ein neues Passwort ein.";
+    case "password-too-short":
+      return "Dein neues Passwort sollte mindestens 8 Zeichen lang sein.";
+    case "password-mismatch":
+      return "Die Passwörter stimmen nicht überein.";
+    case "update-failed":
+      return "Das Passwort konnte nicht aktualisiert werden.";
+    default:
+      return error || "";
+  }
+}
+
+export default function ResetPasswordForm({
   initialError = "",
   initialNext = "",
-}: LoginFormProps) {
-  const [email, setEmail] = useState(initialEmail);
+}: ResetPasswordFormProps) {
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
 
   const [state, formAction, isPending] = useActionState(
-    loginAction,
+    updatePasswordAction,
     INITIAL_STATE
   );
 
-  const activeErrorCode = hasEditedSinceSubmit
-    ? ""
-    : state.error || initialError || "";
+  const activeError = hasEditedSinceSubmit ? "" : state.error || initialError;
+  const errorMessage = useMemo(() => getErrorMessage(activeError), [activeError]);
 
-  const errorMessage = useMemo(
-    () => getErrorMessage(activeErrorCode),
-    [activeErrorCode]
-  );
-
-  const signupHref = initialNext
-    ? `/signup?next=${encodeURIComponent(initialNext)}`
-    : "/signup";
-
-  const forgotPasswordHref = initialNext
-    ? `/login/forgot-password?email=${encodeURIComponent(email)}&next=${encodeURIComponent(initialNext)}`
-    : `/login/forgot-password?email=${encodeURIComponent(email)}`;
+  const loginHref = initialNext
+    ? `/login?next=${encodeURIComponent(initialNext)}`
+    : "/login";
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -82,10 +68,10 @@ export default function LoginForm({
 
         <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-2xl font-semibold text-neutral-950">
-            Einloggen
+            Neues Passwort setzen
           </h1>
           <p className="mt-1 text-sm text-neutral-600">
-            Melde dich an und kehre danach direkt zu deiner Einladung zurück.
+            Vergib jetzt ein neues Passwort für deinen Account.
           </p>
 
           {errorMessage ? (
@@ -103,38 +89,8 @@ export default function LoginForm({
 
             <div>
               <label className="mb-1 block text-sm font-medium text-neutral-800">
-                E-Mail
+                Neues Passwort
               </label>
-              <input
-                name="email"
-                type="email"
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                  setHasEditedSinceSubmit(true);
-                }}
-                required
-                autoComplete="email"
-                className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-                placeholder="du@beispiel.de"
-                disabled={isPending}
-              />
-            </div>
-
-            <div>
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <label className="block text-sm font-medium text-neutral-800">
-                  Passwort
-                </label>
-
-                <Link
-                  href={forgotPasswordHref}
-                  className="text-xs font-medium text-neutral-700 hover:text-neutral-950 hover:underline"
-                >
-                  Passwort vergessen?
-                </Link>
-              </div>
-
               <input
                 name="password"
                 type="password"
@@ -144,7 +100,26 @@ export default function LoginForm({
                   setHasEditedSinceSubmit(true);
                 }}
                 required
-                autoComplete="current-password"
+                autoComplete="new-password"
+                className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+                disabled={isPending}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-neutral-800">
+                Passwort wiederholen
+              </label>
+              <input
+                name="password_confirm"
+                type="password"
+                value={passwordConfirm}
+                onChange={(event) => {
+                  setPasswordConfirm(event.target.value);
+                  setHasEditedSinceSubmit(true);
+                }}
+                required
+                autoComplete="new-password"
                 className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
                 disabled={isPending}
               />
@@ -153,19 +128,18 @@ export default function LoginForm({
             <button
               type="submit"
               disabled={isPending}
-              className="mt-2 w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isPending ? "Einloggen..." : "Einloggen"}
+              {isPending ? "Speichert..." : "Passwort speichern"}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-neutral-600">
-            Noch kein Account?{" "}
             <Link
-              href={signupHref}
+              href={loginHref}
               className="font-medium text-neutral-900 hover:underline"
             >
-              Jetzt registrieren
+              Zurück zum Login
             </Link>
           </div>
         </div>
