@@ -4,7 +4,6 @@ import {
   getClubLogoUrl,
   getDisplayClubName,
   getScoreModel,
-  renderBrandFooter,
   renderPhotoOrFallback,
   renderClubBadge,
 } from "../result-share.helpers";
@@ -172,18 +171,92 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
             <div
               style={{
                 display: "flex",
+                alignItems: "center",
+                gap: 14,
                 alignSelf: "flex-start",
-                padding: "12px 14px",
-                borderRadius: 18,
-                background: "rgba(2,6,12,0.78)",
+                padding: "14px 16px",
+                borderRadius: 20,
+                background: "rgba(2,6,12,0.82)",
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
-              {renderBrandFooter({
-                palette,
-                dark: true,
-                strikrLogoUrl: data.strikrLogoUrl,
-              })}
+              {data.strikrLogoUrl ? (
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(255,255,255,0.08)",
+                    flexShrink: 0,
+                  }}
+                >
+                  <img
+                    src={data.strikrLogoUrl}
+                    alt="Strikr"
+                    width={44}
+                    height={44}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      display: "block",
+                      padding: 6,
+                    }}
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "#FFFFFF",
+                    color: "#0F172A",
+                    fontSize: 20,
+                    fontWeight: 900,
+                    flexShrink: 0,
+                  }}
+                >
+                  S
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: 20,
+                    fontWeight: 900,
+                    color: "#FFFFFF",
+                    letterSpacing: -0.5,
+                  }}
+                >
+                  STRIKR
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "rgba(255,255,255,0.68)",
+                  }}
+                >
+                  Training managed by STRIKR
+                </div>
+              </div>
             </div>
           </div>
 
