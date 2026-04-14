@@ -9,6 +9,7 @@ import {
   Shield,
   LogOut,
 } from "lucide-react";
+import LogoutButton from "@/components/LogoutButton";
 
 type AppBottomNavProps = {
   isAdmin?: boolean;
@@ -16,9 +17,9 @@ type AppBottomNavProps = {
 
 const HIDDEN_ON_PATHS = [
   "/login",
+  "/login/forgot-password",
+  "/login/reset-password",
   "/signup",
-  "/forgot-password",
-  "/reset-password",
   "/onboarding",
 ];
 
@@ -101,15 +102,12 @@ export default function AppBottomNav({
           />
         ) : null}
 
-        <form action="/api/logout" method="post" className="flex flex-1">
-          <button
-            type="submit"
-            className="flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100"
-          >
+        <LogoutButton className="flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100">
+          <>
             <LogOut className="mb-1 h-4 w-4" />
             <span>Logout</span>
-          </button>
-        </form>
+          </>
+        </LogoutButton>
       </div>
     </nav>
   );
