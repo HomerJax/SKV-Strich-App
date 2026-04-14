@@ -182,6 +182,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
   const useNicknames = featureFlags.use_nicknames === true;
   const useFieldView = featureFlags.use_field_view === true;
+  const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
 
   const [
     { data: clubData, error: clubError },
@@ -343,6 +344,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialMvpVotingEnabled={mvpVotingEnabled}
       initialUseNicknames={useNicknames}
       initialUseFieldView={useFieldView}
+      initialHomeSessionRsvpEnabled={homeSessionRsvpEnabled}
     />
   );
 }

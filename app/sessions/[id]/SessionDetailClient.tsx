@@ -28,6 +28,7 @@ type SessionDetailClientProps = {
   initialMvpVotingEnabled: boolean;
   initialUseNicknames?: boolean;
   initialUseFieldView?: boolean;
+  initialHomeSessionRsvpEnabled?: boolean;
 };
 
 export default function SessionDetailClient(props: SessionDetailClientProps) {
@@ -102,6 +103,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
     metaA,
     metaB,
+    homeSessionRsvpEnabled,
 
     toggleGuestForm,
     handleShareLineup,
@@ -161,8 +163,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
         {!hasResult && (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
-            Empfohlene Reihenfolge: Anwesenheit festlegen → Anwesenheit speichern
-            → Teams aufteilen → Siegerfoto hochladen → Ergebnis speichern.
+            Empfohlene Reihenfolge: Anwesenheit festlegen
+            {homeSessionRsvpEnabled ? " → Teams aufteilen" : " → Anwesenheit speichern → Teams aufteilen"}
+            {" "}→ Siegerfoto hochladen → Ergebnis speichern.
           </div>
         )}
 
@@ -223,13 +226,16 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             collapsed={attendanceCollapsed}
             savingPresence={savingPresence}
             dirty={attendanceDirty}
+            directSaveEnabled={homeSessionRsvpEnabled}
             onToggleCollapsed={() => setAttendanceCollapsed((prev) => !prev)}
             onToggleShowGuestForm={toggleGuestForm}
             onGuestNameChange={setGuestName}
             onGuestPositionChange={setGuestPosition}
             onGuestAgeGroupChange={setGuestAgeGroup}
             onAddGuestPlayer={addGuestPlayer}
-            onTogglePresence={togglePresence}
+            onTogglePresence={(playerId) => {
+              void togglePresence(playerId);
+            }}
             onSavePresence={savePresence}
           />
         </div>

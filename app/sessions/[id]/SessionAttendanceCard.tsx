@@ -28,6 +28,7 @@ type SessionAttendanceCardProps = {
   collapsed: boolean;
   savingPresence: boolean;
   dirty: boolean;
+  directSaveEnabled: boolean;
   onToggleCollapsed: () => void;
   onToggleShowGuestForm: () => void;
   onGuestNameChange: (value: string) => void;
@@ -67,6 +68,7 @@ export default function SessionAttendanceCard({
   collapsed,
   savingPresence,
   dirty,
+  directSaveEnabled,
   onToggleCollapsed,
   onToggleShowGuestForm,
   onGuestNameChange,
@@ -78,7 +80,9 @@ export default function SessionAttendanceCard({
 }: SessionAttendanceCardProps) {
   const presentCount = presentIds.length;
   const absentCount = Math.max(players.length - presentCount, 0);
-  const done = !dirty && presentCount > 0;
+  const done = directSaveEnabled
+    ? presentCount > 0
+    : !dirty && presentCount > 0;
 
   if (collapsed) {
     return (
@@ -111,7 +115,7 @@ export default function SessionAttendanceCard({
               {!done ? (
                 <div className="mt-1 text-sm text-slate-600">
                   {presentCount} anwesend · {absentCount} offen
-                  {dirty ? " · ungespeicherte Änderungen" : ""}
+                  {!directSaveEnabled && dirty ? " · ungespeicherte Änderungen" : ""}
                 </div>
               ) : null}
             </div>
@@ -132,7 +136,7 @@ export default function SessionAttendanceCard({
           <div className="text-sm font-semibold text-slate-900">Anwesenheit</div>
           <div className="mt-1 text-[11px] text-slate-500">
             {presentCount} anwesend · {absentCount} offen
-            {dirty ? " · ungespeicherte Änderungen" : ""}
+            {!directSaveEnabled && dirty ? " · ungespeicherte Änderungen" : ""}
           </div>
           {hasResult ? (
             <div className="mt-1 text-[11px] text-slate-500">
@@ -142,7 +146,7 @@ export default function SessionAttendanceCard({
         </div>
 
         <div className="flex items-center gap-2">
-          {!hasResult ? (
+          {!hasResult && !directSaveEnabled ? (
             <button
               type="button"
               onClick={onSavePresence}
@@ -166,7 +170,9 @@ export default function SessionAttendanceCard({
       <div className="space-y-3 p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="text-[11px] text-slate-500">
-            Spieler antippen, dann gesammelt speichern.
+            {directSaveEnabled
+              ? "Spieler antippen – Änderungen werden direkt gespeichert."
+              : "Spieler antippen, dann gesammelt speichern."}
           </div>
 
           {isAdmin ? (
@@ -276,7 +282,7 @@ export default function SessionAttendanceCard({
                     ? "border-emerald-200 bg-emerald-50"
                     : "border-slate-200 bg-white hover:bg-slate-50"
                 } ${hasResult ? "cursor-not-allowed opacity-60" : ""}`}
-                disabled={hasResult}
+                disabled={hasResult || savingPresence}
                 title={
                   hasResult
                     ? "Gesperrt: Ergebnis gespeichert"
@@ -317,7 +323,7 @@ export default function SessionAttendanceCard({
           })}
         </div>
 
-        {!hasResult ? (
+        {!hasResult && !directSaveEnabled ? (
           <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
             <div className="text-xs text-slate-500">
               {dirty

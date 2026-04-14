@@ -40,6 +40,7 @@ type SessionDetailClientProps = {
   initialMvpVotingEnabled: boolean;
   initialUseNicknames?: boolean;
   initialUseFieldView?: boolean;
+  initialHomeSessionRsvpEnabled?: boolean;
 };
 
 type ApiSuccess =
@@ -132,6 +133,7 @@ export function useSessionDetail({
   initialMvpVotingEnabled,
   initialUseNicknames,
   initialUseFieldView,
+  initialHomeSessionRsvpEnabled,
 }: SessionDetailClientProps) {
   const router = useRouter();
 
@@ -160,6 +162,9 @@ export function useSessionDetail({
   );
   const [primaryColorKey] = useState<string | null>(initialPrimaryColor ?? "black");
   const [mvpVotingEnabled] = useState<boolean>(initialMvpVotingEnabled);
+  const [homeSessionRsvpEnabled] = useState<boolean>(
+    initialHomeSessionRsvpEnabled ?? false
+  );
 
   const [winnerPhotoUrl, setWinnerPhotoUrl] = useState<string | null>(
     initialWinnerPhotoUrl
@@ -266,10 +271,13 @@ export function useSessionDetail({
     }
   }, [initialHasResult]);
 
-  const attendanceDirty = useMemo(
-    () => !sameIdSet(draftPresentIds, presentIds),
-    [draftPresentIds, presentIds]
-  );
+  const attendanceDirty = useMemo(() => {
+    if (homeSessionRsvpEnabled) {
+      return false;
+    }
+
+    return !sameIdSet(draftPresentIds, presentIds);
+  }, [draftPresentIds, presentIds, homeSessionRsvpEnabled]);
 
   const presentPlayers = useMemo(
     () => players.filter((player) => presentIds.includes(player.id)),
@@ -349,8 +357,9 @@ export function useSessionDetail({
     [sessionId, scoreAValue, scoreBValue, teamA, teamB, useNicknames]
   );
 
-  const attendanceDone =
-    presentIds.length > 0 && !attendanceDirty && attendanceCollapsed;
+  const attendanceDone = homeSessionRsvpEnabled
+    ? presentIds.length > 0
+    : presentIds.length > 0 && !attendanceDirty && attendanceCollapsed;
 
   const teamsDone = teamsComplete && teamsCollapsed;
 
@@ -360,7 +369,7 @@ export function useSessionDetail({
 
   const nextStepLabel = hasResult
     ? "Ergebnis ist gespeichert"
-    : attendanceDirty
+    : !homeSessionRsvpEnabled && attendanceDirty
       ? "Anwesenheit speichern"
       : presentPlayers.length < 2
         ? "Mehr Spieler auf anwesend setzen"
@@ -641,7 +650,7 @@ ${sessionUrl}`;
     }
   }
 
-  function togglePresence(id: number) {
+  async function togglePresence(id: number) {
     if (hasResult) {
       setErr(
         "Anwesenheit ist gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um wieder zu entsperren."
@@ -649,16 +658,74 @@ ${sessionUrl}`;
       return;
     }
 
+    if (deletingSession) {
+      return;
+    }
+
     setErr(null);
     setMsg(null);
 
-    setDraftPresentIds((prev) =>
-      prev.includes(id) ? prev.filter((playerId) => playerId !== id) : [...prev, id]
-    );
+    if (!homeSessionRsvpEnabled) {
+      setDraftPresentIds((prev) =>
+        prev.includes(id)
+          ? prev.filter((playerId) => playerId !== id)
+          : [...prev, id]
+      );
+      return;
+    }
+
+    if (savingPresence) {
+      return;
+    }
+
+    const restoreScroll = preserveScrollPosition();
+    const isCurrentlyPresent = presentIds.includes(id);
+
+    try {
+      setSavingPresence(true);
+
+      const formData = new FormData();
+      formData.set("intent", "toggle_presence");
+      formData.set("player_id", String(id));
+
+      await postForm(formData);
+
+      const nextPresentIds = isCurrentlyPresent
+        ? presentIds.filter((playerId) => playerId !== id)
+        : [...presentIds, id];
+
+      setPresentIds(nextPresentIds);
+      setDraftPresentIds(nextPresentIds);
+
+      setManualTeams((prev) => {
+        const next = { ...prev };
+
+        if (isCurrentlyPresent) {
+          delete next[id];
+        } else {
+          next[id] = next[id] ?? null;
+        }
+
+        return next;
+      });
+
+      setMsg(isCurrentlyPresent ? "Anwesenheit entfernt." : "Anwesenheit gespeichert.");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Anwesenheit konnte nicht gespeichert werden."));
+    } finally {
+      setSavingPresence(false);
+      restoreScroll();
+    }
   }
 
   async function savePresence() {
-    if (hasResult || savingPresence || !attendanceDirty || deletingSession) {
+    if (
+      homeSessionRsvpEnabled ||
+      hasResult ||
+      savingPresence ||
+      !attendanceDirty ||
+      deletingSession
+    ) {
       return;
     }
 
@@ -788,7 +855,7 @@ ${sessionUrl}`;
       return;
     }
 
-    if (attendanceDirty) {
+    if (!homeSessionRsvpEnabled && attendanceDirty) {
       setErr("Bitte zuerst die Anwesenheit speichern.");
       return;
     }
@@ -934,7 +1001,7 @@ ${sessionUrl}`;
       return;
     }
 
-    if (attendanceDirty) {
+    if (!homeSessionRsvpEnabled && attendanceDirty) {
       setErr("Bitte zuerst die Anwesenheit speichern.");
       return;
     }
@@ -949,7 +1016,7 @@ ${sessionUrl}`;
     const cleanA = normalizeGoalValue(goalsA);
     const cleanB = normalizeGoalValue(goalsB);
 
-    if (attendanceDirty) {
+    if (!homeSessionRsvpEnabled && attendanceDirty) {
       setErr("Bitte zuerst die Anwesenheit speichern.");
       return;
     }
@@ -1175,6 +1242,7 @@ ${sessionUrl}`;
     useFieldView,
     primaryColorKey,
     mvpVotingEnabled,
+    homeSessionRsvpEnabled,
 
     winnerPhotoUrl,
     goalsA,
