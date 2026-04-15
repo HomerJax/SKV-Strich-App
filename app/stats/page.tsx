@@ -16,6 +16,12 @@ import {
   type RecentResult,
 } from "@/lib/stats/utils";
 
+type PageProps = {
+  searchParams?: Promise<{
+    scope?: string;
+  }>;
+};
+
 type ClubSettingsRow = {
   use_strength: boolean;
   strength_default: number | null;
@@ -34,9 +40,22 @@ type TeamPlayerRow = {
   player_id: number;
 };
 
+type TeamRow = {
+  id: number;
+  session_id: number;
+};
+
 type SessionRow = {
   id: number;
   date: string;
+  season_id: number | null;
+};
+
+type SeasonRow = {
+  id: number;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
 };
 
 type PlayerStrengthRow = {
@@ -44,10 +63,17 @@ type PlayerStrengthRow = {
   strength: number | null;
 };
 
+type PlayerMetaRow = {
+  id: number;
+  mvp_count: number | null;
+};
+
 type MvpVoteRow = {
   session_id: number;
   voted_player_id: number;
 };
+
+type StatsScope = "season" | "career";
 
 function trendValueForOutcome(outcome: RecentResult["outcome"]) {
   if (outcome === "win") return 1;
@@ -55,7 +81,40 @@ function trendValueForOutcome(outcome: RecentResult["outcome"]) {
   return 0;
 }
 
-function EmptyStatsContent({ showMvp }: { showMvp: boolean }) {
+function getTodayIsoDate() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function isDateWithinSeason(dateIso: string, season: SeasonRow) {
+  if (!season.start_date || !season.end_date) return false;
+  return dateIso >= season.start_date && dateIso <= season.end_date;
+}
+
+function getCurrentSeason(seasons: SeasonRow[]) {
+  const today = getTodayIsoDate();
+
+  const current = seasons.find((season) => isDateWithinSeason(today, season));
+  if (current) return current;
+
+  return seasons[0] ?? null;
+}
+
+function getScopeLabel(scope: StatsScope, seasonName: string | null) {
+  if (scope === "career") return "Karriere";
+  return seasonName ? `Aktuelle Saison · ${seasonName}` : "Aktuelle Saison";
+}
+
+function EmptyStatsContent({
+  showMvp,
+  badgeMvpCount,
+}: {
+  showMvp: boolean;
+  badgeMvpCount: number;
+}) {
   return (
     <>
       <div className="mt-5">
@@ -98,10 +157,26 @@ function EmptyStatsContent({ showMvp }: { showMvp: boolean }) {
         <div className="mt-5">
           <StatsSection
             title="Badges"
-            subtitle="Dein aktueller Badge-Status auf Basis deiner MVP-Erfolge."
+            subtitle="Dein aktueller Badge-Status auf Basis deiner gesamten MVP-Erfolge."
             defaultOpen={true}
           >
-            <BadgeProgressCard mvpCount={0} title="Badge-Fortschritt" />
+            <div className="space-y-4">
+              <BadgeProgressCard
+                mvpCount={badgeMvpCount}
+                title="Badge-Fortschritt"
+              />
+
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-900">
+                  Coming Soon
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  Weitere Badges folgen. Hier werden später zusätzliche Erfolge
+                  und Auszeichnungen für Training, Teilnahme, Serien und
+                  besondere Leistungen sichtbar.
+                </p>
+              </div>
+            </div>
           </StatsSection>
         </div>
       ) : null}
@@ -109,7 +184,80 @@ function EmptyStatsContent({ showMvp }: { showMvp: boolean }) {
   );
 }
 
-export default async function StatsPage() {
+function ScopeSwitch({
+  scope,
+  seasonName,
+}: {
+  scope: StatsScope;
+  seasonName: string | null;
+}) {
+  const seasonActive = scope === "season";
+  const careerActive = scope === "career";
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Link
+        href="/stats?scope=season"
+        className={`rounded-2xl border p-4 transition ${
+          seasonActive
+            ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+            : "border-slate-200 bg-white text-slate-900 hover:border-slate-300"
+        }`}
+      >
+        <div
+          className={`text-xs font-semibold uppercase tracking-[0.18em] ${
+            seasonActive ? "text-white/70" : "text-slate-400"
+          }`}
+        >
+          Stats
+        </div>
+        <div className="mt-2 text-lg font-semibold">
+          {seasonName ? `Aktuelle Saison · ${seasonName}` : "Aktuelle Saison"}
+        </div>
+        <p
+          className={`mt-2 text-sm leading-6 ${
+            seasonActive ? "text-white/80" : "text-slate-600"
+          }`}
+        >
+          Zeigt nur deine Ergebnisse, Trends und MVP-Erfolge aus der aktuell
+          laufenden Saison.
+        </p>
+      </Link>
+
+      <Link
+        href="/stats?scope=career"
+        className={`rounded-2xl border p-4 transition ${
+          careerActive
+            ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+            : "border-slate-200 bg-white text-slate-900 hover:border-slate-300"
+        }`}
+      >
+        <div
+          className={`text-xs font-semibold uppercase tracking-[0.18em] ${
+            careerActive ? "text-white/70" : "text-slate-400"
+          }`}
+        >
+          Stats
+        </div>
+        <div className="mt-2 text-lg font-semibold">Karriere</div>
+        <p
+          className={`mt-2 text-sm leading-6 ${
+            careerActive ? "text-white/80" : "text-slate-600"
+          }`}
+        >
+          Zeigt deine gesamte Historie im Club über alle bisherigen Saisons
+          hinweg.
+        </p>
+      </Link>
+    </div>
+  );
+}
+
+export default async function StatsPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const requestedScope = String(resolvedSearchParams?.scope ?? "season").trim();
+  const scope: StatsScope = requestedScope === "career" ? "career" : "season";
+
   const { clubId, player } = await requireClub();
   const flags = await getFeatureFlagsForClub(clubId);
 
@@ -119,11 +267,21 @@ export default async function StatsPage() {
 
   const supabase = await createClient();
 
-  const { data: clubSettingsData, error: clubSettingsError } = await supabase
-    .from("club_settings")
-    .select("use_strength, strength_default")
-    .eq("club_id", clubId)
-    .maybeSingle<ClubSettingsRow>();
+  const [
+    { data: clubSettingsData, error: clubSettingsError },
+    { data: seasonsData, error: seasonsError },
+  ] = await Promise.all([
+    supabase
+      .from("club_settings")
+      .select("use_strength, strength_default")
+      .eq("club_id", clubId)
+      .maybeSingle<ClubSettingsRow>(),
+    supabase
+      .from("seasons")
+      .select("id, name, start_date, end_date")
+      .eq("club_id", clubId)
+      .order("start_date", { ascending: false }),
+  ]);
 
   if (clubSettingsError) {
     throw new Error(
@@ -131,10 +289,18 @@ export default async function StatsPage() {
     );
   }
 
+  if (seasonsError) {
+    throw new Error(`Saisons konnten nicht geladen werden: ${seasonsError.message}`);
+  }
+
   const clubSettings = (clubSettingsData ?? {
     use_strength: true,
     strength_default: 3,
   }) as ClubSettingsRow;
+
+  const seasons = (seasonsData ?? []) as SeasonRow[];
+  const currentSeason = getCurrentSeason(seasons);
+  const currentSeasonName = currentSeason?.name ?? null;
 
   const useStrength = clubSettings.use_strength ?? true;
   const strengthDefault = clubSettings.strength_default ?? 3;
@@ -151,41 +317,73 @@ export default async function StatsPage() {
           </Link>
         </div>
 
-        <StatsHero
-          sessionsPlayed={0}
-          wins={0}
-          losses={0}
-          draws={0}
-          completedResults={0}
-          showMvp={flags.session_mvp_voting}
-          mvpWins={0}
-          mvpPerGame={0}
-        />
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
+            <p className="text-sm text-slate-500">
+              {getScopeLabel(scope, currentSeasonName)}
+            </p>
+          </div>
 
-        <EmptyStatsContent showMvp={flags.session_mvp_voting} />
+          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
+        </div>
+
+        <div className="mt-5">
+          <StatsHero
+            sessionsPlayed={0}
+            wins={0}
+            losses={0}
+            draws={0}
+            completedResults={0}
+            showMvp={flags.session_mvp_voting}
+            mvpWins={0}
+            mvpPerGame={0}
+          />
+        </div>
+
+        <EmptyStatsContent
+          showMvp={flags.session_mvp_voting}
+          badgeMvpCount={0}
+        />
       </main>
     );
   }
 
-  const { data: teamPlayerRowsForPlayer, error: teamPlayerError } = await supabase
-    .from("team_players")
-    .select("team_id")
-    .eq("player_id", player.id);
+  const { data: playerMetaData, error: playerMetaError } = await supabase
+    .from("players")
+    .select("id, mvp_count")
+    .eq("club_id", clubId)
+    .eq("id", player.id)
+    .maybeSingle<PlayerMetaRow>();
 
-  if (teamPlayerError) {
+  if (playerMetaError) {
     throw new Error(
-      `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayerError.message}`
+      `Spieler-Metadaten konnten nicht geladen werden: ${playerMetaError.message}`
     );
   }
 
-  const teamIds = ((teamPlayerRowsForPlayer ?? []) as { team_id: number }[])
-    .map((row) => row.team_id)
-    .filter((value) => Number.isFinite(value));
+  const badgeMvpCount = playerMetaData?.mvp_count ?? 0;
 
-  let mvpWins = 0;
-  let mvpPerGame = 0;
+  const { data: sessionPlayersData, error: sessionPlayersError } = await supabase
+    .from("session_players")
+    .select("session_id")
+    .eq("player_id", player.id);
 
-  if (teamIds.length === 0) {
+  if (sessionPlayersError) {
+    throw new Error(
+      `Session-Teilnahmen konnten nicht geladen werden: ${sessionPlayersError.message}`
+    );
+  }
+
+  const playerSessionIds = Array.from(
+    new Set(
+      ((sessionPlayersData ?? []) as { session_id: number }[])
+        .map((row) => row.session_id)
+        .filter((value) => Number.isFinite(value))
+    )
+  );
+
+  if (playerSessionIds.length === 0) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
         <div className="mb-4">
@@ -197,18 +395,233 @@ export default async function StatsPage() {
           </Link>
         </div>
 
-        <StatsHero
-          sessionsPlayed={0}
-          wins={0}
-          losses={0}
-          draws={0}
-          completedResults={0}
-          showMvp={flags.session_mvp_voting}
-          mvpWins={0}
-          mvpPerGame={0}
-        />
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
+            <p className="text-sm text-slate-500">
+              {getScopeLabel(scope, currentSeasonName)}
+            </p>
+          </div>
 
-        <EmptyStatsContent showMvp={flags.session_mvp_voting} />
+          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
+        </div>
+
+        <div className="mt-5">
+          <StatsHero
+            sessionsPlayed={0}
+            wins={0}
+            losses={0}
+            draws={0}
+            completedResults={0}
+            showMvp={flags.session_mvp_voting}
+            mvpWins={0}
+            mvpPerGame={0}
+          />
+        </div>
+
+        <EmptyStatsContent
+          showMvp={flags.session_mvp_voting}
+          badgeMvpCount={badgeMvpCount}
+        />
+      </main>
+    );
+  }
+
+  const { data: sessionRowsData, error: sessionsError } = await supabase
+    .from("sessions")
+    .select("id, date, season_id")
+    .in("id", playerSessionIds)
+    .eq("club_id", clubId);
+
+  if (sessionsError) {
+    throw new Error(`Sessions konnten nicht geladen werden: ${sessionsError.message}`);
+  }
+
+  const allPlayerSessions = (sessionRowsData ?? []) as SessionRow[];
+
+  const scopedSessions =
+    scope === "career"
+      ? allPlayerSessions
+      : currentSeason
+      ? allPlayerSessions.filter((session) => session.season_id === currentSeason.id)
+      : [];
+
+  const scopedSessionIds = scopedSessions
+    .map((session) => session.id)
+    .filter((value) => Number.isFinite(value));
+
+  const sessionsById = new Map<number, SessionRow>(
+    scopedSessions.map((session) => [session.id, session])
+  );
+
+  if (scopedSessionIds.length === 0) {
+    return (
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
+        <div className="mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück
+          </Link>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
+            <p className="text-sm text-slate-500">
+              {getScopeLabel(scope, currentSeasonName)}
+            </p>
+          </div>
+
+          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
+        </div>
+
+        <div className="mt-5">
+          <StatsHero
+            sessionsPlayed={0}
+            wins={0}
+            losses={0}
+            draws={0}
+            completedResults={0}
+            showMvp={flags.session_mvp_voting}
+            mvpWins={0}
+            mvpPerGame={0}
+          />
+        </div>
+
+        <EmptyStatsContent
+          showMvp={flags.session_mvp_voting}
+          badgeMvpCount={badgeMvpCount}
+        />
+      </main>
+    );
+  }
+
+  const { data: playerTeamRowsData, error: playerTeamRowsError } = await supabase
+    .from("team_players")
+    .select("team_id")
+    .eq("player_id", player.id);
+
+  if (playerTeamRowsError) {
+    throw new Error(
+      `Team-Zuordnungen konnten nicht geladen werden: ${playerTeamRowsError.message}`
+    );
+  }
+
+  const allPlayerTeamIds = Array.from(
+    new Set(
+      ((playerTeamRowsData ?? []) as { team_id: number }[])
+        .map((row) => row.team_id)
+        .filter((value) => Number.isFinite(value))
+    )
+  );
+
+  if (allPlayerTeamIds.length === 0) {
+    return (
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
+        <div className="mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück
+          </Link>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
+            <p className="text-sm text-slate-500">
+              {getScopeLabel(scope, currentSeasonName)}
+            </p>
+          </div>
+
+          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
+        </div>
+
+        <div className="mt-5">
+          <StatsHero
+            sessionsPlayed={scopedSessionIds.length}
+            wins={0}
+            losses={0}
+            draws={0}
+            completedResults={0}
+            showMvp={flags.session_mvp_voting}
+            mvpWins={0}
+            mvpPerGame={0}
+          />
+        </div>
+
+        <EmptyStatsContent
+          showMvp={flags.session_mvp_voting}
+          badgeMvpCount={badgeMvpCount}
+        />
+      </main>
+    );
+  }
+
+  const { data: teamsData, error: teamsError } = await supabase
+    .from("teams")
+    .select("id, session_id")
+    .in("id", allPlayerTeamIds);
+
+  if (teamsError) {
+    throw new Error(`Teams konnten nicht geladen werden: ${teamsError.message}`);
+  }
+
+  const teams = (teamsData ?? []) as TeamRow[];
+  const scopedSessionIdSet = new Set(scopedSessionIds);
+
+  const myTeamIdBySessionId = new Map<number, number>();
+
+  for (const team of teams) {
+    if (!scopedSessionIdSet.has(team.session_id)) continue;
+    myTeamIdBySessionId.set(team.session_id, team.id);
+  }
+
+  const relevantSessionIdsForResults = Array.from(myTeamIdBySessionId.keys());
+
+  if (relevantSessionIdsForResults.length === 0) {
+    return (
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
+        <div className="mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück
+          </Link>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
+            <p className="text-sm text-slate-500">
+              {getScopeLabel(scope, currentSeasonName)}
+            </p>
+          </div>
+
+          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
+        </div>
+
+        <div className="mt-5">
+          <StatsHero
+            sessionsPlayed={scopedSessionIds.length}
+            wins={0}
+            losses={0}
+            draws={0}
+            completedResults={0}
+            showMvp={flags.session_mvp_voting}
+            mvpWins={0}
+            mvpPerGame={0}
+          />
+        </div>
+
+        <EmptyStatsContent
+          showMvp={flags.session_mvp_voting}
+          badgeMvpCount={badgeMvpCount}
+        />
       </main>
     );
   }
@@ -216,7 +629,8 @@ export default async function StatsPage() {
   const { data: resultsData, error: resultsError } = await supabase
     .from("results")
     .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
-    .eq("club_id", clubId);
+    .eq("club_id", clubId)
+    .in("session_id", relevantSessionIdsForResults);
 
   if (resultsError) {
     throw new Error(`Ergebnisse konnten nicht geladen werden: ${resultsError.message}`);
@@ -225,109 +639,11 @@ export default async function StatsPage() {
   const allResults = (resultsData ?? []) as ResultRow[];
 
   const myResults = allResults.filter((result) => {
-    return (
-      (result.team_a_id !== null && teamIds.includes(result.team_a_id)) ||
-      (result.team_b_id !== null && teamIds.includes(result.team_b_id))
-    );
+    const myTeamId = myTeamIdBySessionId.get(result.session_id);
+    if (!myTeamId) return false;
+
+    return result.team_a_id === myTeamId || result.team_b_id === myTeamId;
   });
-
-  const sessionsPlayed = myResults.length;
-
-  const sessionIds = myResults
-    .map((result) => result.session_id)
-    .filter((value) => Number.isFinite(value));
-
-  let sessionsById = new Map<number, SessionRow>();
-
-  if (sessionIds.length > 0) {
-    const { data: sessionRows, error: sessionsError } = await supabase
-      .from("sessions")
-      .select("id, date")
-      .in("id", sessionIds);
-
-    if (sessionsError) {
-      throw new Error(`Sessions konnten nicht geladen werden: ${sessionsError.message}`);
-    }
-
-    sessionsById = new Map<number, SessionRow>(
-      ((sessionRows ?? []) as SessionRow[]).map((session) => [session.id, session])
-    );
-  }
-
-  if (flags.session_mvp_voting) {
-    const { data: mvpVotesData, error: mvpVotesError } = await supabase
-      .from("session_mvp_votes")
-      .select("session_id, voted_player_id")
-      .eq("club_id", clubId);
-
-    if (mvpVotesError) {
-      throw new Error(
-        `MVP-Stimmen konnten nicht geladen werden: ${mvpVotesError.message}`
-      );
-    }
-
-    const relevantSessionIds = new Set(
-      myResults
-        .map((result) => result.session_id)
-        .filter((value) => Number.isFinite(value))
-    );
-
-    const revealedSessionIds = new Set<number>();
-
-    for (const session of sessionsById.values()) {
-      if (isMvpRevealClosed(session.date)) {
-        revealedSessionIds.add(session.id);
-      }
-    }
-
-    const votes = (mvpVotesData ?? []) as MvpVoteRow[];
-    const sessionVoteMap = new Map<number, Map<number, number>>();
-
-    for (const vote of votes) {
-      const voteSessionId = Number(vote.session_id);
-      const votedPlayerId = Number(vote.voted_player_id);
-
-      if (
-        !Number.isFinite(voteSessionId) ||
-        !Number.isFinite(votedPlayerId) ||
-        !relevantSessionIds.has(voteSessionId) ||
-        !revealedSessionIds.has(voteSessionId)
-      ) {
-        continue;
-      }
-
-      const playerCounts = sessionVoteMap.get(voteSessionId) ?? new Map<number, number>();
-      playerCounts.set(votedPlayerId, (playerCounts.get(votedPlayerId) ?? 0) + 1);
-      sessionVoteMap.set(voteSessionId, playerCounts);
-    }
-
-    let wins = 0;
-
-    for (const [, playerCounts] of sessionVoteMap) {
-      let maxVotes = 0;
-
-      for (const [, count] of playerCounts) {
-        if (count > maxVotes) {
-          maxVotes = count;
-        }
-      }
-
-      if (maxVotes <= 0) {
-        continue;
-      }
-
-      const winnerIds = Array.from(playerCounts.entries())
-        .filter(([, count]) => count === maxVotes)
-        .map(([playerId]) => playerId);
-
-      if (winnerIds.includes(player.id)) {
-        wins += 1;
-      }
-    }
-
-    mvpWins = wins;
-    mvpPerGame = sessionsPlayed > 0 ? wins / sessionsPlayed : 0;
-  }
 
   const relevantTeamIds = Array.from(
     new Set(
@@ -376,6 +692,7 @@ export default async function StatsPage() {
     );
 
     const teamBuckets = new Map<number, TeamPlayerRow[]>();
+
     for (const row of teamPlayers) {
       const current = teamBuckets.get(row.team_id) ?? [];
       current.push(row);
@@ -397,6 +714,86 @@ export default async function StatsPage() {
     }
   }
 
+  let mvpWins = 0;
+  let mvpPerGame = 0;
+
+  if (flags.session_mvp_voting && myResults.length > 0) {
+    const relevantResultSessionIds = new Set(
+      myResults
+        .map((result) => result.session_id)
+        .filter((value) => Number.isFinite(value))
+    );
+
+    const { data: mvpVotesData, error: mvpVotesError } = await supabase
+      .from("session_mvp_votes")
+      .select("session_id, voted_player_id")
+      .eq("club_id", clubId)
+      .in("session_id", Array.from(relevantResultSessionIds));
+
+    if (mvpVotesError) {
+      throw new Error(
+        `MVP-Stimmen konnten nicht geladen werden: ${mvpVotesError.message}`
+      );
+    }
+
+    const revealedSessionIds = new Set<number>();
+
+    for (const result of myResults) {
+      const session = sessionsById.get(result.session_id);
+      if (session?.date && isMvpRevealClosed(session.date)) {
+        revealedSessionIds.add(session.id);
+      }
+    }
+
+    const votes = (mvpVotesData ?? []) as MvpVoteRow[];
+    const sessionVoteMap = new Map<number, Map<number, number>>();
+
+    for (const vote of votes) {
+      const voteSessionId = Number(vote.session_id);
+      const votedPlayerId = Number(vote.voted_player_id);
+
+      if (
+        !Number.isFinite(voteSessionId) ||
+        !Number.isFinite(votedPlayerId) ||
+        !relevantResultSessionIds.has(voteSessionId) ||
+        !revealedSessionIds.has(voteSessionId)
+      ) {
+        continue;
+      }
+
+      const playerCounts =
+        sessionVoteMap.get(voteSessionId) ?? new Map<number, number>();
+      playerCounts.set(votedPlayerId, (playerCounts.get(votedPlayerId) ?? 0) + 1);
+      sessionVoteMap.set(voteSessionId, playerCounts);
+    }
+
+    let wins = 0;
+
+    for (const [, playerCounts] of sessionVoteMap) {
+      let maxVotes = 0;
+
+      for (const [, count] of playerCounts) {
+        if (count > maxVotes) {
+          maxVotes = count;
+        }
+      }
+
+      if (maxVotes <= 0) {
+        continue;
+      }
+
+      const winnerIds = Array.from(playerCounts.entries())
+        .filter(([, count]) => count === maxVotes)
+        .map(([playerId]) => playerId);
+
+      if (winnerIds.includes(player.id)) {
+        wins += 1;
+      }
+    }
+
+    mvpWins = wins;
+  }
+
   const totals = {
     wins: 0,
     losses: 0,
@@ -407,8 +804,8 @@ export default async function StatsPage() {
   };
 
   const recentResults: RecentResult[] = myResults.map((result) => {
-    const myTeamIsA =
-      result.team_a_id !== null && teamIds.includes(result.team_a_id);
+    const myTeamId = myTeamIdBySessionId.get(result.session_id) ?? null;
+    const myTeamIsA = myTeamId !== null && result.team_a_id === myTeamId;
 
     const goalsA = result.goals_team_a ?? 0;
     const goalsB = result.goals_team_b ?? 0;
@@ -426,11 +823,11 @@ export default async function StatsPage() {
       totals.losses += 1;
     }
 
-    const myTeamId = myTeamIsA ? result.team_a_id : result.team_b_id;
+    const myTeamResultId = myTeamIsA ? result.team_a_id : result.team_b_id;
     const opponentTeamId = myTeamIsA ? result.team_b_id : result.team_a_id;
 
     const myTeamScore =
-      myTeamId !== null ? (teamScoreById.get(myTeamId) ?? 0) : 0;
+      myTeamResultId !== null ? (teamScoreById.get(myTeamResultId) ?? 0) : 0;
     const opponentScore =
       opponentTeamId !== null ? (teamScoreById.get(opponentTeamId) ?? 0) : 0;
 
@@ -467,6 +864,8 @@ export default async function StatsPage() {
 
   const lastFive = recentResults.slice(0, 5);
   const completedResults = totals.wins + totals.losses + totals.draws;
+  const sessionsPlayed = scopedSessionIds.length;
+  mvpPerGame = completedResults > 0 ? mvpWins / completedResults : 0;
 
   const trendPoints = [...recentResults].reverse().map((item, index) => ({
     id: `${item.sessionId}-${index}`,
@@ -489,16 +888,29 @@ export default async function StatsPage() {
         </Link>
       </div>
 
-      <StatsHero
-        sessionsPlayed={sessionsPlayed}
-        wins={totals.wins}
-        losses={totals.losses}
-        draws={totals.draws}
-        completedResults={completedResults}
-        showMvp={flags.session_mvp_voting}
-        mvpWins={mvpWins}
-        mvpPerGame={mvpPerGame}
-      />
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
+          <p className="text-sm text-slate-500">
+            {getScopeLabel(scope, currentSeasonName)}
+          </p>
+        </div>
+
+        <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
+      </div>
+
+      <div className="mt-5">
+        <StatsHero
+          sessionsPlayed={sessionsPlayed}
+          wins={totals.wins}
+          losses={totals.losses}
+          draws={totals.draws}
+          completedResults={completedResults}
+          showMvp={flags.session_mvp_voting}
+          mvpWins={mvpWins}
+          mvpPerGame={mvpPerGame}
+        />
+      </div>
 
       {flags.player_trends ? (
         <div className="mt-5">
@@ -544,10 +956,26 @@ export default async function StatsPage() {
         <div className="mt-5">
           <StatsSection
             title="Badges"
-            subtitle="Dein aktueller Badge-Status auf Basis deiner MVP-Erfolge."
+            subtitle="Dein aktueller Badge-Status auf Basis deiner gesamten MVP-Erfolge."
             defaultOpen={true}
           >
-            <BadgeProgressCard mvpCount={mvpWins} title="Badge-Fortschritt" />
+            <div className="space-y-4">
+              <BadgeProgressCard
+                mvpCount={badgeMvpCount}
+                title="Badge-Fortschritt"
+              />
+
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-900">
+                  Coming Soon
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  Weitere Badges folgen. Hier werden später zusätzliche Erfolge
+                  und Auszeichnungen für Training, Teilnahme, Serien und
+                  besondere Leistungen sichtbar.
+                </p>
+              </div>
+            </div>
           </StatsSection>
         </div>
       ) : null}
