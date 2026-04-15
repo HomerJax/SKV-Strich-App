@@ -7,16 +7,6 @@ type PlayerProfileRow = {
   id: number;
   club_id: string;
   user_id: string | null;
-  name: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  nickname: string | null;
-  email: string | null;
-  preferred_position: "attack" | "defense" | "goalkeeper" | null;
-  category_key: string | null;
-  strength: number | null;
-  is_active: boolean | null;
-  age_group: string | null;
 };
 
 function buildRedirect(
@@ -87,9 +77,7 @@ export async function POST(request: Request) {
 
   const { data: playerProfiles, error: playerError } = await adminSupabase
     .from("players")
-    .select(
-      "id, club_id, user_id, name, first_name, last_name, nickname, email, preferred_position, category_key, strength, is_active, age_group"
-    )
+    .select("id, club_id, user_id")
     .eq("user_id", user.id)
     .eq("is_guest", false);
 
@@ -150,32 +138,30 @@ export async function POST(request: Request) {
     });
   }
 
-  const targetClubProfile = existingProfiles.find(
+  const existingPlayerInTargetClub = existingProfiles.find(
     (profile) => profile.club_id === invite.club_id
   );
 
-  if (!targetClubProfile) {
-    const sourceProfile = existingProfiles[0];
+  if (!existingPlayerInTargetClub) {
+    const { error: insertError } = await adminSupabase.from("players").insert({
+      user_id: user.id,
+      club_id: invite.club_id,
+      name: null,
+      first_name: null,
+      last_name: null,
+      nickname: null,
+      email: user.email ?? null,
+      preferred_position: null,
+      category_key: null,
+      strength: null,
+      is_guest: false,
+      is_active: true,
+      age_group: null,
+    });
 
-    const { error: playerInsertError } = await adminSupabase
-      .from("players")
-      .insert({
-        club_id: invite.club_id,
-        user_id: user.id,
-        name: sourceProfile.name,
-        first_name: sourceProfile.first_name,
-        last_name: sourceProfile.last_name,
-        nickname: sourceProfile.nickname,
-        email: sourceProfile.email ?? user.email ?? null,
-        preferred_position: sourceProfile.preferred_position,
-        category_key: sourceProfile.category_key,
-        strength: sourceProfile.strength,
-        is_active: sourceProfile.is_active ?? true,
-        is_guest: false,
-        age_group: sourceProfile.age_group,
-      });
+    if (insertError) {
+      console.error("JOIN PLAYER INSERT ERROR:", insertError);
 
-    if (playerInsertError) {
       return buildRedirect(requestUrl, "/join", {
         token,
         error:
