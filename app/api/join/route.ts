@@ -19,6 +19,10 @@ type PlayerProfileRow = {
   age_group: string | null;
 };
 
+type ClubCategoryRow = {
+  key: string;
+};
+
 function buildRedirect(
   url: URL,
   pathname: string,
@@ -173,6 +177,30 @@ export async function POST(request: Request) {
       user.email?.split("@")[0]?.trim() ||
       "Spieler";
 
+    let safeCategoryKey: string | null = null;
+
+    if (sourceProfile.category_key) {
+      const { data: categoryData, error: categoryError } = await adminSupabase
+        .from("club_categories")
+        .select("key")
+        .eq("club_id", invite.club_id)
+        .eq("key", sourceProfile.category_key)
+        .eq("is_active", true)
+        .maybeSingle<ClubCategoryRow>();
+
+      if (categoryError) {
+        console.error("JOIN CATEGORY LOOKUP ERROR:", categoryError);
+
+        return buildRedirect(requestUrl, "/join", {
+          token,
+          error:
+            "Clubbeitritt gespeichert, aber Kategorien im neuen Club konnten nicht geprüft werden.",
+        });
+      }
+
+      safeCategoryKey = categoryData?.key ?? null;
+    }
+
     const { error: insertError } = await adminSupabase.from("players").insert({
       user_id: user.id,
       club_id: invite.club_id,
@@ -182,7 +210,7 @@ export async function POST(request: Request) {
       nickname: sourceProfile.nickname ?? null,
       email: sourceProfile.email ?? user.email ?? null,
       preferred_position: sourceProfile.preferred_position ?? null,
-      category_key: sourceProfile.category_key ?? null,
+      category_key: safeCategoryKey,
       strength: sourceProfile.strength ?? null,
       is_guest: false,
       is_active: sourceProfile.is_active ?? true,
