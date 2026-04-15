@@ -181,7 +181,7 @@ export default async function AdminPage() {
           <AdminCard
             href="/admin/settings"
             eyebrow="Einstellungen"
-            title="Club, Kategorien & Generator"
+            title="Einstellungen"
             description="Verwalte Club-Auftritt, Kategorien, Teamgenerator und Saisonlogik zentral an einem Ort."
             icon={<Settings className="h-6 w-6" strokeWidth={2.1} />}
           />

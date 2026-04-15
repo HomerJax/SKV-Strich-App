@@ -117,22 +117,22 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
         </div>
 
         <SettingsShell
-          title="Einstellungen"
-          description="Club & Branding"
+          title="Club & Branding"
+          description="Name, Logo, Farbe und Anzeigeoptionen verwalten."
         >
           <ClubSettingsCard saved={clubSaved} error={clubError} />
         </SettingsShell>
 
         <SettingsShell
-          title="Einstellungen"
-          description="Saisons"
+          title="Saisons"
+          description="Saisons anlegen, bearbeiten und Serientrainings erzeugen."
         >
           <SeasonSettingsCard message={seasonMessage} error={seasonError} />
         </SettingsShell>
 
         <SettingsShell
-          title="Einstellungen"
-          description="Kategorien"
+          title="Kategorien"
+          description="Kategorien kompakt verwalten."
         >
           <CategorySettingsSection
             categories={categories}
@@ -141,8 +141,8 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
         </SettingsShell>
 
         <SettingsShell
-          title="Einstellungen"
-          description="Teamgenerator"
+          title="Teamgenerator"
+          description="Regeln und Erklärung für automatische Teams."
         >
           <TeamGeneratorSettingsCard
             useStrength={settings?.use_strength ?? false}
