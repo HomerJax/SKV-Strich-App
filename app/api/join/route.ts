@@ -7,6 +7,16 @@ type PlayerProfileRow = {
   id: number;
   club_id: string;
   user_id: string | null;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  email: string | null;
+  preferred_position: "attack" | "defense" | "goalkeeper" | null;
+  category_key: string | null;
+  strength: number | null;
+  is_active: boolean | null;
+  age_group: string | null;
 };
 
 function buildRedirect(
@@ -77,11 +87,15 @@ export async function POST(request: Request) {
 
   const { data: playerProfiles, error: playerError } = await adminSupabase
     .from("players")
-    .select("id, club_id, user_id")
+    .select(
+      "id, club_id, user_id, name, first_name, last_name, nickname, email, preferred_position, category_key, strength, is_active, age_group"
+    )
     .eq("user_id", user.id)
     .eq("is_guest", false);
 
   if (playerError) {
+    console.error("JOIN PLAYER LOAD ERROR:", playerError);
+
     return buildRedirect(requestUrl, "/join", {
       token,
       error: "Spielerprofil konnte nicht geladen werden.",
@@ -103,6 +117,8 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (inviteError || !invite) {
+    console.error("JOIN INVITE LOAD ERROR:", inviteError);
+
     return buildRedirect(requestUrl, "/join", {
       token,
       error: "Einladung nicht gefunden.",
@@ -132,6 +148,8 @@ export async function POST(request: Request) {
     );
 
   if (membershipError) {
+    console.error("JOIN MEMBERSHIP UPSERT ERROR:", membershipError);
+
     return buildRedirect(requestUrl, "/join", {
       token,
       error: "Clubbeitritt konnte nicht gespeichert werden.",
@@ -143,20 +161,32 @@ export async function POST(request: Request) {
   );
 
   if (!existingPlayerInTargetClub) {
+    const sourceProfile = existingProfiles[0];
+
+    const displayName =
+      sourceProfile.name?.trim() ||
+      [sourceProfile.first_name?.trim(), sourceProfile.last_name?.trim()]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      sourceProfile.nickname?.trim() ||
+      user.email?.split("@")[0]?.trim() ||
+      "Spieler";
+
     const { error: insertError } = await adminSupabase.from("players").insert({
       user_id: user.id,
       club_id: invite.club_id,
-      name: null,
-      first_name: null,
-      last_name: null,
-      nickname: null,
-      email: user.email ?? null,
-      preferred_position: null,
-      category_key: null,
-      strength: null,
+      name: displayName,
+      first_name: sourceProfile.first_name ?? null,
+      last_name: sourceProfile.last_name ?? null,
+      nickname: sourceProfile.nickname ?? null,
+      email: sourceProfile.email ?? user.email ?? null,
+      preferred_position: sourceProfile.preferred_position ?? null,
+      category_key: sourceProfile.category_key ?? null,
+      strength: sourceProfile.strength ?? null,
       is_guest: false,
-      is_active: true,
-      age_group: null,
+      is_active: sourceProfile.is_active ?? true,
+      age_group: sourceProfile.age_group ?? null,
     });
 
     if (insertError) {
@@ -179,6 +209,8 @@ export async function POST(request: Request) {
       .eq("id", invite.id);
 
     if (inviteUpdateError) {
+      console.error("JOIN INVITE FINALIZE ERROR:", inviteUpdateError);
+
       return buildRedirect(requestUrl, "/join", {
         token,
         error:
