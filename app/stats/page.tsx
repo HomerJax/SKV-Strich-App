@@ -96,10 +96,8 @@ function isDateWithinSeason(dateIso: string, season: SeasonRow) {
 
 function getCurrentSeason(seasons: SeasonRow[]) {
   const today = getTodayIsoDate();
-
   const current = seasons.find((season) => isDateWithinSeason(today, season));
   if (current) return current;
-
   return seasons[0] ?? null;
 }
 
@@ -427,14 +425,14 @@ export default async function StatsPage({ searchParams }: PageProps) {
     );
   }
 
-  const { data: sessionRowsData, error: sessionsError } = await supabase
+  const { data: sessionRowsData, error: scopedSessionsError } = await supabase
     .from("sessions")
     .select("id, date, season_id")
     .in("id", playerSessionIds)
     .eq("club_id", clubId);
 
-  if (sessionsError) {
-    throw new Error(`Sessions konnten nicht geladen werden: ${sessionsError.message}`);
+  if (scopedSessionsError) {
+    throw new Error(`Sessions konnten nicht geladen werden: ${scopedSessionsError.message}`);
   }
 
   const allPlayerSessions = (sessionRowsData ?? []) as SessionRow[];
@@ -443,8 +441,8 @@ export default async function StatsPage({ searchParams }: PageProps) {
     scope === "career"
       ? allPlayerSessions
       : currentSeason
-      ? allPlayerSessions.filter((session) => session.season_id === currentSeason.id)
-      : [];
+        ? allPlayerSessions.filter((session) => session.season_id === currentSeason.id)
+        : [];
 
   const scopedSessionIds = scopedSessions
     .map((session) => session.id)
@@ -573,14 +571,17 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const teams = (teamsData ?? []) as TeamRow[];
   const scopedSessionIdSet = new Set(scopedSessionIds);
 
-  const myTeamIdBySessionId = new Map<number, number>();
+  const myTeamIdsBySessionId = new Map<number, number[]>();
 
   for (const team of teams) {
     if (!scopedSessionIdSet.has(team.session_id)) continue;
-    myTeamIdBySessionId.set(team.session_id, team.id);
+
+    const current = myTeamIdsBySessionId.get(team.session_id) ?? [];
+    current.push(team.id);
+    myTeamIdsBySessionId.set(team.session_id, current);
   }
 
-  const relevantSessionIdsForResults = Array.from(myTeamIdBySessionId.keys());
+  const relevantSessionIdsForResults = Array.from(myTeamIdsBySessionId.keys());
 
   if (relevantSessionIdsForResults.length === 0) {
     return (
@@ -639,10 +640,12 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const allResults = (resultsData ?? []) as ResultRow[];
 
   const myResults = allResults.filter((result) => {
-    const myTeamId = myTeamIdBySessionId.get(result.session_id);
-    if (!myTeamId) return false;
+    const myTeamIds = myTeamIdsBySessionId.get(result.session_id);
+    if (!myTeamIds || myTeamIds.length === 0) return false;
 
-    return result.team_a_id === myTeamId || result.team_b_id === myTeamId;
+    return myTeamIds.some(
+      (teamId) => teamId === result.team_a_id || teamId === result.team_b_id
+    );
   });
 
   const relevantTeamIds = Array.from(
@@ -804,9 +807,23 @@ export default async function StatsPage({ searchParams }: PageProps) {
   };
 
   const recentResults: RecentResult[] = myResults.map((result) => {
-    const myTeamId = myTeamIdBySessionId.get(result.session_id) ?? null;
-    const myTeamIsA = myTeamId !== null && result.team_a_id === myTeamId;
+    const myTeamIds = myTeamIdsBySessionId.get(result.session_id) ?? [];
+    const myTeamId =
+      myTeamIds.find(
+        (teamId) => teamId === result.team_a_id || teamId === result.team_b_id
+      ) ?? null;
 
+    if (myTeamId === null) {
+      return {
+        sessionId: result.session_id,
+        date: sessionsById.get(result.session_id)?.date ?? null,
+        outcome: "draw",
+        scoreLabel: `${result.goals_team_a ?? 0}:${result.goals_team_b ?? 0}`,
+        myTeamLabel: "Team ?",
+      };
+    }
+
+    const myTeamIsA = result.team_a_id === myTeamId;
     const goalsA = result.goals_team_a ?? 0;
     const goalsB = result.goals_team_b ?? 0;
 
@@ -864,7 +881,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
   const lastFive = recentResults.slice(0, 5);
   const completedResults = totals.wins + totals.losses + totals.draws;
-  const sessionsPlayed = scopedSessionIds.length;
+  const sessionsPlayed = myResults.length;
   mvpPerGame = completedResults > 0 ? mvpWins / completedResults : 0;
 
   const trendPoints = [...recentResults].reverse().map((item, index) => ({
