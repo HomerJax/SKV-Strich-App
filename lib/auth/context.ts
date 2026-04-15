@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export type AuthPlayer = {
   id: number;
   user_id: string | null;
+  club_id: string;
   first_name: string | null;
   last_name: string | null;
   nickname: string | null;
@@ -66,15 +67,15 @@ export async function getAuthContext(): Promise<AuthContext> {
   }
 
   const [
-    { data: player, error: playerError },
+    { data: players, error: playersError },
     { data: memberships, error: membershipsError },
     { data: roleRow, error: roleError },
   ] = await Promise.all([
     supabase
       .from("players")
-      .select("id, user_id, first_name, last_name, nickname")
+      .select("id, user_id, club_id, first_name, last_name, nickname")
       .eq("user_id", user.id)
-      .maybeSingle(),
+      .eq("is_guest", false),
     supabase
       .from("club_memberships")
       .select("id, club_id, user_id, role")
@@ -86,8 +87,8 @@ export async function getAuthContext(): Promise<AuthContext> {
       .maybeSingle<{ is_power_user: boolean }>(),
   ]);
 
-  if (playerError) {
-    throw new Error(`Failed to load player: ${playerError.message}`);
+  if (playersError) {
+    throw new Error(`Failed to load players: ${playersError.message}`);
   }
 
   if (membershipsError) {
@@ -98,6 +99,7 @@ export async function getAuthContext(): Promise<AuthContext> {
     throw new Error(`Failed to load user role: ${roleError.message}`);
   }
 
+  const normalizedPlayers = (players ?? []) as AuthPlayer[];
   const normalizedMemberships = (memberships ?? []) as AuthMembership[];
   const cookieClubId = cookieStore.get("active_club_id")?.value ?? null;
   const isPowerUser = roleRow?.is_power_user === true;
@@ -157,9 +159,30 @@ export async function getAuthContext(): Promise<AuthContext> {
     }
   }
 
+  let activePlayer: AuthPlayer | null = null;
+
+  if (activeClubId) {
+    activePlayer =
+      normalizedPlayers.find((player) => player.club_id === activeClubId) ?? null;
+  }
+
+  if (!activePlayer && normalizedPlayers.length === 1) {
+    activePlayer = normalizedPlayers[0];
+  }
+
+  if (
+    !activeClubId &&
+    !isPowerUser &&
+    normalizedMemberships.length === 1 &&
+    normalizedPlayers.length === 1
+  ) {
+    activeClubId = normalizedMemberships[0].club_id;
+    activePlayer = normalizedPlayers[0];
+  }
+
   return {
     user,
-    player: (player as AuthPlayer | null) ?? null,
+    player: activePlayer,
     memberships: finalMemberships,
     activeClubId,
     isPowerUser,
