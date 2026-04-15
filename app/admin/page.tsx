@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Users,
-  Mail,
   UserRound,
   Settings,
   Shield,
@@ -142,8 +141,9 @@ export default async function AdminPage() {
 
               <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
                 Hier verwaltest du die wichtigsten Bereiche für dein Team:
-                Mitglieder, Einladungen, Spieler und zentrale Einstellungen für
-                Club, Kategorien, Teamgenerator und Saisonlogik.
+                Mitglieder, Spieler und zentrale Einstellungen für Club,
+                Kategorien, Teamgenerator und Saisonlogik. Einladungen laufen
+                direkt über die Mitgliederverwaltung.
               </p>
 
               {ctx.isPowerUser ? (
@@ -166,16 +166,8 @@ export default async function AdminPage() {
             href="/admin/members"
             eyebrow="Mitglieder"
             title="Mitgliederverwaltung"
-            description="Sieh bestehende Mitglieder, aktuelle Rollen und Spieler-Verknüpfungen. Hier kannst du Rollen sicher zwischen Mitglied und Admin ändern."
+            description="Sieh bestehende Mitglieder, aktuelle Rollen, Spieler-Verknüpfungen und offene Einladungen. Hier lädst du auch neue Mitglieder oder Admins ein."
             icon={<Users className="h-6 w-6" strokeWidth={2.1} />}
-          />
-
-          <AdminCard
-            href="/admin/invites"
-            eyebrow="Einladungen"
-            title="Einladungen verwalten"
-            description="Erstelle neue Einladungen und behalte im Blick, welche Zugänge noch offen oder aktiv sind."
-            icon={<Mail className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <AdminCard
