@@ -1,234 +1,314 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAuthContext } from "@/lib/auth/context";
-import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+type SeasonInsert = {
+  id: number;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
+};
 
-function getRequestOrigin(request: NextRequest) {
-  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const host = request.headers.get("host");
-
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-
-  if (host) {
-    const proto = host.includes("localhost") ? "http" : forwardedProto;
-    return `${proto}://${host}`;
-  }
-
-  return request.nextUrl.origin;
-}
-
-function redirectToPath(
-  request: NextRequest,
-  pathname: string,
-  params?: Record<string, string>
-) {
-  const url = new URL(pathname, getRequestOrigin(request));
-
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      url.searchParams.set(key, value);
-    }
-  }
-
-  return NextResponse.redirect(url, { status: 303 });
-}
-
-function getSafeRedirectPath(value: FormDataEntryValue | null) {
-  const fallback = "/admin/seasons";
-
-  if (typeof value !== "string") {
-    return fallback;
-  }
-
+function parseIsoDate(value: string) {
   const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
 
-  if (!trimmed.startsWith("/")) {
-    return fallback;
-  }
+  const date = new Date(`${trimmed}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
 
-  if (trimmed.startsWith("//")) {
-    return fallback;
-  }
-
-  return trimmed || fallback;
+  return date;
 }
 
-async function requireSeasonAdmin() {
-  const ctx = await getAuthContext();
+function getWeekdayNumber(value: FormDataEntryValue | null) {
+  const raw = String(value ?? "").trim();
+  if (raw === "") return null;
 
-  if (!ctx.user) {
-    return { error: "login" as const };
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 6) {
+    return null;
   }
 
-  if (!ctx.player && !ctx.isPowerUser) {
-    return { error: "onboarding" as const };
-  }
-
-  if (!ctx.activeClubId) {
-    return { error: "select_club" as const };
-  }
-
-  if (!ctx.memberships.length && !ctx.isPowerUser) {
-    return { error: "select_club" as const };
-  }
-
-  const membership =
-    ctx.memberships.find((m) => m.club_id === ctx.activeClubId) ??
-    (ctx.isPowerUser
-      ? {
-          club_id: ctx.activeClubId,
-          role: "power_user",
-        }
-      : null);
-
-  const hasAdminAccess = canManageClub({
-    isPowerUser: ctx.isPowerUser,
-    role: membership?.role ?? null,
-  });
-
-  if (!hasAdminAccess) {
-    return { error: "unauthorized" as const };
-  }
-
-  return {
-    clubId: ctx.activeClubId,
-  };
+  return parsed;
 }
 
-export async function POST(request: NextRequest) {
+function getDatesForWeekdaysInRange(
+  startDateIso: string,
+  endDateIso: string,
+  weekdays: number[]
+) {
+  const start = parseIsoDate(startDateIso);
+  const end = parseIsoDate(endDateIso);
+
+  if (!start || !end) {
+    return {
+      error: "Bitte gültige Datumswerte wählen.",
+      dates: [] as string[],
+    };
+  }
+
+  if (start > end) {
+    return {
+      error: "Das Startdatum muss vor oder am Enddatum liegen.",
+      dates: [] as string[],
+    };
+  }
+
+  const weekdaySet = new Set(weekdays);
+  if (weekdaySet.size === 0) {
+    return {
+      error: "",
+      dates: [] as string[],
+    };
+  }
+
+  const dates: string[] = [];
+  const cursor = new Date(start);
+
+  while (cursor <= end) {
+    if (weekdaySet.has(cursor.getDay())) {
+      const yyyy = cursor.getFullYear();
+      const mm = String(cursor.getMonth() + 1).padStart(2, "0");
+      const dd = String(cursor.getDate()).padStart(2, "0");
+      dates.push(`${yyyy}-${mm}-${dd}`);
+    }
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return { error: "", dates };
+}
+
+function buildRedirectUrl(requestUrl: string, redirectTo: string) {
+  return new URL(redirectTo || "/admin/seasons", requestUrl);
+}
+
+function withMessage(
+  requestUrl: string,
+  redirectTo: string,
+  params: { message?: string; error?: string }
+) {
+  const url = buildRedirectUrl(requestUrl, redirectTo);
+
+  if (params.message) {
+    url.searchParams.set("message", params.message);
+  }
+
+  if (params.error) {
+    url.searchParams.set("error", params.error);
+  }
+
+  return NextResponse.redirect(url);
+}
+
+function buildCreateSuccessMessage(
+  seasonName: string,
+  createdSessionsCount: number,
+  skippedSessionsCount: number
+) {
+  if (createdSessionsCount <= 0 && skippedSessionsCount <= 0) {
+    return `Saison "${seasonName}" erfolgreich angelegt.`;
+  }
+
+  if (createdSessionsCount > 0 && skippedSessionsCount <= 0) {
+    return `Saison "${seasonName}" erfolgreich angelegt. ${createdSessionsCount} Trainings wurden erstellt.`;
+  }
+
+  if (createdSessionsCount <= 0 && skippedSessionsCount > 0) {
+    return `Saison "${seasonName}" erfolgreich angelegt. Alle passenden Trainings existierten bereits.`;
+  }
+
+  return `Saison "${seasonName}" erfolgreich angelegt. ${createdSessionsCount} Trainings wurden erstellt, ${skippedSessionsCount} bestehende Termine wurden übersprungen.`;
+}
+
+export async function POST(request: Request) {
+  const formData = await request.formData();
+  const redirectTo = String(formData.get("redirect_to") ?? "/admin/seasons").trim();
+
   try {
-    const access = await requireSeasonAdmin();
+    const { clubId, membership, isPowerUser } = await requireClub();
 
-    if ("error" in access) {
-      if (access.error === "login") {
-        return redirectToPath(request, AUTH_ROUTES.login);
-      }
+    const hasAdminAccess = canManageClub({
+      isPowerUser,
+      role: membership.role,
+    });
 
-      if (access.error === "onboarding") {
-        return redirectToPath(request, AUTH_ROUTES.onboarding);
-      }
-
-      if (access.error === "select_club") {
-        return redirectToPath(request, AUTH_ROUTES.selectClub);
-      }
-
-      return redirectToPath(request, AUTH_ROUTES.dashboard);
+    if (!hasAdminAccess) {
+      return withMessage(request.url, redirectTo, {
+        error: "Keine Berechtigung.",
+      });
     }
 
-    const formData = await request.formData();
-    const intent = String(formData.get("intent") ?? "").trim();
-    const redirectPath = getSafeRedirectPath(formData.get("redirect_to"));
     const supabase = await createClient();
-
-    if (intent === "create") {
-      const name = String(formData.get("name") ?? "").trim();
-      const startDate = String(formData.get("start_date") ?? "").trim();
-      const endDate = String(formData.get("end_date") ?? "").trim();
-
-      if (!name) {
-        return redirectToPath(request, redirectPath, {
-          season_error: "Name darf nicht leer sein.",
-        });
-      }
-
-      const { error } = await supabase.from("seasons").insert({
-        club_id: access.clubId,
-        name,
-        start_date: startDate || null,
-        end_date: endDate || null,
-      });
-
-      if (error) {
-        return redirectToPath(request, redirectPath, {
-          season_error: error.message || "Fehler beim Anlegen.",
-        });
-      }
-
-      return redirectToPath(request, redirectPath, {
-        season_message: "Saison angelegt.",
-      });
-    }
-
-    if (intent === "update") {
-      const id = Number(formData.get("season_id") ?? 0);
-      const name = String(formData.get("name") ?? "").trim();
-      const startDate = String(formData.get("start_date") ?? "").trim();
-      const endDate = String(formData.get("end_date") ?? "").trim();
-
-      if (!Number.isFinite(id) || id <= 0) {
-        return redirectToPath(request, redirectPath, {
-          season_error: "Ungültige Saison.",
-        });
-      }
-
-      if (!name) {
-        return redirectToPath(request, redirectPath, {
-          season_error: "Name darf nicht leer sein.",
-        });
-      }
-
-      const { error } = await supabase
-        .from("seasons")
-        .update({
-          name,
-          start_date: startDate || null,
-          end_date: endDate || null,
-        })
-        .eq("id", id)
-        .eq("club_id", access.clubId);
-
-      if (error) {
-        return redirectToPath(request, redirectPath, {
-          season_error: error.message || "Fehler beim Speichern.",
-        });
-      }
-
-      return redirectToPath(request, redirectPath, {
-        season_message: "Saison aktualisiert.",
-      });
-    }
+    const intent = String(formData.get("intent") ?? "").trim();
 
     if (intent === "delete") {
-      const id = Number(formData.get("season_id") ?? 0);
+      const seasonIdRaw = String(formData.get("season_id") ?? "").trim();
+      const seasonId = Number(seasonIdRaw);
 
-      if (!Number.isFinite(id) || id <= 0) {
-        return redirectToPath(request, redirectPath, {
-          season_error: "Ungültige Saison.",
+      if (!Number.isFinite(seasonId)) {
+        return withMessage(request.url, redirectTo, {
+          error: "Ungültige Saison.",
         });
       }
 
       const { error } = await supabase
         .from("seasons")
         .delete()
-        .eq("id", id)
-        .eq("club_id", access.clubId);
+        .eq("club_id", clubId)
+        .eq("id", seasonId);
 
       if (error) {
-        return redirectToPath(request, redirectPath, {
-          season_error: error.message || "Fehler beim Löschen.",
+        return withMessage(request.url, redirectTo, {
+          error: error.message || "Saison konnte nicht gelöscht werden.",
         });
       }
 
-      return redirectToPath(request, redirectPath, {
-        season_message: "Saison gelöscht.",
+      return withMessage(request.url, redirectTo, {
+        message: "Saison erfolgreich gelöscht.",
       });
     }
 
-    return redirectToPath(request, redirectPath, {
-      season_error: "Ungültige Aktion.",
+    if (intent !== "create") {
+      return withMessage(request.url, redirectTo, {
+        error: "Unbekannte Aktion.",
+      });
+    }
+
+    const name = String(formData.get("name") ?? "").trim();
+    const startDate = String(formData.get("start_date") ?? "").trim();
+    const endDate = String(formData.get("end_date") ?? "").trim();
+
+    if (!name) {
+      return withMessage(request.url, redirectTo, {
+        error: "Bitte einen Namen eingeben.",
+      });
+    }
+
+    const parsedStart = parseIsoDate(startDate);
+    const parsedEnd = parseIsoDate(endDate);
+
+    if (!parsedStart || !parsedEnd) {
+      return withMessage(request.url, redirectTo, {
+        error: "Bitte gültige Datumswerte wählen.",
+      });
+    }
+
+    if (parsedStart > parsedEnd) {
+      return withMessage(request.url, redirectTo, {
+        error: "Das Startdatum muss vor oder am Enddatum liegen.",
+      });
+    }
+
+    const weekdayOne = getWeekdayNumber(formData.get("weekday_one"));
+    const weekdayTwo = getWeekdayNumber(formData.get("weekday_two"));
+    const selectedWeekdays = Array.from(
+      new Set(
+        [weekdayOne, weekdayTwo].filter((value): value is number => value !== null)
+      )
+    );
+
+    const { data: createdSeason, error: seasonInsertError } = await supabase
+      .from("seasons")
+      .insert({
+        club_id: clubId,
+        name,
+        start_date: startDate,
+        end_date: endDate,
+      })
+      .select("id, name, start_date, end_date")
+      .single<SeasonInsert>();
+
+    if (seasonInsertError || !createdSeason) {
+      return withMessage(request.url, redirectTo, {
+        error: seasonInsertError?.message || "Saison konnte nicht erstellt werden.",
+      });
+    }
+
+    if (selectedWeekdays.length === 0) {
+      return withMessage(request.url, redirectTo, {
+        message: buildCreateSuccessMessage(createdSeason.name, 0, 0),
+      });
+    }
+
+    const generated = getDatesForWeekdaysInRange(
+      createdSeason.start_date ?? "",
+      createdSeason.end_date ?? "",
+      selectedWeekdays
+    );
+
+    if (generated.error) {
+      return withMessage(request.url, redirectTo, {
+        error: generated.error,
+      });
+    }
+
+    if (generated.dates.length === 0) {
+      return withMessage(request.url, redirectTo, {
+        message: buildCreateSuccessMessage(createdSeason.name, 0, 0),
+      });
+    }
+
+    const existingDatesResult = await supabase
+      .from("sessions")
+      .select("date")
+      .eq("club_id", clubId)
+      .in("date", generated.dates);
+
+    if (existingDatesResult.error) {
+      return withMessage(request.url, redirectTo, {
+        error:
+          existingDatesResult.error.message ||
+          "Bestehende Trainings konnten nicht geprüft werden.",
+      });
+    }
+
+    const existingDates = new Set(
+      (((existingDatesResult.data as { date: string }[] | null) ?? []).map(
+        (row) => row.date
+      ))
+    );
+
+    const datesToCreate = generated.dates.filter(
+      (currentDate) => !existingDates.has(currentDate)
+    );
+
+    const skippedSessionsCount = generated.dates.length - datesToCreate.length;
+
+    if (datesToCreate.length > 0) {
+      const rowsToInsert = datesToCreate.map((date) => ({
+        date,
+        club_id: clubId,
+        season_id: createdSeason.id,
+        notes: null as string | null,
+      }));
+
+      const { error: sessionInsertError } = await supabase
+        .from("sessions")
+        .insert(rowsToInsert);
+
+      if (sessionInsertError) {
+        return withMessage(request.url, redirectTo, {
+          error:
+            sessionInsertError.message ||
+            "Die Saison wurde erstellt, aber die Serientermine konnten nicht angelegt werden.",
+        });
+      }
+    }
+
+    return withMessage(request.url, redirectTo, {
+      message: buildCreateSuccessMessage(
+        createdSeason.name,
+        datesToCreate.length,
+        skippedSessionsCount
+      ),
     });
   } catch (error) {
-    console.error("POST /api/admin/seasons failed", error);
+    const message =
+      error instanceof Error ? error.message : "Fehler beim Speichern.";
 
-    return redirectToPath(request, "/admin/settings", {
-      season_error: "Fehler beim Speichern.",
+    return withMessage(request.url, redirectTo, {
+      error: message,
     });
   }
 }

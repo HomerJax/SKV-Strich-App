@@ -20,6 +20,16 @@ type PageProps = {
   }>;
 };
 
+const WEEKDAY_OPTIONS = [
+  { value: "1", label: "Montag" },
+  { value: "2", label: "Dienstag" },
+  { value: "3", label: "Mittwoch" },
+  { value: "4", label: "Donnerstag" },
+  { value: "5", label: "Freitag" },
+  { value: "6", label: "Samstag" },
+  { value: "0", label: "Sonntag" },
+];
+
 function formatDate(date: string | null) {
   if (!date) return "nicht gesetzt";
   return new Date(date).toLocaleDateString("de-DE");
@@ -72,7 +82,8 @@ export default async function SeasonsAdminPage({ searchParams }: PageProps) {
           </h1>
           <p className="mt-2 text-sm text-slate-600">
             Lege fest, wie deine Saisons heißen und in welchem Zeitraum sie
-            gelten.
+            gelten. Optional kannst du beim Anlegen direkt wiederkehrende
+            Trainings für die gesamte Saison erzeugen.
           </p>
 
           {isPowerUser ? (
@@ -153,6 +164,68 @@ export default async function SeasonsAdminPage({ searchParams }: PageProps) {
 
             <div className="text-xs text-slate-500">
               Beispiel: Start 01.07.2026, Ende 30.06.2027.
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-sm font-semibold text-slate-900">
+                Serientraining für diese Saison
+              </div>
+              <p className="mt-1 text-sm text-slate-600">
+                Optional: Wähle 1 oder 2 Trainingstage. Dann werden direkt beim
+                Anlegen der Saison alle passenden Trainings zwischen Saisonstart
+                und Saisonende erzeugt.
+              </p>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="weekday_one"
+                    className="mb-1.5 block text-sm font-medium text-slate-900"
+                  >
+                    Trainingstag 1
+                  </label>
+                  <select
+                    id="weekday_one"
+                    name="weekday_one"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none"
+                    defaultValue=""
+                  >
+                    <option value="">Kein fester Tag</option>
+                    {WEEKDAY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="weekday_two"
+                    className="mb-1.5 block text-sm font-medium text-slate-900"
+                  >
+                    Trainingstag 2
+                  </label>
+                  <select
+                    id="weekday_two"
+                    name="weekday_two"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none"
+                    defaultValue=""
+                  >
+                    <option value="">Kein zweiter Tag</option>
+                    {WEEKDAY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-3 text-xs text-slate-500">
+                Ende der Serie ist automatisch das Saisonende, Beginn automatisch
+                der Saisonstart. Doppelte Tage werden ignoriert.
+              </div>
             </div>
 
             <button

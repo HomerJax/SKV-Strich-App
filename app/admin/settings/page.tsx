@@ -105,8 +105,8 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
             Einstellungen
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Verwalte Club, Saisons, Kategorien und Teamgenerator zentral an
-            einem Ort.
+            Verwalte Club, Saisons und weitere Einstellungen zentral an einem
+            Ort.
           </p>
 
           {isPowerUser ? (
@@ -117,22 +117,22 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
         </div>
 
         <SettingsShell
-          title="Club & Branding"
-          description="Name, Logo, Farbe und Anzeigeoptionen verwalten."
+          title="Einstellungen"
+          description="Club & Branding"
         >
           <ClubSettingsCard saved={clubSaved} error={clubError} />
         </SettingsShell>
 
         <SettingsShell
-          title="Saisons"
-          description="Saisons anlegen, bearbeiten und löschen."
+          title="Einstellungen"
+          description="Saisons"
         >
           <SeasonSettingsCard message={seasonMessage} error={seasonError} />
         </SettingsShell>
 
         <SettingsShell
-          title="Kategorien"
-          description="Kategorien kompakt verwalten."
+          title="Einstellungen"
+          description="Kategorien"
         >
           <CategorySettingsSection
             categories={categories}
@@ -141,8 +141,8 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
         </SettingsShell>
 
         <SettingsShell
-          title="Teamgenerator"
-          description="Regeln und Erklärung für automatische Teams."
+          title="Einstellungen"
+          description="Teamgenerator"
         >
           <TeamGeneratorSettingsCard
             useStrength={settings?.use_strength ?? false}
