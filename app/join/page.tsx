@@ -96,14 +96,14 @@ export default async function JoinPage({
   let hasPlayer = false;
 
   if (user) {
-    const { data: player } = await authSupabase
+    const { data: players } = await authSupabase
       .from("players")
       .select("id")
       .eq("user_id", user.id)
       .eq("is_guest", false)
-      .maybeSingle();
+      .limit(1);
 
-    hasPlayer = Boolean(player);
+    hasPlayer = (players?.length ?? 0) > 0;
   }
 
   const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;

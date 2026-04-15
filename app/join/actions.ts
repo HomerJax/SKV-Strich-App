@@ -70,15 +70,23 @@ export async function acceptInviteAction(formData: FormData) {
     redirect(`/login?next=${encodeURIComponent(joinUrl)}`);
   }
 
-  const { data: player } = await supabase
+  const { data: players, error: playerError } = await supabase
     .from("players")
     .select("id")
     .eq("user_id", user.id)
     .eq("is_guest", false)
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
-  if (!player) {
+  if (playerError) {
+    redirect(
+      buildJoinRedirect({
+        token,
+        error: "Spielerprofil konnte nicht geladen werden.",
+      })
+    );
+  }
+
+  if (!players || players.length === 0) {
     redirect(`/onboarding?next=${encodeURIComponent(joinUrl)}`);
   }
 

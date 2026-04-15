@@ -3,7 +3,27 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 
-function buildRedirect(url: URL, pathname: string, params?: Record<string, string>) {
+type PlayerProfileRow = {
+  id: number;
+  club_id: string;
+  user_id: string | null;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  email: string | null;
+  preferred_position: "attack" | "defense" | "goalkeeper" | null;
+  category_key: string | null;
+  strength: number | null;
+  is_active: boolean | null;
+  age_group: string | null;
+};
+
+function buildRedirect(
+  url: URL,
+  pathname: string,
+  params?: Record<string, string>
+) {
   const nextUrl = new URL(pathname, url.origin);
 
   if (params) {
@@ -65,12 +85,13 @@ export async function POST(request: Request) {
     });
   }
 
-  const { data: player, error: playerError } = await authSupabase
+  const { data: playerProfiles, error: playerError } = await adminSupabase
     .from("players")
-    .select("id, club_id")
+    .select(
+      "id, club_id, user_id, name, first_name, last_name, nickname, email, preferred_position, category_key, strength, is_active, age_group"
+    )
     .eq("user_id", user.id)
-    .eq("is_guest", false)
-    .maybeSingle();
+    .eq("is_guest", false);
 
   if (playerError) {
     return buildRedirect(requestUrl, "/join", {
@@ -79,7 +100,9 @@ export async function POST(request: Request) {
     });
   }
 
-  if (!player) {
+  const existingProfiles = (playerProfiles as PlayerProfileRow[] | null) ?? [];
+
+  if (existingProfiles.length === 0) {
     return buildRedirect(requestUrl, "/onboarding", {
       next: `/join?token=${encodeURIComponent(token)}`,
     });
@@ -127,18 +150,36 @@ export async function POST(request: Request) {
     });
   }
 
-  if (player.club_id !== invite.club_id) {
-    const { error: playerUpdateError } = await adminSupabase
-      .from("players")
-      .update({
-        club_id: invite.club_id,
-      })
-      .eq("id", player.id);
+  const targetClubProfile = existingProfiles.find(
+    (profile) => profile.club_id === invite.club_id
+  );
 
-    if (playerUpdateError) {
+  if (!targetClubProfile) {
+    const sourceProfile = existingProfiles[0];
+
+    const { error: playerInsertError } = await adminSupabase
+      .from("players")
+      .insert({
+        club_id: invite.club_id,
+        user_id: user.id,
+        name: sourceProfile.name,
+        first_name: sourceProfile.first_name,
+        last_name: sourceProfile.last_name,
+        nickname: sourceProfile.nickname,
+        email: sourceProfile.email ?? user.email ?? null,
+        preferred_position: sourceProfile.preferred_position,
+        category_key: sourceProfile.category_key,
+        strength: sourceProfile.strength,
+        is_active: sourceProfile.is_active ?? true,
+        is_guest: false,
+        age_group: sourceProfile.age_group,
+      });
+
+    if (playerInsertError) {
       return buildRedirect(requestUrl, "/join", {
         token,
-        error: "Clubbeitritt gespeichert, aber Spielerprofil konnte nicht aktualisiert werden.",
+        error:
+          "Clubbeitritt gespeichert, aber Spielerprofil konnte im neuen Club nicht angelegt werden.",
       });
     }
   }
@@ -154,7 +195,8 @@ export async function POST(request: Request) {
     if (inviteUpdateError) {
       return buildRedirect(requestUrl, "/join", {
         token,
-        error: "Clubbeitritt gespeichert, aber Einladung konnte nicht finalisiert werden.",
+        error:
+          "Clubbeitritt gespeichert, aber Einladung konnte nicht finalisiert werden.",
       });
     }
   }
