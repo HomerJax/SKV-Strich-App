@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
@@ -100,6 +101,17 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6">
+        
+        {/* 🔙 BACK BUTTON */}
+        <div className="flex items-center">
+          <Link
+            href="/admin"
+            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          >
+            ← Zurück zum Adminbereich
+          </Link>
+        </div>
+
         <div className="rounded-[24px] border border-black/10 bg-white px-5 py-5 shadow-sm">
           <h1 className="text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
             Einstellungen
