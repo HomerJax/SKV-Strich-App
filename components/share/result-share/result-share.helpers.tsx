@@ -129,7 +129,7 @@ export function renderBrandFooter(params: {
 }
 
 /**
- * CLUB BADGE (oben links)
+ * CLUB BADGE (oben links) → jetzt 50% größer
  */
 export function renderClubBadge(params: {
   clubName: string;
@@ -146,14 +146,14 @@ export function renderClubBadge(params: {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 16,
+        gap: 20,
       }}
     >
       <div
         style={{
-          width: 104,
-          height: 104,
-          borderRadius: 26,
+          width: 156,
+          height: 156,
+          borderRadius: 36,
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
@@ -162,7 +162,7 @@ export function renderClubBadge(params: {
           border: params.dark
             ? "1px solid rgba(255,255,255,0.14)"
             : "1px solid rgba(15,23,42,0.08)",
-          boxShadow: "0 18px 44px rgba(0,0,0,0.28)",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.35)",
           flexShrink: 0,
         }}
       >
@@ -170,14 +170,14 @@ export function renderClubBadge(params: {
           <img
             src={logoSrc}
             alt={params.clubName}
-            width={104}
-            height={104}
+            width={156}
+            height={156}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "contain",
               display: "block",
-              padding: 12,
+              padding: 16,
             }}
           />
         ) : (
@@ -189,7 +189,7 @@ export function renderClubBadge(params: {
               alignItems: "center",
               justifyContent: "center",
               color: params.dark ? "#FFFFFF" : "#0F172A",
-              fontSize: 34,
+              fontSize: 48,
               fontWeight: 900,
             }}
           >
@@ -202,18 +202,18 @@ export function renderClubBadge(params: {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 4,
+          gap: 6,
           minWidth: 0,
         }}
       >
         <div
           style={{
             display: "flex",
-            fontSize: 20,
+            fontSize: 26,
             fontWeight: 900,
             color: params.palette.textPrimary,
-            maxWidth: 360,
-            letterSpacing: "-0.5px",
+            maxWidth: 420,
+            letterSpacing: "-0.6px",
           }}
         >
           {params.clubName}
