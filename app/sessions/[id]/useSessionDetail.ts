@@ -415,9 +415,7 @@ export function useSessionDetail({
       );
 
       setPreparedResultShareFile(nextFile);
-      setResultShareMessage(
-        "SiegerCard ist bereit. Bitte jetzt nochmal auf Teilen tippen."
-      );
+      setResultShareMessage("SiegerCard ist bereit.");
 
       return { ok: true as const, file: nextFile };
     } catch (error: unknown) {
@@ -571,7 +569,9 @@ ${sessionUrl}`;
         throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
       }
 
-      if (!preparedResultShareFile) {
+      let shareFile = preparedResultShareFile;
+
+      if (!shareFile) {
         setResultShareMessage("SiegerCard wird vorbereitet ...");
 
         const prepared = await prepareResultShare();
@@ -580,12 +580,16 @@ ${sessionUrl}`;
           return;
         }
 
-        return;
+        shareFile = prepared.file;
+      }
+
+      if (!shareFile) {
+        throw new Error("SiegerCard konnte nicht vorbereitet werden.");
       }
 
       if (typeof navigator.canShare === "function") {
         const canShareFiles = navigator.canShare({
-          files: [preparedResultShareFile],
+          files: [shareFile],
         });
 
         if (!canShareFiles) {
@@ -596,7 +600,7 @@ ${sessionUrl}`;
       }
 
       await navigator.share({
-        files: [preparedResultShareFile],
+        files: [shareFile],
       });
 
       setResultShareMessage("SiegerCard erfolgreich geteilt.");
@@ -1076,12 +1080,10 @@ ${sessionUrl}`;
         setTeamsCollapsed(true);
         setMsg(result.message);
         setPreparedResultShareFile(null);
-        setResultShareMessage("SiegerCard wird vorbereitet ...");
+        setResultShareMessage(null);
 
         if (result.hasResult) {
           setShowSessionEndModal(true);
-          setPreparedResultShareFile(null);
-          setResultShareMessage(null);
         }
       }
     } catch (e: unknown) {

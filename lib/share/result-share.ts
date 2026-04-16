@@ -52,6 +52,50 @@ function isDataUrl(value: string) {
   return /^data:/i.test(value);
 }
 
+function normalizeStorageObjectPath(rawValue: string, bucket: string) {
+  const value = rawValue.trim();
+
+  if (!value) return null;
+
+  if (value.startsWith(`${bucket}/`)) {
+    return value.slice(bucket.length + 1);
+  }
+
+  if (!isAbsoluteUrl(value)) {
+    return value.replace(/^\/+/, "");
+  }
+
+  try {
+    const url = new URL(value);
+    const pathname = decodeURIComponent(url.pathname);
+
+    const knownPrefixes = [
+      `/storage/v1/object/sign/${bucket}/`,
+      `/storage/v1/object/public/${bucket}/`,
+      `/storage/v1/object/authenticated/${bucket}/`,
+      `/object/sign/${bucket}/`,
+      `/object/public/${bucket}/`,
+      `/object/authenticated/${bucket}/`,
+    ];
+
+    for (const prefix of knownPrefixes) {
+      const index = pathname.indexOf(prefix);
+
+      if (index >= 0) {
+        const extracted = pathname
+          .slice(index + prefix.length)
+          .replace(/^\/+/, "");
+
+        return extracted || null;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function getWinnerPhotoUrl(
   winnerPhotoPath: string | null,
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -71,20 +115,29 @@ async function getWinnerPhotoUrl(
       return trimmedPath;
     }
 
+    const normalizedPath = normalizeStorageObjectPath(
+      trimmedPath,
+      "session-photos"
+    );
+
+    if (normalizedPath) {
+      const { data, error } = await supabase.storage
+        .from("session-photos")
+        .createSignedUrl(normalizedPath, 60 * 60);
+
+      if (error || !data?.signedUrl) {
+        console.error("Failed to create signed URL for winner photo:", error);
+        return null;
+      }
+
+      return data.signedUrl;
+    }
+
     if (isAbsoluteUrl(trimmedPath)) {
       return trimmedPath;
     }
 
-    const { data, error } = await supabase.storage
-      .from("session-photos")
-      .createSignedUrl(trimmedPath, 60 * 60);
-
-    if (error || !data?.signedUrl) {
-      console.error("Failed to create signed URL for winner photo:", error);
-      return null;
-    }
-
-    return data.signedUrl;
+    return null;
   } catch (error) {
     console.error("Failed to prepare winner photo for result share:", error);
     return null;
@@ -140,21 +193,22 @@ export async function getResultShareData(
 
   const supabase = await createClient();
 
-  const [
-    { data: sessionData, error: sessionError },
-    { data: resultData, error: resultError },
-  ] = await Promise.all([
-    supabase
-      .from("sessions")
-      .select("id, date, club_id, winner_photo_path")
-      .eq("id", sessionId)
-      .single(),
-    supabase
-      .from("results")
-      .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
-      .eq("session_id", sessionId)
-      .maybeSingle(),
-  ]);
+  const sessionResponse = await supabase
+    .from("sessions")
+    .select("id, date, club_id, winner_photo_path")
+    .eq("id", sessionId)
+    .single();
+
+  const resultResponse = await supabase
+    .from("results")
+    .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+
+  const sessionData = sessionResponse.data;
+  const sessionError = sessionResponse.error;
+  const resultData = resultResponse.data;
+  const resultError = resultResponse.error;
 
   if (sessionError || !sessionData) {
     throw new Error("Session nicht gefunden");
@@ -175,10 +229,14 @@ export async function getResultShareData(
 
   const branding = await getBaseShareBranding();
 
-  const [{ club, clubLogoUrl }, winnerPhotoUrl] = await Promise.all([
-    getClubShareData(session.club_id, supabase),
-    getWinnerPhotoUrl(session.winner_photo_path, supabase),
-  ]);
+  const clubShareData = await getClubShareData(session.club_id, supabase);
+  const winnerPhotoUrl = await getWinnerPhotoUrl(
+    session.winner_photo_path,
+    supabase
+  );
+
+  const club = clubShareData.club;
+  const clubLogoUrl = clubShareData.clubLogoUrl;
 
   if (club?.display_name) {
     branding.clubName = club.display_name;
@@ -199,19 +257,15 @@ export async function getResultShareData(
     date: session.date ? formatDate(session.date) : "",
     goalsA: String(goalsA),
     goalsB: String(goalsB),
-
     teamAName: "",
     teamBName: "",
-
     winnerLabel: buildWinnerLabel(goalsA, goalsB),
     winnerPhotoUrl,
     branding,
-
     clubName: club?.display_name ?? branding.clubName ?? null,
     clubLogoUrl,
     strikrLogoUrl: branding.appLogoUrl ?? null,
     clubPrimaryColor: club?.primary_color ?? null,
-
     winnerWasShorthanded: storyFlags.winnerWasShorthanded,
     upsetWin: storyFlags.upsetWin,
     dramaticFinish: storyFlags.dramaticFinish,

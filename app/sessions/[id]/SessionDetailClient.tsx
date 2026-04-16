@@ -44,6 +44,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     clubSettings,
     useFieldView,
     primaryColorKey,
+    mvpVotingEnabled,
     winnerPhotoUrl,
     goalsA,
     goalsB,
@@ -342,6 +343,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         resultShareReady={resultShareReady}
         preparingResultShare={preparingResultShare}
         resultShareMessage={resultShareMessage}
+        mvpVotingEnabled={mvpVotingEnabled}
       />
     </>
   );

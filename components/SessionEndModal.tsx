@@ -15,6 +15,7 @@ type SessionEndModalProps = {
   resultShareReady?: boolean;
   preparingResultShare?: boolean;
   resultShareMessage?: string | null;
+  mvpVotingEnabled?: boolean;
 };
 
 function getHeadline(scoreA: number, scoreB: number) {
@@ -39,6 +40,7 @@ export default function SessionEndModal({
   resultShareReady = false,
   preparingResultShare = false,
   resultShareMessage = null,
+  mvpVotingEnabled = false,
 }: SessionEndModalProps) {
   const [sharingMvpVoting, setSharingMvpVoting] = useState(false);
   const [mvpShareMessage, setMvpShareMessage] = useState<string | null>(null);
@@ -54,9 +56,11 @@ export default function SessionEndModal({
 
   const headline = getHeadline(scoreA, scoreB);
 
+  const socialBusy = sharingSocial || preparingResultShare;
+
   const socialButtonLabel = sharingSocial
     ? "Teilt SiegerCard..."
-    : preparingResultShare && !resultShareReady
+    : preparingResultShare
       ? "SiegerCard wird vorbereitet..."
       : "📸 SiegerCard auf Social Media teilen";
 
@@ -113,7 +117,7 @@ ${sessionUrl}`;
                 Training abgeschlossen
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Teile jetzt Ergebnis oder starte das MVP Voting.
+                Teile jetzt Ergebnis{mvpVotingEnabled ? " oder starte das MVP Voting." : "."}
               </p>
             </div>
 
@@ -150,7 +154,7 @@ ${sessionUrl}`;
               <button
                 type="button"
                 onClick={onShareSocial}
-                disabled={sharingSocial}
+                disabled={socialBusy}
                 className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {socialButtonLabel}
@@ -175,30 +179,34 @@ ${sessionUrl}`;
 
               {!resultShareReady && preparingResultShare ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  SiegerCard wird gerade vorbereitet. Sobald sie bereit ist, kannst du direkt nochmal auf Teilen tippen.
+                  SiegerCard wird gerade vorbereitet. Der Teilen-Button ist kurz gesperrt und wird danach automatisch wieder freigegeben.
                 </div>
               ) : null}
 
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-                <div className="text-sm font-semibold text-amber-900">
-                  MVP Voting beginnt jetzt
-                </div>
-                <div className="mt-1 text-sm text-amber-800">
-                  Teile den Link mit eurer Gruppe. Abgestimmt wird direkt in
-                  dieser Session im Bereich „MVP Voting“.
-                </div>
-              </div>
+              {mvpVotingEnabled ? (
+                <>
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <div className="text-sm font-semibold text-amber-900">
+                      MVP Voting beginnt jetzt
+                    </div>
+                    <div className="mt-1 text-sm text-amber-800">
+                      Teile den Link mit eurer Gruppe. Abgestimmt wird direkt in
+                      dieser Session im Bereich „MVP Voting“.
+                    </div>
+                  </div>
 
-              <button
-                type="button"
-                onClick={handleShareMvpVoting}
-                disabled={sharingMvpVoting}
-                className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {sharingMvpVoting
-                  ? "Teilt MVP Voting..."
-                  : "⭐ MVP Voting in Gruppe teilen"}
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleShareMvpVoting}
+                    disabled={sharingMvpVoting}
+                    className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {sharingMvpVoting
+                      ? "Teilt MVP Voting..."
+                      : "⭐ MVP Voting in Gruppe teilen"}
+                  </button>
+                </>
+              ) : null}
             </div>
 
             {mvpShareMessage ? (
