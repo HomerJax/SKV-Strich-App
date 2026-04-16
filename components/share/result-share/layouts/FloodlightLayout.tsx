@@ -69,7 +69,7 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            gap: 20,
+            gap: 24,
           }}
         >
           {renderClubBadge({
@@ -80,36 +80,11 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
             strikrLogoUrl: data.strikrLogoUrl,
           })}
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 14,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                padding: "10px 14px",
-                borderRadius: 999,
-                background: "rgba(2,6,12,0.72)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                fontSize: 12,
-                fontWeight: 800,
-                color: "rgba(255,255,255,0.78)",
-                textTransform: "uppercase",
-              }}
-            >
-              {data.date}
-            </div>
-
-            {renderBrandFooter({
-              palette,
-              strikrLogoUrl: data.strikrLogoUrl,
-              dark: true,
-            })}
-          </div>
+          {renderBrandFooter({
+            palette,
+            strikrLogoUrl: data.strikrLogoUrl,
+            dark: true,
+          })}
         </div>
 
         <div

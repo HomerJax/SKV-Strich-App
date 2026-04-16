@@ -31,63 +31,56 @@ export function renderBrandFooter(params: {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 14,
-        padding: "12px 16px",
-        borderRadius: 20,
-        background: params.dark ? "rgba(2,6,12,0.72)" : "rgba(255,255,255,0.92)",
-        border: params.dark
-          ? "1px solid rgba(255,255,255,0.08)"
-          : "1px solid rgba(15,23,42,0.08)",
-        boxShadow: params.dark
-          ? "0 10px 28px rgba(0,0,0,0.18)"
-          : "0 10px 28px rgba(15,23,42,0.08)",
+        gap: 18,
       }}
     >
       {params.strikrLogoUrl ? (
         <div
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 16,
+            width: 96,
+            height: 96,
+            borderRadius: 24,
             overflow: "hidden",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             background: params.dark ? "rgba(255,255,255,0.08)" : "#FFFFFF",
             border: params.dark
-              ? "1px solid rgba(255,255,255,0.12)"
+              ? "1px solid rgba(255,255,255,0.14)"
               : "1px solid rgba(15,23,42,0.08)",
+            boxShadow: "0 12px 28px rgba(0,0,0,0.14)",
             flexShrink: 0,
           }}
         >
           <img
             src={params.strikrLogoUrl}
             alt="Strikr"
-            width={64}
-            height={64}
+            width={96}
+            height={96}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "contain",
               display: "block",
-              padding: 7,
+              padding: 10,
             }}
           />
         </div>
       ) : (
         <div
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 16,
+            width: 96,
+            height: 96,
+            borderRadius: 24,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             background: params.dark ? "#FFFFFF" : params.palette.accent,
             color: params.dark ? "#0F172A" : "#FFFFFF",
-            fontSize: 24,
+            fontSize: 28,
             fontWeight: 900,
             flexShrink: 0,
+            boxShadow: "0 12px 28px rgba(0,0,0,0.14)",
           }}
         >
           S
@@ -98,16 +91,18 @@ export function renderBrandFooter(params: {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 2,
+          gap: 4,
+          minWidth: 0,
         }}
       >
         <div
           style={{
             display: "flex",
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: 900,
             color: params.palette.textPrimary,
             letterSpacing: "-0.4px",
+            lineHeight: 1.1,
           }}
         >
           STRIKR
@@ -115,9 +110,10 @@ export function renderBrandFooter(params: {
         <div
           style={{
             display: "flex",
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 700,
             color: params.palette.textSecondary,
+            lineHeight: 1.15,
           }}
         >
           Training managed by STRIKR
@@ -142,14 +138,14 @@ export function renderClubBadge(params: {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 16,
+        gap: 18,
       }}
     >
       <div
         style={{
-          width: 96,
-          height: 96,
-          borderRadius: 24,
+          width: 116,
+          height: 116,
+          borderRadius: 28,
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
@@ -166,14 +162,14 @@ export function renderClubBadge(params: {
           <img
             src={logoSrc}
             alt={params.clubName}
-            width={96}
-            height={96}
+            width={116}
+            height={116}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "contain",
               display: "block",
-              padding: 10,
+              padding: 12,
             }}
           />
         ) : (
@@ -185,7 +181,7 @@ export function renderClubBadge(params: {
               alignItems: "center",
               justifyContent: "center",
               color: params.dark ? "#FFFFFF" : "#0F172A",
-              fontSize: 28,
+              fontSize: 34,
               fontWeight: 900,
             }}
           >
@@ -198,18 +194,18 @@ export function renderClubBadge(params: {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 3,
+          gap: 4,
           minWidth: 0,
         }}
       >
         <div
           style={{
             display: "flex",
-            fontSize: 20,
+            fontSize: 22,
             fontWeight: 800,
             color: params.palette.textPrimary,
-            maxWidth: 360,
-            lineHeight: 1.1,
+            maxWidth: 390,
+            lineHeight: 1.08,
           }}
         >
           {params.clubName}
