@@ -85,7 +85,7 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "flex-end",
-              gap: 12,
+              gap: 14,
             }}
           >
             <div

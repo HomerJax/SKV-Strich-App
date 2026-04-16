@@ -31,10 +31,10 @@ export function renderBrandFooter(params: {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 12,
-        padding: "12px 14px",
-        borderRadius: 18,
-        background: params.dark ? "rgba(2,6,12,0.72)" : "rgba(255,255,255,0.86)",
+        gap: 14,
+        padding: "12px 16px",
+        borderRadius: 20,
+        background: params.dark ? "rgba(2,6,12,0.72)" : "rgba(255,255,255,0.92)",
         border: params.dark
           ? "1px solid rgba(255,255,255,0.08)"
           : "1px solid rgba(15,23,42,0.08)",
@@ -46,9 +46,9 @@ export function renderBrandFooter(params: {
       {params.strikrLogoUrl ? (
         <div
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
+            width: 64,
+            height: 64,
+            borderRadius: 16,
             overflow: "hidden",
             display: "flex",
             alignItems: "center",
@@ -63,29 +63,29 @@ export function renderBrandFooter(params: {
           <img
             src={params.strikrLogoUrl}
             alt="Strikr"
-            width={52}
-            height={52}
+            width={64}
+            height={64}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "contain",
               display: "block",
-              padding: 6,
+              padding: 7,
             }}
           />
         </div>
       ) : (
         <div
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
+            width: 64,
+            height: 64,
+            borderRadius: 16,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             background: params.dark ? "#FFFFFF" : params.palette.accent,
             color: params.dark ? "#0F172A" : "#FFFFFF",
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: 900,
             flexShrink: 0,
           }}
@@ -104,7 +104,7 @@ export function renderBrandFooter(params: {
         <div
           style={{
             display: "flex",
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: 900,
             color: params.palette.textPrimary,
             letterSpacing: "-0.4px",
@@ -115,7 +115,7 @@ export function renderBrandFooter(params: {
         <div
           style={{
             display: "flex",
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 700,
             color: params.palette.textSecondary,
           }}
@@ -142,14 +142,14 @@ export function renderClubBadge(params: {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        gap: 16,
       }}
     >
       <div
         style={{
-          width: 74,
-          height: 74,
-          borderRadius: 20,
+          width: 96,
+          height: 96,
+          borderRadius: 24,
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
@@ -166,14 +166,14 @@ export function renderClubBadge(params: {
           <img
             src={logoSrc}
             alt={params.clubName}
-            width={74}
-            height={74}
+            width={96}
+            height={96}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "contain",
               display: "block",
-              padding: 8,
+              padding: 10,
             }}
           />
         ) : (
@@ -185,7 +185,7 @@ export function renderClubBadge(params: {
               alignItems: "center",
               justifyContent: "center",
               color: params.dark ? "#FFFFFF" : "#0F172A",
-              fontSize: 24,
+              fontSize: 28,
               fontWeight: 900,
             }}
           >
@@ -205,10 +205,10 @@ export function renderClubBadge(params: {
         <div
           style={{
             display: "flex",
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: 800,
             color: params.palette.textPrimary,
-            maxWidth: 320,
+            maxWidth: 360,
             lineHeight: 1.1,
           }}
         >
