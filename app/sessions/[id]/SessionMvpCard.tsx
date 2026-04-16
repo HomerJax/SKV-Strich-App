@@ -37,6 +37,7 @@ type MvpState = {
   participants: Participant[];
   voteCount: number;
   eligibleVoterCount: number;
+  votedByNames: string[];
   results: {
     winners: ResultEntry[];
     leaderboard: ResultEntry[];
@@ -325,6 +326,13 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
   const votingOpen = state.votingOpen;
   const badgeUpgrade = state.results?.badgeUpgrade ?? null;
+  const progressPercent =
+    state.eligibleVoterCount > 0
+      ? Math.max(
+          0,
+          Math.min(100, (state.voteCount / state.eligibleVoterCount) * 100)
+        )
+      : 0;
 
   return (
     <section className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm">
@@ -369,118 +377,154 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       ) : null}
 
       {votingOpen ? (
-        state.canVote ? (
-          state.userHasVoted ? (
-            <div className="mt-4 rounded-2xl border border-emerald-200 bg-white px-4 py-4">
-              <div className="text-sm font-semibold text-emerald-800">
-                Deine Stimme wurde gezählt
-              </div>
-              <div className="mt-1 text-sm text-slate-600">
-                {selectedPlayerName
-                  ? `Aktuell gewählt: ${selectedPlayerName}.`
-                  : "Du hast bereits abgestimmt."}{" "}
-                Du kannst deine Stimme bis {state.revealLabel} noch ändern.
-              </div>
-
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {state.participants.map((player) => {
-                  const active = selectedPlayerId === player.id;
-
-                  return (
-                    <button
-                      key={player.id}
-                      type="button"
-                      onClick={() => setSelectedPlayerId(player.id)}
-                      className={[
-                        "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
-                        active
-                          ? "border-amber-400 bg-amber-100 text-amber-900"
-                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="truncate">{player.name}</span>
-                        <PlayerBadge
-                          mvpCount={safeMvpCount(player.mvpCount)}
-                          size="sm"
-                          hideIfNone
-                          iconOnly
-                        />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleVoteSubmit}
-                  disabled={!selectedPlayerId || saving}
-                  className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? "Speichere…" : "Stimme ändern"}
-                </button>
-              </div>
+        <>
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-white px-4 py-4">
+            <div className="text-sm font-semibold text-amber-800">
+              {state.voteCount} von {state.eligibleVoterCount} haben abgestimmt
             </div>
-          ) : (
-            <div className="mt-4">
-              <div className="mb-3 text-sm font-semibold text-slate-900">
-                Wer war heute euer Spieler des Trainings?
-              </div>
 
-              <div className="grid gap-2 sm:grid-cols-2">
-                {state.participants.map((player) => {
-                  const active = selectedPlayerId === player.id;
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-amber-100">
+              <div
+                className="h-full rounded-full bg-amber-500 transition-all"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
 
-                  return (
-                    <button
-                      key={player.id}
-                      type="button"
-                      onClick={() => setSelectedPlayerId(player.id)}
-                      className={[
-                        "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
-                        active
-                          ? "border-amber-400 bg-amber-100 text-amber-900"
-                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="truncate">{player.name}</span>
-                        <PlayerBadge
-                          mvpCount={safeMvpCount(player.mvpCount)}
-                          size="sm"
-                          hideIfNone
-                          iconOnly
-                        />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mt-3 text-xs text-slate-500">
+              Sichtbar ist nur, wer bereits abgestimmt hat — nicht, für wen.
+            </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleVoteSubmit}
-                  disabled={!selectedPlayerId || saving}
-                  className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? "Speichere…" : "Stimme abgeben"}
-                </button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {state.votedByNames.length > 0 ? (
+                state.votedByNames.map((name) => (
+                  <span
+                    key={name}
+                    className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900"
+                  >
+                    {name}
+                  </span>
+                ))
+              ) : (
+                <div className="text-sm text-slate-500">
+                  Bisher hat noch niemand abgestimmt.
+                </div>
+              )}
+            </div>
+          </div>
 
-                <div className="text-xs text-slate-500">
-                  {state.voteCount} von {state.eligibleVoterCount} Stimmen · Ergebnis ab{" "}
-                  {state.revealLabel}
+          {state.canVote ? (
+            state.userHasVoted ? (
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-white px-4 py-4">
+                <div className="text-sm font-semibold text-emerald-800">
+                  Deine Stimme wurde gezählt
+                </div>
+                <div className="mt-1 text-sm text-slate-600">
+                  {selectedPlayerName
+                    ? `Aktuell gewählt: ${selectedPlayerName}.`
+                    : "Du hast bereits abgestimmt."}{" "}
+                  Du kannst deine Stimme bis {state.revealLabel} noch ändern.
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {state.participants.map((player) => {
+                    const active = selectedPlayerId === player.id;
+
+                    return (
+                      <button
+                        key={player.id}
+                        type="button"
+                        onClick={() => setSelectedPlayerId(player.id)}
+                        className={[
+                          "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
+                          active
+                            ? "border-amber-400 bg-amber-100 text-amber-900"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                        ].join(" ")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="truncate">{player.name}</span>
+                          <PlayerBadge
+                            mvpCount={safeMvpCount(player.mvpCount)}
+                            size="sm"
+                            hideIfNone
+                            iconOnly
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleVoteSubmit}
+                    disabled={!selectedPlayerId || saving}
+                    className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {saving ? "Speichere…" : "Stimme ändern"}
+                  </button>
                 </div>
               </div>
+            ) : (
+              <div className="mt-4">
+                <div className="mb-3 text-sm font-semibold text-slate-900">
+                  Wer war heute euer Spieler des Trainings?
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {state.participants.map((player) => {
+                    const active = selectedPlayerId === player.id;
+
+                    return (
+                      <button
+                        key={player.id}
+                        type="button"
+                        onClick={() => setSelectedPlayerId(player.id)}
+                        className={[
+                          "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
+                          active
+                            ? "border-amber-400 bg-amber-100 text-amber-900"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                        ].join(" ")}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="truncate">{player.name}</span>
+                          <PlayerBadge
+                            mvpCount={safeMvpCount(player.mvpCount)}
+                            size="sm"
+                            hideIfNone
+                            iconOnly
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleVoteSubmit}
+                    disabled={!selectedPlayerId || saving}
+                    className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {saving ? "Speichere…" : "Stimme abgeben"}
+                  </button>
+
+                  <div className="text-xs text-slate-500">
+                    {state.voteCount} von {state.eligibleVoterCount} Stimmen · Ergebnis ab{" "}
+                    {state.revealLabel}
+                  </div>
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
+              Abstimmen können nur anwesende Teilnehmer mit verknüpftem Spielerprofil.
             </div>
-          )
-        ) : (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
-            Abstimmen können nur anwesende Teilnehmer mit verknüpftem Spielerprofil.
-          </div>
-        )
+          )}
+        </>
       ) : (
         <div className="mt-4 space-y-4">
           {state.results?.winners && state.results.winners.length > 0 ? (

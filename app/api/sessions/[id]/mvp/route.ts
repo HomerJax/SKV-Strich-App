@@ -30,6 +30,7 @@ type SessionPlayerRow = {
 
 type VoteRow = {
   voted_player_id: number;
+  voter_user_id: string | null;
 };
 
 type UserVoteRow = {
@@ -261,7 +262,7 @@ async function loadParticipantsAndVotes(params: {
       .maybeSingle<UserVoteRow>(),
     supabase
       .from("session_mvp_votes")
-      .select("voted_player_id")
+      .select("voted_player_id, voter_user_id")
       .eq("session_id", sessionId),
   ]);
 
@@ -298,8 +299,28 @@ async function loadParticipantsAndVotes(params: {
 
   const voteRows = (allVotesData ?? []) as VoteRow[];
   const userVotePlayerId = userVoteData?.voted_player_id ?? null;
-  const voteCount = voteRows.length;
-  const eligibleVoterCount = participants.length;
+
+  const uniqueVoterIds = [
+    ...new Set(
+      voteRows
+        .map((row) => row.voter_user_id)
+        .filter((value): value is string => typeof value === "string" && value.length > 0)
+    ),
+  ];
+
+  const participantByUserId = new Map(
+    participants
+      .filter((participant) => participant.userId)
+      .map((participant) => [participant.userId as string, participant])
+  );
+
+  const votedByNames = uniqueVoterIds
+    .map((userIdValue) => participantByUserId.get(userIdValue)?.name ?? null)
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => a.localeCompare(b, "de"));
+
+  const voteCount = uniqueVoterIds.length;
+  const eligibleVoterCount = participants.filter((participant) => participant.userId).length;
 
   return {
     participants,
@@ -308,6 +329,7 @@ async function loadParticipantsAndVotes(params: {
     voteRows,
     voteCount,
     eligibleVoterCount,
+    votedByNames,
   };
 }
 
@@ -488,6 +510,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       participants: [],
       voteCount: 0,
       eligibleVoterCount: 0,
+      votedByNames: [],
       results: null,
     });
   }
@@ -503,6 +526,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       voteRows,
       voteCount,
       eligibleVoterCount,
+      votedByNames,
     } = await loadParticipantsAndVotes({
       sessionId,
       userId: user.id,
@@ -543,6 +567,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       })),
       voteCount,
       eligibleVoterCount,
+      votedByNames,
       results,
     });
   } catch (error) {
