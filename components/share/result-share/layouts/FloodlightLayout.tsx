@@ -71,13 +71,20 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
             gap: 16,
           }}
         >
-          {renderClubBadge({
-            clubName,
-            clubLogoUrl,
-            palette,
-            dark: true,
-            strikrLogoUrl: data.strikrLogoUrl,
-          })}
+          <div
+            style={{
+              transform: "scale(1.18)",
+              transformOrigin: "top left",
+            }}
+          >
+            {renderClubBadge({
+              clubName,
+              clubLogoUrl,
+              palette,
+              dark: true,
+              strikrLogoUrl: data.strikrLogoUrl,
+            })}
+          </div>
 
           <div
             style={{
