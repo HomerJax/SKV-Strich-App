@@ -21,6 +21,9 @@ export function getScoreModel(data: ExtendedResultShareData) {
   };
 }
 
+/**
+ * STRIKR BRAND (oben rechts)
+ */
 export function renderBrandFooter(params: {
   palette: Palette;
   strikrLogoUrl?: string | null;
@@ -31,32 +34,34 @@ export function renderBrandFooter(params: {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 18,
+        gap: 14,
       }}
     >
-      {params.strikrLogoUrl ? (
-        <div
-          style={{
-            width: 96,
-            height: 96,
-            borderRadius: 24,
-            overflow: "hidden",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: params.dark ? "rgba(255,255,255,0.08)" : "#FFFFFF",
-            border: params.dark
-              ? "1px solid rgba(255,255,255,0.14)"
-              : "1px solid rgba(15,23,42,0.08)",
-            boxShadow: "0 12px 28px rgba(0,0,0,0.14)",
-            flexShrink: 0,
-          }}
-        >
+      <div
+        style={{
+          width: 84,
+          height: 84,
+          borderRadius: 22,
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: params.dark ? "rgba(255,255,255,0.08)" : "#FFFFFF",
+          border: params.dark
+            ? "1px solid rgba(255,255,255,0.14)"
+            : "1px solid rgba(15,23,42,0.08)",
+          boxShadow: params.dark
+            ? `0 0 24px ${params.palette.accentGlow}`
+            : "0 14px 34px rgba(0,0,0,0.22)",
+          flexShrink: 0,
+        }}
+      >
+        {params.strikrLogoUrl ? (
           <img
             src={params.strikrLogoUrl}
-            alt="Strikr"
-            width={96}
-            height={96}
+            alt="strikr"
+            width={84}
+            height={84}
             style={{
               width: "100%",
               height: "100%",
@@ -65,64 +70,67 @@ export function renderBrandFooter(params: {
               padding: 10,
             }}
           />
-        </div>
-      ) : (
-        <div
-          style={{
-            width: 96,
-            height: 96,
-            borderRadius: 24,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: params.dark ? "#FFFFFF" : params.palette.accent,
-            color: params.dark ? "#0F172A" : "#FFFFFF",
-            fontSize: 28,
-            fontWeight: 900,
-            flexShrink: 0,
-            boxShadow: "0 12px 28px rgba(0,0,0,0.14)",
-          }}
-        >
-          S
-        </div>
-      )}
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#FFFFFF",
+              color: "#0F172A",
+              fontSize: 28,
+              fontWeight: 900,
+            }}
+          >
+            s
+          </div>
+        )}
+      </div>
 
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           gap: 4,
-          minWidth: 0,
         }}
       >
         <div
           style={{
             display: "flex",
-            fontSize: 20,
+            fontSize: 22,
             fontWeight: 900,
             color: params.palette.textPrimary,
-            letterSpacing: "-0.4px",
-            lineHeight: 1.1,
+            letterSpacing: "-0.5px",
+            textTransform: "lowercase",
+            textShadow: params.dark
+              ? `0 0 6px ${params.palette.accentGlow},
+                 0 0 18px ${params.palette.accentGlow},
+                 0 0 42px ${params.palette.accentGlow}`
+              : "none",
           }}
         >
-          STRIKR
+          strikr
         </div>
         <div
           style={{
             display: "flex",
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: 700,
             color: params.palette.textSecondary,
-            lineHeight: 1.15,
           }}
         >
-          Training managed by STRIKR
+          training managed
         </div>
       </div>
     </div>
   );
 }
 
+/**
+ * CLUB BADGE (oben links)
+ */
 export function renderClubBadge(params: {
   clubName: string;
   clubLogoUrl: string | null;
@@ -138,14 +146,14 @@ export function renderClubBadge(params: {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 18,
+        gap: 16,
       }}
     >
       <div
         style={{
-          width: 116,
-          height: 116,
-          borderRadius: 28,
+          width: 104,
+          height: 104,
+          borderRadius: 26,
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
@@ -154,7 +162,7 @@ export function renderClubBadge(params: {
           border: params.dark
             ? "1px solid rgba(255,255,255,0.14)"
             : "1px solid rgba(15,23,42,0.08)",
-          boxShadow: "0 12px 28px rgba(0,0,0,0.14)",
+          boxShadow: "0 18px 44px rgba(0,0,0,0.28)",
           flexShrink: 0,
         }}
       >
@@ -162,8 +170,8 @@ export function renderClubBadge(params: {
           <img
             src={logoSrc}
             alt={params.clubName}
-            width={116}
-            height={116}
+            width={104}
+            height={104}
             style={{
               width: "100%",
               height: "100%",
@@ -175,9 +183,9 @@ export function renderClubBadge(params: {
         ) : (
           <div
             style={{
-              display: "flex",
               width: "100%",
               height: "100%",
+              display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: params.dark ? "#FFFFFF" : "#0F172A",
@@ -201,11 +209,11 @@ export function renderClubBadge(params: {
         <div
           style={{
             display: "flex",
-            fontSize: 22,
-            fontWeight: 800,
+            fontSize: 20,
+            fontWeight: 900,
             color: params.palette.textPrimary,
-            maxWidth: 390,
-            lineHeight: 1.08,
+            maxWidth: 360,
+            letterSpacing: "-0.5px",
           }}
         >
           {params.clubName}
@@ -215,6 +223,9 @@ export function renderClubBadge(params: {
   );
 }
 
+/**
+ * FOTO / FALLBACK
+ */
 export function renderPhotoOrFallback(params: {
   winnerPhotoUrl?: string | null;
   palette: Palette;
@@ -305,22 +316,19 @@ export function renderPhotoOrFallback(params: {
       >
         <div
           style={{
-            display: "flex",
             fontSize: 30,
             fontWeight: 900,
-            color: params.palette.textPrimary,
             letterSpacing: "-0.8px",
+            textTransform: "lowercase",
           }}
         >
-          STRIKR
+          strikr
         </div>
 
         <div
           style={{
-            display: "flex",
             fontSize: 18,
             fontWeight: 700,
-            color: params.palette.textSecondary,
           }}
         >
           Match Result
