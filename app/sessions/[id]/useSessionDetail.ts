@@ -46,6 +46,11 @@ type SessionDetailClientProps = {
 type ApiSuccess =
   | { ok: true; mode: "added" | "removed"; playerId: number }
   | { ok: true; message: string; player: Player }
+  | {
+      ok: true;
+      message: string;
+      deletedGuestPlayerId: number;
+    }
   | { ok: true; message: string; hasResult: boolean; goalsA: string; goalsB: string }
   | {
       ok: true;
@@ -187,6 +192,9 @@ export function useSessionDetail({
     ""
   );
   const [guestSaving, setGuestSaving] = useState(false);
+  const [deletingGuestPlayerId, setDeletingGuestPlayerId] = useState<number | null>(
+    null
+  );
 
   const [attendanceCollapsed, setAttendanceCollapsed] = useState(initialHasResult);
   const [teamsCollapsed, setTeamsCollapsed] = useState(initialHasResult);
@@ -630,6 +638,77 @@ ${sessionUrl}`;
     }
   }
 
+  async function handleDeleteGuestPlayer(playerId: number) {
+    if (!isAdmin) {
+      setErr("Nur Admins dürfen Gastspieler löschen.");
+      return;
+    }
+
+    if (hasResult) {
+      setErr(
+        "Gastspieler können nicht mehr gelöscht werden, wenn bereits ein Ergebnis gespeichert ist."
+      );
+      return;
+    }
+
+    const player = players.find((entry) => entry.id === playerId);
+
+    if (!player?.is_guest) {
+      setErr("Nur Gastspieler können hier gelöscht werden.");
+      return;
+    }
+
+    if (deletingGuestPlayerId || savingPresence || saving || deletingSession) {
+      return;
+    }
+
+    const playerName =
+      player.name?.trim() ||
+      [player.first_name, player.last_name].filter(Boolean).join(" ").trim() ||
+      player.nickname?.trim() ||
+      "Gast";
+
+    const confirmed = window.confirm(
+      `Gastspieler "${playerName}" wirklich löschen?\n\nDer Gast wird aus dieser Session entfernt.`
+    );
+
+    if (!confirmed) return;
+
+    const restoreScroll = preserveScrollPosition();
+
+    try {
+      setDeletingGuestPlayerId(playerId);
+      setErr(null);
+      setMsg(null);
+
+      const formData = new FormData();
+      formData.set("intent", "delete_guest_player");
+      formData.set("player_id", String(playerId));
+
+      const result = await postForm(formData);
+
+      if ("deletedGuestPlayerId" in result) {
+        const deletedId = result.deletedGuestPlayerId;
+
+        setPlayers((prev) => prev.filter((entry) => entry.id !== deletedId));
+        setPresentIds((prev) => prev.filter((id) => id !== deletedId));
+        setDraftPresentIds((prev) => prev.filter((id) => id !== deletedId));
+        setManualTeams((prev) => {
+          const next = { ...prev };
+          delete next[deletedId];
+          return next;
+        });
+
+        setMsg(result.message);
+      }
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e, "Gastspieler konnte nicht gelöscht werden."));
+    } finally {
+      setDeletingGuestPlayerId(null);
+      restoreScroll();
+    }
+  }
+
   async function handleDeleteSession() {
     if (!isAdmin) {
       setErr("Nur Admins dürfen eine Session löschen.");
@@ -678,7 +757,7 @@ ${sessionUrl}`;
       return;
     }
 
-    if (deletingSession) {
+    if (deletingSession || deletingGuestPlayerId) {
       return;
     }
 
@@ -743,7 +822,8 @@ ${sessionUrl}`;
       hasResult ||
       savingPresence ||
       !attendanceDirty ||
-      deletingSession
+      deletingSession ||
+      deletingGuestPlayerId
     ) {
       return;
     }
@@ -1030,7 +1110,7 @@ ${sessionUrl}`;
   }
 
   async function saveResult() {
-    if (saving || deletingSession) return;
+    if (saving || deletingSession || deletingGuestPlayerId) return;
 
     const cleanA = normalizeGoalValue(goalsA);
     const cleanB = normalizeGoalValue(goalsB);
@@ -1095,7 +1175,7 @@ ${sessionUrl}`;
   }
 
   async function deleteResult() {
-    if (saving || deletingSession) return;
+    if (saving || deletingSession || deletingGuestPlayerId) return;
 
     const okConfirm = window.confirm(
       "Ergebnis wirklich löschen?\nDanach sind Aufstellungen & Anwesenheit wieder bearbeitbar."
@@ -1151,7 +1231,7 @@ ${sessionUrl}`;
       return;
     }
 
-    if (photoBusy || saving || deletingSession) return;
+    if (photoBusy || saving || deletingSession || deletingGuestPlayerId) return;
 
     const restoreScroll = preserveScrollPosition();
 
@@ -1200,7 +1280,7 @@ ${sessionUrl}`;
       return;
     }
 
-    if (photoBusy || saving || deletingSession) return;
+    if (photoBusy || saving || deletingSession || deletingGuestPlayerId) return;
 
     const okConfirm = window.confirm("Siegerfoto wirklich löschen?");
     if (!okConfirm) return;
@@ -1281,6 +1361,7 @@ ${sessionUrl}`;
     guestAgeGroup,
     setGuestAgeGroup,
     guestSaving,
+    deletingGuestPlayerId,
 
     attendanceCollapsed,
     setAttendanceCollapsed,
@@ -1335,6 +1416,7 @@ ${sessionUrl}`;
     handleShareLineup,
     handleShareInternalResult,
     handleShareResult,
+    handleDeleteGuestPlayer,
     handleDeleteSession,
     togglePresence,
     savePresence,

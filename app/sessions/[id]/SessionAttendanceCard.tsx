@@ -30,6 +30,7 @@ type SessionAttendanceCardProps = {
   dirty: boolean;
   directSaveEnabled: boolean;
   multiSelectEnabled: boolean;
+  deletingGuestPlayerId?: number | null;
   onToggleMultiSelect: () => void;
   onToggleCollapsed: () => void;
   onToggleShowGuestForm: () => void;
@@ -37,6 +38,7 @@ type SessionAttendanceCardProps = {
   onGuestPositionChange: (value: Player["preferred_position"] | "") => void;
   onGuestAgeGroupChange: (value: Player["age_group"] | "") => void;
   onAddGuestPlayer: () => void;
+  onDeleteGuestPlayer: (playerId: number) => void;
   onTogglePresence: (playerId: number) => void;
   onSavePresence: () => void;
 };
@@ -72,6 +74,7 @@ export default function SessionAttendanceCard({
   dirty,
   directSaveEnabled,
   multiSelectEnabled,
+  deletingGuestPlayerId = null,
   onToggleMultiSelect,
   onToggleCollapsed,
   onToggleShowGuestForm,
@@ -79,6 +82,7 @@ export default function SessionAttendanceCard({
   onGuestPositionChange,
   onGuestAgeGroupChange,
   onAddGuestPlayer,
+  onDeleteGuestPlayer,
   onTogglePresence,
   onSavePresence,
 }: SessionAttendanceCardProps) {
@@ -304,54 +308,74 @@ export default function SessionAttendanceCard({
           {players.map((player) => {
             const on = presentIds.includes(player.id);
             const mvpCount = getPlayerMvpCount(player);
+            const isDeletingGuest = deletingGuestPlayerId === player.id;
+            const canDeleteGuest = isAdmin && player.is_guest && !hasResult;
 
             return (
-              <button
+              <div
                 key={player.id}
-                type="button"
-                onClick={() => onTogglePresence(player.id)}
-                className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${
-                  on
-                    ? "border-emerald-200 bg-emerald-50"
-                    : "border-slate-200 bg-white hover:bg-slate-50"
-                } ${hasResult ? "cursor-not-allowed opacity-60" : ""}`}
-                disabled={hasResult || savingPresence}
-                title={
-                  hasResult
-                    ? "Gesperrt: Ergebnis gespeichert"
-                    : on
-                      ? "Klick: als nicht anwesend markieren"
-                      : "Klick: als anwesend markieren"
-                }
+                className={`flex items-center gap-2 ${
+                  hasResult ? "opacity-60" : ""
+                }`}
               >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate">{getPlayerDisplayName(player)}</span>
-                  <PlayerBadge
-                    mvpCount={mvpCount}
-                    size="sm"
-                    hideIfNone
-                    iconOnly
-                  />
-                  {guestBadge(player)}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => onTogglePresence(player.id)}
+                  className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${
+                    on
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-slate-200 bg-white hover:bg-slate-50"
+                  } ${hasResult ? "cursor-not-allowed" : ""}`}
+                  disabled={hasResult || savingPresence || isDeletingGuest}
+                  title={
+                    hasResult
+                      ? "Gesperrt: Ergebnis gespeichert"
+                      : on
+                        ? "Klick: als nicht anwesend markieren"
+                        : "Klick: als anwesend markieren"
+                  }
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate">{getPlayerDisplayName(player)}</span>
+                    <PlayerBadge
+                      mvpCount={mvpCount}
+                      size="sm"
+                      hideIfNone
+                      iconOnly
+                    />
+                    {guestBadge(player)}
+                  </span>
 
-                <span className="flex shrink-0 items-center gap-2">
-                  <span
-                    className={`rounded-md px-2 py-0.5 text-[11px] ${ageBadgeColor(
-                      player.age_group
-                    )}`}
-                  >
-                    {player.age_group ?? "?"}
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-[11px] ${ageBadgeColor(
+                        player.age_group
+                      )}`}
+                    >
+                      {player.age_group ?? "?"}
+                    </span>
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-[11px] ${badgeColor(
+                        player.preferred_position
+                      )}`}
+                    >
+                      {positionLabel(player.preferred_position)}
+                    </span>
                   </span>
-                  <span
-                    className={`rounded-md px-2 py-0.5 text-[11px] ${badgeColor(
-                      player.preferred_position
-                    )}`}
+                </button>
+
+                {canDeleteGuest ? (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteGuestPlayer(player.id)}
+                    disabled={savingPresence || isDeletingGuest}
+                    className="inline-flex shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    title="Gastspieler aus dieser Session löschen"
                   >
-                    {positionLabel(player.preferred_position)}
-                  </span>
-                </span>
-              </button>
+                    {isDeletingGuest ? "Löscht..." : "Gast löschen"}
+                  </button>
+                ) : null}
+              </div>
             );
           })}
         </div>

@@ -209,6 +209,128 @@ export async function POST(
       });
     }
 
+    if (intent === "delete_guest_player") {
+      const hasAdminAccess = canManageClub({
+        isPowerUser,
+        role: membership.role,
+      });
+
+      if (!hasAdminAccess) {
+        return fail("Nur Admins dürfen Gastspieler löschen.", 403);
+      }
+
+      const requestedPlayerId = Number(String(formData.get("player_id") ?? ""));
+
+      if (!Number.isFinite(requestedPlayerId)) {
+        return fail("Ungültige Spieler-ID.", 400);
+      }
+
+      const { data: resultData, error: resultError } = await supabase
+        .from("results")
+        .select("session_id")
+        .eq("session_id", sessionId)
+        .maybeSingle();
+
+      if (resultError) {
+        return fail(
+          `Ergebnisstatus konnte nicht geprüft werden: ${resultError.message}`,
+          500
+        );
+      }
+
+      if (resultData) {
+        return fail(
+          "Gastspieler können nicht mehr gelöscht werden, wenn bereits ein Ergebnis gespeichert ist.",
+          400
+        );
+      }
+
+      const { data: playerData, error: playerError } = await supabase
+        .from("players")
+        .select("id, club_id, is_guest")
+        .eq("id", requestedPlayerId)
+        .eq("club_id", clubId)
+        .maybeSingle();
+
+      if (playerError) {
+        return fail(
+          `Gastspieler konnte nicht geladen werden: ${playerError.message}`,
+          500
+        );
+      }
+
+      if (!playerData) {
+        return fail("Gastspieler nicht gefunden.", 404);
+      }
+
+      if (playerData.is_guest !== true) {
+        return fail("Nur Gastspieler können hier gelöscht werden.", 400);
+      }
+
+      const { data: teamsData, error: teamsError } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("session_id", sessionId);
+
+      if (teamsError) {
+        return fail(
+          `Teams konnten nicht geladen werden: ${teamsError.message}`,
+          500
+        );
+      }
+
+      const teamIds = (teamsData ?? [])
+        .map((team) => Number(team.id))
+        .filter((value) => Number.isFinite(value));
+
+      if (teamIds.length > 0) {
+        const { error: teamPlayersDeleteError } = await supabase
+          .from("team_players")
+          .delete()
+          .in("team_id", teamIds)
+          .eq("player_id", requestedPlayerId);
+
+        if (teamPlayersDeleteError) {
+          return fail(
+            `Team-Zuordnungen des Gastspielers konnten nicht gelöscht werden: ${teamPlayersDeleteError.message}`,
+            500
+          );
+        }
+      }
+
+      const { error: sessionPlayerDeleteError } = await supabase
+        .from("session_players")
+        .delete()
+        .eq("session_id", sessionId)
+        .eq("player_id", requestedPlayerId);
+
+      if (sessionPlayerDeleteError) {
+        return fail(
+          `Anwesenheit des Gastspielers konnte nicht gelöscht werden: ${sessionPlayerDeleteError.message}`,
+          500
+        );
+      }
+
+      const { error: playerDeleteError } = await supabase
+        .from("players")
+        .delete()
+        .eq("id", requestedPlayerId)
+        .eq("club_id", clubId)
+        .eq("is_guest", true);
+
+      if (playerDeleteError) {
+        return fail(
+          `Gastspieler konnte nicht gelöscht werden: ${playerDeleteError.message}`,
+          500
+        );
+      }
+
+      return ok({
+        message: "Gastspieler wurde entfernt.",
+        deletedGuestPlayerId: requestedPlayerId,
+      });
+    }
+
     if (intent === "save_result") {
       const goalsA = String(formData.get("goals_a") ?? "");
       const goalsB = String(formData.get("goals_b") ?? "");

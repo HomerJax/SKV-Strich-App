@@ -62,6 +62,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     guestAgeGroup,
     setGuestAgeGroup,
     guestSaving,
+    deletingGuestPlayerId,
 
     draftPresentIds,
     attendanceCollapsed,
@@ -112,6 +113,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     handleShareLineup,
     handleShareInternalResult,
     handleShareResult,
+    handleDeleteGuestPlayer,
     handleDeleteSession,
     togglePresence,
     savePresence,
@@ -233,6 +235,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             dirty={attendanceDirty}
             directSaveEnabled={directAttendanceSaveEnabled}
             multiSelectEnabled={attendanceMultiSelectEnabled}
+            deletingGuestPlayerId={deletingGuestPlayerId}
             onToggleMultiSelect={toggleAttendanceMultiSelect}
             onToggleCollapsed={() => setAttendanceCollapsed((prev) => !prev)}
             onToggleShowGuestForm={toggleGuestForm}
@@ -240,6 +243,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             onGuestPositionChange={setGuestPosition}
             onGuestAgeGroupChange={setGuestAgeGroup}
             onAddGuestPlayer={addGuestPlayer}
+            onDeleteGuestPlayer={handleDeleteGuestPlayer}
             onTogglePresence={(playerId) => {
               void togglePresence(playerId);
             }}
