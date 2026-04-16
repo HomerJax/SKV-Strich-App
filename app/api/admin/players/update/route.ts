@@ -7,6 +7,10 @@ type MembershipRow = {
   role: "admin" | "member";
 };
 
+type RoleRow = {
+  is_power_user: boolean;
+};
+
 function toText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
 }
@@ -107,47 +111,82 @@ export async function POST(request: Request) {
     });
   }
 
-  const { data: membershipsData, error: membershipsError } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("user_id", user.id);
+  const [
+    { data: membershipsData, error: membershipsError },
+    { data: roleRow, error: roleError },
+  ] = await Promise.all([
+    supabase
+      .from("club_memberships")
+      .select("club_id, role")
+      .eq("user_id", user.id),
+    supabase
+      .from("user_roles")
+      .select("is_power_user")
+      .eq("user_id", user.id)
+      .maybeSingle<RoleRow>(),
+  ]);
 
-  if (membershipsError) {
+  if (membershipsError || roleError) {
     return redirectToAdminPlayers(origin, {
       error: "Admin-Zugriff konnte nicht geprüft werden.",
     });
   }
 
   const memberships = (membershipsData ?? []) as MembershipRow[];
+  const isPowerUser = roleRow?.is_power_user === true;
 
-  if (memberships.length === 0) {
+  if (!isPowerUser && memberships.length === 0) {
     return NextResponse.redirect(new URL("/waiting-for-invite", origin), {
       status: 303,
     });
   }
 
-  const validClubIds = new Set(memberships.map((m) => m.club_id));
+  let activeClubId: string | null = null;
 
-  const activeClubId =
-    memberships.length === 1
-      ? memberships[0].club_id
-      : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
-        ? activeClubIdFromCookie
-        : null;
+  if (isPowerUser) {
+    if (!activeClubIdFromCookie) {
+      return NextResponse.redirect(new URL("/select-club", origin), {
+        status: 303,
+      });
+    }
 
-  if (!activeClubId) {
-    return NextResponse.redirect(new URL("/select-club", origin), {
-      status: 303,
-    });
-  }
+    const { data: clubData, error: clubError } = await supabase
+      .from("clubs")
+      .select("id")
+      .eq("id", activeClubIdFromCookie)
+      .maybeSingle<{ id: string }>();
 
-  const membership =
-    memberships.find((m) => m.club_id === activeClubId) ?? null;
+    if (clubError || !clubData) {
+      return NextResponse.redirect(new URL("/select-club", origin), {
+        status: 303,
+      });
+    }
 
-  if (!membership || membership.role !== "admin") {
-    return redirectToAdminPlayers(origin, {
-      error: "Kein Admin-Zugriff für das aktuell ausgewählte Team vorhanden.",
-    });
+    activeClubId = clubData.id;
+  } else {
+    const validClubIds = new Set(memberships.map((m) => m.club_id));
+
+    activeClubId =
+      memberships.length === 1
+        ? memberships[0].club_id
+        : activeClubIdFromCookie && validClubIds.has(activeClubIdFromCookie)
+          ? activeClubIdFromCookie
+          : null;
+
+    if (!activeClubId) {
+      return NextResponse.redirect(new URL("/select-club", origin), {
+        status: 303,
+      });
+    }
+
+    const membership =
+      memberships.find((m) => m.club_id === activeClubId) ?? null;
+
+    if (!membership || membership.role !== "admin") {
+      return redirectToAdminPlayers(origin, {
+        error: "Kein Admin-Zugriff für den aktuell ausgewählten Verein vorhanden.",
+      });
+    }
   }
 
   const clubId = activeClubId;

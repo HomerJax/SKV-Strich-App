@@ -4,6 +4,7 @@ import AppHeader from "@/components/AppHeader";
 import AppBottomNav from "@/components/AppBottomNav";
 import { NotificationToastCenter } from "@/components/notifications/NotificationToastCenter";
 import { getAuthContext } from "@/lib/auth/context";
+import { isAdminRole } from "@/lib/auth/access";
 
 export const metadata: Metadata = {
   title: "strikr",
@@ -23,7 +24,8 @@ export default async function RootLayout({
       ) ?? null
     : null;
 
-  const isAdmin = ctx.isPowerUser || activeMembership?.role === "admin";
+  const isAdmin =
+    ctx.isPowerUser || isAdminRole(activeMembership?.role ?? null);
 
   return (
     <html lang="de">

@@ -5,8 +5,8 @@ import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import MobileUserMenu from "@/components/MobileUserMenu";
-import PowerClubSwitcher, {
-  type PowerClubSwitcherClub,
+import ClubSwitcher, {
+  type ClubSwitcherClub,
 } from "@/components/PowerClubSwitcher";
 
 type ClubRow = {
@@ -36,18 +36,18 @@ function getClubLabel(club: ClubRow | null | undefined) {
 }
 
 function dedupeSwitcherClubs(
-  clubs: PowerClubSwitcherClub[],
+  clubs: ClubSwitcherClub[],
   activeClubId: string | null,
   activeClubName: string | null,
   activeLogoSrc: string | null
 ) {
-  const byId = new Map<string, PowerClubSwitcherClub>();
+  const byId = new Map<string, ClubSwitcherClub>();
 
   for (const club of clubs) {
     const existing = byId.get(club.id);
     const isActive = activeClubId !== null && club.id === activeClubId;
 
-    const nextClub: PowerClubSwitcherClub = {
+    const nextClub: ClubSwitcherClub = {
       id: club.id,
       name: isActive && activeClubName ? activeClubName : club.name,
       logoSrc: isActive ? activeLogoSrc ?? club.logoSrc : club.logoSrc,
@@ -89,7 +89,7 @@ export default async function AppHeader() {
   let logoSrc: string | null = null;
   let primaryColor = COLOR_MAP.black;
   let showPlayerStatsLink = false;
-  let switcherClubs: PowerClubSwitcherClub[] = [];
+  let switcherClubs: ClubSwitcherClub[] = [];
 
   if (ctx.user) {
     const supabase = await createClient();
@@ -144,7 +144,7 @@ export default async function AppHeader() {
     }
 
     if (visibleClubs?.length) {
-      const mappedClubs = visibleClubs.map((clubRow) => {
+      const mappedClubs: ClubSwitcherClub[] = visibleClubs.map((clubRow) => {
         let clubLogoSrc: string | null = null;
 
         if (clubRow.logo_path) {
@@ -245,7 +245,7 @@ export default async function AppHeader() {
                 </Link>
               </div>
 
-              <PowerClubSwitcher
+              <ClubSwitcher
                 isPowerUser={ctx.isPowerUser}
                 activeClubId={activeClubId}
                 activeClubName={clubName}

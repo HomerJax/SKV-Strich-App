@@ -808,22 +808,18 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
   const recentResults: RecentResult[] = myResults.map((result) => {
     const myTeamIds = myTeamIdsBySessionId.get(result.session_id) ?? [];
-    const myTeamId =
+
+    const matchedTeamId =
       myTeamIds.find(
         (teamId) => teamId === result.team_a_id || teamId === result.team_b_id
       ) ?? null;
 
-    if (myTeamId === null) {
-      return {
-        sessionId: result.session_id,
-        date: sessionsById.get(result.session_id)?.date ?? null,
-        outcome: "draw",
-        scoreLabel: `${result.goals_team_a ?? 0}:${result.goals_team_b ?? 0}`,
-        myTeamLabel: "Team ?",
-      };
-    }
+    const resolvedMyTeamId =
+      matchedTeamId ?? result.team_a_id ?? result.team_b_id ?? null;
 
-    const myTeamIsA = result.team_a_id === myTeamId;
+    const myTeamIsA =
+      resolvedMyTeamId !== null && result.team_a_id === resolvedMyTeamId;
+
     const goalsA = result.goals_team_a ?? 0;
     const goalsB = result.goals_team_b ?? 0;
 

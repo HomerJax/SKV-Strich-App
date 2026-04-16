@@ -1,5 +1,5 @@
 export function isAdminRole(role: string | null | undefined) {
-  return role === "admin" || role === "owner";
+  return role === "admin";
 }
 
 export function canManageClub(options: {

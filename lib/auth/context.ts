@@ -26,6 +26,10 @@ export type AuthContext = {
   isPowerUser: boolean;
 };
 
+function isAdminLikeRole(role: string | null | undefined) {
+  return role === "admin" || role === "power_user";
+}
+
 export function getActiveMembership(
   ctx: Pick<AuthContext, "memberships" | "activeClubId">
 ): AuthMembership | null {
@@ -44,7 +48,7 @@ export function isActiveClubAdmin(
   if (ctx.isPowerUser) return true;
 
   const activeMembership = getActiveMembership(ctx);
-  return activeMembership?.role === "admin";
+  return isAdminLikeRole(activeMembership?.role ?? null);
 }
 
 export async function getAuthContext(): Promise<AuthContext> {

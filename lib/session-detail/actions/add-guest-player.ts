@@ -28,6 +28,10 @@ type AddGuestPlayerInput = {
   guestAgeGroup: string;
 };
 
+function canAddGuestPlayer(role: string | null | undefined) {
+  return role === "admin" || role === "power_user";
+}
+
 export async function handleAddGuestPlayer({
   supabase,
   sessionId,
@@ -39,7 +43,7 @@ export async function handleAddGuestPlayer({
 }: AddGuestPlayerInput) {
   const role = membership.role;
 
-  if (role !== "admin") {
+  if (!canAddGuestPlayer(role)) {
     return fail(
       "Gastspieler können aktuell nur von Admins angelegt werden.",
       403
