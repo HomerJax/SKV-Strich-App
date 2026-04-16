@@ -11,6 +11,17 @@ type RoleRow = {
   is_power_user: boolean;
 };
 
+type ClubSettingsRow = {
+  club_id: string;
+  use_strength: boolean | null;
+  use_categories: boolean | null;
+  season_start_day: number | null;
+  season_start_month: number | null;
+  season_end_day: number | null;
+  season_end_month: number | null;
+  season_year_mode: string | null;
+};
+
 function redirectWithParams(
   request: Request,
   params: Record<string, string>
@@ -39,6 +50,10 @@ function parseBoolean(value: FormDataEntryValue | null) {
     normalized === "on" ||
     normalized === "yes"
   );
+}
+
+function hasField(formData: FormData, fieldName: string) {
+  return formData.has(fieldName);
 }
 
 function isValidDay(value: number) {
@@ -156,17 +171,76 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
 
-  const useStrength = parseBoolean(formData.get("use_strength"));
-  const useCategories = parseBoolean(formData.get("use_categories"));
+  const submitsTeamGeneratorSettings =
+    hasField(formData, "use_strength") || hasField(formData, "use_categories");
 
-  const seasonStartDay = parseInteger(formData.get("season_start_day"));
-  const seasonStartMonth = parseInteger(formData.get("season_start_month"));
-  const seasonEndDay = parseInteger(formData.get("season_end_day"));
-  const seasonEndMonth = parseInteger(formData.get("season_end_month"));
+  const submitsSeasonSettings =
+    hasField(formData, "season_start_day") ||
+    hasField(formData, "season_start_month") ||
+    hasField(formData, "season_end_day") ||
+    hasField(formData, "season_end_month") ||
+    hasField(formData, "season_year_mode");
 
-  const seasonYearModeRaw = formData.get("season_year_mode");
-  const seasonYearMode =
-    typeof seasonYearModeRaw === "string" ? seasonYearModeRaw : "";
+  if (!submitsTeamGeneratorSettings && !submitsSeasonSettings) {
+    return redirectWithParams(request, { error: "nothing_to_save" });
+  }
+
+  const { data: existingSettings, error: existingSettingsError } = await supabase
+    .from("club_settings")
+    .select(
+      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
+    )
+    .eq("club_id", activeClubId)
+    .maybeSingle<ClubSettingsRow>();
+
+  if (existingSettingsError) {
+    return redirectWithParams(request, { error: "save_failed" });
+  }
+
+  const currentSettings: ClubSettingsRow = existingSettings ?? {
+    club_id: activeClubId,
+    use_strength: true,
+    use_categories: false,
+    season_start_day: 1,
+    season_start_month: 1,
+    season_end_day: 31,
+    season_end_month: 12,
+    season_year_mode: "start_year",
+  };
+
+  const useStrength = submitsTeamGeneratorSettings
+    ? parseBoolean(formData.get("use_strength"))
+    : (currentSettings.use_strength ?? true);
+
+  const useCategories = submitsTeamGeneratorSettings
+    ? parseBoolean(formData.get("use_categories"))
+    : (currentSettings.use_categories ?? false);
+
+  const rawSeasonStartDay = parseInteger(formData.get("season_start_day"));
+  const rawSeasonStartMonth = parseInteger(formData.get("season_start_month"));
+  const rawSeasonEndDay = parseInteger(formData.get("season_end_day"));
+  const rawSeasonEndMonth = parseInteger(formData.get("season_end_month"));
+  const rawSeasonYearMode = formData.get("season_year_mode");
+
+  const seasonStartDay = submitsSeasonSettings
+    ? rawSeasonStartDay
+    : (currentSettings.season_start_day ?? 1);
+
+  const seasonStartMonth = submitsSeasonSettings
+    ? rawSeasonStartMonth
+    : (currentSettings.season_start_month ?? 1);
+
+  const seasonEndDay = submitsSeasonSettings
+    ? rawSeasonEndDay
+    : (currentSettings.season_end_day ?? 31);
+
+  const seasonEndMonth = submitsSeasonSettings
+    ? rawSeasonEndMonth
+    : (currentSettings.season_end_month ?? 12);
+
+  const seasonYearMode = submitsSeasonSettings
+    ? (typeof rawSeasonYearMode === "string" ? rawSeasonYearMode : "")
+    : (currentSettings.season_year_mode ?? "start_year");
 
   if (!isValidDay(seasonStartDay)) {
     return redirectWithParams(request, { error: "invalid_season_start_day" });
