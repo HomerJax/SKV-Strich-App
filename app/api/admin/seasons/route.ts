@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 
-type SeasonInsert = {
+type SeasonRow = {
   id: number;
   name: string;
   start_date: string | null;
@@ -55,6 +56,7 @@ function getDatesForWeekdaysInRange(
   }
 
   const weekdaySet = new Set(weekdays);
+
   if (weekdaySet.size === 0) {
     return {
       error: "",
@@ -98,7 +100,7 @@ function withMessage(
     url.searchParams.set("error", params.error);
   }
 
-  return NextResponse.redirect(url);
+  return NextResponse.redirect(url, { status: 303 });
 }
 
 function buildCreateSuccessMessage(
@@ -119,6 +121,13 @@ function buildCreateSuccessMessage(
   }
 
   return `Saison "${seasonName}" erfolgreich angelegt. ${createdSessionsCount} Trainings wurden erstellt, ${skippedSessionsCount} bestehende Termine wurden übersprungen.`;
+}
+
+function revalidateSeasonRelatedPages() {
+  revalidatePath("/admin/seasons");
+  revalidatePath("/admin/settings");
+  revalidatePath("/sessions");
+  revalidatePath("/sessions/archive");
 }
 
 export async function POST(request: Request) {
@@ -164,8 +173,99 @@ export async function POST(request: Request) {
         });
       }
 
+      revalidateSeasonRelatedPages();
+
       return withMessage(request.url, redirectTo, {
         message: "Saison erfolgreich gelöscht.",
+      });
+    }
+
+    if (intent === "update") {
+      const seasonIdRaw = String(formData.get("season_id") ?? "").trim();
+      const seasonId = Number(seasonIdRaw);
+      const name = String(formData.get("name") ?? "").trim();
+      const startDate = String(formData.get("start_date") ?? "").trim();
+      const endDate = String(formData.get("end_date") ?? "").trim();
+
+      if (!Number.isFinite(seasonId)) {
+        return withMessage(request.url, redirectTo, {
+          error: "Ungültige Saison.",
+        });
+      }
+
+      if (!name) {
+        return withMessage(request.url, redirectTo, {
+          error: "Bitte einen Namen eingeben.",
+        });
+      }
+
+      const parsedStart = parseIsoDate(startDate);
+      const parsedEnd = parseIsoDate(endDate);
+
+      if (!parsedStart || !parsedEnd) {
+        return withMessage(request.url, redirectTo, {
+          error: "Bitte gültige Datumswerte wählen.",
+        });
+      }
+
+      if (parsedStart > parsedEnd) {
+        return withMessage(request.url, redirectTo, {
+          error: "Das Startdatum muss vor oder am Enddatum liegen.",
+        });
+      }
+
+      const { data: existingSeason, error: existingSeasonError } = await supabase
+        .from("seasons")
+        .select("id, name, start_date, end_date")
+        .eq("club_id", clubId)
+        .eq("id", seasonId)
+        .maybeSingle<SeasonRow>();
+
+      if (existingSeasonError || !existingSeason) {
+        return withMessage(request.url, redirectTo, {
+          error:
+            existingSeasonError?.message || "Saison konnte nicht geladen werden.",
+        });
+      }
+
+      const { error: updateError } = await supabase
+        .from("seasons")
+        .update({
+          name,
+          start_date: startDate,
+          end_date: endDate,
+        })
+        .eq("club_id", clubId)
+        .eq("id", seasonId);
+
+      if (updateError) {
+        return withMessage(request.url, redirectTo, {
+          error: updateError.message || "Saison konnte nicht aktualisiert werden.",
+        });
+      }
+
+      const { error: sessionUpdateError } = await supabase
+        .from("sessions")
+        .update({
+          season_id: seasonId,
+        })
+        .eq("club_id", clubId)
+        .gte("date", startDate)
+        .lte("date", endDate)
+        .or(`season_id.is.null,season_id.eq.${seasonId}`);
+
+      if (sessionUpdateError) {
+        return withMessage(request.url, redirectTo, {
+          error:
+            sessionUpdateError.message ||
+            "Saison wurde aktualisiert, aber Sessions konnten nicht neu zugeordnet werden.",
+        });
+      }
+
+      revalidateSeasonRelatedPages();
+
+      return withMessage(request.url, redirectTo, {
+        message: `Saison "${name}" erfolgreich aktualisiert.`,
       });
     }
 
@@ -217,7 +317,7 @@ export async function POST(request: Request) {
         end_date: endDate,
       })
       .select("id, name, start_date, end_date")
-      .single<SeasonInsert>();
+      .single<SeasonRow>();
 
     if (seasonInsertError || !createdSeason) {
       return withMessage(request.url, redirectTo, {
@@ -226,6 +326,8 @@ export async function POST(request: Request) {
     }
 
     if (selectedWeekdays.length === 0) {
+      revalidateSeasonRelatedPages();
+
       return withMessage(request.url, redirectTo, {
         message: buildCreateSuccessMessage(createdSeason.name, 0, 0),
       });
@@ -244,6 +346,8 @@ export async function POST(request: Request) {
     }
 
     if (generated.dates.length === 0) {
+      revalidateSeasonRelatedPages();
+
       return withMessage(request.url, redirectTo, {
         message: buildCreateSuccessMessage(createdSeason.name, 0, 0),
       });
@@ -295,6 +399,8 @@ export async function POST(request: Request) {
         });
       }
     }
+
+    revalidateSeasonRelatedPages();
 
     return withMessage(request.url, redirectTo, {
       message: buildCreateSuccessMessage(
