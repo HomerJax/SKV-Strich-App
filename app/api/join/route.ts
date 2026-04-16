@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 
 type PlayerProfileRow = {
   id: number;
-  club_id: string;
+  club_id: string | null;
   user_id: string | null;
   name: string | null;
   first_name: string | null;
@@ -168,12 +168,13 @@ export async function POST(request: Request) {
     const sourceProfile = existingProfiles[0];
 
     const displayName =
-      sourceProfile.name?.trim() ||
       [sourceProfile.first_name?.trim(), sourceProfile.last_name?.trim()]
         .filter(Boolean)
         .join(" ")
         .trim() ||
       sourceProfile.nickname?.trim() ||
+      sourceProfile.name?.trim() ||
+      sourceProfile.email?.trim() ||
       user.email?.split("@")[0]?.trim() ||
       "Spieler";
 

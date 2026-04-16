@@ -9,6 +9,22 @@ export type OnboardingState = {
   error: string;
 };
 
+type ExistingPlayerRow = {
+  id: number;
+  club_id: string | null;
+  user_id: string | null;
+  email: string | null;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  preferred_position: "attack" | "defense" | "goalkeeper" | null;
+  category_key: string | null;
+  strength: number | null;
+  is_active: boolean | null;
+  age_group: string | null;
+};
+
 function toText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
 }
@@ -25,6 +41,54 @@ function normalizeNext(value: FormDataEntryValue | null) {
 
 function isInviteJoinNext(next: string) {
   return next.startsWith("/join?token=");
+}
+
+function pickProfileSeed(
+  profiles: ExistingPlayerRow[],
+  userEmail: string | null | undefined
+) {
+  const withNames = profiles.find(
+    (profile) =>
+      Boolean(profile.nickname?.trim()) ||
+      Boolean(profile.first_name?.trim()) ||
+      Boolean(profile.last_name?.trim()) ||
+      Boolean(profile.name?.trim())
+  );
+
+  if (withNames) return withNames;
+  if (profiles.length > 0) return profiles[0];
+
+  return {
+    id: -1,
+    club_id: null,
+    user_id: null,
+    email: userEmail ?? null,
+    name: null,
+    first_name: null,
+    last_name: null,
+    nickname: null,
+    preferred_position: null,
+    category_key: null,
+    strength: null,
+    is_active: true,
+    age_group: null,
+  } satisfies ExistingPlayerRow;
+}
+
+function buildDisplayName(
+  firstName: string,
+  lastName: string,
+  nickname: string,
+  fallbackEmail: string | null | undefined
+) {
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+
+  return (
+    fullName ||
+    nickname.trim() ||
+    fallbackEmail?.split("@")[0]?.trim() ||
+    "Spieler"
+  );
 }
 
 export async function completeOnboarding(
@@ -76,14 +140,16 @@ export async function completeOnboarding(
     };
   }
 
-  const fullName = [firstName, lastName].filter(Boolean).join(" ");
+  const fullName = buildDisplayName(firstName, lastName, nickname, user.email ?? null);
 
-  const { data: existingPlayers, error: existingPlayerError } = await supabase
+  const { data: existingPlayersData, error: existingPlayerError } = await supabase
     .from("players")
-    .select("id, club_id, user_id, email")
+    .select(
+      "id, club_id, user_id, email, name, first_name, last_name, nickname, preferred_position, category_key, strength, is_active, age_group"
+    )
     .eq("user_id", user.id)
     .eq("is_guest", false)
-    .limit(5);
+    .limit(20);
 
   if (existingPlayerError) {
     return {
@@ -91,20 +157,13 @@ export async function completeOnboarding(
     };
   }
 
-  const existingPlayer =
-    Array.isArray(existingPlayers) && existingPlayers.length > 0
-      ? existingPlayers[0]
-      : null;
-
-  if (Array.isArray(existingPlayers) && existingPlayers.length > 1) {
-    return {
-      error:
-        "Für diesen Benutzer existieren mehrere Spielerprofile. Bitte bereinige die doppelten Player-Datensätze in Supabase.",
-    };
-  }
+  const existingPlayers = (existingPlayersData ?? []) as ExistingPlayerRow[];
 
   if (intention === "wait-for-invite") {
-    if (!existingPlayer) {
+    const profileWithoutClub =
+      existingPlayers.find((player) => player.club_id === null) ?? null;
+
+    if (!profileWithoutClub) {
       const { error: insertPlayerError } = await supabase.from("players").insert({
         user_id: user.id,
         club_id: null,
@@ -136,7 +195,7 @@ export async function completeOnboarding(
           is_guest: false,
           is_active: true,
         })
-        .eq("id", existingPlayer.id);
+        .eq("id", profileWithoutClub.id);
 
       if (updatePlayerError) {
         return {
@@ -169,7 +228,13 @@ export async function completeOnboarding(
     };
   }
 
-  if (!existingPlayer) {
+  const existingPlayerInTargetClub = existingPlayers.find(
+    (player) => player.club_id === club.id
+  );
+
+  if (!existingPlayerInTargetClub) {
+    const seed = pickProfileSeed(existingPlayers, user.email ?? null);
+
     const { error: insertPlayerError } = await supabase.from("players").insert({
       user_id: user.id,
       club_id: club.id,
@@ -177,9 +242,13 @@ export async function completeOnboarding(
       last_name: lastName,
       nickname: nickname || null,
       name: fullName,
-      email: user.email ?? null,
+      email: seed.email ?? user.email ?? null,
+      preferred_position: seed.preferred_position ?? null,
+      category_key: null,
+      strength: seed.strength ?? null,
       is_guest: false,
-      is_active: true,
+      is_active: seed.is_active ?? true,
+      age_group: seed.age_group ?? null,
     });
 
     if (insertPlayerError) {
@@ -187,28 +256,6 @@ export async function completeOnboarding(
         error:
           insertPlayerError.message ||
           "Spielerprofil konnte nicht erstellt werden.",
-      };
-    }
-  } else {
-    const { error: updatePlayerError } = await supabase
-      .from("players")
-      .update({
-        club_id: club.id,
-        first_name: firstName,
-        last_name: lastName,
-        nickname: nickname || null,
-        name: fullName,
-        email: user.email ?? null,
-        is_guest: false,
-        is_active: true,
-      })
-      .eq("id", existingPlayer.id);
-
-    if (updatePlayerError) {
-      return {
-        error:
-          updatePlayerError.message ||
-          "Spielerprofil konnte nicht aktualisiert werden.",
       };
     }
   }

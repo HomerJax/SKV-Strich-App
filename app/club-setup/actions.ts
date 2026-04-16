@@ -5,6 +5,70 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 
+type ExistingPlayerSeed = {
+  id: number;
+  club_id: string | null;
+  user_id: string | null;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+  email: string | null;
+  preferred_position: "attack" | "defense" | "goalkeeper" | null;
+  category_key: string | null;
+  strength: number | null;
+  is_active: boolean | null;
+  age_group: string | null;
+};
+
+function pickProfileSeed(
+  profiles: ExistingPlayerSeed[],
+  userEmail: string | null | undefined
+) {
+  const withNames = profiles.find(
+    (profile) =>
+      Boolean(profile.nickname?.trim()) ||
+      Boolean(profile.first_name?.trim()) ||
+      Boolean(profile.last_name?.trim()) ||
+      Boolean(profile.name?.trim())
+  );
+
+  if (withNames) return withNames;
+  if (profiles.length > 0) return profiles[0];
+
+  return {
+    id: -1,
+    club_id: null,
+    user_id: null,
+    name: null,
+    first_name: null,
+    last_name: null,
+    nickname: null,
+    email: userEmail ?? null,
+    preferred_position: null,
+    category_key: null,
+    strength: null,
+    is_active: true,
+    age_group: null,
+  } satisfies ExistingPlayerSeed;
+}
+
+function buildDisplayName(seed: ExistingPlayerSeed, userEmail: string | null | undefined) {
+  const fullName = [seed.first_name?.trim(), seed.last_name?.trim()]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return (
+    fullName ||
+    seed.nickname?.trim() ||
+    seed.name?.trim() ||
+    seed.email?.trim() ||
+    userEmail?.split("@")[0]?.trim() ||
+    "Spieler"
+  );
+}
+
 export async function createClubAction(formData: FormData) {
   const supabase = await createClient();
 
@@ -23,47 +87,20 @@ export async function createClubAction(formData: FormData) {
     redirect("/club-setup?error=missing-name");
   }
 
-  const { data: player, error: playerError } = await adminClient
-    .from("players")
-    .select("id, club_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const { data: existingProfilesData, error: existingProfilesError } =
+    await adminClient
+      .from("players")
+      .select(
+        "id, club_id, user_id, name, first_name, last_name, nickname, email, preferred_position, category_key, strength, is_active, age_group"
+      )
+      .eq("user_id", user.id)
+      .eq("is_guest", false);
 
-  if (playerError) {
-    throw new Error("Spielerprofil konnte nicht geladen werden.");
+  if (existingProfilesError) {
+    throw new Error("Spielerprofile konnten nicht geladen werden.");
   }
 
-  if (!player) {
-    redirect("/onboarding");
-  }
-
-  const { data: memberships, error: membershipsError } = await supabase
-    .from("club_memberships")
-    .select("club_id")
-    .eq("user_id", user.id);
-
-  if (membershipsError) {
-    redirect("/club-setup?error=membership-load-failed");
-  }
-
-  const membershipList = memberships ?? [];
-
-  if (membershipList.length === 1) {
-    const cookieStore = await cookies();
-    cookieStore.set("active_club_id", membershipList[0].club_id, {
-      httpOnly: false,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-
-    redirect("/");
-  }
-
-  if (membershipList.length > 1) {
-    redirect("/select-club");
-  }
+  const existingProfiles = (existingProfilesData ?? []) as ExistingPlayerSeed[];
 
   const { data: createdClub, error: clubError } = await adminClient
     .from("clubs")
@@ -102,15 +139,33 @@ export async function createClubAction(formData: FormData) {
     redirect("/club-setup?error=settings-create-failed");
   }
 
-  const { error: playerUpdateError } = await adminClient
-    .from("players")
-    .update({
-      club_id: clubId,
-    })
-    .eq("id", player.id);
+  const existingPlayerInTargetClub = existingProfiles.find(
+    (profile) => profile.club_id === clubId
+  );
 
-  if (playerUpdateError) {
-    redirect("/club-setup?error=player-link-failed");
+  if (!existingPlayerInTargetClub) {
+    const seed = pickProfileSeed(existingProfiles, user.email ?? null);
+    const displayNameForPlayer = buildDisplayName(seed, user.email ?? null);
+
+    const { error: playerInsertError } = await adminClient.from("players").insert({
+      user_id: user.id,
+      club_id: clubId,
+      name: displayNameForPlayer,
+      first_name: seed.first_name?.trim() || null,
+      last_name: seed.last_name?.trim() || null,
+      nickname: seed.nickname?.trim() || null,
+      email: seed.email?.trim() || user.email || null,
+      preferred_position: seed.preferred_position ?? null,
+      category_key: null,
+      strength: seed.strength ?? null,
+      is_guest: false,
+      is_active: seed.is_active ?? true,
+      age_group: seed.age_group ?? null,
+    });
+
+    if (playerInsertError) {
+      redirect("/club-setup?error=player-create-failed");
+    }
   }
 
   const cookieStore = await cookies();

@@ -29,6 +29,18 @@ function parseInteger(value: FormDataEntryValue | null) {
   return Number.parseInt(value, 10);
 }
 
+function parseBoolean(value: FormDataEntryValue | null) {
+  if (value == null) return false;
+
+  const normalized = String(value).trim().toLowerCase();
+  return (
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "on" ||
+    normalized === "yes"
+  );
+}
+
 function isValidDay(value: number) {
   return Number.isInteger(value) && value >= 1 && value <= 31;
 }
@@ -144,8 +156,8 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
 
-  const useStrength = formData.get("use_strength") === "1";
-  const useCategories = formData.get("use_categories") === "1";
+  const useStrength = parseBoolean(formData.get("use_strength"));
+  const useCategories = parseBoolean(formData.get("use_categories"));
 
   const seasonStartDay = parseInteger(formData.get("season_start_day"));
   const seasonStartMonth = parseInteger(formData.get("season_start_month"));
