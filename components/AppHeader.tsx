@@ -203,7 +203,10 @@ export default async function AppHeader() {
                   <span className="truncate text-xl font-black tracking-tight text-slate-950">
                     strikr
                   </span>
-                  <span className="text-[11px] text-slate-400">v0.3</span>
+
+                  {ctx.user ? (
+                    <span className="text-[11px] text-slate-400">v0.3</span>
+                  ) : null}
                 </div>
               </div>
             </Link>
@@ -256,7 +259,23 @@ export default async function AppHeader() {
                 createClubHref="/create-club"
               />
             </div>
-          ) : null}
+          ) : (
+            <div className="flex shrink-0 items-center gap-3">
+              <Link
+                href="/login"
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+              >
+                Login
+              </Link>
+
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Team starten
+              </Link>
+            </div>
+          )}
         </div>
       </header>
     </>
