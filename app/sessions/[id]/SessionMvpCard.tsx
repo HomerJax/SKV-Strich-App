@@ -93,15 +93,24 @@ function MergedWinnerCard({
 }) {
   const winnerCount = safeMvpCount(winner.mvpCount);
 
-  const previousCount =
+  const rawPreviousCount =
     badgeUpgrade && badgeUpgrade.playerId === winner.playerId
       ? safeMvpCount(badgeUpgrade.previousMvpCount)
       : Math.max(winnerCount - 1, 0);
 
-  const nextCount =
+  const rawNextCount =
     badgeUpgrade && badgeUpgrade.playerId === winner.playerId
       ? safeMvpCount(badgeUpgrade.newMvpCount)
       : winnerCount;
+
+  const previousCount = Math.max(rawPreviousCount, 0);
+
+  // WICHTIG:
+  // Wenn ein Spieler alleiniger MVP ist, soll der Fortschritt mindestens +1 sein.
+  // Das fängt inkonsistente Backend-Werte wie 0 -> 0 oder 3 -> 3 sauber ab.
+  const nextCount = badgeUpgrade
+    ? Math.max(rawNextCount, previousCount + 1)
+    : Math.max(rawNextCount, previousCount + 1);
 
   const previousTier = getPlayerBadgeTier(previousCount);
   const nextTier = getPlayerBadgeTier(nextCount);
@@ -113,7 +122,7 @@ function MergedWinnerCard({
 
       <div className="mt-3 flex items-start gap-3">
         <PlayerBadge
-          mvpCount={winnerCount}
+          mvpCount={nextCount}
           size="md"
           hideIfNone
           iconOnly
@@ -130,79 +139,65 @@ function MergedWinnerCard({
         </div>
       </div>
 
-      {badgeUpgrade ? (
-        <div className="mt-4 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white px-4 py-4">
-          <div className="text-sm font-semibold text-violet-700">
-            ✨ Badge-Fortschritt
-          </div>
-
-          {tierChanged ? (
-            <>
-              <div className="mt-2 text-sm text-slate-600">
-                Neues Badge freigeschaltet.
-              </div>
-
-              <div className="mt-4 flex items-center gap-4">
-                <div className="flex flex-col items-center gap-1">
-                  {previousCount > 0 ? (
-                    <PlayerBadge
-                      mvpCount={previousCount}
-                      size="md"
-                      iconOnly
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-slate-200 bg-slate-100 text-[11px] font-semibold text-slate-400">
-                      —
-                    </div>
-                  )}
-                  <div className="text-[11px] font-medium text-slate-500">
-                    {previousTier?.label ?? "Kein Badge"}
-                  </div>
-                </div>
-
-                <div className="text-lg font-bold text-slate-400">→</div>
-
-                <div className="flex flex-col items-center gap-1">
-                  <PlayerBadge
-                    mvpCount={nextCount}
-                    size="md"
-                    iconOnly
-                  />
-                  <div className="text-[11px] font-semibold text-slate-700">
-                    {nextTier?.label ?? "Badge"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-3 text-xs text-slate-500">
-                MVP gesamt: {previousCount} → {nextCount}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mt-2 text-sm text-slate-600">
-                Fortschritt im aktuellen Badge.
-              </div>
-
-              <div className="mt-4 flex items-center gap-3">
-                <PlayerBadge
-                  mvpCount={nextCount}
-                  size="md"
-                  iconOnly
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-slate-900">
-                    {nextTier?.label ?? "Badge"}
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    Jetzt insgesamt {nextCount} MVP
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+      <div className="mt-4 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white px-4 py-4">
+        <div className="text-sm font-semibold text-violet-700">
+          ✨ Badge-Fortschritt
         </div>
-      ) : null}
+
+        {tierChanged ? (
+          <>
+            <div className="mt-2 text-sm text-slate-600">
+              Neues Badge freigeschaltet.
+            </div>
+
+            <div className="mt-4 flex items-center gap-4">
+              <div className="flex flex-col items-center gap-1">
+                {previousCount > 0 ? (
+                  <PlayerBadge mvpCount={previousCount} size="md" iconOnly />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-slate-200 bg-slate-100 text-[11px] font-semibold text-slate-400">
+                    —
+                  </div>
+                )}
+                <div className="text-[11px] font-medium text-slate-500">
+                  {previousTier?.label ?? "Kein Badge"}
+                </div>
+              </div>
+
+              <div className="text-lg font-bold text-slate-400">→</div>
+
+              <div className="flex flex-col items-center gap-1">
+                <PlayerBadge mvpCount={nextCount} size="md" iconOnly />
+                <div className="text-[11px] font-semibold text-slate-700">
+                  {nextTier?.label ?? "Badge"}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 text-xs text-slate-500">
+              MVP gesamt: {previousCount} → {nextCount}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mt-2 text-sm text-slate-600">
+              Fortschritt im aktuellen Badge.
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <PlayerBadge mvpCount={nextCount} size="md" iconOnly />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-slate-900">
+                  {nextTier?.label ?? "Badge"}
+                </div>
+                <div className="text-xs text-slate-500">
+                  MVP gesamt: {previousCount} → {nextCount}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -231,7 +226,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload?.error || "MVP-Daten konnten nicht geladen werden.");
+        throw new Error(
+          payload?.error || "MVP-Daten konnten nicht geladen werden."
+        );
       }
 
       setState(payload);
@@ -239,7 +236,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setLoadState("ready");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "MVP-Daten konnten nicht geladen werden.";
+        error instanceof Error
+          ? error.message
+          : "MVP-Daten konnten nicht geladen werden.";
       setErr(message);
       setLoadState("error");
     }
@@ -280,7 +279,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload?.error || "MVP-Stimme konnte nicht gespeichert werden.");
+        throw new Error(
+          payload?.error || "MVP-Stimme konnte nicht gespeichert werden."
+        );
       }
 
       setMsg(`Deine Stimme wurde gezählt. Ergebnis ab ${payload.revealLabel}`);
@@ -288,7 +289,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       router.refresh();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "MVP-Stimme konnte nicht gespeichert werden.";
+        error instanceof Error
+          ? error.message
+          : "MVP-Stimme konnte nicht gespeichert werden.";
       setErr(message);
     } finally {
       setSaving(false);
