@@ -1,12 +1,12 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createClubAction } from "./actions";
-import ClubSettingsCard from "@/components/admin/settings/ClubSettingsCard";
-import SeasonSettingsCard from "@/components/admin/settings/SeasonSettingsCard";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
+import ClubSetupSeasonStep from "@/components/club-setup/ClubSetupSeasonStep";
 import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
 
@@ -46,6 +46,8 @@ type PageProps = {
 type ClubRow = {
   id: string;
   display_name: string | null;
+  logo_path: string | null;
+  primary_color: string | null;
 };
 
 type ClubSettingsRow = {
@@ -187,6 +189,23 @@ function StepHero({
   );
 }
 
+function BrandLockup() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-black/10 bg-black text-sm font-extrabold uppercase tracking-[0.18em] text-white shadow-sm">
+        S
+      </div>
+
+      <div>
+        <div className="text-sm font-semibold tracking-[0.18em] text-neutral-500">
+          STRIKR
+        </div>
+        <div className="text-sm text-neutral-600">Club-Setup</div>
+      </div>
+    </div>
+  );
+}
+
 export default async function ClubSetupPage({ searchParams }: PageProps) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const error = getSearchParam(resolvedSearchParams.error);
@@ -205,19 +224,22 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const activeClubId = auth.activeClubId ?? memberships[0]?.club_id ?? null;
 
-  let createdClub: ClubRow | null = null;
+  let club: ClubRow | null = null;
   let settings: ClubSettingsRow | null = null;
   let categories: CategoryRow[] = [];
+  let currentLogoUrl: string | null = null;
+  let useNicknames = false;
 
   if (activeClubId) {
     const [
       { data: clubData },
       { data: settingsData },
       { data: categoriesData },
+      featureFlags,
     ] = await Promise.all([
       supabase
         .from("clubs")
-        .select("id, display_name")
+        .select("id, display_name, logo_path, primary_color")
         .eq("id", activeClubId)
         .maybeSingle<ClubRow>(),
       supabase
@@ -230,18 +252,28 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
         .select("id, key, label, sort_order, is_active")
         .eq("club_id", activeClubId)
         .order("sort_order", { ascending: true }),
+      getFeatureFlagsForClub(activeClubId),
     ]);
 
-    createdClub = clubData ?? null;
+    club = clubData ?? null;
     settings = settingsData ?? null;
     categories = (categoriesData ?? []) as CategoryRow[];
+    useNicknames = featureFlags.use_nicknames ?? false;
+
+    if (club?.logo_path) {
+      const { data } = supabase.storage
+        .from("club-logos")
+        .getPublicUrl(club.logo_path);
+
+      currentLogoUrl = data.publicUrl;
+    }
   }
 
   if (!created && hasClub) {
     redirect("/");
   }
 
-  const clubName = createdClub?.display_name?.trim() || "dein Team";
+  const clubName = club?.display_name?.trim() || "dein Team";
   const errorMessage = getErrorMessage(error);
 
   const clubSaved =
@@ -276,28 +308,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
     <main className="min-h-screen bg-[#f5f7fb] text-neutral-950">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 sm:py-6">
         <header className="mb-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-black/10 bg-black shadow-sm">
-              <Image
-                src="/icon0.svg"
-                alt="STRIKR"
-                fill
-                className="object-contain p-2"
-                sizes="44px"
-                priority
-              />
-            </div>
-
-            <div>
-              <div className="text-sm font-semibold tracking-[0.18em] text-neutral-500">
-                STRIKR
-              </div>
-              <div className="text-sm text-neutral-600">
-                {created ? "Club-Setup" : "Team starten"}
-              </div>
-            </div>
-          </div>
-
+          <BrandLockup />
           <LogoutButton />
         </header>
 
@@ -394,12 +405,16 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     </p>
                   </div>
 
-                  <ClubSettingsCard
+                  <ClubSetupClubStep
                     saved={clubSaved}
                     error={clubError}
                     redirectTo={buildWizardUrl("season")}
                     submitLabel="Weiter"
                     removeLogoRedirectTo={buildWizardUrl("club")}
+                    initialDisplayName={club?.display_name ?? ""}
+                    initialPrimaryColor={club?.primary_color ?? "black"}
+                    initialLogoUrl={currentLogoUrl}
+                    useNicknames={useNicknames}
                   />
                 </div>
               ) : null}
@@ -414,15 +429,15 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                       Saison
                     </h2>
                     <p className="mt-2 text-sm leading-7 text-neutral-700">
-                      Saison anlegen und optional Serientermine erzeugen.
+                      Lege direkt eure erste Saison an.
                     </p>
                   </div>
 
-                  <SeasonSettingsCard
+                  <ClubSetupSeasonStep
                     message={seasonMessage}
                     error={seasonError}
                     redirectTo={buildWizardUrl("team")}
-                    createSubmitLabel="Weiter"
+                    submitLabel="Weiter"
                   />
 
                   {previousStep ? (
@@ -519,74 +534,27 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
               ) : null}
 
               {currentStep === "done" ? (
-                <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
-                  <div className="mb-5">
+                <div className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-8">
+                  <div className="text-center">
                     <div className="text-sm font-semibold text-neutral-500">
-                      Schritt 5
+                      Glückwunsch
                     </div>
-                    <h2 className="mt-1 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
-                      Fertig
+                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
+                      {clubName} ist eingerichtet
                     </h2>
-                    <p className="mt-2 text-sm leading-7 text-neutral-700">
-                      Dein Verein ist eingerichtet. Jetzt kann es losgehen.
+                    <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
+                      Das Setup ist abgeschlossen.
                     </p>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <Link
-                      href="/admin/members"
-                      className="rounded-3xl border border-black/10 bg-[#f7f8fb] p-5 transition hover:bg-neutral-50"
-                    >
-                      <div className="text-base font-semibold text-neutral-950">
-                        Spieler einladen
-                      </div>
-                      <div className="mt-2 text-sm leading-6 text-neutral-700">
-                        Hol dein Team in die App.
-                      </div>
-                    </Link>
-
+                  <div className="mt-8 flex justify-center">
                     <Link
                       href="/"
-                      className="rounded-3xl border border-black/10 bg-[#f7f8fb] p-5 transition hover:bg-neutral-50"
+                      className="inline-flex items-center justify-center rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
                     >
-                      <div className="text-base font-semibold text-neutral-950">
-                        Zum Dashboard
-                      </div>
-                      <div className="mt-2 text-sm leading-6 text-neutral-700">
-                        Zurück in den Club-Alltag.
-                      </div>
-                    </Link>
-
-                    <Link
-                      href="/admin/settings"
-                      className="rounded-3xl border border-black/10 bg-[#f7f8fb] p-5 transition hover:bg-neutral-50"
-                    >
-                      <div className="text-base font-semibold text-neutral-950">
-                        Volle Einstellungen
-                      </div>
-                      <div className="mt-2 text-sm leading-6 text-neutral-700">
-                        Alle Details später feinjustieren.
-                      </div>
+                      Setup abschließen
                     </Link>
                   </div>
-
-                  {previousStep ? (
-                    <div className="mt-6 flex items-center justify-between">
-                      <Link
-                        href={buildWizardUrl(previousStep)}
-                        className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50"
-                      >
-                        Zurück
-                      </Link>
-
-                      <Link
-                        href="/"
-                        className="inline-flex items-center justify-center rounded-xl bg-neutral-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800"
-                      >
-                        Setup abschließen
-                      </Link>
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
             </div>
