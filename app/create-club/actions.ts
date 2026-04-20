@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 export type CreateClubState = {
   error: string;
@@ -62,7 +61,10 @@ function pickProfileSeed(
   } satisfies ExistingPlayerSeed;
 }
 
-function buildDisplayName(seed: ExistingPlayerSeed, userEmail: string | null | undefined) {
+function buildDisplayName(
+  seed: ExistingPlayerSeed,
+  userEmail: string | null | undefined
+) {
   const fullName = [seed.first_name?.trim(), seed.last_name?.trim()]
     .filter(Boolean)
     .join(" ")
@@ -195,5 +197,5 @@ export async function createClubAction(
     secure: process.env.NODE_ENV === "production",
   });
 
-  redirect(AUTH_ROUTES.dashboard);
+  redirect("/club/setup?created=1");
 }
