@@ -1,74 +1,279 @@
-12:06:07.515 Running build in Washington, D.C., USA (East) – iad1
-12:06:07.516 Build machine configuration: 2 cores, 8 GB
-12:06:07.658 Retrieving list of deployment files...
-12:06:08.155 Downloading 262 deployment files...
-12:06:09.636 Restored build cache from previous deployment (22tzPgakr4kN5QyDz2YKWJhLBi5a)
-12:06:09.824 Running "vercel build"
-12:06:10.484 Vercel CLI 51.6.1
-12:06:10.779 Installing dependencies...
-12:06:11.911 
-12:06:11.912 up to date in 926ms
-12:06:11.913 
-12:06:11.913 153 packages are looking for funding
-12:06:11.913   run `npm fund` for details
-12:06:11.941 Detected Next.js version: 16.2.3
-12:06:11.945 Running "npm run build"
-12:06:12.052 
-12:06:12.052 > skv-strich-app@0.1.0 build
-12:06:12.052 > next build
-12:06:12.052 
-12:06:12.903   Applying modifyConfig from Vercel
-12:06:12.919 ▲ Next.js 16.2.3 (Turbopack)
-12:06:12.920 - Experiments (use with caution):
-12:06:12.920   · serverActions
-12:06:12.921 
-12:06:12.972   Creating an optimized production build ...
-12:06:30.483 Turbopack build encountered 1 warnings:
-12:06:30.484 ./next.config.ts
-12:06:30.484 Encountered unexpected file in NFT list
-12:06:30.484 A file was traced that indicates that the whole project was traced unintentionally. Somewhere in the import trace below, there are:
-12:06:30.484 - filesystem operations (like path.join, path.resolve or fs.readFile), or
-12:06:30.485 - very dynamic requires (like require('./' + foo)).
-12:06:30.485 To resolve this, you can
-12:06:30.485 - remove them if possible, or
-12:06:30.485 - only use them in development, or
-12:06:30.485 - make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
-12:06:30.485 - add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
-12:06:30.485 
-12:06:30.485 Import trace:
-12:06:30.485   App Route:
-12:06:30.485     ./next.config.ts
-12:06:30.486     ./lib/share/brand.ts
-12:06:30.486     ./components/share/ShareCardShell.tsx
-12:06:30.486     ./app/share/lineup/[id]/image/route.tsx
-12:06:30.486 
-12:06:30.486 
-12:06:31.203 
-12:06:31.203 > Build error occurred
-12:06:31.206 Error: Turbopack build failed with 1 errors:
-12:06:31.206 ./app/club-setup/page.tsx:8:1
-12:06:31.206 Module not found: Can't resolve '@/components/club-setup/ClubSetupClubStep'
-12:06:31.207   [90m 6 |[0m [36mimport[0m { createClubAction } [36mfrom[0m [32m"./actions"[0m;
-12:06:31.207   [90m 7 |[0m [36mimport[0m { getFeatureFlagsForClub } [36mfrom[0m [32m"@/lib/feature-flags"[0m;
-12:06:31.207 [31m[1m>[0m [90m 8 |[0m [36mimport[0m [33mClubSetupClubStep[0m [36mfrom[0m [32m"@/components/club-setup/ClubSetupClubStep"[0m;
-12:06:31.207   [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
-12:06:31.207   [90m 9 |[0m [36mimport[0m [33mClubSetupSeasonStep[0m [36mfrom[0m [32m"@/components/club-setup/ClubSetupSeasonStep"[0m;
-12:06:31.208   [90m10 |[0m [36mimport[0m [33mTeamGeneratorSettingsCard[0m [36mfrom[0m [32m"@/components/admin/settings/TeamGeneratorSettingsCa...[0m
-12:06:31.208   [90m11 |[0m [36mimport[0m { [33mCategorySettingsSection[0m } [36mfrom[0m [32m"@/components/admin/settings/CategorySettingsSecti...[0m
-12:06:31.208 
-12:06:31.208 Import map: aliased to relative './components/club-setup/ClubSetupClubStep' inside of [project]/
-12:06:31.208 
-12:06:31.208 
-12:06:31.208 Import trace:
-12:06:31.208   App Route:
-12:06:31.208     ./app/club-setup/page.tsx
-12:06:31.208     ./lib/share/brand.ts
-12:06:31.209     ./components/share/ShareCardShell.tsx
-12:06:31.209     ./app/share/lineup/[id]/image/route.tsx
-12:06:31.209 
-12:06:31.209 https://nextjs.org/docs/messages/module-not-found
-12:06:31.209 
-12:06:31.209 
-12:06:31.209     at <unknown> (./app/club-setup/page.tsx:8:1)
-12:06:31.209     at <unknown> (https://nextjs.org/docs/messages/module-not-found)
-12:06:31.270 Error: Command "npm run build" exited with 1
+"use client";
+
+import Image from "next/image";
+import { useMemo, useState } from "react";
+
+type ClubSetupClubStepProps = {
+  saved?: boolean;
+  error?: string;
+  redirectTo: string;
+  submitLabel?: string;
+  removeLogoRedirectTo?: string;
+  initialDisplayName: string;
+  initialPrimaryColor: string;
+  initialLogoUrl: string | null;
+  useNicknames: boolean;
+};
+
+const COLOR_OPTIONS = [
+  { value: "black", label: "Schwarz", color: "#020617" },
+  { value: "blue", label: "Blau", color: "#1d4ed8" },
+  { value: "red", label: "Rot", color: "#dc2626" },
+  { value: "green", label: "Grün", color: "#16a34a" },
+] as const;
+
+function getErrorMessage(error?: string) {
+  switch (error) {
+    case "unauthorized":
+      return "Du hast keinen Zugriff auf diesen Bereich.";
+    case "missing_club":
+      return "Es konnte kein Club gefunden werden.";
+    case "invalid_file":
+      return "Bitte lade nur PNG, JPG, JPEG oder WEBP hoch.";
+    case "file_too_large":
+      return "Die Datei ist zu groß. Maximal 2 MB sind erlaubt.";
+    case "save_failed":
+      return "Die Änderungen konnten nicht gespeichert werden.";
+    case "remove_failed":
+      return "Das Logo konnte nicht entfernt werden.";
+    default:
+      return "";
+  }
+}
+
+export default function ClubSetupClubStep({
+  saved = false,
+  error = "",
+  redirectTo,
+  submitLabel = "Weiter",
+  removeLogoRedirectTo,
+  initialDisplayName,
+  initialPrimaryColor,
+  initialLogoUrl,
+  useNicknames,
+}: ClubSetupClubStepProps) {
+  const [displayName, setDisplayName] = useState(initialDisplayName);
+  const [primaryColor, setPrimaryColor] = useState(initialPrimaryColor || "black");
+  const [nicknameMode, setNicknameMode] = useState(useNicknames);
+  const [selectedFileName, setSelectedFileName] = useState("");
+  const [selectedPreviewUrl, setSelectedPreviewUrl] = useState<string | null>(null);
+
+  const previewColor =
+    COLOR_OPTIONS.find((option) => option.value === primaryColor)?.color ??
+    "#020617";
+
+  const previewLogoUrl = selectedPreviewUrl ?? initialLogoUrl ?? null;
+  const errorMessage = getErrorMessage(error);
+
+  const playerNameModeLabel = useMemo(
+    () => (nicknameMode ? "Spitznamen aktiv" : "Vor- und Nachname"),
+    [nicknameMode]
+  );
+
+  return (
+    <div className="space-y-5">
+      {errorMessage ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          {errorMessage}
+        </div>
+      ) : null}
+
+      {saved ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Änderungen gespeichert.
+        </div>
+      ) : null}
+
+      <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+        <div className="mb-3 text-sm font-semibold text-slate-500">
+          Vorschau
+        </div>
+
+        <div
+          className="rounded-2xl border border-slate-200 bg-white p-4"
+          style={{ borderTop: `4px solid ${previewColor}` }}
+        >
+          <div className="flex items-center gap-3">
+            {previewLogoUrl ? (
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
+                <Image
+                  src={previewLogoUrl}
+                  alt={displayName || "Clublogo"}
+                  width={80}
+                  height={80}
+                  unoptimized
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
+                Logo
+              </div>
+            )}
+
+            <div className="min-w-0">
+              <div className="truncate text-lg font-bold text-slate-950">
+                {displayName.trim() || "Dein Team"}
+              </div>
+              <div className="text-sm text-slate-500">Anzeige im Header</div>
+              <div className="mt-1 text-xs text-slate-500">
+                Spielernamen:{" "}
+                <span className="font-semibold text-slate-700">
+                  {playerNameModeLabel}
+                </span>
+              </div>
+              {selectedFileName ? (
+                <div className="mt-2 text-xs font-medium text-emerald-700">
+                  Ausgewählt: {selectedFileName}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form
+        method="post"
+        action="/api/admin/club"
+        encType="multipart/form-data"
+        className="space-y-5"
+      >
+        <input type="hidden" name="redirect_to" value={redirectTo} />
+
+        <div className="space-y-2">
+          <label
+            htmlFor="display_name"
+            className="block text-sm font-medium text-slate-900"
+          >
+            Vereinsname
+          </label>
+          <input
+            id="display_name"
+            name="display_name"
+            type="text"
+            maxLength={80}
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+            placeholder="z. B. SKV Rutesheim"
+            className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="logo"
+            className="block text-sm font-medium text-slate-900"
+          >
+            Vereinslogo
+          </label>
+
+          <input
+            id="logo"
+            name="logo"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/jpg"
+            className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+
+              if (!file) {
+                setSelectedFileName("");
+                setSelectedPreviewUrl(null);
+                return;
+              }
+
+              setSelectedFileName(file.name);
+              setSelectedPreviewUrl(URL.createObjectURL(file));
+            }}
+          />
+
+          <p className="text-xs text-slate-500">
+            Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="block text-sm font-medium text-slate-900">
+            Vereinsfarbe
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {COLOR_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"
+              >
+                <input
+                  type="radio"
+                  name="primary_color"
+                  value={option.value}
+                  checked={primaryColor === option.value}
+                  onChange={() => setPrimaryColor(option.value)}
+                />
+                <span
+                  className="h-4 w-4 rounded-full border border-black/10"
+                  style={{ backgroundColor: option.color }}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Die Farbe wird als dezenter Akzent für euren Club in der App genutzt.
+          </p>
+        </div>
+
+        <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+          <div className="mb-3 text-sm font-semibold text-slate-500">
+            Allgemeine Anzeige
+          </div>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
+            <input
+              type="checkbox"
+              name="use_nicknames"
+              value="1"
+              checked={nicknameMode}
+              onChange={(event) => setNicknameMode(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-neutral-300"
+            />
+            <div>
+              <div className="text-sm font-semibold text-slate-950">
+                Spitznamen anzeigen
+              </div>
+              <div className="text-sm text-slate-600">
+                Wenn aktiv, werden Spieler in Sessions, Teams, Stats und weiteren
+                Ansichten bevorzugt mit ihrem Spitznamen angezeigt.
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <button
+          type="submit"
+          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+        >
+          {submitLabel}
+        </button>
+      </form>
+
+      {initialLogoUrl ? (
+        <form method="post" action="/api/admin/club">
+          <input
+            type="hidden"
+            name="redirect_to"
+            value={removeLogoRedirectTo ?? redirectTo}
+          />
+          <input type="hidden" name="remove_logo" value="1" />
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+          >
+            Logo entfernen
+          </button>
+        </form>
+      ) : null}
+    </div>
+  );
+}
