@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import PageHero from "@/components/PageHero";
+import SessionTypeBadge from "@/components/sessions/SessionTypeBadge";
 
 type SessionsPageProps = {
   searchParams?: Promise<{
@@ -16,11 +17,14 @@ type Season = {
   end_date: string | null;
 };
 
+type SessionType = "training" | "event";
+
 type SessionRow = {
   id: number;
   date: string;
   notes: string | null;
   season_id: number | null;
+  type: SessionType | null;
 };
 
 type ClubRow = {
@@ -66,20 +70,32 @@ function sortDescByDate(a: SessionRow, b: SessionRow) {
   return b.date.localeCompare(a.date);
 }
 
+function getSessionLabel(type: SessionType | null | undefined) {
+  return type === "event" ? "Termin" : "Training";
+}
+
 function SessionCard({ session }: { session: SessionRow }) {
   return (
     <Link
       href={`/sessions/${session.id}`}
       className="block rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:bg-slate-50"
     >
-      <div className="text-xl font-bold tracking-tight text-slate-950">
-        {fmtDateDE(session.date)}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xl font-bold tracking-tight text-slate-950">
+            {fmtDateDE(session.date)}
+          </div>
+          {session.notes ? (
+            <div className="mt-1 text-sm text-slate-500">{session.notes}</div>
+          ) : (
+            <div className="mt-1 text-sm text-slate-400">Keine Notiz hinterlegt</div>
+          )}
+        </div>
+
+        <div className="shrink-0">
+          <SessionTypeBadge type={session.type ?? "training"} />
+        </div>
       </div>
-      {session.notes ? (
-        <div className="mt-1 text-sm text-slate-500">{session.notes}</div>
-      ) : (
-        <div className="mt-1 text-sm text-slate-400">Keine Notiz hinterlegt</div>
-      )}
     </Link>
   );
 }
@@ -109,7 +125,7 @@ export default async function SessionsPage({
       .order("start_date", { ascending: false }),
     supabase
       .from("sessions")
-      .select("id, date, notes, season_id")
+      .select("id, date, notes, season_id, type")
       .eq("club_id", clubId)
       .order("date", { ascending: false }),
   ]);
@@ -126,6 +142,8 @@ export default async function SessionsPage({
   const seasons = (seasonsData as Season[] | null) ?? [];
   const sessions = (sessionsData as SessionRow[] | null) ?? [];
   const totalSessions = sessions.length;
+  const totalTrainings = sessions.filter((session) => session.type !== "event").length;
+  const totalEvents = sessions.filter((session) => session.type === "event").length;
 
   const todayIso = getTodayIsoDate();
   const currentSeason = getCurrentSeason(seasons);
@@ -175,16 +193,16 @@ export default async function SessionsPage({
         </div>
 
         <PageHero
-          eyebrow="Trainings"
-          title="Trainingsübersicht"
-          description="Termine, Teams und Ergebnisse an einem Ort."
+          eyebrow="Sessions"
+          title="Trainings & Termine"
+          description="Alle anstehenden und vergangenen Einheiten an einem Ort."
           primaryColorKey={club?.primary_color}
           action={
             <Link
               href="/sessions/new"
               className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-white/90"
             >
-              + Neues Training
+              + Neuer Eintrag
             </Link>
           }
         />
@@ -197,7 +215,13 @@ export default async function SessionsPage({
 
         {totalSessions > 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-            {totalSessions} {totalSessions === 1 ? "Training" : "Trainings"} gespeichert.
+            {totalSessions} {totalSessions === 1 ? "Eintrag" : "Einträge"} gespeichert.
+            <span className="ml-2 text-slate-400">
+              · {totalTrainings} {totalTrainings === 1 ? "Training" : "Trainings"}
+            </span>
+            <span className="ml-2 text-slate-400">
+              · {totalEvents} {totalEvents === 1 ? "Termin" : "Termine"}
+            </span>
             {currentSeason ? (
               <span className="ml-2 text-slate-400">
                 · Aktive Saison: {currentSeason.name}
@@ -211,12 +235,12 @@ export default async function SessionsPage({
             <div className="max-w-lg">
               <div className="text-sm font-semibold text-slate-500">Noch leer</div>
               <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">
-                Ihr habt noch kein Training erstellt.
+                Ihr habt noch keinen Eintrag erstellt.
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Lege jetzt eure erste Session an. Danach kannst du Anwesenheiten
-                pflegen, Teams generieren, Ergebnisse speichern und die Tabelle
-                direkt in strikr nutzen.
+                Lege jetzt euer erstes Training oder euren ersten Termin an.
+                Danach kannst du Anwesenheiten pflegen und den passenden Flow
+                direkt in STRIKR nutzen.
               </p>
 
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -224,7 +248,7 @@ export default async function SessionsPage({
                   href="/sessions/new"
                   className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white"
                 >
-                  Erstes Training erstellen
+                  Ersten Eintrag erstellen
                 </Link>
 
                 <Link
@@ -263,7 +287,7 @@ export default async function SessionsPage({
                       Als Nächstes
                     </div>
                     <div className="text-lg font-bold tracking-tight text-slate-950">
-                      Nächste Einheit
+                      Nächster Eintrag
                     </div>
                   </div>
                 </div>
@@ -276,11 +300,10 @@ export default async function SessionsPage({
                   Als Nächstes
                 </div>
                 <div className="mt-1 text-lg font-bold tracking-tight text-slate-950">
-                  Keine kommende Einheit
+                  Kein kommender Eintrag
                 </div>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  In der aktuellen Saison ist gerade keine weitere Trainingseinheit
-                  geplant.
+                  In der aktuellen Saison ist gerade nichts weiter geplant.
                 </p>
               </div>
             )}
@@ -288,13 +311,13 @@ export default async function SessionsPage({
             <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className="text-sm font-semibold text-slate-900">
-                  Kommende Einheiten
+                  Kommende Einträge
                 </div>
                 <div className="text-xs text-slate-500">
                   {futureCurrentSeasonSessions.length}{" "}
                   {futureCurrentSeasonSessions.length === 1
-                    ? "Einheit"
-                    : "Einheiten"}
+                    ? "Eintrag"
+                    : "Einträge"}
                 </div>
               </div>
 
@@ -306,12 +329,12 @@ export default async function SessionsPage({
                 </div>
               ) : nextSession ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                  Aktuell gibt es keine weiteren kommenden Einheiten außer der
+                  Aktuell gibt es keine weiteren kommenden Einträge außer dem
                   nächsten oben.
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                  Es gibt aktuell keine kommenden Einheiten in der laufenden
+                  Es gibt aktuell keine kommenden Einträge in der laufenden
                   Saison.
                 </div>
               )}
@@ -322,7 +345,7 @@ export default async function SessionsPage({
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold text-slate-900">
-                      Vergangene Einheiten
+                      Vergangene Einträge
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
                       Nur aus der aktuellen Saison
@@ -345,7 +368,7 @@ export default async function SessionsPage({
                 ) : (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
                     In der aktuellen Saison gibt es noch keine vergangenen
-                    Einheiten.
+                    Einträge.
                   </div>
                 )}
               </div>
@@ -360,7 +383,7 @@ export default async function SessionsPage({
                         Ohne Saison
                       </div>
                       <div className="mt-1 text-xs text-amber-800/80">
-                        Diese Trainings konnten keinem Saisonzeitraum zugeordnet
+                        Diese Einträge konnten keinem Saisonzeitraum zugeordnet
                         werden.
                       </div>
                     </div>
@@ -374,24 +397,7 @@ export default async function SessionsPage({
                 <div className="mt-4 border-t border-amber-200/60 pt-4">
                   <div className="space-y-3">
                     {withoutSeason.map((session) => (
-                      <Link
-                        key={session.id}
-                        href={`/sessions/${session.id}`}
-                        className="block rounded-2xl border border-amber-200 bg-white px-4 py-4 shadow-sm transition hover:bg-amber-100"
-                      >
-                        <div className="text-xl font-bold tracking-tight text-slate-950">
-                          {fmtDateDE(session.date)}
-                        </div>
-                        {session.notes ? (
-                          <div className="mt-1 text-sm text-slate-500">
-                            {session.notes}
-                          </div>
-                        ) : (
-                          <div className="mt-1 text-sm text-slate-400">
-                            Keine Notiz hinterlegt
-                          </div>
-                        )}
-                      </Link>
+                      <SessionCard key={session.id} session={session} />
                     ))}
                   </div>
                 </div>
