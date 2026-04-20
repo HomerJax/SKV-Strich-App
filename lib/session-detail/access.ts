@@ -2,10 +2,13 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 
+export type SessionType = "training" | "game" | "event";
+
 export type SessionRow = {
   id: number;
   date: string;
   notes: string | null;
+  type: SessionType | null;
   winner_photo_path: string | null;
   club_id: string;
 };
@@ -72,7 +75,7 @@ export async function requireSessionAccess(sessionId: number) {
 
   const { data: sessionData, error: sessionError } = await userSupabase
     .from("sessions")
-    .select("id, date, notes, winner_photo_path, club_id")
+    .select("id, date, notes, type, winner_photo_path, club_id")
     .eq("id", sessionId)
     .eq("club_id", ctx.activeClubId)
     .maybeSingle();
