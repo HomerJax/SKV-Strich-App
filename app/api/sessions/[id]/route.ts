@@ -19,6 +19,8 @@ const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_OUTPUT_WIDTH = 1800;
 const MAX_OUTPUT_HEIGHT = 1800;
 
+type SessionType = "training" | "event";
+
 async function normalizeWinnerPhoto(file: File): Promise<{
   buffer: Buffer;
   contentType: "image/jpeg";
@@ -50,6 +52,17 @@ async function normalizeWinnerPhoto(file: File): Promise<{
   };
 }
 
+function normalizeSessionType(
+  value: unknown,
+  sessionTypesEnabled: boolean
+): SessionType {
+  if (!sessionTypesEnabled) {
+    return "training";
+  }
+
+  return value === "event" ? "event" : "training";
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -77,6 +90,14 @@ export async function POST(
     currentUserEmail,
   } = access;
 
+  const featureFlags = await getFeatureFlagsForClub(clubId);
+  const sessionTypesEnabled = featureFlags.session_types === true;
+  const sessionType = normalizeSessionType(session.type, sessionTypesEnabled);
+
+  const allowTeams = sessionType === "training";
+  const allowResult = sessionType === "training";
+  const allowWinnerPhoto = sessionType === "training";
+
   try {
     const formData = await request.formData();
     const intent = String(formData.get("intent") ?? "").trim();
@@ -97,7 +118,6 @@ export async function POST(
     }
 
     if (intent === "set_self_presence") {
-      const featureFlags = await getFeatureFlagsForClub(clubId);
       const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
 
       if (!homeSessionRsvpEnabled) {
@@ -170,7 +190,10 @@ export async function POST(
         }
 
         return ok({
-          message: "Du bist dabei beim Training.",
+          message:
+            sessionType === "training"
+              ? "Du bist dabei beim Training."
+              : "Du bist beim Termin dabei.",
           status: "in",
         });
       }
@@ -189,7 +212,7 @@ export async function POST(
       }
 
       return ok({
-        message: "Du setzt dieses Mal aus.",
+        message: "Deine Rückmeldung wurde aktualisiert.",
         status: "out",
       });
     }
@@ -333,6 +356,13 @@ export async function POST(
     }
 
     if (intent === "save_teams") {
+      if (!allowTeams) {
+        return fail(
+          "Für diesen Termin ist keine Teamaufteilung aktiv.",
+          400
+        );
+      }
+
       const manualTeamsRaw = String(formData.get("manual_teams") ?? "{}");
 
       try {
@@ -358,6 +388,13 @@ export async function POST(
     }
 
     if (intent === "save_result") {
+      if (!allowResult) {
+        return fail(
+          "Für diesen Termin kann kein Ergebnis gespeichert werden.",
+          400
+        );
+      }
+
       const goalsA = String(formData.get("goals_a") ?? "");
       const goalsB = String(formData.get("goals_b") ?? "");
       const manualTeamsRaw = String(formData.get("manual_teams") ?? "{}");
@@ -373,6 +410,13 @@ export async function POST(
     }
 
     if (intent === "delete_result") {
+      if (!allowResult) {
+        return fail(
+          "Für diesen Termin gibt es kein Ergebnis.",
+          400
+        );
+      }
+
       return handleDeleteResult({
         supabase,
         sessionId,
@@ -380,6 +424,13 @@ export async function POST(
     }
 
     if (intent === "delete_winner_photo") {
+      if (!allowWinnerPhoto) {
+        return fail(
+          "Für diesen Termin gibt es kein Siegerfoto.",
+          400
+        );
+      }
+
       return handleDeleteWinnerPhoto({
         supabase,
         sessionId,
@@ -502,6 +553,13 @@ export async function POST(
     }
 
     if (intent === "upload_winner_photo") {
+      if (!allowWinnerPhoto) {
+        return fail(
+          "Für diesen Termin gibt es kein Siegerfoto.",
+          400
+        );
+      }
+
       const { data: existingResult, error: existingResultError } = await supabase
         .from("results")
         .select("id")

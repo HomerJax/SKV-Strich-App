@@ -2,7 +2,7 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 
-export type SessionType = "training" | "game" | "event";
+export type SessionType = "training" | "event";
 
 export type SessionRow = {
   id: number;

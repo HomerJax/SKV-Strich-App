@@ -13,9 +13,11 @@ type NewSessionFormProps = {
   action: (formData: FormData) => void | Promise<void>;
   initialDate: string;
   seasons: NewSessionFormSeason[];
+  enableSessionTypes?: boolean;
 };
 
 type CreateMode = "single" | "series";
+type SessionType = "training" | "event";
 
 const WEEKDAY_OPTIONS = [
   { value: "1", label: "Montag" },
@@ -37,12 +39,22 @@ function formatSeasonDate(value: string | null) {
   });
 }
 
+function getSessionTypeDescription(type: SessionType) {
+  if (type === "event") {
+    return "Für Spiel, Turnier oder Orga-Termin. Hier sammelst du Zu- und Absagen ohne Trainings-Flow.";
+  }
+
+  return "Voller STRIKR Flow mit Anwesenheit, Teams, Ergebnis, MVP und Sharing.";
+}
+
 export default function NewSessionForm({
   action,
   initialDate,
   seasons,
+  enableSessionTypes = false,
 }: NewSessionFormProps) {
   const [mode, setMode] = useState<CreateMode>("single");
+  const [sessionType, setSessionType] = useState<SessionType>("training");
 
   const defaultSeasonId =
     seasons.length > 0 ? String(seasons[0].id) : "";
@@ -60,11 +72,67 @@ export default function NewSessionForm({
   const seriesStartDefault = selectedSeason?.start_date ?? initialDate;
   const seriesEndDisplay = selectedSeason?.end_date ?? "";
 
+  const notesLabel =
+    sessionType === "event" ? "Worum geht’s?" : "Notiz";
+
+  const notesPlaceholder =
+    sessionType === "event"
+      ? "z. B. Pokalspiel in Leonberg, Turnier in Calw oder Saisonabschluss"
+      : "optional, z. B. Flutlicht oder Hallentraining";
+
   return (
     <form
       action={action}
       className="space-y-4 rounded-xl border border-slate-200 bg-white p-4"
     >
+      {enableSessionTypes ? (
+        <fieldset className="space-y-2">
+          <legend className="text-xs font-semibold text-slate-700">
+            Terminart
+          </legend>
+
+          <label className="flex items-start gap-2 rounded-lg border border-slate-200 px-3 py-3 text-sm text-slate-700">
+            <input
+              type="radio"
+              name="type"
+              value="training"
+              checked={sessionType === "training"}
+              onChange={() => setSessionType("training")}
+              className="mt-1"
+            />
+            <div>
+              <div className="font-semibold text-slate-900">Training</div>
+              <div className="text-xs text-slate-500">
+                Voller STRIKR Flow mit Teams, Ergebnis und MVP.
+              </div>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-2 rounded-lg border border-slate-200 px-3 py-3 text-sm text-slate-700">
+            <input
+              type="radio"
+              name="type"
+              value="event"
+              checked={sessionType === "event"}
+              onChange={() => setSessionType("event")}
+              className="mt-1"
+            />
+            <div>
+              <div className="font-semibold text-slate-900">Termin</div>
+              <div className="text-xs text-slate-500">
+                Für Spiel, Turnier oder Orga-Termin ohne Trainings-Stats.
+              </div>
+            </div>
+          </label>
+
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+            {getSessionTypeDescription(sessionType)}
+          </div>
+        </fieldset>
+      ) : (
+        <input type="hidden" name="type" value="training" />
+      )}
+
       <fieldset className="space-y-2">
         <legend className="text-xs font-semibold text-slate-700">
           Modus
@@ -227,10 +295,12 @@ export default function NewSessionForm({
       ) : null}
 
       <label className="block">
-        <div className="mb-1 text-xs font-semibold text-slate-700">Notiz</div>
+        <div className="mb-1 text-xs font-semibold text-slate-700">
+          {notesLabel}
+        </div>
         <input
           name="notes"
-          placeholder="optional, z. B. Flutlicht oder Hallentraining"
+          placeholder={notesPlaceholder}
           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
         />
       </label>
@@ -240,7 +310,7 @@ export default function NewSessionForm({
         disabled={mode === "series" && seasons.length === 0}
         className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
       >
-        Training anlegen
+        {sessionType === "event" ? "Termin anlegen" : "Training anlegen"}
       </button>
     </form>
   );

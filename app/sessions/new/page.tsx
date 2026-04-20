@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import NewSessionForm from "./NewSessionForm";
 
 type NewSessionPageProps = {
@@ -19,6 +20,7 @@ type SeasonRow = {
 };
 
 type CreateMode = "single" | "series";
+type SessionType = "training" | "event";
 
 type NewSessionFormSeason = {
   id: number;
@@ -45,12 +47,26 @@ function parseIsoDate(value: string) {
   return date;
 }
 
-function formatSuccessMessage(count: number) {
+function normalizeSessionType(
+  value: FormDataEntryValue | null,
+  enabled: boolean
+): SessionType {
+  if (!enabled) return "training";
+  return String(value ?? "").trim() === "event" ? "event" : "training";
+}
+
+function getSessionTypeLabel(type: SessionType) {
+  return type === "event" ? "Termin" : "Training";
+}
+
+function formatSuccessMessage(count: number, type: SessionType) {
+  const label = getSessionTypeLabel(type);
+
   if (count <= 1) {
-    return "Training erfolgreich erstellt.";
+    return `${label} erfolgreich erstellt.`;
   }
 
-  return `${count} Trainings erfolgreich erstellt.`;
+  return `${count} ${label}${count === 1 ? "" : "e"} erfolgreich erstellt.`;
 }
 
 function getWeekdayNumber(value: FormDataEntryValue | null) {
@@ -150,7 +166,9 @@ export default async function NewSessionPage({
   const { clubId } = await requireClub();
   const supabase = await createClient();
   const resolvedSearchParams = await searchParams;
+  const featureFlags = await getFeatureFlagsForClub(clubId);
 
+  const sessionTypesEnabled = featureFlags.session_types ?? false;
   const todayIso = getTodayIsoDate();
   const errorMessage = resolvedSearchParams?.error ?? "";
   const successMessage = resolvedSearchParams?.success ?? "";
@@ -176,9 +194,15 @@ export default async function NewSessionPage({
 
     const { clubId: actionClubId } = await requireClub();
     const actionSupabase = await createClient();
+    const actionFlags = await getFeatureFlagsForClub(actionClubId);
 
     const modeRaw = String(formData.get("mode") ?? "single").trim();
     const mode: CreateMode = modeRaw === "series" ? "series" : "single";
+    const sessionTypesActive = actionFlags.session_types ?? false;
+    const sessionType = normalizeSessionType(
+      formData.get("type"),
+      sessionTypesActive
+    );
 
     const date = String(formData.get("date") ?? "").trim();
     const notesRaw = String(formData.get("notes") ?? "").trim();
@@ -213,6 +237,7 @@ export default async function NewSessionPage({
             notes,
             season_id: seasonId,
             club_id: actionClubId,
+            type: sessionType,
           })
           .select("id")
           .single();
@@ -293,7 +318,7 @@ export default async function NewSessionPage({
 
       if (generated.dates.length === 0) {
         redirect(
-          "/sessions/new?error=Im%20gew%C3%A4hlten%20Zeitraum%20wurden%20keine%20passenden%20Trainingstage%20gefunden."
+          "/sessions/new?error=Im%20gew%C3%A4hlten%20Zeitraum%20wurden%20keine%20passenden%20Termine%20gefunden."
         );
       }
 
@@ -301,13 +326,14 @@ export default async function NewSessionPage({
         .from("sessions")
         .select("date")
         .eq("club_id", actionClubId)
+        .eq("type", sessionType)
         .in("date", generated.dates);
 
       if (existingDatesResult.error) {
         redirect(
           `/sessions/new?error=${encodeURIComponent(
             existingDatesResult.error.message ||
-              "Bestehende Trainings konnten nicht geprüft werden."
+              "Bestehende Termine konnten nicht geprüft werden."
           )}`
         );
       }
@@ -324,7 +350,7 @@ export default async function NewSessionPage({
 
       if (datesToCreate.length === 0) {
         redirect(
-          "/sessions/new?error=F%C3%BCr%20alle%20gew%C3%A4hlten%20Tage%20existieren%20bereits%20Trainings."
+          "/sessions/new?error=F%C3%BCr%20alle%20gew%C3%A4hlten%20Tage%20existieren%20bereits%20solche%20Termine."
         );
       }
 
@@ -333,6 +359,7 @@ export default async function NewSessionPage({
         notes,
         season_id: season.id,
         club_id: actionClubId,
+        type: sessionType,
       }));
 
       const { error: insertError } = await actionSupabase
@@ -349,7 +376,7 @@ export default async function NewSessionPage({
 
       redirect(
         `/sessions?success=${encodeURIComponent(
-          formatSuccessMessage(rowsToInsert.length)
+          formatSuccessMessage(rowsToInsert.length, sessionType)
         )}`
       );
     } catch (error) {
@@ -381,10 +408,12 @@ export default async function NewSessionPage({
       </Link>
 
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">Neues Training</h1>
+        <h1 className="text-lg font-semibold text-slate-900">
+          Neuer Termin
+        </h1>
         <p className="text-xs text-slate-500">
-          Einzeltermin oder Serientermin anlegen. Saison wird automatisch über das
-          jeweilige Datum erkannt.
+          Trainings oder Termine anlegen. Ein Termin kann z. B. ein Spiel,
+          Turnier oder Orga-Termin sein.
         </p>
       </div>
 
@@ -403,9 +432,9 @@ export default async function NewSessionPage({
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="text-xs font-semibold text-slate-700">Hinweis</div>
         <div className="mt-1 text-sm text-slate-600">
-          Serientermine erzeugen mehrere ganz normale Trainings. Jede einzelne
-          Session bleibt danach separat bearbeitbar. Bestehende Trainings am selben
-          Datum werden beim Serienlauf automatisch übersprungen.
+          Serientermine erzeugen mehrere ganz normale Einträge. Jede einzelne
+          Session bleibt danach separat bearbeitbar. Bestehende Einträge am selben
+          Datum und selben Typ werden beim Serienlauf automatisch übersprungen.
         </div>
       </div>
 
@@ -413,6 +442,7 @@ export default async function NewSessionPage({
         action={createSessionAction}
         initialDate={todayIso}
         seasons={formSeasons}
+        enableSessionTypes={sessionTypesEnabled}
       />
     </div>
   );

@@ -45,6 +45,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     useFieldView,
     primaryColorKey,
     mvpVotingEnabled,
+
+    allowTeams,
+    allowResult,
+    allowWinnerPhoto,
+    isTrainingSession,
+    isEventSession,
+
     winnerPhotoUrl,
     goalsA,
     goalsB,
@@ -151,9 +158,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           date={session.date}
           notes={session.notes ?? null}
           presentCount={presentPlayers.length}
-          teamACount={teamA.length}
-          teamBCount={teamB.length}
-          hasResult={hasResult}
+          teamACount={allowTeams ? teamA.length : 0}
+          teamBCount={allowTeams ? teamB.length : 0}
+          hasResult={allowResult ? hasResult : false}
           nextStepLabel={nextStepLabel}
           isAdmin={isAdmin}
           deletingSession={deletingSession}
@@ -167,7 +174,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           }
         />
 
-        {!hasResult && (
+        {isTrainingSession && !hasResult ? (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
             Empfohlene Reihenfolge: Anwesenheit festlegen
             {attendanceDirty || attendanceMultiSelectEnabled
@@ -175,7 +182,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               : ""}
             {" "}→ Teams aufteilen → Siegerfoto hochladen → Ergebnis speichern.
           </div>
-        )}
+        ) : null}
+
+        {isEventSession ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+            Termin: Hier sammelst du Zu- und Absagen. Teams, Ergebnis,
+            Siegerfoto und MVP sind für diesen Typ deaktiviert.
+          </div>
+        ) : null}
 
         {err && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
@@ -189,7 +203,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           </div>
         )}
 
-        {hasResult ? (
+        {allowResult && hasResult ? (
           <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -252,104 +266,112 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           />
         </div>
 
-        <div ref={teamsRef}>
-          <SessionTeamsCard
-            teamA={displayTeamA}
-            teamB={displayTeamB}
-            unassigned={displayUnassigned}
-            metaA={metaA}
-            metaB={metaB}
-            hasResult={hasResult}
-            saving={saving || savingTeams}
-            teamsComplete={teamsComplete}
-            canShareLineup={canShareLineup}
-            sharingLineup={sharingLineup}
-            collapsed={teamsCollapsed}
-            attendanceDirty={attendanceDirty}
-            enableFieldView={useFieldView}
-            onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
-            onGenerateTeams={generateTeams}
-            onShareLineup={handleShareLineup}
-            onSetSide={setSide}
-          />
-        </div>
+        {allowTeams ? (
+          <div ref={teamsRef}>
+            <SessionTeamsCard
+              teamA={displayTeamA}
+              teamB={displayTeamB}
+              unassigned={displayUnassigned}
+              metaA={metaA}
+              metaB={metaB}
+              hasResult={hasResult}
+              saving={saving || savingTeams}
+              teamsComplete={teamsComplete}
+              canShareLineup={canShareLineup}
+              sharingLineup={sharingLineup}
+              collapsed={teamsCollapsed}
+              attendanceDirty={attendanceDirty}
+              enableFieldView={useFieldView}
+              onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
+              onGenerateTeams={generateTeams}
+              onShareLineup={handleShareLineup}
+              onSetSide={setSide}
+            />
+          </div>
+        ) : null}
 
-        <SessionResultCard
-          hasResult={hasResult}
-          saving={saving}
-          photoBusy={photoBusy}
-          goalsA={goalsA}
-          goalsB={goalsB}
-          canShareResult={false}
-          canUploadWinnerPhoto={canUploadWinnerPhoto}
-          winnerPhotoUrl={winnerPhotoUrl}
-          hasWinnerPhoto={Boolean(session.winner_photo_path)}
-          sharingResult={false}
-          sharingInternal={false}
-          winnerPhotoInputRef={winnerPhotoInputRef}
-          onGoalsAChange={() => {}}
-          onGoalsBChange={() => {}}
-          onDeleteResult={() => {}}
-          onWinnerPhotoUpload={handleWinnerPhotoUpload}
-          onWinnerPhotoDelete={handleWinnerPhotoDelete}
-          onSaveResult={() => {}}
-          onShareResult={() => {}}
-          onShareInternal={() => {}}
-          title="Siegerfoto"
-          description="Foto ansehen, hochladen, ersetzen oder löschen. Tipp für die Share Card: möglichst ein Hochformat-Foto verwenden."
-          showResultSection={false}
-          showPhotoSection={true}
-          showShareSection={false}
-          collapsedByDefault={hasResult}
-        />
-
-        <div ref={resultRef}>
+        {allowWinnerPhoto ? (
           <SessionResultCard
             hasResult={hasResult}
             saving={saving}
             photoBusy={photoBusy}
             goalsA={goalsA}
             goalsB={goalsB}
-            canShareResult={canShareResult}
-            canUploadWinnerPhoto={false}
+            canShareResult={false}
+            canUploadWinnerPhoto={canUploadWinnerPhoto}
             winnerPhotoUrl={winnerPhotoUrl}
             hasWinnerPhoto={Boolean(session.winner_photo_path)}
-            sharingResult={sharingResult}
-            sharingInternal={sharingInternal}
+            sharingResult={false}
+            sharingInternal={false}
             winnerPhotoInputRef={winnerPhotoInputRef}
-            onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
-            onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
-            onDeleteResult={deleteResult}
+            onGoalsAChange={() => {}}
+            onGoalsBChange={() => {}}
+            onDeleteResult={() => {}}
             onWinnerPhotoUpload={handleWinnerPhotoUpload}
             onWinnerPhotoDelete={handleWinnerPhotoDelete}
-            onSaveResult={saveResult}
-            onShareResult={handleShareResult}
-            onShareInternal={handleShareInternalResult}
-            title="Ergebnis"
-            description="Ergebnis speichern, ändern oder löschen."
-            showResultSection={true}
-            showPhotoSection={false}
+            onSaveResult={() => {}}
+            onShareResult={() => {}}
+            onShareInternal={() => {}}
+            title="Siegerfoto"
+            description="Foto ansehen, hochladen, ersetzen oder löschen. Tipp für die Share Card: möglichst ein Hochformat-Foto verwenden."
+            showResultSection={false}
+            showPhotoSection={true}
             showShareSection={false}
             collapsedByDefault={hasResult}
           />
-        </div>
+        ) : null}
+
+        {allowResult ? (
+          <div ref={resultRef}>
+            <SessionResultCard
+              hasResult={hasResult}
+              saving={saving}
+              photoBusy={photoBusy}
+              goalsA={goalsA}
+              goalsB={goalsB}
+              canShareResult={canShareResult}
+              canUploadWinnerPhoto={false}
+              winnerPhotoUrl={winnerPhotoUrl}
+              hasWinnerPhoto={Boolean(session.winner_photo_path)}
+              sharingResult={sharingResult}
+              sharingInternal={sharingInternal}
+              winnerPhotoInputRef={winnerPhotoInputRef}
+              onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
+              onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
+              onDeleteResult={deleteResult}
+              onWinnerPhotoUpload={handleWinnerPhotoUpload}
+              onWinnerPhotoDelete={handleWinnerPhotoDelete}
+              onSaveResult={saveResult}
+              onShareResult={handleShareResult}
+              onShareInternal={handleShareInternalResult}
+              title="Ergebnis"
+              description="Ergebnis speichern, ändern oder löschen."
+              showResultSection={true}
+              showPhotoSection={false}
+              showShareSection={false}
+              collapsedByDefault={hasResult}
+            />
+          </div>
+        ) : null}
       </div>
 
-      <SessionEndModal
-        open={showSessionEndModal}
-        onClose={() => setShowSessionEndModal(false)}
-        scoreA={scoreAValue}
-        scoreB={scoreBValue}
-        wasUnderdog={false}
-        onShareInternal={handleShareInternalResult}
-        onShareSocial={handleShareResult}
-        sharingInternal={sharingInternal}
-        sharingSocial={sharingResult}
-        resultShareReady={resultShareReady}
-        preparingResultShare={preparingResultShare}
-        resultShareMessage={resultShareMessage}
-        mvpVotingEnabled={mvpVotingEnabled}
-      />
+      {allowResult ? (
+        <SessionEndModal
+          open={showSessionEndModal}
+          onClose={() => setShowSessionEndModal(false)}
+          scoreA={scoreAValue}
+          scoreB={scoreBValue}
+          wasUnderdog={false}
+          onShareInternal={handleShareInternalResult}
+          onShareSocial={handleShareResult}
+          sharingInternal={sharingInternal}
+          sharingSocial={sharingResult}
+          resultShareReady={resultShareReady}
+          preparingResultShare={preparingResultShare}
+          resultShareMessage={resultShareMessage}
+          mvpVotingEnabled={mvpVotingEnabled}
+        />
+      ) : null}
     </>
   );
 }

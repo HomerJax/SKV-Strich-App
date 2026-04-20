@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Player, SessionRow, TeamMap, TeamSide } from "./session-types";
+import type { Player, SessionRow, TeamMap, TeamSide, SessionType } from "./session-types";
 import {
   buildLineupShareText,
   getErrorMessage,
@@ -225,6 +225,15 @@ export function useSessionDetail({
   const directAttendanceSaveEnabled =
     homeSessionRsvpEnabled && !attendanceMultiSelectEnabled;
 
+  const sessionType: SessionType = (session?.type ?? "training") as SessionType;
+  const isTrainingSession = sessionType === "training";
+  const isEventSession = sessionType === "event";
+
+  const allowTeams = isTrainingSession;
+  const allowResult = isTrainingSession;
+  const allowWinnerPhoto = isTrainingSession;
+  const allowMvp = isTrainingSession && mvpVotingEnabled;
+
   async function postForm(formData: FormData): Promise<ApiSuccess> {
     const response = await fetch(`/api/sessions/${sessionId}`, {
       method: "POST",
@@ -356,18 +365,19 @@ export function useSessionDetail({
     [unassigned, useNicknames]
   );
 
-  const canShareLineup = teamA.length > 0 && teamB.length > 0;
+  const canShareLineup = allowTeams && teamA.length > 0 && teamB.length > 0;
   const canShareResult =
+    allowResult &&
     teamA.length > 0 &&
     teamB.length > 0 &&
     goalsA.trim() !== "" &&
     goalsB.trim() !== "";
 
   const teamsComplete =
-    teamA.length > 0 && teamB.length > 0 && unassigned.length === 0;
+    !allowTeams || (teamA.length > 0 && teamB.length > 0 && unassigned.length === 0);
 
   const canUploadWinnerPhoto =
-    teamsComplete && !photoBusy && !saving && !deletingSession;
+    allowWinnerPhoto && teamsComplete && !photoBusy && !saving && !deletingSession;
 
   const scoreAValue = Number(goalsA) || 0;
   const scoreBValue = Number(goalsB) || 0;
@@ -389,19 +399,25 @@ export function useSessionDetail({
     ? presentIds.length > 0
     : presentIds.length > 0 && !attendanceDirty && attendanceCollapsed;
 
-  const teamsDone = teamsComplete && teamsCollapsed;
-  const resultDone = hasResult;
-  const showMvpSection = mvpVotingEnabled && hasResult;
+  const teamsDone = allowTeams ? teamsComplete && teamsCollapsed : true;
+  const resultDone = allowResult ? hasResult : true;
+  const showMvpSection = allowMvp && hasResult;
 
-  const nextStepLabel = hasResult
-    ? "Ergebnis ist gespeichert"
-    : attendanceDirty
+  const nextStepLabel = !isTrainingSession
+    ? attendanceDirty
       ? "Anwesenheit speichern"
-      : presentPlayers.length < 2
-        ? "Mehr Spieler auf anwesend setzen"
-        : !teamsComplete
-          ? "Teams fertig zuweisen"
-          : "Ergebnis eintragen und speichern";
+      : presentPlayers.length === 0
+        ? "Teilnehmer festlegen"
+        : "Termin ist organisatorisch bereit"
+    : hasResult
+      ? "Ergebnis ist gespeichert"
+      : attendanceDirty
+        ? "Anwesenheit speichern"
+        : presentPlayers.length < 2
+          ? "Mehr Spieler auf anwesend setzen"
+          : !teamsComplete
+            ? "Teams fertig zuweisen"
+            : "Ergebnis eintragen und speichern";
 
   const resultShareImageUrl = useMemo(() => {
     if (typeof window === "undefined") {
@@ -499,7 +515,7 @@ export function useSessionDetail({
   }
 
   async function persistTeamsNow(nextTeams: TeamMap) {
-    if (hasResult || deletingSession || deletingGuestPlayerId) {
+    if (!allowTeams || hasResult || deletingSession || deletingGuestPlayerId) {
       return;
     }
 
@@ -852,7 +868,9 @@ ${sessionUrl}`;
       setDraftPresentIds(nextPresentIds);
       setManualTeams(nextManualTeams);
 
-      await persistTeamsNow(nextManualTeams);
+      if (allowTeams) {
+        await persistTeamsNow(nextManualTeams);
+      }
 
       setMsg(isCurrentlyPresent ? "Anwesenheit entfernt." : "Anwesenheit gespeichert.");
     } catch (e: unknown) {
@@ -914,7 +932,9 @@ ${sessionUrl}`;
       setPresentIds(draftPresentIds);
       setManualTeams(nextManualTeams);
 
-      await persistTeamsNow(nextManualTeams);
+      if (allowTeams) {
+        await persistTeamsNow(nextManualTeams);
+      }
 
       setAttendanceCollapsed(true);
       setMsg("Anwesenheit gespeichert.");
@@ -992,6 +1012,11 @@ ${sessionUrl}`;
   }
 
   async function generateTeams() {
+    if (!allowTeams) {
+      setErr("Für diesen Termin gibt es keine Teamaufteilung.");
+      return;
+    }
+
     if (hasResult) {
       setErr(
         "Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern."
@@ -1139,6 +1164,11 @@ ${sessionUrl}`;
   }
 
   function setSide(playerId: number, side: TeamSide | null) {
+    if (!allowTeams) {
+      setErr("Für diesen Termin gibt es keine Teamaufteilung.");
+      return;
+    }
+
     if (hasResult) {
       setErr(
         "Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern."
@@ -1161,6 +1191,11 @@ ${sessionUrl}`;
   }
 
   async function saveResult() {
+    if (!allowResult) {
+      setErr("Für diesen Termin gibt es kein Ergebnis.");
+      return;
+    }
+
     if (saving || deletingSession || deletingGuestPlayerId) return;
 
     const cleanA = normalizeGoalValue(goalsA);
@@ -1226,6 +1261,11 @@ ${sessionUrl}`;
   }
 
   async function deleteResult() {
+    if (!allowResult) {
+      setErr("Für diesen Termin gibt es kein Ergebnis.");
+      return;
+    }
+
     if (saving || deletingSession || deletingGuestPlayerId) return;
 
     const okConfirm = window.confirm(
@@ -1269,6 +1309,11 @@ ${sessionUrl}`;
     event.target.value = "";
 
     if (!file) return;
+
+    if (!allowWinnerPhoto) {
+      setErr("Für diesen Termin gibt es kein Siegerfoto.");
+      return;
+    }
 
     if (!session) {
       setErr("Training konnte nicht geladen werden.");
@@ -1326,6 +1371,11 @@ ${sessionUrl}`;
   }
 
   async function handleWinnerPhotoDelete() {
+    if (!allowWinnerPhoto) {
+      setErr("Für diesen Termin gibt es kein Siegerfoto.");
+      return;
+    }
+
     if (!session?.winner_photo_path) {
       setErr("Kein Siegerfoto vorhanden.");
       return;
@@ -1393,6 +1443,14 @@ ${sessionUrl}`;
     homeSessionRsvpEnabled,
     attendanceMultiSelectEnabled,
     directAttendanceSaveEnabled,
+
+    sessionType,
+    isTrainingSession,
+    isEventSession,
+    allowTeams,
+    allowResult,
+    allowWinnerPhoto,
+    allowMvp,
 
     winnerPhotoUrl,
     goalsA,

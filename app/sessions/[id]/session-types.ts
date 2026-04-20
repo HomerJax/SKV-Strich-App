@@ -1,3 +1,5 @@
+export type SessionType = "training" | "event";
+
 export type Player = {
   id: number;
   name: string;
@@ -16,6 +18,7 @@ export type SessionRow = {
   id: number;
   date: string;
   notes: string | null;
+  type?: SessionType | null;
   winner_photo_path?: string | null;
 };
 
