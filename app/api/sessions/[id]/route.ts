@@ -8,6 +8,7 @@ import { handleAddGuestPlayer } from "@/lib/session-detail/actions/add-guest-pla
 import { handleSaveResult } from "@/lib/session-detail/actions/save-result";
 import { handleDeleteResult } from "@/lib/session-detail/actions/delete-result";
 import { handleDeleteWinnerPhoto } from "@/lib/session-detail/actions/delete-winner-photo";
+import { persistSessionTeams } from "@/lib/session-detail/actions/persist-teams";
 import { canManageClub } from "@/lib/auth/access";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
@@ -329,6 +330,31 @@ export async function POST(
         message: "Gastspieler wurde entfernt.",
         deletedGuestPlayerId: requestedPlayerId,
       });
+    }
+
+    if (intent === "save_teams") {
+      const manualTeamsRaw = String(formData.get("manual_teams") ?? "{}");
+
+      try {
+        await persistSessionTeams({
+          supabase,
+          sessionId,
+          clubId,
+          manualTeamsRaw,
+          requireComplete: false,
+        });
+
+        return ok({
+          message: "Teams gespeichert.",
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : "Teams konnten nicht gespeichert werden.";
+
+        return fail(message, 500);
+      }
     }
 
     if (intent === "save_result") {

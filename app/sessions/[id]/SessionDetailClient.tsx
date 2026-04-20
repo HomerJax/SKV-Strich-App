@@ -71,6 +71,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     setTeamsCollapsed,
 
     saving,
+    savingTeams,
     savingPresence,
     photoBusy,
     sharingLineup,
@@ -259,7 +260,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             metaA={metaA}
             metaB={metaB}
             hasResult={hasResult}
-            saving={saving}
+            saving={saving || savingTeams}
             teamsComplete={teamsComplete}
             canShareLineup={canShareLineup}
             sharingLineup={sharingLineup}

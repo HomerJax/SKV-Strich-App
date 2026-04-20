@@ -37,6 +37,11 @@ type ResultRow = {
   goals_team_b: number | null;
 };
 
+type TeamRow = {
+  id: number;
+  name: string;
+};
+
 type TeamPlayerRow = {
   team_id: number;
   player_id: number;
@@ -191,6 +196,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     { data: playersData, error: playersError },
     { data: sessionPlayersData, error: sessionPlayersError },
     { data: resultData, error: resultError },
+    { data: teamsData, error: teamsError },
   ] = await Promise.all([
     supabase
       .from("clubs")
@@ -226,6 +232,11 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
       .eq("session_id", sessionId)
       .maybeSingle(),
+    supabase
+      .from("teams")
+      .select("id, name")
+      .eq("session_id", sessionId)
+      .eq("club_id", clubId),
   ]);
 
   if (clubError) {
@@ -260,6 +271,10 @@ export default async function SessionDetailPage({ params }: PageProps) {
     );
   }
 
+  if (teamsError) {
+    throw new Error(`Teams konnten nicht geladen werden: ${teamsError.message}`);
+  }
+
   const session = sessionData as SessionRow;
   const clubSettings: ClubSettings = {
     ...(settingsData as ClubSettings),
@@ -274,6 +289,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   );
 
   const result = (resultData ?? null) as ResultRow | null;
+  const teams = (teamsData ?? []) as TeamRow[];
 
   const manualTeams: Record<number, "A" | "B" | null> = {};
   presentIds.forEach((playerId) => {
@@ -284,31 +300,48 @@ export default async function SessionDetailPage({ params }: PageProps) {
   let goalsB = "";
   let hasResult = false;
 
-  if (result && (result.team_a_id || result.team_b_id)) {
-    const teamIds = [result.team_a_id, result.team_b_id].filter(Boolean) as number[];
+  const savedTeamAId =
+    result?.team_a_id ??
+    teams.find((team) => team.name === "Team 1")?.id ??
+    null;
 
-    if (teamIds.length > 0) {
-      const { data: teamPlayersData, error: teamPlayersError } = await supabase
-        .from("team_players")
-        .select("team_id, player_id")
-        .in("team_id", teamIds);
+  const savedTeamBId =
+    result?.team_b_id ??
+    teams.find((team) => team.name === "Team 2")?.id ??
+    null;
 
-      if (teamPlayersError) {
-        throw new Error(
-          `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`
-        );
-      }
+  const teamIds = [savedTeamAId, savedTeamBId].filter(
+    (teamId): teamId is number => Number.isFinite(teamId)
+  );
 
-      for (const teamPlayer of (teamPlayersData ?? []) as TeamPlayerRow[]) {
-        if (teamPlayer.team_id === result.team_a_id) {
-          manualTeams[teamPlayer.player_id] = "A";
-        }
-        if (teamPlayer.team_id === result.team_b_id) {
-          manualTeams[teamPlayer.player_id] = "B";
-        }
-      }
+  if (teamIds.length > 0) {
+    const { data: teamPlayersData, error: teamPlayersError } = await supabase
+      .from("team_players")
+      .select("team_id, player_id")
+      .in("team_id", teamIds);
+
+    if (teamPlayersError) {
+      throw new Error(
+        `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`
+      );
     }
 
+    for (const teamPlayer of (teamPlayersData ?? []) as TeamPlayerRow[]) {
+      if (!(teamPlayer.player_id in manualTeams)) {
+        continue;
+      }
+
+      if (teamPlayer.team_id === savedTeamAId) {
+        manualTeams[teamPlayer.player_id] = "A";
+      }
+
+      if (teamPlayer.team_id === savedTeamBId) {
+        manualTeams[teamPlayer.player_id] = "B";
+      }
+    }
+  }
+
+  if (result) {
     if (result.goals_team_a != null) goalsA = String(result.goals_team_a);
     if (result.goals_team_b != null) goalsB = String(result.goals_team_b);
     hasResult = true;

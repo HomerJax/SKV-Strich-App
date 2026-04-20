@@ -62,6 +62,10 @@ type ApiSuccess =
       ok: true;
       message: string;
       deleted: true;
+    }
+  | {
+      ok: true;
+      message: string;
     };
 
 type ApiError = {
@@ -146,6 +150,8 @@ export function useSessionDetail({
   const teamsRef = useRef<HTMLDivElement | null>(null);
   const attendanceRef = useRef<HTMLDivElement | null>(null);
   const winnerPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const teamSaveTimerRef = useRef<number | null>(null);
+  const teamSaveRequestIdRef = useRef(0);
 
   const [session, setSession] = useState<SessionRow | null>(initialSession);
   const [players, setPlayers] = useState<Player[]>(
@@ -200,6 +206,7 @@ export function useSessionDetail({
   const [teamsCollapsed, setTeamsCollapsed] = useState(initialHasResult);
 
   const [saving, setSaving] = useState(false);
+  const [savingTeams, setSavingTeams] = useState(false);
   const [savingPresence, setSavingPresence] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [sharingLineup, setSharingLineup] = useState(false);
@@ -283,6 +290,14 @@ export function useSessionDetail({
       setTeamsCollapsed(true);
     }
   }, [initialHasResult]);
+
+  useEffect(() => {
+    return () => {
+      if (teamSaveTimerRef.current) {
+        window.clearTimeout(teamSaveTimerRef.current);
+      }
+    };
+  }, []);
 
   const attendanceDirty = useMemo(() => {
     if (directAttendanceSaveEnabled) {
@@ -375,9 +390,7 @@ export function useSessionDetail({
     : presentIds.length > 0 && !attendanceDirty && attendanceCollapsed;
 
   const teamsDone = teamsComplete && teamsCollapsed;
-
   const resultDone = hasResult;
-
   const showMvpSection = mvpVotingEnabled && hasResult;
 
   const nextStepLabel = hasResult
@@ -483,6 +496,40 @@ export function useSessionDetail({
     setMsg(null);
 
     setAttendanceMultiSelectEnabled((prev) => !prev);
+  }
+
+  async function persistTeamsNow(nextTeams: TeamMap) {
+    if (hasResult || deletingSession || deletingGuestPlayerId) {
+      return;
+    }
+
+    const requestId = ++teamSaveRequestIdRef.current;
+
+    try {
+      setSavingTeams(true);
+
+      const formData = new FormData();
+      formData.set("intent", "save_teams");
+      formData.set("manual_teams", JSON.stringify(nextTeams));
+
+      await postForm(formData);
+    } catch (error: unknown) {
+      setErr(getErrorMessage(error, "Teams konnten nicht gespeichert werden."));
+    } finally {
+      if (requestId === teamSaveRequestIdRef.current) {
+        setSavingTeams(false);
+      }
+    }
+  }
+
+  function scheduleTeamsSave(nextTeams: TeamMap) {
+    if (teamSaveTimerRef.current) {
+      window.clearTimeout(teamSaveTimerRef.current);
+    }
+
+    teamSaveTimerRef.current = window.setTimeout(() => {
+      void persistTeamsNow({ ...nextTeams });
+    }, 350);
   }
 
   async function handleShareLineup() {
@@ -793,20 +840,19 @@ ${sessionUrl}`;
         ? presentIds.filter((playerId) => playerId !== id)
         : [...presentIds, id];
 
+      const nextManualTeams = { ...manualTeams };
+
+      if (isCurrentlyPresent) {
+        delete nextManualTeams[id];
+      } else {
+        nextManualTeams[id] = nextManualTeams[id] ?? null;
+      }
+
       setPresentIds(nextPresentIds);
       setDraftPresentIds(nextPresentIds);
+      setManualTeams(nextManualTeams);
 
-      setManualTeams((prev) => {
-        const next = { ...prev };
-
-        if (isCurrentlyPresent) {
-          delete next[id];
-        } else {
-          next[id] = next[id] ?? null;
-        }
-
-        return next;
-      });
+      await persistTeamsNow(nextManualTeams);
 
       setMsg(isCurrentlyPresent ? "Anwesenheit entfernt." : "Anwesenheit gespeichert.");
     } catch (e: unknown) {
@@ -852,24 +898,23 @@ ${sessionUrl}`;
         await postForm(formData);
       }
 
-      setPresentIds(draftPresentIds);
+      const nextManualTeams = { ...manualTeams };
 
-      setManualTeams((prev) => {
-        const next = { ...prev };
-
-        Object.keys(next).forEach((key) => {
-          const numericId = Number(key);
-          if (!draftPresentIds.includes(numericId)) {
-            delete next[numericId];
-          }
-        });
-
-        draftPresentIds.forEach((id) => {
-          next[id] = next[id] ?? null;
-        });
-
-        return next;
+      Object.keys(nextManualTeams).forEach((key) => {
+        const numericId = Number(key);
+        if (!draftPresentIds.includes(numericId)) {
+          delete nextManualTeams[numericId];
+        }
       });
+
+      draftPresentIds.forEach((id) => {
+        nextManualTeams[id] = nextManualTeams[id] ?? null;
+      });
+
+      setPresentIds(draftPresentIds);
+      setManualTeams(nextManualTeams);
+
+      await persistTeamsNow(nextManualTeams);
 
       setAttendanceCollapsed(true);
       setMsg("Anwesenheit gespeichert.");
@@ -946,7 +991,7 @@ ${sessionUrl}`;
     }
   }
 
-  function generateTeams() {
+  async function generateTeams() {
     if (hasResult) {
       setErr(
         "Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern."
@@ -1066,6 +1111,7 @@ ${sessionUrl}`;
     for (const player of bestB) next[player.id] = "B";
 
     setManualTeams(next);
+    await persistTeamsNow(next);
 
     const useStrength = clubSettings?.use_strength ?? true;
     const useCategories = clubSettings?.use_categories ?? true;
@@ -1106,7 +1152,12 @@ ${sessionUrl}`;
     }
 
     setErr(null);
-    setManualTeams((prev) => ({ ...prev, [playerId]: side }));
+
+    setManualTeams((prev) => {
+      const next = { ...prev, [playerId]: side };
+      scheduleTeamsSave(next);
+      return next;
+    });
   }
 
   async function saveResult() {
@@ -1369,6 +1420,7 @@ ${sessionUrl}`;
     setTeamsCollapsed,
 
     saving,
+    savingTeams,
     savingPresence,
     photoBusy,
     sharingLineup,
