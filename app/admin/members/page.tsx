@@ -34,6 +34,16 @@ function getRoleChipClass(role: string | null | undefined) {
 }
 
 async function getRequestOrigin() {
+  const envUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    "";
+
+  if (envUrl) {
+    return envUrl.replace(/\/$/, "");
+  }
+
   const headerStore = await headers();
 
   const forwardedProto = headerStore.get("x-forwarded-proto");
@@ -44,13 +54,7 @@ async function getRequestOrigin() {
     return `${forwardedProto || "https"}://${host}`;
   }
 
-  const envUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.SITE_URL ||
-    "";
-
-  return envUrl.replace(/\/$/, "");
+  return "http://localhost:3000";
 }
 
 function buildAbsoluteInviteUrl(origin: string, token: string) {
