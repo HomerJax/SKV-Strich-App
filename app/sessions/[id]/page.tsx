@@ -212,7 +212,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .single(),
     supabase
       .from("sessions")
-      .select("id, date, notes, winner_photo_path, club_id")
+      .select("id, date, notes, type, winner_photo_path, club_id")
       .eq("id", sessionId)
       .eq("club_id", clubId)
       .single(),
