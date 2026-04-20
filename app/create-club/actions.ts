@@ -167,21 +167,23 @@ export async function createClubAction(
     const seed = pickProfileSeed(existingProfiles, user.email ?? null);
     const displayName = buildDisplayName(seed, user.email ?? null);
 
-    const { error: playerInsertError } = await adminSupabase.from("players").insert({
-      user_id: user.id,
-      club_id: club.id,
-      name: displayName,
-      first_name: seed.first_name?.trim() || null,
-      last_name: seed.last_name?.trim() || null,
-      nickname: seed.nickname?.trim() || null,
-      email: seed.email?.trim() || user.email || null,
-      preferred_position: seed.preferred_position ?? null,
-      category_key: null,
-      strength: seed.strength ?? null,
-      is_guest: false,
-      is_active: seed.is_active ?? true,
-      age_group: seed.age_group ?? null,
-    });
+    const { error: playerInsertError } = await adminSupabase
+      .from("players")
+      .insert({
+        user_id: user.id,
+        club_id: club.id,
+        name: displayName,
+        first_name: seed.first_name?.trim() || null,
+        last_name: seed.last_name?.trim() || null,
+        nickname: seed.nickname?.trim() || null,
+        email: seed.email?.trim() || user.email || null,
+        preferred_position: seed.preferred_position ?? null,
+        category_key: null,
+        strength: seed.strength ?? null,
+        is_guest: false,
+        is_active: seed.is_active ?? true,
+        age_group: seed.age_group ?? null,
+      });
 
     if (playerInsertError) {
       return { error: "player-create-failed" };
@@ -189,6 +191,7 @@ export async function createClubAction(
   }
 
   const cookieStore = await cookies();
+
   cookieStore.set("active_club_id", club.id, {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
@@ -197,5 +200,5 @@ export async function createClubAction(
     secure: process.env.NODE_ENV === "production",
   });
 
-  redirect("/club/setup?created=1");
+  redirect("/club-setup?created=1");
 }
