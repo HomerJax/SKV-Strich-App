@@ -88,16 +88,26 @@ function buildRedirectUrl(requestUrl: string, redirectTo: string) {
 function withMessage(
   requestUrl: string,
   redirectTo: string,
-  params: { message?: string; error?: string }
+  params: { message?: string; error?: string; season_message?: string; season_error?: string }
 ) {
   const url = buildRedirectUrl(requestUrl, redirectTo);
 
   if (params.message) {
     url.searchParams.set("message", params.message);
+    url.searchParams.set("season_message", params.message);
   }
 
   if (params.error) {
     url.searchParams.set("error", params.error);
+    url.searchParams.set("season_error", params.error);
+  }
+
+  if (params.season_message) {
+    url.searchParams.set("season_message", params.season_message);
+  }
+
+  if (params.season_error) {
+    url.searchParams.set("season_error", params.season_error);
   }
 
   return NextResponse.redirect(url, { status: 303 });
@@ -126,6 +136,7 @@ function buildCreateSuccessMessage(
 function revalidateSeasonRelatedPages() {
   revalidatePath("/admin/seasons");
   revalidatePath("/admin/settings");
+  revalidatePath("/club-setup");
   revalidatePath("/sessions");
   revalidatePath("/sessions/archive");
 }

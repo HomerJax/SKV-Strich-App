@@ -24,20 +24,39 @@ async function getAdminContext() {
   return { supabase, clubId, membership, memberships, isPowerUser };
 }
 
+function buildRedirectUrlWithParams(
+  redirectTo: string | null | undefined,
+  params: Record<string, string>
+) {
+  const target = redirectTo?.trim() || "/admin/settings";
+  const separator = target.includes("?") ? "&" : "?";
+  const query = new URLSearchParams(params).toString();
+  return `${target}${separator}${query}`;
+}
+
 export async function addCategoryAction(formData: FormData) {
   const { supabase, clubId } = await getAdminContext();
+  const redirectTo = String(formData.get("redirect_to") ?? "/admin/settings").trim();
 
   const label = String(formData.get("label") ?? "").trim();
   const keyInput = String(formData.get("key") ?? "").trim();
 
   if (!label) {
-    redirect("/admin/settings?category_error=Bitte%20Bezeichnung%20eingeben");
+    redirect(
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error: "Bitte Bezeichnung eingeben",
+      })
+    );
   }
 
   const key = slugifyKey(keyInput || label);
 
   if (!key) {
-    redirect("/admin/settings?category_error=Ung%C3%BCltiger%20Schl%C3%BCssel");
+    redirect(
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error: "Ungültiger Schlüssel",
+      })
+    );
   }
 
   const { data: maxRow } = await supabase
@@ -60,19 +79,27 @@ export async function addCategoryAction(formData: FormData) {
 
   if (error) {
     redirect(
-      `/admin/settings?category_error=${encodeURIComponent(error.message)}`
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error: error.message,
+      })
     );
   }
 
   revalidatePath("/admin/settings");
   revalidatePath("/admin/categories");
+  revalidatePath("/club-setup");
   revalidatePath("/onboarding");
 
-  redirect("/admin/settings?category_saved=1");
+  redirect(
+    buildRedirectUrlWithParams(redirectTo, {
+      category_saved: "1",
+    })
+  );
 }
 
 export async function updateCategoryAction(formData: FormData) {
   const { supabase, clubId } = await getAdminContext();
+  const redirectTo = String(formData.get("redirect_to") ?? "/admin/settings").trim();
 
   const id = Number(String(formData.get("id") ?? ""));
   const label = String(formData.get("label") ?? "").trim();
@@ -81,13 +108,21 @@ export async function updateCategoryAction(formData: FormData) {
   const isActive = formData.get("is_active") === "on";
 
   if (!id || !label) {
-    redirect("/admin/settings?category_error=Ung%C3%BCltige%20Kategorie");
+    redirect(
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error: "Ungültige Kategorie",
+      })
+    );
   }
 
   const key = slugifyKey(keyInput || label);
 
   if (!key) {
-    redirect("/admin/settings?category_error=Ung%C3%BCltiger%20Schl%C3%BCssel");
+    redirect(
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error: "Ungültiger Schlüssel",
+      })
+    );
   }
 
   const safeSortOrder = Number.isFinite(sortOrder) ? sortOrder : 0;
@@ -105,13 +140,20 @@ export async function updateCategoryAction(formData: FormData) {
 
   if (error) {
     redirect(
-      `/admin/settings?category_error=${encodeURIComponent(error.message)}`
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error: error.message,
+      })
     );
   }
 
   revalidatePath("/admin/settings");
   revalidatePath("/admin/categories");
+  revalidatePath("/club-setup");
   revalidatePath("/onboarding");
 
-  redirect("/admin/settings?category_saved=1");
+  redirect(
+    buildRedirectUrlWithParams(redirectTo, {
+      category_saved: "1",
+    })
+  );
 }

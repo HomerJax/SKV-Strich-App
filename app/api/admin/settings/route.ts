@@ -24,9 +24,10 @@ type ClubSettingsRow = {
 
 function redirectWithParams(
   request: Request,
+  redirectTo: string,
   params: Record<string, string>
 ) {
-  const url = new URL("/admin/settings", request.url);
+  const url = new URL(redirectTo || "/admin/settings", request.url);
 
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.set(key, value);
@@ -89,6 +90,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const formData = await request.formData();
+  const redirectTo = String(formData.get("redirect_to") ?? "/admin/settings").trim();
+
   if (!user) {
     return NextResponse.redirect(new URL("/login?next=/admin/settings", request.url), {
       status: 303,
@@ -111,7 +115,7 @@ export async function POST(request: Request) {
   ]);
 
   if (membershipsError || roleError) {
-    return redirectWithParams(request, { error: "unauthorized" });
+    return redirectWithParams(request, redirectTo, { error: "unauthorized" });
   }
 
   const memberships = (membershipsData ?? []) as MembershipRow[];
@@ -165,11 +169,9 @@ export async function POST(request: Request) {
       memberships.find((m) => m.club_id === activeClubId) ?? null;
 
     if (!membership || membership.role !== "admin") {
-      return redirectWithParams(request, { error: "unauthorized" });
+      return redirectWithParams(request, redirectTo, { error: "unauthorized" });
     }
   }
-
-  const formData = await request.formData();
 
   const submitsTeamGeneratorSettings =
     hasField(formData, "use_strength") || hasField(formData, "use_categories");
@@ -182,7 +184,7 @@ export async function POST(request: Request) {
     hasField(formData, "season_year_mode");
 
   if (!submitsTeamGeneratorSettings && !submitsSeasonSettings) {
-    return redirectWithParams(request, { error: "nothing_to_save" });
+    return redirectWithParams(request, redirectTo, { error: "nothing_to_save" });
   }
 
   const { data: existingSettings, error: existingSettingsError } = await supabase
@@ -194,7 +196,7 @@ export async function POST(request: Request) {
     .maybeSingle<ClubSettingsRow>();
 
   if (existingSettingsError) {
-    return redirectWithParams(request, { error: "save_failed" });
+    return redirectWithParams(request, redirectTo, { error: "save_failed" });
   }
 
   const currentSettings: ClubSettingsRow = existingSettings ?? {
@@ -243,23 +245,23 @@ export async function POST(request: Request) {
     : (currentSettings.season_year_mode ?? "start_year");
 
   if (!isValidDay(seasonStartDay)) {
-    return redirectWithParams(request, { error: "invalid_season_start_day" });
+    return redirectWithParams(request, redirectTo, { error: "invalid_season_start_day" });
   }
 
   if (!isValidMonth(seasonStartMonth)) {
-    return redirectWithParams(request, { error: "invalid_season_start_month" });
+    return redirectWithParams(request, redirectTo, { error: "invalid_season_start_month" });
   }
 
   if (!isValidDay(seasonEndDay)) {
-    return redirectWithParams(request, { error: "invalid_season_end_day" });
+    return redirectWithParams(request, redirectTo, { error: "invalid_season_end_day" });
   }
 
   if (!isValidMonth(seasonEndMonth)) {
-    return redirectWithParams(request, { error: "invalid_season_end_month" });
+    return redirectWithParams(request, redirectTo, { error: "invalid_season_end_month" });
   }
 
   if (!isValidYearMode(seasonYearMode)) {
-    return redirectWithParams(request, { error: "invalid_season_year_mode" });
+    return redirectWithParams(request, redirectTo, { error: "invalid_season_year_mode" });
   }
 
   const { error: upsertError } = await supabase.from("club_settings").upsert(
@@ -279,8 +281,8 @@ export async function POST(request: Request) {
   );
 
   if (upsertError) {
-    return redirectWithParams(request, { error: "save_failed" });
+    return redirectWithParams(request, redirectTo, { error: "save_failed" });
   }
 
-  return redirectWithParams(request, { saved: "1" });
+  return redirectWithParams(request, redirectTo, { saved: "1" });
 }

@@ -1,14 +1,59 @@
 type TeamGeneratorSettingsCardProps = {
   useStrength: boolean;
   useCategories: boolean;
+  redirectTo?: string;
+  submitLabel?: string;
+  saved?: boolean;
+  error?: string;
 };
+
+function getErrorMessage(error?: string) {
+  switch (error) {
+    case "nothing_to_save":
+      return "Es wurden keine Änderungen erkannt.";
+    case "unauthorized":
+      return "Du hast keine Berechtigung für diese Einstellung.";
+    case "invalid_season_start_day":
+      return "Der Saison-Starttag ist ungültig.";
+    case "invalid_season_start_month":
+      return "Der Saison-Startmonat ist ungültig.";
+    case "invalid_season_end_day":
+      return "Der Saison-Endtag ist ungültig.";
+    case "invalid_season_end_month":
+      return "Der Saison-Endmonat ist ungültig.";
+    case "invalid_season_year_mode":
+      return "Die Saison-Jahreslogik ist ungültig.";
+    case "save_failed":
+      return "Die Einstellungen konnten nicht gespeichert werden.";
+    default:
+      return error || "";
+  }
+}
 
 export default function TeamGeneratorSettingsCard({
   useStrength,
   useCategories,
+  redirectTo = "/admin/settings",
+  submitLabel = "Einstellungen speichern",
+  saved = false,
+  error = "",
 }: TeamGeneratorSettingsCardProps) {
+  const errorMessage = getErrorMessage(error);
+
   return (
     <div className="space-y-5">
+      {saved ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Einstellungen gespeichert.
+        </div>
+      ) : null}
+
+      {errorMessage ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      ) : null}
+
       <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
         <div className="mb-2 text-sm font-semibold text-slate-500">
           Kurz erklärt
@@ -109,6 +154,8 @@ export default function TeamGeneratorSettingsCard({
         action="/api/admin/settings"
         className="space-y-4"
       >
+        <input type="hidden" name="redirect_to" value={redirectTo} />
+
         <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
           <div className="mb-3 text-sm font-semibold text-slate-500">
             Aktive Regeln
@@ -159,7 +206,7 @@ export default function TeamGeneratorSettingsCard({
           type="submit"
           className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Einstellungen speichern
+          {submitLabel}
         </button>
       </form>
     </div>

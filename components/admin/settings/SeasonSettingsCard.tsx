@@ -14,6 +14,8 @@ type Season = {
 type SeasonSettingsCardProps = {
   error?: string;
   message?: string;
+  redirectTo?: string;
+  createSubmitLabel?: string;
 };
 
 const WEEKDAY_OPTIONS = [
@@ -49,6 +51,8 @@ function isCurrentSeason(startDate: string | null, endDate: string | null) {
 export default async function SeasonSettingsCard({
   error = "",
   message = "",
+  redirectTo = "/admin/settings",
+  createSubmitLabel = "Anlegen",
 }: SeasonSettingsCardProps) {
   const { clubId, membership, isPowerUser } = await requireClub();
 
@@ -90,7 +94,7 @@ export default async function SeasonSettingsCard({
         className="space-y-4 rounded-2xl border border-black/10 bg-neutral-50 p-4"
       >
         <input type="hidden" name="intent" value="create" />
-        <input type="hidden" name="redirect_to" value="/admin/settings" />
+        <input type="hidden" name="redirect_to" value={redirectTo} />
 
         <div className="text-sm font-semibold text-slate-800">
           Neue Saison
@@ -216,7 +220,7 @@ export default async function SeasonSettingsCard({
           type="submit"
           className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Anlegen
+          {createSubmitLabel}
         </button>
 
         {message ? (
@@ -280,7 +284,7 @@ export default async function SeasonSettingsCard({
                     <input
                       type="hidden"
                       name="redirect_to"
-                      value="/admin/settings"
+                      value={redirectTo}
                     />
                     <button
                       type="submit"
@@ -318,7 +322,7 @@ export default async function SeasonSettingsCard({
                       <input
                         type="hidden"
                         name="redirect_to"
-                        value="/admin/settings"
+                        value={redirectTo}
                       />
 
                       <div>

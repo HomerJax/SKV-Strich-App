@@ -15,6 +15,9 @@ type ClubRow = {
 type ClubSettingsCardProps = {
   saved?: boolean;
   error?: string;
+  redirectTo?: string;
+  submitLabel?: string;
+  removeLogoRedirectTo?: string;
 };
 
 const COLOR_OPTIONS = [
@@ -46,6 +49,9 @@ function getErrorMessage(error?: string) {
 export default async function ClubSettingsCard({
   saved = false,
   error = "",
+  redirectTo = "/admin/settings",
+  submitLabel = "Speichern",
+  removeLogoRedirectTo,
 }: ClubSettingsCardProps) {
   const { clubId, membership, isPowerUser } = await requireClub();
 
@@ -160,7 +166,7 @@ export default async function ClubSettingsCard({
         encType="multipart/form-data"
         className="space-y-5"
       >
-        <input type="hidden" name="redirect_to" value="/admin/settings" />
+        <input type="hidden" name="redirect_to" value={redirectTo} />
 
         <div className="space-y-2">
           <label
@@ -260,13 +266,17 @@ export default async function ClubSettingsCard({
           type="submit"
           className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Speichern
+          {submitLabel}
         </button>
       </form>
 
       {club.logo_path ? (
         <form method="post" action="/api/admin/club">
-          <input type="hidden" name="redirect_to" value="/admin/settings" />
+          <input
+            type="hidden"
+            name="redirect_to"
+            value={removeLogoRedirectTo ?? redirectTo}
+          />
           <input type="hidden" name="remove_logo" value="1" />
           <button
             type="submit"
