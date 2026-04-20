@@ -18,6 +18,8 @@ export const FEATURE_FLAG_KEYS = [
   "use_nicknames",
   "use_field_view",
   "home_session_rsvp",
+  "session_types",
+  "penalties",
 ] as const;
 
 export type FeatureFlagKey = (typeof FEATURE_FLAG_KEYS)[number];
@@ -126,6 +128,20 @@ export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
     title: "Zu-/Absage auf Homescreen",
     description:
       "Zeigt auf dem Homescreen die nächste Session mit eigenem Status und den Aktionen 'Ich bin dabei' oder 'Diesmal nicht'.",
+    audience: "players",
+  },
+  {
+    key: "session_types",
+    title: "Session Types",
+    description:
+      "Erlaubt neben Trainings auch Spiele und reine Orga-Termine als Session-Typen. So lassen sich Zusagen und Planung ohne Trainings-Stats in STRIKR abbilden.",
+    audience: "players",
+  },
+  {
+    key: "penalties",
+    title: "Strafen",
+    description:
+      "Aktiviert den Strafenkatalog für Kisten, Geldstrafen und andere offene Team-Schulden. Ideal für Hobby- und Amateurteams mit Teamkultur.",
     audience: "players",
   },
 ];
