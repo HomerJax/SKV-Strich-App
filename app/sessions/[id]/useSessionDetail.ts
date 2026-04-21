@@ -2,7 +2,13 @@
 
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Player, SessionRow, TeamMap, TeamSide, SessionType } from "./session-types";
+import type {
+  Player,
+  SessionRow,
+  TeamMap,
+  TeamSide,
+  SessionType,
+} from "./session-types";
 import {
   buildLineupShareText,
   getErrorMessage,
@@ -307,6 +313,23 @@ export function useSessionDetail({
       }
     };
   }, []);
+
+  // 🔥 WICHTIG: Wenn der Server nach Session-Type-Switch neue Props liefert,
+  // muss die lokale Session-State darauf reagieren.
+  useEffect(() => {
+    setSession(initialSession);
+  }, [initialSession]);
+
+  // Diese Syncs helfen zusätzlich, damit UI nach Server Action sauber nachzieht.
+  useEffect(() => {
+    setWinnerPhotoUrl(initialWinnerPhotoUrl);
+  }, [initialWinnerPhotoUrl]);
+
+  useEffect(() => {
+    setHasResult(initialHasResult);
+    setGoalsA(initialGoalsA);
+    setGoalsB(initialGoalsB);
+  }, [initialHasResult, initialGoalsA, initialGoalsB]);
 
   const attendanceDirty = useMemo(() => {
     if (directAttendanceSaveEnabled) {
