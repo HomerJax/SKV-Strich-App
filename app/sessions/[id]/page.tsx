@@ -8,7 +8,10 @@ import {
   ensureFeatureFlagRowsForClub,
   getFeatureFlagsForClub,
 } from "@/lib/feature-flags";
+import SessionTypeNotice from "@/components/sessions/SessionTypeNotice";
+import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
 import SessionDetailClient from "./SessionDetailClient";
+import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionRow } from "./session-types";
 
 type ClubSettings = {
@@ -54,6 +57,8 @@ type SessionPlayerRow = {
 type PageProps = {
   params: Promise<{ id: string }>;
 };
+
+type SessionType = "training" | "event";
 
 function getBaseUrl() {
   const envUrl =
@@ -188,6 +193,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const useNicknames = featureFlags.use_nicknames === true;
   const useFieldView = featureFlags.use_field_view === true;
   const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
+  const sessionTypesEnabled = featureFlags.session_types === true;
+  const isAdmin = isPowerUser || isAdminRole(membership.role);
 
   const [
     { data: clubData, error: clubError },
@@ -276,14 +283,18 @@ export default async function SessionDetailPage({ params }: PageProps) {
   }
 
   const session = sessionData as SessionRow;
+  const sessionType: SessionType = session.type === "event" ? "event" : "training";
+
   const clubSettings: ClubSettings = {
     ...(settingsData as ClubSettings),
     use_nicknames: useNicknames,
     use_field_view: useFieldView,
   };
+
   const players = ((playersData ?? []).filter(
     (player) => player.is_active !== false
   ) ?? []) as Player[];
+
   const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[]).map(
     (row) => row.player_id
   );
@@ -360,24 +371,37 @@ export default async function SessionDetailPage({ params }: PageProps) {
   }
 
   return (
-    <SessionDetailClient
-      sessionId={sessionId}
-      initialSession={session}
-      initialPlayers={players}
-      initialPresentIds={presentIds}
-      initialManualTeams={manualTeams}
-      initialClubId={clubId}
-      initialIsAdmin={isPowerUser || isAdminRole(membership.role)}
-      initialClubSettings={clubSettings}
-      initialWinnerPhotoUrl={winnerPhotoUrl}
-      initialGoalsA={goalsA}
-      initialGoalsB={goalsB}
-      initialHasResult={hasResult}
-      initialPrimaryColor={clubData?.primary_color ?? "black"}
-      initialMvpVotingEnabled={mvpVotingEnabled}
-      initialUseNicknames={useNicknames}
-      initialUseFieldView={useFieldView}
-      initialHomeSessionRsvpEnabled={homeSessionRsvpEnabled}
-    />
+    <div className="space-y-4">
+      <SessionTypeNotice type={sessionType} />
+
+      {isAdmin ? (
+        <SessionTypeSwitcher
+          sessionId={sessionId}
+          currentType={sessionType}
+          action={updateSessionTypeAction}
+          disabled={!sessionTypesEnabled}
+        />
+      ) : null}
+
+      <SessionDetailClient
+        sessionId={sessionId}
+        initialSession={session}
+        initialPlayers={players}
+        initialPresentIds={presentIds}
+        initialManualTeams={manualTeams}
+        initialClubId={clubId}
+        initialIsAdmin={isAdmin}
+        initialClubSettings={clubSettings}
+        initialWinnerPhotoUrl={winnerPhotoUrl}
+        initialGoalsA={goalsA}
+        initialGoalsB={goalsB}
+        initialHasResult={hasResult}
+        initialPrimaryColor={clubData?.primary_color ?? "black"}
+        initialMvpVotingEnabled={mvpVotingEnabled}
+        initialUseNicknames={useNicknames}
+        initialUseFieldView={useFieldView}
+        initialHomeSessionRsvpEnabled={homeSessionRsvpEnabled}
+      />
+    </div>
   );
 }
