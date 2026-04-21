@@ -1,4 +1,7 @@
 import { getClubHeroStyles } from "@/lib/ui/hero";
+import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
+
+type SessionType = "training" | "event";
 
 type Props = {
   date: string;
@@ -14,6 +17,10 @@ type Props = {
   onDeleteSession: () => void;
   onScrollToTeams: () => void;
   onScrollToResult: () => void;
+
+  sessionType: SessionType;
+  sessionTypesEnabled: boolean;
+  onSessionTypeChange: (formData: FormData) => void | Promise<void>;
 };
 
 function fmtLongDate(iso: string) {
@@ -37,6 +44,9 @@ export default function SessionHeaderCard({
   deletingSession,
   primaryColorKey,
   onDeleteSession,
+  sessionType,
+  sessionTypesEnabled,
+  onSessionTypeChange,
 }: Props) {
   const { heroGradient, borderColor } = getClubHeroStyles(primaryColorKey);
 
@@ -51,7 +61,7 @@ export default function SessionHeaderCard({
       >
         <div className="p-5 sm:p-6">
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
-            Trainingssession
+            {sessionType === "event" ? "Spiel / Termin" : "Trainingssession"}
           </div>
 
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
@@ -88,6 +98,18 @@ export default function SessionHeaderCard({
               </button>
             ) : null}
           </div>
+
+          {isAdmin ? (
+            <div className="mt-4 max-w-md">
+              <SessionTypeSwitcher
+                sessionId={0}
+                currentType={sessionType}
+                action={onSessionTypeChange}
+                disabled={!sessionTypesEnabled}
+                embedded
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

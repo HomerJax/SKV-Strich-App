@@ -183,6 +183,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   }
 
   await ensureFeatureFlagRowsForClub(clubId);
+
   const featureFlags = await getFeatureFlagsForClub(clubId);
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
   const useNicknames = featureFlags.use_nicknames === true;
@@ -277,6 +278,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   }
 
   const session = sessionData as SessionRow;
+
   const clubSettings: ClubSettings = {
     ...(settingsData as ClubSettings),
     use_nicknames: useNicknames,

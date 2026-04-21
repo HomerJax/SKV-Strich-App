@@ -9,14 +9,17 @@ type SessionTypeSwitcherProps = {
   currentType: SessionType;
   action: (formData: FormData) => void | Promise<void>;
   disabled?: boolean;
+  embedded?: boolean;
 };
 
 function SubmitButton({
   label,
   active,
+  embedded,
 }: {
   label: string;
   active: boolean;
+  embedded?: boolean;
 }) {
   const { pending } = useFormStatus();
 
@@ -25,10 +28,14 @@ function SubmitButton({
       type="submit"
       disabled={pending}
       className={[
-        "rounded-full px-3 py-1.5 text-xs font-semibold transition sm:px-3.5",
-        active
-          ? "bg-neutral-900 text-white shadow-sm"
-          : "bg-transparent text-neutral-600 hover:text-neutral-900",
+        "rounded-full px-3 py-1.5 text-xs font-semibold transition",
+        embedded
+          ? active
+            ? "bg-white text-slate-950 shadow-sm"
+            : "bg-transparent text-white/75 hover:text-white"
+          : active
+            ? "bg-neutral-900 text-white shadow-sm"
+            : "bg-transparent text-neutral-600 hover:text-neutral-900",
         pending ? "cursor-not-allowed opacity-60" : "",
       ].join(" ")}
     >
@@ -42,43 +49,51 @@ export default function SessionTypeSwitcher({
   currentType,
   action,
   disabled = false,
+  embedded = false,
 }: SessionTypeSwitcherProps) {
+  const wrapperClass = embedded
+    ? "inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 p-1"
+    : "inline-flex items-center gap-2 rounded-full bg-slate-100 p-1";
+
+  const labelClass = embedded
+    ? "text-xs font-medium text-white/75"
+    : "text-xs font-medium text-slate-500";
+
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-neutral-900">Session-Typ</p>
-        <p className="text-xs text-neutral-500">
-          {currentType === "training"
-            ? "Zählt als Training"
-            : "Zählt nicht als Training"}
-        </p>
-      </div>
+    <div className="flex items-center gap-2">
+      <span className={labelClass}>Typ</span>
 
       {disabled ? (
-        <div className="shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-500">
+        <div
+          className={
+            embedded
+              ? "rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/60"
+              : "rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-500"
+          }
+        >
           Deaktiviert
         </div>
       ) : (
-        <div className="shrink-0 rounded-full bg-neutral-100 p-1">
-          <div className="flex items-center gap-1">
-            <form action={action}>
-              <input type="hidden" name="sessionId" value={sessionId} />
-              <input type="hidden" name="type" value="training" />
-              <SubmitButton
-                label="Training"
-                active={currentType === "training"}
-              />
-            </form>
+        <div className={wrapperClass}>
+          <form action={action}>
+            <input type="hidden" name="sessionId" value={sessionId} />
+            <input type="hidden" name="type" value="training" />
+            <SubmitButton
+              label="Training"
+              active={currentType === "training"}
+              embedded={embedded}
+            />
+          </form>
 
-            <form action={action}>
-              <input type="hidden" name="sessionId" value={sessionId} />
-              <input type="hidden" name="type" value="event" />
-              <SubmitButton
-                label="Spiel / Termin"
-                active={currentType === "event"}
-              />
-            </form>
-          </div>
+          <form action={action}>
+            <input type="hidden" name="sessionId" value={sessionId} />
+            <input type="hidden" name="type" value="event" />
+            <SubmitButton
+              label="Spiel / Termin"
+              active={currentType === "event"}
+              embedded={embedded}
+            />
+          </form>
         </div>
       )}
     </div>

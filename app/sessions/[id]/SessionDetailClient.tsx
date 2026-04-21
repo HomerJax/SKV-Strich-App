@@ -6,8 +6,6 @@ import SessionTeamsCard from "./SessionTeamsCard";
 import SessionResultCard from "./SessionResultCard";
 import SessionMvpCard from "./SessionMvpCard";
 import SessionEndModal from "@/components/SessionEndModal";
-import SessionTypeBadge from "@/components/sessions/SessionTypeBadge";
-import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
 import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionRow, TeamMap } from "./session-types";
 import type { ClubSettings } from "./session-detail-helpers";
@@ -161,10 +159,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             <span aria-hidden="true">←</span>
-            <span>Zurück zu Trainings</span>
+            <span>Zurück zu Sessions</span>
           </button>
-
-          <SessionTypeBadge type={session.type ?? "training"} />
         </div>
 
         <SessionHeaderCard
@@ -185,16 +181,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           onScrollToResult={() =>
             resultRef.current?.scrollIntoView({ behavior: "smooth" })
           }
+          sessionType={currentSessionType}
+          sessionTypesEnabled={sessionTypeSwitchEnabled}
+          onSessionTypeChange={updateSessionTypeAction}
         />
-
-        {isAdmin ? (
-          <SessionTypeSwitcher
-            sessionId={props.sessionId}
-            currentType={currentSessionType}
-            action={updateSessionTypeAction}
-            disabled={!sessionTypeSwitchEnabled}
-          />
-        ) : null}
 
         {isTrainingSession && !hasResult ? (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
