@@ -4,6 +4,7 @@ import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
 type SessionType = "training" | "event";
 
 type Props = {
+  sessionId: number;
   date: string;
   notes: string | null;
   presentCount: number;
@@ -17,7 +18,6 @@ type Props = {
   onDeleteSession: () => void;
   onScrollToTeams: () => void;
   onScrollToResult: () => void;
-
   sessionType: SessionType;
   sessionTypesEnabled: boolean;
   onSessionTypeChange: (formData: FormData) => void | Promise<void>;
@@ -33,6 +33,7 @@ function fmtLongDate(iso: string) {
 }
 
 export default function SessionHeaderCard({
+  sessionId,
   date,
   notes,
   presentCount,
@@ -102,7 +103,7 @@ export default function SessionHeaderCard({
           {isAdmin ? (
             <div className="mt-4 max-w-md">
               <SessionTypeSwitcher
-                sessionId={0}
+                sessionId={sessionId}
                 currentType={sessionType}
                 action={onSessionTypeChange}
                 disabled={!sessionTypesEnabled}

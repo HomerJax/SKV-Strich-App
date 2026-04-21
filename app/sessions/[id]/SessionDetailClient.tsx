@@ -164,6 +164,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         </div>
 
         <SessionHeaderCard
+          sessionId={props.sessionId}
           date={session.date}
           notes={session.notes ?? null}
           presentCount={presentPlayers.length}
