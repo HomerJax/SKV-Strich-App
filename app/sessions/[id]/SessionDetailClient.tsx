@@ -6,6 +6,7 @@ import SessionTeamsCard from "./SessionTeamsCard";
 import SessionResultCard from "./SessionResultCard";
 import SessionMvpCard from "./SessionMvpCard";
 import SessionEndModal from "@/components/SessionEndModal";
+import SessionTypeBadge from "@/components/sessions/SessionTypeBadge";
 import type { Player, SessionRow, TeamMap } from "./session-types";
 import type { ClubSettings } from "./session-detail-helpers";
 import { normalizeGoalValue } from "./session-ui";
@@ -145,14 +146,18 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   return (
     <>
       <div className="space-y-4">
-        <button
-          type="button"
-          onClick={() => router.push("/sessions")}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-        >
-          <span aria-hidden="true">←</span>
-          <span>Zurück zu Trainings</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => router.push("/sessions")}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Zurück zu Trainings</span>
+          </button>
+
+          <SessionTypeBadge type={session.type ?? "training"} />
+        </div>
 
         <SessionHeaderCard
           date={session.date}
@@ -191,17 +196,17 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           </div>
         ) : null}
 
-        {err && (
+        {err ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
             {err}
           </div>
-        )}
+        ) : null}
 
-        {msg && (
+        {msg ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
             {msg}
           </div>
-        )}
+        ) : null}
 
         {allowResult && hasResult ? (
           <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">

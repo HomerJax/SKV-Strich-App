@@ -24,6 +24,14 @@ export async function requirePlayer() {
     redirect(AUTH_ROUTES.login);
   }
 
+  if (!ctx.memberships.length && !ctx.isPowerUser) {
+    redirect(AUTH_ROUTES.onboarding);
+  }
+
+  if (!ctx.activeClubId && !ctx.isPowerUser) {
+    redirect(AUTH_ROUTES.selectClub);
+  }
+
   if (!ctx.player && !ctx.isPowerUser) {
     redirect(AUTH_ROUTES.onboarding);
   }
@@ -42,15 +50,11 @@ export async function requireClub() {
     redirect(AUTH_ROUTES.login);
   }
 
-  if (!ctx.player && !ctx.isPowerUser) {
-    redirect(AUTH_ROUTES.onboarding);
-  }
-
-  if (!ctx.activeClubId) {
+  if (!ctx.memberships.length && !ctx.isPowerUser) {
     redirect(AUTH_ROUTES.selectClub);
   }
 
-  if (!ctx.memberships.length && !ctx.isPowerUser) {
+  if (!ctx.activeClubId) {
     redirect(AUTH_ROUTES.selectClub);
   }
 
@@ -65,6 +69,10 @@ export async function requireClub() {
 
   if (!membership) {
     redirect(AUTH_ROUTES.selectClub);
+  }
+
+  if (!ctx.player && !ctx.isPowerUser) {
+    redirect(AUTH_ROUTES.onboarding);
   }
 
   return {

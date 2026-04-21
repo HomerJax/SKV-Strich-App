@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 type MembershipRow = {
-  id: number;
+  id: string;
   club_id: string;
   user_id: string;
   role: string | null;
@@ -64,11 +64,11 @@ export async function POST(request: NextRequest) {
 
   const user = signInData.user;
 
-  const { data: player, error: playerError } = await supabase
+  const { data: players, error: playerError } = await supabase
     .from("players")
-    .select("id, user_id, first_name, last_name, nickname")
+    .select("id, user_id, club_id, first_name, last_name, nickname")
     .eq("user_id", user.id)
-    .maybeSingle();
+    .eq("is_guest", false);
 
   if (playerError) {
     const url = buildRedirect(
@@ -80,7 +80,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(url, { status: 303 });
   }
 
-  if (!player) {
+  const normalizedPlayers = (players ?? []).filter(
+    (player) => player.club_id !== null
+  );
+
+  if (!normalizedPlayers.length) {
     const redirectResponse = NextResponse.redirect(
       buildRedirect(request, AUTH_ROUTES.onboarding),
       { status: 303 }

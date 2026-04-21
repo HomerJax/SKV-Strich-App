@@ -5,14 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 export type AuthPlayer = {
   id: number;
   user_id: string | null;
-  club_id: string;
+  club_id: string | null;
   first_name: string | null;
   last_name: string | null;
   nickname: string | null;
 };
 
 export type AuthMembership = {
-  id: number;
+  id: string;
   club_id: string;
   user_id: string;
   role: string | null;
@@ -103,7 +103,9 @@ export async function getAuthContext(): Promise<AuthContext> {
     throw new Error(`Failed to load user role: ${roleError.message}`);
   }
 
-  const normalizedPlayers = (players ?? []) as AuthPlayer[];
+  const normalizedPlayers = ((players ?? []) as AuthPlayer[]).filter(
+    (player) => !!player.club_id
+  );
   const normalizedMemberships = (memberships ?? []) as AuthMembership[];
   const cookieClubId = cookieStore.get("active_club_id")?.value ?? null;
   const isPowerUser = roleRow?.is_power_user === true;
@@ -136,7 +138,7 @@ export async function getAuthContext(): Promise<AuthContext> {
           finalMemberships = [
             ...finalMemberships,
             {
-              id: -1,
+              id: "__power_user__",
               club_id: selectedClub.id,
               user_id: user.id,
               role: "power_user",
@@ -170,15 +172,11 @@ export async function getAuthContext(): Promise<AuthContext> {
       normalizedPlayers.find((player) => player.club_id === activeClubId) ?? null;
   }
 
-  if (!activePlayer && normalizedPlayers.length === 1) {
-    activePlayer = normalizedPlayers[0];
-  }
-
   if (
-    !activeClubId &&
-    !isPowerUser &&
+    !activePlayer &&
     normalizedMemberships.length === 1 &&
-    normalizedPlayers.length === 1
+    normalizedPlayers.length === 1 &&
+    normalizedPlayers[0].club_id === normalizedMemberships[0].club_id
   ) {
     activeClubId = normalizedMemberships[0].club_id;
     activePlayer = normalizedPlayers[0];
