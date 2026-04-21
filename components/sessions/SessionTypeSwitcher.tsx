@@ -25,14 +25,14 @@ function SubmitButton({
       type="submit"
       disabled={pending}
       className={[
-        "rounded-full px-4 py-2 text-sm font-semibold transition",
+        "rounded-full px-3 py-1.5 text-xs font-semibold transition sm:px-3.5",
         active
-          ? "bg-black text-white"
-          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200",
+          ? "bg-neutral-900 text-white shadow-sm"
+          : "bg-transparent text-neutral-600 hover:text-neutral-900",
         pending ? "cursor-not-allowed opacity-60" : "",
       ].join(" ")}
     >
-      {pending ? "Speichert..." : label}
+      {pending ? "..." : label}
     </button>
   );
 }
@@ -44,32 +44,41 @@ export default function SessionTypeSwitcher({
   disabled = false,
 }: SessionTypeSwitcherProps) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <div className="mb-3">
-        <h3 className="text-sm font-semibold text-neutral-900">Session-Typ</h3>
-        <p className="mt-1 text-sm text-neutral-600">
-          Trainings zählen normal in Flow, MVP und Stats. Spiele oder Termine
-          kannst du als Event markieren, damit sie nicht wie ein Training behandelt werden.
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-neutral-900">Session-Typ</p>
+        <p className="text-xs text-neutral-500">
+          {currentType === "training"
+            ? "Zählt als Training"
+            : "Zählt nicht als Training"}
         </p>
       </div>
 
       {disabled ? (
-        <div className="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
-          Session Types sind für diesen Club aktuell noch nicht aktiviert.
+        <div className="shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-500">
+          Deaktiviert
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
-          <form action={action}>
-            <input type="hidden" name="sessionId" value={sessionId} />
-            <input type="hidden" name="type" value="training" />
-            <SubmitButton label="🟢 Training" active={currentType === "training"} />
-          </form>
+        <div className="shrink-0 rounded-full bg-neutral-100 p-1">
+          <div className="flex items-center gap-1">
+            <form action={action}>
+              <input type="hidden" name="sessionId" value={sessionId} />
+              <input type="hidden" name="type" value="training" />
+              <SubmitButton
+                label="Training"
+                active={currentType === "training"}
+              />
+            </form>
 
-          <form action={action}>
-            <input type="hidden" name="sessionId" value={sessionId} />
-            <input type="hidden" name="type" value="event" />
-            <SubmitButton label="🔵 Spiel / Termin" active={currentType === "event"} />
-          </form>
+            <form action={action}>
+              <input type="hidden" name="sessionId" value={sessionId} />
+              <input type="hidden" name="type" value="event" />
+              <SubmitButton
+                label="Spiel / Termin"
+                active={currentType === "event"}
+              />
+            </form>
+          </div>
         </div>
       )}
     </div>

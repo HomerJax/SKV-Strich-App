@@ -7,6 +7,8 @@ import SessionResultCard from "./SessionResultCard";
 import SessionMvpCard from "./SessionMvpCard";
 import SessionEndModal from "@/components/SessionEndModal";
 import SessionTypeBadge from "@/components/sessions/SessionTypeBadge";
+import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
+import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionRow, TeamMap } from "./session-types";
 import type { ClubSettings } from "./session-detail-helpers";
 import { normalizeGoalValue } from "./session-ui";
@@ -30,6 +32,8 @@ type SessionDetailClientProps = {
   initialUseNicknames?: boolean;
   initialUseFieldView?: boolean;
   initialHomeSessionRsvpEnabled?: boolean;
+  initialSessionType?: "training" | "event";
+  sessionTypesEnabled?: boolean;
 };
 
 export default function SessionDetailClient(props: SessionDetailClientProps) {
@@ -143,6 +147,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     return null;
   }
 
+  const currentSessionType =
+    props.initialSessionType === "event" ? "event" : "training";
+  const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
+
   return (
     <>
       <div className="space-y-4">
@@ -178,6 +186,15 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             resultRef.current?.scrollIntoView({ behavior: "smooth" })
           }
         />
+
+        {isAdmin ? (
+          <SessionTypeSwitcher
+            sessionId={props.sessionId}
+            currentType={currentSessionType}
+            action={updateSessionTypeAction}
+            disabled={!sessionTypeSwitchEnabled}
+          />
+        ) : null}
 
         {isTrainingSession && !hasResult ? (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
