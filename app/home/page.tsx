@@ -6,6 +6,7 @@ import { getAuthContext } from "@/lib/auth/context";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
+import PageHero from "@/components/ui/PageHero";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -38,13 +39,6 @@ type VoteRow = {
 type PlayerRow = {
   id: number;
   email: string | null;
-};
-
-const COLOR_MAP: Record<string, string> = {
-  black: "#020617",
-  blue: "#1d4ed8",
-  red: "#dc2626",
-  green: "#16a34a",
 };
 
 function fmtDateLong(iso: string) {
@@ -259,15 +253,6 @@ export default async function HomePage() {
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
 
   const clubName = club?.display_name?.trim() || "Dein Team";
-
-  const selectedColor = club?.primary_color ?? "black";
-  const primaryColor = COLOR_MAP[selectedColor] ?? COLOR_MAP.black;
-
-  const heroGradient =
-    selectedColor === "black"
-      ? "linear-gradient(135deg, #020617 0%, #111827 55%, #374151 100%)"
-      : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 78%)`;
-
   const showGettingStarted =
     !ctx.isPowerUser &&
     ((sessionsCount ?? 0) === 0 ||
@@ -394,53 +379,54 @@ export default async function HomePage() {
       <WhatsNewModal version="v0.2" />
 
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <div
-          className="rounded-[20px] border text-white shadow-[0_14px_32px_-24px_rgba(15,23,42,0.75)]"
-          style={{
-            borderColor: `${primaryColor}22`,
-            background: heroGradient,
-          }}
-        >
-          <div className="mx-auto flex max-w-2xl flex-col items-center gap-2.5 px-4 py-4 text-center sm:px-5 sm:py-5">
-            <div className="flex items-center gap-2.5 rounded-full bg-white/10 px-3 py-1.5">
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5">
-                {clubLogoUrl ? (
-                  <Image
-                    src={clubLogoUrl}
-                    alt={`${clubName} Logo`}
-                    width={40}
-                    height={40}
-                    className="object-contain"
-                    unoptimized
-                  />
-                ) : (
-                  <Image
-                    src="/icon-dark.png"
-                    alt="strikr"
-                    width={32}
-                    height={32}
-                  />
-                )}
+        <PageHero
+          primaryColorKey={club?.primary_color ?? "black"}
+          title={clubName}
+          description="strikr – Das System für euer Training."
+          align="center"
+          centerSlot={
+            clubLogoUrl ? (
+              <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-sm">
+                <Image
+                  src={clubLogoUrl}
+                  alt={`${clubName} Logo`}
+                  width={56}
+                  height={56}
+                  className="object-contain"
+                  unoptimized
+                />
               </div>
-
-              <span className="text-sm font-semibold">{clubName}</span>
-            </div>
-
-            <h1 className="text-base font-extrabold sm:text-lg">
-              strikr – Das System für euer Training.
-            </h1>
-
-            <p className="text-xs text-white/80 sm:text-sm">
-              faire Teams – effektives Training – echte Stats
-            </p>
-
-            {ctx.isPowerUser ? (
-              <div className="rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/90">
-                Power User Ansicht
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-sm">
+                <Image
+                  src="/icon-dark.png"
+                  alt="strikr"
+                  width={40}
+                  height={40}
+                />
               </div>
-            ) : null}
-          </div>
-        </div>
+            )
+          }
+          actionsSlot={
+            <>
+              <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
+                faire Teams
+              </div>
+              <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
+                effektives Training
+              </div>
+              <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
+                echte Stats
+              </div>
+              {ctx.isPowerUser ? (
+                <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
+                  Power User Ansicht
+                </div>
+              ) : null}
+            </>
+          }
+          compact
+        />
 
         {nextSession ? (
           homeSessionRsvpEnabled ? (
@@ -555,7 +541,7 @@ export default async function HomePage() {
                 href="/about"
                 className="mt-2 inline-block text-sm font-medium text-slate-900"
               >
-                Über Strikr ansehen
+                Über strikr ansehen
               </Link>
             </div>
           </section>
@@ -565,7 +551,7 @@ export default async function HomePage() {
             className="rounded-[20px] border border-black/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="text-sm font-semibold text-slate-500">
-              Über Strikr
+              Über strikr
             </div>
 
             <h2 className="mt-1 text-lg font-bold text-slate-950">
@@ -576,7 +562,7 @@ export default async function HomePage() {
               Angefangen mit Strichen auf Papier, dann Excel und irgendwann die
               Frage: Warum sind Teams eigentlich immer unfair?
               <br />
-              Daraus entstand Strikr – mit dem Ziel, Training besser, fairer und
+              Daraus entstand strikr – mit dem Ziel, Training besser, fairer und
               spannender zu machen.
             </p>
 

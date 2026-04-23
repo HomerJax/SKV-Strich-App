@@ -52,9 +52,22 @@ type SessionMvpCardProps = {
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 
-function ResultPill({ text }: { text: string }) {
+function ResultPill({
+  text,
+  tone = "default",
+}: {
+  text: string;
+  tone?: "default" | "success";
+}) {
+  const className =
+    tone === "success"
+      ? "bg-emerald-100 text-emerald-800"
+      : "bg-amber-100 text-amber-800";
+
   return (
-    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${className}`}
+    >
       {text}
     </span>
   );
@@ -104,10 +117,6 @@ function MergedWinnerCard({
       : winnerCount;
 
   const previousCount = Math.max(rawPreviousCount, 0);
-
-  // WICHTIG:
-  // Wenn ein Spieler alleiniger MVP ist, soll der Fortschritt mindestens +1 sein.
-  // Das fängt inkonsistente Backend-Werte wie 0 -> 0 oder 3 -> 3 sauber ab.
   const nextCount = badgeUpgrade
     ? Math.max(rawNextCount, previousCount + 1)
     : Math.max(rawNextCount, previousCount + 1);
@@ -211,6 +220,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
 
   async function loadMvpState() {
     try {
@@ -234,6 +244,10 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setState(payload);
       setSelectedPlayerId(payload.userVotePlayerId ?? null);
       setLoadState("ready");
+
+      if (payload.votingOpen && payload.userHasVoted) {
+        setCollapsed(true);
+      }
     } catch (error) {
       const message =
         error instanceof Error
@@ -286,6 +300,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       setMsg(`Deine Stimme wurde gezählt. Ergebnis ab ${payload.revealLabel}`);
       await loadMvpState();
+      setCollapsed(true);
       router.refresh();
     } catch (error) {
       const message =
@@ -337,34 +352,109 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         )
       : 0;
 
+  const userDone = votingOpen && state.userHasVoted;
+  const shellClassName = userDone
+    ? "rounded-[24px] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm"
+    : "rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm";
+
+  const titleColorClass = userDone ? "text-emerald-700" : "text-amber-700";
+  const pillTone = userDone ? "success" : "default";
+
+  const collapsedSummary = !votingOpen
+    ? state.results?.winners && state.results.winners.length > 0
+      ? `Ergebnis verfügbar${state.results.winners.length === 1 ? ` · MVP: ${state.results.winners[0].name}` : ""}`
+      : "Voting beendet"
+    : state.userHasVoted
+      ? selectedPlayerName
+        ? `Deine Stimme ist abgegeben · gewählt: ${selectedPlayerName}`
+        : "Deine Stimme ist abgegeben"
+      : `${state.voteCount} von ${state.eligibleVoterCount} haben abgestimmt`;
+
+  if (collapsed) {
+    return (
+      <section className={shellClassName}>
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className={`flex w-full items-center justify-between gap-4 rounded-[20px] text-left ${
+            userDone ? "text-emerald-950" : "text-slate-950"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            {userDone ? (
+              <span
+                aria-hidden="true"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white"
+              >
+                ✓
+              </span>
+            ) : null}
+
+            <div>
+              <div
+                className={`text-base font-bold ${
+                  userDone ? "text-emerald-950" : "text-slate-950"
+                }`}
+              >
+                {userDone ? "MVP erledigt" : "MVP Voting"}
+              </div>
+              <div className="mt-1 text-sm text-slate-600">{collapsedSummary}</div>
+            </div>
+          </div>
+
+          <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+            Aufklappen
+          </div>
+        </button>
+      </section>
+    );
+  }
+
   return (
-    <section className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="text-sm font-semibold text-amber-700">⭐ MVP Voting</div>
+    <section className={shellClassName}>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setCollapsed(true)}
+          className={`absolute right-0 top-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            userDone
+              ? "border border-emerald-300 bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+              : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+          }`}
+        >
+          Einklappen
+        </button>
+
+        <div className="pr-28">
+          <div className={`text-sm font-semibold ${titleColorClass}`}>
+            ⭐ MVP Voting
+          </div>
+
           <h2 className="mt-1 text-lg font-extrabold tracking-tight text-slate-950">
             Spieler des Trainings wählen
           </h2>
+
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
             Alle anwesenden Teilnehmer können hier direkt ihren MVP wählen.
           </p>
 
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <VoteCountPill
               voteCount={state.voteCount}
               eligibleVoterCount={state.eligibleVoterCount}
               votingOpen={votingOpen}
             />
+
+            <ResultPill
+              text={
+                votingOpen
+                  ? `Offen bis ${state.revealLabel}`
+                  : `Ergebnis seit ${state.revealLabel}`
+              }
+              tone={pillTone}
+            />
           </div>
         </div>
-
-        <ResultPill
-          text={
-            votingOpen
-              ? `Offen bis ${state.revealLabel}`
-              : `Ergebnis seit ${state.revealLabel}`
-          }
-        />
       </div>
 
       {err ? (
@@ -381,14 +471,26 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       {votingOpen ? (
         <>
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-white px-4 py-4">
-            <div className="text-sm font-semibold text-amber-800">
+          <div
+            className={`mt-4 rounded-2xl border px-4 py-4 ${
+              state.userHasVoted
+                ? "border-emerald-200 bg-white"
+                : "border-amber-200 bg-white"
+            }`}
+          >
+            <div
+              className={`text-sm font-semibold ${
+                state.userHasVoted ? "text-emerald-800" : "text-amber-800"
+              }`}
+            >
               {state.voteCount} von {state.eligibleVoterCount} haben abgestimmt
             </div>
 
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-amber-100">
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-amber-500 transition-all"
+                className={`h-full rounded-full transition-all ${
+                  state.userHasVoted ? "bg-emerald-500" : "bg-amber-500"
+                }`}
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -402,7 +504,11 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 state.votedByNames.map((name) => (
                   <span
                     key={name}
-                    className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900"
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                      state.userHasVoted
+                        ? "border border-emerald-200 bg-emerald-50 text-emerald-900"
+                        : "border border-amber-200 bg-amber-50 text-amber-900"
+                    }`}
                   >
                     {name}
                   </span>
@@ -440,7 +546,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                         className={[
                           "rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition",
                           active
-                            ? "border-amber-400 bg-amber-100 text-amber-900"
+                            ? "border-emerald-400 bg-emerald-100 text-emerald-900"
                             : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
                         ].join(" ")}
                       >

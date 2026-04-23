@@ -3,7 +3,8 @@
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionTeamsCard from "./SessionTeamsCard";
-import SessionResultCard from "./SessionResultCard";
+import SessionWinnerPhotoCard from "./SessionWinnerPhotoCard";
+import SessionScoreCard from "./SessionScoreCard";
 import SessionMvpCard from "./SessionMvpCard";
 import SessionEndModal from "@/components/SessionEndModal";
 import { updateSessionTypeAction } from "./session-type-actions";
@@ -34,6 +35,63 @@ type SessionDetailClientProps = {
   sessionTypesEnabled?: boolean;
 };
 
+type SectionKey = "attendance" | "teams" | "photo" | "result" | "mvp";
+
+function NoticeCard({
+  tone,
+  children,
+}: {
+  tone: "default" | "success" | "error";
+  children: React.ReactNode;
+}) {
+  const className =
+    tone === "success"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : tone === "error"
+        ? "border-red-200 bg-red-50 text-red-700"
+        : "border-slate-200 bg-white text-slate-600";
+
+  return (
+    <div className={`rounded-xl border p-3 text-xs ${className}`}>{children}</div>
+  );
+}
+
+function WorkspaceIntro({
+  step,
+  title,
+  description,
+}: {
+  step: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        {step}
+      </div>
+      <h2 className="text-lg font-extrabold tracking-tight text-slate-950">
+        {title}
+      </h2>
+      {description ? (
+        <p className="text-sm leading-6 text-slate-600">{description}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function SecondarySectionHeader({ title }: { title: string }) {
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <div className="h-px flex-1 bg-slate-200" />
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        {title}
+      </div>
+      <div className="h-px flex-1 bg-slate-200" />
+    </div>
+  );
+}
+
 export default function SessionDetailClient(props: SessionDetailClientProps) {
   const {
     router,
@@ -61,6 +119,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     setGoalsA,
     setGoalsB,
     hasResult,
+    hasWinnerPhoto,
+    teamsConfirmed,
     showSessionEndModal,
     setShowSessionEndModal,
 
@@ -79,6 +139,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     setAttendanceCollapsed,
     teamsCollapsed,
     setTeamsCollapsed,
+    winnerPhotoCollapsed,
+    setWinnerPhotoCollapsed,
+    resultCollapsed,
+    setResultCollapsed,
 
     saving,
     savingTeams,
@@ -86,7 +150,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     photoBusy,
     sharingLineup,
     sharingResult,
-    sharingInternal,
     deletingSession,
     msg,
     err,
@@ -105,7 +168,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     displayUnassigned,
 
     canShareLineup,
-    canShareResult,
     teamsComplete,
     canUploadWinnerPhoto,
     scoreAValue,
@@ -121,8 +183,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
     toggleGuestForm,
     toggleAttendanceMultiSelect,
+    confirmTeams,
     handleShareLineup,
-    handleShareInternalResult,
     handleShareResult,
     handleDeleteGuestPlayer,
     handleDeleteSession,
@@ -145,24 +207,194 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     return null;
   }
 
-  const currentSessionType =
-    props.initialSessionType === "event" ? "event" : "training";
+  const currentSessionType = session.type === "event" ? "event" : "training";
   const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
+
+  let activeSection: SectionKey | null = null;
+
+  if (isEventSession) {
+    activeSection = "attendance";
+  } else if (hasResult) {
+    activeSection = showMvpSection ? "mvp" : null;
+  } else if (attendanceDirty || presentPlayers.length < 2) {
+    activeSection = "attendance";
+  } else if (!teamsComplete || !teamsConfirmed) {
+    activeSection = "teams";
+  } else if (!hasWinnerPhoto) {
+    activeSection = "photo";
+  } else {
+    activeSection = "result";
+  }
+
+  function renderAttendance() {
+    return (
+      <div ref={attendanceRef}>
+        <SessionAttendanceCard
+          players={displayPlayers}
+          presentIds={draftPresentIds}
+          hasResult={hasResult}
+          isAdmin={isAdmin}
+          showGuestForm={showGuestForm}
+          guestName={guestName}
+          guestPosition={guestPosition}
+          guestAgeGroup={guestAgeGroup}
+          guestSaving={guestSaving}
+          clubSettings={clubSettings}
+          collapsed={attendanceCollapsed}
+          savingPresence={savingPresence}
+          dirty={attendanceDirty}
+          directSaveEnabled={directAttendanceSaveEnabled}
+          multiSelectEnabled={attendanceMultiSelectEnabled}
+          deletingGuestPlayerId={deletingGuestPlayerId}
+          onToggleMultiSelect={toggleAttendanceMultiSelect}
+          onToggleCollapsed={() => setAttendanceCollapsed((prev) => !prev)}
+          onToggleShowGuestForm={toggleGuestForm}
+          onGuestNameChange={setGuestName}
+          onGuestPositionChange={setGuestPosition}
+          onGuestAgeGroupChange={setGuestAgeGroup}
+          onAddGuestPlayer={addGuestPlayer}
+          onDeleteGuestPlayer={handleDeleteGuestPlayer}
+          onTogglePresence={(playerId) => {
+            void togglePresence(playerId);
+          }}
+          onSavePresence={savePresence}
+        />
+      </div>
+    );
+  }
+
+  function renderTeams() {
+    if (!allowTeams) return null;
+
+    return (
+      <div ref={teamsRef}>
+        <SessionTeamsCard
+          teamA={displayTeamA}
+          teamB={displayTeamB}
+          unassigned={displayUnassigned}
+          metaA={metaA}
+          metaB={metaB}
+          hasResult={hasResult}
+          saving={saving || savingTeams}
+          teamsComplete={teamsComplete}
+          teamsConfirmed={teamsConfirmed}
+          canShareLineup={canShareLineup}
+          sharingLineup={sharingLineup}
+          collapsed={teamsCollapsed}
+          attendanceDirty={attendanceDirty}
+          enableFieldView={useFieldView}
+          onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
+          onGenerateTeams={generateTeams}
+          onConfirmTeams={confirmTeams}
+          onShareLineup={handleShareLineup}
+          onSetSide={setSide}
+        />
+      </div>
+    );
+  }
+
+  function renderWinnerPhoto() {
+    if (!allowWinnerPhoto) return null;
+
+    return (
+      <SessionWinnerPhotoCard
+        hasResult={hasResult}
+        saving={saving}
+        photoBusy={photoBusy}
+        collapsed={winnerPhotoCollapsed}
+        canUploadWinnerPhoto={canUploadWinnerPhoto}
+        winnerPhotoUrl={winnerPhotoUrl}
+        hasWinnerPhoto={hasWinnerPhoto}
+        winnerPhotoInputRef={winnerPhotoInputRef}
+        onWinnerPhotoUpload={handleWinnerPhotoUpload}
+        onWinnerPhotoDelete={handleWinnerPhotoDelete}
+        onToggleCollapsed={() => setWinnerPhotoCollapsed((prev) => !prev)}
+        title="Siegerfoto"
+      />
+    );
+  }
+
+  function renderResult() {
+    if (!allowResult) return null;
+
+    return (
+      <div ref={resultRef}>
+        <SessionScoreCard
+          hasResult={hasResult}
+          saving={saving}
+          collapsed={resultCollapsed}
+          goalsA={goalsA}
+          goalsB={goalsB}
+          onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
+          onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
+          onSaveResult={saveResult}
+          onDeleteResult={deleteResult}
+          onToggleCollapsed={() => setResultCollapsed((prev) => !prev)}
+          title="Ergebnis"
+        />
+      </div>
+    );
+  }
+
+  function renderMvp() {
+    return showMvpSection ? <SessionMvpCard sessionId={props.sessionId} /> : null;
+  }
+
+  const secondarySections: Array<{ key: SectionKey; node: React.ReactNode }> = [];
+
+  if (activeSection !== "attendance") {
+    secondarySections.push({ key: "attendance", node: renderAttendance() });
+  }
+
+  if (allowTeams && activeSection !== "teams") {
+    secondarySections.push({ key: "teams", node: renderTeams() });
+  }
+
+  if (allowWinnerPhoto && activeSection !== "photo") {
+    secondarySections.push({ key: "photo", node: renderWinnerPhoto() });
+  }
+
+  if (allowResult && activeSection !== "result") {
+    secondarySections.push({ key: "result", node: renderResult() });
+  }
+
+  if (showMvpSection && activeSection !== "mvp") {
+    secondarySections.push({ key: "mvp", node: renderMvp() });
+  }
+
+  const activeTitle =
+    activeSection === "attendance"
+      ? isEventSession
+        ? "Teilnehmer festlegen"
+        : "Anwesenheit prüfen"
+      : activeSection === "teams"
+        ? "Teams prüfen und anpassen"
+        : activeSection === "photo"
+          ? "Optional Siegerfoto ergänzen"
+          : activeSection === "result"
+            ? "Ergebnis eintragen"
+            : activeSection === "mvp"
+              ? "MVP Voting"
+              : null;
+
+  const activeDescription =
+    activeSection === "attendance"
+      ? isEventSession
+        ? "Hier sammelst du Zu- und Absagen für den Termin."
+        : "Zuerst festlegen, wer heute wirklich da ist."
+      : activeSection === "teams"
+        ? "Teams erst prüfen, bei Bedarf verschieben und dann bestätigen."
+        : activeSection === "photo"
+          ? "Optional, aber stark für Stimmung und spätere SiegerCard."
+          : activeSection === "result"
+            ? "Zum Schluss das Endergebnis sauber speichern."
+            : activeSection === "mvp"
+              ? "Nach dem Ergebnis läuft hier das Voting bzw. Reveal."
+              : undefined;
 
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => router.push("/sessions")}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-          >
-            <span aria-hidden="true">←</span>
-            <span>Zurück zu Sessions</span>
-          </button>
-        </div>
-
         <SessionHeaderCard
           sessionId={props.sessionId}
           date={session.date}
@@ -176,195 +408,66 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           deletingSession={deletingSession}
           primaryColorKey={primaryColorKey}
           onDeleteSession={handleDeleteSession}
+          onBack={() => router.push("/sessions")}
           onScrollToTeams={() =>
             teamsRef.current?.scrollIntoView({ behavior: "smooth" })
           }
           onScrollToResult={() =>
             resultRef.current?.scrollIntoView({ behavior: "smooth" })
           }
+          onOpenResultModal={() => setShowSessionEndModal(true)}
           sessionType={currentSessionType}
           sessionTypesEnabled={sessionTypeSwitchEnabled}
           onSessionTypeChange={updateSessionTypeAction}
+          scoreA={scoreAValue}
+          scoreB={scoreBValue}
+          hasWinnerPhoto={hasWinnerPhoto}
+          winnerPhotoUrl={winnerPhotoUrl}
+          mvpVotingEnabled={showMvpSection}
         />
 
-        {isTrainingSession && !hasResult ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
-            Empfohlene Reihenfolge: Anwesenheit festlegen
-            {attendanceDirty || attendanceMultiSelectEnabled
-              ? " → Anwesenheit speichern"
-              : ""}
-            {" "}→ Teams aufteilen → Siegerfoto hochladen → Ergebnis speichern.
-          </div>
+        {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
+        {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
+
+        {activeSection && activeTitle ? (
+          <section className="space-y-3">
+            <WorkspaceIntro
+              step="Jetzt dran"
+              title={activeTitle}
+              description={activeDescription}
+            />
+
+            {activeSection === "attendance" ? renderAttendance() : null}
+            {activeSection === "teams" ? renderTeams() : null}
+            {activeSection === "photo" ? renderWinnerPhoto() : null}
+            {activeSection === "result" ? renderResult() : null}
+            {activeSection === "mvp" ? renderMvp() : null}
+          </section>
+        ) : null}
+
+        {secondarySections.length > 0 ? (
+          <section className="space-y-2.5">
+            <SecondarySectionHeader title="Weitere Bereiche" />
+            <div className="space-y-2.5">
+              {secondarySections.map((section) => (
+                <div key={section.key}>{section.node}</div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {isTrainingSession && !hasResult && !activeSection ? (
+          <NoticeCard tone="default">
+            Teams, Foto und Ergebnis sind bereit. Du kannst direkt den
+            Abschluss speichern.
+          </NoticeCard>
         ) : null}
 
         {isEventSession ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
-            Termin: Hier sammelst du Zu- und Absagen. Teams, Ergebnis,
-            Siegerfoto und MVP sind für diesen Typ deaktiviert.
-          </div>
-        ) : null}
-
-        {err ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-            {err}
-          </div>
-        ) : null}
-
-        {msg ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-            {msg}
-          </div>
-        ) : null}
-
-        {allowResult && hasResult ? (
-          <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-sm font-semibold text-slate-500">
-                  Letztes Ergebnis
-                </div>
-                <div className="mt-1 text-base font-bold text-slate-950">
-                  Ergebnis ansehen und teilen
-                </div>
-                <div className="mt-1 text-sm text-slate-600">
-                  Öffne die Ergebnisansicht, um die SiegerCard nach außen zu
-                  teilen oder das Ergebnis mit CTA zurück in eure Gruppe zu
-                  posten.
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowSessionEndModal(true)}
-                className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                🔥 Ergebnis ansehen & teilen
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {showMvpSection ? <SessionMvpCard sessionId={props.sessionId} /> : null}
-
-        <div ref={attendanceRef}>
-          <SessionAttendanceCard
-            players={displayPlayers}
-            presentIds={draftPresentIds}
-            hasResult={hasResult}
-            isAdmin={isAdmin}
-            showGuestForm={showGuestForm}
-            guestName={guestName}
-            guestPosition={guestPosition}
-            guestAgeGroup={guestAgeGroup}
-            guestSaving={guestSaving}
-            clubSettings={clubSettings}
-            collapsed={attendanceCollapsed}
-            savingPresence={savingPresence}
-            dirty={attendanceDirty}
-            directSaveEnabled={directAttendanceSaveEnabled}
-            multiSelectEnabled={attendanceMultiSelectEnabled}
-            deletingGuestPlayerId={deletingGuestPlayerId}
-            onToggleMultiSelect={toggleAttendanceMultiSelect}
-            onToggleCollapsed={() => setAttendanceCollapsed((prev) => !prev)}
-            onToggleShowGuestForm={toggleGuestForm}
-            onGuestNameChange={setGuestName}
-            onGuestPositionChange={setGuestPosition}
-            onGuestAgeGroupChange={setGuestAgeGroup}
-            onAddGuestPlayer={addGuestPlayer}
-            onDeleteGuestPlayer={handleDeleteGuestPlayer}
-            onTogglePresence={(playerId) => {
-              void togglePresence(playerId);
-            }}
-            onSavePresence={savePresence}
-          />
-        </div>
-
-        {allowTeams ? (
-          <div ref={teamsRef}>
-            <SessionTeamsCard
-              teamA={displayTeamA}
-              teamB={displayTeamB}
-              unassigned={displayUnassigned}
-              metaA={metaA}
-              metaB={metaB}
-              hasResult={hasResult}
-              saving={saving || savingTeams}
-              teamsComplete={teamsComplete}
-              canShareLineup={canShareLineup}
-              sharingLineup={sharingLineup}
-              collapsed={teamsCollapsed}
-              attendanceDirty={attendanceDirty}
-              enableFieldView={useFieldView}
-              onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
-              onGenerateTeams={generateTeams}
-              onShareLineup={handleShareLineup}
-              onSetSide={setSide}
-            />
-          </div>
-        ) : null}
-
-        {allowWinnerPhoto ? (
-          <SessionResultCard
-            hasResult={hasResult}
-            saving={saving}
-            photoBusy={photoBusy}
-            goalsA={goalsA}
-            goalsB={goalsB}
-            canShareResult={false}
-            canUploadWinnerPhoto={canUploadWinnerPhoto}
-            winnerPhotoUrl={winnerPhotoUrl}
-            hasWinnerPhoto={Boolean(session.winner_photo_path)}
-            sharingResult={false}
-            sharingInternal={false}
-            winnerPhotoInputRef={winnerPhotoInputRef}
-            onGoalsAChange={() => {}}
-            onGoalsBChange={() => {}}
-            onDeleteResult={() => {}}
-            onWinnerPhotoUpload={handleWinnerPhotoUpload}
-            onWinnerPhotoDelete={handleWinnerPhotoDelete}
-            onSaveResult={() => {}}
-            onShareResult={() => {}}
-            onShareInternal={() => {}}
-            title="Siegerfoto"
-            description="Foto ansehen, hochladen, ersetzen oder löschen. Tipp für die Share Card: möglichst ein Hochformat-Foto verwenden."
-            showResultSection={false}
-            showPhotoSection={true}
-            showShareSection={false}
-            collapsedByDefault={hasResult}
-          />
-        ) : null}
-
-        {allowResult ? (
-          <div ref={resultRef}>
-            <SessionResultCard
-              hasResult={hasResult}
-              saving={saving}
-              photoBusy={photoBusy}
-              goalsA={goalsA}
-              goalsB={goalsB}
-              canShareResult={canShareResult}
-              canUploadWinnerPhoto={false}
-              winnerPhotoUrl={winnerPhotoUrl}
-              hasWinnerPhoto={Boolean(session.winner_photo_path)}
-              sharingResult={sharingResult}
-              sharingInternal={sharingInternal}
-              winnerPhotoInputRef={winnerPhotoInputRef}
-              onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
-              onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
-              onDeleteResult={deleteResult}
-              onWinnerPhotoUpload={handleWinnerPhotoUpload}
-              onWinnerPhotoDelete={handleWinnerPhotoDelete}
-              onSaveResult={saveResult}
-              onShareResult={handleShareResult}
-              onShareInternal={handleShareInternalResult}
-              title="Ergebnis"
-              description="Ergebnis speichern, ändern oder löschen."
-              showResultSection={true}
-              showPhotoSection={false}
-              showShareSection={false}
-              collapsedByDefault={hasResult}
-            />
-          </div>
+          <NoticeCard tone="default">
+            Termin-Modus: Hier sammelst du Zu- und Absagen. Teams, Ergebnis,
+            Siegerfoto und MVP sind deaktiviert.
+          </NoticeCard>
         ) : null}
       </div>
 
@@ -375,9 +478,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           scoreA={scoreAValue}
           scoreB={scoreBValue}
           wasUnderdog={false}
-          onShareInternal={handleShareInternalResult}
+          winnerPhotoUrl={winnerPhotoUrl}
           onShareSocial={handleShareResult}
-          sharingInternal={sharingInternal}
           sharingSocial={sharingResult}
           resultShareReady={resultShareReady}
           preparingResultShare={preparingResultShare}

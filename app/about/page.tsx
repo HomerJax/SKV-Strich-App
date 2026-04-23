@@ -9,9 +9,41 @@ type ReleaseItem = {
 
 const RELEASES: ReleaseItem[] = [
   {
+    version: "v0.5",
+    title: "Session-Flow, MVP & Produkt-Upgrade",
+    dateLabel: "Neuestes Release",
+    items: [
+      "Trainings-Flow komplett überarbeitet und erstmals klar strukturiert",
+      "Geführter Ablauf von Anwesenheit → Teams → Siegerfoto → Ergebnis → MVP",
+      "Neuer Abschlusszustand nach Ergebnis mit Fokus auf Ergebnis, Foto und Teilen",
+      "Sessions können jetzt auch als Termin geführt werden (ohne Teams, Ergebnis & MVP)",
+      "UI passt sich automatisch an den Session-Typ an (Training vs. Termin)",
+      "MVP Voting ist jetzt vollständig integriert und startet automatisch nach dem Ergebnis",
+      "MVP Voting endet automatisch am nächsten Tag – kein manuelles Eingreifen nötig",
+      "Persönliche Spieler-Stats freigeschaltet",
+      "Grundlage für Spielerentwicklung und Badges geschaffen",
+      "Session-Detailseite komplett neu strukturiert in klare, getrennte Bereiche",
+      "Alle Bereiche (Anwesenheit, Teams, Foto, Ergebnis, MVP) sind jetzt einklappbar",
+      "Status innerhalb der Session visuell klarer (erledigt vs. aktiv)",
+      "Redundante Elemente im Abschluss entfernt für mehr Fokus",
+      "Hero-Bereich überarbeitet: kompakter, ruhiger und klarer",
+      "Siegerfoto direkt im Abschlussbereich integriert",
+      "Teilen von Ergebnissen deutlich verbessert und stabilisiert",
+      "Vorbereitung für Social Sharing (z. B. Instagram) optimiert",
+      "Team-Generator weiter verbessert für stabilere und fairere Aufteilungen",
+      "Persistenz der Team-Zuordnung stabilisiert",
+      "Anwesenheits-Handling überarbeitet (direktes Speichern vs. Mehrfachauswahl)",
+      "Session-Type-Wechsel (Training ↔ Termin) funktioniert jetzt zuverlässig ohne UI-Fehler",
+      "Zahlreiche Fehler im Session-Flow behoben",
+      "Scroll-Verhalten stabilisiert bei Aktionen innerhalb der Session",
+      "Build- und Strukturfehler bereinigt (Dateien, Typen, Komponenten)",
+      "Grundlegende Stabilität deutlich verbessert für den echten Einsatz im Training",
+    ],
+  },
+  {
     version: "v0.3",
     title: "Generator-Update & Spielerform",
-    dateLabel: "Neuestes Release",
+    dateLabel: "Vorheriges Release",
     items: [
       "Team-Generator überarbeitet für fairere und stimmigere Aufteilungen",
       "Generator bewertet Teamverteilungen jetzt noch gezielter auf Basis von Kategorie, Stärke und Position",
@@ -24,7 +56,7 @@ const RELEASES: ReleaseItem[] = [
   {
     version: "v0.2",
     title: "Pilot-Readiness",
-    dateLabel: "Vorheriges Release",
+    dateLabel: "Früheres Release",
     items: [
       "Profilbereich über Klick auf den Namen im Header erreichbar",
       "Passwort kann direkt im Profil geändert werden",
@@ -55,6 +87,7 @@ const RELEASES: ReleaseItem[] = [
 
 export default function AboutPage() {
   const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
+  const instagramHref = "https://www.instagram.com/strikr.app/";
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
@@ -147,7 +180,7 @@ export default function AboutPage() {
 
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
           <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Warum Strikr?
+            Warum strikr?
           </div>
 
           <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
@@ -186,12 +219,12 @@ export default function AboutPage() {
           </h2>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-            Strikr läuft aktuell in einer Pilotphase. Die App ist stabil und wird
+            strikr läuft aktuell in einer Pilotphase. Die App ist stabil und wird
             aktiv im Training genutzt.
           </p>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-            Weitere Features sind geplant – Schritt für Schritt, immer nah am
+            Weitere Verbesserungen entstehen Schritt für Schritt – immer nah am
             echten Bedarf auf dem Platz.
           </p>
 
@@ -242,9 +275,23 @@ export default function AboutPage() {
         </div>
 
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
-          <h2 className="text-xl font-bold text-slate-950">Feedback geben</h2>
+          <h2 className="text-xl font-bold text-slate-950">Updates & Feedback</h2>
 
-          <div className="mt-4">
+          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+            Folge strikr auf Instagram für neue Updates, Einblicke und weitere
+            Entwicklungen rund um das Produkt.
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href={instagramHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+            >
+              Instagram ansehen
+            </a>
+
             <a
               href={feedbackHref}
               className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"

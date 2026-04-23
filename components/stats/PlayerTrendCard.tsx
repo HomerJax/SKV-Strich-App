@@ -29,16 +29,6 @@ function average(values: number[]) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-/**
- * Unterstützt:
- * - alt: Sieg=3, Unentschieden=1, Niederlage=0
- * - neu: Sieg=1, Unentschieden=0, Niederlage=-1
- *
- * Intern normalisieren wir auf:
- * - Sieg = 3
- * - Unentschieden = 1
- * - Niederlage = 0
- */
 function normalizePointValue(value: number) {
   if (value >= 3) return 3;
   if (value <= -1) return 0;
@@ -354,23 +344,14 @@ export default function PlayerTrendCard({
 
   if (allPoints.length === 0) {
     return (
-      <section
-        className={`rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6 ${className}`}
-      >
+      <div className={`space-y-4 ${className}`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-slate-950">Meine Form</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Verlauf über alle bewerteten Sessions
-            </div>
-          </div>
-
           <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
             → Neutral
           </span>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
           <div className="text-base font-semibold text-slate-950">
             Noch kein klarer Trend
           </div>
@@ -378,7 +359,7 @@ export default function PlayerTrendCard({
             Sobald Ergebnisse vorhanden sind, erscheint hier dein Verlauf.
           </div>
         </div>
-      </section>
+      </div>
     );
   }
 
@@ -398,24 +379,8 @@ export default function PlayerTrendCard({
   );
 
   return (
-    <section
-      className={`rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6 ${className}`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-slate-950">Meine Form</div>
-          <div className="mt-1 text-sm text-slate-600">
-            Verlauf über alle {allPoints.length} bewerteten Sessions
-          </div>
-        </div>
-
-        <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-          <span className="mr-1">{trendCopy.icon}</span>
-          {trendCopy.badge}
-        </span>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
+    <div className={`space-y-4 ${className}`}>
+      <div className="flex flex-wrap gap-2">
         <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
           {stats.total} Spiele
         </span>
@@ -430,13 +395,22 @@ export default function PlayerTrendCard({
         </span>
       </div>
 
-      <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/90 px-4 py-4 sm:px-5">
-        <div className="text-[28px] font-bold leading-none tracking-tight text-slate-950">
-          {trendCopy.title}
-        </div>
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/90 px-4 py-4 sm:px-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[28px] font-bold leading-none tracking-tight text-slate-950">
+              {trendCopy.title}
+            </div>
 
-        <div className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-          {trendCopy.subtitle}
+            <div className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              {trendCopy.subtitle}
+            </div>
+          </div>
+
+          <span className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+            <span className="mr-1">{trendCopy.icon}</span>
+            {trendCopy.badge}
+          </span>
         </div>
 
         <div className="mt-4 overflow-x-auto pb-2">
@@ -504,13 +478,7 @@ export default function PlayerTrendCard({
             </div>
           </div>
         </div>
-
-        <div className="mt-4 flex items-center justify-start">
-          <div className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-            {trendCopy.badge}
-          </div>
-        </div>
       </div>
-    </section>
+    </div>
   );
 }

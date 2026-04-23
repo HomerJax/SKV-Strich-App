@@ -131,6 +131,30 @@ async function detectImageOrientation(file: File): Promise<ImageOrientation> {
   });
 }
 
+function removePlayerFromTeamMap(source: TeamMap, playerId: number): TeamMap {
+  const next = { ...source };
+  delete next[playerId];
+  return next;
+}
+
+function ensurePresentPlayersExistInTeamMap(source: TeamMap, playerIds: number[]): TeamMap {
+  const next = { ...source };
+
+  playerIds.forEach((id) => {
+    next[id] = next[id] ?? null;
+  });
+
+  Object.keys(next).forEach((key) => {
+    const numericId = Number(key);
+
+    if (!playerIds.includes(numericId)) {
+      delete next[numericId];
+    }
+  });
+
+  return next;
+}
+
 export function useSessionDetail({
   sessionId,
   initialSession,
@@ -192,6 +216,11 @@ export function useSessionDetail({
   const [goalsA, setGoalsA] = useState(initialGoalsA);
   const [goalsB, setGoalsB] = useState(initialGoalsB);
   const [hasResult, setHasResult] = useState(initialHasResult);
+  const [teamsConfirmed, setTeamsConfirmed] = useState(
+    initialHasResult ||
+      (initialPresentIds.length > 0 &&
+        Object.values(initialManualTeams).some((side) => side === "A" || side === "B"))
+  );
 
   const [showSessionEndModal, setShowSessionEndModal] = useState(false);
 
@@ -210,6 +239,8 @@ export function useSessionDetail({
 
   const [attendanceCollapsed, setAttendanceCollapsed] = useState(initialHasResult);
   const [teamsCollapsed, setTeamsCollapsed] = useState(initialHasResult);
+  const [winnerPhotoCollapsed, setWinnerPhotoCollapsed] = useState(initialHasResult);
+  const [resultCollapsed, setResultCollapsed] = useState(initialHasResult);
 
   const [saving, setSaving] = useState(false);
   const [savingTeams, setSavingTeams] = useState(false);
@@ -299,10 +330,30 @@ export function useSessionDetail({
     };
   }
 
+  function clearFeedback() {
+    setErr(null);
+    setMsg(null);
+  }
+
+  function resetPreparedResultShare() {
+    setPreparedResultShareFile(null);
+    setResultShareMessage(null);
+  }
+
+  function resetGuestForm() {
+    setGuestName("");
+    setGuestPosition("");
+    setGuestAgeGroup("");
+    setShowGuestForm(false);
+  }
+
   useEffect(() => {
     if (initialHasResult) {
       setAttendanceCollapsed(true);
       setTeamsCollapsed(true);
+      setWinnerPhotoCollapsed(true);
+      setResultCollapsed(true);
+      setTeamsConfirmed(true);
     }
   }, [initialHasResult]);
 
@@ -314,13 +365,10 @@ export function useSessionDetail({
     };
   }, []);
 
-  // 🔥 WICHTIG: Wenn der Server nach Session-Type-Switch neue Props liefert,
-  // muss die lokale Session-State darauf reagieren.
   useEffect(() => {
     setSession(initialSession);
   }, [initialSession]);
 
-  // Diese Syncs helfen zusätzlich, damit UI nach Server Action sauber nachzieht.
   useEffect(() => {
     setWinnerPhotoUrl(initialWinnerPhotoUrl);
   }, [initialWinnerPhotoUrl]);
@@ -329,6 +377,12 @@ export function useSessionDetail({
     setHasResult(initialHasResult);
     setGoalsA(initialGoalsA);
     setGoalsB(initialGoalsB);
+
+    if (initialHasResult) {
+      setWinnerPhotoCollapsed(true);
+      setResultCollapsed(true);
+      setTeamsConfirmed(true);
+    }
   }, [initialHasResult, initialGoalsA, initialGoalsB]);
 
   const attendanceDirty = useMemo(() => {
@@ -399,8 +453,15 @@ export function useSessionDetail({
   const teamsComplete =
     !allowTeams || (teamA.length > 0 && teamB.length > 0 && unassigned.length === 0);
 
+  const hasWinnerPhoto = Boolean(winnerPhotoUrl || session?.winner_photo_path);
+
   const canUploadWinnerPhoto =
-    allowWinnerPhoto && teamsComplete && !photoBusy && !saving && !deletingSession;
+    allowWinnerPhoto &&
+    teamsComplete &&
+    teamsConfirmed &&
+    !photoBusy &&
+    !saving &&
+    !deletingSession;
 
   const scoreAValue = Number(goalsA) || 0;
   const scoreBValue = Number(goalsB) || 0;
@@ -422,7 +483,7 @@ export function useSessionDetail({
     ? presentIds.length > 0
     : presentIds.length > 0 && !attendanceDirty && attendanceCollapsed;
 
-  const teamsDone = allowTeams ? teamsComplete && teamsCollapsed : true;
+  const teamsDone = allowTeams ? teamsComplete && teamsConfirmed && teamsCollapsed : true;
   const resultDone = allowResult ? hasResult : true;
   const showMvpSection = allowMvp && hasResult;
 
@@ -440,7 +501,9 @@ export function useSessionDetail({
           ? "Mehr Spieler auf anwesend setzen"
           : !teamsComplete
             ? "Teams fertig zuweisen"
-            : "Ergebnis eintragen und speichern";
+            : !teamsConfirmed
+              ? "Teams prüfen und bestätigen"
+              : "Ergebnis eintragen und speichern";
 
   const resultShareImageUrl = useMemo(() => {
     if (typeof window === "undefined") {
@@ -510,13 +573,6 @@ export function useSessionDetail({
     throw new Error("Teilen wird auf diesem Gerät/Browser nicht unterstützt.");
   }
 
-  function resetGuestForm() {
-    setGuestName("");
-    setGuestPosition("");
-    setGuestAgeGroup("");
-    setShowGuestForm(false);
-  }
-
   function toggleGuestForm() {
     if (showGuestForm) {
       resetGuestForm();
@@ -531,9 +587,7 @@ export function useSessionDetail({
       return;
     }
 
-    setErr(null);
-    setMsg(null);
-
+    clearFeedback();
     setAttendanceMultiSelectEnabled((prev) => !prev);
   }
 
@@ -574,8 +628,7 @@ export function useSessionDetail({
   async function handleShareLineup() {
     try {
       setSharingLineup(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       if (!canShareLineup) {
         throw new Error("Bitte zuerst beide Teams zuweisen.");
@@ -605,8 +658,7 @@ export function useSessionDetail({
   async function handleShareInternalResult() {
     try {
       setSharingInternal(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       if (!canShareResult) {
         throw new Error(
@@ -650,8 +702,7 @@ ${sessionUrl}`;
   async function handleShareResult() {
     try {
       setSharingResult(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       if (!canShareResult) {
         throw new Error(
@@ -716,7 +767,18 @@ ${sessionUrl}`;
         return;
       }
 
-      const message = getErrorMessage(error, "SiegerCard konnte nicht geteilt werden.");
+      const rawMessage =
+        error instanceof Error ? error.message : "SiegerCard konnte nicht geteilt werden.";
+
+      const isUserGestureIssue =
+        rawMessage.includes("Must be handling a user gesture") ||
+        rawMessage.includes("share") ||
+        rawMessage.includes("Navigator");
+
+      const message = isUserGestureIssue
+        ? "Direktes Teilen wurde vom Browser blockiert. Bitte Button erneut antippen."
+        : getErrorMessage(error, "SiegerCard konnte nicht geteilt werden.");
+
       setErr(message);
       setResultShareMessage(message);
     } finally {
@@ -764,8 +826,7 @@ ${sessionUrl}`;
 
     try {
       setDeletingGuestPlayerId(playerId);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       const formData = new FormData();
       formData.set("intent", "delete_guest_player");
@@ -779,11 +840,7 @@ ${sessionUrl}`;
         setPlayers((prev) => prev.filter((entry) => entry.id !== deletedId));
         setPresentIds((prev) => prev.filter((id) => id !== deletedId));
         setDraftPresentIds((prev) => prev.filter((id) => id !== deletedId));
-        setManualTeams((prev) => {
-          const next = { ...prev };
-          delete next[deletedId];
-          return next;
-        });
+        setManualTeams((prev) => removePlayerFromTeamMap(prev, deletedId));
 
         setMsg(result.message);
       }
@@ -815,8 +872,7 @@ ${sessionUrl}`;
 
     try {
       setDeletingSession(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       const formData = new FormData();
       formData.set("intent", "delete_session");
@@ -847,8 +903,7 @@ ${sessionUrl}`;
       return;
     }
 
-    setErr(null);
-    setMsg(null);
+    clearFeedback();
 
     if (!directAttendanceSaveEnabled) {
       setDraftPresentIds((prev) =>
@@ -879,17 +934,20 @@ ${sessionUrl}`;
         ? presentIds.filter((playerId) => playerId !== id)
         : [...presentIds, id];
 
-      const nextManualTeams = { ...manualTeams };
-
-      if (isCurrentlyPresent) {
-        delete nextManualTeams[id];
-      } else {
-        nextManualTeams[id] = nextManualTeams[id] ?? null;
-      }
+      const nextManualTeams = isCurrentlyPresent
+        ? removePlayerFromTeamMap(manualTeams, id)
+        : ensurePresentPlayersExistInTeamMap(
+            {
+              ...manualTeams,
+              [id]: manualTeams[id] ?? null,
+            },
+            nextPresentIds
+          );
 
       setPresentIds(nextPresentIds);
       setDraftPresentIds(nextPresentIds);
       setManualTeams(nextManualTeams);
+      setTeamsConfirmed(false);
 
       if (allowTeams) {
         await persistTeamsNow(nextManualTeams);
@@ -919,8 +977,7 @@ ${sessionUrl}`;
 
     try {
       setSavingPresence(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       const toRemove = presentIds.filter((id) => !draftPresentIds.includes(id));
       const toAdd = draftPresentIds.filter((id) => !presentIds.includes(id));
@@ -939,21 +996,14 @@ ${sessionUrl}`;
         await postForm(formData);
       }
 
-      const nextManualTeams = { ...manualTeams };
-
-      Object.keys(nextManualTeams).forEach((key) => {
-        const numericId = Number(key);
-        if (!draftPresentIds.includes(numericId)) {
-          delete nextManualTeams[numericId];
-        }
-      });
-
-      draftPresentIds.forEach((id) => {
-        nextManualTeams[id] = nextManualTeams[id] ?? null;
-      });
+      const nextManualTeams = ensurePresentPlayersExistInTeamMap(
+        manualTeams,
+        draftPresentIds
+      );
 
       setPresentIds(draftPresentIds);
       setManualTeams(nextManualTeams);
+      setTeamsConfirmed(false);
 
       if (allowTeams) {
         await persistTeamsNow(nextManualTeams);
@@ -990,8 +1040,7 @@ ${sessionUrl}`;
       }
 
       setGuestSaving(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       const cleanName = guestName.trim();
       if (!cleanName) {
@@ -1008,20 +1057,21 @@ ${sessionUrl}`;
 
       if ("player" in result) {
         const nextPlayer = result.player;
+        const nextPresentIds = presentIds.includes(nextPlayer.id)
+          ? presentIds
+          : [...presentIds, nextPlayer.id];
+        const nextDraftPresentIds = draftPresentIds.includes(nextPlayer.id)
+          ? draftPresentIds
+          : [...draftPresentIds, nextPlayer.id];
 
         setPlayers((prev) => sortPlayersByFirstName([...prev, nextPlayer]));
-
-        setPresentIds((prev) =>
-          prev.includes(nextPlayer.id) ? prev : [...prev, nextPlayer.id]
-        );
-        setDraftPresentIds((prev) =>
-          prev.includes(nextPlayer.id) ? prev : [...prev, nextPlayer.id]
-        );
-
+        setPresentIds(nextPresentIds);
+        setDraftPresentIds(nextDraftPresentIds);
         setManualTeams((prev) => ({
           ...prev,
           [nextPlayer.id]: prev[nextPlayer.id] ?? null,
         }));
+        setTeamsConfirmed(false);
 
         resetGuestForm();
         setMsg(result.message);
@@ -1054,8 +1104,7 @@ ${sessionUrl}`;
 
     const restoreScroll = preserveScrollPosition();
 
-    setErr(null);
-    setMsg(null);
+    clearFeedback();
 
     const present = presentPlayers;
     if (present.length < 2) {
@@ -1159,6 +1208,7 @@ ${sessionUrl}`;
     for (const player of bestB) next[player.id] = "B";
 
     setManualTeams(next);
+    setTeamsConfirmed(false);
     await persistTeamsNow(next);
 
     const useStrength = clubSettings?.use_strength ?? true;
@@ -1186,6 +1236,26 @@ ${sessionUrl}`;
     restoreScroll();
   }
 
+  function confirmTeams() {
+    if (!allowTeams) {
+      return;
+    }
+
+    if (hasResult) {
+      return;
+    }
+
+    if (!teamsComplete) {
+      setErr("Bitte zuerst beide Teams vollständig zuweisen.");
+      return;
+    }
+
+    clearFeedback();
+    setTeamsConfirmed(true);
+    setTeamsCollapsed(true);
+    setMsg("Teams bestätigt. Jetzt kannst du optional ein Siegerfoto ergänzen oder direkt das Ergebnis eintragen.");
+  }
+
   function setSide(playerId: number, side: TeamSide | null) {
     if (!allowTeams) {
       setErr("Für diesen Termin gibt es keine Teamaufteilung.");
@@ -1208,6 +1278,7 @@ ${sessionUrl}`;
 
     setManualTeams((prev) => {
       const next = { ...prev, [playerId]: side };
+      setTeamsConfirmed(false);
       scheduleTeamsSave(next);
       return next;
     });
@@ -1236,6 +1307,11 @@ ${sessionUrl}`;
       return;
     }
 
+    if (!teamsConfirmed) {
+      setErr("Bitte die Teams zuerst prüfen und bestätigen.");
+      return;
+    }
+
     if (cleanA === "" || cleanB === "") {
       setErr("Bitte trage zuerst ein vollständiges Ergebnis ein.");
       return;
@@ -1250,8 +1326,7 @@ ${sessionUrl}`;
 
     try {
       setSaving(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       const formData = new FormData();
       formData.set("intent", "save_result");
@@ -1267,9 +1342,11 @@ ${sessionUrl}`;
         setGoalsB(result.goalsB);
         setAttendanceCollapsed(true);
         setTeamsCollapsed(true);
+        setWinnerPhotoCollapsed(true);
+        setResultCollapsed(true);
+        setTeamsConfirmed(true);
         setMsg(result.message);
-        setPreparedResultShareFile(null);
-        setResultShareMessage(null);
+        resetPreparedResultShare();
 
         if (result.hasResult) {
           setShowSessionEndModal(true);
@@ -1300,8 +1377,7 @@ ${sessionUrl}`;
 
     try {
       setSaving(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       const formData = new FormData();
       formData.set("intent", "delete_result");
@@ -1314,9 +1390,10 @@ ${sessionUrl}`;
         setGoalsB(result.goalsB);
         setAttendanceCollapsed(false);
         setTeamsCollapsed(false);
+        setWinnerPhotoCollapsed(false);
+        setResultCollapsed(false);
         setShowSessionEndModal(false);
-        setPreparedResultShareFile(null);
-        setResultShareMessage(null);
+        resetPreparedResultShare();
         setMsg(result.message);
       }
     } catch (e: unknown) {
@@ -1350,14 +1427,18 @@ ${sessionUrl}`;
       return;
     }
 
+    if (!teamsConfirmed) {
+      setErr("Bitte die Teams zuerst prüfen und bestätigen.");
+      return;
+    }
+
     if (photoBusy || saving || deletingSession || deletingGuestPlayerId) return;
 
     const restoreScroll = preserveScrollPosition();
 
     try {
       setPhotoBusy(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       const orientation = await detectImageOrientation(file);
 
@@ -1375,15 +1456,14 @@ ${sessionUrl}`;
 
         setSession(nextSession);
         setWinnerPhotoUrl(result.winnerPhotoUrl);
-        setPreparedResultShareFile(null);
-        setResultShareMessage(null);
+        resetPreparedResultShare();
 
         const orientationHint =
           orientation === "landscape" || orientation === "square"
             ? " Tipp: Für die Share Card funktioniert ein Hochformat-Foto meistens deutlich besser."
             : "";
 
-        setMsg(`${result.message}${orientationHint}`);
+        setMsg(`Siegerfoto hochgeladen. Jetzt noch Ergebnis eintragen.${orientationHint}`);
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Siegerfoto konnte nicht hochgeladen werden."));
@@ -1413,8 +1493,7 @@ ${sessionUrl}`;
 
     try {
       setPhotoBusy(true);
-      setErr(null);
-      setMsg(null);
+      clearFeedback();
 
       const formData = new FormData();
       formData.set("intent", "delete_winner_photo");
@@ -1429,8 +1508,7 @@ ${sessionUrl}`;
 
         setSession(nextSession);
         setWinnerPhotoUrl(result.winnerPhotoUrl);
-        setPreparedResultShareFile(null);
-        setResultShareMessage(null);
+        resetPreparedResultShare();
         setMsg(result.message);
       }
     } catch (e: unknown) {
@@ -1481,6 +1559,8 @@ ${sessionUrl}`;
     setGoalsA,
     setGoalsB,
     hasResult,
+    hasWinnerPhoto,
+    teamsConfirmed,
 
     showSessionEndModal,
     setShowSessionEndModal,
@@ -1499,6 +1579,10 @@ ${sessionUrl}`;
     setAttendanceCollapsed,
     teamsCollapsed,
     setTeamsCollapsed,
+    winnerPhotoCollapsed,
+    setWinnerPhotoCollapsed,
+    resultCollapsed,
+    setResultCollapsed,
 
     saving,
     savingTeams,
@@ -1546,6 +1630,7 @@ ${sessionUrl}`;
 
     toggleGuestForm,
     toggleAttendanceMultiSelect,
+    confirmTeams,
     handleShareLineup,
     handleShareInternalResult,
     handleShareResult,

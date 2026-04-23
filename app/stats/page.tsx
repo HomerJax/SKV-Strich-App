@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  TrendingUp,
+  UsersRound,
+  History,
+  Award,
+} from "lucide-react";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import PageHero from "@/components/ui/PageHero";
+import ScopeToggle from "@/components/stats/ScopeToggle";
 import BadgeProgressCard from "@/components/badges/BadgeProgressCard";
 import PlayerTrendCard from "@/components/stats/PlayerTrendCard";
 import StatsHero from "@/components/stats/StatsHero";
@@ -73,6 +81,11 @@ type MvpVoteRow = {
   voted_player_id: number;
 };
 
+type ClubRow = {
+  id: string;
+  primary_color: string | null;
+};
+
 type StatsScope = "season" | "career";
 
 function trendValueForOutcome(outcome: RecentResult["outcome"]) {
@@ -101,9 +114,12 @@ function getCurrentSeason(seasons: SeasonRow[]) {
   return seasons[0] ?? null;
 }
 
-function getScopeLabel(scope: StatsScope, seasonName: string | null) {
-  if (scope === "career") return "Karriere";
-  return seasonName ? `Aktuelle Saison · ${seasonName}` : "Aktuelle Saison";
+function getScopeDescription(scope: StatsScope) {
+  if (scope === "career") {
+    return "Alle gespeicherten Ergebnisse, Trends und MVP-Erfolge über deine gesamte Zeit im Club.";
+  }
+
+  return "Deine Ergebnisse, Trends und MVP-Erfolge aus der aktuell laufenden Saison.";
 }
 
 function EmptyStatsContent({
@@ -115,139 +131,89 @@ function EmptyStatsContent({
 }) {
   return (
     <>
-      <div className="mt-5">
-        <StatsSection
-          title="Form"
-          subtitle="Verlauf über alle gespielten Einheiten."
-          defaultOpen={true}
-        >
-          <PlayerTrendCard enabled={true} points={[]} />
-        </StatsSection>
-      </div>
+      <StatsSection
+        title="Form"
+        subtitle="Verlauf über alle gespielten Einheiten."
+        defaultOpen={true}
+        icon={<TrendingUp className="h-5 w-5" />}
+      >
+        <PlayerTrendCard enabled={true} points={[]} />
+      </StatsSection>
 
-      <div className="mt-5">
-        <StatsSection
-          title="Team Impact"
-          subtitle="Wie stark dein Einfluss auf Ergebnisse und Team-Balance war."
-          defaultOpen={false}
-        >
-          <TeamImpactCard
-            impactGames={0}
-            impactWins={0}
-            impactTotal={0}
-            impactPerMatch={0}
-            impactMeta={getImpactMeta(0)}
-          />
-        </StatsSection>
-      </div>
+      <StatsSection
+        title="Team Impact"
+        subtitle="Wie stark dein Einfluss auf Ergebnisse und Team-Balance war."
+        defaultOpen={false}
+        icon={<UsersRound className="h-5 w-5" />}
+      >
+        <TeamImpactCard
+          impactGames={0}
+          impactWins={0}
+          impactTotal={0}
+          impactPerMatch={0}
+          impactMeta={getImpactMeta(0)}
+        />
+      </StatsSection>
 
-      <div className="mt-5">
-        <StatsSection
-          title="Letzte Ergebnisse"
-          subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
-          defaultOpen={true}
-        >
-          <RecentResultsCard results={[]} />
-        </StatsSection>
-      </div>
+      <StatsSection
+        title="Letzte Ergebnisse"
+        subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
+        defaultOpen={true}
+        icon={<History className="h-5 w-5" />}
+      >
+        <RecentResultsCard results={[]} />
+      </StatsSection>
 
       {showMvp ? (
-        <div className="mt-5">
-          <StatsSection
-            title="Badges"
-            subtitle="Dein aktueller Badge-Status auf Basis deiner gesamten MVP-Erfolge."
-            defaultOpen={true}
-          >
-            <div className="space-y-4">
-              <BadgeProgressCard
-                mvpCount={badgeMvpCount}
-                title="Badge-Fortschritt"
-              />
+        <StatsSection
+          title="Badges"
+          subtitle="Dein aktueller Badge-Status auf Basis deiner gesamten MVP-Erfolge."
+          defaultOpen={true}
+          icon={<Award className="h-5 w-5" />}
+        >
+          <div className="space-y-4">
+            <BadgeProgressCard
+              mvpCount={badgeMvpCount}
+              title="Badge-Fortschritt"
+            />
 
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-900">
-                  Coming Soon
-                </div>
-                <p className="mt-1 text-sm text-slate-600">
-                  Weitere Badges folgen. Hier werden später zusätzliche Erfolge
-                  und Auszeichnungen für Training, Teilnahme, Serien und
-                  besondere Leistungen sichtbar.
-                </p>
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+              <div className="text-sm font-semibold text-slate-900">
+                Coming Soon
               </div>
+              <p className="mt-1 text-sm text-slate-600">
+                Weitere Badges folgen. Hier werden später zusätzliche Erfolge
+                und Auszeichnungen für Training, Teilnahme, Serien und
+                besondere Leistungen sichtbar.
+              </p>
             </div>
-          </StatsSection>
-        </div>
+          </div>
+        </StatsSection>
       ) : null}
     </>
   );
 }
 
-function ScopeSwitch({
+function StatsIntro({
   scope,
   seasonName,
+  primaryColorKey,
 }: {
   scope: StatsScope;
   seasonName: string | null;
+  primaryColorKey: string | null | undefined;
 }) {
-  const seasonActive = scope === "season";
-  const careerActive = scope === "career";
-
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Link
-        href="/stats?scope=season"
-        className={`rounded-2xl border p-4 transition ${
-          seasonActive
-            ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-            : "border-slate-200 bg-white text-slate-900 hover:border-slate-300"
-        }`}
-      >
-        <div
-          className={`text-xs font-semibold uppercase tracking-[0.18em] ${
-            seasonActive ? "text-white/70" : "text-slate-400"
-          }`}
-        >
-          Stats
-        </div>
-        <div className="mt-2 text-lg font-semibold">
-          {seasonName ? `Aktuelle Saison · ${seasonName}` : "Aktuelle Saison"}
-        </div>
-        <p
-          className={`mt-2 text-sm leading-6 ${
-            seasonActive ? "text-white/80" : "text-slate-600"
-          }`}
-        >
-          Zeigt nur deine Ergebnisse, Trends und MVP-Erfolge aus der aktuell
-          laufenden Saison.
-        </p>
-      </Link>
-
-      <Link
-        href="/stats?scope=career"
-        className={`rounded-2xl border p-4 transition ${
-          careerActive
-            ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-            : "border-slate-200 bg-white text-slate-900 hover:border-slate-300"
-        }`}
-      >
-        <div
-          className={`text-xs font-semibold uppercase tracking-[0.18em] ${
-            careerActive ? "text-white/70" : "text-slate-400"
-          }`}
-        >
-          Stats
-        </div>
-        <div className="mt-2 text-lg font-semibold">Karriere</div>
-        <p
-          className={`mt-2 text-sm leading-6 ${
-            careerActive ? "text-white/80" : "text-slate-600"
-          }`}
-        >
-          Zeigt deine gesamte Historie im Club über alle bisherigen Saisons
-          hinweg.
-        </p>
-      </Link>
-    </div>
+    <PageHero
+      eyebrow="Spieler"
+      title="Meine Stats"
+      description={getScopeDescription(scope)}
+      primaryColorKey={primaryColorKey}
+      backLabel="Zurück"
+      backHref="/"
+      topRightSlot={<ScopeToggle scope={scope} seasonName={seasonName} />}
+      compact
+    />
   );
 }
 
@@ -268,6 +234,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const [
     { data: clubSettingsData, error: clubSettingsError },
     { data: seasonsData, error: seasonsError },
+    { data: clubData, error: clubError },
   ] = await Promise.all([
     supabase
       .from("club_settings")
@@ -279,6 +246,11 @@ export default async function StatsPage({ searchParams }: PageProps) {
       .select("id, name, start_date, end_date")
       .eq("club_id", clubId)
       .order("start_date", { ascending: false }),
+    supabase
+      .from("clubs")
+      .select("id, primary_color")
+      .eq("id", clubId)
+      .maybeSingle<ClubRow>(),
   ]);
 
   if (clubSettingsError) {
@@ -289,6 +261,10 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
   if (seasonsError) {
     throw new Error(`Saisons konnten nicht geladen werden: ${seasonsError.message}`);
+  }
+
+  if (clubError) {
+    throw new Error(`Club konnte nicht geladen werden: ${clubError.message}`);
   }
 
   const clubSettings = (clubSettingsData ?? {
@@ -302,31 +278,18 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
   const useStrength = clubSettings.use_strength ?? true;
   const strengthDefault = clubSettings.strength_default ?? 3;
+  const primaryColorKey = clubData?.primary_color ?? "black";
 
   if (!player) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
-        <div className="mb-4">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück
-          </Link>
-        </div>
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+          <StatsIntro
+            scope={scope}
+            seasonName={currentSeasonName}
+            primaryColorKey={primaryColorKey}
+          />
 
-        <div className="space-y-4">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
-            <p className="text-sm text-slate-500">
-              {getScopeLabel(scope, currentSeasonName)}
-            </p>
-          </div>
-
-          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
-        </div>
-
-        <div className="mt-5">
           <StatsHero
             sessionsPlayed={0}
             wins={0}
@@ -337,12 +300,12 @@ export default async function StatsPage({ searchParams }: PageProps) {
             mvpWins={0}
             mvpPerGame={0}
           />
-        </div>
 
-        <EmptyStatsContent
-          showMvp={flags.session_mvp_voting}
-          badgeMvpCount={0}
-        />
+          <EmptyStatsContent
+            showMvp={flags.session_mvp_voting}
+            badgeMvpCount={0}
+          />
+        </section>
       </main>
     );
   }
@@ -383,28 +346,14 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
   if (playerSessionIds.length === 0) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
-        <div className="mb-4">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück
-          </Link>
-        </div>
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+          <StatsIntro
+            scope={scope}
+            seasonName={currentSeasonName}
+            primaryColorKey={primaryColorKey}
+          />
 
-        <div className="space-y-4">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
-            <p className="text-sm text-slate-500">
-              {getScopeLabel(scope, currentSeasonName)}
-            </p>
-          </div>
-
-          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
-        </div>
-
-        <div className="mt-5">
           <StatsHero
             sessionsPlayed={0}
             wins={0}
@@ -415,12 +364,12 @@ export default async function StatsPage({ searchParams }: PageProps) {
             mvpWins={0}
             mvpPerGame={0}
           />
-        </div>
 
-        <EmptyStatsContent
-          showMvp={flags.session_mvp_voting}
-          badgeMvpCount={badgeMvpCount}
-        />
+          <EmptyStatsContent
+            showMvp={flags.session_mvp_voting}
+            badgeMvpCount={badgeMvpCount}
+          />
+        </section>
       </main>
     );
   }
@@ -454,28 +403,14 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
   if (scopedSessionIds.length === 0) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
-        <div className="mb-4">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück
-          </Link>
-        </div>
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+          <StatsIntro
+            scope={scope}
+            seasonName={currentSeasonName}
+            primaryColorKey={primaryColorKey}
+          />
 
-        <div className="space-y-4">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
-            <p className="text-sm text-slate-500">
-              {getScopeLabel(scope, currentSeasonName)}
-            </p>
-          </div>
-
-          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
-        </div>
-
-        <div className="mt-5">
           <StatsHero
             sessionsPlayed={0}
             wins={0}
@@ -486,12 +421,12 @@ export default async function StatsPage({ searchParams }: PageProps) {
             mvpWins={0}
             mvpPerGame={0}
           />
-        </div>
 
-        <EmptyStatsContent
-          showMvp={flags.session_mvp_voting}
-          badgeMvpCount={badgeMvpCount}
-        />
+          <EmptyStatsContent
+            showMvp={flags.session_mvp_voting}
+            badgeMvpCount={badgeMvpCount}
+          />
+        </section>
       </main>
     );
   }
@@ -517,28 +452,14 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
   if (allPlayerTeamIds.length === 0) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
-        <div className="mb-4">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück
-          </Link>
-        </div>
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+          <StatsIntro
+            scope={scope}
+            seasonName={currentSeasonName}
+            primaryColorKey={primaryColorKey}
+          />
 
-        <div className="space-y-4">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
-            <p className="text-sm text-slate-500">
-              {getScopeLabel(scope, currentSeasonName)}
-            </p>
-          </div>
-
-          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
-        </div>
-
-        <div className="mt-5">
           <StatsHero
             sessionsPlayed={scopedSessionIds.length}
             wins={0}
@@ -549,12 +470,12 @@ export default async function StatsPage({ searchParams }: PageProps) {
             mvpWins={0}
             mvpPerGame={0}
           />
-        </div>
 
-        <EmptyStatsContent
-          showMvp={flags.session_mvp_voting}
-          badgeMvpCount={badgeMvpCount}
-        />
+          <EmptyStatsContent
+            showMvp={flags.session_mvp_voting}
+            badgeMvpCount={badgeMvpCount}
+          />
+        </section>
       </main>
     );
   }
@@ -585,28 +506,14 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
   if (relevantSessionIdsForResults.length === 0) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
-        <div className="mb-4">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück
-          </Link>
-        </div>
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+          <StatsIntro
+            scope={scope}
+            seasonName={currentSeasonName}
+            primaryColorKey={primaryColorKey}
+          />
 
-        <div className="space-y-4">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
-            <p className="text-sm text-slate-500">
-              {getScopeLabel(scope, currentSeasonName)}
-            </p>
-          </div>
-
-          <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
-        </div>
-
-        <div className="mt-5">
           <StatsHero
             sessionsPlayed={scopedSessionIds.length}
             wins={0}
@@ -617,12 +524,12 @@ export default async function StatsPage({ searchParams }: PageProps) {
             mvpWins={0}
             mvpPerGame={0}
           />
-        </div>
 
-        <EmptyStatsContent
-          showMvp={flags.session_mvp_voting}
-          badgeMvpCount={badgeMvpCount}
-        />
+          <EmptyStatsContent
+            showMvp={flags.session_mvp_voting}
+            badgeMvpCount={badgeMvpCount}
+          />
+        </section>
       </main>
     );
   }
@@ -891,28 +798,14 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const impactMeta = getImpactMeta(impactPerMatch);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-24">
-      <div className="mb-4">
-        <Link
-          href="/"
-          className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-        >
-          ← Zurück
-        </Link>
-      </div>
+    <main className="min-h-screen bg-neutral-100">
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+        <StatsIntro
+          scope={scope}
+          seasonName={currentSeasonName}
+          primaryColorKey={primaryColorKey}
+        />
 
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-lg font-semibold text-slate-900">Persönliche Stats</h1>
-          <p className="text-sm text-slate-500">
-            {getScopeLabel(scope, currentSeasonName)}
-          </p>
-        </div>
-
-        <ScopeSwitch scope={scope} seasonName={currentSeasonName} />
-      </div>
-
-      <div className="mt-5">
         <StatsHero
           sessionsPlayed={sessionsPlayed}
           wins={totals.wins}
@@ -923,26 +816,24 @@ export default async function StatsPage({ searchParams }: PageProps) {
           mvpWins={mvpWins}
           mvpPerGame={mvpPerGame}
         />
-      </div>
 
-      {flags.player_trends ? (
-        <div className="mt-5">
+        {flags.player_trends ? (
           <StatsSection
-            title="Form"
-            subtitle="Verlauf über alle gespielten Einheiten."
+            title="Meine Form"
+            subtitle={`Verlauf über alle ${trendPoints.length} bewerteten Sessions`}
             defaultOpen={true}
+            icon={<TrendingUp className="h-5 w-5" />}
           >
             <PlayerTrendCard enabled={true} points={trendPoints} />
           </StatsSection>
-        </div>
-      ) : null}
+        ) : null}
 
-      {flags.team_impact ? (
-        <div className="mt-5">
+        {flags.team_impact ? (
           <StatsSection
             title="Team Impact"
-            subtitle="Wie stark dein Einfluss auf Ergebnisse und Team-Balance war."
+            subtitle="Wie Teams mit dir performen"
             defaultOpen={false}
+            icon={<UsersRound className="h-5 w-5" />}
           >
             <TeamImpactCard
               impactGames={totals.impactGames}
@@ -952,25 +843,23 @@ export default async function StatsPage({ searchParams }: PageProps) {
               impactMeta={impactMeta}
             />
           </StatsSection>
-        </div>
-      ) : null}
+        ) : null}
 
-      <div className="mt-5">
         <StatsSection
           title="Letzte Ergebnisse"
-          subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
+          subtitle="Deine letzten 5 bewerteten Sessions"
           defaultOpen={true}
+          icon={<History className="h-5 w-5" />}
         >
           <RecentResultsCard results={lastFive} />
         </StatsSection>
-      </div>
 
-      {flags.session_mvp_voting ? (
-        <div className="mt-5">
+        {flags.session_mvp_voting ? (
           <StatsSection
             title="Badges"
-            subtitle="Dein aktueller Badge-Status auf Basis deiner gesamten MVP-Erfolge."
+            subtitle="Dein aktueller Badge-Status auf Basis deiner MVP-Erfolge"
             defaultOpen={true}
+            icon={<Award className="h-5 w-5" />}
           >
             <div className="space-y-4">
               <BadgeProgressCard
@@ -990,8 +879,8 @@ export default async function StatsPage({ searchParams }: PageProps) {
               </div>
             </div>
           </StatsSection>
-        </div>
-      ) : null}
+        ) : null}
+      </section>
     </main>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import ExportButtons from "@/components/ExportButtons";
-import PageHero from "@/components/PageHero";
+import PageHero from "@/components/ui/PageHero";
 import PlayerBadge from "@/components/badges/PlayerBadge";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import StandingsShareCard from "./StandingsShareCard";
@@ -43,7 +43,6 @@ export default function StandingsClient({
   initialPrimaryColor,
 }: StandingsClientProps) {
   void initialClubId;
-  void initialPrimaryColor;
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -202,31 +201,14 @@ export default function StandingsClient({
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück zur Startseite
-          </Link>
-        </div>
-
         <PageHero
           eyebrow="Tabellen"
           title="Tabellenübersicht"
           description="Saison auswählen, Tabelle prüfen und über die Share Cards unten sauber teilen oder exportieren."
           primaryColorKey={initialPrimaryColor}
-        />
-
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-xs font-semibold text-slate-700">Saison</div>
-              <div className="text-[11px] text-slate-500">
-                Für Share Cards wird die aktuelle Auswahl verwendet.
-              </div>
-            </div>
-
+          backLabel="Zurück"
+          backHref="/"
+          topRightSlot={
             <select
               value={selected}
               onChange={(e) => {
@@ -234,16 +216,17 @@ export default function StandingsClient({
                 setSelected(value);
                 router.replace(`/standings?season=${value}`);
               }}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+              className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none backdrop-blur transition hover:bg-white/15"
             >
               {options.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={option.value} value={option.value} className="text-slate-900">
                   {option.label}
                 </option>
               ))}
             </select>
-          </div>
-        </div>
+          }
+          compact
+        />
 
         {msg ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">

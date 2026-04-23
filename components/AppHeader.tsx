@@ -186,26 +186,28 @@ export default async function AppHeader() {
         style={{ borderTop: `3px solid ${primaryColor}` }}
         className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur"
       >
-        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="min-w-0 flex items-center gap-3">
-            <Link href="/" className="flex min-w-0 items-center gap-3">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:h-[72px] sm:gap-3 sm:px-6">
+          <div className="min-w-0 flex items-center gap-2 sm:gap-3">
+            <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
               <Image
                 src="/icon-dark.png"
                 alt="strikr"
-                width={44}
-                height={44}
-                className="shrink-0 rounded-xl"
+                width={40}
+                height={40}
+                className="shrink-0 rounded-[14px] sm:h-11 sm:w-11 sm:rounded-xl"
                 priority
               />
 
               <div className="min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span className="truncate text-xl font-black tracking-tight text-slate-950">
+                <div className="flex items-baseline gap-1.5 sm:gap-2">
+                  <span className="truncate lowercase text-[32px] font-black leading-none tracking-[-0.04em] text-slate-950 sm:text-[36px]">
                     strikr
                   </span>
 
                   {ctx.user ? (
-                    <span className="text-[11px] text-slate-400">v0.3</span>
+                    <span className="text-[10px] font-medium text-slate-400 sm:text-[11px]">
+                      v0.5
+                    </span>
                   ) : null}
                 </div>
               </div>
@@ -213,7 +215,7 @@ export default async function AppHeader() {
           </div>
 
           {ctx.user ? (
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <MobileUserMenu
                 profileLabel={profileLabel}
                 showPlayerStatsLink={showPlayerStatsLink}
@@ -260,17 +262,17 @@ export default async function AppHeader() {
               />
             </div>
           ) : (
-            <div className="flex shrink-0 items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <Link
                 href="/login"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 sm:px-4 sm:py-2"
               >
                 Login
               </Link>
 
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-slate-800 sm:px-4 sm:py-2"
               >
                 Team starten
               </Link>

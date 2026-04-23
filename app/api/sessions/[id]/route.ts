@@ -560,22 +560,6 @@ export async function POST(
         );
       }
 
-      const { data: existingResult, error: existingResultError } = await supabase
-        .from("results")
-        .select("id")
-        .eq("session_id", sessionId)
-        .maybeSingle();
-
-      if (existingResultError) {
-        return fail(existingResultError.message, 500);
-      }
-
-      if (!existingResult?.id) {
-        return fail(
-          "Ein Siegerfoto kann erst hochgeladen werden, wenn ein Ergebnis gespeichert wurde."
-        );
-      }
-
       const file = formData.get("file");
 
       if (!(file instanceof File)) {
@@ -639,7 +623,7 @@ export async function POST(
       const winnerPhotoUrl = await createSignedPhotoUrl(supabase, newPath);
 
       return ok({
-        message: "Siegerfoto hochgeladen.",
+        message: "Siegerfoto hochgeladen. Jetzt noch Ergebnis eintragen.",
         winner_photo_path: newPath,
         winnerPhotoUrl,
       });

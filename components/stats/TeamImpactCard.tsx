@@ -13,6 +13,26 @@ type TeamImpactCardProps = {
   };
 };
 
+type ImpactStatProps = {
+  label: string;
+  value: string;
+  hint?: string;
+};
+
+function ImpactStat({ label, value, hint }: ImpactStatProps) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+        {label}
+      </div>
+      <div className="mt-2 text-3xl font-bold leading-none tracking-tight text-slate-950">
+        {value}
+      </div>
+      {hint ? <div className="mt-3 text-xs leading-5 text-slate-500">{hint}</div> : null}
+    </div>
+  );
+}
+
 export default function TeamImpactCard({
   impactGames,
   impactWins,
@@ -21,16 +41,11 @@ export default function TeamImpactCard({
   impactMeta,
 }: TeamImpactCardProps) {
   return (
-    <section className="mt-5 rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
+    <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="text-sm font-semibold text-slate-950">
-            Team Impact
-          </div>
-          <div className="mt-1 text-sm text-slate-600">
-            Zeigt, wie Teams mit dir performen – nicht nur ob du gewinnst,
-            sondern auch wie stark dein Team im Vergleich war.
-          </div>
+        <div className="max-w-2xl text-sm leading-6 text-slate-600">
+          Zeigt, wie Teams mit dir performen – nicht nur ob du gewinnst,
+          sondern auch wie stark dein Team im Vergleich war.
         </div>
 
         <span
@@ -40,59 +55,50 @@ export default function TeamImpactCard({
         </span>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Spiele mit dir
-          </div>
-          <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-            {impactGames}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Siege mit dir
-          </div>
-          <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-            {impactWins}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Impact gesamt
-          </div>
-          <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-            {formatImpactValue(impactTotal)}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Impact / Spiel
-          </div>
-          <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-            {formatImpactValue(impactPerMatch)}
-          </div>
-        </div>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <ImpactStat
+          label="Spiele mit dir"
+          value={String(impactGames)}
+          hint="Grundlage für den Impact"
+        />
+        <ImpactStat
+          label="Siege mit dir"
+          value={String(impactWins)}
+          hint="Gewonnene Spiele"
+        />
+        <ImpactStat
+          label="Impact gesamt"
+          value={formatImpactValue(impactTotal)}
+          hint="Aufsummierter Wert"
+        />
+        <ImpactStat
+          label="Impact / Spiel"
+          value={formatImpactValue(impactPerMatch)}
+          hint="Durchschnitt pro Einsatz"
+        />
       </div>
 
-      <div className={`mt-5 rounded-2xl border p-4 text-sm leading-6 ${impactMeta.boxClasses}`}>
+      <div className={`rounded-2xl border px-4 py-4 text-sm leading-6 ${impactMeta.boxClasses}`}>
         <div className="font-semibold">{impactMeta.title}</div>
         <div className="mt-1">{impactMeta.text}</div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-        <div className="font-semibold text-slate-900">
-          So wird Team Impact berechnet
-        </div>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+        <div className="font-semibold text-slate-900">So wird Team Impact berechnet</div>
 
-        <div className="mt-2 space-y-1">
-          <div>• Sieg mit stärkerem Team → +1</div>
-          <div>• Sieg als Underdog → +2</div>
-          <div>• Niederlage trotz stärkerem Team → -1</div>
-          <div>• Niederlage als Underdog → 0</div>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+            Sieg mit stärkerem Team → <span className="font-semibold">+1</span>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+            Sieg als Underdog → <span className="font-semibold">+2</span>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+            Niederlage trotz stärkerem Team → <span className="font-semibold">-1</span>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+            Niederlage als Underdog → <span className="font-semibold">0</span>
+          </div>
         </div>
 
         <p className="mt-3 text-slate-600">
@@ -101,6 +107,6 @@ export default function TeamImpactCard({
           Spieler-Stärken gerechnet. Sonst zählt die Teamgröße als neutrale Basis.
         </p>
       </div>
-    </section>
+    </div>
   );
 }

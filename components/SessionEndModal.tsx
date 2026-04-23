@@ -1,6 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type SessionEndModalProps = {
   open: boolean;
@@ -8,9 +9,8 @@ type SessionEndModalProps = {
   scoreA: number;
   scoreB: number;
   wasUnderdog?: boolean;
-  onShareInternal: () => void;
+  winnerPhotoUrl?: string | null;
   onShareSocial: () => void;
-  sharingInternal?: boolean;
   sharingSocial?: boolean;
   resultShareReady?: boolean;
   preparingResultShare?: boolean;
@@ -27,42 +27,115 @@ function getHeadline(scoreA: number, scoreB: number) {
   return "Starkes Spiel";
 }
 
+function Pill({
+  children,
+  tone = "default",
+}: {
+  children: React.ReactNode;
+  tone?: "default" | "success" | "warning";
+}) {
+  const styles =
+    tone === "success"
+      ? "bg-emerald-100 text-emerald-800"
+      : tone === "warning"
+        ? "bg-amber-100 text-amber-900"
+        : "bg-white/10 text-white";
+
+  return (
+    <div
+      className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${styles}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Button({
+  children,
+  onClick,
+  disabled = false,
+  tone = "primary",
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: "primary" | "secondary" | "warning";
+}) {
+  const styles =
+    tone === "primary"
+      ? "bg-slate-950 text-white hover:bg-slate-800"
+      : tone === "warning"
+        ? "border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+        : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition ${styles} disabled:cursor-not-allowed disabled:opacity-60`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function appendCacheBuster(url: string) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}modal_ts=${Date.now()}`;
+}
+
+function HeroPhotoPreview({ src }: { src: string | null }) {
+  const [failed, setFailed] = useState(false);
+
+  const previewSrc = src ? appendCacheBuster(src) : null;
+
+  if (!previewSrc || failed) {
+    return (
+      <div className="overflow-hidden rounded-[22px] border border-white/10 bg-white/10 p-2">
+        <div className="flex h-full min-h-[132px] w-full items-center justify-center rounded-[16px] bg-slate-950/30 text-center text-xs font-medium text-white/55">
+          Kein Foto
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-[22px] border border-white/10 bg-white/10 p-2">
+      <div className="flex h-full min-h-[132px] w-full items-center justify-center overflow-hidden rounded-[16px] bg-slate-950/30">
+        <img
+          src={previewSrc}
+          alt="Siegerfoto Vorschau"
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function SessionEndModal({
   open,
   onClose,
   scoreA,
   scoreB,
   wasUnderdog = false,
-  onShareInternal,
+  winnerPhotoUrl = null,
   onShareSocial,
-  sharingInternal = false,
   sharingSocial = false,
   resultShareReady = false,
   preparingResultShare = false,
   resultShareMessage = null,
   mvpVotingEnabled = false,
 }: SessionEndModalProps) {
+  const [showMvpFollowup, setShowMvpFollowup] = useState(false);
   const [sharingMvpVoting, setSharingMvpVoting] = useState(false);
   const [mvpShareMessage, setMvpShareMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      setMvpShareMessage(null);
-      setSharingMvpVoting(false);
-    }
-  }, [open]);
 
   if (!open) return null;
 
   const headline = getHeadline(scoreA, scoreB);
-
-  const socialBusy = sharingSocial || preparingResultShare;
-
-  const socialButtonLabel = sharingSocial
-    ? "Teilt SiegerCard..."
-    : preparingResultShare
-      ? "SiegerCard wird vorbereitet..."
-      : "📸 SiegerCard auf Social Media teilen";
+  const shareBusy = sharingSocial || preparingResultShare;
 
   async function handleShareMvpVoting() {
     try {
@@ -72,29 +145,44 @@ export default function SessionEndModal({
       const sessionUrl =
         typeof window !== "undefined" ? window.location.href : "/sessions";
 
-      const shareText = `Training ist vorbei und das MVP Voting ist eröffnet.
+      const shareText = `MVP Voting ist eröffnet 🔥
 
-Alle Teilnehmer können jetzt ihren Spieler des Trainings wählen.
+Stimme jetzt für den Spieler des Trainings ab.
 
-Direkt zur Session und dort im Bereich "MVP Voting" abstimmen:
-${sessionUrl}`;
+Voting läuft bis morgen 10:00 Uhr.
 
-      if (typeof navigator !== "undefined" && navigator.share) {
+👉 ${sessionUrl}`;
+
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
         await navigator.share({
-          title: "MVP Voting ist eröffnet",
+          title: "MVP Voting",
           text: shareText,
         });
         setMvpShareMessage("MVP Voting erfolgreich geteilt.");
         return;
       }
 
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === "function"
+      ) {
         await navigator.clipboard.writeText(shareText);
-        setMvpShareMessage("Voting-Text kopiert.");
+        setMvpShareMessage("Link kopiert – in WhatsApp einfügen 👍");
         return;
       }
 
-      throw new Error("Teilen wird auf diesem Gerät nicht unterstützt.");
+      if (typeof window !== "undefined") {
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(shareText)}`,
+          "_blank",
+          "noopener,noreferrer"
+        );
+        setMvpShareMessage("WhatsApp wurde geöffnet.");
+        return;
+      }
+
+      throw new Error("Teilen nicht möglich");
     } catch {
       setMvpShareMessage("Teilen nicht möglich.");
     } finally {
@@ -102,130 +190,191 @@ ${sessionUrl}`;
     }
   }
 
+  function handleCloseMain() {
+    if (mvpVotingEnabled) {
+      setShowMvpFollowup(true);
+      return;
+    }
+    setShowMvpFollowup(false);
+    setSharingMvpVoting(false);
+    setMvpShareMessage(null);
+    onClose();
+  }
+
+  function handleCloseAll() {
+    setShowMvpFollowup(false);
+    setSharingMvpVoting(false);
+    setMvpShareMessage(null);
+    onClose();
+  }
+
   return (
     <div className="fixed inset-0 z-[100]">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <button
+        type="button"
+        aria-label="Modal schließen"
+        className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
+        onClick={showMvpFollowup ? handleCloseAll : handleCloseMain}
+      />
 
       <div className="absolute inset-x-0 bottom-0 top-auto flex max-h-[92dvh] justify-center p-3 sm:inset-0 sm:items-center sm:p-4">
-        <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl">
-          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-5">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-slate-500">
-                Ergebnis gespeichert
+        {!showMvpFollowup ? (
+          <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl">
+            <div className="bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_42%),linear-gradient(135deg,#020617_0%,#0f172a_55%,#334155_100%)] px-4 py-4 text-white sm:px-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
+                    Ergebnis gespeichert
+                  </div>
+
+                  <h2 className="mt-2 text-2xl font-extrabold leading-tight tracking-tight text-white">
+                    Training abgeschlossen
+                  </h2>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Pill>{headline}</Pill>
+                    {wasUnderdog ? <Pill tone="warning">Underdog</Pill> : null}
+                    {mvpVotingEnabled ? <Pill tone="success">MVP läuft</Pill> : null}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCloseMain}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-lg text-white transition hover:bg-white/15"
+                  aria-label="Modal schließen"
+                >
+                  ✕
+                </button>
               </div>
-              <h2 className="mt-1 text-lg font-bold text-slate-950 sm:text-xl">
-                Training abgeschlossen
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Teile jetzt Ergebnis{mvpVotingEnabled ? " oder starte das MVP Voting." : "."}
-              </p>
+
+              <div className="mt-4 grid grid-cols-[1fr_112px] gap-3">
+                <div className="rounded-[22px] border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
+                    Endstand
+                  </div>
+                  <div className="mt-2 text-5xl font-black tracking-tight text-white sm:text-6xl">
+                    {scoreA}:{scoreB}
+                  </div>
+                </div>
+
+                <HeroPhotoPreview
+                  key={`${open ? "open" : "closed"}-${winnerPhotoUrl ?? "none"}`}
+                  src={winnerPhotoUrl ?? null}
+                />
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
-              aria-label="Modal schließen"
-            >
-              ✕
-            </button>
-          </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+              <div className="rounded-[22px] border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-900">
+                  Jetzt teilen
+                </div>
+                <div className="mt-1 text-sm leading-6 text-slate-600">
+                  Teile die SiegerCard direkt weiter.
+                </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm font-semibold text-slate-500">
-                Spielmoment
-              </div>
-              <div className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950">
-                {headline}
-              </div>
-              <div className="mt-3 text-4xl font-black tracking-tight text-slate-950">
-                {scoreA}:{scoreB}
+                <div className="mt-4">
+                  <Button
+                    onClick={onShareSocial}
+                    disabled={shareBusy}
+                    tone="primary"
+                  >
+                    {sharingSocial
+                      ? "SiegerCard wird geteilt..."
+                      : preparingResultShare
+                        ? "SiegerCard wird vorbereitet..."
+                        : "SiegerCard teilen"}
+                  </Button>
+                </div>
               </div>
 
-              {wasUnderdog ? (
-                <div className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                  Underdog-Moment
+              {preparingResultShare ? (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  SiegerCard wird vorbereitet ...
                 </div>
               ) : null}
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <button
-                type="button"
-                onClick={onShareSocial}
-                disabled={socialBusy}
-                className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {socialButtonLabel}
-              </button>
-
-              <button
-                type="button"
-                onClick={onShareInternal}
-                disabled={sharingInternal}
-                className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {sharingInternal
-                  ? "Teilt Gruppenpost..."
-                  : "💬 Ergebnis in Gruppe posten"}
-              </button>
 
               {resultShareMessage ? (
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
                   {resultShareMessage}
                 </div>
               ) : null}
 
-              {!resultShareReady && preparingResultShare ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  SiegerCard wird gerade vorbereitet. Der Teilen-Button ist kurz gesperrt und wird danach automatisch wieder freigegeben.
+              {resultShareReady && !preparingResultShare && !resultShareMessage ? (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                  SiegerCard ist bereit.
                 </div>
-              ) : null}
-
-              {mvpVotingEnabled ? (
-                <>
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-                    <div className="text-sm font-semibold text-amber-900">
-                      MVP Voting beginnt jetzt
-                    </div>
-                    <div className="mt-1 text-sm text-amber-800">
-                      Teile den Link mit eurer Gruppe. Abgestimmt wird direkt in
-                      dieser Session im Bereich „MVP Voting“.
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleShareMvpVoting}
-                    disabled={sharingMvpVoting}
-                    className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {sharingMvpVoting
-                      ? "Teilt MVP Voting..."
-                      : "⭐ MVP Voting in Gruppe teilen"}
-                  </button>
-                </>
               ) : null}
             </div>
 
-            {mvpShareMessage ? (
-              <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
-                {mvpShareMessage}
-              </div>
-            ) : null}
+            <div className="border-t border-slate-200 p-3">
+              <Button tone="secondary" onClick={handleCloseMain}>
+                Schließen
+              </Button>
+            </div>
           </div>
+        ) : (
+          <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl">
+            <div className="border-b border-slate-200 bg-amber-50 px-4 py-4 sm:px-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+                    Nächster Schritt
+                  </div>
 
-          <div className="shrink-0 border-t border-slate-200 px-4 py-3 sm:px-5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Schließen
-            </button>
+                  <h2 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950">
+                    MVP Voting läuft jetzt
+                  </h2>
+
+                  <div className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-amber-900 ring-1 ring-amber-200">
+                    Offen bis morgen, 10:00 Uhr
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCloseAll}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-white text-lg text-slate-700 transition hover:bg-amber-100"
+                  aria-label="Modal schließen"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-5">
+              <div className="rounded-[22px] border border-amber-200 bg-amber-50 p-4">
+                <div className="text-sm leading-6 text-amber-900">
+                  Teile den Hinweis jetzt mit eurer Gruppe. Abgestimmt wird
+                  direkt in dieser Session im Bereich „MVP Voting“.
+                </div>
+
+                <div className="mt-4">
+                  <Button
+                    onClick={handleShareMvpVoting}
+                    disabled={sharingMvpVoting}
+                    tone="warning"
+                  >
+                    {sharingMvpVoting ? "Wird geteilt..." : "MVP Voting teilen"}
+                  </Button>
+                </div>
+              </div>
+
+              {mvpShareMessage ? (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                  {mvpShareMessage}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="border-t border-slate-200 p-3">
+              <Button tone="secondary" onClick={handleCloseAll}>
+                Fertig
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

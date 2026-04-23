@@ -7,6 +7,7 @@ import {
   Shield,
   ToggleLeft,
 } from "lucide-react";
+import PageHero from "@/components/ui/PageHero";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
@@ -14,6 +15,7 @@ import { AUTH_ROUTES } from "@/lib/auth/routes";
 type ClubRow = {
   id: string;
   display_name: string | null;
+  primary_color: string | null;
 };
 
 function isAdminRole(role: string | null | undefined) {
@@ -95,7 +97,7 @@ export default async function AdminPage() {
 
   const { data: clubData, error: clubError } = await supabase
     .from("clubs")
-    .select("id, display_name")
+    .select("id, display_name, primary_color")
     .eq("id", ctx.activeClubId)
     .maybeSingle<ClubRow>();
 
@@ -109,8 +111,8 @@ export default async function AdminPage() {
     redirect(AUTH_ROUTES.dashboard);
   }
 
-  const club = (clubData ?? null) as ClubRow | null;
-  const clubName = club?.display_name?.trim() || "Dein Team";
+  const club = clubData as ClubRow;
+  const clubName = club.display_name?.trim() || "Dein Team";
   const roleLabel = getRoleLabel({
     role: membership?.role,
     isPowerUser: ctx.isPowerUser,
@@ -118,48 +120,28 @@ export default async function AdminPage() {
 
   return (
     <main className="min-h-screen bg-neutral-100">
-      <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück zur Startseite
-          </Link>
-        </div>
-
-        <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Adminbereich
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <PageHero
+          primaryColorKey={club.primary_color}
+          eyebrow="Adminbereich"
+          title={clubName}
+          description="Hier verwaltest du die wichtigsten Bereiche für dein Team: Mitglieder, Spieler und zentrale Einstellungen für Club, Kategorien, Teamgenerator und Saisonlogik."
+          backLabel="Zurück"
+          backHref="/"
+          topRightSlot={
+            <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/88">
+              {roleLabel}
+            </div>
+          }
+          actionsSlot={
+            ctx.isPowerUser ? (
+              <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-sky-200/30 bg-sky-400/10 px-2.5 py-1 text-[10px] font-semibold text-sky-100">
+                Power User Modus aktiv
               </div>
-
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-                {clubName}
-              </h1>
-
-              <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-                Hier verwaltest du die wichtigsten Bereiche für dein Team:
-                Mitglieder, Spieler und zentrale Einstellungen für Club,
-                Kategorien, Teamgenerator und Saisonlogik. Einladungen laufen
-                direkt über die Mitgliederverwaltung.
-              </p>
-
-              {ctx.isPowerUser ? (
-                <div className="mt-4 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900">
-                  Power User Modus: Du prüfst diesen Verein ohne echte
-                  Mitgliedschaft.
-                </div>
-              ) : null}
-            </div>
-
-            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900">
-              <div className="text-sm font-medium">Deine Rolle</div>
-              <div className="mt-1 text-2xl font-bold">{roleLabel}</div>
-            </div>
-          </div>
-        </div>
+            ) : null
+          }
+          compact
+        />
 
         <div className="grid gap-4 md:grid-cols-2">
           <AdminCard
@@ -192,7 +174,7 @@ export default async function AdminPage() {
                 href="/power-user"
                 eyebrow="Power User"
                 title="Power User Dashboard"
-                description="Globale KPIs über Clubs, User, Registrierungen und Trainings. Zentrale Sicht auf die Entwicklung von STRIKR."
+                description="Globale KPIs über Clubs, User, Registrierungen und Trainings. Zentrale Sicht auf die Entwicklung von strikr."
                 icon={<Shield className="h-6 w-6" strokeWidth={2.1} />}
               />
 
