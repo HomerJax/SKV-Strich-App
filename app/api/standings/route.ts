@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { addRanks } from "@/app/standings/standings-ui";
+import { isMvpRevealClosed } from "@/lib/stats/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -139,9 +140,11 @@ function buildMvpWinsMap(votes: MvpVoteRow[]) {
 
 async function computeStandings(
   clubId: string,
-  sessionIds: number[],
+  sessions: Session[],
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<StandingRow[]> {
+  const sessionIds = sessions.map((session) => session.id);
+
   if (sessionIds.length === 0) {
     return [];
   }
@@ -260,11 +263,7 @@ async function computeStandings(
     const ga = result.goals_team_a;
     const gb = result.goals_team_b;
 
-    if (ga == null || gb == null) {
-      continue;
-    }
-
-    if (ga === gb) {
+    if (ga == null || gb == null || ga === gb) {
       continue;
     }
 
@@ -285,17 +284,27 @@ async function computeStandings(
     }
   }
 
-  const { data: mvpVotesData, error: mvpVotesError } = await supabase
-    .from("session_mvp_votes")
-    .select("session_id, voted_player_id")
-    .eq("club_id", clubId)
-    .in("session_id", sessionIds);
+  const revealedSessionIds = new Set(
+    sessions
+      .filter((session) => isMvpRevealClosed(session.date))
+      .map((session) => session.id)
+  );
 
-  if (mvpVotesError) {
-    throw new Error(mvpVotesError.message);
+  let mvpWinsMap = new Map<number, number>();
+
+  if (revealedSessionIds.size > 0) {
+    const { data: mvpVotesData, error: mvpVotesError } = await supabase
+      .from("session_mvp_votes")
+      .select("session_id, voted_player_id")
+      .eq("club_id", clubId)
+      .in("session_id", Array.from(revealedSessionIds));
+
+    if (mvpVotesError) {
+      throw new Error(mvpVotesError.message);
+    }
+
+    mvpWinsMap = buildMvpWinsMap((mvpVotesData ?? []) as MvpVoteRow[]);
   }
-
-  const mvpWinsMap = buildMvpWinsMap((mvpVotesData ?? []) as MvpVoteRow[]);
 
   const allPlayers = Array.from(
     new Set([
@@ -364,7 +373,8 @@ export async function GET(request: NextRequest) {
     const seasons = (seasonData ?? []) as Season[];
 
     const requestedSeason = request.nextUrl.searchParams.get("season");
-    const selected = requestedSeason ?? (seasons.length > 0 ? String(seasons[0].id) : "all");
+    const selected =
+      requestedSeason ?? (seasons.length > 0 ? String(seasons[0].id) : "all");
 
     const sessions = await fetchSessions(clubId, selected, supabase);
 
@@ -376,19 +386,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const allSessionIds = sessions.map((session) => session.id);
-    const previousSessionIds =
-      sessions.length >= 2
-        ? sessions.slice(0, sessions.length - 1).map((session) => session.id)
-        : null;
+    const previousSessions =
+      sessions.length >= 2 ? sessions.slice(0, sessions.length - 1) : null;
 
     const currentRows = addRanks(
-      await computeStandings(clubId, allSessionIds, supabase)
+      await computeStandings(clubId, sessions, supabase)
     ) as RankRow[];
 
-    const previousRows = previousSessionIds
+    const previousRows = previousSessions
       ? (addRanks(
-          await computeStandings(clubId, previousSessionIds, supabase)
+          await computeStandings(clubId, previousSessions, supabase)
         ) as RankRow[])
       : null;
 

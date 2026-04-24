@@ -13,6 +13,7 @@ type SessionRow = {
   id: number;
   club_id: string;
   date: string;
+  mvp_voting_finalized_at: string | null;
 };
 
 type PlayerRow = {
@@ -45,6 +46,10 @@ type NotificationInsert = {
   body: string;
   cta_url?: string | null;
   cta_href?: string | null;
+  cta_label?: string | null;
+  secondary_cta_href?: string | null;
+  secondary_cta_label?: string | null;
+  payload?: Record<string, unknown> | null;
   dedupe_key: string;
 };
 
@@ -67,6 +72,13 @@ type BadgeUpgrade = {
   playerName: string;
   previousMvpCount: number;
   newMvpCount: number;
+};
+
+type MvpResults = {
+  winners: ResultEntry[];
+  leaderboard: ResultEntry[];
+  totalVotes: number;
+  badgeUpgrade: BadgeUpgrade | null;
 };
 
 function normalizePlayerRelation(
@@ -198,7 +210,7 @@ async function loadSessionBase(sessionId: number) {
 
   const { data: sessionData, error: sessionError } = await db
     .from("sessions")
-    .select("id, club_id, date")
+    .select("id, club_id, date, mvp_voting_finalized_at")
     .eq("id", sessionId)
     .maybeSingle<SessionRow>();
 
@@ -266,7 +278,9 @@ async function loadSessionBase(sessionId: number) {
 async function loadParticipantsAndVotes(params: {
   sessionId: number;
   userId: string;
-  supabase: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createAdminClient>;
+  supabase:
+    | Awaited<ReturnType<typeof createClient>>
+    | ReturnType<typeof createAdminClient>;
 }) {
   const { sessionId, userId, supabase } = params;
 
@@ -377,15 +391,15 @@ async function loadParticipantsAndVotes(params: {
 function buildResults(params: {
   participants: Participant[];
   voteRows: VoteRow[];
-}) {
+}): MvpResults {
   const { participants, voteRows } = params;
 
   if (voteRows.length === 0) {
     return {
-      winners: [] as ResultEntry[],
-      leaderboard: [] as ResultEntry[],
+      winners: [],
+      leaderboard: [],
       totalVotes: 0,
-      badgeUpgrade: null as BadgeUpgrade | null,
+      badgeUpgrade: null,
     };
   }
 
@@ -442,6 +456,48 @@ function buildResults(params: {
   };
 }
 
+function buildResultsAfterFreshFinalization(results: MvpResults): MvpResults {
+  if (results.winners.length === 0) {
+    return results;
+  }
+
+  const winnerIds = new Set(results.winners.map((winner) => winner.playerId));
+
+  const leaderboard = results.leaderboard.map((entry) =>
+    winnerIds.has(entry.playerId)
+      ? {
+          ...entry,
+          mvpCount: entry.mvpCount + 1,
+        }
+      : entry
+  );
+
+  const winners = results.winners.map((winner) => ({
+    ...winner,
+    mvpCount: winner.mvpCount + 1,
+  }));
+
+  let badgeUpgrade: BadgeUpgrade | null = null;
+
+  if (winners.length === 1) {
+    const winner = winners[0];
+
+    badgeUpgrade = {
+      playerId: winner.playerId,
+      playerName: winner.name,
+      previousMvpCount: Math.max(winner.mvpCount - 1, 0),
+      newMvpCount: winner.mvpCount,
+    };
+  }
+
+  return {
+    ...results,
+    winners,
+    leaderboard,
+    badgeUpgrade,
+  };
+}
+
 async function ensureResultNotifications(params: {
   clubId: string;
   sessionId: number;
@@ -477,6 +533,13 @@ async function ensureResultNotifications(params: {
             ? `${winners[0].name} ist MVP dieser Session.`
             : "Das MVP Voting ist beendet. Es gibt mehrere Gewinner.",
       cta_href: `/sessions/${sessionId}`,
+      cta_url: `/sessions/${sessionId}`,
+      cta_label: "MVP ansehen",
+      payload: {
+        sessionId,
+        winnerCount: winners.length,
+        winnerNames: winners.map((winner) => winner.name),
+      },
       dedupe_key: `mvp_result:${sessionId}:${userId}`,
     })
   );
@@ -489,6 +552,12 @@ async function ensureResultNotifications(params: {
       title: "Du bist MVP",
       body: "Glückwunsch, du wurdest zum MVP dieser Session gewählt.",
       cta_href: `/sessions/${sessionId}`,
+      cta_url: `/sessions/${sessionId}`,
+      cta_label: "Meinen MVP ansehen",
+      payload: {
+        sessionId,
+        winner: true,
+      },
       dedupe_key: `mvp_winner:${sessionId}:${userId}`,
     })
   );
@@ -506,6 +575,72 @@ async function ensureResultNotifications(params: {
   if (error) {
     console.error("MVP notifications failed:", error.message);
   }
+}
+
+async function finalizeMvpIfNeeded(params: {
+  session: SessionRow;
+  results: MvpResults;
+  participants: Participant[];
+}) {
+  const { session, results, participants } = params;
+
+  await ensureResultNotifications({
+    clubId: session.club_id,
+    sessionId: session.id,
+    winners: results.winners,
+    participants,
+  });
+
+  if (session.mvp_voting_finalized_at) {
+    return results;
+  }
+
+  const admin = createAdminClient();
+  const finalizedAt = new Date().toISOString();
+
+  const { data: finalizedRows, error: finalizeError } = await admin
+    .from("sessions")
+    .update({ mvp_voting_finalized_at: finalizedAt })
+    .eq("id", session.id)
+    .is("mvp_voting_finalized_at", null)
+    .select("id");
+
+  if (finalizeError) {
+    throw new Error(finalizeError.message);
+  }
+
+  const didFinalizeNow = (finalizedRows ?? []).length > 0;
+
+  if (!didFinalizeNow) {
+    return results;
+  }
+
+  if (results.winners.length === 0) {
+    return results;
+  }
+
+  const participantById = new Map(
+    participants.map((participant) => [participant.id, participant])
+  );
+
+  await Promise.all(
+    results.winners.map(async (winner) => {
+      const participant = participantById.get(winner.playerId);
+      const nextMvpCount = safeMvpCount(participant?.mvpCount) + 1;
+
+      const { error } = await admin
+        .from("players")
+        .update({ mvp_count: nextMvpCount })
+        .eq("id", winner.playerId)
+        .eq("club_id", session.club_id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    })
+  );
+
+  return buildResultsAfterFreshFinalization(results);
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
@@ -578,7 +713,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       (participant) => participant.userId === user.id
     );
 
-    const results = votingOpen
+    let results = votingOpen
       ? null
       : buildResults({
           participants,
@@ -586,10 +721,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         });
 
     if (!votingOpen && results) {
-      await ensureResultNotifications({
-        clubId: session.club_id,
-        sessionId,
-        winners: results.winners,
+      results = await finalizeMvpIfNeeded({
+        session,
+        results,
         participants,
       });
     }

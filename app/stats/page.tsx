@@ -1,11 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  TrendingUp,
-  UsersRound,
-  History,
-  Award,
-} from "lucide-react";
+import { TrendingUp, UsersRound, History, Award } from "lucide-react";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
@@ -88,6 +82,19 @@ type ClubRow = {
 
 type StatsScope = "season" | "career";
 
+type ImpactDetail = {
+  sessionId: number;
+  date: string | null;
+  scoreLabel: string;
+  myTeamLabel: string;
+  myTeamScore: number;
+  opponentScore: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  impactValue: number;
+  explanation: string;
+};
+
 function trendValueForOutcome(outcome: RecentResult["outcome"]) {
   if (outcome === "win") return 1;
   if (outcome === "loss") return -1;
@@ -122,6 +129,33 @@ function getScopeDescription(scope: StatsScope) {
   return "Deine Ergebnisse, Trends und MVP-Erfolge aus der aktuell laufenden Saison.";
 }
 
+function getImpactExplanation(params: {
+  outcome: RecentResult["outcome"];
+  myTeamScore: number;
+  opponentScore: number;
+  impactValue: number;
+}) {
+  const { outcome, myTeamScore, opponentScore, impactValue } = params;
+
+  if (outcome === "draw") {
+    return "Unentschieden: kein positiver oder negativer Team-Impact.";
+  }
+
+  if (impactValue > 1) {
+    return `Sieg als Underdog: dein Team war auf dem Papier schwächer (${myTeamScore} zu ${opponentScore}) und hat trotzdem gewonnen.`;
+  }
+
+  if (impactValue > 0) {
+    return `Sieg mit mindestens ausgeglichener Teamstärke (${myTeamScore} zu ${opponentScore}).`;
+  }
+
+  if (impactValue < 0) {
+    return `Niederlage trotz stärkerem Team (${myTeamScore} zu ${opponentScore}).`;
+  }
+
+  return `Niederlage als Underdog oder ausgeglichener Effekt (${myTeamScore} zu ${opponentScore}).`;
+}
+
 function EmptyStatsContent({
   showMvp,
   badgeMvpCount,
@@ -151,6 +185,7 @@ function EmptyStatsContent({
           impactWins={0}
           impactTotal={0}
           impactPerMatch={0}
+          impactDetails={[]}
           impactMeta={getImpactMeta(0)}
         />
       </StatsSection>
@@ -713,6 +748,8 @@ export default async function StatsPage({ searchParams }: PageProps) {
     impactWins: 0,
   };
 
+  const impactDetails: ImpactDetail[] = [];
+
   const recentResults: RecentResult[] = myResults.map((result) => {
     const myTeamIds = myTeamIdsBySessionId.get(result.session_id) ?? [];
 
@@ -763,20 +800,49 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
     totals.impactTotal += impactValue;
     totals.impactGames += 1;
+
     if (outcome === "win") {
       totals.impactWins += 1;
     }
 
+    const date = sessionsById.get(result.session_id)?.date ?? null;
+    const scoreLabel = `${goalsA}:${goalsB}`;
+    const myTeamLabel = myTeamIsA ? "Team 1" : "Team 2";
+
+    impactDetails.push({
+      sessionId: result.session_id,
+      date,
+      scoreLabel,
+      myTeamLabel,
+      myTeamScore,
+      opponentScore,
+      goalsFor,
+      goalsAgainst,
+      impactValue,
+      explanation: getImpactExplanation({
+        outcome,
+        myTeamScore,
+        opponentScore,
+        impactValue,
+      }),
+    });
+
     return {
       sessionId: result.session_id,
-      date: sessionsById.get(result.session_id)?.date ?? null,
+      date,
       outcome,
-      scoreLabel: `${goalsA}:${goalsB}`,
-      myTeamLabel: myTeamIsA ? "Team 1" : "Team 2",
+      scoreLabel,
+      myTeamLabel,
     };
   });
 
   recentResults.sort((a, b) => {
+    const aTime = a.date ? new Date(a.date).getTime() : 0;
+    const bTime = b.date ? new Date(b.date).getTime() : 0;
+    return bTime - aTime;
+  });
+
+  impactDetails.sort((a, b) => {
     const aTime = a.date ? new Date(a.date).getTime() : 0;
     const bTime = b.date ? new Date(b.date).getTime() : 0;
     return bTime - aTime;
@@ -840,6 +906,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
               impactWins={totals.impactWins}
               impactTotal={totals.impactTotal}
               impactPerMatch={impactPerMatch}
+              impactDetails={impactDetails}
               impactMeta={impactMeta}
             />
           </StatsSection>
