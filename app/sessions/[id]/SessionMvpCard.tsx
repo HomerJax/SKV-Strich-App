@@ -97,6 +97,64 @@ function safeMvpCount(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function buildMvpResultShareText(state: MvpState) {
+  const winners = state.results?.winners ?? [];
+  const leaderboard = state.results?.leaderboard ?? [];
+
+  const winnerLine =
+    winners.length === 0
+      ? "Noch kein MVP Ergebnis."
+      : winners.length === 1
+        ? `🏆 MVP: ${winners[0].name} (${winners[0].votes} ${
+            winners[0].votes === 1 ? "Stimme" : "Stimmen"
+          })`
+        : `🏆 MVP-Gleichstand: ${winners
+            .map((winner) => winner.name)
+            .join(", ")} (${winners[0].votes} Stimmen)`;
+
+  const badgeLines = winners
+    .map((winner) => {
+      const count = safeMvpCount(winner.mvpCount);
+      if (count < 1) return null;
+
+      const previous = Math.max(count - 1, 0);
+      const tier = getPlayerBadgeTier(count);
+      const previousTier = getPlayerBadgeTier(previous);
+      const changed = previousTier?.key !== tier?.key;
+
+      if (!tier) return null;
+
+      return changed
+        ? `✨ ${winner.name}: ${previous} → ${count} MVPs, neues Badge: ${tier.label}`
+        : `✨ ${winner.name}: ${previous} → ${count} MVPs`;
+    })
+    .filter(Boolean);
+
+  const topLines = leaderboard
+    .slice(0, 3)
+    .map(
+      (entry, index) =>
+        `${index + 1}. ${entry.name} – ${entry.votes} ${
+          entry.votes === 1 ? "Stimme" : "Stimmen"
+        }`
+    );
+
+  return [
+    "⭐ MVP Voting ist durch!",
+    "",
+    winnerLine,
+    badgeLines.length > 0 ? "" : null,
+    ...badgeLines,
+    topLines.length > 0 ? "" : null,
+    ...topLines,
+    "",
+    "Markiere dein Team + @getstrikr",
+    "#strikr",
+  ]
+    .filter((line): line is string => typeof line === "string")
+    .join("\n");
+}
+
 function MergedWinnerCard({
   winner,
   badgeUpgrade,
@@ -221,6 +279,8 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [sharingResult, setSharingResult] = useState(false);
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
 
   async function loadMvpState() {
     try {
@@ -313,6 +373,47 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     }
   }
 
+  async function handleShareMvpResult() {
+    if (!state || !state.results) return;
+
+    try {
+      setSharingResult(true);
+      setShareMsg(null);
+
+      const text = buildMvpResultShareText(state);
+      const url =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/sessions/${sessionId}`
+          : "";
+
+      const fullText = url ? `${text}\n\n${url}` : text;
+
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: "MVP Ergebnis",
+          text: fullText,
+        });
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(fullText);
+        setShareMsg("Share-Text wurde in die Zwischenablage kopiert.");
+        return;
+      }
+
+      setShareMsg("Teilen wird auf diesem Gerät nicht unterstützt.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      setShareMsg("Teilen konnte nicht gestartet werden.");
+    } finally {
+      setSharingResult(false);
+    }
+  }
+
   if (loadState === "loading" || loadState === "idle") {
     return (
       <section className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm">
@@ -362,7 +463,11 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
   const collapsedSummary = !votingOpen
     ? state.results?.winners && state.results.winners.length > 0
-      ? `Ergebnis verfügbar${state.results.winners.length === 1 ? ` · MVP: ${state.results.winners[0].name}` : ""}`
+      ? `Ergebnis verfügbar${
+          state.results.winners.length === 1
+            ? ` · MVP: ${state.results.winners[0].name}`
+            : ""
+        }`
       : "Voting beendet"
     : state.userHasVoted
       ? selectedPlayerName
@@ -466,6 +571,12 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       {msg ? (
         <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {msg}
+        </div>
+      ) : null}
+
+      {shareMsg ? (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+          {shareMsg}
         </div>
       ) : null}
 
@@ -622,8 +733,8 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   </button>
 
                   <div className="text-xs text-slate-500">
-                    {state.voteCount} von {state.eligibleVoterCount} Stimmen · Ergebnis ab{" "}
-                    {state.revealLabel}
+                    {state.voteCount} von {state.eligibleVoterCount} Stimmen ·
+                    Ergebnis ab {state.revealLabel}
                   </div>
                 </div>
               </div>
@@ -647,7 +758,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 <div className="rounded-2xl border border-amber-200 bg-white px-4 py-4">
                   <div className="text-sm font-semibold text-amber-700">🏆 MVP</div>
                   <div className="mt-2 text-lg font-extrabold text-slate-950">
-                    {state.results.winners.map((winner) => winner.name).join(", ")}
+                    {state.results.winners
+                      .map((winner) => winner.name)
+                      .join(", ")}
                   </div>
                   <div className="mt-1 text-sm text-slate-600">
                     Gleichstand mit je {state.results.winners[0].votes} Stimmen
@@ -659,7 +772,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                     key={winner.playerId}
                     winner={winner}
                     badgeUpgrade={
-                      badgeUpgrade?.playerId === winner.playerId ? badgeUpgrade : null
+                      badgeUpgrade?.playerId === winner.playerId
+                        ? badgeUpgrade
+                        : null
                     }
                   />
                 ))}
@@ -670,6 +785,17 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               Noch keine Stimmen abgegeben.
             </div>
           )}
+
+          {state.results ? (
+            <button
+              type="button"
+              onClick={handleShareMvpResult}
+              disabled={sharingResult}
+              className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {sharingResult ? "Öffne Teilen…" : "Ergebnis teilen"}
+            </button>
+          ) : null}
 
           {state.results?.leaderboard && state.results.leaderboard.length > 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">

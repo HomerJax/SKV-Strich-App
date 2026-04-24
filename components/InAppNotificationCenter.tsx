@@ -19,6 +19,16 @@ type ApiResponse = {
   notifications: NotificationItem[];
 };
 
+function getSessionIdFromHref(href: string | null) {
+  if (!href) return null;
+
+  const match = href.match(/\/sessions\/(\d+)/);
+  if (!match?.[1]) return null;
+
+  const sessionId = Number(match[1]);
+  return Number.isFinite(sessionId) ? sessionId : null;
+}
+
 function buildNotificationShareText(notification: NotificationItem) {
   const isWinner = notification.type === "mvp_winner";
 
@@ -44,6 +54,7 @@ export default function InAppNotificationCenter() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
 
   async function loadNotifications() {
     try {
@@ -55,7 +66,9 @@ export default function InAppNotificationCenter() {
         cache: "no-store",
       });
 
-      const payload = (await response.json().catch(() => null)) as ApiResponse | null;
+      const payload = (await response.json().catch(() => null)) as
+        | ApiResponse
+        | null;
 
       if (!response.ok || !payload) {
         setNotifications([]);
@@ -103,27 +116,50 @@ export default function InAppNotificationCenter() {
   async function shareNotification(notification: NotificationItem) {
     try {
       setShareBusy(true);
+      setShareMessage(null);
 
+      const sessionId = getSessionIdFromHref(notification.cta_href);
       const text = buildNotificationShareText(notification);
+      const sessionUrl =
+        sessionId && typeof window !== "undefined"
+          ? `${window.location.origin}/sessions/${sessionId}`
+          : null;
+
+      const fullText = sessionUrl ? `${text}\n\n${sessionUrl}` : text;
 
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({
           title: notification.title,
-          text,
+          text: fullText,
         });
         return;
       }
 
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(fullText);
+        setShareMessage("Share-Text wurde kopiert.");
+        return;
       }
+
+      setShareMessage("Teilen wird auf diesem Gerät nicht unterstützt.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      setShareMessage("Teilen konnte nicht gestartet werden.");
     } finally {
       setShareBusy(false);
     }
   }
 
-  if (loading) return null;
-  if (notifications.length === 0) return null;
+  if (loading) {
+    return null;
+  }
+
+  if (notifications.length === 0) {
+    return null;
+  }
 
   const notification = notifications[0];
   const isWinner = notification.type === "mvp_winner";
@@ -166,8 +202,8 @@ export default function InAppNotificationCenter() {
                 Glückwunsch 🎉
               </div>
               <div className="mt-1 text-sm text-amber-800">
-                Du wurdest zum MVP gewählt. Schau dir jetzt das Voting an und teile
-                deinen Moment mit dem Team.
+                Du wurdest zum MVP gewählt. Schau dir jetzt das Voting an und
+                teile deinen Moment mit dem Team.
               </div>
             </div>
           ) : (
@@ -176,11 +212,17 @@ export default function InAppNotificationCenter() {
                 Voting abgeschlossen
               </div>
               <div className="mt-1 text-sm text-sky-800">
-                Das Ergebnis des MVP Votings ist da. Öffne die Session, schau dir die
-                Bewertung an und teile den Moment weiter.
+                Das Ergebnis des MVP Votings ist da. Öffne die Session, schau
+                dir die Bewertung an und teile den Moment weiter.
               </div>
             </div>
           )}
+
+          {shareMessage ? (
+            <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              {shareMessage}
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-3 sm:flex-row">
             {notification.cta_href && notification.cta_label ? (
@@ -200,11 +242,16 @@ export default function InAppNotificationCenter() {
                 disabled={shareBusy}
                 className="inline-flex min-h-[52px] flex-1 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
               >
-                {shareBusy ? "Öffne Teilen…" : isWinner ? "MVP teilen" : "Ergebnis teilen"}
+                {shareBusy
+                  ? "Öffne Teilen…"
+                  : isWinner
+                    ? "MVP teilen"
+                    : "Ergebnis teilen"}
               </button>
             ) : null}
 
-            {notification.secondary_cta_href && notification.secondary_cta_label ? (
+            {notification.secondary_cta_href &&
+            notification.secondary_cta_label ? (
               <Link
                 href={notification.secondary_cta_href}
                 onClick={() => markSeen(notification.id)}
