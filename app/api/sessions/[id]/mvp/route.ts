@@ -150,6 +150,22 @@ function isVotingOpen(sessionDate: string) {
   );
 }
 
+async function isPowerUser(userId: string) {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("user_roles")
+    .select("is_power_user")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data?.is_power_user === true;
+}
+
 async function loadSessionBase(sessionId: number) {
   const supabase = await createClient();
 
@@ -163,7 +179,24 @@ async function loadSessionBase(sessionId: number) {
     };
   }
 
-  const { data: sessionData, error: sessionError } = await supabase
+  let userIsPowerUser = false;
+
+  try {
+    userIsPowerUser = await isPowerUser(user.id);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Power-User-Rolle konnte nicht geprüft werden.";
+
+    return {
+      error: NextResponse.json({ error: message }, { status: 500 }),
+    };
+  }
+
+  const db = userIsPowerUser ? createAdminClient() : supabase;
+
+  const { data: sessionData, error: sessionError } = await db
     .from("sessions")
     .select("id, club_id, date")
     .eq("id", sessionId)
@@ -184,29 +217,31 @@ async function loadSessionBase(sessionId: number) {
     };
   }
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("club_memberships")
-    .select("club_id, role")
-    .eq("club_id", sessionData.club_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  if (!userIsPowerUser) {
+    const { data: membership, error: membershipError } = await supabase
+      .from("club_memberships")
+      .select("club_id, role")
+      .eq("club_id", sessionData.club_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-  if (membershipError) {
-    return {
-      error: NextResponse.json(
-        { error: membershipError.message },
-        { status: 500 }
-      ),
-    };
-  }
+    if (membershipError) {
+      return {
+        error: NextResponse.json(
+          { error: membershipError.message },
+          { status: 500 }
+        ),
+      };
+    }
 
-  if (!membership) {
-    return {
-      error: NextResponse.json(
-        { error: "Kein Zugriff auf diesen Club." },
-        { status: 403 }
-      ),
-    };
+    if (!membership) {
+      return {
+        error: NextResponse.json(
+          { error: "Kein Zugriff auf diesen Club." },
+          { status: 403 }
+        ),
+      };
+    }
   }
 
   const flags = await getFeatureFlagsForClub(sessionData.club_id);
@@ -221,18 +256,19 @@ async function loadSessionBase(sessionId: number) {
   }
 
   return {
-    supabase,
+    supabase: db,
     user,
     session: sessionData,
+    isPowerUser: userIsPowerUser,
   };
 }
 
 async function loadParticipantsAndVotes(params: {
   sessionId: number;
   userId: string;
+  supabase: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createAdminClient>;
 }) {
-  const { sessionId, userId } = params;
-  const supabase = await createClient();
+  const { sessionId, userId, supabase } = params;
 
   const [
     { data: sessionPlayerData, error: sessionPlayerError },
@@ -304,7 +340,10 @@ async function loadParticipantsAndVotes(params: {
     ...new Set(
       voteRows
         .map((row) => row.voter_user_id)
-        .filter((value): value is string => typeof value === "string" && value.length > 0)
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.length > 0
+        )
     ),
   ];
 
@@ -320,7 +359,9 @@ async function loadParticipantsAndVotes(params: {
     .sort((a, b) => a.localeCompare(b, "de"));
 
   const voteCount = uniqueVoterIds.length;
-  const eligibleVoterCount = participants.filter((participant) => participant.userId).length;
+  const eligibleVoterCount = participants.filter(
+    (participant) => participant.userId
+  ).length;
 
   return {
     participants,
@@ -530,6 +571,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     } = await loadParticipantsAndVotes({
       sessionId,
       userId: user.id,
+      supabase,
     });
 
     const canVote = participants.some(
@@ -639,6 +681,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { participants } = await loadParticipantsAndVotes({
       sessionId,
       userId: user.id,
+      supabase,
     });
 
     const currentUserParticipant = participants.find(
