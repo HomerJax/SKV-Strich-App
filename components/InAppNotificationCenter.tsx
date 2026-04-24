@@ -19,10 +19,31 @@ type ApiResponse = {
   notifications: NotificationItem[];
 };
 
+function buildNotificationShareText(notification: NotificationItem) {
+  const isWinner = notification.type === "mvp_winner";
+
+  if (isWinner) {
+    return `🏆 Ich bin MVP!
+
+${notification.body ?? "MVP des Trainings bei strikr."}
+
+Markiere dein Team + @getstrikr
+#strikr`;
+  }
+
+  return `🏆 MVP Ergebnis ist da!
+
+${notification.body ?? "Das MVP Voting ist beendet."}
+
+Markiere dein Team + @getstrikr
+#strikr`;
+}
+
 export default function InAppNotificationCenter() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
 
   async function loadNotifications() {
     try {
@@ -79,16 +100,35 @@ export default function InAppNotificationCenter() {
     }
   }
 
-  if (loading) {
-    return null;
+  async function shareNotification(notification: NotificationItem) {
+    try {
+      setShareBusy(true);
+
+      const text = buildNotificationShareText(notification);
+
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: notification.title,
+          text,
+        });
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      }
+    } finally {
+      setShareBusy(false);
+    }
   }
 
-  if (notifications.length === 0) {
-    return null;
-  }
+  if (loading) return null;
+  if (notifications.length === 0) return null;
 
   const notification = notifications[0];
   const isWinner = notification.type === "mvp_winner";
+  const isMvpNotification =
+    notification.type === "mvp_winner" || notification.type === "mvp_result";
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-24 z-[90] flex justify-center px-4">
@@ -151,6 +191,17 @@ export default function InAppNotificationCenter() {
               >
                 {notification.cta_label}
               </Link>
+            ) : null}
+
+            {isMvpNotification ? (
+              <button
+                type="button"
+                onClick={() => shareNotification(notification)}
+                disabled={shareBusy}
+                className="inline-flex min-h-[52px] flex-1 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+              >
+                {shareBusy ? "Öffne Teilen…" : isWinner ? "MVP teilen" : "Ergebnis teilen"}
+              </button>
             ) : null}
 
             {notification.secondary_cta_href && notification.secondary_cta_label ? (

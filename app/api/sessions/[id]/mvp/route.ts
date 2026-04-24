@@ -44,7 +44,6 @@ type NotificationInsert = {
   type: string;
   title: string;
   body: string;
-  cta_url?: string | null;
   cta_href?: string | null;
   cta_label?: string | null;
   secondary_cta_href?: string | null;
@@ -533,7 +532,6 @@ async function ensureResultNotifications(params: {
             ? `${winners[0].name} ist MVP dieser Session.`
             : "Das MVP Voting ist beendet. Es gibt mehrere Gewinner.",
       cta_href: `/sessions/${sessionId}`,
-      cta_url: `/sessions/${sessionId}`,
       cta_label: "MVP ansehen",
       payload: {
         sessionId,
@@ -552,7 +550,6 @@ async function ensureResultNotifications(params: {
       title: "Du bist MVP",
       body: "Glückwunsch, du wurdest zum MVP dieser Session gewählt.",
       cta_href: `/sessions/${sessionId}`,
-      cta_url: `/sessions/${sessionId}`,
       cta_label: "Meinen MVP ansehen",
       payload: {
         sessionId,

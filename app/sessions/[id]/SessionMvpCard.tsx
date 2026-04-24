@@ -643,14 +643,26 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 badgeUpgrade={badgeUpgrade}
               />
             ) : (
-              <div className="rounded-2xl border border-amber-200 bg-white px-4 py-4">
-                <div className="text-sm font-semibold text-amber-700">🏆 MVP</div>
-                <div className="mt-2 text-lg font-extrabold text-slate-950">
-                  {state.results.winners.map((winner) => winner.name).join(", ")}
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-amber-200 bg-white px-4 py-4">
+                  <div className="text-sm font-semibold text-amber-700">🏆 MVP</div>
+                  <div className="mt-2 text-lg font-extrabold text-slate-950">
+                    {state.results.winners.map((winner) => winner.name).join(", ")}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-600">
+                    Gleichstand mit je {state.results.winners[0].votes} Stimmen
+                  </div>
                 </div>
-                <div className="mt-1 text-sm text-slate-600">
-                  Gleichstand mit je {state.results.winners[0].votes} Stimmen
-                </div>
+
+                {state.results.winners.map((winner) => (
+                  <MergedWinnerCard
+                    key={winner.playerId}
+                    winner={winner}
+                    badgeUpgrade={
+                      badgeUpgrade?.playerId === winner.playerId ? badgeUpgrade : null
+                    }
+                  />
+                ))}
               </div>
             )
           ) : (
