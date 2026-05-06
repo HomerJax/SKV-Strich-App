@@ -16,8 +16,8 @@ const BADGE_TIERS: BadgeMeta[] = [
   },
   {
     key: "copper",
-    label: "Copper",
-    shortLabel: "Copper",
+    label: "Blech",
+    shortLabel: "Blech",
     minMvpCount: 1,
   },
   {
@@ -28,8 +28,8 @@ const BADGE_TIERS: BadgeMeta[] = [
   },
   {
     key: "silver",
-    label: "Silver",
-    shortLabel: "Silver",
+    label: "Silber",
+    shortLabel: "Silber",
     minMvpCount: 5,
   },
   {

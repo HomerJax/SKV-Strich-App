@@ -1,9 +1,13 @@
+import type { CSSProperties } from "react";
+
 type StrikrBadgeMarkProps = {
   className?: string;
+  style?: CSSProperties;
 };
 
 export default function StrikrBadgeMark({
   className = "",
+  style,
 }: StrikrBadgeMarkProps) {
   return (
     <span
@@ -20,6 +24,7 @@ export default function StrikrBadgeMark({
         maskPosition: "center",
         WebkitMaskSize: "contain",
         maskSize: "contain",
+        ...style,
       }}
     />
   );

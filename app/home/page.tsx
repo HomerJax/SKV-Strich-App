@@ -6,7 +6,9 @@ import { getAuthContext } from "@/lib/auth/context";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
+import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import PageHero from "@/components/ui/PageHero";
+import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -34,11 +36,40 @@ type SessionPlayerCountRow = {
 
 type VoteRow = {
   session_id: number;
+  voted_player_id?: number;
 };
 
 type PlayerRow = {
   id: number;
   email: string | null;
+};
+
+type MvpPlayerRow = {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  user_id: string | null;
+  mvp_count: number | null;
+};
+
+type MvpSessionPlayerRow = {
+  player_id: number;
+  players: MvpPlayerRow | MvpPlayerRow[] | null;
+};
+
+type MvpVoteRow = {
+  voted_player_id: number;
+};
+
+type HomeMvpHighlight = {
+  notificationKey: string;
+  sessionId: number;
+  sessionHref: string;
+  sessionDateLabel: string;
+  isWinner: boolean;
+  winner: LeaderboardEntry;
+  leaderboard: LeaderboardEntry[];
+  badgeImageUrl: string;
 };
 
 function fmtDateLong(iso: string) {
@@ -70,7 +101,7 @@ function getPartsInBerlin(date: Date) {
   };
 }
 
-function addOneDay(dateString: string) {
+function addDays(dateString: string, days: number) {
   const [year, month, day] = dateString.split("-").map(Number);
 
   if (!year || !month || !day) {
@@ -78,7 +109,7 @@ function addOneDay(dateString: string) {
   }
 
   const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  date.setUTCDate(date.getUTCDate() + 1);
+  date.setUTCDate(date.getUTCDate() + days);
 
   const yyyy = date.getUTCFullYear();
   const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -88,13 +119,74 @@ function addOneDay(dateString: string) {
 }
 
 function isVotingOpen(sessionDate: string) {
-  const revealDate = addOneDay(sessionDate);
+  const revealDate = addDays(sessionDate, 2);
   const now = getPartsInBerlin(new Date());
 
   return (
     now.dateKey < revealDate ||
-    (now.dateKey === revealDate && now.timeKey < "10:00")
+    (now.dateKey === revealDate && now.timeKey < "18:00")
   );
+}
+
+function getPlayerName(player: MvpPlayerRow | null | undefined) {
+  if (!player) return "Spieler";
+
+  const name = [player.first_name, player.last_name]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return name || "Spieler";
+}
+
+function normalizePlayerRelation(
+  player: MvpSessionPlayerRow["players"]
+): MvpPlayerRow | null {
+  if (!player) return null;
+  if (Array.isArray(player)) return player[0] ?? null;
+  return player;
+}
+
+function safeMvpCount(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function getBadgeLabel(count: number) {
+  if (count >= 10) return "GOAT";
+  if (count >= 7) return "Gold";
+  if (count >= 5) return "Silber";
+  if (count >= 3) return "Bronze";
+  return "Blech";
+}
+
+function getBadgeKey(count: number) {
+  if (count >= 10) return "goat";
+  if (count >= 7) return "gold";
+  if (count >= 5) return "silber";
+  if (count >= 3) return "bronze";
+  return "blech";
+}
+
+function toLeaderboardEntry(params: {
+  playerId: number;
+  name: string;
+  votes: number;
+  current: number;
+}): LeaderboardEntry {
+  const { playerId, name, votes, current } = params;
+  const previous = Math.max(current - 1, 0);
+  const badgeLabel = getBadgeLabel(current);
+
+  return {
+    playerId,
+    name,
+    votes,
+    previous,
+    current,
+    badgeLabel,
+    earnedBadgeText: `${badgeLabel} strikr badge`,
+  };
 }
 
 function StepCard({
@@ -271,12 +363,13 @@ export default async function HomePage() {
 
   const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
   const hasSessions = (sessionsCount ?? 0) > 0;
-
   const recentSessionIds = recentSessions.map((session) => session.id);
 
   let activeVotingSession:
     | (SessionRow & { voteCount: number; eligibleVoterCount: number })
     | null = null;
+
+  let mvpHighlight: HomeMvpHighlight | null = null;
 
   if (mvpVotingEnabled && recentSessionIds.length > 0) {
     const [{ data: resultsData }, { data: sessionPlayersData }, { data: votesData }] =
@@ -291,7 +384,7 @@ export default async function HomePage() {
           .in("session_id", recentSessionIds),
         supabase
           .from("session_mvp_votes")
-          .select("session_id")
+          .select("session_id, voted_player_id")
           .in("session_id", recentSessionIds),
       ]);
 
@@ -332,6 +425,111 @@ export default async function HomePage() {
           eligibleVoterCount: eligibleCountBySession.get(found.id) ?? 0,
         }
       : null;
+
+    const latestRevealedSession =
+      recentSessions.find(
+        (session) =>
+          resultSessionIds.has(session.id) && !isVotingOpen(session.date)
+      ) ?? null;
+
+    if (latestRevealedSession) {
+      const [{ data: mvpPlayersData }, { data: mvpVotesData }] =
+        await Promise.all([
+          supabase
+            .from("session_players")
+            .select(
+              `
+              player_id,
+              players (
+                id,
+                first_name,
+                last_name,
+                user_id,
+                mvp_count
+              )
+            `
+            )
+            .eq("session_id", latestRevealedSession.id),
+          supabase
+            .from("session_mvp_votes")
+            .select("voted_player_id")
+            .eq("session_id", latestRevealedSession.id),
+        ]);
+
+      const participants = ((mvpPlayersData ?? []) as MvpSessionPlayerRow[])
+        .map((row) => {
+          const player = normalizePlayerRelation(row.players);
+          if (!player) return null;
+
+          return {
+            playerId: row.player_id,
+            name: getPlayerName(player),
+            userId: player.user_id,
+            current: safeMvpCount(player.mvp_count),
+          };
+        })
+        .filter(
+          (
+            value
+          ): value is {
+            playerId: number;
+            name: string;
+            userId: string | null;
+            current: number;
+          } => value !== null
+        );
+
+      const participantByPlayerId = new Map(
+        participants.map((participant) => [participant.playerId, participant])
+      );
+
+      const counts = new Map<number, number>();
+      for (const vote of (mvpVotesData ?? []) as MvpVoteRow[]) {
+        const playerId = Number(vote.voted_player_id);
+        counts.set(playerId, (counts.get(playerId) ?? 0) + 1);
+      }
+
+      const leaderboard = [...counts.entries()]
+        .map(([playerId, votes]) => {
+          const participant = participantByPlayerId.get(playerId);
+          return toLeaderboardEntry({
+            playerId,
+            votes,
+            name: participant?.name ?? "Spieler",
+            current: Math.max(participant?.current ?? 1, 1),
+          });
+        })
+        .sort((a, b) =>
+          b.votes !== a.votes
+            ? b.votes - a.votes
+            : a.name.localeCompare(b.name, "de")
+        );
+
+      const winner = leaderboard[0] ?? null;
+      const userId = authResult.data.user?.id ?? null;
+
+      if (winner) {
+        const winnerParticipant = participantByPlayerId.get(winner.playerId);
+        const isWinner = Boolean(
+          userId &&
+            winnerParticipant?.userId &&
+            winnerParticipant.userId === userId
+        );
+
+        const badgeKey = getBadgeKey(winner.current);
+
+        mvpHighlight = {
+          notificationKey: `home:mvp-highlight:${clubId}:${latestRevealedSession.id}`,
+          sessionId: latestRevealedSession.id,
+          sessionHref: `/sessions/${latestRevealedSession.id}`,
+          sessionDateLabel: fmtDateLong(latestRevealedSession.date),
+          isWinner,
+          winner,
+          leaderboard,
+          badgeImageUrl: `/badges/hero/${badgeKey}.webp`,
+        };
+      }
+    }
   }
 
   let nextSessionPresenceStatus: "in" | "out" | "open" = "open";
@@ -349,7 +547,8 @@ export default async function HomePage() {
 
     nextSessionPresentCount = nextSessionPresentCountValue ?? 0;
 
-    const userEmail = authUserResult.data.user?.email?.trim().toLowerCase() ?? null;
+    const userEmail =
+      authUserResult.data.user?.email?.trim().toLowerCase() ?? null;
 
     if (userEmail) {
       const { data: playerData } = await supabase
@@ -427,6 +626,22 @@ export default async function HomePage() {
           }
           compact
         />
+
+        {mvpHighlight ? (
+          <HomeMvpHighlightCard
+            notificationKey={mvpHighlight.notificationKey}
+            sessionId={mvpHighlight.sessionId}
+            sessionHref={mvpHighlight.sessionHref}
+            clubName={clubName}
+            clubLogoUrl={clubLogoUrl}
+            strikrLogoUrl="/brand/strikr-mark.png"
+            sessionDateLabel={mvpHighlight.sessionDateLabel}
+            isWinner={mvpHighlight.isWinner}
+            winner={mvpHighlight.winner}
+            leaderboard={mvpHighlight.leaderboard}
+            badgeImageUrl={mvpHighlight.badgeImageUrl}
+          />
+        ) : null}
 
         {nextSession ? (
           homeSessionRsvpEnabled ? (

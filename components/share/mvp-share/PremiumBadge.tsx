@@ -1,0 +1,72 @@
+/* eslint-disable @next/next/no-img-element */
+
+type PremiumBadgeProps = {
+  badgeImageUrl: string;
+  size?: number;
+  glowColor?: string;
+  glowStrength?: number;
+  imageFilter?: string;
+};
+
+export default function PremiumBadge({
+  badgeImageUrl,
+  size = 650,
+  glowColor = "rgba(255,220,120,0.45)",
+  glowStrength = 1,
+  imageFilter,
+}: PremiumBadgeProps) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        width: size,
+        height: size,
+        position: "relative",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          width: size * 0.95,
+          height: size * 0.52,
+          borderRadius: "999px",
+          background: glowColor,
+          opacity: 0.58 * glowStrength,
+          filter: "blur(96px)",
+          transform: "rotate(-10deg)",
+        }}
+      />
+
+      <div
+        style={{
+          position: "absolute",
+          width: size * 0.6,
+          height: size * 0.38,
+          borderRadius: "999px",
+          background: "rgba(255,255,255,0.18)",
+          opacity: 0.32 * glowStrength,
+          filter: "blur(72px)",
+          transform: "translateY(42px) rotate(-8deg)",
+        }}
+      />
+
+      <img
+        src={badgeImageUrl}
+        alt=""
+        width={size}
+        height={size}
+        style={{
+          width: size,
+          height: size,
+          objectFit: "contain",
+          position: "relative",
+          filter:
+            imageFilter ??
+            "drop-shadow(0 52px 90px rgba(0,0,0,0.66)) drop-shadow(0 0 34px rgba(255,255,255,0.18))",
+        }}
+      />
+    </div>
+  );
+}

@@ -80,6 +80,8 @@ type MvpResults = {
   badgeUpgrade: BadgeUpgrade | null;
 };
 
+const MVP_REVEAL_TIME = "18:00";
+
 function normalizePlayerRelation(
   player: SessionPlayerRow["players"]
 ): PlayerRow | null {
@@ -104,7 +106,7 @@ function safeMvpCount(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-function addOneDay(dateString: string) {
+function addDays(dateString: string, days: number) {
   const [year, month, day] = dateString.split("-").map(Number);
 
   if (!year || !month || !day) {
@@ -112,13 +114,30 @@ function addOneDay(dateString: string) {
   }
 
   const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  date.setUTCDate(date.getUTCDate() + 1);
+  date.setUTCDate(date.getUTCDate() + days);
 
   const yyyy = date.getUTCFullYear();
   const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
   const dd = String(date.getUTCDate()).padStart(2, "0");
 
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function formatRevealLabel(dateString: string) {
+  const [year, month, day] = dateString.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return `${dateString}, 18:00 Uhr`;
+  }
+
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+  const weekday = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    weekday: "long",
+  }).format(date);
+
+  return `${weekday}, 18:00 Uhr`;
 }
 
 function getBerlinParts(date: Date) {
@@ -142,8 +161,8 @@ function getBerlinParts(date: Date) {
 }
 
 function getVotingWindow(sessionDate: string) {
-  const revealDate = addOneDay(sessionDate);
-  const revealLabel = `${revealDate}, 10:00 Uhr`;
+  const revealDate = addDays(sessionDate, 2);
+  const revealLabel = formatRevealLabel(revealDate);
 
   return {
     revealDate,
@@ -157,7 +176,7 @@ function isVotingOpen(sessionDate: string) {
 
   return (
     now.dateKey < revealDate ||
-    (now.dateKey === revealDate && now.timeKey < "10:00")
+    (now.dateKey === revealDate && now.timeKey < MVP_REVEAL_TIME)
   );
 }
 
@@ -502,72 +521,70 @@ async function ensureResultNotifications(params: {
   sessionId: number;
   winners: Array<{ playerId: number; name: string; votes: number }>;
   participants: Participant[];
+  results: MvpResults;
 }) {
-  const { clubId, sessionId, winners, participants } = params;
+  const { clubId, sessionId, winners, participants, results } = params;
 
   const admin = createAdminClient();
 
-  const winnerIds = new Set(winners.map((winner) => winner.playerId));
-  const winnerUserIds = participants
-    .filter((participant) => winnerIds.has(participant.id) && participant.userId)
-    .map((participant) => participant.userId as string);
+  const hasSingleWinner = winners.length === 1;
+  const winner = hasSingleWinner ? winners[0] : null;
+  const winnerName = winner?.name ?? "Der MVP";
 
-  const participantUserIds = participants
-    .map((participant) => participant.userId)
-    .filter(Boolean) as string[];
+  const inserts: NotificationInsert[] = participants
+    .filter((participant) => participant.userId)
+    .map((participant) => {
+      const userId = participant.userId as string;
+      const isWinner = Boolean(winner && participant.id === winner.playerId);
+      const shareVariant = isWinner ? "winner" : "team";
 
-  const uniqueParticipantUserIds = [...new Set(participantUserIds)];
-  const uniqueWinnerUserIds = [...new Set(winnerUserIds)];
-
-  const resultNotifications: NotificationInsert[] = uniqueParticipantUserIds.map(
-    (userId) => ({
-      user_id: userId,
-      club_id: clubId,
-      type: "mvp_result",
-      title: "MVP Voting beendet",
-      body:
-        winners.length === 0
-          ? "Das MVP Voting ist beendet."
-          : winners.length === 1
-            ? `${winners[0].name} ist MVP dieser Session.`
+      return {
+        user_id: userId,
+        club_id: clubId,
+        type: isWinner ? "mvp_winner" : "mvp_result",
+        title: isWinner
+          ? "Du wurdest zum MVP gewählt."
+          : hasSingleWinner
+            ? `${winnerName} wurde MVP.`
+            : "MVP Voting beendet",
+        body: isWinner
+          ? "Starker Auftritt. Teile deine MVP Card."
+          : hasSingleWinner
+            ? "Das MVP Voting ist beendet. Schau dir das Ergebnis an."
             : "Das MVP Voting ist beendet. Es gibt mehrere Gewinner.",
-      cta_href: `/sessions/${sessionId}`,
-      cta_label: "MVP ansehen",
-      payload: {
-        sessionId,
-        winnerCount: winners.length,
-        winnerNames: winners.map((winner) => winner.name),
-      },
-      dedupe_key: `mvp_result:${sessionId}:${userId}`,
-    })
-  );
-
-  const winnerNotifications: NotificationInsert[] = uniqueWinnerUserIds.map(
-    (userId) => ({
-      user_id: userId,
-      club_id: clubId,
-      type: "mvp_winner",
-      title: "Du bist MVP",
-      body: "Glückwunsch, du wurdest zum MVP dieser Session gewählt.",
-      cta_href: `/sessions/${sessionId}`,
-      cta_label: "Meinen MVP ansehen",
-      payload: {
-        sessionId,
-        winner: true,
-      },
-      dedupe_key: `mvp_winner:${sessionId}:${userId}`,
-    })
-  );
-
-  const inserts = [...resultNotifications, ...winnerNotifications];
+        cta_href: isWinner
+          ? `/sessions/${sessionId}?share=mvp`
+          : `/sessions/${sessionId}?mvp=result`,
+        cta_label: isWinner ? "Teilen" : "Ergebnis ansehen",
+        payload: {
+          sessionId,
+          clubId,
+          viewerPlayerId: participant.id,
+          winnerPlayerId: winner?.playerId ?? null,
+          winnerName,
+          isWinner,
+          shareVariant,
+          shareImageUrl: `/api/share/mvp/${sessionId}/image?variant=${shareVariant}`,
+          sessionHref: `/sessions/${sessionId}`,
+          leaderboard: results.leaderboard,
+          winners: results.winners,
+          badgeUpgrade: results.badgeUpgrade,
+          totalVotes: results.totalVotes,
+        },
+        dedupe_key: `${
+          isWinner ? "mvp_winner" : "mvp_result"
+        }:${clubId}:${sessionId}:${userId}`,
+      };
+    });
 
   if (inserts.length === 0) {
     return;
   }
 
-  const { error } = await admin
-    .from("user_notifications")
-    .upsert(inserts, { onConflict: "dedupe_key" });
+  const { error } = await admin.from("user_notifications").upsert(inserts, {
+    onConflict: "dedupe_key",
+    ignoreDuplicates: true,
+  });
 
   if (error) {
     console.error("MVP notifications failed:", error.message);
@@ -581,13 +598,6 @@ async function finalizeMvpIfNeeded(params: {
 }) {
   const { session, results, participants } = params;
 
-  await ensureResultNotifications({
-    clubId: session.club_id,
-    sessionId: session.id,
-    winners: results.winners,
-    participants,
-  });
-
   if (session.mvp_voting_finalized_at) {
     return results;
   }
@@ -595,9 +605,15 @@ async function finalizeMvpIfNeeded(params: {
   const admin = createAdminClient();
   const finalizedAt = new Date().toISOString();
 
+  const singleWinner =
+    results.winners.length === 1 ? results.winners[0] : null;
+
   const { data: finalizedRows, error: finalizeError } = await admin
     .from("sessions")
-    .update({ mvp_voting_finalized_at: finalizedAt })
+    .update({
+      mvp_voting_finalized_at: finalizedAt,
+      mvp_winner_player_id: singleWinner?.playerId ?? null,
+    })
     .eq("id", session.id)
     .is("mvp_voting_finalized_at", null)
     .select("id");
@@ -637,7 +653,17 @@ async function finalizeMvpIfNeeded(params: {
     })
   );
 
-  return buildResultsAfterFreshFinalization(results);
+  const finalizedResults = buildResultsAfterFreshFinalization(results);
+
+  await ensureResultNotifications({
+    clubId: session.club_id,
+    sessionId: session.id,
+    winners: finalizedResults.winners,
+    participants,
+    results: finalizedResults,
+  });
+
+  return finalizedResults;
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
