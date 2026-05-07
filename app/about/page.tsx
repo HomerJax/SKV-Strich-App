@@ -9,9 +9,48 @@ type ReleaseItem = {
 
 const RELEASES: ReleaseItem[] = [
   {
+    version: "v0.7",
+    title: "MVP Sharing, Notifications & Premium Polish",
+    dateLabel: "Neuestes Release",
+    items: [
+      "MVP Share System komplett überarbeitet",
+      "Neue Premium Share Cards für MVP Gewinner und Team MVP Ergebnisse",
+      "Neue Badge Hero Assets für Blech, Bronze, Silber, Gold und GOAT",
+      "Dynamische Glow- und Licht-Effekte je Badge-Level ergänzt",
+      "GOAT, Gold, Silber, Bronze und Blech visuell stärker differenziert",
+      "MVP Gewinner bekommen jetzt eine eigene Notification",
+      "Teilnehmer erhalten eine eigene MVP Ergebnis-Notification",
+      "Notification Payloads erweitert mit Leaderboard, Badge-Fortschritt und Share-Daten",
+      "Direktes Teilen aus MVP Notifications verbessert",
+      "MVP Preview im Notification Toast ergänzt",
+      "Share-Export für MVP Karten verbessert",
+      "WhatsApp- und Social Sharing weiter optimiert",
+      "Dev-Seiten für Share Cards und MVP Simulation ergänzt",
+      "Home weiter überarbeitet mit Fokus auf nächste Session, Quick Actions und MVP Hinweise",
+      "Grundlage für MVP Highlights auf der Home-Seite geschaffen",
+      "Mehr Fokus auf Emotion, Sharing und hochwertige Darstellung nach dem Training",
+    ],
+  },
+  {
+    version: "v0.6",
+    title: "Session UI, Sharing & Mobile Polish",
+    dateLabel: "Vorheriges Release",
+    items: [
+      "Session-Flow optisch weiter beruhigt und kompakter gestaltet",
+      "Teams-UI übersichtlicher und mobiler gemacht",
+      "Spieler-Kacheln kompakter und besser lesbar",
+      "Team-Zuweisung vereinfacht",
+      "Nicht zugewiesene Spieler klarer dargestellt",
+      "Layout-Optionen für Teamvergleich und untereinander verbessert",
+      "Badges in der App reduzierter und sauberer integriert",
+      "Result- und Share-Bereiche weiter stabilisiert",
+      "Mehr visuelle Hierarchie und weniger Rauschen innerhalb der Session",
+    ],
+  },
+  {
     version: "v0.5",
     title: "Session-Flow, MVP & Produkt-Upgrade",
-    dateLabel: "Neuestes Release",
+    dateLabel: "Größeres Produkt-Release",
     items: [
       "Trainings-Flow komplett überarbeitet und erstmals klar strukturiert",
       "Geführter Ablauf von Anwesenheit → Teams → Siegerfoto → Ergebnis → MVP",
@@ -19,7 +58,7 @@ const RELEASES: ReleaseItem[] = [
       "Sessions können jetzt auch als Termin geführt werden (ohne Teams, Ergebnis & MVP)",
       "UI passt sich automatisch an den Session-Typ an (Training vs. Termin)",
       "MVP Voting ist jetzt vollständig integriert und startet automatisch nach dem Ergebnis",
-      "MVP Voting endet automatisch am nächsten Tag – kein manuelles Eingreifen nötig",
+      "MVP Voting endet automatisch – kein manuelles Eingreifen nötig",
       "Persönliche Spieler-Stats freigeschaltet",
       "Grundlage für Spielerentwicklung und Badges geschaffen",
       "Session-Detailseite komplett neu strukturiert in klare, getrennte Bereiche",
@@ -29,24 +68,24 @@ const RELEASES: ReleaseItem[] = [
       "Hero-Bereich überarbeitet: kompakter, ruhiger und klarer",
       "Siegerfoto direkt im Abschlussbereich integriert",
       "Teilen von Ergebnissen deutlich verbessert und stabilisiert",
-      "Vorbereitung für Social Sharing (z. B. Instagram) optimiert",
+      "Vorbereitung für Social Sharing optimiert",
       "Team-Generator weiter verbessert für stabilere und fairere Aufteilungen",
       "Persistenz der Team-Zuordnung stabilisiert",
-      "Anwesenheits-Handling überarbeitet (direktes Speichern vs. Mehrfachauswahl)",
-      "Session-Type-Wechsel (Training ↔ Termin) funktioniert jetzt zuverlässig ohne UI-Fehler",
+      "Anwesenheits-Handling überarbeitet",
+      "Session-Type-Wechsel funktioniert jetzt zuverlässiger",
       "Zahlreiche Fehler im Session-Flow behoben",
       "Scroll-Verhalten stabilisiert bei Aktionen innerhalb der Session",
-      "Build- und Strukturfehler bereinigt (Dateien, Typen, Komponenten)",
+      "Build- und Strukturfehler bereinigt",
       "Grundlegende Stabilität deutlich verbessert für den echten Einsatz im Training",
     ],
   },
   {
     version: "v0.3",
     title: "Generator-Update & Spielerform",
-    dateLabel: "Vorheriges Release",
+    dateLabel: "Früheres Release",
     items: [
       "Team-Generator überarbeitet für fairere und stimmigere Aufteilungen",
-      "Generator bewertet Teamverteilungen jetzt noch gezielter auf Basis von Kategorie, Stärke und Position",
+      "Generator bewertet Teamverteilungen gezielter auf Basis von Kategorie, Stärke und Position",
       "Persönliche Spieler-Stats erweitert",
       "Form-/Trend-Anzeige für die letzten 5 bewerteten Sessions ergänzt",
       "Stats-Seite visuell und inhaltlich überarbeitet",
@@ -203,6 +242,14 @@ export default function AboutPage() {
             </p>
 
             <p>
+              Inzwischen geht strikr aber bewusst noch einen Schritt weiter:
+              Nicht nur organisieren, sondern Training emotionaler machen.
+              Ergebnisse, MVP Voting, Badges und Share Cards sollen genau die
+              Geschichten sichtbar machen, über die man sonst nur kurz in der
+              Kabine oder WhatsApp spricht.
+            </p>
+
+            <p>
               Klar: Die App löst nicht jedes Problem. Aber sie bringt Struktur,
               Fairness und ein bisschen extra Motivation ins Training.
             </p>
@@ -226,6 +273,11 @@ export default function AboutPage() {
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
             Weitere Verbesserungen entstehen Schritt für Schritt – immer nah am
             echten Bedarf auf dem Platz.
+          </p>
+
+          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+            Der aktuelle Fokus liegt auf Stabilität, MVP Flow, Sharing,
+            Notifications, Mobile UX und echtem Feedback aus Test-Teams.
           </p>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
@@ -275,7 +327,9 @@ export default function AboutPage() {
         </div>
 
         <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-7">
-          <h2 className="text-xl font-bold text-slate-950">Updates & Feedback</h2>
+          <h2 className="text-xl font-bold text-slate-950">
+            Updates & Feedback
+          </h2>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
             Folge strikr auf Instagram für neue Updates, Einblicke und weitere

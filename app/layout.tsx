@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import AppHeader from "@/components/AppHeader";
 import AppBottomNav from "@/components/AppBottomNav";
 import { NotificationToastCenter } from "@/components/notifications/NotificationToastCenter";
+import WhatsNewModal from "@/components/WhatsNewModal";
 import { getAuthContext } from "@/lib/auth/context";
 import { isAdminRole } from "@/lib/auth/access";
 
@@ -31,8 +32,16 @@ export default async function RootLayout({
     <html lang="de">
       <body className="min-h-screen bg-neutral-100 text-slate-950 antialiased">
         <AppHeader />
-        {ctx.user ? <NotificationToastCenter /> : null}
+
+        {ctx.user ? (
+          <>
+            <WhatsNewModal version="v0.7" />
+            <NotificationToastCenter />
+          </>
+        ) : null}
+
         <div className="min-h-[100dvh] pb-20">{children}</div>
+
         <AppBottomNav isAdmin={isAdmin} />
       </body>
     </html>

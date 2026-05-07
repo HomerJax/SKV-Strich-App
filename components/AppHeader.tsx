@@ -206,7 +206,7 @@ export default async function AppHeader() {
 
                   {ctx.user ? (
                     <span className="text-[10px] font-medium text-slate-400 sm:text-[11px]">
-                      v0.5
+                      v0.7
                     </span>
                   ) : null}
                 </div>
