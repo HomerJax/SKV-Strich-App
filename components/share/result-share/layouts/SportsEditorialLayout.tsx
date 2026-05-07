@@ -148,13 +148,7 @@ function getEditorialTitle(headline: string) {
     lower.includes("deutlich") ||
     lower.includes("gewonnen")
   ) {
-    return (
-      <>
-        DELIV
-        <br />
-        ERED.
-      </>
-    );
+    return <>DELIVERED.</>;
   }
 
   return (
@@ -230,7 +224,7 @@ export function SportsEditorialLayout({
           overflow: "hidden",
           borderRadius: 36,
           background: "#050505",
-          border: "1px solid rgba(255,255,255,0.08)",
+          border: `1px solid ${colorway.accent}66`,
         }}
       >
         <div
@@ -240,8 +234,18 @@ export function SportsEditorialLayout({
             top: 0,
             left: 0,
             right: 0,
-            height: 560,
+            height: 610,
             background: colorway.topBackground,
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            inset: 0,
+            background: `radial-gradient(circle at 18% 12%, ${colorway.accentGlow}, transparent 28%)`,
+            opacity: 0.55,
           }}
         />
 
@@ -275,10 +279,10 @@ export function SportsEditorialLayout({
           style={{
             display: "flex",
             position: "absolute",
-            left: 54,
-            right: 54,
-            top: 238,
-            height: 322,
+            left: 42,
+            right: 28,
+            top: 262,
+            height: 348,
             alignItems: "flex-end",
             zIndex: 10,
             overflow: "hidden",
@@ -287,12 +291,15 @@ export function SportsEditorialLayout({
           <div
             style={{
               display: "flex",
-              fontSize: 176,
-              fontWeight: 950,
-              lineHeight: 0.72,
-              letterSpacing: -16,
+              fontSize: getEditorialTitle(copy.headline).props?.children
+                ? 178
+                : 192,
+              fontWeight: 1000,
+              lineHeight: 0.76,
+              letterSpacing: -14,
               color: colorway.titleColor,
               textTransform: "uppercase",
+              textShadow: `0 0 28px ${colorway.accentGlow}`,
             }}
           >
             {getEditorialTitle(copy.headline)}
@@ -305,7 +312,7 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 0,
             right: 0,
-            top: 560,
+            top: 610,
             bottom: 0,
             overflow: "hidden",
           }}
@@ -315,7 +322,7 @@ export function SportsEditorialLayout({
             palette,
             dark: true,
             width: 1032,
-            height: 1320,
+            height: 1200,
             borderRadius: 0,
           })}
         </div>
@@ -326,10 +333,10 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 0,
             right: 0,
-            top: 560,
+            top: 610,
             bottom: 0,
             background:
-              "linear-gradient(to top, rgba(1,4,10,0.92) 0%, rgba(1,4,10,0.72) 17%, rgba(1,4,10,0.22) 46%, rgba(1,4,10,0.04) 100%)",
+              "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.74) 18%, rgba(0,0,0,0.22) 48%, rgba(0,0,0,0.02) 74%)",
           }}
         />
 
@@ -337,12 +344,11 @@ export function SportsEditorialLayout({
           style={{
             display: "flex",
             position: "absolute",
-            left: 54,
-            right: 54,
-            bottom: 48,
-            justifyContent: "space-between",
+            left: 58,
+            right: 58,
+            bottom: 64,
             alignItems: "flex-end",
-            gap: 30,
+            gap: 44,
             zIndex: 20,
           }}
         >
@@ -350,22 +356,25 @@ export function SportsEditorialLayout({
             style={{
               display: "flex",
               alignItems: "baseline",
-              gap: 2,
-              fontSize: 142,
-              fontWeight: 950,
-              lineHeight: 0.9,
-              letterSpacing: -11,
+              gap: 0,
+              minWidth: 410,
+              fontSize: 150,
+              fontWeight: 1000,
+              lineHeight: 0.85,
+              letterSpacing: -13,
               color: colorway.accent,
-              textShadow: `0 0 34px ${colorway.accentGlow}`,
+              textShadow: `0 0 36px ${colorway.accentGlow}`,
             }}
           >
             <span style={{ display: "flex" }}>{score.goalsA}</span>
             <span
               style={{
                 display: "flex",
-                fontSize: 92,
-                letterSpacing: -4,
-                opacity: 0.92,
+                fontSize: 98,
+                letterSpacing: -8,
+                marginLeft: -4,
+                marginRight: -4,
+                opacity: 0.96,
               }}
             >
               :
@@ -376,19 +385,133 @@ export function SportsEditorialLayout({
           <div
             style={{
               display: "flex",
-              maxWidth: 360,
-              textAlign: "right",
-              justifyContent: "flex-end",
-              fontSize: 48,
-              fontWeight: 950,
-              lineHeight: 0.86,
-              letterSpacing: -1.8,
+              width: 1,
+              height: 122,
+              background: `${colorway.accent}88`,
+              boxShadow: `0 0 24px ${colorway.accentGlow}`,
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 18,
+              maxWidth: 430,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                fontSize: 58,
+                fontWeight: 1000,
+                lineHeight: 0.86,
+                letterSpacing: -2.2,
+                color: colorway.accent,
+                textTransform: "uppercase",
+                textShadow: `0 0 30px ${colorway.accentGlow}`,
+              }}
+            >
+              {getShortHeadline(copy.headline)}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                fontSize: 25,
+                lineHeight: 1.25,
+                fontWeight: 600,
+                color: "rgba(255,255,255,0.84)",
+              }}
+            >
+              {copy.subline}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 58,
+            right: 58,
+            bottom: 24,
+            justifyContent: "space-between",
+            alignItems: "center",
+            zIndex: 20,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                width: 44,
+                height: 44,
+                borderRadius: 999,
+                alignItems: "center",
+                justifyContent: "center",
+                border: `2px solid ${colorway.accent}`,
+                color: colorway.accent,
+                fontSize: 22,
+                fontWeight: 900,
+              }}
+            >
+              ✦
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 19,
+                  fontWeight: 900,
+                  letterSpacing: 2.2,
+                  color: "#FFFFFF",
+                  textTransform: "uppercase",
+                }}
+              >
+                Matchday
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 17,
+                  fontWeight: 700,
+                  letterSpacing: 2.6,
+                  color: "rgba(255,255,255,0.62)",
+                  textTransform: "uppercase",
+                }}
+              >
+                Training. Team. Together.
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              fontSize: 38,
+              fontWeight: 1000,
+              lineHeight: 1,
+              letterSpacing: -1.4,
               color: colorway.accent,
-              textTransform: "uppercase",
               textShadow: `0 0 28px ${colorway.accentGlow}`,
             }}
           >
-            {getShortHeadline(copy.headline)}
+            strikr
           </div>
         </div>
       </div>
