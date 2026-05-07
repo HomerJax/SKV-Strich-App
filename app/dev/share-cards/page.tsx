@@ -1,9 +1,21 @@
+/* eslint-disable @next/next/no-img-element */
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 import ResultShareCard from "@/components/share/result-share/ResultShareCard";
+import { FloodlightLayout } from "@/components/share/result-share/layouts/FloodlightLayout";
+import { SportsEditorialLayout } from "@/components/share/result-share/layouts/SportsEditorialLayout";
 import type { ExtendedResultShareData } from "@/components/share/result-share/result-share.types";
 
 const badgeKeys = ["blech", "bronze", "silber", "gold", "goat"] as const;
+
+const RESULT_COLORWAYS = [
+  { label: "Blue", color: "#2563EB", sessionId: 1001 },
+  { label: "Pink", color: "#EC4899", sessionId: 1002 },
+  { label: "Türkis", color: "#06B6D4", sessionId: 1003 },
+  { label: "Menthol", color: "#5EEAD4", sessionId: 1004 },
+  { label: "Purple", color: "#7C3AED", sessionId: 1005 },
+  { label: "Coral", color: "#FB7185", sessionId: 1006 },
+];
 
 function getCurrent(badgeKey: (typeof badgeKeys)[number]) {
   if (badgeKey === "goat") return 10;
@@ -39,37 +51,45 @@ function makeWinner(badgeKey: (typeof badgeKeys)[number]): LeaderboardEntry {
   };
 }
 
-const resultShareMock = {
-  sessionId: 999,
-  title: "Team Weiß gewinnt",
-  subtitle: "Ein enges Spiel unter Flutlicht.",
-  date: "2026-04-29",
-  winnerLabel: "Team Weiß",
+function makeResultShareMock({
+  sessionId,
+  clubPrimaryColor,
+}: {
+  sessionId: number;
+  clubPrimaryColor: string;
+}): ExtendedResultShareData {
+  return {
+    sessionId,
+    title: "Team Weiß gewinnt",
+    subtitle: "Ein enges Spiel unter Flutlicht.",
+    date: "2026-04-29",
+    winnerLabel: "Team Weiß",
 
-  clubName: "SKV Rutesheim AH",
-  clubLogoUrl: "/brand/strikr-mark.png",
-  clubPrimaryColor: "#22C55E",
-  strikrLogoUrl: "/brand/strikr-mark.png",
-
-  winnerPhotoUrl: null,
-
-  goalsA: "4",
-  goalsB: "5",
-  teamAName: "Team Schwarz",
-  teamBName: "Team Weiß",
-
-  winnerWasShorthanded: false,
-  upsetWin: false,
-  dramaticFinish: true,
-
-  branding: {
     clubName: "SKV Rutesheim AH",
-    clubCrestUrl: "/brand/strikr-mark.png",
-    appName: "strikr",
-    appTagline: "TEAM TRAINING. REDEFINED.",
-    appLogoUrl: "/brand/strikr-mark.png",
-  },
-} satisfies ExtendedResultShareData;
+    clubLogoUrl: "/brand/strikr-mark.png",
+    clubPrimaryColor,
+    strikrLogoUrl: "/brand/strikr-mark.png",
+
+    winnerPhotoUrl: "/dev/mock-winner-story.png",
+
+    goalsA: "6",
+    goalsB: "4",
+    teamAName: "Team Blau",
+    teamBName: "Team Weiß",
+
+    winnerWasShorthanded: true,
+    upsetWin: true,
+    dramaticFinish: true,
+
+    branding: {
+      clubName: "SKV Rutesheim AH",
+      clubCrestUrl: "/brand/strikr-mark.png",
+      appName: "strikr",
+      appTagline: "TEAM TRAINING. REDEFINED.",
+      appLogoUrl: "/brand/strikr-mark.png",
+    },
+  };
+}
 
 function PreviewFrame({
   title,
@@ -128,23 +148,81 @@ export default function ShareCardsDevPage() {
         </h1>
 
         <p className="mt-2 text-sm font-medium text-zinc-500">
-          Übersicht für Result Share, MVP Winner und MVP Team.
+          Übersicht für Result Share, Sports Editorial, Floodlight und MVP Cards.
         </p>
 
         <div className="mt-8">
           <h2 className="mb-4 text-sm font-black uppercase tracking-[0.18em] text-zinc-400">
-            Result Share
+            Result Share · Automatisch über ResultShareCard
           </h2>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <PreviewFrame
-              title="Result · Floodlight"
-              width={1080}
-              height={1350}
-              scale={0.2}
-            >
-              <ResultShareCard data={resultShareMock} />
-            </PreviewFrame>
+            {RESULT_COLORWAYS.map((item) => (
+              <PreviewFrame
+                key={`auto-${item.label}`}
+                title={`Auto · ${item.label}`}
+                width={1080}
+                height={1350}
+                scale={0.2}
+              >
+                <ResultShareCard
+                  data={makeResultShareMock({
+                    sessionId: item.sessionId,
+                    clubPrimaryColor: item.color,
+                  })}
+                />
+              </PreviewFrame>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-10">
+          <h2 className="mb-4 text-sm font-black uppercase tracking-[0.18em] text-zinc-400">
+            Result Share · Sports Editorial direkt
+          </h2>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {RESULT_COLORWAYS.map((item) => (
+              <PreviewFrame
+                key={`editorial-${item.label}`}
+                title={`Editorial · ${item.label}`}
+                width={1080}
+                height={1350}
+                scale={0.2}
+              >
+                <SportsEditorialLayout
+                  data={makeResultShareMock({
+                    sessionId: item.sessionId,
+                    clubPrimaryColor: item.color,
+                  })}
+                />
+              </PreviewFrame>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-10">
+          <h2 className="mb-4 text-sm font-black uppercase tracking-[0.18em] text-zinc-400">
+            Result Share · Floodlight direkt
+          </h2>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {RESULT_COLORWAYS.map((item) => (
+              <PreviewFrame
+                key={`floodlight-${item.label}`}
+                title={`Floodlight · ${item.label}`}
+                width={1080}
+                height={1350}
+                scale={0.2}
+              >
+                <FloodlightLayout
+                  data={makeResultShareMock({
+                    sessionId: item.sessionId,
+                    clubPrimaryColor: item.color,
+                  })}
+                />
+              </PreviewFrame>
+            ))}
           </div>
         </div>
 

@@ -4,8 +4,8 @@ import {
   getClubLogoUrl,
   getDisplayClubName,
   getScoreModel,
-  renderPhotoOrFallback,
   renderClubBadge,
+  renderPhotoOrFallback,
 } from "../result-share.helpers";
 import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
@@ -130,11 +130,83 @@ function renderStrikrTopBadge({
   );
 }
 
-export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
+function getEditorialTitle(headline: string) {
+  const lower = headline.toLowerCase();
+
+  if (lower.includes("unterzahl") || lower.includes("papier")) {
+    return (
+      <>
+        UNDER
+        <br />
+        DOG.
+      </>
+    );
+  }
+
+  if (
+    lower.includes("diskussion") ||
+    lower.includes("deutlich") ||
+    lower.includes("gewonnen")
+  ) {
+    return (
+      <>
+        DELIV
+        <br />
+        ERED.
+      </>
+    );
+  }
+
+  return (
+    <>
+      MATCH
+      <br />
+      DAY.
+    </>
+  );
+}
+
+function getShortHeadline(headline: string) {
+  const lower = headline.toLowerCase();
+
+  if (lower.includes("unterzahl")) {
+    return (
+      <>
+        IN
+        <br />
+        UNTERZAHL
+        <br />
+        GEWONNEN.
+      </>
+    );
+  }
+
+  if (
+    lower.includes("diskussion") ||
+    lower.includes("deutlich") ||
+    lower.includes("gewonnen")
+  ) {
+    return (
+      <>
+        HEUTE
+        <br />
+        GELIEFERT.
+      </>
+    );
+  }
+
+  return headline;
+}
+
+export function SportsEditorialLayout({
+  data,
+}: {
+  data: ExtendedResultShareData;
+}) {
   const clubName = getDisplayClubName(data);
   const clubLogoUrl = getClubLogoUrl(data);
   const copy = buildCopy(data);
-  const palette = buildPalette(data.clubPrimaryColor, "floodlight");
+  const palette = buildPalette(data.clubPrimaryColor, "sports_editorial");
   const score = getScoreModel(data);
   const colorway = pickResultShareColorway(data.sessionId);
 
@@ -157,7 +229,7 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
           position: "relative",
           overflow: "hidden",
           borderRadius: 36,
-          background: colorway.floodlightBg,
+          background: "#050505",
           border: "1px solid rgba(255,255,255,0.08)",
         }}
       >
@@ -165,27 +237,11 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
           style={{
             display: "flex",
             position: "absolute",
-            inset: 0,
-            background: `radial-gradient(circle at 18% 18%, ${colorway.floodlightGlow}, transparent 30%)`,
-          }}
-        />
-
-        {renderPhotoOrFallback({
-          winnerPhotoUrl: data.winnerPhotoUrl,
-          palette,
-          dark: true,
-          width: 1032,
-          height: 1302,
-          borderRadius: 36,
-        })}
-
-        <div
-          style={{
-            display: "flex",
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(to top, rgba(1,4,10,0.90) 0%, rgba(1,4,10,0.70) 24%, rgba(1,4,10,0.30) 54%, rgba(1,4,10,0.12) 100%)",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 560,
+            background: colorway.topBackground,
           }}
         />
 
@@ -193,22 +249,13 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
           style={{
             display: "flex",
             position: "absolute",
-            inset: 0,
-            background: `radial-gradient(circle at 74% 18%, ${colorway.floodlightGlow}, transparent 26%)`,
-            opacity: 0.62,
-          }}
-        />
-
-        <div
-          style={{
-            display: "flex",
-            position: "absolute",
-            top: 28,
-            left: 28,
-            right: 28,
+            top: 34,
+            left: 34,
+            right: 34,
             justifyContent: "space-between",
             alignItems: "flex-start",
             gap: 24,
+            zIndex: 20,
           }}
         >
           {renderClubBadge({
@@ -228,153 +275,120 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
           style={{
             display: "flex",
             position: "absolute",
-            left: 32,
-            right: 32,
-            bottom: 28,
-            justifyContent: "space-between",
+            left: 54,
+            right: 54,
+            top: 238,
+            height: 322,
             alignItems: "flex-end",
-            gap: 24,
+            zIndex: 10,
+            overflow: "hidden",
           }}
         >
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              gap: 14,
-              maxWidth: 610,
+              fontSize: 176,
+              fontWeight: 950,
+              lineHeight: 0.72,
+              letterSpacing: -16,
+              color: colorway.titleColor,
+              textTransform: "uppercase",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignSelf: "flex-start",
-                padding: "10px 14px",
-                borderRadius: 999,
-                background: "rgba(2,6,12,0.70)",
-                border: `1px solid ${colorway.accent}44`,
-                fontSize: 12,
-                fontWeight: 800,
-                color: "rgba(255,255,255,0.78)",
-                textTransform: "uppercase",
-              }}
-            >
-              {copy.kicker}
-            </div>
+            {getEditorialTitle(copy.headline)}
+          </div>
+        </div>
 
-            <div
-              style={{
-                display: "flex",
-                fontSize: 70,
-                fontWeight: 900,
-                lineHeight: 0.94,
-                letterSpacing: -2.4,
-                color: "#FFFFFF",
-                textShadow: `0 0 28px ${colorway.accentGlow}`,
-              }}
-            >
-              {copy.headline}
-            </div>
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 560,
+            bottom: 0,
+            overflow: "hidden",
+          }}
+        >
+          {renderPhotoOrFallback({
+            winnerPhotoUrl: data.winnerPhotoUrl,
+            palette,
+            dark: true,
+            width: 1032,
+            height: 1320,
+            borderRadius: 0,
+          })}
+        </div>
 
-            <div
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 560,
+            bottom: 0,
+            background:
+              "linear-gradient(to top, rgba(1,4,10,0.92) 0%, rgba(1,4,10,0.72) 17%, rgba(1,4,10,0.22) 46%, rgba(1,4,10,0.04) 100%)",
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 54,
+            right: 54,
+            bottom: 48,
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            gap: 30,
+            zIndex: 20,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: 2,
+              fontSize: 142,
+              fontWeight: 950,
+              lineHeight: 0.9,
+              letterSpacing: -11,
+              color: colorway.accent,
+              textShadow: `0 0 34px ${colorway.accentGlow}`,
+            }}
+          >
+            <span style={{ display: "flex" }}>{score.goalsA}</span>
+            <span
               style={{
                 display: "flex",
-                padding: "14px 16px",
-                borderRadius: 18,
-                background: "rgba(2,6,12,0.72)",
-                border: `1px solid ${colorway.accent}33`,
+                fontSize: 92,
+                letterSpacing: -4,
+                opacity: 0.92,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: 19,
-                  lineHeight: 1.42,
-                  fontWeight: 600,
-                  color: "#FFFFFF",
-                }}
-              >
-                {copy.subline}
-              </div>
-            </div>
+              :
+            </span>
+            <span style={{ display: "flex" }}>{score.goalsB}</span>
           </div>
 
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              minWidth: 310,
-              padding: "28px 30px",
-              borderRadius: 30,
-              background: "rgba(1,4,10,0.82)",
-              border: `1px solid ${colorway.accent}44`,
-              boxShadow: `0 0 40px ${colorway.floodlightGlow}`,
+              maxWidth: 360,
+              textAlign: "right",
+              justifyContent: "flex-end",
+              fontSize: 48,
+              fontWeight: 950,
+              lineHeight: 0.86,
+              letterSpacing: -1.8,
+              color: colorway.accent,
+              textTransform: "uppercase",
+              textShadow: `0 0 28px ${colorway.accentGlow}`,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                marginBottom: 12,
-                fontSize: 14,
-                fontWeight: 800,
-                color: "rgba(255,255,255,0.66)",
-                textTransform: "uppercase",
-              }}
-            >
-              Endstand
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                gap: 8,
-                fontSize: 104,
-                fontWeight: 900,
-                lineHeight: 1,
-                letterSpacing: -4,
-              }}
-            >
-              <span
-                style={{
-                  display: "flex",
-                  color: score.isDraw
-                    ? "#FFFFFF"
-                    : score.teamAIsWinner
-                      ? colorway.accent
-                      : "rgba(255,255,255,0.68)",
-                  textShadow: score.teamAIsWinner
-                    ? `0 0 28px ${colorway.accentGlow}`
-                    : "none",
-                }}
-              >
-                {score.goalsA}
-              </span>
-              <span
-                style={{
-                  display: "flex",
-                  color: "rgba(255,255,255,0.34)",
-                }}
-              >
-                :
-              </span>
-              <span
-                style={{
-                  display: "flex",
-                  color: score.isDraw
-                    ? "#FFFFFF"
-                    : score.teamAIsWinner
-                      ? "rgba(255,255,255,0.68)"
-                      : colorway.accent,
-                  textShadow: !score.teamAIsWinner
-                    ? `0 0 28px ${colorway.accentGlow}`
-                    : "none",
-                }}
-              >
-                {score.goalsB}
-              </span>
-            </div>
+            {getShortHeadline(copy.headline)}
           </div>
         </div>
       </div>

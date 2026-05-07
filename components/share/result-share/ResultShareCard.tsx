@@ -1,4 +1,4 @@
-import { FloodlightLayout } from "./layouts/FloodlightLayout";
+import { SportsEditorialLayout } from "./layouts/SportsEditorialLayout";
 import { ExtendedResultShareData } from "./result-share.types";
 
 export default function ResultShareCard({
@@ -6,5 +6,5 @@ export default function ResultShareCard({
 }: {
   data: ExtendedResultShareData;
 }) {
-  return <FloodlightLayout data={data} />;
+  return <SportsEditorialLayout data={data} />;
 }
