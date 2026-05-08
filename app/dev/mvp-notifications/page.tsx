@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertNotProduction } from "@/lib/safety/assertions";
 
 type SearchParams = Promise<{
   sessionId?: string;
@@ -29,6 +30,8 @@ async function getCurrentUser() {
 }
 
 async function assertDevAccess(userId: string) {
+  assertNotProduction("Access DEV MVP notifications page");
+
   const admin = createAdminClient();
 
   const { data, error } = await admin
@@ -48,6 +51,8 @@ async function assertDevAccess(userId: string) {
 
 async function createTestNotification(formData: FormData) {
   "use server";
+
+  assertNotProduction("Create DEV MVP test notification");
 
   const user = await getCurrentUser();
   await assertDevAccess(user.id);
@@ -144,6 +149,8 @@ async function createTestNotification(formData: FormData) {
 async function markOwnNotificationsUnseen() {
   "use server";
 
+  assertNotProduction("Mark DEV MVP notifications unseen");
+
   const user = await getCurrentUser();
   await assertDevAccess(user.id);
 
@@ -164,6 +171,8 @@ async function markOwnNotificationsUnseen() {
 
 async function deleteOwnMvpNotifications() {
   "use server";
+
+  assertNotProduction("Delete DEV MVP test notifications");
 
   const user = await getCurrentUser();
   await assertDevAccess(user.id);
