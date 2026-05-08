@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { addRanks } from "@/app/standings/standings-ui";
-import { isMvpRevealClosed } from "@/lib/stats/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +17,7 @@ type Session = {
   id: number;
   date: string;
   season_id: number | null;
+  mvp_voting_finalized_at: string | null;
 };
 
 type StandingRow = {
@@ -75,7 +75,7 @@ async function fetchSessions(
 ) {
   let query = supabase
     .from("sessions")
-    .select("id, date, season_id")
+    .select("id, date, season_id, mvp_voting_finalized_at")
     .eq("club_id", clubId)
     .order("date", { ascending: true });
 
@@ -284,20 +284,18 @@ async function computeStandings(
     }
   }
 
-  const revealedSessionIds = new Set(
-    sessions
-      .filter((session) => isMvpRevealClosed(session.date))
-      .map((session) => session.id)
-  );
+  const finalizedSessionIds = sessions
+    .filter((session) => session.mvp_voting_finalized_at !== null)
+    .map((session) => session.id);
 
   let mvpWinsMap = new Map<number, number>();
 
-  if (revealedSessionIds.size > 0) {
+  if (finalizedSessionIds.length > 0) {
     const { data: mvpVotesData, error: mvpVotesError } = await supabase
       .from("session_mvp_votes")
       .select("session_id, voted_player_id")
       .eq("club_id", clubId)
-      .in("session_id", Array.from(revealedSessionIds));
+      .in("session_id", finalizedSessionIds);
 
     if (mvpVotesError) {
       throw new Error(mvpVotesError.message);

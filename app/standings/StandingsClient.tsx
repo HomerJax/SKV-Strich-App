@@ -58,12 +58,17 @@ export default function StandingsClient({
 
   const options = useMemo(() => {
     const sorted = [...seasons].sort((a, b) => b.id - a.id);
+
     const first = sorted[0]
       ? [{ value: String(sorted[0].id), label: sorted[0].name }]
       : [];
+
     const rest = sorted
       .slice(1)
-      .map((season) => ({ value: String(season.id), label: season.name }));
+      .map((season) => ({
+        value: String(season.id),
+        label: season.name,
+      }));
 
     return [...first, { value: "all", label: "Ewige Tabelle" }, ...rest];
   }, [seasons]);
@@ -80,7 +85,9 @@ export default function StandingsClient({
     return chunks.map((chunk, index) => {
       const startRank = chunk[0]?.rank ?? index * 10 + 1;
       const endRank = chunk[chunk.length - 1]?.rank ?? startRank;
+
       const exportId = `export-standings-card-${index + 1}`;
+
       const fileBaseName = `strikr-tabelle-${selectedLabel
         .toLowerCase()
         .replace(/\s+/g, "-")
@@ -155,6 +162,7 @@ export default function StandingsClient({
         title,
         text,
       });
+
       return "shared";
     }
 
@@ -163,7 +171,9 @@ export default function StandingsClient({
       return "copied";
     }
 
-    throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+    throw new Error(
+      "Teilen wird auf diesem Gerät oder Browser nicht unterstützt."
+    );
   }
 
   async function handleShareCard(card: RankingCard) {
@@ -187,12 +197,16 @@ export default function StandingsClient({
       const result = await shareText(text, title);
 
       if (result === "copied") {
-        setMsg("Share-Text der Tabellenkarte wurde in die Zwischenablage kopiert.");
+        setMsg(
+          "Share-Text der Tabellenkarte wurde in die Zwischenablage kopiert."
+        );
       } else {
         setMsg("Tabellenkarte erfolgreich geteilt.");
       }
     } catch (error: unknown) {
-      setErr(getErrorMessage(error, "Tabellenkarte konnte nicht geteilt werden."));
+      setErr(
+        getErrorMessage(error, "Tabellenkarte konnte nicht geteilt werden.")
+      );
     } finally {
       setSharingCardIndex(null);
     }
@@ -213,13 +227,18 @@ export default function StandingsClient({
               value={selected}
               onChange={(e) => {
                 const value = e.target.value;
+
                 setSelected(value);
                 router.replace(`/standings?season=${value}`);
               }}
               className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none backdrop-blur transition hover:bg-white/15"
             >
               {options.map((option) => (
-                <option key={option.value} value={option.value} className="text-slate-900">
+                <option
+                  key={option.value}
+                  value={option.value}
+                  className="text-slate-900"
+                >
                   {option.label}
                 </option>
               ))}
@@ -293,6 +312,7 @@ export default function StandingsClient({
                   <div className="text-xs font-semibold text-slate-800">
                     {selectedLabel}
                   </div>
+
                   <div className="text-[11px] text-slate-500">
                     Gesamttabelle dieser Auswahl
                   </div>
@@ -311,16 +331,23 @@ export default function StandingsClient({
                       <th className="px-2 py-2 text-left">Spieler</th>
                       <th className="w-20 px-2 py-2 text-right">Siege</th>
                       <th className="w-20 px-2 py-2 text-right">MVPs</th>
-                      <th className="w-28 px-2 py-2 text-right">Teilnahmen</th>
+                      <th className="w-28 px-2 py-2 text-right">
+                        Teilnahmen
+                      </th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {rows.map((row) => (
-                      <tr key={row.player_id} className="border-t border-slate-100">
+                      <tr
+                        key={row.player_id}
+                        className="border-t border-slate-100"
+                      >
                         <td className="px-2 py-2 align-top">
                           <div className="font-semibold text-slate-900">
                             {row.rank}.
                           </div>
+
                           <div
                             className={`text-[11px] font-semibold ${movementClass(
                               row.deltaRank
@@ -329,11 +356,13 @@ export default function StandingsClient({
                             {movementText(row.deltaRank)}
                           </div>
                         </td>
+
                         <td className="px-2 py-2 align-middle">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-slate-900">
                               {getPlayerDisplayName(row)}
                             </span>
+
                             <PlayerBadge
                               mvpCount={row.mvps}
                               size="sm"
@@ -342,12 +371,15 @@ export default function StandingsClient({
                             />
                           </div>
                         </td>
+
                         <td className="px-2 py-2 text-right font-semibold text-slate-900">
                           {row.wins}
                         </td>
+
                         <td className="px-2 py-2 text-right font-semibold text-amber-700">
                           {row.mvps}
                         </td>
+
                         <td className="px-2 py-2 text-right text-slate-700">
                           {row.sessions}
                         </td>
@@ -359,8 +391,10 @@ export default function StandingsClient({
 
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-[10px] text-slate-500">
-                  Bewegung (↑/↓) = Vergleich zur Einheit davor in dieser Auswahl.
+                  Bewegung (↑/↓) = Vergleich zur Einheit davor in dieser
+                  Auswahl.
                 </div>
+
                 <div className="text-[10px] font-medium text-slate-500">
                   made with strikr · #strikr
                 </div>
@@ -373,15 +407,17 @@ export default function StandingsClient({
                   <div className="text-xs font-semibold text-slate-800">
                     Standings Share Cards
                   </div>
+
                   <div className="text-[11px] text-slate-500">
-                    Die Tabelle wird automatisch in Karten mit jeweils 10 Plätzen
-                    aufgeteilt. Jede Karte kann separat exportiert oder als Text
-                    geteilt werden.
+                    Die Tabelle wird automatisch in Karten mit jeweils 10
+                    Plätzen aufgeteilt. Jede Karte kann separat exportiert oder
+                    als Text geteilt werden.
                   </div>
                 </div>
 
                 <div className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-                  {rankingCards.length} Karte{rankingCards.length === 1 ? "" : "n"}
+                  {rankingCards.length} Karte
+                  {rankingCards.length === 1 ? "" : "n"}
                 </div>
               </div>
 
@@ -402,6 +438,7 @@ export default function StandingsClient({
                           <div className="text-sm font-semibold text-slate-900">
                             {title}
                           </div>
+
                           <div className="text-[11px] text-slate-500">
                             {selectedLabel} · Share Card {card.index + 1}
                           </div>
