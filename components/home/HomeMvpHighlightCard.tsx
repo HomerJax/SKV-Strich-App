@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
 import { shareMvpResult } from "@/lib/share/mvp-share";
@@ -34,12 +34,14 @@ export default function HomeMvpHighlightCard({
   badgeImageUrl,
 }: HomeMvpHighlightCardProps) {
   const shareRef = useRef<HTMLDivElement>(null);
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(notificationKey) === "dismissed";
-  });
+  const [dismissed, setDismissed] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedValue = window.localStorage.getItem(notificationKey);
+    setDismissed(storedValue === "dismissed");
+  }, [notificationKey]);
 
   const title = isWinner
     ? "Du wurdest zum MVP gewählt."
