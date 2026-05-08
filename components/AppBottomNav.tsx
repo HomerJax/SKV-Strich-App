@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  CalendarDays,
-  Trophy,
-  Shield,
-  LogOut,
-} from "lucide-react";
+import { Home, CalendarDays, Trophy, Shield, LogOut } from "lucide-react";
 import LogoutButton from "@/components/LogoutButton";
 
 type AppBottomNavProps = {
@@ -35,8 +29,8 @@ function NavItem({ href, label, active, icon }: NavItemProps) {
     <Link
       href={href}
       className={[
-        "flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-medium transition",
-        active ? "text-white" : "text-slate-500 hover:bg-slate-100",
+        "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-semibold leading-none transition",
+        active ? "text-white shadow-sm" : "text-slate-500 hover:bg-slate-100",
       ].join(" ")}
       style={
         active
@@ -44,15 +38,13 @@ function NavItem({ href, label, active, icon }: NavItemProps) {
           : undefined
       }
     >
-      <div className="mb-1 flex h-4 w-4 items-center justify-center">{icon}</div>
-      <span>{label}</span>
+      <div className="flex h-5 w-5 items-center justify-center">{icon}</div>
+      <span className="truncate">{label}</span>
     </Link>
   );
 }
 
-export default function AppBottomNav({
-  isAdmin = false,
-}: AppBottomNavProps) {
+export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
   const pathname = usePathname();
 
   if (!pathname) return null;
@@ -66,48 +58,50 @@ export default function AppBottomNav({
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-md items-center gap-1 p-2">
-        <NavItem
-          href="/"
-          label="Home"
-          active={pathname === "/"}
-          icon={<Home className="h-4 w-4" />}
-        />
-
-        <NavItem
-          href="/sessions"
-          label="Sessions"
-          active={
-            pathname === "/sessions" || pathname.startsWith("/sessions/")
-          }
-          icon={<CalendarDays className="h-4 w-4" />}
-        />
-
-        <NavItem
-          href="/standings"
-          label="Tabellen"
-          active={
-            pathname === "/standings" || pathname.startsWith("/standings/")
-          }
-          icon={<Trophy className="h-4 w-4" />}
-        />
-
-        {isAdmin ? (
+    <nav className="fixed inset-x-0 bottom-0 z-[80] border-t border-slate-200 bg-white/98 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-white/90">
+      <div className="mx-auto w-full max-w-6xl px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2">
+        <div className="mx-auto flex h-16 w-full max-w-md items-center gap-1 rounded-[24px] bg-white">
           <NavItem
-            href="/admin"
-            label="Admin"
-            active={pathname === "/admin" || pathname.startsWith("/admin/")}
-            icon={<Shield className="h-4 w-4" />}
+            href="/"
+            label="Home"
+            active={pathname === "/"}
+            icon={<Home className="h-5 w-5" />}
           />
-        ) : null}
 
-        <LogoutButton className="flex flex-1 flex-col items-center justify-center rounded-xl py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100">
-          <>
-            <LogOut className="mb-1 h-4 w-4" />
-            <span>Logout</span>
-          </>
-        </LogoutButton>
+          <NavItem
+            href="/sessions"
+            label="Sessions"
+            active={
+              pathname === "/sessions" || pathname.startsWith("/sessions/")
+            }
+            icon={<CalendarDays className="h-5 w-5" />}
+          />
+
+          <NavItem
+            href="/standings"
+            label="Tabellen"
+            active={
+              pathname === "/standings" || pathname.startsWith("/standings/")
+            }
+            icon={<Trophy className="h-5 w-5" />}
+          />
+
+          {isAdmin ? (
+            <NavItem
+              href="/admin"
+              label="Admin"
+              active={pathname === "/admin" || pathname.startsWith("/admin/")}
+              icon={<Shield className="h-5 w-5" />}
+            />
+          ) : null}
+
+          <LogoutButton className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-semibold leading-none text-slate-500 transition hover:bg-slate-100">
+            <>
+              <LogOut className="h-5 w-5" />
+              <span className="truncate">Logout</span>
+            </>
+          </LogoutButton>
+        </div>
       </div>
     </nav>
   );

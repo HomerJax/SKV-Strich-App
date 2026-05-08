@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import PlayerBadge from "@/components/badges/PlayerBadge";
 import type { Player } from "./session-types";
@@ -43,6 +46,36 @@ type SessionAttendanceCardProps = {
   onSavePresence: () => void;
 };
 
+const ATTENDANCE_SCROLL_KEY = "strikr-session-attendance-scroll-y";
+
+function rememberScrollPosition() {
+  if (typeof window === "undefined") return;
+
+  window.sessionStorage.setItem(
+    ATTENDANCE_SCROLL_KEY,
+    String(window.scrollY)
+  );
+}
+
+function restoreScrollPosition() {
+  if (typeof window === "undefined") return;
+
+  const rawValue = window.sessionStorage.getItem(ATTENDANCE_SCROLL_KEY);
+  if (!rawValue) return;
+
+  const scrollY = Number(rawValue);
+  if (!Number.isFinite(scrollY)) return;
+
+  window.requestAnimationFrame(() => {
+    window.scrollTo({
+      top: scrollY,
+      behavior: "auto",
+    });
+
+    window.sessionStorage.removeItem(ATTENDANCE_SCROLL_KEY);
+  });
+}
+
 function guestBadge(player: Player) {
   return player.is_guest ? (
     <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">
@@ -74,6 +107,36 @@ function AttendanceHint({
           : "Spieler antippen, dann gesammelt speichern."}
     </div>
   );
+}
+
+function AttendanceStatus({
+  savingPresence,
+  directSaveEnabled,
+  lastChangedPlayerName,
+  justSaved,
+}: {
+  savingPresence: boolean;
+  directSaveEnabled: boolean;
+  lastChangedPlayerName: string | null;
+  justSaved: boolean;
+}) {
+  if (savingPresence && directSaveEnabled) {
+    return (
+      <div className="rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] font-semibold text-blue-800">
+        Speichert Anwesenheit{lastChangedPlayerName ? ` für ${lastChangedPlayerName}` : ""}…
+      </div>
+    );
+  }
+
+  if (justSaved) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-800">
+        Anwesenheit gespeichert.
+      </div>
+    );
+  }
+
+  return null;
 }
 
 function SectionSummaryPill({
@@ -118,7 +181,10 @@ function ControlButton({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        rememberScrollPosition();
+        onClick();
+      }}
       disabled={disabled}
       className={`inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition ${className} disabled:cursor-not-allowed disabled:opacity-60`}
     >
@@ -202,12 +268,79 @@ export default function SessionAttendanceCard({
   const absentCount = Math.max(players.length - presentCount, 0);
   const done = directSaveEnabled ? presentCount > 0 : !dirty && presentCount > 0;
 
+  const wasSavingRef = useRef(false);
+  const [lastChangedPlayerId, setLastChangedPlayerId] = useState<number | null>(
+    null
+  );
+  const [lastChangedPlayerName, setLastChangedPlayerName] = useState<
+    string | null
+  >(null);
+  const [justSaved, setJustSaved] = useState(false);
+
+  const presentIdsSignature = useMemo(
+    () => [...presentIds].sort((a, b) => a - b).join(","),
+    [presentIds]
+  );
+
+  useEffect(() => {
+    restoreScrollPosition();
+  }, []);
+
+  useEffect(() => {
+    restoreScrollPosition();
+  }, [presentIdsSignature]);
+
+  useEffect(() => {
+  if (!wasSavingRef.current || savingPresence) {
+    wasSavingRef.current = savingPresence;
+    return undefined;
+  }
+
+  wasSavingRef.current = savingPresence;
+
+  const showTimeout = window.setTimeout(() => {
+    setJustSaved(true);
+  }, 0);
+
+  const hideTimeout = window.setTimeout(() => {
+    setJustSaved(false);
+    setLastChangedPlayerId(null);
+    setLastChangedPlayerName(null);
+  }, 1800);
+
+  return () => {
+    window.clearTimeout(showTimeout);
+    window.clearTimeout(hideTimeout);
+  };
+}, [savingPresence]);
+
+  function handleTogglePresence(player: Player) {
+    if (hasResult || savingPresence) return;
+
+    rememberScrollPosition();
+
+    setLastChangedPlayerId(player.id);
+    setLastChangedPlayerName(getPlayerDisplayName(player));
+    setJustSaved(false);
+
+    onTogglePresence(player.id);
+  }
+
+  function handleSavePresence() {
+    rememberScrollPosition();
+    setJustSaved(false);
+    onSavePresence();
+  }
+
   if (collapsed) {
     return (
       <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
         <button
           type="button"
-          onClick={onToggleCollapsed}
+          onClick={() => {
+            rememberScrollPosition();
+            onToggleCollapsed();
+          }}
           className={`flex w-full items-center justify-between gap-4 rounded-[20px] px-4 py-3.5 text-left transition ${
             done ? "bg-emerald-50" : "hover:bg-slate-50/70"
           }`}
@@ -254,6 +387,12 @@ export default function SessionAttendanceCard({
                     Änderungen offen
                   </SectionSummaryPill>
                 ) : null}
+
+                {savingPresence ? (
+                  <SectionSummaryPill tone="muted">
+                    Speichert…
+                  </SectionSummaryPill>
+                ) : null}
               </div>
             </div>
           </div>
@@ -290,6 +429,11 @@ export default function SessionAttendanceCard({
                       Änderungen offen
                     </SectionSummaryPill>
                   ) : null}
+                  {savingPresence ? (
+                    <SectionSummaryPill tone="muted">
+                      Speichert…
+                    </SectionSummaryPill>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -303,7 +447,10 @@ export default function SessionAttendanceCard({
 
           <button
             type="button"
-            onClick={onToggleCollapsed}
+            onClick={() => {
+              rememberScrollPosition();
+              onToggleCollapsed();
+            }}
             className="shrink-0 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Einklappen
@@ -313,7 +460,7 @@ export default function SessionAttendanceCard({
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {!hasResult && !directSaveEnabled ? (
             <ControlButton
-              onClick={onSavePresence}
+              onClick={handleSavePresence}
               disabled={!dirty || savingPresence}
               tone="primary"
             >
@@ -332,7 +479,10 @@ export default function SessionAttendanceCard({
 
           <button
             type="button"
-            onClick={onToggleMultiSelect}
+            onClick={() => {
+              rememberScrollPosition();
+              onToggleMultiSelect();
+            }}
             disabled={hasResult || savingPresence}
             className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition ${
               multiSelectEnabled
@@ -354,6 +504,13 @@ export default function SessionAttendanceCard({
         <AttendanceHint
           directSaveEnabled={directSaveEnabled}
           multiSelectEnabled={multiSelectEnabled}
+        />
+
+        <AttendanceStatus
+          savingPresence={savingPresence}
+          directSaveEnabled={directSaveEnabled}
+          lastChangedPlayerName={lastChangedPlayerName}
+          justSaved={justSaved}
         />
 
         {isAdmin && showGuestForm && !hasResult ? (
@@ -412,7 +569,9 @@ export default function SessionAttendanceCard({
                   <select
                     value={guestAgeGroup ?? ""}
                     onChange={(e) =>
-                      onGuestAgeGroupChange(e.target.value as Player["age_group"] | "")
+                      onGuestAgeGroupChange(
+                        e.target.value as Player["age_group"] | ""
+                      )
                     }
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
                   >
@@ -448,6 +607,7 @@ export default function SessionAttendanceCard({
             const mvpCount = getPlayerMvpCount(player);
             const isDeletingGuest = deletingGuestPlayerId === player.id;
             const canDeleteGuest = isAdmin && player.is_guest && !hasResult;
+            const isLastChanged = lastChangedPlayerId === player.id;
 
             return (
               <div
@@ -458,7 +618,7 @@ export default function SessionAttendanceCard({
               >
                 <button
                   type="button"
-                  onClick={() => onTogglePresence(player.id)}
+                  onClick={() => handleTogglePresence(player)}
                   disabled={hasResult || savingPresence || isDeletingGuest}
                   title={
                     hasResult
@@ -471,6 +631,10 @@ export default function SessionAttendanceCard({
                     isPresent
                       ? "border-emerald-200 bg-emerald-50"
                       : "border-slate-200 bg-white hover:bg-slate-50"
+                  } ${
+                    isLastChanged && savingPresence
+                      ? "ring-2 ring-blue-200"
+                      : ""
                   } ${hasResult ? "cursor-not-allowed" : ""}`}
                 >
                   <span className="flex min-w-0 items-center gap-2.5">
@@ -502,13 +666,24 @@ export default function SessionAttendanceCard({
                     </span>
                   </span>
 
-                  <PlayerMetaChips player={player} />
+                  <span className="flex shrink-0 items-center gap-2">
+                    {isLastChanged && savingPresence ? (
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">
+                        Speichert…
+                      </span>
+                    ) : null}
+
+                    <PlayerMetaChips player={player} />
+                  </span>
                 </button>
 
                 {canDeleteGuest ? (
                   <button
                     type="button"
-                    onClick={() => onDeleteGuestPlayer(player.id)}
+                    onClick={() => {
+                      rememberScrollPosition();
+                      onDeleteGuestPlayer(player.id);
+                    }}
                     disabled={savingPresence || isDeletingGuest}
                     title="Gastspieler aus dieser Session löschen"
                     className="inline-flex shrink-0 items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
@@ -530,7 +705,7 @@ export default function SessionAttendanceCard({
             </div>
 
             <ControlButton
-              onClick={onSavePresence}
+              onClick={handleSavePresence}
               disabled={!dirty || savingPresence}
               tone="primary"
             >
