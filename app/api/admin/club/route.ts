@@ -47,8 +47,7 @@ function safeFileName(name: string) {
 }
 
 function getRequestOrigin(request: NextRequest) {
-  const forwardedProto =
-    request.headers.get("x-forwarded-proto") ?? "https";
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
   const forwardedHost = request.headers.get("x-forwarded-host");
   const host = request.headers.get("host");
 
@@ -69,8 +68,14 @@ function resolveRedirectUrl(
   redirectTo: string | null | undefined,
   fallbackPath: string
 ) {
+  const origin = getRequestOrigin(request);
   const target = redirectTo?.trim() || fallbackPath;
-  return new URL(target, getRequestOrigin(request));
+
+  if (!target.startsWith("/") || target.startsWith("//")) {
+    return new URL(fallbackPath, origin);
+  }
+
+  return new URL(target, origin);
 }
 
 function redirectToTarget(
@@ -169,12 +174,15 @@ export async function POST(request: NextRequest) {
       if (context.error === "login") {
         return redirectToTarget(request, null, AUTH_ROUTES.login);
       }
+
       if (context.error === "onboarding") {
         return redirectToTarget(request, null, AUTH_ROUTES.onboarding);
       }
+
       if (context.error === "select_club") {
         return redirectToTarget(request, null, AUTH_ROUTES.selectClub);
       }
+
       if (context.error === "missing_club") {
         return redirectToTarget(request, redirectTo, "/admin/settings", {
           club_error: "missing_club",
