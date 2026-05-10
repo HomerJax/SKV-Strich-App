@@ -9,11 +9,22 @@ import { canManageClub } from "@/lib/auth/access";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type SportType =
+  | "football"
+  | "handball"
+  | "basketball"
+  | "volleyball"
+  | "ice_hockey"
+  | "tennis"
+  | "padel"
+  | "other";
+
 type ClubRow = {
   id: string;
   display_name: string | null;
   logo_path: string | null;
   primary_color: string | null;
+  sport_type: SportType | null;
 };
 
 type AdminClubContext =
@@ -36,6 +47,16 @@ const ALLOWED_TYPES = [
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const ALLOWED_COLORS = new Set(["black", "blue", "red", "green"]);
+const ALLOWED_SPORT_TYPES = new Set<SportType>([
+  "football",
+  "handball",
+  "basketball",
+  "volleyball",
+  "ice_hockey",
+  "tennis",
+  "padel",
+  "other",
+]);
 
 function safeFileName(name: string) {
   return name
@@ -117,6 +138,16 @@ function isUploadedFile(value: FormDataEntryValue | null): value is File {
   );
 }
 
+function normalizeSportType(value: FormDataEntryValue | null): SportType {
+  const raw = String(value ?? "").trim();
+
+  if (ALLOWED_SPORT_TYPES.has(raw as SportType)) {
+    return raw as SportType;
+  }
+
+  return "football";
+}
+
 async function getAdminClubContext(): Promise<AdminClubContext> {
   const ctx = await getAuthContext();
 
@@ -149,7 +180,7 @@ async function getAdminClubContext(): Promise<AdminClubContext> {
 
   const { data: clubData, error: clubError } = await supabase
     .from("clubs")
-    .select("id, display_name, logo_path, primary_color")
+    .select("id, display_name, logo_path, primary_color, sport_type")
     .eq("id", ctx.activeClubId)
     .maybeSingle();
 
@@ -227,6 +258,7 @@ export async function POST(request: NextRequest) {
       ? primaryColorRaw
       : "black";
 
+    const sportType = normalizeSportType(formData.get("sport_type"));
     const useNicknames = formData.get("use_nicknames") === "1";
 
     const logoEntry = formData.get("logo");
@@ -275,6 +307,7 @@ export async function POST(request: NextRequest) {
         display_name: displayName || null,
         logo_path: nextLogoPath,
         primary_color: primaryColor,
+        sport_type: sportType,
       })
       .eq("id", club.id);
 

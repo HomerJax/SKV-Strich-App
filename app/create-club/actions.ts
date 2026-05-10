@@ -129,6 +129,7 @@ export async function createClubAction(
     .insert({
       name: clubName,
       display_name: clubName,
+      sport_type: "football",
     })
     .select("id")
     .maybeSingle<{ id: string }>();

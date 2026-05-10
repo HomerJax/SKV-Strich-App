@@ -3,6 +3,16 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 
+type SportType =
+  | "football"
+  | "handball"
+  | "basketball"
+  | "volleyball"
+  | "ice_hockey"
+  | "tennis"
+  | "padel"
+  | "other";
+
 type ClubSetupClubStepProps = {
   saved?: boolean;
   error?: string;
@@ -11,6 +21,7 @@ type ClubSetupClubStepProps = {
   removeLogoRedirectTo?: string;
   initialDisplayName: string;
   initialPrimaryColor: string;
+  initialSportType: SportType | string | null;
   initialLogoUrl: string | null;
   useNicknames: boolean;
 };
@@ -21,6 +32,53 @@ const COLOR_OPTIONS = [
   { value: "red", label: "Rot", color: "#dc2626" },
   { value: "green", label: "Grün", color: "#16a34a" },
 ] as const;
+
+const SPORT_OPTIONS: Array<{
+  value: SportType;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "football",
+    label: "Fußball",
+    description: "Trainings, Teams, Ergebnisse und MVPs für Fußballteams.",
+  },
+  {
+    value: "handball",
+    label: "Handball",
+    description: "Für Hallen- und Feldteams mit Trainings-Flow.",
+  },
+  {
+    value: "basketball",
+    label: "Basketball",
+    description: "Für schnelle Trainingsgruppen und faire Teams.",
+  },
+  {
+    value: "volleyball",
+    label: "Volleyball",
+    description: "Für Teams, Trainingsabende und interne Spielrunden.",
+  },
+  {
+    value: "ice_hockey",
+    label: "Eishockey",
+    description: "Für Eis- und Inline-Teams.",
+  },
+  {
+    value: "tennis",
+    label: "Tennis",
+    description: "Für Trainingsgruppen, Doppel und interne Runden.",
+  },
+  {
+    value: "padel",
+    label: "Padel",
+    description: "Für Padel-Gruppen, Doppel und regelmäßige Sessions.",
+  },
+  {
+    value: "other",
+    label: "Andere Sportart",
+    description: "Für alle Teams, die strikr flexibel nutzen möchten.",
+  },
+];
 
 function getErrorMessage(error?: string) {
   switch (error) {
@@ -41,6 +99,12 @@ function getErrorMessage(error?: string) {
   }
 }
 
+function normalizeSportType(value: SportType | string | null): SportType {
+  return SPORT_OPTIONS.some((option) => option.value === value)
+    ? (value as SportType)
+    : "football";
+}
+
 export default function ClubSetupClubStep({
   saved = false,
   error = "",
@@ -49,18 +113,30 @@ export default function ClubSetupClubStep({
   removeLogoRedirectTo,
   initialDisplayName,
   initialPrimaryColor,
+  initialSportType,
   initialLogoUrl,
   useNicknames,
 }: ClubSetupClubStepProps) {
   const [displayName, setDisplayName] = useState(initialDisplayName);
-  const [primaryColor, setPrimaryColor] = useState(initialPrimaryColor || "black");
+  const [primaryColor, setPrimaryColor] = useState(
+    initialPrimaryColor || "black"
+  );
+  const [sportType, setSportType] = useState<SportType>(
+    normalizeSportType(initialSportType)
+  );
   const [nicknameMode, setNicknameMode] = useState(useNicknames);
   const [selectedFileName, setSelectedFileName] = useState("");
-  const [selectedPreviewUrl, setSelectedPreviewUrl] = useState<string | null>(null);
+  const [selectedPreviewUrl, setSelectedPreviewUrl] = useState<string | null>(
+    null
+  );
 
   const previewColor =
     COLOR_OPTIONS.find((option) => option.value === primaryColor)?.color ??
     "#020617";
+
+  const selectedSport =
+    SPORT_OPTIONS.find((option) => option.value === sportType) ??
+    SPORT_OPTIONS[0];
 
   const previewLogoUrl = selectedPreviewUrl ?? initialLogoUrl ?? null;
   const errorMessage = getErrorMessage(error);
@@ -115,7 +191,9 @@ export default function ClubSetupClubStep({
               <div className="truncate text-lg font-bold text-slate-950">
                 {displayName.trim() || "Dein Team"}
               </div>
-              <div className="text-sm text-slate-500">Anzeige im Header</div>
+              <div className="text-sm text-slate-500">
+                {selectedSport.label} · Anzeige im Header
+              </div>
               <div className="mt-1 text-xs text-slate-500">
                 Spielernamen:{" "}
                 <span className="font-semibold text-slate-700">
@@ -139,6 +217,35 @@ export default function ClubSetupClubStep({
         className="space-y-5"
       >
         <input type="hidden" name="redirect_to" value={redirectTo} />
+
+        <div className="space-y-2">
+          <label
+            htmlFor="sport_type"
+            className="block text-sm font-medium text-slate-900"
+          >
+            Sportart
+          </label>
+
+          <select
+            id="sport_type"
+            name="sport_type"
+            value={sportType}
+            onChange={(event) =>
+              setSportType(normalizeSportType(event.target.value))
+            }
+            className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-slate-900"
+          >
+            {SPORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          <p className="text-xs leading-5 text-slate-500">
+            {selectedSport.description}
+          </p>
+        </div>
 
         <div className="space-y-2">
           <label

@@ -29,9 +29,7 @@ function getErrorMessage(error?: string | null) {
   }
 }
 
-function getSearchParam(
-  value: string | string[] | undefined
-): string | null {
+function getSearchParam(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) {
     return value[0] ?? null;
   }
@@ -48,6 +46,7 @@ type ClubRow = {
   display_name: string | null;
   logo_path: string | null;
   primary_color: string | null;
+  sport_type: string | null;
 };
 
 type ClubSettingsRow = {
@@ -74,7 +73,7 @@ const STEP_ORDER: SetupStep[] = [
 ];
 
 const STEP_LABELS: Record<SetupStep, string> = {
-  club: "Club & Branding",
+  club: "Sport & Club",
   season: "Saison",
   team: "Teamgenerator",
   categories: "Kategorien",
@@ -198,7 +197,7 @@ function BrandLockup() {
 
       <div>
         <div className="text-sm font-semibold tracking-[0.18em] text-neutral-500">
-          STRIKR
+          strikr
         </div>
         <div className="text-sm text-neutral-600">Club-Setup</div>
       </div>
@@ -239,7 +238,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
     ] = await Promise.all([
       supabase
         .from("clubs")
-        .select("id, display_name, logo_path, primary_color")
+        .select("id, display_name, logo_path, primary_color, sport_type")
         .eq("id", activeClubId)
         .maybeSingle<ClubRow>(),
       supabase
@@ -294,13 +293,11 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
     "";
 
   const settingsSaved = getSearchParam(resolvedSearchParams.saved) === "1";
-  const settingsError =
-    getSearchParam(resolvedSearchParams.error) ?? "";
+  const settingsError = getSearchParam(resolvedSearchParams.error) ?? "";
 
   const categorySaved =
     getSearchParam(resolvedSearchParams.category_saved) === "1";
-  const categoryError =
-    getSearchParam(resolvedSearchParams.category_error) ?? "";
+  const categoryError = getSearchParam(resolvedSearchParams.category_error) ?? "";
 
   const previousStep = getPreviousStep(currentStep);
 
@@ -317,12 +314,13 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
             <div className="w-full max-w-4xl">
               <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
                 <h1 className="text-3xl font-bold tracking-tight text-neutral-950 sm:text-5xl">
-                  Dein STRIKR Start
+                  Dein strikr Start
                 </h1>
 
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-neutral-700 sm:text-base">
-                  Du bist eingeloggt, aber aktuell noch in keinem Team. Erstelle jetzt
-                  dein eigenes Team oder warte auf eine Einladung von einem Admin.
+                  Du bist eingeloggt, aber aktuell noch in keinem Team. Erstelle
+                  jetzt dein eigenes Team oder warte auf eine Einladung von
+                  einem Admin.
                 </p>
 
                 {errorMessage ? (
@@ -334,7 +332,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                 <div className="mt-8 grid gap-4 md:grid-cols-2">
                   <EmptyStateActionCard
                     title="Eigenes Team erstellen"
-                    description="Starte mit deinem eigenen Team und richte STRIKR Schritt für Schritt für eure Trainings ein."
+                    description="Starte mit deinem eigenen Team und richte strikr Schritt für Schritt für eure Trainings ein."
                   >
                     <form action={createClubAction} className="space-y-4">
                       <div>
@@ -368,9 +366,9 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     description="Du wurdest schon eingeladen? Dann musst du jetzt nichts weiter tun. Öffne einfach den Einladungslink deines Teams."
                   >
                     <div className="rounded-2xl border border-black/10 bg-[#f7f8fb] p-4 text-sm leading-6 text-neutral-700">
-                      Sobald dir ein Admin einen Invite-Link schickt, kannst du dem Team
-                      mit einem Klick beitreten. Danach landest du automatisch im
-                      richtigen Club-Kontext.
+                      Sobald dir ein Admin einen Invite-Link schickt, kannst du
+                      dem Team mit einem Klick beitreten. Danach landest du
+                      automatisch im richtigen Club-Kontext.
                     </div>
 
                     <div className="mt-4">
@@ -398,10 +396,10 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                       Schritt 1
                     </div>
                     <h2 className="mt-1 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
-                      Club & Branding
+                      Sport & Club
                     </h2>
                     <p className="mt-2 text-sm leading-7 text-neutral-700">
-                      Name, Logo, Farbe und Anzeigeoptionen festlegen.
+                      Sportart, Name, Logo, Farbe und Anzeigeoptionen festlegen.
                     </p>
                   </div>
 
@@ -413,6 +411,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     removeLogoRedirectTo={buildWizardUrl("club")}
                     initialDisplayName={club?.display_name ?? ""}
                     initialPrimaryColor={club?.primary_color ?? "black"}
+                    initialSportType={club?.sport_type ?? "football"}
                     initialLogoUrl={currentLogoUrl}
                     useNicknames={useNicknames}
                   />
