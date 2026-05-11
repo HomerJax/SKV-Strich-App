@@ -232,6 +232,25 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-black/10 bg-white">
+        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <div className="font-semibold text-zinc-700">strikr</div>
+
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link href="/impressum" className="hover:text-black">
+              Impressum
+            </Link>
+            <Link href="/datenschutz" className="hover:text-black">
+              Datenschutz
+            </Link>
+            <a href="mailto:mb1607@gmx.de" className="hover:text-black">
+              Kontakt
+            </a>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
