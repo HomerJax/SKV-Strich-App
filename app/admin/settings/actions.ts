@@ -2,13 +2,23 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { slugifyKey } from "./helpers";
 
+function normalizeInternalRedirect(value: FormDataEntryValue | null) {
+  const target = String(value ?? "/admin/settings").trim();
+
+  if (!target) return "/admin/settings";
+  if (!target.startsWith("/")) return "/admin/settings";
+  if (target.startsWith("//")) return "/admin/settings";
+
+  return target;
+}
+
 async function getAdminContext() {
-  const { clubId, membership, memberships, isPowerUser } = await requireClub();
+  const { clubId, membership, isPowerUser } = await requireClub();
 
   const hasAdminAccess = canManageClub({
     isPowerUser,
@@ -19,24 +29,32 @@ async function getAdminContext() {
     redirect("/admin");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
-  return { supabase, clubId, membership, memberships, isPowerUser };
+  return { supabase, clubId };
 }
 
 function buildRedirectUrlWithParams(
   redirectTo: string | null | undefined,
   params: Record<string, string>
 ) {
-  const target = redirectTo?.trim() || "/admin/settings";
+  const target = normalizeInternalRedirect(redirectTo ?? "/admin/settings");
   const separator = target.includes("?") ? "&" : "?";
   const query = new URLSearchParams(params).toString();
+
   return `${target}${separator}${query}`;
+}
+
+function revalidateSettingsPaths() {
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/categories");
+  revalidatePath("/club-setup");
+  revalidatePath("/onboarding");
 }
 
 export async function addCategoryAction(formData: FormData) {
   const { supabase, clubId } = await getAdminContext();
-  const redirectTo = String(formData.get("redirect_to") ?? "/admin/settings").trim();
+  const redirectTo = normalizeInternalRedirect(formData.get("redirect_to"));
 
   const label = String(formData.get("label") ?? "").trim();
   const keyInput = String(formData.get("key") ?? "").trim();
@@ -59,13 +77,21 @@ export async function addCategoryAction(formData: FormData) {
     );
   }
 
-  const { data: maxRow } = await supabase
+  const { data: maxRow, error: maxRowError } = await supabase
     .from("club_categories")
     .select("sort_order")
     .eq("club_id", clubId)
     .order("sort_order", { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle<{ sort_order: number | null }>();
+
+  if (maxRowError) {
+    redirect(
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error: maxRowError.message,
+      })
+    );
+  }
 
   const nextSortOrder = (maxRow?.sort_order ?? 0) + 1;
 
@@ -85,10 +111,7 @@ export async function addCategoryAction(formData: FormData) {
     );
   }
 
-  revalidatePath("/admin/settings");
-  revalidatePath("/admin/categories");
-  revalidatePath("/club-setup");
-  revalidatePath("/onboarding");
+  revalidateSettingsPaths();
 
   redirect(
     buildRedirectUrlWithParams(redirectTo, {
@@ -99,7 +122,7 @@ export async function addCategoryAction(formData: FormData) {
 
 export async function updateCategoryAction(formData: FormData) {
   const { supabase, clubId } = await getAdminContext();
-  const redirectTo = String(formData.get("redirect_to") ?? "/admin/settings").trim();
+  const redirectTo = normalizeInternalRedirect(formData.get("redirect_to"));
 
   const id = Number(String(formData.get("id") ?? ""));
   const label = String(formData.get("label") ?? "").trim();
@@ -107,7 +130,7 @@ export async function updateCategoryAction(formData: FormData) {
   const sortOrder = Number(String(formData.get("sort_order") ?? "0"));
   const isActive = formData.get("is_active") === "on";
 
-  if (!id || !label) {
+  if (!Number.isFinite(id) || id <= 0 || !label) {
     redirect(
       buildRedirectUrlWithParams(redirectTo, {
         category_error: "Ungültige Kategorie",
@@ -146,10 +169,7 @@ export async function updateCategoryAction(formData: FormData) {
     );
   }
 
-  revalidatePath("/admin/settings");
-  revalidatePath("/admin/categories");
-  revalidatePath("/club-setup");
-  revalidatePath("/onboarding");
+  revalidateSettingsPaths();
 
   redirect(
     buildRedirectUrlWithParams(redirectTo, {
