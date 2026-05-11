@@ -289,10 +289,7 @@ function ClubDetailsCard({ view }: { view: ClubView }) {
   const billingTone = getBillingTone(view.billing.plan_key, view.billing.status);
 
   return (
-    <details
-      className="group rounded-[28px] border border-slate-200 bg-white shadow-sm"
-      open={view.isActive}
-    >
+    <details className="group rounded-[28px] border border-slate-200 bg-white shadow-sm">
       <summary className="flex cursor-pointer list-none flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
