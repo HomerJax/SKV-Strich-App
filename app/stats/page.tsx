@@ -11,6 +11,8 @@ import StatsHero from "@/components/stats/StatsHero";
 import RecentResultsCard from "@/components/stats/RecentResultsCard";
 import TeamImpactCard from "@/components/stats/TeamImpactCard";
 import StatsSection from "@/components/stats/StatsSection";
+import ProFeatureLock from "@/components/billing/ProFeatureLock";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import {
   getImpactMeta,
   getImpactValue,
@@ -77,6 +79,7 @@ type MvpVoteRow = {
 
 type ClubRow = {
   id: string;
+  display_name: string | null;
   primary_color: string | null;
 };
 
@@ -283,7 +286,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
       .order("start_date", { ascending: false }),
     supabase
       .from("clubs")
-      .select("id, primary_color")
+      .select("id, display_name, primary_color")
       .eq("id", clubId)
       .maybeSingle<ClubRow>(),
   ]);
@@ -314,6 +317,55 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const useStrength = clubSettings.use_strength ?? true;
   const strengthDefault = clubSettings.strength_default ?? 3;
   const primaryColorKey = clubData?.primary_color ?? "black";
+  const clubName = clubData?.display_name?.trim() || "dein Team";
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
+
+  if (!billingAccess.isPro) {
+    return (
+      <main className="min-h-screen bg-neutral-100">
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
+          <StatsIntro
+            scope={scope}
+            seasonName={currentSeasonName}
+            primaryColorKey={primaryColorKey}
+          />
+
+          <div className="relative overflow-hidden rounded-[28px]">
+            <div className="pointer-events-none select-none opacity-35 blur-[1px] grayscale">
+              <StatsHero
+                sessionsPlayed={12}
+                wins={7}
+                losses={3}
+                draws={2}
+                completedResults={12}
+                showMvp={true}
+                mvpWins={3}
+                mvpPerGame={0.25}
+              />
+
+              <div className="mt-5 space-y-5">
+                <EmptyStatsContent showMvp={true} badgeMvpCount={3} />
+              </div>
+            </div>
+
+            <div className="absolute inset-x-0 top-8 z-10 mx-auto w-[calc(100%-2rem)] max-w-2xl">
+              <ProFeatureLock
+                clubName={clubName}
+                title="Stats mit strikr Pro freischalten"
+                description="In Free bleibt die Stats-Welt sichtbar, aber gesperrt. Mit Pro sehen Spieler Formkurve, Team Impact, Ergebnisse, MVP-Erfolge und Badge-Fortschritt."
+                featureList={[
+                  "Persönliche Formkurve",
+                  "Team Impact",
+                  "MVP- und Badge-Fortschritt",
+                  "Saison- und Karriere-Ansicht",
+                ]}
+              />
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   if (!player) {
     return (
