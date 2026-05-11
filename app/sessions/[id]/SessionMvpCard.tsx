@@ -838,6 +838,37 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 </div>
               ) : null}
 
+              {state.votedByNames.length > 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-slate-900">
+                        Abgestimmt haben
+                      </div>
+                      <div className="mt-1 text-xs font-semibold text-slate-500">
+                        {state.votedByNames.length} von{" "}
+                        {state.eligibleVoterCount} Stimmen wurden abgegeben.
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                      Voting beendet
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {state.votedByNames.map((name) => (
+                      <span
+                        key={name}
+                        className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                      >
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {state.results?.leaderboard &&
               state.results.leaderboard.length > 0 ? (
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
