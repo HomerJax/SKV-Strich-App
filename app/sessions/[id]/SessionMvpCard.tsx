@@ -798,18 +798,44 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               )}
 
               {state.results ? (
-                <button
-                  type="button"
-                  onClick={handleShareMvpResult}
-                  disabled={sharingResult}
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {sharingResult
-                    ? "Öffne Teilen…"
-                    : shareData?.mode === "winner"
-                      ? "Meinen MVP teilen"
-                      : "MVP Ergebnis teilen"}
-                </button>
+                <div className="rounded-[24px] border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                        Share Moment
+                      </div>
+                      <div className="mt-1 text-base font-extrabold tracking-tight text-slate-950">
+                        {shareData?.mode === "winner"
+                          ? "Deine MVP Card ist bereit"
+                          : "Das MVP Ergebnis ist bereit"}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-600">
+                        {shareData?.mode === "winner"
+                          ? "Teile deinen MVP-Moment direkt mit Team und Gruppe."
+                          : "Teile das finale MVP-Ergebnis direkt mit deinem Team."}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
+                      strikr
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={handleShareMvpResult}
+                      disabled={sharingResult}
+                      className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3.5 text-base font-extrabold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {sharingResult
+                        ? "Öffne Teilen…"
+                        : shareData?.mode === "winner"
+                          ? "Meinen MVP teilen"
+                          : "MVP Ergebnis teilen"}
+                    </button>
+                  </div>
+                </div>
               ) : null}
 
               {state.results?.leaderboard &&
