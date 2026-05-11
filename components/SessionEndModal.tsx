@@ -16,6 +16,7 @@ type SessionEndModalProps = {
   preparingResultShare?: boolean;
   resultShareMessage?: string | null;
   mvpVotingEnabled?: boolean;
+  showMvpVotingFollowup?: boolean;
 };
 
 function getHeadline(scoreA: number, scoreB: number) {
@@ -127,6 +128,7 @@ export default function SessionEndModal({
   preparingResultShare = false,
   resultShareMessage = null,
   mvpVotingEnabled = false,
+  showMvpVotingFollowup = false,
 }: SessionEndModalProps) {
   const [showMvpFollowup, setShowMvpFollowup] = useState(false);
   const [sharingMvpVoting, setSharingMvpVoting] = useState(false);
@@ -191,7 +193,7 @@ Voting läuft bis morgen 10:00 Uhr.
   }
 
   function handleCloseMain() {
-    if (mvpVotingEnabled) {
+    if (mvpVotingEnabled && showMvpVotingFollowup) {
       setShowMvpFollowup(true);
       return;
     }
