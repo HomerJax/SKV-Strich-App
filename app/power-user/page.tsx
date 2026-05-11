@@ -3,6 +3,7 @@ import {
   BarChart3,
   Building2,
   CalendarDays,
+  CreditCard,
   MailCheck,
   MailOpen,
   Shield,
@@ -194,12 +195,14 @@ export default async function PowerUserPage() {
               </div>
 
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-                STRIKR Dashboard
+                strikr Dashboard
               </h1>
 
               <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
                 Hier siehst du auf einen Blick, wie viele Clubs, Registrierungen,
-                Einladungen und Trainings es systemweit gibt.
+                Einladungen und Trainings es systemweit gibt. Über Clubs &
+                Billing kannst du außerdem Free, Supercup, Pro und Founder
+                manuell setzen.
               </p>
             </div>
 
@@ -213,10 +216,10 @@ export default async function PowerUserPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <KpiCard
             href="/power-user/clubs"
-            label="Clubs"
+            label="Clubs & Billing"
             value={String(clubsCount)}
-            description="So viele Clubs existieren aktuell insgesamt."
-            icon={<Building2 className="h-6 w-6" strokeWidth={2.1} />}
+            description="Alle Clubs prüfen, Support-Kontext sehen und Free, Supercup Trial, Pro oder Founder manuell setzen."
+            icon={<CreditCard className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
@@ -376,15 +379,19 @@ export default async function PowerUserPage() {
                 Übersicht
               </div>
               <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                Clubs
+                Clubs & Billing
               </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Schnellzugriff auf Clubdetails, Mitglieder, Aktivität und
+                manuelle Plan-Freischaltung.
+              </p>
             </div>
 
             <Link
               href="/power-user/clubs"
               className="text-sm font-medium text-slate-900 hover:underline"
             >
-              Alle Clubs →
+              Alle Clubs & Billing →
             </Link>
           </div>
 
@@ -400,13 +407,21 @@ export default async function PowerUserPage() {
                   href="/power-user/clubs"
                   className="rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50"
                 >
-                  <div className="text-sm font-semibold text-slate-950">
-                    {club.display_name?.trim() ||
-                      club.name?.trim() ||
-                      "Unbenannter Club"}
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    ID: {club.id}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950">
+                        {club.display_name?.trim() ||
+                          club.name?.trim() ||
+                          "Unbenannter Club"}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        ID: {club.id}
+                      </div>
+                    </div>
+
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                      <Building2 className="h-4 w-4" />
+                    </div>
                   </div>
                 </Link>
               ))
