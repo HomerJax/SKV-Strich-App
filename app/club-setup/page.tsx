@@ -602,19 +602,12 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     </div>
                   ) : null}
 
-                  <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
-                    <Link
-                      href="/admin/members"
-                      className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-neutral-50"
-                    >
-                      Mitglieder verwalten
-                    </Link>
-
+                  <div className="mt-8 flex justify-center">
                     <Link
                       href="/"
-                      className="inline-flex items-center justify-center rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
+                      className="inline-flex items-center justify-center rounded-xl bg-neutral-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
                     >
-                      Zu strikr starten
+                      Los geht’s
                     </Link>
                   </div>
                 </div>
