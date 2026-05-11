@@ -160,6 +160,27 @@ export async function createClubAction(
     return { error: "settings-create-failed" };
   }
 
+  const { error: billingError } = await adminSupabase
+    .from("club_billing")
+    .upsert(
+      {
+        club_id: club.id,
+        plan_key: "free",
+        status: "active",
+        trial_ends_at: null,
+        pro_ends_at: null,
+        billing_note: "Automatisch beim Club-Erstellen als Free angelegt.",
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "club_id",
+      }
+    );
+
+  if (billingError) {
+    return { error: "billing-create-failed" };
+  }
+
   const existingPlayerInTargetClub = existingProfiles.find(
     (profile) => profile.club_id === club.id
   );

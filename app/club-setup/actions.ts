@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthContext } from "@/lib/auth/context";
 
 function getStringValue(value: FormDataEntryValue | null) {
@@ -81,6 +82,7 @@ export async function createClubAction(formData: FormData) {
     .from("clubs")
     .insert({
       display_name: name,
+      sport_type: "football",
     })
     .select("id")
     .single();
@@ -91,11 +93,13 @@ export async function createClubAction(formData: FormData) {
 
   const clubId = club.id as string;
 
-  const { error: membershipError } = await supabase.from("club_memberships").insert({
-    club_id: clubId,
-    user_id: auth.user.id,
-    role: "admin",
-  });
+  const { error: membershipError } = await supabase
+    .from("club_memberships")
+    .insert({
+      club_id: clubId,
+      user_id: auth.user.id,
+      role: "admin",
+    });
 
   if (membershipError) {
     redirect("/club-setup?error=membership-create-failed");
@@ -106,6 +110,29 @@ export async function createClubAction(formData: FormData) {
   });
 
   if (settingsError) {
+    redirect("/club-setup?error=settings-create-failed");
+  }
+
+  const adminSupabase = createAdminClient();
+
+  const { error: billingError } = await adminSupabase
+    .from("club_billing")
+    .upsert(
+      {
+        club_id: clubId,
+        plan_key: "free",
+        status: "active",
+        trial_ends_at: null,
+        pro_ends_at: null,
+        billing_note: "Automatisch beim Club-Setup als Free angelegt.",
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "club_id",
+      }
+    );
+
+  if (billingError) {
     redirect("/club-setup?error=settings-create-failed");
   }
 
