@@ -207,6 +207,123 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* PRICING */}
+      <section className="border-t border-black/10 bg-white">
+        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+              strikr Pro
+            </div>
+
+            <h2 className="mt-3 text-3xl font-black sm:text-4xl">
+              Kostenlos starten. Pro freischalten, wenn es bei euch läuft.
+            </h2>
+
+            <p className="mt-4 text-base leading-7 text-zinc-600 sm:text-lg">
+              strikr bleibt bewusst einfach: Teams können kostenlos starten.
+              Die emotionalen Extras wie Stats, Tabelle, MVP-Entwicklung,
+              Badges und Share-Momente sind Teil von strikr Pro.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-2">
+            <div className="rounded-[28px] border border-black/10 bg-zinc-50 p-6">
+              <div className="inline-flex rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-bold text-zinc-700">
+                Free
+              </div>
+
+              <h3 className="mt-4 text-2xl font-black tracking-tight">
+                Zum Starten
+              </h3>
+
+              <p className="mt-3 text-sm leading-6 text-zinc-600">
+                Für Teams, die strikr ausprobieren und den Trainingsflow
+                kennenlernen möchten.
+              </p>
+
+              <div className="mt-6 space-y-3 text-sm font-semibold text-zinc-800">
+                <div>✓ Club erstellen</div>
+                <div>✓ Spieler einladen</div>
+                <div>✓ Anwesenheit erfassen</div>
+                <div>✓ Teams erstellen</div>
+                <div>✓ Ergebnis speichern</div>
+              </div>
+
+              <div className="mt-6 rounded-2xl bg-white p-4 text-sm leading-6 text-zinc-600">
+                Premium-Bereiche bleiben sichtbar, sind in Free aber teilweise
+                gesperrt oder als Pro markiert.
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-black bg-black p-6 text-white shadow-xl">
+              <div className="inline-flex rounded-full border border-amber-300/40 bg-amber-300/15 px-3 py-1 text-xs font-bold text-amber-100">
+                Supercup-Angebot
+              </div>
+
+              <h3 className="mt-4 text-2xl font-black tracking-tight">
+                strikr Pro
+              </h3>
+
+              <p className="mt-3 text-sm leading-6 text-white/70">
+                Für Teams, die mehr Motivation, Sichtbarkeit und echte
+                Team-Momente aus jedem Training machen wollen.
+              </p>
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="text-sm font-bold text-white">
+                  Bis 31.07. kostenlos testen
+                </div>
+                <div className="mt-1 text-sm leading-6 text-white/65">
+                  Danach manuell freischalten. Kein Abo-Zwang, kein Checkout,
+                  persönliche Absprache per WhatsApp oder E-Mail.
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-3 text-sm font-semibold text-white">
+                <div>✓ Stats und Formkurven</div>
+                <div>✓ Tabelle und Rankings</div>
+                <div>✓ MVP- und Badge-Fortschritt</div>
+                <div>✓ Premium Share-Momente</div>
+                <div>✓ Saisons, Branding und erweiterte Einstellungen</div>
+              </div>
+
+              <div className="mt-6 grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-white/65">Monatlich</span>
+                  <span className="font-black text-white">19,99 €</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-white/65">6 Monate</span>
+                  <span className="font-black text-white">99 €</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-white/65">12 Monate</span>
+                  <span className="font-black text-white">149 €</span>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <a
+                  href="https://wa.me/491772685717?text=Hi%2C%20wir%20interessieren%20uns%20f%C3%BCr%20strikr%20Pro%20und%20das%20Supercup-Angebot."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-bold text-black transition hover:bg-zinc-200"
+                >
+                  WhatsApp
+                </a>
+
+                <a
+                  href="mailto:mb1607@gmx.de?subject=strikr%20Pro%20Anfrage&body=Hi%2C%20wir%20interessieren%20uns%20f%C3%BCr%20strikr%20Pro%20und%20das%20Supercup-Angebot."
+                  className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+                >
+                  E-Mail
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="border-t border-black/10">
         <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 lg:px-8">
