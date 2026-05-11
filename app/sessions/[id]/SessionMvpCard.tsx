@@ -41,6 +41,8 @@ type MvpState = {
   voteCount: number;
   eligibleVoterCount: number;
   votedByNames: string[];
+  clubName?: string | null;
+  clubLogoUrl?: string | null;
   results: {
     winners: ResultEntry[];
     leaderboard: ResultEntry[];
@@ -118,6 +120,24 @@ function getShareBadgeLabel(count: number) {
 
 function getShareEarnedBadgeText(count: number) {
   return `${getShareBadgeLabel(count)} strikr badge`;
+}
+
+function toAbsoluteAssetUrl(url: string | null | undefined) {
+  if (!url) return null;
+
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+
+  if (typeof window === "undefined") {
+    return url;
+  }
+
+  return new URL(url, window.location.origin).toString();
 }
 
 function toShareEntry(
@@ -308,16 +328,20 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       );
 
     const badgeKey = getBadgeAssetKeyFromMvpCount(shareWinner.current);
+    const strikrLogoUrl =
+      toAbsoluteAssetUrl("/brand/strikr-mark.png") ?? "/brand/strikr-mark.png";
 
     return {
       mode: isCurrentUserWinner ? "winner" : "team",
       winner: shareWinner,
       leaderboard: shareLeaderboard,
-      badgeImageUrl: `/badges/hero/${badgeKey}.webp`,
-      clubName: "SKV Rutesheim AH",
-      clubLogoUrl: "/brand/strikr-mark.png",
-      strikrLogoUrl: "/brand/strikr-mark.png",
-      sessionDateLabel: "MVP Ergebnis",
+      badgeImageUrl:
+        toAbsoluteAssetUrl(`/badges/hero/${badgeKey}.webp`) ??
+        `/badges/hero/${badgeKey}.webp`,
+      clubName: state.clubName?.trim() || "strikr Team",
+      clubLogoUrl: toAbsoluteAssetUrl(state.clubLogoUrl) ?? strikrLogoUrl,
+      strikrLogoUrl,
+      sessionDateLabel: state.revealLabel || "MVP Ergebnis",
     } as const;
   }, [state]);
 
@@ -465,7 +489,14 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       {shareData ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed left-[-200vw] top-0 opacity-0"
+          style={{
+            position: "fixed",
+            left: "-10000px",
+            top: 0,
+            opacity: 0,
+            pointerEvents: "none",
+            zIndex: -1,
+          }}
         >
           <div
             ref={shareCardRef}

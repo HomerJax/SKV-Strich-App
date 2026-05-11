@@ -31,6 +31,7 @@ type BadgeUpgrade = {
 type NotificationPayload = {
   sessionId?: number;
   clubName?: string;
+  clubLogoUrl?: string | null;
   winnerName?: string;
   isWinner?: boolean;
   leaderboard?: PayloadLeaderboardEntry[];
@@ -102,6 +103,24 @@ function getBadgeKey(count: number) {
   return "blech";
 }
 
+function toAbsoluteAssetUrl(url: string | null | undefined) {
+  if (!url) return null;
+
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+
+  if (typeof window === "undefined") {
+    return url;
+  }
+
+  return new URL(url, window.location.origin).toString();
+}
+
 function toShareEntry(
   entry: PayloadLeaderboardEntry | PayloadWinnerEntry,
   badgeUpgrade?: BadgeUpgrade | null
@@ -145,14 +164,18 @@ function buildShareData(notification: NotificationItem) {
 
   const isWinner = payload.isWinner === true;
   const badgeKey = getBadgeKey(winner.current);
+  const strikrLogoUrl =
+    toAbsoluteAssetUrl("/brand/strikr-mark.png") ?? "/brand/strikr-mark.png";
 
   return {
     mode: isWinner ? "winner" : "team",
     clubName: payload.clubName ?? "strikr Team",
     sessionDateLabel: "MVP Ergebnis",
-    strikrLogoUrl: "/brand/strikr-mark.png",
-    clubLogoUrl: "/brand/strikr-mark.png",
-    badgeImageUrl: `/badges/hero/${badgeKey}.webp`,
+    strikrLogoUrl,
+    clubLogoUrl: toAbsoluteAssetUrl(payload.clubLogoUrl) ?? strikrLogoUrl,
+    badgeImageUrl:
+      toAbsoluteAssetUrl(`/badges/hero/${badgeKey}.webp`) ??
+      `/badges/hero/${badgeKey}.webp`,
     winner,
     leaderboard,
   } as const;
@@ -338,7 +361,14 @@ export function NotificationToastCenter() {
             {shareData ? (
               <div
                 aria-hidden="true"
-                className="pointer-events-none fixed left-[-200vw] top-0"
+                style={{
+                  position: "fixed",
+                  left: "-10000px",
+                  top: 0,
+                  opacity: 0,
+                  pointerEvents: "none",
+                  zIndex: -1,
+                }}
               >
                 <div
                   ref={(node) => {
