@@ -1,28 +1,8 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { getAuthContext } from "@/lib/auth/context";
-
-async function getSupabaseServerClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {
-          // Für diesen Route Handler müssen wir hier keine Cookies setzen.
-        },
-      },
-    }
-  );
-}
+import { createAdminClient } from "@/lib/supabase/admin";
 
 async function getRequestOrigin() {
   const headerStore = await headers();
@@ -39,14 +19,40 @@ function isAdminRole(role: string | null | undefined) {
   return role === "admin";
 }
 
+function normalizeInternalRedirect(value: FormDataEntryValue | null) {
+  const target = String(value ?? "").trim();
+
+  if (!target) return "";
+  if (!target.startsWith("/")) return "";
+  if (target.startsWith("//")) return "";
+
+  return target;
+}
+
+function buildRedirectWithParams(
+  origin: string,
+  fallbackPath: string,
+  redirectTo: string,
+  params: Record<string, string>
+) {
+  const url = new URL(redirectTo || fallbackPath, origin);
+
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+
+  return url;
+}
+
 export async function POST(request: Request) {
+  const origin = await getRequestOrigin();
+
   try {
     const formData = await request.formData();
     const roleValue = formData.get("role");
     const role = roleValue === "admin" ? "admin" : "member";
+    const redirectTo = normalizeInternalRedirect(formData.get("redirect_to"));
 
-    const supabase = await getSupabaseServerClient();
-    const origin = await getRequestOrigin();
     const ctx = await getAuthContext();
 
     if (!ctx.user) {
@@ -60,17 +66,21 @@ export async function POST(request: Request) {
     }
 
     const activeMembership =
-      ctx.memberships.find((membership) => membership.club_id === ctx.activeClubId) ??
-      null;
+      ctx.memberships.find(
+        (membership) => membership.club_id === ctx.activeClubId
+      ) ?? null;
 
     const hasAdminAccess =
       ctx.isPowerUser || isAdminRole(activeMembership?.role ?? null);
 
     if (!hasAdminAccess) {
-      return NextResponse.redirect(new URL("/sessions", origin), { status: 303 });
+      return NextResponse.redirect(new URL("/sessions", origin), {
+        status: 303,
+      });
     }
 
     const token = randomBytes(24).toString("hex");
+    const supabase = createAdminClient();
 
     const { error: insertError } = await supabase.from("invites").insert({
       club_id: ctx.activeClubId,
@@ -81,8 +91,28 @@ export async function POST(request: Request) {
 
     if (insertError) {
       console.error("create invite insertError:", insertError);
+
+      if (redirectTo) {
+        return NextResponse.redirect(
+          buildRedirectWithParams(origin, "/admin/members", redirectTo, {
+            invite_error: "invite_create_failed",
+          }),
+          { status: 303 }
+        );
+      }
+
       return NextResponse.redirect(
         new URL("/admin/members?error=invite_create_failed", origin),
+        { status: 303 }
+      );
+    }
+
+    if (redirectTo) {
+      return NextResponse.redirect(
+        buildRedirectWithParams(origin, "/admin/members", redirectTo, {
+          invite_created: "1",
+          invite_token: token,
+        }),
         { status: 303 }
       );
     }
@@ -93,8 +123,6 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("create invite unexpected error:", error);
-
-    const origin = await getRequestOrigin();
 
     return NextResponse.redirect(
       new URL("/admin/members?error=invite_create_failed", origin),

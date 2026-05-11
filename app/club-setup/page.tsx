@@ -1,12 +1,13 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import LogoutButton from "@/components/LogoutButton";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createClubAction } from "./actions";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
 import ClubSetupSeasonStep from "@/components/club-setup/ClubSetupSeasonStep";
+import ClubSetupInviteActions from "@/components/club-setup/ClubSetupInviteActions";
 import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
 
@@ -35,6 +36,17 @@ function getSearchParam(value: string | string[] | undefined): string | null {
   }
 
   return value ?? null;
+}
+
+async function getRequestOrigin() {
+  const headerStore = await headers();
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  const host = forwardedHost || headerStore.get("host") || "localhost:3000";
+  const proto =
+    forwardedProto || (host.includes("localhost") ? "http" : "https");
+
+  return `${proto}://${host}`;
 }
 
 type PageProps = {
@@ -188,28 +200,15 @@ function StepHero({
   );
 }
 
-function BrandLockup() {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-black/10 bg-black text-sm font-extrabold uppercase tracking-[0.18em] text-white shadow-sm">
-        S
-      </div>
-
-      <div>
-        <div className="text-sm font-semibold tracking-[0.18em] text-neutral-500">
-          strikr
-        </div>
-        <div className="text-sm text-neutral-600">Club-Setup</div>
-      </div>
-    </div>
-  );
-}
-
 export default async function ClubSetupPage({ searchParams }: PageProps) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const error = getSearchParam(resolvedSearchParams.error);
   const created = getSearchParam(resolvedSearchParams.created) === "1";
   const currentStep = getStep(getSearchParam(resolvedSearchParams.step));
+  const inviteToken = getSearchParam(resolvedSearchParams.invite_token);
+  const inviteCreated =
+    getSearchParam(resolvedSearchParams.invite_created) === "1";
+  const inviteError = getSearchParam(resolvedSearchParams.invite_error);
 
   const auth = await getAuthContext();
 
@@ -272,8 +271,12 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
     redirect("/");
   }
 
+  const origin = await getRequestOrigin();
   const clubName = club?.display_name?.trim() || "dein Team";
   const errorMessage = getErrorMessage(error);
+  const inviteUrl = inviteToken
+    ? `${origin}/join?token=${encodeURIComponent(inviteToken)}`
+    : null;
 
   const clubSaved =
     getSearchParam(resolvedSearchParams.club_saved) === "1" ||
@@ -304,11 +307,6 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
   return (
     <main className="min-h-screen bg-[#f5f7fb] text-neutral-950">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 sm:py-6">
-        <header className="mb-6 flex items-center justify-between gap-3">
-          <BrandLockup />
-          <LogoutButton />
-        </header>
-
         {!created ? (
           <section className="flex flex-1 items-start justify-center py-2 sm:py-4">
             <div className="w-full max-w-4xl">
@@ -534,24 +532,89 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
               {currentStep === "done" ? (
                 <div className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-8">
-                  <div className="text-center">
+                  <div className="mx-auto max-w-xl text-center">
                     <div className="text-sm font-semibold text-neutral-500">
                       Glückwunsch
                     </div>
                     <h2 className="mt-2 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
-                      {clubName} ist eingerichtet
+                      Dein Team „{clubName}“ wurde erstellt.
                     </h2>
                     <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
-                      Das Setup ist abgeschlossen.
+                      Das Setup ist abgeschlossen. Lade jetzt deine
+                      Teamkameraden ein, damit ihr gemeinsam loslegen könnt.
                     </p>
                   </div>
 
-                  <div className="mt-8 flex justify-center">
+                  <div className="mt-7 rounded-[1.5rem] border border-black/10 bg-[#f7f8fb] p-4 sm:p-5">
+                    <div className="text-sm font-bold text-neutral-950">
+                      Teamkameraden einladen
+                    </div>
+                    <p className="mt-1 text-sm leading-6 text-neutral-600">
+                      Erzeuge einen mehrfach nutzbaren Link und teile ihn direkt
+                      in eurer WhatsApp- oder Mannschaftsgruppe.
+                    </p>
+
+                    <div className="mt-5">
+                      {inviteError ? (
+                        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                          Der Einladungslink konnte nicht erstellt werden.
+                        </div>
+                      ) : null}
+
+                      {inviteUrl ? (
+                        <ClubSetupInviteActions
+                          inviteUrl={inviteUrl}
+                          clubName={clubName}
+                        />
+                      ) : (
+                        <form
+                          method="post"
+                          action="/admin/members/create"
+                          className="space-y-3"
+                        >
+                          <input type="hidden" name="role" value="member" />
+                          <input
+                            type="hidden"
+                            name="redirect_to"
+                            value={buildWizardUrl("done")}
+                          />
+
+                          <button
+                            type="submit"
+                            className="inline-flex w-full items-center justify-center rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
+                          >
+                            Einladungslink erzeugen
+                          </button>
+
+                          <p className="text-xs leading-5 text-neutral-500">
+                            Der Link kann von mehreren Spielern genutzt werden.
+                            Du kannst später im Admin-Bereich weitere Links
+                            erzeugen oder Rollen anpassen.
+                          </p>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+
+                  {inviteCreated ? (
+                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                      Einladungslink wurde erstellt.
+                    </div>
+                  ) : null}
+
+                  <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
+                    <Link
+                      href="/admin/members"
+                      className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-neutral-50"
+                    >
+                      Mitglieder verwalten
+                    </Link>
+
                     <Link
                       href="/"
                       className="inline-flex items-center justify-center rounded-xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
                     >
-                      Setup abschließen
+                      Zu strikr starten
                     </Link>
                   </div>
                 </div>
