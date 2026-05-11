@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Building2,
   CalendarDays,
+  ChevronDown,
   CreditCard,
   Mail,
   Shield,
@@ -57,6 +58,20 @@ type ClubMemberView = {
   created_at: string;
 };
 
+type ClubView = {
+  club: ClubRow;
+  clubName: string;
+  members: ClubMemberView[];
+  lead: ClubMemberView | null;
+  inviteCount: number;
+  sessionCount: number;
+  latestSessionCreatedAt: string | null;
+  latestSessionDate: string | null;
+  billing: BillingRow;
+  isActive: boolean;
+  activityScore: number;
+};
+
 function formatDateTime(value: string | null | undefined) {
   if (!value) return "–";
   return new Date(value).toLocaleString("de-DE");
@@ -109,6 +124,26 @@ function getBillingTone(planKey: string, status: string) {
   return "border-emerald-200 bg-emerald-50 text-emerald-900";
 }
 
+function getPlanBadgeTone(planKey: string, status: string) {
+  if (status !== "active") {
+    return "border-slate-200 bg-slate-100 text-slate-600";
+  }
+
+  if (planKey === "free") {
+    return "border-slate-200 bg-white text-slate-600";
+  }
+
+  if (planKey === "supercup_trial") {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+
+  if (planKey === "founder") {
+    return "border-violet-200 bg-violet-50 text-violet-800";
+  }
+
+  return "border-emerald-200 bg-emerald-50 text-emerald-800";
+}
+
 function getEffectiveBilling(billing: BillingRow | null | undefined): BillingRow {
   return {
     club_id: billing?.club_id ?? "",
@@ -116,9 +151,313 @@ function getEffectiveBilling(billing: BillingRow | null | undefined): BillingRow
     status: billing?.status ?? "active",
     trial_ends_at: billing?.trial_ends_at ?? null,
     pro_ends_at: billing?.pro_ends_at ?? null,
-    billing_note: billing?.billing_note ?? "Fallback: kein Billing-Eintrag vorhanden.",
+    billing_note:
+      billing?.billing_note ?? "Fallback: kein Billing-Eintrag vorhanden.",
     updated_at: billing?.updated_at ?? null,
   };
+}
+
+function isRecentlyActive(dateValue: string | null) {
+  if (!dateValue) return false;
+
+  const date = new Date(dateValue);
+  const now = new Date();
+  const daysDiff = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+
+  return daysDiff <= 45;
+}
+
+function getActivityLabel(view: ClubView) {
+  if (view.sessionCount > 0 && isRecentlyActive(view.latestSessionCreatedAt)) {
+    return "aktiv";
+  }
+
+  if (view.sessionCount > 0) {
+    return "genutzt";
+  }
+
+  if (view.members.length > 1 || view.inviteCount > 0) {
+    return "eingerichtet";
+  }
+
+  return "test/leer";
+}
+
+function getActivityTone(view: ClubView) {
+  const label = getActivityLabel(view);
+
+  if (label === "aktiv") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  }
+
+  if (label === "genutzt") {
+    return "border-blue-200 bg-blue-50 text-blue-800";
+  }
+
+  if (label === "eingerichtet") {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-500";
+}
+
+function sortClubViews(a: ClubView, b: ClubView) {
+  if (b.activityScore !== a.activityScore) {
+    return b.activityScore - a.activityScore;
+  }
+
+  const latestA = a.latestSessionCreatedAt
+    ? new Date(a.latestSessionCreatedAt).getTime()
+    : 0;
+  const latestB = b.latestSessionCreatedAt
+    ? new Date(b.latestSessionCreatedAt).getTime()
+    : 0;
+
+  if (latestB !== latestA) {
+    return latestB - latestA;
+  }
+
+  return a.clubName.localeCompare(b.clubName, "de");
+}
+
+function BillingActions({ clubId }: { clubId: string }) {
+  return (
+    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <form method="post" action="/power-user/clubs/billing">
+        <input type="hidden" name="club_id" value={clubId} />
+        <input type="hidden" name="action" value="supercup_trial" />
+        <button
+          type="submit"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-amber-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-amber-700"
+        >
+          Supercup bis 31.07.
+        </button>
+      </form>
+
+      <form method="post" action="/power-user/clubs/billing">
+        <input type="hidden" name="club_id" value={clubId} />
+        <input type="hidden" name="action" value="founder" />
+        <button
+          type="submit"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-violet-700 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-violet-800"
+        >
+          Founder
+        </button>
+      </form>
+
+      <form method="post" action="/power-user/clubs/billing">
+        <input type="hidden" name="club_id" value={clubId} />
+        <input type="hidden" name="action" value="pro_6_months" />
+        <button
+          type="submit"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-800"
+        >
+          Pro 6 Monate
+        </button>
+      </form>
+
+      <form method="post" action="/power-user/clubs/billing">
+        <input type="hidden" name="club_id" value={clubId} />
+        <input type="hidden" name="action" value="pro_yearly" />
+        <button
+          type="submit"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-900 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-950"
+        >
+          Pro 12 Monate
+        </button>
+      </form>
+
+      <form
+        method="post"
+        action="/power-user/clubs/billing"
+        className="sm:col-span-2"
+      >
+        <input type="hidden" name="club_id" value={clubId} />
+        <input type="hidden" name="action" value="free" />
+        <button
+          type="submit"
+          className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+        >
+          Zurück auf Free
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function ClubDetailsCard({ view }: { view: ClubView }) {
+  const billingTone = getBillingTone(view.billing.plan_key, view.billing.status);
+
+  return (
+    <details
+      className="group rounded-[28px] border border-slate-200 bg-white shadow-sm"
+      open={view.isActive}
+    >
+      <summary className="flex cursor-pointer list-none flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl font-semibold text-slate-950">
+              {view.clubName}
+            </h2>
+
+            <span
+              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${getActivityTone(
+                view
+              )}`}
+            >
+              {getActivityLabel(view)}
+            </span>
+
+            <span
+              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${getPlanBadgeTone(
+                view.billing.plan_key,
+                view.billing.status
+              )}`}
+            >
+              {getPlanLabel(view.billing.plan_key)}
+            </span>
+          </div>
+
+          <div className="mt-1 text-xs text-slate-500">ID: {view.club.id}</div>
+          <div className="mt-1 text-xs text-slate-500">
+            Angelegt: {formatDateTime(view.club.created_at)}
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-2xl bg-slate-50 px-3 py-2">
+              <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                <Users className="h-3.5 w-3.5" />
+                Mitglieder
+              </div>
+              <div className="mt-1 text-base font-bold text-slate-950">
+                {view.members.length}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 px-3 py-2">
+              <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                <Mail className="h-3.5 w-3.5" />
+                Einladungen
+              </div>
+              <div className="mt-1 text-base font-bold text-slate-950">
+                {view.inviteCount}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 px-3 py-2">
+              <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Trainings
+              </div>
+              <div className="mt-1 text-base font-bold text-slate-950">
+                {view.sessionCount}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-start gap-3">
+          <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-violet-950">
+            <div className="text-xs font-medium uppercase tracking-wide">
+              Lead
+            </div>
+            <div className="mt-1 max-w-[15rem] truncate text-sm font-semibold">
+              {view.lead ? view.lead.email : "–"}
+            </div>
+            <div className="mt-1 text-xs">
+              {view.lead
+                ? `${view.lead.role} seit ${formatDateTime(view.lead.created_at)}`
+                : "Keine Membership gefunden"}
+            </div>
+          </div>
+
+          <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition group-open:rotate-180">
+            <ChevronDown className="h-5 w-5" />
+          </div>
+        </div>
+      </summary>
+
+      <div className="space-y-5 border-t border-slate-100 px-5 pb-5 pt-0">
+        <div className={`rounded-2xl border p-4 ${billingTone}`}>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <CreditCard className="h-4 w-4" />
+            Billing / Plan
+          </div>
+
+          <div className="mt-2 text-sm">
+            Aktuell:{" "}
+            <span className="font-extrabold">
+              {getPlanLabel(view.billing.plan_key)}
+            </span>{" "}
+            · Status:{" "}
+            <span className="font-semibold">{view.billing.status}</span>
+          </div>
+
+          <div className="mt-1 text-xs">
+            Trial bis: {formatDateTime(view.billing.trial_ends_at)} · Pro bis:{" "}
+            {formatDateTime(view.billing.pro_ends_at)}
+          </div>
+
+          <div className="mt-1 text-xs">
+            Notiz: {view.billing.billing_note ?? "–"}
+          </div>
+
+          <BillingActions clubId={view.club.id} />
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+            <Shield className="h-4 w-4" />
+            Letzte Trainingsaktivität
+          </div>
+
+          <div className="mt-2 text-sm text-slate-700">
+            Letzte Session erstellt: {formatDateTime(view.latestSessionCreatedAt)}
+          </div>
+          <div className="mt-1 text-sm text-slate-700">
+            Session-Datum: {formatDate(view.latestSessionDate)}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 p-4">
+          <div className="mb-3 text-sm font-semibold text-slate-950">
+            Mitglieder im Club
+          </div>
+
+          {view.members.length === 0 ? (
+            <div className="text-sm text-slate-600">
+              Keine Mitglieder gefunden.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {view.members.map((member) => (
+                <div
+                  key={`${view.club.id}-${member.user_id}`}
+                  className="flex flex-col gap-1 rounded-xl bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <div className="text-sm font-medium text-slate-950">
+                      {member.email}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      User ID: {member.user_id}
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-600 sm:text-right">
+                    <div className="font-medium text-slate-900">
+                      Rolle: {member.role}
+                    </div>
+                    <div>seit {formatDateTime(member.created_at)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </details>
+  );
 }
 
 export default async function PowerUserClubsPage({
@@ -236,6 +575,52 @@ export default async function PowerUserClubsPage({
     return earliestAdmin ?? members[0] ?? null;
   }
 
+  const clubViews: ClubView[] = clubs
+    .map((club) => {
+      const clubName = getDisplayClubName(club);
+      const members = [...(membersByClub.get(club.id) ?? [])].sort((a, b) =>
+        a.created_at.localeCompare(b.created_at)
+      );
+      const lead = getClubLead(club.id);
+      const inviteCount = inviteCountByClub.get(club.id) ?? 0;
+      const sessionCount = sessionCountByClub.get(club.id) ?? 0;
+      const latestSessionCreatedAt =
+        latestSessionCreatedAtByClub.get(club.id) ?? null;
+      const latestSessionDate = latestSessionDateByClub.get(club.id) ?? null;
+      const billing = getEffectiveBilling(billingByClub.get(club.id));
+
+      const hasRecentSession = isRecentlyActive(latestSessionCreatedAt);
+      const isPaid =
+        billing.status === "active" && billing.plan_key !== "free";
+      const isActive =
+        isPaid || hasRecentSession || sessionCount >= 3 || members.length >= 3;
+
+      const activityScore =
+        (isPaid ? 10000 : 0) +
+        (hasRecentSession ? 5000 : 0) +
+        sessionCount * 100 +
+        members.length * 20 +
+        inviteCount * 5;
+
+      return {
+        club,
+        clubName,
+        members,
+        lead,
+        inviteCount,
+        sessionCount,
+        latestSessionCreatedAt,
+        latestSessionDate,
+        billing,
+        isActive,
+        activityScore,
+      };
+    })
+    .sort(sortClubViews);
+
+  const activeClubViews = clubViews.filter((view) => view.isActive);
+  const inactiveClubViews = clubViews.filter((view) => !view.isActive);
+
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
@@ -256,15 +641,14 @@ export default async function PowerUserClubsPage({
 
             <div>
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Power User / Clubs
+                Power User / Clubs & Billing
               </div>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-                Alle Clubs
+                Clubs verwalten
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Pro Club siehst du hier Admin-Näherung, Mitglieder,
-                Einladungen, Trainingsaktivität und den manuellen
-                Free-/Pro-Status.
+                Aktive, genutzte oder bezahlte Clubs stehen oben. Testclubs und
+                leere Clubs bleiben weiter unten. Jeder Club ist einklappbar.
               </p>
             </div>
           </div>
@@ -280,229 +664,70 @@ export default async function PowerUserClubsPage({
               Billing konnte nicht gespeichert werden: {billingError}
             </div>
           ) : null}
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Clubs gesamt
+              </div>
+              <div className="mt-1 text-2xl font-black text-slate-950">
+                {clubViews.length}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-emerald-50 px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                Aktiv / genutzt
+              </div>
+              <div className="mt-1 text-2xl font-black text-emerald-950">
+                {activeClubViews.length}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Test / leer
+              </div>
+              <div className="mt-1 text-2xl font-black text-slate-950">
+                {inactiveClubViews.length}
+              </div>
+            </div>
+          </div>
         </div>
 
-        <section className="grid gap-4 xl:grid-cols-2">
-          {clubs.length === 0 ? (
+        <section className="space-y-3">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+              Aktiv / genutzt / bezahlt
+            </div>
+          </div>
+
+          {activeClubViews.length === 0 ? (
             <div className="rounded-[28px] border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
-              Noch keine Clubs vorhanden.
+              Noch keine aktiven Clubs erkannt.
             </div>
           ) : (
-            clubs.map((club) => {
-              const clubName = getDisplayClubName(club);
-              const members = [...(membersByClub.get(club.id) ?? [])].sort((a, b) =>
-                a.created_at.localeCompare(b.created_at)
-              );
-              const lead = getClubLead(club.id);
-              const inviteCount = inviteCountByClub.get(club.id) ?? 0;
-              const sessionCount = sessionCountByClub.get(club.id) ?? 0;
-              const latestSessionCreatedAt =
-                latestSessionCreatedAtByClub.get(club.id) ?? null;
-              const latestSessionDate = latestSessionDateByClub.get(club.id) ?? null;
-              const billing = getEffectiveBilling(billingByClub.get(club.id));
-              const billingTone = getBillingTone(billing.plan_key, billing.status);
+            activeClubViews.map((view) => (
+              <ClubDetailsCard key={view.club.id} view={view} />
+            ))
+          )}
+        </section>
 
-              return (
-                <div
-                  key={club.id}
-                  className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <h2 className="text-xl font-semibold text-slate-950">
-                        {clubName}
-                      </h2>
-                      <div className="mt-1 text-xs text-slate-500">ID: {club.id}</div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        Angelegt: {formatDateTime(club.created_at)}
-                      </div>
-                    </div>
+        <section className="space-y-3">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+              Testclubs / leer / wenig genutzt
+            </div>
+          </div>
 
-                    <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-violet-950">
-                      <div className="text-xs font-medium uppercase tracking-wide">
-                        Lead / Admin-Näherung
-                      </div>
-                      <div className="mt-1 text-sm font-semibold">
-                        {lead ? lead.email : "–"}
-                      </div>
-                      <div className="mt-1 text-xs">
-                        {lead
-                          ? `${lead.role} seit ${formatDateTime(lead.created_at)}`
-                          : "Keine Membership gefunden"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                      <div className="flex items-center gap-2 text-sm text-slate-700">
-                        <Users className="h-4 w-4" />
-                        Mitglieder
-                      </div>
-                      <div className="mt-1 text-lg font-semibold text-slate-950">
-                        {members.length}
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                      <div className="flex items-center gap-2 text-sm text-slate-700">
-                        <Mail className="h-4 w-4" />
-                        Einladungen
-                      </div>
-                      <div className="mt-1 text-lg font-semibold text-slate-950">
-                        {inviteCount}
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                      <div className="flex items-center gap-2 text-sm text-slate-700">
-                        <CalendarDays className="h-4 w-4" />
-                        Trainings
-                      </div>
-                      <div className="mt-1 text-lg font-semibold text-slate-950">
-                        {sessionCount}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={`mt-5 rounded-2xl border p-4 ${billingTone}`}>
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <CreditCard className="h-4 w-4" />
-                      Billing / Plan
-                    </div>
-
-                    <div className="mt-2 text-sm">
-                      Aktuell:{" "}
-                      <span className="font-extrabold">
-                        {getPlanLabel(billing.plan_key)}
-                      </span>{" "}
-                      · Status: <span className="font-semibold">{billing.status}</span>
-                    </div>
-
-                    <div className="mt-1 text-xs">
-                      Trial bis: {formatDateTime(billing.trial_ends_at)} · Pro
-                      bis: {formatDateTime(billing.pro_ends_at)}
-                    </div>
-
-                    <div className="mt-1 text-xs">
-                      Notiz: {billing.billing_note ?? "–"}
-                    </div>
-
-                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                      <form method="post" action="/power-user/clubs/billing">
-                        <input type="hidden" name="club_id" value={club.id} />
-                        <input type="hidden" name="action" value="supercup_trial" />
-                        <button
-                          type="submit"
-                          className="inline-flex w-full items-center justify-center rounded-xl bg-amber-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-amber-700"
-                        >
-                          Supercup bis 31.07.
-                        </button>
-                      </form>
-
-                      <form method="post" action="/power-user/clubs/billing">
-                        <input type="hidden" name="club_id" value={club.id} />
-                        <input type="hidden" name="action" value="founder" />
-                        <button
-                          type="submit"
-                          className="inline-flex w-full items-center justify-center rounded-xl bg-violet-700 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-violet-800"
-                        >
-                          Founder
-                        </button>
-                      </form>
-
-                      <form method="post" action="/power-user/clubs/billing">
-                        <input type="hidden" name="club_id" value={club.id} />
-                        <input type="hidden" name="action" value="pro_6_months" />
-                        <button
-                          type="submit"
-                          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-800"
-                        >
-                          Pro 6 Monate
-                        </button>
-                      </form>
-
-                      <form method="post" action="/power-user/clubs/billing">
-                        <input type="hidden" name="club_id" value={club.id} />
-                        <input type="hidden" name="action" value="pro_yearly" />
-                        <button
-                          type="submit"
-                          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-900 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-950"
-                        >
-                          Pro 12 Monate
-                        </button>
-                      </form>
-
-                      <form
-                        method="post"
-                        action="/power-user/clubs/billing"
-                        className="sm:col-span-2"
-                      >
-                        <input type="hidden" name="club_id" value={club.id} />
-                        <input type="hidden" name="action" value="free" />
-                        <button
-                          type="submit"
-                          className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
-                        >
-                          Zurück auf Free
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 rounded-2xl border border-slate-200 p-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
-                      <Shield className="h-4 w-4" />
-                      Letzte Trainingsaktivität
-                    </div>
-
-                    <div className="mt-2 text-sm text-slate-700">
-                      Letzte Session erstellt: {formatDateTime(latestSessionCreatedAt)}
-                    </div>
-                    <div className="mt-1 text-sm text-slate-700">
-                      Session-Datum: {formatDate(latestSessionDate)}
-                    </div>
-                  </div>
-
-                  <div className="mt-5 rounded-2xl border border-slate-200 p-4">
-                    <div className="mb-3 text-sm font-semibold text-slate-950">
-                      Mitglieder im Club
-                    </div>
-
-                    {members.length === 0 ? (
-                      <div className="text-sm text-slate-600">
-                        Keine Mitglieder gefunden.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {members.map((member) => (
-                          <div
-                            key={`${club.id}-${member.user_id}`}
-                            className="flex flex-col gap-1 rounded-xl bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-                          >
-                            <div>
-                              <div className="text-sm font-medium text-slate-950">
-                                {member.email}
-                              </div>
-                              <div className="mt-1 text-xs text-slate-500">
-                                User ID: {member.user_id}
-                              </div>
-                            </div>
-
-                            <div className="text-xs text-slate-600 sm:text-right">
-                              <div className="font-medium text-slate-900">
-                                Rolle: {member.role}
-                              </div>
-                              <div>seit {formatDateTime(member.created_at)}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })
+          {inactiveClubViews.length === 0 ? (
+            <div className="rounded-[28px] border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
+              Keine leeren Testclubs vorhanden.
+            </div>
+          ) : (
+            inactiveClubViews.map((view) => (
+              <ClubDetailsCard key={view.club.id} view={view} />
+            ))
           )}
         </section>
       </section>
