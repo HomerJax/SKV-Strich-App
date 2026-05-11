@@ -6,18 +6,45 @@ type ProFeatureLockProps = {
   compact?: boolean;
 };
 
-function buildWhatsAppHref(clubName?: string | null) {
+/**
+ * Aktuell bewusst pragmatisch gesetzt, damit strikr vor dem Supercup
+ * manuell verkaufbar ist.
+ *
+ * Später umstellen auf:
+ * - hello@strikr.team
+ * - offizielle strikr WhatsApp-/Business-Nummer
+ */
+const STRIKR_CONTACT_EMAIL =
+  process.env.NEXT_PUBLIC_STRIKR_CONTACT_EMAIL?.trim() || "mb1607@gmx.de";
+
+const STRIKR_WHATSAPP_NUMBER =
+  process.env.NEXT_PUBLIC_STRIKR_WHATSAPP_NUMBER?.replace(/[^\d]/g, "") ||
+  "491772685717";
+
+function buildContactMessage(clubName?: string | null) {
   const teamName = clubName?.trim() || "unser Team";
 
-  const text = [
+  return [
     "Hi, wir möchten strikr Pro freischalten.",
     "",
     `Team: ${teamName}`,
     "",
     "Bitte schick mir kurz die Infos zum Supercup-Angebot.",
   ].join("\n");
+}
 
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+function buildWhatsAppHref(clubName?: string | null) {
+  const text = buildContactMessage(clubName);
+
+  return `https://wa.me/${STRIKR_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    text
+  )}`;
+}
+
+function buildMailHref(clubName?: string | null) {
+  return `mailto:${STRIKR_CONTACT_EMAIL}?subject=${encodeURIComponent(
+    "strikr Pro Anfrage"
+  )}&body=${encodeURIComponent(buildContactMessage(clubName))}`;
 }
 
 export default function ProFeatureLock({
@@ -28,6 +55,7 @@ export default function ProFeatureLock({
   compact = false,
 }: ProFeatureLockProps) {
   const whatsappHref = buildWhatsAppHref(clubName);
+  const mailHref = buildMailHref(clubName);
 
   return (
     <div
@@ -72,18 +100,16 @@ export default function ProFeatureLock({
         </a>
 
         <a
-          href={`mailto:hello@strikr.team?subject=${encodeURIComponent(
-            "strikr Pro Anfrage"
-          )}&body=${encodeURIComponent(
-            `Hi, wir möchten strikr Pro freischalten.\n\nTeam: ${
-              clubName?.trim() || "unser Team"
-            }\n\nBitte schick mir kurz die Infos zum Supercup-Angebot.`
-          )}`}
+          href={mailHref}
           className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
         >
           Per E-Mail anfragen
         </a>
       </div>
+
+      <p className="mt-3 text-center text-xs font-medium text-slate-400">
+        Supercup-Angebot: kostenlos testen, danach manuell freischalten.
+      </p>
     </div>
   );
 }
