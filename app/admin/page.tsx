@@ -7,10 +7,12 @@ import {
   Shield,
   ToggleLeft,
 } from "lucide-react";
+import ProFeatureLock from "@/components/billing/ProFeatureLock";
 import PageHero from "@/components/ui/PageHero";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 type ClubRow = {
   id: string;
@@ -73,6 +75,56 @@ function AdminCard({
   );
 }
 
+type ProStatusPanelProps = {
+  clubName: string;
+  isPro: boolean;
+};
+
+function ProStatusPanel({ clubName, isPro }: ProStatusPanelProps) {
+  if (!isPro) {
+    return (
+      <ProFeatureLock
+        clubName={clubName}
+        title="strikr Pro für dein Team"
+        description="Free reicht für den Start. Mit Pro schaltest du die emotionalen Extras frei: Stats, Tabelle, MVP-Entwicklung, Badges und Share-Momente."
+        featureList={[
+          "Stats und Formkurven",
+          "Tabelle und Rankings",
+          "MVP- und Badge-Fortschritt",
+          "Premium Share-Momente",
+        ]}
+        compact
+      />
+    );
+  }
+
+  return (
+    <div className="rounded-[24px] border border-emerald-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+            strikr Pro aktiv
+          </div>
+          <h2 className="mt-3 text-lg font-extrabold tracking-tight text-slate-950">
+            Pro-Features sind für {clubName} freigeschaltet
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Stats, Tabelle, MVP-Entwicklung und Premium-Funktionen sind für
+            diesen Club verfügbar.
+          </p>
+        </div>
+
+        <Link
+          href="/power-user/clubs"
+          className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+        >
+          Billing prüfen
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default async function AdminPage() {
   const ctx = await getAuthContext();
 
@@ -117,6 +169,7 @@ export default async function AdminPage() {
     role: membership?.role,
     isPowerUser: ctx.isPowerUser,
   });
+  const billingAccess = await getClubBillingAccess(supabase, ctx.activeClubId);
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -142,6 +195,8 @@ export default async function AdminPage() {
           }
           compact
         />
+
+        <ProStatusPanel clubName={clubName} isPro={billingAccess.isPro} />
 
         <div className="grid gap-4 md:grid-cols-2">
           <AdminCard
