@@ -224,6 +224,7 @@ export function NotificationToastCenter() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyIds, setBusyIds] = useState<number[]>([]);
+  const [readyShareIds, setReadyShareIds] = useState<number[]>([]);
   const [errorById, setErrorById] = useState<Record<number, string>>({});
 
   async function loadNotifications() {
@@ -265,6 +266,10 @@ export function NotificationToastCenter() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    setReadyShareIds([]);
+
     for (const notification of notifications) {
       if (!isMvpNotification(notification)) continue;
 
@@ -279,10 +284,22 @@ export function NotificationToastCenter() {
         fileName: isWinner
           ? `strikr-mvp-winner-${sessionId}.png`
           : `strikr-mvp-result-${sessionId}.png`,
-      }).catch(() => {
-        // Vorladen ist nur Komfort. Der Klick versucht es später erneut.
-      });
+      })
+        .then(() => {
+          if (cancelled) return;
+
+          setReadyShareIds((prev) =>
+            prev.includes(notification.id) ? prev : [...prev, notification.id]
+          );
+        })
+        .catch(() => {
+          // Bleibt deaktiviert, damit der erste Tap nicht ins Leere läuft.
+        });
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [notifications]);
 
 
@@ -310,6 +327,15 @@ export function NotificationToastCenter() {
   async function handleCta(notification: NotificationItem) {
     const isMvp = isMvpNotification(notification);
     const isWinner = notification.payload?.isWinner === true;
+    const isShareReady = !isMvp || readyShareIds.includes(notification.id);
+
+    if (isMvp && !isShareReady) {
+      setErrorById((prev) => ({
+        ...prev,
+        [notification.id]: "MVP Share wird noch vorbereitet.",
+      }));
+      return;
+    }
 
     setBusyIds((prev) => [...prev, notification.id]);
     setErrorById((prev) => {
@@ -471,14 +497,16 @@ export function NotificationToastCenter() {
                 <button
                   type="button"
                   onClick={() => void handleCta(notification)}
-                  disabled={isBusy}
+                  disabled={isBusy || (isMvp && !readyShareIds.includes(notification.id))}
                   className="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-sm font-black text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isBusy
                     ? isMvp
                       ? "Öffne Teilen…"
                       : "Öffne…"
-                    : display.cta}
+                    : isMvp && !readyShareIds.includes(notification.id)
+                      ? "Bereite Teilen vor…"
+                      : display.cta}
                 </button>
               ) : null}
             </div>

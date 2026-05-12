@@ -253,6 +253,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [err, setErr] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [sharingResult, setSharingResult] = useState(false);
+  const [shareImageReady, setShareImageReady] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
 
   async function loadMvpState() {
@@ -388,7 +389,13 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   }
 
   useEffect(() => {
-    if (!shareData) return;
+    if (!shareData) {
+      setShareImageReady(false);
+      return;
+    }
+
+    let cancelled = false;
+    setShareImageReady(false);
 
     const mode = shareData.mode;
     const imageUrl = `/api/share/mvp/${sessionId}/image?variant=${mode}`;
@@ -400,12 +407,29 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     void preloadMvpShareImage({
       imageUrl,
       fileName,
-    }).catch(() => {
-      // Vorladen ist nur Komfort. Der Klick versucht es später erneut.
-    });
+    })
+      .then(() => {
+        if (!cancelled) {
+          setShareImageReady(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setShareImageReady(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId, shareData]);
 
   async function handleShareMvpResult() {
+    if (!shareImageReady) {
+      setShareMsg("MVP Share wird noch vorbereitet.");
+      return;
+    }
+
     if (!shareCardRef.current || !shareData) {
       setShareMsg("MVP Share Card ist noch nicht bereit.");
       return;
@@ -844,14 +868,16 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                     <button
                       type="button"
                       onClick={handleShareMvpResult}
-                      disabled={sharingResult}
+                      disabled={sharingResult || !shareImageReady}
                       className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3.5 text-base font-extrabold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {sharingResult
-                        ? "Öffne Teilen…"
-                        : shareData?.mode === "winner"
-                          ? "Meinen MVP teilen"
-                          : "MVP Ergebnis teilen"}
+                      {!shareImageReady
+                        ? "Bereite Teilen vor…"
+                        : sharingResult
+                          ? "Öffne Teilen…"
+                          : shareData?.mode === "winner"
+                            ? "Meinen MVP teilen"
+                            : "MVP Ergebnis teilen"}
                     </button>
                   </div>
                 </div>
