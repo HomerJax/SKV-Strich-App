@@ -13,8 +13,8 @@ function getCopy(mvpCount: number) {
       sub: "Legendenstatus.",
       badge: "goat strikr badge",
       tone: "#f0abfc",
-      glow: "rgba(236,72,153,0.70)",
-      badgeSize: 800,
+      glow: "rgba(236,72,153,0.72)",
+      badgeSize: 790,
       glowStrength: 1.85,
       imageFilter:
         "drop-shadow(0 64px 108px rgba(0,0,0,0.84)) drop-shadow(0 0 78px rgba(236,72,153,0.70)) drop-shadow(0 0 46px rgba(34,211,238,0.42)) saturate(1.25) contrast(1.12)",
@@ -27,7 +27,7 @@ function getCopy(mvpCount: number) {
       badge: "gold strikr badge",
       tone: "#fde68a",
       glow: "rgba(250,204,21,0.72)",
-      badgeSize: 750,
+      badgeSize: 740,
       glowStrength: 1.55,
       imageFilter:
         "drop-shadow(0 60px 102px rgba(0,0,0,0.80)) drop-shadow(0 0 72px rgba(250,204,21,0.70)) drop-shadow(0 0 30px rgba(255,255,255,0.28)) saturate(1.14) contrast(1.08)",
@@ -40,7 +40,7 @@ function getCopy(mvpCount: number) {
       badge: "silber strikr badge",
       tone: "#f1f5f9",
       glow: "rgba(226,232,240,0.48)",
-      badgeSize: 700,
+      badgeSize: 695,
       glowStrength: 1.2,
       imageFilter:
         "drop-shadow(0 56px 94px rgba(0,0,0,0.74)) drop-shadow(0 0 46px rgba(226,232,240,0.42)) saturate(1.02) contrast(1.07)",
@@ -53,7 +53,7 @@ function getCopy(mvpCount: number) {
       badge: "bronze strikr badge",
       tone: "#fed7aa",
       glow: "rgba(251,146,60,0.48)",
-      badgeSize: 680,
+      badgeSize: 675,
       glowStrength: 1.08,
       imageFilter:
         "drop-shadow(0 52px 90px rgba(0,0,0,0.72)) drop-shadow(0 0 40px rgba(251,146,60,0.38)) saturate(1.06) contrast(1.05)",
@@ -65,7 +65,7 @@ function getCopy(mvpCount: number) {
     badge: "blechernes strikr badge",
     tone: "#a3a3a3",
     glow: "rgba(82,82,82,0.36)",
-    badgeSize: 670,
+    badgeSize: 665,
     glowStrength: 0.82,
     imageFilter:
       "brightness(0.68) contrast(1.34) saturate(0.28) sepia(0.14) drop-shadow(0 56px 94px rgba(0,0,0,0.84)) drop-shadow(0 0 18px rgba(115,115,115,0.22))",
@@ -105,14 +105,14 @@ export default function WinnerLayout({
           overflow: "hidden",
           border: "1px solid rgba(255,255,255,0.08)",
           background:
-            "radial-gradient(circle at 18% 18%, rgba(255,255,255,0.12), transparent 28%), radial-gradient(circle at 78% 16%, rgba(255,255,255,0.10), transparent 28%), linear-gradient(180deg,#050713 0%,#080b12 48%,#000000 100%)",
+            "radial-gradient(circle at 18% 16%, rgba(255,255,255,0.14), transparent 28%), radial-gradient(circle at 78% 16%, rgba(59,130,246,0.16), transparent 30%), linear-gradient(180deg,#050713 0%,#080b12 44%,#000000 100%)",
         }}
       >
         <div
           style={{
             position: "absolute",
             inset: 0,
-            opacity: 0.05,
+            opacity: 0.055,
             backgroundImage:
               "repeating-linear-gradient(90deg,#ffffff 0px,#ffffff 1px,transparent 1px,transparent 90px)",
           }}
@@ -121,13 +121,13 @@ export default function WinnerLayout({
         <div
           style={{
             position: "absolute",
-            top: 245,
-            left: 40,
-            width: 980,
-            height: 720,
+            top: 250,
+            left: 20,
+            width: 1040,
+            height: 760,
             borderRadius: "999px",
             background: copy.glow,
-            opacity: 0.62,
+            opacity: 0.64,
             filter: "blur(155px)",
             transform: "rotate(-12deg)",
           }}
@@ -136,10 +136,10 @@ export default function WinnerLayout({
         <div
           style={{
             position: "absolute",
-            top: 760,
-            left: 100,
-            width: 880,
-            height: 570,
+            top: 730,
+            left: 90,
+            width: 900,
+            height: 590,
             borderRadius: "999px",
             background: "rgba(255,255,255,0.10)",
             opacity: 0.40,
@@ -157,12 +157,13 @@ export default function WinnerLayout({
           variant="bright"
         />
 
+        {/* Big editorial block like result cards, but personal */}
         <div
           style={{
             position: "absolute",
-            top: 300,
-            left: 56,
-            right: 56,
+            top: 292,
+            left: 54,
+            right: 54,
             display: "flex",
             flexDirection: "column",
             zIndex: 4,
@@ -174,7 +175,7 @@ export default function WinnerLayout({
               alignSelf: "flex-start",
               padding: "10px 14px",
               borderRadius: 999,
-              background: "rgba(2,6,12,0.72)",
+              background: "rgba(2,6,12,0.74)",
               border: "1px solid rgba(255,255,255,0.12)",
               fontSize: 13,
               fontWeight: 900,
@@ -189,46 +190,50 @@ export default function WinnerLayout({
           <div
             style={{
               display: "flex",
-              marginTop: 30,
-              fontSize: 34,
-              letterSpacing: 7,
-              color: "rgba(255,255,255,0.54)",
+              marginTop: 34,
+              fontSize: 86,
               fontWeight: 900,
+              letterSpacing: -4,
+              lineHeight: 0.86,
+              color: "rgba(255,255,255,0.94)",
+              textTransform: "uppercase",
             }}
           >
-            ICH WURDE ZUM
+            Ich wurde
           </div>
 
           <div
             style={{
               display: "flex",
-              fontSize: 205,
-              fontWeight: 900,
-              letterSpacing: -15,
-              lineHeight: 0.88,
               marginTop: 4,
+              fontSize: 188,
+              fontWeight: 900,
+              letterSpacing: -14,
+              lineHeight: 0.82,
+              color: "#ffffff",
+              textTransform: "uppercase",
             }}
           >
-            MVP
+            MVP.
           </div>
 
           <div
             style={{
               display: "flex",
-              marginTop: 18,
-              fontSize: 38,
+              marginTop: 22,
+              fontSize: 36,
               fontWeight: 900,
-              color: "rgba(255,255,255,0.76)",
+              color: "rgba(255,255,255,0.74)",
             }}
           >
-            gewählt. {copy.sub}
+            {copy.sub}
           </div>
         </div>
 
         <div
           style={{
             position: "absolute",
-            top: 620,
+            top: 608,
             left: 0,
             width: "100%",
             display: "flex",
@@ -250,7 +255,7 @@ export default function WinnerLayout({
             position: "absolute",
             left: 56,
             right: 56,
-            top: 1320,
+            top: 1280,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -260,7 +265,7 @@ export default function WinnerLayout({
           <div
             style={{
               display: "flex",
-              fontSize: 34,
+              fontSize: 30,
               fontWeight: 900,
               color: copy.tone,
               textTransform: "uppercase",
@@ -273,8 +278,8 @@ export default function WinnerLayout({
           <div
             style={{
               display: "flex",
-              marginTop: 14,
-              gap: 16,
+              marginTop: 16,
+              gap: 14,
             }}
           >
             <div
@@ -284,7 +289,7 @@ export default function WinnerLayout({
                 color: "#000000",
                 padding: "16px 28px",
                 borderRadius: 999,
-                fontSize: 32,
+                fontSize: 31,
                 fontWeight: 900,
               }}
             >
@@ -298,7 +303,7 @@ export default function WinnerLayout({
                 border: "1px solid rgba(255,255,255,0.10)",
                 padding: "16px 28px",
                 borderRadius: 999,
-                fontSize: 28,
+                fontSize: 27,
                 fontWeight: 900,
                 color: "rgba(255,255,255,0.72)",
               }}
@@ -332,7 +337,7 @@ export default function WinnerLayout({
             position: "absolute",
             left: 56,
             right: 56,
-            bottom: 52,
+            bottom: 50,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
