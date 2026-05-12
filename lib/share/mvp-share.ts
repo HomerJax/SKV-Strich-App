@@ -65,31 +65,47 @@ function toAbsoluteImageUrl(src: string) {
   return new URL(src, window.location.origin).toString();
 }
 
-function blobToDataUrl(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
+function loadBlobImage(blob: Blob) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const img = new Image();
 
-    reader.onloadend = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("Bild konnte nicht als Data-URL gelesen werden."));
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(img);
     };
 
-    reader.onerror = () => {
-      reject(new Error("Bild konnte nicht gelesen werden."));
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Bild konnte nicht für PNG-Capture geladen werden."));
     };
 
-    reader.readAsDataURL(blob);
+    img.src = objectUrl;
   });
 }
 
-async function fetchImageAsDataUrl(src: string) {
+async function blobToPngDataUrl(blob: Blob) {
+  const img = await loadBlobImage(blob);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, img.naturalWidth || img.width);
+  canvas.height = Math.max(1, img.naturalHeight || img.height);
+
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("Canvas konnte nicht erstellt werden.");
+  }
+
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  return canvas.toDataURL("image/png");
+}
+
+async function fetchImageAsPngDataUrl(src: string) {
   const absoluteSrc = toAbsoluteImageUrl(src);
 
-  if (absoluteSrc.startsWith("data:")) {
+  if (absoluteSrc.startsWith("data:image/png")) {
     return absoluteSrc;
   }
 
@@ -109,11 +125,11 @@ async function fetchImageAsDataUrl(src: string) {
   }
 
   const blob = await response.blob();
-  const dataUrl = await blobToDataUrl(blob);
+  const pngDataUrl = await blobToPngDataUrl(blob);
 
-  dataUrlCache.set(absoluteSrc, dataUrl);
+  dataUrlCache.set(absoluteSrc, pngDataUrl);
 
-  return dataUrl;
+  return pngDataUrl;
 }
 
 async function inlineImageForCapture(
@@ -124,19 +140,20 @@ async function inlineImageForCapture(
   const originalSizes = img.getAttribute("sizes");
   const sourceSrc = img.currentSrc || img.src || originalSrc;
 
-  if (!sourceSrc || sourceSrc.startsWith("data:")) {
+  if (!sourceSrc || sourceSrc.startsWith("data:image/png")) {
     return () => undefined;
   }
 
   await waitForImage(img);
 
-  const dataUrl = await fetchImageAsDataUrl(sourceSrc);
+  const pngDataUrl = await fetchImageAsPngDataUrl(sourceSrc);
 
   img.removeAttribute("srcset");
   img.removeAttribute("sizes");
-  img.setAttribute("src", dataUrl);
+  img.setAttribute("src", pngDataUrl);
 
   await waitForImage(img);
+  await waitForTwoFrames();
 
   return () => {
     if (originalSrcSet !== null) {
@@ -282,7 +299,10 @@ export async function shareMvpResult({
 
       return;
     } catch (error) {
-      console.warn("Server MVP share image failed, falling back to DOM capture:", error);
+      console.warn(
+        "Server MVP share image failed, falling back to DOM capture:",
+        error
+      );
 
       if (!element) {
         throw error;
