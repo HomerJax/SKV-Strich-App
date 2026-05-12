@@ -581,13 +581,20 @@ async function ensureResultNotifications(params: {
     return;
   }
 
-  const { error } = await admin.from("user_notifications").upsert(inserts, {
-    onConflict: "dedupe_key",
-    ignoreDuplicates: true,
-  });
+  const { data, error } = await admin
+    .from("user_notifications")
+    .upsert(inserts, {
+      onConflict: "dedupe_key",
+    })
+    .select("id");
 
   if (error) {
     console.error("MVP notifications failed:", error.message);
+    throw new Error(`MVP notifications failed: ${error.message}`);
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("MVP notifications failed: no notification rows returned.");
   }
 }
 
