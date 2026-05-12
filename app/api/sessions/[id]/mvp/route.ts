@@ -734,6 +734,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       votingOpen: false,
       revealLabel: null,
       canVote: false,
+      currentUserPlayerId: null,
       userHasVoted: false,
       userVotePlayerId: null,
       participants: [],
@@ -765,9 +766,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
       supabase,
     });
 
-    const canVote = participants.some(
-      (participant) => participant.userId === user.id
-    );
+    const currentUserParticipant =
+      participants.find((participant) => participant.userId === user.id) ?? null;
+
+    const canVote = Boolean(currentUserParticipant);
+    const currentUserPlayerId = currentUserParticipant?.id ?? null;
 
     let results = shouldRevealResults
       ? buildResults({
@@ -790,6 +793,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       votingOpen: forceFinalize ? false : votingOpen,
       revealLabel,
       canVote,
+      currentUserPlayerId,
       userHasVoted,
       userVotePlayerId,
       participants: participants.map(({ id: playerId, name, mvpCount }) => ({
