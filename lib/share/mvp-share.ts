@@ -11,6 +11,7 @@ type ShareMvpResultOptions = {
 type RestoreImage = () => void;
 
 const dataUrlCache = new Map<string, string>();
+const shareFileCache = new Map<string, File>();
 
 function waitForTwoFrames() {
   return new Promise<void>((resolve) => {
@@ -192,6 +193,12 @@ async function prepareShareElement(element: HTMLElement) {
 
 async function fetchShareImageFile(imageUrl: string, fileName: string) {
   const absoluteUrl = toAbsoluteImageUrl(imageUrl);
+  const cacheKey = `${absoluteUrl}::${fileName}`;
+  const cachedFile = shareFileCache.get(cacheKey);
+
+  if (cachedFile) {
+    return cachedFile;
+  }
 
   const response = await fetch(absoluteUrl, {
     method: "GET",
@@ -203,10 +210,20 @@ async function fetchShareImageFile(imageUrl: string, fileName: string) {
   }
 
   const blob = await response.blob();
-
-  return new File([blob], fileName, {
+  const file = new File([blob], fileName, {
     type: blob.type || "image/png",
   });
+
+  shareFileCache.set(cacheKey, file);
+
+  return file;
+}
+
+export async function preloadMvpShareImage(params: {
+  imageUrl: string;
+  fileName: string;
+}) {
+  await fetchShareImageFile(params.imageUrl, params.fileName);
 }
 
 async function shareFile(params: {

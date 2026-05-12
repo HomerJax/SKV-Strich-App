@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlayerBadge from "@/components/badges/PlayerBadge";
 import { getBadgeMetaFromMvpCount } from "@/lib/badges/helpers";
-import { shareMvpResult } from "@/lib/share/mvp-share";
+import { preloadMvpShareImage, shareMvpResult } from "@/lib/share/mvp-share";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
 import type { LeaderboardEntry as ShareLeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 
@@ -386,6 +386,24 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setSaving(false);
     }
   }
+
+  useEffect(() => {
+    if (!shareData) return;
+
+    const mode = shareData.mode;
+    const imageUrl = `/api/share/mvp/${sessionId}/image?variant=${mode}`;
+    const fileName =
+      mode === "winner"
+        ? `strikr-mvp-winner-${sessionId}.png`
+        : `strikr-mvp-result-${sessionId}.png`;
+
+    void preloadMvpShareImage({
+      imageUrl,
+      fileName,
+    }).catch(() => {
+      // Vorladen ist nur Komfort. Der Klick versucht es später erneut.
+    });
+  }, [sessionId, shareData]);
 
   async function handleShareMvpResult() {
     if (!shareCardRef.current || !shareData) {
