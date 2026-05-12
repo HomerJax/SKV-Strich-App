@@ -159,6 +159,19 @@ async function inlineImageForCapture(
   };
 }
 
+async function prepareShareElement(element: HTMLElement) {
+  const images = Array.from(element.querySelectorAll("img"));
+  const restoreImages: RestoreImage[] = [];
+
+  for (const img of images) {
+    const restoreImage = await inlineImageForCapture(img);
+    restoreImages.push(restoreImage);
+  }
+
+  await waitForTwoFrames();
+
+  return restoreImages;
+}
 
 async function fetchShareImageFile(imageUrl: string, fileName: string) {
   const absoluteUrl = toAbsoluteImageUrl(imageUrl);
@@ -212,44 +225,13 @@ async function shareFile(params: {
   }
 }
 
-async function prepareShareElement(element: HTMLElement) {
-  const images = Array.from(element.querySelectorAll("img"));
-  const restoreImages: RestoreImage[] = [];
-
-  for (const img of images) {
-    const restoreImage = await inlineImageForCapture(img);
-    restoreImages.push(restoreImage);
-  }
-
-  await waitForTwoFrames();
-
-  return restoreImages;
-}
-
-export async function shareMvpResult({
-  element,
-  imageUrl,
-  fileName = "strikr-mvp.png",
-  title = "strikr MVP",
-  text = "MVP Card erstellt mit strikr.",
-}: ShareMvpResultOptions) {
-  if (imageUrl) {
-    const file = await fetchShareImageFile(imageUrl, fileName);
-
-    await shareFile({
-      file,
-      fileName,
-      title,
-      text,
-    });
-
-    return;
-  }
-
-  if (!element) {
-    throw new Error("MVP Share Card ist noch nicht bereit.");
-  }
-
+async function shareFromElement(params: {
+  element: HTMLElement;
+  fileName: string;
+  title: string;
+  text: string;
+}) {
+  const { element, fileName, title, text } = params;
   const restoreImages = await prepareShareElement(element);
 
   try {
@@ -278,4 +260,44 @@ export async function shareMvpResult({
   } finally {
     restoreImages.forEach((restoreImage) => restoreImage());
   }
+}
+
+export async function shareMvpResult({
+  element,
+  imageUrl,
+  fileName = "strikr-mvp.png",
+  title = "strikr MVP",
+  text = "MVP Card erstellt mit strikr.",
+}: ShareMvpResultOptions) {
+  if (imageUrl) {
+    try {
+      const file = await fetchShareImageFile(imageUrl, fileName);
+
+      await shareFile({
+        file,
+        fileName,
+        title,
+        text,
+      });
+
+      return;
+    } catch (error) {
+      console.warn("Server MVP share image failed, falling back to DOM capture:", error);
+
+      if (!element) {
+        throw error;
+      }
+    }
+  }
+
+  if (!element) {
+    throw new Error("MVP Share Card ist noch nicht bereit.");
+  }
+
+  await shareFromElement({
+    element,
+    fileName,
+    title,
+    text,
+  });
 }
