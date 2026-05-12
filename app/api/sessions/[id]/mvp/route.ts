@@ -738,7 +738,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const votingOpen = isVotingOpen(session.date);
+    const votingOpen = session.mvp_voting_finalized_at
+      ? false
+      : isVotingOpen(session.date);
     const shouldRevealResults = !votingOpen || forceFinalize;
     const { revealLabel } = getVotingWindow(session.date);
 
@@ -849,7 +851,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     );
   }
 
-  if (!isVotingOpen(session.date)) {
+  if (session.mvp_voting_finalized_at || !isVotingOpen(session.date)) {
     return NextResponse.json(
       { error: "Das MVP Voting ist bereits beendet." },
       { status: 400 }
