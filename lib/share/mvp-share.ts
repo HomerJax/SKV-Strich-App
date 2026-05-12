@@ -21,6 +21,19 @@ function waitForTwoFrames() {
   });
 }
 
+function waitForMilliseconds(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function waitForRenderSettled() {
+  await waitForTwoFrames();
+  await waitForTwoFrames();
+  await waitForMilliseconds(450);
+  await waitForTwoFrames();
+}
+
 async function waitForImage(img: HTMLImageElement) {
   const src = img.currentSrc || img.src;
 
@@ -186,7 +199,16 @@ async function prepareShareElement(element: HTMLElement) {
     restoreImages.push(restoreImage);
   }
 
-  await waitForTwoFrames();
+  const unresolvedImages = images.filter((img) => {
+    const src = img.currentSrc || img.src;
+    return !src || !src.startsWith("data:image/png") || !img.complete || img.naturalWidth <= 0;
+  });
+
+  if (unresolvedImages.length > 0) {
+    await Promise.all(unresolvedImages.map((img) => waitForImage(img)));
+  }
+
+  await waitForRenderSettled();
 
   return restoreImages;
 }
@@ -269,6 +291,8 @@ async function shareFromElement(params: {
   const restoreImages = await prepareShareElement(element);
 
   try {
+    await waitForRenderSettled();
+
     const blob = await htmlToImage.toBlob(element, {
       cacheBust: true,
       pixelRatio: 2,
