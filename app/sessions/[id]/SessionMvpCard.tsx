@@ -399,6 +399,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       await shareMvpResult({
         element: shareCardRef.current,
+        imageUrl: `/api/share/mvp/${sessionId}/image?variant=${shareData.mode}`,
         fileName:
           shareData.mode === "winner"
             ? `strikr-mvp-winner-${sessionId}.png`

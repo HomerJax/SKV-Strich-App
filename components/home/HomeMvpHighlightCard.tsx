@@ -67,6 +67,7 @@ export default function HomeMvpHighlightCard({
 
       await shareMvpResult({
         element: shareRef.current,
+        imageUrl: `/api/share/mvp/${sessionId}/image?variant=${mode}`,
         fileName:
           mode === "winner"
             ? `strikr-mvp-winner-${sessionId}.png`

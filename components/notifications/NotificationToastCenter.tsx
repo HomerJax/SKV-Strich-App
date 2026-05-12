@@ -34,6 +34,8 @@ type NotificationPayload = {
   clubLogoUrl?: string | null;
   winnerName?: string;
   isWinner?: boolean;
+  shareImageUrl?: string | null;
+  sessionHref?: string | null;
   leaderboard?: PayloadLeaderboardEntry[];
   winners?: PayloadWinnerEntry[];
   badgeUpgrade?: BadgeUpgrade | null;
@@ -303,6 +305,7 @@ export function NotificationToastCenter() {
 
         await shareMvpResult({
           element,
+          imageUrl: notification.payload?.shareImageUrl ?? undefined,
           fileName: isWinner
             ? `strikr-mvp-winner-${notification.payload?.sessionId ?? notification.id}.png`
             : `strikr-mvp-result-${notification.payload?.sessionId ?? notification.id}.png`,

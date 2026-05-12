@@ -1,7 +1,8 @@
 import * as htmlToImage from "html-to-image";
 
 type ShareMvpResultOptions = {
-  element: HTMLElement;
+  element?: HTMLElement;
+  imageUrl?: string;
   fileName?: string;
   title?: string;
   text?: string;
@@ -158,6 +159,59 @@ async function inlineImageForCapture(
   };
 }
 
+
+async function fetchShareImageFile(imageUrl: string, fileName: string) {
+  const absoluteUrl = toAbsoluteImageUrl(imageUrl);
+
+  const response = await fetch(absoluteUrl, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Share-Bild konnte nicht geladen werden: ${absoluteUrl}`);
+  }
+
+  const blob = await response.blob();
+
+  return new File([blob], fileName, {
+    type: blob.type || "image/png",
+  });
+}
+
+async function shareFile(params: {
+  file: File;
+  fileName: string;
+  title: string;
+  text: string;
+}) {
+  const { file, fileName, title, text } = params;
+
+  if (navigator.canShare?.({ files: [file] })) {
+    await navigator.share({
+      title,
+      text,
+      files: [file],
+    });
+
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+}
+
 async function prepareShareElement(element: HTMLElement) {
   const images = Array.from(element.querySelectorAll("img"));
   const restoreImages: RestoreImage[] = [];
@@ -174,10 +228,28 @@ async function prepareShareElement(element: HTMLElement) {
 
 export async function shareMvpResult({
   element,
+  imageUrl,
   fileName = "strikr-mvp.png",
   title = "strikr MVP",
   text = "MVP Card erstellt mit strikr.",
 }: ShareMvpResultOptions) {
+  if (imageUrl) {
+    const file = await fetchShareImageFile(imageUrl, fileName);
+
+    await shareFile({
+      file,
+      fileName,
+      title,
+      text,
+    });
+
+    return;
+  }
+
+  if (!element) {
+    throw new Error("MVP Share Card ist noch nicht bereit.");
+  }
+
   const restoreImages = await prepareShareElement(element);
 
   try {
@@ -197,29 +269,12 @@ export async function shareMvpResult({
       type: "image/png",
     });
 
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({
-        title,
-        text,
-        files: [file],
-      });
-
-      return;
-    }
-
-    const url = URL.createObjectURL(file);
-
-    try {
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      link.rel = "noopener";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } finally {
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
+    await shareFile({
+      file,
+      fileName,
+      title,
+      text,
+    });
   } finally {
     restoreImages.forEach((restoreImage) => restoreImage());
   }
