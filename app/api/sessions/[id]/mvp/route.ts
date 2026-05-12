@@ -666,7 +666,7 @@ async function finalizeMvpIfNeeded(params: {
   return finalizedResults;
 }
 
-export async function GET(_request: NextRequest, context: RouteContext) {
+export async function GET(request: NextRequest, context: RouteContext) {
   const { id } = await context.params;
   const sessionId = Number(id);
 
@@ -683,7 +683,30 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     return base.error;
   }
 
-  const { supabase, user, session } = base;
+  const { supabase, user, session, isPowerUser } = base;
+  const forceFinalize =
+    request.nextUrl.searchParams.get("forceFinalize") === "1";
+
+  const forceFinalizeEnabled =
+    process.env.ENABLE_MVP_FORCE_FINALIZE === "true" ||
+    process.env.VERCEL_ENV !== "production";
+
+  if (forceFinalize && !forceFinalizeEnabled) {
+    return NextResponse.json(
+      {
+        error:
+          "Manuelles MVP-Finalisieren ist in dieser Umgebung nicht aktiviert.",
+      },
+      { status: 403 }
+    );
+  }
+
+  if (forceFinalize && !isPowerUser) {
+    return NextResponse.json(
+      { error: "Nur Power User dürfen MVP Voting manuell finalisieren." },
+      { status: 403 }
+    );
+  }
 
   const { data: resultData, error: resultError } = await supabase
     .from("results")
@@ -716,6 +739,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   try {
     const votingOpen = isVotingOpen(session.date);
+    const shouldRevealResults = !votingOpen || forceFinalize;
     const { revealLabel } = getVotingWindow(session.date);
 
     const {
@@ -736,14 +760,14 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       (participant) => participant.userId === user.id
     );
 
-    let results = votingOpen
-      ? null
-      : buildResults({
+    let results = shouldRevealResults
+      ? buildResults({
           participants,
           voteRows,
-        });
+        })
+      : null;
 
-    if (!votingOpen && results) {
+    if (shouldRevealResults && results) {
       results = await finalizeMvpIfNeeded({
         session,
         results,
@@ -754,7 +778,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({
       sessionId,
       hasResult: true,
-      votingOpen,
+      votingOpen: forceFinalize ? false : votingOpen,
       revealLabel,
       canVote,
       userHasVoted,
