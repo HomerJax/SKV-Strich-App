@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MvpSharePreviewCard from "@/components/share/mvp-share/MvpSharePreviewCard";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
 import type { LeaderboardEntry as ShareLeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
-import { shareMvpResult } from "@/lib/share/mvp-share";
+import { preloadMvpShareImage, shareMvpResult } from "@/lib/share/mvp-share";
 
 type PayloadLeaderboardEntry = {
   playerId: number;
@@ -263,6 +263,29 @@ export function NotificationToastCenter() {
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
+
+  useEffect(() => {
+    for (const notification of notifications) {
+      if (!isMvpNotification(notification)) continue;
+
+      const sessionId = notification.payload?.sessionId;
+      const shareImageUrl = notification.payload?.shareImageUrl;
+      const isWinner = notification.payload?.isWinner === true;
+
+      if (!sessionId || !shareImageUrl) continue;
+
+      void preloadMvpShareImage({
+        imageUrl: shareImageUrl,
+        fileName: isWinner
+          ? `strikr-mvp-winner-${sessionId}.png`
+          : `strikr-mvp-result-${sessionId}.png`,
+      }).catch(() => {
+        // Vorladen ist nur Komfort. Der Klick versucht es später erneut.
+      });
+    }
+  }, [notifications]);
+
+
 
   async function markSeen(id: number) {
     const res = await fetch(`/api/notifications/${id}/seen`, {
