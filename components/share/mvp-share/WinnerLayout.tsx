@@ -13,33 +13,24 @@ function getCopy(mvpCount: number) {
       sub: "Legendenstatus.",
       badge: "goat strikr badge",
       tone: "#f0abfc",
-      hook: "Diskussion beendet.",
-      glow:
-        "radial-gradient(circle at 20% 28%, rgba(34,211,238,0.58), transparent 32%), radial-gradient(circle at 72% 26%, rgba(236,72,153,0.72), transparent 34%), radial-gradient(circle at 48% 74%, rgba(250,204,21,0.46), transparent 38%)",
-      badgeSize: 850,
-      glowStrength: 1.85,
-      backgroundGlowOpacity: 0.86,
-      whiteGlowOpacity: 0.5,
-      lowerGlowOpacity: 0.32,
+      glow: "rgba(236,72,153,0.70)",
+      badgeSize: 820,
+      glowStrength: 1.8,
       imageFilter:
-        "drop-shadow(0 64px 108px rgba(0,0,0,0.82)) drop-shadow(0 0 90px rgba(236,72,153,0.72)) drop-shadow(0 0 54px rgba(34,211,238,0.48)) drop-shadow(0 0 34px rgba(250,204,21,0.34)) saturate(1.35) contrast(1.12)",
+        "drop-shadow(0 64px 108px rgba(0,0,0,0.82)) drop-shadow(0 0 78px rgba(236,72,153,0.70)) drop-shadow(0 0 46px rgba(34,211,238,0.42)) saturate(1.25) contrast(1.12)",
     };
   }
 
   if (mvpCount >= 7) {
     return {
-      sub: "Dominanz.",
+      sub: "Statement gesetzt.",
       badge: "gold strikr badge",
       tone: "#fde68a",
-      hook: "Statement gesetzt.",
-      glow: "rgba(250,204,21,0.78)",
-      badgeSize: 790,
-      glowStrength: 1.65,
-      backgroundGlowOpacity: 0.78,
-      whiteGlowOpacity: 0.45,
-      lowerGlowOpacity: 0.28,
+      glow: "rgba(250,204,21,0.72)",
+      badgeSize: 760,
+      glowStrength: 1.55,
       imageFilter:
-        "drop-shadow(0 60px 102px rgba(0,0,0,0.78)) drop-shadow(0 0 86px rgba(250,204,21,0.76)) drop-shadow(0 0 38px rgba(255,255,255,0.34)) saturate(1.18) contrast(1.09)",
+        "drop-shadow(0 60px 102px rgba(0,0,0,0.78)) drop-shadow(0 0 72px rgba(250,204,21,0.70)) drop-shadow(0 0 30px rgba(255,255,255,0.28)) saturate(1.14) contrast(1.08)",
     };
   }
 
@@ -48,15 +39,11 @@ function getCopy(mvpCount: number) {
       sub: "Jetzt wird’s ernst.",
       badge: "silber strikr badge",
       tone: "#f1f5f9",
-      hook: "Heute geliefert.",
-      glow: "rgba(226,232,240,0.58)",
-      badgeSize: 720,
-      glowStrength: 1.35,
-      backgroundGlowOpacity: 0.66,
-      whiteGlowOpacity: 0.34,
-      lowerGlowOpacity: 0.2,
+      glow: "rgba(226,232,240,0.48)",
+      badgeSize: 710,
+      glowStrength: 1.22,
       imageFilter:
-        "drop-shadow(0 56px 94px rgba(0,0,0,0.72)) drop-shadow(0 0 58px rgba(226,232,240,0.56)) drop-shadow(0 0 24px rgba(148,163,184,0.28)) saturate(1.03) contrast(1.07)",
+        "drop-shadow(0 56px 94px rgba(0,0,0,0.72)) drop-shadow(0 0 46px rgba(226,232,240,0.42)) saturate(1.02) contrast(1.07)",
     };
   }
 
@@ -65,31 +52,23 @@ function getCopy(mvpCount: number) {
       sub: "Kein Zufall mehr.",
       badge: "bronze strikr badge",
       tone: "#fed7aa",
-      hook: "War kein Zufall.",
       glow: "rgba(251,146,60,0.48)",
-      badgeSize: 700,
-      glowStrength: 1.18,
-      backgroundGlowOpacity: 0.56,
-      whiteGlowOpacity: 0.25,
-      lowerGlowOpacity: 0.14,
+      badgeSize: 690,
+      glowStrength: 1.08,
       imageFilter:
-        "drop-shadow(0 52px 90px rgba(0,0,0,0.70)) drop-shadow(0 0 44px rgba(251,146,60,0.42)) drop-shadow(0 0 18px rgba(255,237,213,0.18)) saturate(1.06) contrast(1.05)",
+        "drop-shadow(0 52px 90px rgba(0,0,0,0.70)) drop-shadow(0 0 40px rgba(251,146,60,0.38)) saturate(1.06) contrast(1.05)",
     };
   }
 
   return {
-    sub: "Erstes Zeichen gesetzt.",
+    sub: "Ab jetzt zählt’s.",
     badge: "blechernes strikr badge",
-    tone: "#9ca3af",
-    hook: "Ab jetzt zählt’s.",
-    glow: "rgba(90,95,100,0.18)",
-    badgeSize: 690,
-    glowStrength: 0.55,
-    backgroundGlowOpacity: 0.34,
-    whiteGlowOpacity: 0.14,
-    lowerGlowOpacity: 0.06,
+    tone: "#a3a3a3",
+    glow: "rgba(82,82,82,0.36)",
+    badgeSize: 680,
+    glowStrength: 0.82,
     imageFilter:
-      "brightness(0.6) contrast(1.3) saturate(0.2) sepia(0.15) drop-shadow(0 55px 90px rgba(0,0,0,0.85)) drop-shadow(0 0 10px rgba(90,95,100,0.12))",
+      "brightness(0.68) contrast(1.34) saturate(0.28) sepia(0.14) drop-shadow(0 56px 94px rgba(0,0,0,0.84)) drop-shadow(0 0 18px rgba(115,115,115,0.22))",
   };
 }
 
@@ -126,20 +105,20 @@ export default function WinnerLayout({
           overflow: "hidden",
           border: "1px solid rgba(255,255,255,0.08)",
           background:
-            "radial-gradient(circle at 80% 12%, rgba(255,255,255,0.08), transparent 25%), linear-gradient(180deg,#050713,#000000)",
+            "radial-gradient(circle at 18% 18%, rgba(255,255,255,0.10), transparent 28%), radial-gradient(circle at 78% 16%, rgba(255,255,255,0.08), transparent 28%), linear-gradient(180deg,#050713 0%,#080b12 48%,#000000 100%)",
         }}
       >
         <div
           style={{
             position: "absolute",
-            top: 250,
-            left: 95,
-            width: 840,
-            height: 570,
+            top: 270,
+            left: 80,
+            width: 900,
+            height: 650,
             borderRadius: "999px",
             background: copy.glow,
-            opacity: copy.backgroundGlowOpacity,
-            filter: "blur(150px)",
+            opacity: 0.62,
+            filter: "blur(160px)",
             transform: "rotate(-12deg)",
           }}
         />
@@ -147,13 +126,13 @@ export default function WinnerLayout({
         <div
           style={{
             position: "absolute",
-            top: 665,
-            left: 160,
-            width: 760,
+            top: 720,
+            left: 120,
+            width: 840,
             height: 560,
             borderRadius: "999px",
-            background: "rgba(255,255,255,0.14)",
-            opacity: copy.whiteGlowOpacity,
+            background: "rgba(255,255,255,0.10)",
+            opacity: 0.42,
             filter: "blur(165px)",
             transform: "rotate(10deg)",
           }}
@@ -162,25 +141,10 @@ export default function WinnerLayout({
         <div
           style={{
             position: "absolute",
-            top: 900,
-            left: -110,
-            width: 1280,
-            height: 420,
-            borderRadius: "999px",
-            background: copy.glow,
-            opacity: copy.lowerGlowOpacity,
-            filter: "blur(135px)",
-            transform: "rotate(-8deg)",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
             inset: 0,
-            opacity: 0.04,
+            opacity: 0.045,
             backgroundImage:
-              "repeating-linear-gradient(90deg,#ffffff 0px,#ffffff 1px,transparent 1px,transparent 90px)",
+              "repeating-linear-gradient(90deg,#ffffff 0px,#ffffff 1px,transparent 1px,transparent 92px)",
           }}
         />
 
@@ -195,16 +159,37 @@ export default function WinnerLayout({
 
         <div
           style={{
-            display: "flex",
             position: "absolute",
-            top: 320,
+            top: 315,
             left: 56,
+            right: 56,
+            display: "flex",
             flexDirection: "column",
+            zIndex: 4,
           }}
         >
           <div
             style={{
               display: "flex",
+              alignSelf: "flex-start",
+              padding: "10px 14px",
+              borderRadius: 999,
+              background: "rgba(2,6,12,0.70)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              fontSize: 13,
+              fontWeight: 900,
+              letterSpacing: 2.6,
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.72)",
+            }}
+          >
+            Award Moment
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              marginTop: 30,
               fontSize: 36,
               letterSpacing: 8,
               color: "rgba(255,255,255,0.55)",
@@ -221,7 +206,7 @@ export default function WinnerLayout({
               fontWeight: 900,
               letterSpacing: -14,
               lineHeight: 0.9,
-              marginTop: 6,
+              marginTop: 4,
             }}
           >
             MVP
@@ -231,9 +216,9 @@ export default function WinnerLayout({
             style={{
               display: "flex",
               marginTop: 18,
-              fontSize: 42,
+              fontSize: 40,
               fontWeight: 900,
-              color: "rgba(255,255,255,0.8)",
+              color: "rgba(255,255,255,0.78)",
             }}
           >
             gewählt. {copy.sub}
@@ -244,9 +229,11 @@ export default function WinnerLayout({
           style={{
             position: "absolute",
             top: 610,
+            left: 0,
             width: "100%",
             display: "flex",
             justifyContent: "center",
+            zIndex: 3,
           }}
         >
           <PremiumBadge
@@ -261,20 +248,23 @@ export default function WinnerLayout({
         <div
           style={{
             position: "absolute",
-            top: 1380,
-            width: "100%",
+            left: 56,
+            right: 56,
+            top: 1330,
             display: "flex",
-            alignItems: "center",
             flexDirection: "column",
+            alignItems: "center",
+            zIndex: 5,
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 40,
+              fontSize: 34,
               fontWeight: 900,
               color: copy.tone,
               textTransform: "uppercase",
+              letterSpacing: 1.6,
             }}
           >
             {copy.badge}
@@ -283,84 +273,81 @@ export default function WinnerLayout({
           <div
             style={{
               display: "flex",
-              fontSize: 26,
-              marginTop: 4,
-              color: "rgba(255,255,255,0.6)",
+              marginTop: 14,
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                background: "#ffffff",
+                color: "#000000",
+                padding: "16px 28px",
+                borderRadius: 999,
+                fontSize: 32,
+                fontWeight: 900,
+              }}
+            >
+              MVP #{winner.current}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                background: "rgba(255,255,255,0.10)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                padding: "16px 28px",
+                borderRadius: 999,
+                fontSize: 28,
+                fontWeight: 900,
+                color: "rgba(255,255,255,0.72)",
+              }}
+            >
+              {winner.previous} → {winner.current}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              marginTop: 28,
+              padding: "20px 28px",
+              borderRadius: 28,
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              color: "rgba(255,255,255,0.68)",
+              fontSize: 24,
               fontWeight: 800,
+              maxWidth: 720,
+              textAlign: "center",
+              lineHeight: 1.25,
             }}
           >
-            freigeschaltet
+            {winner.name} · {clubName} · {sessionDateLabel}
           </div>
         </div>
 
         <div
           style={{
             position: "absolute",
-            top: 1500,
-            width: "100%",
-            display: "flex",
-            justifyContent: "center",
-            gap: 16,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              background: "#ffffff",
-              color: "#000000",
-              padding: "16px 28px",
-              borderRadius: 999,
-              fontSize: 32,
-              fontWeight: 900,
-            }}
-          >
-            MVP #{winner.current}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              background: "rgba(255,255,255,0.1)",
-              padding: "16px 28px",
-              borderRadius: 999,
-              fontSize: 28,
-              fontWeight: 900,
-              color: "rgba(255,255,255,0.7)",
-            }}
-          >
-            {winner.previous} → {winner.current}
-          </div>
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            top: 1620,
-            width: "100%",
-            display: "flex",
-            justifyContent: "center",
-            fontSize: 28,
-            fontWeight: 900,
-            color: "rgba(255,255,255,0.65)",
-          }}
-        >
-          {copy.hook}
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: 28,
-            left: 32,
-            right: 32,
+            left: 56,
+            right: 56,
+            bottom: 52,
             display: "flex",
             justifyContent: "space-between",
-            fontSize: 22,
-            color: "rgba(255,255,255,0.45)",
+            alignItems: "center",
+            padding: "26px 30px",
+            borderRadius: 32,
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            color: "rgba(255,255,255,0.72)",
+            fontSize: 20,
+            fontWeight: 900,
+            zIndex: 6,
           }}
         >
-          <div style={{ display: "flex" }}>{sessionDateLabel}</div>
-          <div style={{ display: "flex" }}>created with strikr</div>
+          <div style={{ display: "flex" }}>earned with strikr</div>
+          <div style={{ display: "flex" }}>@getstrikr · www.strikr.team</div>
         </div>
       </div>
     </div>
