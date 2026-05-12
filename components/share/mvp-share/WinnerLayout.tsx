@@ -243,18 +243,20 @@ export default function WinnerLayout({
         <div
           style={{
             position: "absolute",
-            top: 610,
+            top: 630,
+            left: 0,
             width: "100%",
             display: "flex",
             justifyContent: "center",
+            zIndex: 3,
           }}
         >
           <PremiumBadge
             badgeImageUrl={badgeImageUrl}
-            size={copy.badgeSize}
+            size={Math.min(copy.badgeSize, 560)}
             glowColor={copy.glow}
-            glowStrength={copy.glowStrength}
-            imageFilter={copy.imageFilter}
+            glowStrength={Math.min(copy.glowStrength, 0.9)}
+            imageFilter="drop-shadow(0 42px 76px rgba(0,0,0,0.62)) drop-shadow(0 0 24px rgba(255,255,255,0.16))"
           />
         </div>
 
