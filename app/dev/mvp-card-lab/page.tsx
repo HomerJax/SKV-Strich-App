@@ -62,10 +62,10 @@ function CardShell({
 }) {
   return (
     <div>
-      <div className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-slate-400">
+      <div className="mb-2 max-w-[230px] text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
         {title}
       </div>
-      <div className="relative aspect-[9/16] w-full overflow-hidden rounded-[28px] border border-white/10 bg-slate-950 shadow-2xl">
+      <div className="relative aspect-[9/16] w-full max-w-[230px] overflow-hidden rounded-[22px] border border-white/10 bg-slate-950 shadow-2xl">
         {children}
       </div>
     </div>
@@ -280,7 +280,7 @@ export default function MvpCardLabPage() {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
           <ConceptOne />
           <ConceptTwo />
           <ConceptThree />
