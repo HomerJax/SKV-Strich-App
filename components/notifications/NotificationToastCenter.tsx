@@ -363,7 +363,7 @@ export function NotificationToastCenter() {
                 aria-hidden="true"
                 style={{
                   position: "fixed",
-                  left: "-200vw",
+                  left: "-10000px",
                   top: 0,
                   pointerEvents: "none",
                 }}
