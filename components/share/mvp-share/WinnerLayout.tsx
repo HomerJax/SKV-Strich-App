@@ -14,10 +14,10 @@ function getCopy(mvpCount: number) {
       badge: "goat strikr badge",
       tone: "#f0abfc",
       glow: "rgba(236,72,153,0.70)",
-      badgeSize: 820,
-      glowStrength: 1.8,
+      badgeSize: 800,
+      glowStrength: 1.85,
       imageFilter:
-        "drop-shadow(0 64px 108px rgba(0,0,0,0.82)) drop-shadow(0 0 78px rgba(236,72,153,0.70)) drop-shadow(0 0 46px rgba(34,211,238,0.42)) saturate(1.25) contrast(1.12)",
+        "drop-shadow(0 64px 108px rgba(0,0,0,0.84)) drop-shadow(0 0 78px rgba(236,72,153,0.70)) drop-shadow(0 0 46px rgba(34,211,238,0.42)) saturate(1.25) contrast(1.12)",
     };
   }
 
@@ -27,10 +27,10 @@ function getCopy(mvpCount: number) {
       badge: "gold strikr badge",
       tone: "#fde68a",
       glow: "rgba(250,204,21,0.72)",
-      badgeSize: 760,
+      badgeSize: 750,
       glowStrength: 1.55,
       imageFilter:
-        "drop-shadow(0 60px 102px rgba(0,0,0,0.78)) drop-shadow(0 0 72px rgba(250,204,21,0.70)) drop-shadow(0 0 30px rgba(255,255,255,0.28)) saturate(1.14) contrast(1.08)",
+        "drop-shadow(0 60px 102px rgba(0,0,0,0.80)) drop-shadow(0 0 72px rgba(250,204,21,0.70)) drop-shadow(0 0 30px rgba(255,255,255,0.28)) saturate(1.14) contrast(1.08)",
     };
   }
 
@@ -40,10 +40,10 @@ function getCopy(mvpCount: number) {
       badge: "silber strikr badge",
       tone: "#f1f5f9",
       glow: "rgba(226,232,240,0.48)",
-      badgeSize: 710,
-      glowStrength: 1.22,
+      badgeSize: 700,
+      glowStrength: 1.2,
       imageFilter:
-        "drop-shadow(0 56px 94px rgba(0,0,0,0.72)) drop-shadow(0 0 46px rgba(226,232,240,0.42)) saturate(1.02) contrast(1.07)",
+        "drop-shadow(0 56px 94px rgba(0,0,0,0.74)) drop-shadow(0 0 46px rgba(226,232,240,0.42)) saturate(1.02) contrast(1.07)",
     };
   }
 
@@ -53,10 +53,10 @@ function getCopy(mvpCount: number) {
       badge: "bronze strikr badge",
       tone: "#fed7aa",
       glow: "rgba(251,146,60,0.48)",
-      badgeSize: 690,
+      badgeSize: 680,
       glowStrength: 1.08,
       imageFilter:
-        "drop-shadow(0 52px 90px rgba(0,0,0,0.70)) drop-shadow(0 0 40px rgba(251,146,60,0.38)) saturate(1.06) contrast(1.05)",
+        "drop-shadow(0 52px 90px rgba(0,0,0,0.72)) drop-shadow(0 0 40px rgba(251,146,60,0.38)) saturate(1.06) contrast(1.05)",
     };
   }
 
@@ -65,7 +65,7 @@ function getCopy(mvpCount: number) {
     badge: "blechernes strikr badge",
     tone: "#a3a3a3",
     glow: "rgba(82,82,82,0.36)",
-    badgeSize: 680,
+    badgeSize: 670,
     glowStrength: 0.82,
     imageFilter:
       "brightness(0.68) contrast(1.34) saturate(0.28) sepia(0.14) drop-shadow(0 56px 94px rgba(0,0,0,0.84)) drop-shadow(0 0 18px rgba(115,115,115,0.22))",
@@ -105,20 +105,30 @@ export default function WinnerLayout({
           overflow: "hidden",
           border: "1px solid rgba(255,255,255,0.08)",
           background:
-            "radial-gradient(circle at 18% 18%, rgba(255,255,255,0.10), transparent 28%), radial-gradient(circle at 78% 16%, rgba(255,255,255,0.08), transparent 28%), linear-gradient(180deg,#050713 0%,#080b12 48%,#000000 100%)",
+            "radial-gradient(circle at 18% 18%, rgba(255,255,255,0.12), transparent 28%), radial-gradient(circle at 78% 16%, rgba(255,255,255,0.10), transparent 28%), linear-gradient(180deg,#050713 0%,#080b12 48%,#000000 100%)",
         }}
       >
         <div
           style={{
             position: "absolute",
-            top: 270,
-            left: 80,
-            width: 900,
-            height: 650,
+            inset: 0,
+            opacity: 0.05,
+            backgroundImage:
+              "repeating-linear-gradient(90deg,#ffffff 0px,#ffffff 1px,transparent 1px,transparent 90px)",
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            top: 245,
+            left: 40,
+            width: 980,
+            height: 720,
             borderRadius: "999px",
             background: copy.glow,
             opacity: 0.62,
-            filter: "blur(160px)",
+            filter: "blur(155px)",
             transform: "rotate(-12deg)",
           }}
         />
@@ -126,25 +136,15 @@ export default function WinnerLayout({
         <div
           style={{
             position: "absolute",
-            top: 720,
-            left: 120,
-            width: 840,
-            height: 560,
+            top: 760,
+            left: 100,
+            width: 880,
+            height: 570,
             borderRadius: "999px",
             background: "rgba(255,255,255,0.10)",
-            opacity: 0.42,
+            opacity: 0.40,
             filter: "blur(165px)",
             transform: "rotate(10deg)",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            opacity: 0.045,
-            backgroundImage:
-              "repeating-linear-gradient(90deg,#ffffff 0px,#ffffff 1px,transparent 1px,transparent 92px)",
           }}
         />
 
@@ -160,7 +160,7 @@ export default function WinnerLayout({
         <div
           style={{
             position: "absolute",
-            top: 315,
+            top: 300,
             left: 56,
             right: 56,
             display: "flex",
@@ -174,11 +174,11 @@ export default function WinnerLayout({
               alignSelf: "flex-start",
               padding: "10px 14px",
               borderRadius: 999,
-              background: "rgba(2,6,12,0.70)",
+              background: "rgba(2,6,12,0.72)",
               border: "1px solid rgba(255,255,255,0.12)",
               fontSize: 13,
               fontWeight: 900,
-              letterSpacing: 2.6,
+              letterSpacing: 2.8,
               textTransform: "uppercase",
               color: "rgba(255,255,255,0.72)",
             }}
@@ -190,9 +190,9 @@ export default function WinnerLayout({
             style={{
               display: "flex",
               marginTop: 30,
-              fontSize: 36,
-              letterSpacing: 8,
-              color: "rgba(255,255,255,0.55)",
+              fontSize: 34,
+              letterSpacing: 7,
+              color: "rgba(255,255,255,0.54)",
               fontWeight: 900,
             }}
           >
@@ -202,10 +202,10 @@ export default function WinnerLayout({
           <div
             style={{
               display: "flex",
-              fontSize: 200,
+              fontSize: 205,
               fontWeight: 900,
-              letterSpacing: -14,
-              lineHeight: 0.9,
+              letterSpacing: -15,
+              lineHeight: 0.88,
               marginTop: 4,
             }}
           >
@@ -216,9 +216,9 @@ export default function WinnerLayout({
             style={{
               display: "flex",
               marginTop: 18,
-              fontSize: 40,
+              fontSize: 38,
               fontWeight: 900,
-              color: "rgba(255,255,255,0.78)",
+              color: "rgba(255,255,255,0.76)",
             }}
           >
             gewählt. {copy.sub}
@@ -228,7 +228,7 @@ export default function WinnerLayout({
         <div
           style={{
             position: "absolute",
-            top: 610,
+            top: 620,
             left: 0,
             width: "100%",
             display: "flex",
@@ -250,7 +250,7 @@ export default function WinnerLayout({
             position: "absolute",
             left: 56,
             right: 56,
-            top: 1330,
+            top: 1320,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -336,8 +336,8 @@ export default function WinnerLayout({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            padding: "26px 30px",
-            borderRadius: 32,
+            padding: "24px 28px",
+            borderRadius: 30,
             background: "rgba(255,255,255,0.08)",
             border: "1px solid rgba(255,255,255,0.10)",
             color: "rgba(255,255,255,0.72)",
