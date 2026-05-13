@@ -460,38 +460,17 @@ function WinnerPremium({ tier }: { tier: Tier }) {
             <div
               style={{
                 display: "flex",
-                marginTop: 18,
-                gap: 12,
+                marginTop: 24,
+                padding: "18px 26px",
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.10)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                color: "rgba(255,255,255,0.68)",
+                fontSize: 24,
+                fontWeight: 900,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  padding: "16px 28px",
-                  borderRadius: 999,
-                  background: "#ffffff",
-                  color: "#020617",
-                  fontSize: 31,
-                  fontWeight: 900,
-                }}
-              >
-                MVP #1
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  padding: "16px 28px",
-                  borderRadius: 999,
-                  background: "rgba(255,255,255,0.10)",
-                  border: "1px solid rgba(255,255,255,0.10)",
-                  color: "rgba(255,255,255,0.72)",
-                  fontSize: 28,
-                  fontWeight: 900,
-                }}
-              >
-                0 → 1
-              </div>
+              Marcello Testa · SKV Rutesheim AH
             </div>
           </div>
 
@@ -689,36 +668,51 @@ function TeamBrightAward({ tier }: { tier: Tier }) {
             <div
               style={{
                 display: "flex",
-                marginTop: 20,
+                flexDirection: "column",
+                marginTop: 26,
+                paddingTop: 22,
+                borderTop: "1px solid rgba(15,23,42,0.08)",
                 gap: 12,
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  padding: "14px 22px",
-                  borderRadius: 999,
-                  background: "#020617",
-                  color: "#ffffff",
-                  fontSize: 24,
+                  fontSize: 15,
                   fontWeight: 900,
+                  letterSpacing: 3,
+                  textTransform: "uppercase",
+                  color: "rgba(15,23,42,0.34)",
                 }}
               >
-                MVP #1
+                Voting Ergebnis
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  padding: "14px 22px",
-                  borderRadius: 999,
-                  background: "rgba(15,23,42,0.06)",
-                  color: "rgba(15,23,42,0.56)",
-                  fontSize: 24,
-                  fontWeight: 900,
-                }}
-              >
-                {tier.label}
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 18 }}>
+                <div style={{ display: "flex", fontSize: 23, fontWeight: 900, color: "#020617" }}>
+                  1. Marcello Testa
+                </div>
+                <div style={{ display: "flex", fontSize: 20, fontWeight: 900, color: "rgba(15,23,42,0.56)" }}>
+                  5 Stimmen
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 18 }}>
+                <div style={{ display: "flex", fontSize: 21, fontWeight: 900, color: "rgba(15,23,42,0.52)" }}>
+                  2. Steffen
+                </div>
+                <div style={{ display: "flex", fontSize: 19, fontWeight: 900, color: "rgba(15,23,42,0.42)" }}>
+                  3 Stimmen
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 18 }}>
+                <div style={{ display: "flex", fontSize: 21, fontWeight: 900, color: "rgba(15,23,42,0.52)" }}>
+                  3. Julian
+                </div>
+                <div style={{ display: "flex", fontSize: 19, fontWeight: 900, color: "rgba(15,23,42,0.42)" }}>
+                  2 Stimmen
+                </div>
               </div>
             </div>
           </div>

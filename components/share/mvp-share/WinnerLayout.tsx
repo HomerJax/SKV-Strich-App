@@ -239,62 +239,47 @@ export default function WinnerLayout({
             position: "absolute",
             left: 56,
             right: 56,
-            top: 1455,
+            top: 1405,
             zIndex: 6,
             display: "flex",
-            alignItems: "center",
             flexDirection: "column",
+            gap: 20,
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 30,
-              fontWeight: 900,
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              color: tier.text,
-            }}
-          >
-            {tier.label} strikr badge
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              marginTop: 18,
-              gap: 12,
+              flexDirection: "column",
+              alignItems: "center",
             }}
           >
             <div
               style={{
                 display: "flex",
-                padding: "16px 28px",
-                borderRadius: 999,
-                background: "#ffffff",
-                color: "#020617",
-                fontSize: 31,
+                fontSize: 30,
                 fontWeight: 900,
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                color: tier.text,
               }}
             >
-              MVP #{winner.current}
+              {tier.label} strikr badge
             </div>
 
             <div
               style={{
                 display: "flex",
-                padding: "16px 28px",
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.10)",
-                border: "1px solid rgba(255,255,255,0.10)",
-                color: "rgba(255,255,255,0.72)",
-                fontSize: 28,
-                fontWeight: 900,
+                marginTop: 14,
+                fontSize: 25,
+                fontWeight: 800,
+                color: "rgba(255,255,255,0.62)",
               }}
             >
-              {winner.previous} → {winner.current}
+              {winner.name} · {clubName} · {sessionDateLabel}
             </div>
           </div>
+
+
         </div>
 
         <div

@@ -65,6 +65,83 @@ function getTierMeta(label: string): TierMeta {
   };
 }
 
+function VoteLine({
+  rank,
+  name,
+  votes,
+  muted = false,
+}: {
+  rank: number;
+  name: string;
+  votes: number;
+  muted?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 18,
+        color: muted ? "rgba(15,23,42,0.52)" : "#020617",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          minWidth: 0,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            width: 34,
+            height: 34,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            background: muted ? "rgba(15,23,42,0.06)" : "#020617",
+            color: muted ? "rgba(15,23,42,0.46)" : "#ffffff",
+            fontSize: 16,
+            fontWeight: 900,
+            flexShrink: 0,
+          }}
+        >
+          {rank}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            fontSize: muted ? 22 : 24,
+            fontWeight: 900,
+            letterSpacing: -0.5,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {name}
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexShrink: 0,
+          fontSize: muted ? 19 : 20,
+          fontWeight: 900,
+          color: muted ? "rgba(15,23,42,0.42)" : "rgba(15,23,42,0.56)",
+        }}
+      >
+        {votes} {votes === 1 ? "Stimme" : "Stimmen"}
+      </div>
+    </div>
+  );
+}
+
 export default function TeamLayout({
   strikrLogoUrl,
   clubLogoUrl,
@@ -170,20 +247,10 @@ export default function TeamLayout({
             >
               strikr
             </span>
-            <span
-              style={{
-                display: "flex",
-                textTransform: "uppercase",
-              }}
-            >
+            <span style={{ display: "flex", textTransform: "uppercase" }}>
               MVP
             </span>
-            <span
-              style={{
-                display: "flex",
-                textTransform: "uppercase",
-              }}
-            >
+            <span style={{ display: "flex", textTransform: "uppercase" }}>
               Badge
             </span>
           </div>
@@ -244,11 +311,11 @@ export default function TeamLayout({
           <div
             style={{
               display: "flex",
-              fontSize: 26,
+              fontSize: 24,
               fontWeight: 900,
               letterSpacing: 4,
               textTransform: "uppercase",
-              color: "rgba(15,23,42,0.36)",
+              color: "rgba(15,23,42,0.34)",
             }}
           >
             Glückwunsch
@@ -257,8 +324,8 @@ export default function TeamLayout({
           <div
             style={{
               display: "flex",
-              marginTop: 18,
-              fontSize: 72,
+              marginTop: 16,
+              fontSize: 70,
               fontWeight: 900,
               letterSpacing: -5,
               lineHeight: 0.92,
@@ -271,8 +338,8 @@ export default function TeamLayout({
           <div
             style={{
               display: "flex",
-              marginTop: 18,
-              fontSize: 28,
+              marginTop: 16,
+              fontSize: 27,
               fontWeight: 800,
               color: "rgba(15,23,42,0.58)",
             }}
@@ -280,123 +347,42 @@ export default function TeamLayout({
             wurde zum MVP gewählt.
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              marginTop: 20,
-              gap: 12,
-            }}
-          >
+          {topThree.length > 0 ? (
             <div
               style={{
                 display: "flex",
-                padding: "14px 22px",
-                borderRadius: 999,
-                background: "#020617",
-                color: "#ffffff",
-                fontSize: 24,
-                fontWeight: 900,
+                flexDirection: "column",
+                marginTop: 28,
+                paddingTop: 24,
+                borderTop: "1px solid rgba(15,23,42,0.08)",
+                gap: 13,
               }}
             >
-              MVP #{winner.current}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                padding: "14px 22px",
-                borderRadius: 999,
-                background: "rgba(15,23,42,0.06)",
-                color: "rgba(15,23,42,0.56)",
-                fontSize: 24,
-                fontWeight: 900,
-              }}
-            >
-              {winner.previous} → {winner.current}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                padding: "14px 22px",
-                borderRadius: 999,
-                background: "rgba(15,23,42,0.06)",
-                color: "rgba(15,23,42,0.56)",
-                fontSize: 24,
-                fontWeight: 900,
-              }}
-            >
-              {tier.label}
-            </div>
-          </div>
-        </div>
-
-        {topThree.length > 1 ? (
-          <div
-            style={{
-              position: "absolute",
-              left: 56,
-              right: 56,
-              top: 1578,
-              display: "flex",
-              flexDirection: "column",
-              padding: "22px 28px",
-              borderRadius: 30,
-              background: "rgba(2,6,23,0.92)",
-              color: "#ffffff",
-              zIndex: 8,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                fontSize: 15,
-                fontWeight: 900,
-                letterSpacing: 3,
-                textTransform: "uppercase",
-                color: "rgba(255,255,255,0.38)",
-              }}
-            >
-              Voting Ergebnis
-            </div>
-
-            {topThree.slice(0, 2).map((entry, index) => (
               <div
-                key={entry.playerId}
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginTop: 14,
-                  gap: 20,
+                  fontSize: 15,
+                  fontWeight: 900,
+                  letterSpacing: 3,
+                  textTransform: "uppercase",
+                  color: "rgba(15,23,42,0.34)",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 23,
-                    fontWeight: 900,
-                    letterSpacing: -0.5,
-                    color: index === 0 ? "#ffffff" : "rgba(255,255,255,0.62)",
-                  }}
-                >
-                  {index + 1}. {entry.name}
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 21,
-                    fontWeight: 900,
-                    color: "rgba(255,255,255,0.52)",
-                  }}
-                >
-                  {entry.votes} {entry.votes === 1 ? "Stimme" : "Stimmen"}
-                </div>
+                Voting Ergebnis
               </div>
-            ))}
-          </div>
-        ) : null}
+
+              {topThree.map((entry, index) => (
+                <VoteLine
+                  key={entry.playerId}
+                  rank={index + 1}
+                  name={entry.name}
+                  votes={entry.votes}
+                  muted={index > 0}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <div
           style={{
