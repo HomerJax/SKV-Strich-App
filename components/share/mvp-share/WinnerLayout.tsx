@@ -7,89 +7,69 @@ import { buildPalette } from "@/components/share/result-share/result-share.palet
 
 type WinnerLayoutProps = Omit<MvpShareImageProps, "mode" | "leaderboard">;
 
-function getCopy(mvpCount: number) {
-  if (mvpCount >= 10) {
+type TierMeta = {
+  label: string;
+  key: "blech" | "bronze" | "silber" | "gold" | "goat";
+  top: string;
+  glow: string;
+  text: string;
+  sub: string;
+};
+
+function getTierMeta(label: string): TierMeta {
+  const lower = label.toLowerCase();
+
+  if (lower.includes("goat")) {
     return {
+      label: "GOAT",
+      key: "goat",
+      top: "linear-gradient(135deg,#312e81 0%,#db2777 42%,#facc15 72%,#22d3ee 100%)",
+      glow: "rgba(217,70,239,0.70)",
+      text: "#f0abfc",
       sub: "Legendenstatus.",
-      badge: "goat strikr badge",
-      tone: "#f0abfc",
-      hook: "Diskussion beendet.",
-      glow:
-        "radial-gradient(circle at 20% 28%, rgba(34,211,238,0.58), transparent 32%), radial-gradient(circle at 72% 26%, rgba(236,72,153,0.72), transparent 34%), radial-gradient(circle at 48% 74%, rgba(250,204,21,0.46), transparent 38%)",
-      badgeSize: 850,
-      glowStrength: 1.85,
-      backgroundGlowOpacity: 0.86,
-      whiteGlowOpacity: 0.5,
-      lowerGlowOpacity: 0.32,
-      imageFilter:
-        "drop-shadow(0 64px 108px rgba(0,0,0,0.82)) drop-shadow(0 0 90px rgba(236,72,153,0.72)) drop-shadow(0 0 54px rgba(34,211,238,0.48)) drop-shadow(0 0 34px rgba(250,204,21,0.34)) saturate(1.35) contrast(1.12)",
     };
   }
 
-  if (mvpCount >= 7) {
+  if (lower.includes("gold")) {
     return {
-      sub: "Dominanz.",
-      badge: "gold strikr badge",
-      tone: "#fde68a",
-      hook: "Statement gesetzt.",
-      glow: "rgba(250,204,21,0.78)",
-      badgeSize: 790,
-      glowStrength: 1.65,
-      backgroundGlowOpacity: 0.78,
-      whiteGlowOpacity: 0.45,
-      lowerGlowOpacity: 0.28,
-      imageFilter:
-        "drop-shadow(0 60px 102px rgba(0,0,0,0.78)) drop-shadow(0 0 86px rgba(250,204,21,0.76)) drop-shadow(0 0 38px rgba(255,255,255,0.34)) saturate(1.18) contrast(1.09)",
+      label: "Gold",
+      key: "gold",
+      top: "linear-gradient(135deg,#78350f 0%,#f59e0b 46%,#fde68a 100%)",
+      glow: "rgba(245,158,11,0.56)",
+      text: "#fde68a",
+      sub: "Statement gesetzt.",
     };
   }
 
-  if (mvpCount >= 5) {
+  if (lower.includes("silber")) {
     return {
+      label: "Silber",
+      key: "silber",
+      top: "linear-gradient(135deg,#0f172a 0%,#94a3b8 52%,#f8fafc 100%)",
+      glow: "rgba(203,213,225,0.42)",
+      text: "#f1f5f9",
       sub: "Jetzt wird’s ernst.",
-      badge: "silber strikr badge",
-      tone: "#f1f5f9",
-      hook: "Heute geliefert.",
-      glow: "rgba(226,232,240,0.58)",
-      badgeSize: 720,
-      glowStrength: 1.35,
-      backgroundGlowOpacity: 0.66,
-      whiteGlowOpacity: 0.34,
-      lowerGlowOpacity: 0.2,
-      imageFilter:
-        "drop-shadow(0 56px 94px rgba(0,0,0,0.72)) drop-shadow(0 0 58px rgba(226,232,240,0.56)) drop-shadow(0 0 24px rgba(148,163,184,0.28)) saturate(1.03) contrast(1.07)",
     };
   }
 
-  if (mvpCount >= 3) {
+  if (lower.includes("bronze")) {
     return {
+      label: "Bronze",
+      key: "bronze",
+      top: "linear-gradient(135deg,#7c2d12 0%,#ea580c 46%,#fed7aa 100%)",
+      glow: "rgba(249,115,22,0.42)",
+      text: "#fed7aa",
       sub: "Kein Zufall mehr.",
-      badge: "bronze strikr badge",
-      tone: "#fed7aa",
-      hook: "War kein Zufall.",
-      glow: "rgba(251,146,60,0.48)",
-      badgeSize: 700,
-      glowStrength: 1.18,
-      backgroundGlowOpacity: 0.56,
-      whiteGlowOpacity: 0.25,
-      lowerGlowOpacity: 0.14,
-      imageFilter:
-        "drop-shadow(0 52px 90px rgba(0,0,0,0.70)) drop-shadow(0 0 44px rgba(251,146,60,0.42)) drop-shadow(0 0 18px rgba(255,237,213,0.18)) saturate(1.06) contrast(1.05)",
     };
   }
 
   return {
-    sub: "Erstes Zeichen gesetzt.",
-    badge: "blechernes strikr badge",
-    tone: "#9ca3af",
-    hook: "Ab jetzt zählt’s.",
-    glow: "rgba(90,95,100,0.18)",
-    badgeSize: 690,
-    glowStrength: 0.55,
-    backgroundGlowOpacity: 0.34,
-    whiteGlowOpacity: 0.14,
-    lowerGlowOpacity: 0.06,
-    imageFilter:
-      "brightness(0.6) contrast(1.3) saturate(0.2) sepia(0.15) drop-shadow(0 55px 90px rgba(0,0,0,0.85)) drop-shadow(0 0 10px rgba(90,95,100,0.12))",
+    label: "Blech",
+    key: "blech",
+    top: "linear-gradient(135deg,#d4d4d8 0%,#52525b 48%,#020617 100%)",
+    glow: "rgba(161,161,170,0.34)",
+    text: "#d4d4d8",
+    sub: "Ab jetzt zählt’s.",
   };
 }
 
@@ -102,7 +82,7 @@ export default function WinnerLayout({
   winner,
 }: WinnerLayoutProps) {
   const palette = buildPalette(null, "floodlight");
-  const copy = getCopy(winner.current);
+  const tier = getTierMeta(winner.badgeLabel);
 
   return (
     <div
@@ -118,59 +98,38 @@ export default function WinnerLayout({
     >
       <div
         style={{
-          display: "flex",
           position: "relative",
+          display: "flex",
           width: "100%",
           height: "100%",
-          borderRadius: 36,
           overflow: "hidden",
+          borderRadius: 36,
+          background: "linear-gradient(180deg,#050713 0%,#090b12 48%,#000000 100%)",
           border: "1px solid rgba(255,255,255,0.08)",
-          background:
-            "radial-gradient(circle at 80% 12%, rgba(255,255,255,0.08), transparent 25%), linear-gradient(180deg,#050713,#000000)",
         }}
       >
         <div
           style={{
             position: "absolute",
-            top: 250,
-            left: 95,
-            width: 840,
-            height: 570,
-            borderRadius: "999px",
-            background: copy.glow,
-            opacity: copy.backgroundGlowOpacity,
-            filter: "blur(150px)",
-            transform: "rotate(-12deg)",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            top: 665,
-            left: 160,
-            width: 760,
+            top: 0,
+            left: 0,
+            right: 0,
             height: 560,
-            borderRadius: "999px",
-            background: "rgba(255,255,255,0.14)",
-            opacity: copy.whiteGlowOpacity,
-            filter: "blur(165px)",
-            transform: "rotate(10deg)",
+            background: tier.top,
           }}
         />
 
         <div
           style={{
             position: "absolute",
-            top: 900,
-            left: -110,
-            width: 1280,
-            height: 420,
+            top: 250,
+            left: -120,
+            width: 1320,
+            height: 780,
             borderRadius: "999px",
-            background: copy.glow,
-            opacity: copy.lowerGlowOpacity,
+            background: tier.glow,
             filter: "blur(135px)",
-            transform: "rotate(-8deg)",
+            transform: "rotate(-10deg)",
           }}
         />
 
@@ -178,7 +137,16 @@ export default function WinnerLayout({
           style={{
             position: "absolute",
             inset: 0,
-            opacity: 0.04,
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.72) 36%, rgba(0,0,0,0.12) 100%)",
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            opacity: 0.055,
             backgroundImage:
               "repeating-linear-gradient(90deg,#ffffff 0px,#ffffff 1px,transparent 1px,transparent 90px)",
           }}
@@ -195,174 +163,146 @@ export default function WinnerLayout({
 
         <div
           style={{
-            display: "flex",
             position: "absolute",
-            top: 320,
-            left: 56,
-            flexDirection: "column",
+            top: 285,
+            left: 54,
+            right: 54,
+            zIndex: 5,
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 36,
-              letterSpacing: 8,
-              color: "rgba(255,255,255,0.55)",
+              fontSize: 82,
               fontWeight: 900,
+              letterSpacing: -5,
+              lineHeight: 0.86,
+              textTransform: "uppercase",
             }}
           >
-            ICH WURDE ZUM
+            Ich wurde
           </div>
 
           <div
             style={{
               display: "flex",
-              fontSize: 200,
+              marginTop: 10,
+              fontSize: 194,
               fontWeight: 900,
-              letterSpacing: -14,
-              lineHeight: 0.9,
-              marginTop: 6,
+              letterSpacing: -15,
+              lineHeight: 0.76,
+              textTransform: "uppercase",
             }}
           >
-            MVP
+            MVP.
           </div>
 
           <div
             style={{
               display: "flex",
-              marginTop: 18,
-              fontSize: 42,
+              marginTop: 34,
+              fontSize: 40,
               fontWeight: 900,
-              color: "rgba(255,255,255,0.8)",
+              color: "rgba(255,255,255,0.70)",
             }}
           >
-            gewählt. {copy.sub}
+            {tier.sub}
           </div>
         </div>
 
         <div
           style={{
             position: "absolute",
-            top: 630,
+            top: 690,
             left: 0,
-            width: "100%",
+            right: 0,
             display: "flex",
             justifyContent: "center",
-            zIndex: 3,
+            zIndex: 4,
           }}
         >
           <PremiumBadge
             badgeImageUrl={badgeImageUrl}
-            size={Math.min(copy.badgeSize, 560)}
-            glowColor={copy.glow}
-            glowStrength={Math.min(copy.glowStrength, 0.9)}
-            imageFilter="drop-shadow(0 42px 76px rgba(0,0,0,0.62)) drop-shadow(0 0 24px rgba(255,255,255,0.16))"
+            size={tier.key === "goat" ? 735 : 675}
+            glowColor={tier.glow}
+            glowStrength={tier.key === "goat" ? 1.7 : 1.12}
+            imageFilter={
+              tier.key === "blech"
+                ? "brightness(0.72) contrast(1.30) saturate(0.35) sepia(0.10) drop-shadow(0 54px 90px rgba(0,0,0,0.78))"
+                : "drop-shadow(0 54px 90px rgba(0,0,0,0.78)) drop-shadow(0 0 34px rgba(255,255,255,0.14))"
+            }
           />
         </div>
 
         <div
           style={{
             position: "absolute",
-            top: 1380,
-            width: "100%",
+            left: 56,
+            right: 56,
+            top: 1405,
+            zIndex: 6,
             display: "flex",
-            alignItems: "center",
             flexDirection: "column",
+            gap: 20,
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 40,
-              fontWeight: 900,
-              color: copy.tone,
-              textTransform: "uppercase",
+              flexDirection: "column",
+              alignItems: "center",
             }}
           >
-            {copy.badge}
+            <div
+              style={{
+                display: "flex",
+                fontSize: 30,
+                fontWeight: 900,
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                color: tier.text,
+              }}
+            >
+              {tier.label} strikr badge
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                marginTop: 14,
+                fontSize: 25,
+                fontWeight: 800,
+                color: "rgba(255,255,255,0.62)",
+              }}
+            >
+              {winner.name} · {clubName} · {sessionDateLabel}
+            </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              fontSize: 26,
-              marginTop: 4,
-              color: "rgba(255,255,255,0.6)",
-              fontWeight: 800,
-            }}
-          >
-            freigeschaltet
-          </div>
+
         </div>
 
         <div
           style={{
             position: "absolute",
-            top: 1500,
-            width: "100%",
-            display: "flex",
-            justifyContent: "center",
-            gap: 16,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              background: "#ffffff",
-              color: "#000000",
-              padding: "16px 28px",
-              borderRadius: 999,
-              fontSize: 32,
-              fontWeight: 900,
-            }}
-          >
-            MVP #{winner.current}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              background: "rgba(255,255,255,0.1)",
-              padding: "16px 28px",
-              borderRadius: 999,
-              fontSize: 28,
-              fontWeight: 900,
-              color: "rgba(255,255,255,0.7)",
-            }}
-          >
-            {winner.previous} → {winner.current}
-          </div>
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            top: 1620,
-            width: "100%",
-            display: "flex",
-            justifyContent: "center",
-            fontSize: 28,
-            fontWeight: 900,
-            color: "rgba(255,255,255,0.65)",
-          }}
-        >
-          {copy.hook}
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: 28,
-            left: 32,
-            right: 32,
+            left: 54,
+            right: 54,
+            bottom: 48,
             display: "flex",
             justifyContent: "space-between",
-            fontSize: 22,
-            color: "rgba(255,255,255,0.45)",
+            alignItems: "center",
+            padding: "26px 30px",
+            borderRadius: 32,
+            background: "rgba(255,255,255,0.09)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            color: "rgba(255,255,255,0.72)",
+            fontSize: 20,
+            fontWeight: 900,
+            zIndex: 20,
           }}
         >
-          <div style={{ display: "flex" }}>{sessionDateLabel}</div>
-          <div style={{ display: "flex" }}>created with strikr</div>
+          <div style={{ display: "flex" }}>earned with strikr</div>
+          <div style={{ display: "flex" }}>@getstrikr · strikr.team</div>
         </div>
       </div>
     </div>
