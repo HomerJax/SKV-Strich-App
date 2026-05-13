@@ -5,37 +5,63 @@ import { buildPalette } from "@/components/share/result-share/result-share.palet
 
 type TeamLayoutProps = Omit<MvpShareImageProps, "mode">;
 
-function getAccent(label: string) {
+type TierMeta = {
+  label: string;
+  key: "blech" | "bronze" | "silber" | "gold" | "goat";
+  top: string;
+  glow: string;
+  text: string;
+};
+
+function getTierMeta(label: string): TierMeta {
   const lower = label.toLowerCase();
 
-  if (lower.includes("goat")) return {
-    top: "linear-gradient(135deg,#7c3aed 0%,#db2777 48%,#facc15 100%)",
-    glow: "rgba(217,70,239,0.42)",
-    label: "#f0abfc",
-  };
+  if (lower.includes("goat")) {
+    return {
+      label: "GOAT",
+      key: "goat",
+      top: "linear-gradient(135deg,#312e81 0%,#db2777 42%,#facc15 72%,#22d3ee 100%)",
+      glow: "rgba(217,70,239,0.70)",
+      text: "#f0abfc",
+    };
+  }
 
-  if (lower.includes("gold")) return {
-    top: "linear-gradient(135deg,#92400e 0%,#f59e0b 48%,#fde68a 100%)",
-    glow: "rgba(245,158,11,0.38)",
-    label: "#fde68a",
-  };
+  if (lower.includes("gold")) {
+    return {
+      label: "Gold",
+      key: "gold",
+      top: "linear-gradient(135deg,#78350f 0%,#f59e0b 46%,#fde68a 100%)",
+      glow: "rgba(245,158,11,0.56)",
+      text: "#fde68a",
+    };
+  }
 
-  if (lower.includes("silber")) return {
-    top: "linear-gradient(135deg,#334155 0%,#94a3b8 48%,#f8fafc 100%)",
-    glow: "rgba(148,163,184,0.34)",
-    label: "#e2e8f0",
-  };
+  if (lower.includes("silber")) {
+    return {
+      label: "Silber",
+      key: "silber",
+      top: "linear-gradient(135deg,#0f172a 0%,#94a3b8 52%,#f8fafc 100%)",
+      glow: "rgba(203,213,225,0.42)",
+      text: "#f1f5f9",
+    };
+  }
 
-  if (lower.includes("bronze")) return {
-    top: "linear-gradient(135deg,#7c2d12 0%,#ea580c 50%,#fed7aa 100%)",
-    glow: "rgba(249,115,22,0.36)",
-    label: "#fed7aa",
-  };
+  if (lower.includes("bronze")) {
+    return {
+      label: "Bronze",
+      key: "bronze",
+      top: "linear-gradient(135deg,#7c2d12 0%,#ea580c 46%,#fed7aa 100%)",
+      glow: "rgba(249,115,22,0.42)",
+      text: "#fed7aa",
+    };
+  }
 
   return {
-    top: "linear-gradient(135deg,#1f2937 0%,#52525b 48%,#d4d4d8 100%)",
-    glow: "rgba(113,113,122,0.34)",
-    label: "#d4d4d8",
+    label: "Blech",
+    key: "blech",
+    top: "linear-gradient(135deg,#d4d4d8 0%,#52525b 48%,#020617 100%)",
+    glow: "rgba(161,161,170,0.34)",
+    text: "#d4d4d8",
   };
 }
 
@@ -49,8 +75,8 @@ export default function TeamLayout({
   leaderboard,
 }: TeamLayoutProps) {
   const palette = buildPalette(null, "floodlight");
+  const tier = getTierMeta(winner.badgeLabel);
   const topThree = leaderboard.slice(0, 3);
-  const accent = getAccent(winner.badgeLabel);
 
   return (
     <div
@@ -60,64 +86,44 @@ export default function TeamLayout({
         height: "1920px",
         padding: 24,
         background: "#020617",
-        color: "#ffffff",
+        color: "#020617",
         fontFamily: "Arial",
       }}
     >
       <div
         style={{
+          position: "relative",
           display: "flex",
           width: "100%",
           height: "100%",
-          position: "relative",
           overflow: "hidden",
           borderRadius: 36,
-          background: "linear-gradient(180deg,#020617 0%,#07111f 48%,#020617 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: "#f8fafc",
+          border: "1px solid rgba(15,23,42,0.08)",
         }}
       >
-        {/* Editorial color slab like result cards */}
         <div
           style={{
             position: "absolute",
-            top: 0,
             left: 0,
             right: 0,
-            height: 500,
-            background: accent.top,
+            top: 0,
+            height: 540,
+            background: tier.top,
           }}
         />
 
         <div
           style={{
             position: "absolute",
-            top: 290,
-            left: -120,
+            top: 360,
+            left: -160,
             width: 1320,
-            height: 760,
+            height: 620,
             borderRadius: "999px",
-            background: accent.glow,
+            background: tier.glow,
+            opacity: 0.65,
             filter: "blur(120px)",
-            transform: "rotate(-10deg)",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            opacity: 0.055,
-            backgroundImage:
-              "repeating-linear-gradient(90deg,#ffffff 0px,#ffffff 1px,transparent 1px,transparent 90px)",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(to top, rgba(1,4,10,0.96) 0%, rgba(1,4,10,0.74) 34%, rgba(1,4,10,0.18) 74%, rgba(1,4,10,0.02) 100%)",
           }}
         />
 
@@ -130,98 +136,109 @@ export default function TeamLayout({
           variant="bright"
         />
 
-        {/* Huge Result-Card-like headline */}
         <div
           style={{
             position: "absolute",
-            top: 214,
-            left: 52,
-            right: 52,
-            display: "flex",
-            flexDirection: "column",
+            top: 292,
+            left: 54,
+            right: 54,
             zIndex: 5,
+            color: "#ffffff",
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 154,
+              alignItems: "baseline",
+              gap: 24,
+              fontSize: 106,
               fontWeight: 900,
-              letterSpacing: -10,
+              letterSpacing: -8.5,
               lineHeight: 0.78,
               color: "#ffffff",
-              textTransform: "uppercase",
+              whiteSpace: "nowrap",
             }}
           >
-            MVP
+            <span
+              style={{
+                display: "flex",
+                fontSize: 116,
+                fontWeight: 900,
+                letterSpacing: -10,
+                textTransform: "lowercase",
+              }}
+            >
+              strikr
+            </span>
+            <span
+              style={{
+                display: "flex",
+                textTransform: "uppercase",
+              }}
+            >
+              MVP
+            </span>
+            <span
+              style={{
+                display: "flex",
+                textTransform: "uppercase",
+              }}
+            >
+              Badge
+            </span>
           </div>
 
           <div
             style={{
               display: "flex",
-              marginTop: 8,
-              fontSize: 104,
+              marginTop: 20,
+              fontSize: 132,
               fontWeight: 900,
-              letterSpacing: -6,
-              lineHeight: 0.82,
+              letterSpacing: -9,
+              lineHeight: 0.78,
+              textTransform: "uppercase",
               color: "#ffffff",
-              textTransform: "uppercase",
             }}
           >
-            gewählt.
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignSelf: "flex-start",
-              marginTop: 24,
-              padding: "10px 15px",
-              borderRadius: 999,
-              background: "rgba(2,6,12,0.72)",
-              border: "1px solid rgba(255,255,255,0.16)",
-              fontSize: 13,
-              fontWeight: 900,
-              letterSpacing: 2.8,
-              textTransform: "uppercase",
-              color: "rgba(255,255,255,0.76)",
-            }}
-          >
-            Award Moment
+            {tier.label}
           </div>
         </div>
 
-        {/* Badge hero */}
         <div
           style={{
             position: "absolute",
-            top: 565,
+            top: 605,
             left: 0,
             right: 0,
             display: "flex",
             justifyContent: "center",
-            zIndex: 4,
+            zIndex: 6,
           }}
         >
           <PremiumBadge
             badgeImageUrl={badgeImageUrl}
-            size={555}
-            glowColor={accent.glow}
-            glowStrength={1.05}
-            imageFilter="drop-shadow(0 60px 100px rgba(0,0,0,0.84)) drop-shadow(0 0 34px rgba(255,255,255,0.20))"
+            size={tier.key === "goat" ? 640 : 585}
+            glowColor={tier.glow}
+            glowStrength={tier.key === "goat" ? 1.45 : 1.05}
+            imageFilter={
+              tier.key === "blech"
+                ? "brightness(0.72) contrast(1.30) saturate(0.35) sepia(0.10) drop-shadow(0 54px 90px rgba(0,0,0,0.78))"
+                : "drop-shadow(0 54px 90px rgba(0,0,0,0.78)) drop-shadow(0 0 34px rgba(255,255,255,0.14))"
+            }
           />
         </div>
 
-        {/* Winner result block */}
         <div
           style={{
             position: "absolute",
             left: 56,
             right: 56,
-            top: 1085,
-            zIndex: 6,
-            display: "flex",
-            flexDirection: "column",
+            top: 1265,
+            zIndex: 7,
+            padding: 36,
+            borderRadius: 40,
+            background: "#ffffff",
+            boxShadow: "0 34px 90px rgba(15,23,42,0.18)",
           }}
         >
           <div
@@ -229,9 +246,9 @@ export default function TeamLayout({
               display: "flex",
               fontSize: 26,
               fontWeight: 900,
-              letterSpacing: 4.4,
+              letterSpacing: 4,
               textTransform: "uppercase",
-              color: "rgba(255,255,255,0.45)",
+              color: "rgba(15,23,42,0.36)",
             }}
           >
             Glückwunsch
@@ -240,12 +257,12 @@ export default function TeamLayout({
           <div
             style={{
               display: "flex",
-              marginTop: 12,
-              fontSize: 86,
+              marginTop: 18,
+              fontSize: 72,
               fontWeight: 900,
               letterSpacing: -5,
               lineHeight: 0.92,
-              color: "#ffffff",
+              color: "#020617",
             }}
           >
             {winner.name}
@@ -254,63 +271,63 @@ export default function TeamLayout({
           <div
             style={{
               display: "flex",
-              marginTop: 16,
+              marginTop: 18,
               fontSize: 28,
               fontWeight: 800,
-              color: "rgba(255,255,255,0.62)",
+              color: "rgba(15,23,42,0.58)",
             }}
           >
-            Spieler des Trainings · {sessionDateLabel}
-          </div>
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            top: 1284,
-            left: 56,
-            right: 56,
-            display: "flex",
-            gap: 14,
-            zIndex: 7,
-          }}
-        >
-          <div style={{
-            display: "flex",
-            padding: "15px 24px",
-            borderRadius: 999,
-            background: "#ffffff",
-            color: "#020617",
-            fontSize: 28,
-            fontWeight: 900,
-          }}>
-            MVP #{winner.current}
+            wurde zum MVP gewählt.
           </div>
 
-          <div style={{
-            display: "flex",
-            padding: "15px 24px",
-            borderRadius: 999,
-            background: "rgba(255,255,255,0.10)",
-            border: "1px solid rgba(255,255,255,0.10)",
-            color: "rgba(255,255,255,0.76)",
-            fontSize: 26,
-            fontWeight: 900,
-          }}>
-            {winner.previous} → {winner.current}
-          </div>
+          <div
+            style={{
+              display: "flex",
+              marginTop: 20,
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                padding: "14px 22px",
+                borderRadius: 999,
+                background: "#020617",
+                color: "#ffffff",
+                fontSize: 24,
+                fontWeight: 900,
+              }}
+            >
+              MVP #{winner.current}
+            </div>
 
-          <div style={{
-            display: "flex",
-            padding: "15px 24px",
-            borderRadius: 999,
-            background: "rgba(255,255,255,0.10)",
-            border: "1px solid rgba(255,255,255,0.10)",
-            color: accent.label,
-            fontSize: 26,
-            fontWeight: 900,
-          }}>
-            {winner.badgeLabel}
+            <div
+              style={{
+                display: "flex",
+                padding: "14px 22px",
+                borderRadius: 999,
+                background: "rgba(15,23,42,0.06)",
+                color: "rgba(15,23,42,0.56)",
+                fontSize: 24,
+                fontWeight: 900,
+              }}
+            >
+              {winner.previous} → {winner.current}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                padding: "14px 22px",
+                borderRadius: 999,
+                background: "rgba(15,23,42,0.06)",
+                color: "rgba(15,23,42,0.56)",
+                fontSize: 24,
+                fontWeight: 900,
+              }}
+            >
+              {tier.label}
+            </div>
           </div>
         </div>
 
@@ -320,75 +337,60 @@ export default function TeamLayout({
               position: "absolute",
               left: 56,
               right: 56,
-              top: 1408,
+              top: 1578,
               display: "flex",
               flexDirection: "column",
-              padding: 28,
-              borderRadius: 34,
-              background: "rgba(255,255,255,0.94)",
-              color: "#020617",
+              padding: "22px 28px",
+              borderRadius: 30,
+              background: "rgba(2,6,23,0.92)",
+              color: "#ffffff",
               zIndex: 8,
             }}
           >
-            <div style={{
-              display: "flex",
-              fontSize: 16,
-              fontWeight: 900,
-              letterSpacing: 3,
-              textTransform: "uppercase",
-              color: "rgba(15,23,42,0.38)",
-            }}>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 15,
+                fontWeight: 900,
+                letterSpacing: 3,
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.38)",
+              }}
+            >
               Voting Ergebnis
             </div>
 
-            {topThree.map((entry, index) => (
+            {topThree.slice(0, 2).map((entry, index) => (
               <div
                 key={entry.playerId}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginTop: 18,
-                  paddingBottom: index < topThree.length - 1 ? 16 : 0,
-                  borderBottom:
-                    index < topThree.length - 1
-                      ? "1px solid rgba(15,23,42,0.08)"
-                      : "none",
+                  marginTop: 14,
                   gap: 20,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{
+                <div
+                  style={{
                     display: "flex",
-                    width: 42,
-                    height: 42,
-                    borderRadius: 14,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: index === 0 ? "#020617" : "rgba(15,23,42,0.06)",
-                    color: index === 0 ? "#ffffff" : "rgba(15,23,42,0.55)",
-                    fontSize: 20,
+                    fontSize: 23,
                     fontWeight: 900,
-                  }}>
-                    {index + 1}
-                  </div>
-
-                  <div style={{
-                    display: "flex",
-                    fontSize: 27,
-                    fontWeight: 900,
-                    letterSpacing: -0.7,
-                  }}>
-                    {entry.name}
-                  </div>
+                    letterSpacing: -0.5,
+                    color: index === 0 ? "#ffffff" : "rgba(255,255,255,0.62)",
+                  }}
+                >
+                  {index + 1}. {entry.name}
                 </div>
 
-                <div style={{
-                  display: "flex",
-                  fontSize: 23,
-                  fontWeight: 900,
-                  color: "rgba(15,23,42,0.52)",
-                }}>
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: 21,
+                    fontWeight: 900,
+                    color: "rgba(255,255,255,0.52)",
+                  }}
+                >
                   {entry.votes} {entry.votes === 1 ? "Stimme" : "Stimmen"}
                 </div>
               </div>
@@ -401,22 +403,21 @@ export default function TeamLayout({
             position: "absolute",
             left: 56,
             right: 56,
-            bottom: 50,
+            bottom: 48,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            padding: "24px 28px",
-            borderRadius: 30,
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.10)",
+            padding: "26px 30px",
+            borderRadius: 32,
+            background: "#020617",
             color: "rgba(255,255,255,0.72)",
             fontSize: 20,
             fontWeight: 900,
-            zIndex: 9,
+            zIndex: 20,
           }}
         >
           <div style={{ display: "flex" }}>created with strikr</div>
-          <div style={{ display: "flex" }}>@getstrikr · www.strikr.team</div>
+          <div style={{ display: "flex" }}>@getstrikr · strikr.team</div>
         </div>
       </div>
     </div>

@@ -7,68 +7,69 @@ import { buildPalette } from "@/components/share/result-share/result-share.palet
 
 type WinnerLayoutProps = Omit<MvpShareImageProps, "mode" | "leaderboard">;
 
-function getCopy(mvpCount: number) {
-  if (mvpCount >= 10) {
+type TierMeta = {
+  label: string;
+  key: "blech" | "bronze" | "silber" | "gold" | "goat";
+  top: string;
+  glow: string;
+  text: string;
+  sub: string;
+};
+
+function getTierMeta(label: string): TierMeta {
+  const lower = label.toLowerCase();
+
+  if (lower.includes("goat")) {
     return {
+      label: "GOAT",
+      key: "goat",
+      top: "linear-gradient(135deg,#312e81 0%,#db2777 42%,#facc15 72%,#22d3ee 100%)",
+      glow: "rgba(217,70,239,0.70)",
+      text: "#f0abfc",
       sub: "Legendenstatus.",
-      badge: "goat strikr badge",
-      tone: "#f0abfc",
-      glow: "rgba(236,72,153,0.72)",
-      badgeSize: 790,
-      glowStrength: 1.85,
-      imageFilter:
-        "drop-shadow(0 64px 108px rgba(0,0,0,0.84)) drop-shadow(0 0 78px rgba(236,72,153,0.70)) drop-shadow(0 0 46px rgba(34,211,238,0.42)) saturate(1.25) contrast(1.12)",
     };
   }
 
-  if (mvpCount >= 7) {
+  if (lower.includes("gold")) {
     return {
+      label: "Gold",
+      key: "gold",
+      top: "linear-gradient(135deg,#78350f 0%,#f59e0b 46%,#fde68a 100%)",
+      glow: "rgba(245,158,11,0.56)",
+      text: "#fde68a",
       sub: "Statement gesetzt.",
-      badge: "gold strikr badge",
-      tone: "#fde68a",
-      glow: "rgba(250,204,21,0.72)",
-      badgeSize: 740,
-      glowStrength: 1.55,
-      imageFilter:
-        "drop-shadow(0 60px 102px rgba(0,0,0,0.80)) drop-shadow(0 0 72px rgba(250,204,21,0.70)) drop-shadow(0 0 30px rgba(255,255,255,0.28)) saturate(1.14) contrast(1.08)",
     };
   }
 
-  if (mvpCount >= 5) {
+  if (lower.includes("silber")) {
     return {
+      label: "Silber",
+      key: "silber",
+      top: "linear-gradient(135deg,#0f172a 0%,#94a3b8 52%,#f8fafc 100%)",
+      glow: "rgba(203,213,225,0.42)",
+      text: "#f1f5f9",
       sub: "Jetzt wird’s ernst.",
-      badge: "silber strikr badge",
-      tone: "#f1f5f9",
-      glow: "rgba(226,232,240,0.48)",
-      badgeSize: 695,
-      glowStrength: 1.2,
-      imageFilter:
-        "drop-shadow(0 56px 94px rgba(0,0,0,0.74)) drop-shadow(0 0 46px rgba(226,232,240,0.42)) saturate(1.02) contrast(1.07)",
     };
   }
 
-  if (mvpCount >= 3) {
+  if (lower.includes("bronze")) {
     return {
+      label: "Bronze",
+      key: "bronze",
+      top: "linear-gradient(135deg,#7c2d12 0%,#ea580c 46%,#fed7aa 100%)",
+      glow: "rgba(249,115,22,0.42)",
+      text: "#fed7aa",
       sub: "Kein Zufall mehr.",
-      badge: "bronze strikr badge",
-      tone: "#fed7aa",
-      glow: "rgba(251,146,60,0.48)",
-      badgeSize: 675,
-      glowStrength: 1.08,
-      imageFilter:
-        "drop-shadow(0 52px 90px rgba(0,0,0,0.72)) drop-shadow(0 0 40px rgba(251,146,60,0.38)) saturate(1.06) contrast(1.05)",
     };
   }
 
   return {
+    label: "Blech",
+    key: "blech",
+    top: "linear-gradient(135deg,#d4d4d8 0%,#52525b 48%,#020617 100%)",
+    glow: "rgba(161,161,170,0.34)",
+    text: "#d4d4d8",
     sub: "Ab jetzt zählt’s.",
-    badge: "blechernes strikr badge",
-    tone: "#a3a3a3",
-    glow: "rgba(82,82,82,0.36)",
-    badgeSize: 665,
-    glowStrength: 0.82,
-    imageFilter:
-      "brightness(0.68) contrast(1.34) saturate(0.28) sepia(0.14) drop-shadow(0 56px 94px rgba(0,0,0,0.84)) drop-shadow(0 0 18px rgba(115,115,115,0.22))",
   };
 }
 
@@ -81,7 +82,7 @@ export default function WinnerLayout({
   winner,
 }: WinnerLayoutProps) {
   const palette = buildPalette(null, "floodlight");
-  const copy = getCopy(winner.current);
+  const tier = getTierMeta(winner.badgeLabel);
 
   return (
     <div
@@ -97,24 +98,24 @@ export default function WinnerLayout({
     >
       <div
         style={{
-          display: "flex",
           position: "relative",
+          display: "flex",
           width: "100%",
           height: "100%",
-          borderRadius: 36,
           overflow: "hidden",
+          borderRadius: 36,
+          background: "linear-gradient(180deg,#050713 0%,#090b12 48%,#000000 100%)",
           border: "1px solid rgba(255,255,255,0.08)",
-          background:
-            "radial-gradient(circle at 18% 16%, rgba(255,255,255,0.14), transparent 28%), radial-gradient(circle at 78% 16%, rgba(59,130,246,0.16), transparent 30%), linear-gradient(180deg,#050713 0%,#080b12 44%,#000000 100%)",
         }}
       >
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            opacity: 0.055,
-            backgroundImage:
-              "repeating-linear-gradient(90deg,#ffffff 0px,#ffffff 1px,transparent 1px,transparent 90px)",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 560,
+            background: tier.top,
           }}
         />
 
@@ -122,29 +123,32 @@ export default function WinnerLayout({
           style={{
             position: "absolute",
             top: 250,
-            left: 20,
-            width: 1040,
-            height: 760,
+            left: -120,
+            width: 1320,
+            height: 780,
             borderRadius: "999px",
-            background: copy.glow,
-            opacity: 0.64,
-            filter: "blur(155px)",
-            transform: "rotate(-12deg)",
+            background: tier.glow,
+            filter: "blur(135px)",
+            transform: "rotate(-10deg)",
           }}
         />
 
         <div
           style={{
             position: "absolute",
-            top: 730,
-            left: 90,
-            width: 900,
-            height: 590,
-            borderRadius: "999px",
-            background: "rgba(255,255,255,0.10)",
-            opacity: 0.40,
-            filter: "blur(165px)",
-            transform: "rotate(10deg)",
+            inset: 0,
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.72) 36%, rgba(0,0,0,0.12) 100%)",
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            opacity: 0.055,
+            backgroundImage:
+              "repeating-linear-gradient(90deg,#ffffff 0px,#ffffff 1px,transparent 1px,transparent 90px)",
           }}
         />
 
@@ -157,45 +161,22 @@ export default function WinnerLayout({
           variant="bright"
         />
 
-        {/* Big editorial block like result cards, but personal */}
         <div
           style={{
             position: "absolute",
-            top: 292,
+            top: 285,
             left: 54,
             right: 54,
-            display: "flex",
-            flexDirection: "column",
-            zIndex: 4,
+            zIndex: 5,
           }}
         >
           <div
             style={{
               display: "flex",
-              alignSelf: "flex-start",
-              padding: "10px 14px",
-              borderRadius: 999,
-              background: "rgba(2,6,12,0.74)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              fontSize: 13,
+              fontSize: 82,
               fontWeight: 900,
-              letterSpacing: 2.8,
-              textTransform: "uppercase",
-              color: "rgba(255,255,255,0.72)",
-            }}
-          >
-            Award Moment
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              marginTop: 34,
-              fontSize: 86,
-              fontWeight: 900,
-              letterSpacing: -4,
+              letterSpacing: -5,
               lineHeight: 0.86,
-              color: "rgba(255,255,255,0.94)",
               textTransform: "uppercase",
             }}
           >
@@ -205,12 +186,11 @@ export default function WinnerLayout({
           <div
             style={{
               display: "flex",
-              marginTop: 4,
-              fontSize: 188,
+              marginTop: 10,
+              fontSize: 194,
               fontWeight: 900,
-              letterSpacing: -14,
-              lineHeight: 0.82,
-              color: "#ffffff",
+              letterSpacing: -15,
+              lineHeight: 0.76,
               textTransform: "uppercase",
             }}
           >
@@ -220,33 +200,37 @@ export default function WinnerLayout({
           <div
             style={{
               display: "flex",
-              marginTop: 22,
-              fontSize: 36,
+              marginTop: 34,
+              fontSize: 40,
               fontWeight: 900,
-              color: "rgba(255,255,255,0.74)",
+              color: "rgba(255,255,255,0.70)",
             }}
           >
-            {copy.sub}
+            {tier.sub}
           </div>
         </div>
 
         <div
           style={{
             position: "absolute",
-            top: 608,
+            top: 690,
             left: 0,
-            width: "100%",
+            right: 0,
             display: "flex",
             justifyContent: "center",
-            zIndex: 3,
+            zIndex: 4,
           }}
         >
           <PremiumBadge
             badgeImageUrl={badgeImageUrl}
-            size={copy.badgeSize}
-            glowColor={copy.glow}
-            glowStrength={copy.glowStrength}
-            imageFilter={copy.imageFilter}
+            size={tier.key === "goat" ? 735 : 675}
+            glowColor={tier.glow}
+            glowStrength={tier.key === "goat" ? 1.7 : 1.12}
+            imageFilter={
+              tier.key === "blech"
+                ? "brightness(0.72) contrast(1.30) saturate(0.35) sepia(0.10) drop-shadow(0 54px 90px rgba(0,0,0,0.78))"
+                : "drop-shadow(0 54px 90px rgba(0,0,0,0.78)) drop-shadow(0 0 34px rgba(255,255,255,0.14))"
+            }
           />
         </div>
 
@@ -255,11 +239,11 @@ export default function WinnerLayout({
             position: "absolute",
             left: 56,
             right: 56,
-            top: 1280,
+            top: 1455,
+            zIndex: 6,
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            zIndex: 5,
+            flexDirection: "column",
           }}
         >
           <div
@@ -267,28 +251,28 @@ export default function WinnerLayout({
               display: "flex",
               fontSize: 30,
               fontWeight: 900,
-              color: copy.tone,
+              letterSpacing: 2,
               textTransform: "uppercase",
-              letterSpacing: 1.6,
+              color: tier.text,
             }}
           >
-            {copy.badge}
+            {tier.label} strikr badge
           </div>
 
           <div
             style={{
               display: "flex",
-              marginTop: 16,
-              gap: 14,
+              marginTop: 18,
+              gap: 12,
             }}
           >
             <div
               style={{
                 display: "flex",
-                background: "#ffffff",
-                color: "#000000",
                 padding: "16px 28px",
                 borderRadius: 999,
+                background: "#ffffff",
+                color: "#020617",
                 fontSize: 31,
                 fontWeight: 900,
               }}
@@ -299,60 +283,41 @@ export default function WinnerLayout({
             <div
               style={{
                 display: "flex",
-                background: "rgba(255,255,255,0.10)",
-                border: "1px solid rgba(255,255,255,0.10)",
                 padding: "16px 28px",
                 borderRadius: 999,
-                fontSize: 27,
-                fontWeight: 900,
+                background: "rgba(255,255,255,0.10)",
+                border: "1px solid rgba(255,255,255,0.10)",
                 color: "rgba(255,255,255,0.72)",
+                fontSize: 28,
+                fontWeight: 900,
               }}
             >
               {winner.previous} → {winner.current}
             </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              marginTop: 28,
-              padding: "20px 28px",
-              borderRadius: 28,
-              background: "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,255,255,0.10)",
-              color: "rgba(255,255,255,0.68)",
-              fontSize: 24,
-              fontWeight: 800,
-              maxWidth: 720,
-              textAlign: "center",
-              lineHeight: 1.25,
-            }}
-          >
-            {winner.name} · {clubName} · {sessionDateLabel}
           </div>
         </div>
 
         <div
           style={{
             position: "absolute",
-            left: 56,
-            right: 56,
-            bottom: 50,
+            left: 54,
+            right: 54,
+            bottom: 48,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            padding: "24px 28px",
-            borderRadius: 30,
-            background: "rgba(255,255,255,0.08)",
+            padding: "26px 30px",
+            borderRadius: 32,
+            background: "rgba(255,255,255,0.09)",
             border: "1px solid rgba(255,255,255,0.10)",
             color: "rgba(255,255,255,0.72)",
             fontSize: 20,
             fontWeight: 900,
-            zIndex: 6,
+            zIndex: 20,
           }}
         >
           <div style={{ display: "flex" }}>earned with strikr</div>
-          <div style={{ display: "flex" }}>@getstrikr · www.strikr.team</div>
+          <div style={{ display: "flex" }}>@getstrikr · strikr.team</div>
         </div>
       </div>
     </div>
