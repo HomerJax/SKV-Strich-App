@@ -388,17 +388,17 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   }
 
   async function handleShareMvpResult() {
-    if (!shareCardRef.current || !shareData) {
+    if (!shareData) {
       setShareMsg("MVP Share Card ist noch nicht bereit.");
       return;
     }
 
     try {
       setSharingResult(true);
-      setShareMsg(null);
+      setShareMsg("Bereite Share Card vor…");
 
-      await shareMvpResult({
-        element: shareCardRef.current,
+      const result = await shareMvpResult({
+        imageUrl: `/api/share/mvp/${sessionId}/image?variant=${shareData.mode}`,
         fileName:
           shareData.mode === "winner"
             ? `strikr-mvp-winner-${sessionId}.png`
@@ -412,12 +412,27 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             ? "Meine MVP Card aus strikr."
             : "Das MVP Ergebnis aus strikr.",
       });
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
+
+      if (result.mode === "downloaded") {
+        setShareMsg("Share Card wurde als Bild heruntergeladen.");
         return;
       }
 
-      setShareMsg("Teilen konnte nicht gestartet werden.");
+      if (result.mode === "cancelled") {
+        setShareMsg(null);
+        return;
+      }
+
+      setShareMsg("MVP Share Card erfolgreich geteilt.");
+    } catch (error) {
+      const errorName = error instanceof Error ? error.name : "";
+
+      if (errorName === "AbortError") {
+        setShareMsg(null);
+        return;
+      }
+
+      setShareMsg("Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.");
     } finally {
       setSharingResult(false);
     }

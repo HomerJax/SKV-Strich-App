@@ -1,5 +1,10 @@
 import { ImageResponse } from "next/og";
 import { createAdminClient } from "@/lib/supabase/admin";
+import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
+import type {
+  LeaderboardEntry,
+  ShareMode,
+} from "@/components/share/mvp-share/mvp-share.types";
 
 export const runtime = "nodejs";
 
@@ -18,261 +23,262 @@ type PlayerRow = {
   mvp_count: number | null;
 };
 
+type SessionRow = {
+  id: number;
+  club_id: string;
+  date: string | null;
+  mvp_winner_player_id: number | null;
+};
+
+type SessionPlayerRow = {
+  player_id: number;
+  players: PlayerRow | PlayerRow[] | null;
+};
+
+type ClubRow = {
+  display_name: string | null;
+  logo_path: string | null;
+};
+
 function getName(player?: PlayerRow | null) {
-  return [player?.first_name, player?.last_name].filter(Boolean).join(" ") || "Spieler";
+  return (
+    [player?.first_name, player?.last_name].filter(Boolean).join(" ").trim() ||
+    "Spieler"
+  );
 }
 
-function getBadgeLabel(count: number) {
-  if (count >= 10) return "GOAT";
-  if (count >= 7) return "Gold";
-  if (count >= 5) return "Silber";
-  if (count >= 3) return "Bronze";
-  if (count >= 1) return "Blech";
-  return "Kein Badge";
+function getBadgeMeta(count: number) {
+  if (count >= 10) return { label: "GOAT", key: "goat" };
+  if (count >= 7) return { label: "Gold", key: "gold" };
+  if (count >= 5) return { label: "Silber", key: "silber" };
+  if (count >= 3) return { label: "Bronze", key: "bronze" };
+  return { label: "Blech", key: "blech" };
 }
 
-export async function GET(_request: Request, context: RouteContext) {
-  const { id } = await context.params;
-  const sessionId = Number(id);
-
-  if (!Number.isFinite(sessionId)) {
-    return new Response("Invalid session id", { status: 400 });
+function toAbsoluteUrl(request: Request, pathOrUrl: string) {
+  if (
+    pathOrUrl.startsWith("http://") ||
+    pathOrUrl.startsWith("https://") ||
+    pathOrUrl.startsWith("data:")
+  ) {
+    return pathOrUrl;
   }
 
-  const admin = createAdminClient();
+  return new URL(pathOrUrl, request.url).toString();
+}
 
-  const { data: session } = await admin
-    .from("sessions")
-    .select("id, club_id")
-    .eq("id", sessionId)
-    .maybeSingle();
+async function fetchAsDataUrl(url: string) {
+  const response = await fetch(url, { cache: "no-store" });
 
-  if (!session) {
-    return new Response("Session not found", { status: 404 });
+  if (!response.ok) {
+    throw new Error(`Asset konnte nicht geladen werden: ${url}`);
   }
 
-  const [{ data: voteData }, { data: playerData }, { data: clubData }] =
-    await Promise.all([
-      admin
-        .from("session_mvp_votes")
-        .select("voted_player_id")
-        .eq("session_id", sessionId),
-      admin
-        .from("session_players")
-        .select(
+  const contentType = response.headers.get("content-type") || "image/png";
+  const buffer = Buffer.from(await response.arrayBuffer());
+
+  return `data:${contentType};base64,${buffer.toString("base64")}`;
+}
+
+async function optionalFetchAsDataUrl(url: string | null) {
+  if (!url) return null;
+
+  try {
+    return await fetchAsDataUrl(url);
+  } catch (error) {
+    console.warn("Optional MVP share asset could not be loaded:", error);
+    return null;
+  }
+}
+
+function formatSessionDateLabel(date: string | null) {
+  if (!date) return "MVP Ergebnis";
+
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "MVP Ergebnis";
+  }
+
+  return parsed.toLocaleDateString("de-DE", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
+function buildLeaderboardEntry(params: {
+  playerId: number;
+  player: PlayerRow | undefined;
+  votes: number;
+}): LeaderboardEntry {
+  const current = Math.max(params.player?.mvp_count ?? 0, 1);
+  const previous = Math.max(current - 1, 0);
+  const badge = getBadgeMeta(current);
+
+  return {
+    playerId: params.playerId,
+    name: getName(params.player),
+    votes: params.votes,
+    previous,
+    current,
+    badgeLabel: badge.label,
+    earnedBadgeText: `${badge.label} strikr badge`,
+  };
+}
+
+function errorResponse(message: string, status = 500) {
+  return new Response(message, {
+    status,
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    },
+  });
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  try {
+    const { id } = await context.params;
+    const sessionId = Number(id);
+
+    if (!Number.isFinite(sessionId) || sessionId <= 0) {
+      return errorResponse("Invalid session id", 400);
+    }
+
+    const url = new URL(request.url);
+    const mode: ShareMode =
+      url.searchParams.get("variant") === "winner" ? "winner" : "team";
+
+    const admin = createAdminClient();
+
+    const { data: sessionData, error: sessionError } = await admin
+      .from("sessions")
+      .select("id, club_id, date, mvp_winner_player_id")
+      .eq("id", sessionId)
+      .maybeSingle();
+
+    if (sessionError || !sessionData) {
+      return errorResponse("Session not found", 404);
+    }
+
+    const session = sessionData as SessionRow;
+
+    const [{ data: voteData }, { data: playerData }, { data: clubData }] =
+      await Promise.all([
+        admin
+          .from("session_mvp_votes")
+          .select("voted_player_id")
+          .eq("session_id", sessionId),
+        admin
+          .from("session_players")
+          .select(
+            `
+            player_id,
+            players (
+              id,
+              first_name,
+              last_name,
+              mvp_count
+            )
           `
-          player_id,
-          players (
-            id,
-            first_name,
-            last_name,
-            mvp_count
           )
-        `
-        )
-        .eq("session_id", sessionId),
-      admin
-        .from("clubs")
-        .select("display_name")
-        .eq("id", session.club_id)
-        .maybeSingle(),
+          .eq("session_id", sessionId),
+        admin
+          .from("clubs")
+          .select("display_name, logo_path")
+          .eq("id", session.club_id)
+          .maybeSingle(),
+      ]);
+
+    const players = ((playerData ?? []) as SessionPlayerRow[])
+      .map((row) => (Array.isArray(row.players) ? row.players[0] : row.players))
+      .filter((player): player is PlayerRow => Boolean(player));
+
+    const playerById = new Map(players.map((player) => [player.id, player]));
+    const counts = new Map<number, number>();
+
+    for (const vote of (voteData ?? []) as VoteRow[]) {
+      counts.set(
+        vote.voted_player_id,
+        (counts.get(vote.voted_player_id) ?? 0) + 1
+      );
+    }
+
+    const leaderboard = [...counts.entries()]
+      .map(([playerId, votes]) =>
+        buildLeaderboardEntry({
+          playerId,
+          player: playerById.get(playerId),
+          votes,
+        })
+      )
+      .sort((a, b) => {
+        if (b.votes !== a.votes) return b.votes - a.votes;
+        return a.name.localeCompare(b.name, "de");
+      });
+
+    const winner =
+      leaderboard.find(
+        (entry) => entry.playerId === session.mvp_winner_player_id
+      ) ?? leaderboard[0];
+
+    if (!winner) {
+      return errorResponse("No MVP result found", 404);
+    }
+
+    const club = (clubData ?? null) as ClubRow | null;
+    const clubName = club?.display_name?.trim() || "strikr Team";
+
+    let clubLogoUrl: string | null = null;
+
+    if (club?.logo_path) {
+      const { data: logoData } = admin.storage
+        .from("club-logos")
+        .getPublicUrl(club.logo_path);
+
+      clubLogoUrl = logoData?.publicUrl ?? null;
+    }
+
+    const badgeKey = getBadgeMeta(winner.current).key;
+    const badgeAssetUrl = toAbsoluteUrl(
+      request,
+      `/badges/hero/${badgeKey}.webp`
+    );
+    const strikrLogoAssetUrl = toAbsoluteUrl(request, "/brand/strikr-mark.png");
+
+    const [badgeImageUrl, strikrLogoUrl, clubLogoDataUrl] = await Promise.all([
+      fetchAsDataUrl(badgeAssetUrl),
+      fetchAsDataUrl(strikrLogoAssetUrl),
+      optionalFetchAsDataUrl(clubLogoUrl),
     ]);
 
-  const players = ((playerData ?? []) as Array<{
-    player_id: number;
-    players: PlayerRow | PlayerRow[] | null;
-  }>)
-    .map((row) => (Array.isArray(row.players) ? row.players[0] : row.players))
-    .filter((player): player is PlayerRow => Boolean(player));
+    return new ImageResponse(
+      (
+        <MvpShareImage
+          mode={mode}
+          strikrLogoUrl={strikrLogoUrl}
+          clubLogoUrl={clubLogoDataUrl ?? strikrLogoUrl}
+          badgeImageUrl={badgeImageUrl}
+          clubName={clubName}
+          sessionDateLabel={formatSessionDateLabel(session.date)}
+          winner={winner}
+          leaderboard={leaderboard}
+        />
+      ),
+      {
+        width: 1080,
+        height: 1920,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        },
+      }
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "MVP Share-Bild konnte nicht erzeugt werden.";
 
-  const playerById = new Map(players.map((player) => [player.id, player]));
-
-  const counts = new Map<number, number>();
-
-  for (const vote of (voteData ?? []) as VoteRow[]) {
-    counts.set(vote.voted_player_id, (counts.get(vote.voted_player_id) ?? 0) + 1);
+    return errorResponse(message, 500);
   }
-
-  const leaderboard = [...counts.entries()]
-    .map(([playerId, votes]) => {
-      const player = playerById.get(playerId);
-      const currentMvpCount = player?.mvp_count ?? 0;
-      const previousMvpCount = Math.max(currentMvpCount - 1, 0);
-
-      return {
-        playerId,
-        name: getName(player),
-        votes,
-        previousMvpCount,
-        currentMvpCount,
-        badgeLabel: getBadgeLabel(currentMvpCount),
-      };
-    })
-    .sort((a, b) => {
-      if (b.votes !== a.votes) return b.votes - a.votes;
-      return a.name.localeCompare(b.name, "de");
-    });
-
-  const topVotes = leaderboard[0]?.votes ?? 0;
-  const winners = leaderboard.filter((entry) => entry.votes === topVotes);
-  const clubName = clubData?.display_name ?? "strikr Team";
-
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "1080px",
-          height: "1920px",
-          display: "flex",
-          flexDirection: "column",
-          background:
-            "linear-gradient(180deg, #050816 0%, #0f172a 48%, #020617 100%)",
-          color: "white",
-          padding: "70px",
-          fontFamily: "Arial",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", fontSize: 58, fontWeight: 900 }}>
-            strikr
-          </div>
-          <div style={{ display: "flex", fontSize: 30, color: "#facc15", fontWeight: 800 }}>
-            MVP VOTING
-          </div>
-        </div>
-
-        <div style={{ display: "flex", marginTop: 90, fontSize: 76, fontWeight: 900 }}>
-          MVP Ergebnis
-        </div>
-
-        <div style={{ display: "flex", marginTop: 16, fontSize: 34, color: "#cbd5e1" }}>
-          {clubName}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            marginTop: 70,
-            background: "#ffffff",
-            color: "#0f172a",
-            borderRadius: 44,
-            padding: 44,
-          }}
-        >
-          <div style={{ display: "flex", color: "#b45309", fontSize: 32, fontWeight: 900 }}>
-            🏆 {winners.length > 1 ? "MVP-Gleichstand" : "MVP"}
-          </div>
-
-          <div style={{ display: "flex", marginTop: 22, fontSize: 56, fontWeight: 900, lineHeight: 1.08 }}>
-            {winners.map((winner) => winner.name).join(", ")}
-          </div>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 28, marginTop: 44 }}>
-          {winners.slice(0, 2).map((winner) => (
-            <div
-              key={winner.playerId}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                background: "#111827",
-                border: "3px solid #facc15",
-                borderRadius: 36,
-                padding: 34,
-              }}
-            >
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", fontSize: 40, fontWeight: 900 }}>
-                  {winner.name}
-                </div>
-                <div style={{ display: "flex", marginTop: 12, fontSize: 30, color: "#fde68a", fontWeight: 800 }}>
-                  {winner.previousMvpCount} → {winner.currentMvpCount} MVPs
-                </div>
-                <div style={{ display: "flex", marginTop: 8, fontSize: 26, color: "#cbd5e1" }}>
-                  Neues Badge: {winner.badgeLabel}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  width: 150,
-                  height: 150,
-                  borderRadius: 36,
-                  background: "linear-gradient(135deg, #78716c, #292524)",
-                  border: "5px solid #a8a29e",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#f5f5f4",
-                  fontSize: 30,
-                  fontWeight: 900,
-                }}
-              >
-                {winner.badgeLabel}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            marginTop: 52,
-            background: "#f8fafc",
-            color: "#0f172a",
-            borderRadius: 38,
-            padding: 36,
-          }}
-        >
-          <div style={{ display: "flex", fontSize: 32, fontWeight: 900 }}>
-            Ergebnis
-          </div>
-
-          {leaderboard.slice(0, 3).map((entry, index) => (
-            <div
-              key={entry.playerId}
-              style={{
-                display: "flex",
-                marginTop: 26,
-                alignItems: "center",
-                justifyContent: "space-between",
-                fontSize: 34,
-                fontWeight: 800,
-              }}
-            >
-              <div style={{ display: "flex" }}>
-                {index + 1}. {entry.name}
-              </div>
-              <div style={{ display: "flex", color: "#b45309" }}>
-                {entry.votes} {entry.votes === 1 ? "Stimme" : "Stimmen"}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", flex: 1 }} />
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            borderRadius: 38,
-            background: "#facc15",
-            color: "#111827",
-            padding: 36,
-            fontSize: 38,
-            fontWeight: 900,
-            alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex" }}>Markiere dein Team + @getstrikr</div>
-          <div style={{ display: "flex", marginTop: 10 }}>#strikr</div>
-        </div>
-      </div>
-    ),
-    { width: 1080, height: 1920 }
-  );
 }
