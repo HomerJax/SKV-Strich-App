@@ -593,7 +593,7 @@ export async function POST(
       const newPath = `sessions/${sessionId}/${Date.now()}-winner.${normalizedPhoto.extension}`;
       const oldPath = session.winner_photo_path ?? null;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await adminSupabase.storage
         .from("session-photos")
         .upload(newPath, normalizedPhoto.buffer, {
           cacheControl: "3600",
@@ -605,22 +605,22 @@ export async function POST(
         return fail(uploadError.message, 500);
       }
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await adminSupabase
         .from("sessions")
         .update({ winner_photo_path: newPath })
         .eq("id", sessionId)
         .eq("club_id", clubId);
 
       if (updateError) {
-        await supabase.storage.from("session-photos").remove([newPath]);
+        await adminSupabase.storage.from("session-photos").remove([newPath]);
         return fail(updateError.message, 500);
       }
 
       if (oldPath) {
-        await supabase.storage.from("session-photos").remove([oldPath]);
+        await adminSupabase.storage.from("session-photos").remove([oldPath]);
       }
 
-      const winnerPhotoUrl = await createSignedPhotoUrl(supabase, newPath);
+      const winnerPhotoUrl = await createSignedPhotoUrl(adminSupabase, newPath);
 
       return ok({
         message: "Siegerfoto hochgeladen. Jetzt noch Ergebnis eintragen.",
