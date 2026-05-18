@@ -395,7 +395,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
     try {
       setSharingResult(true);
-      setShareMsg(null);
+      setShareMsg("Bereite Share Card vor…");
 
       await shareMvpResult({
         element: shareCardRef.current,
@@ -417,7 +417,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         return;
       }
 
-      setShareMsg("Teilen konnte nicht gestartet werden.");
+      setShareMsg("Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.");
     } finally {
       setSharingResult(false);
     }
@@ -829,7 +829,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                       className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3.5 text-base font-extrabold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {sharingResult
-                        ? "Öffne Teilen…"
+                        ? "Bereite Card vor…"
                         : shareData?.mode === "winner"
                           ? "Meinen MVP teilen"
                           : "MVP Ergebnis teilen"}
