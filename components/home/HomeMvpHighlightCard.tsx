@@ -79,7 +79,7 @@ export default function HomeMvpHighlightCard({
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      setShareError("Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.");
+      setShareError("Teilen konnte nicht gestartet werden.");
     } finally {
       setSharing(false);
     }
@@ -185,7 +185,7 @@ export default function HomeMvpHighlightCard({
               disabled={sharing}
               className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-black disabled:opacity-60"
             >
-              {sharing ? "Bereite Card vor…" : isWinner ? "Teilen" : "Ergebnis teilen"}
+              {sharing ? "Öffne…" : isWinner ? "Teilen" : "Ergebnis teilen"}
             </button>
 
             <Link

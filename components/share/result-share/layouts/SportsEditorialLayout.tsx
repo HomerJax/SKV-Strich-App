@@ -198,53 +198,6 @@ function getShortHeadline(headline: string) {
   return headline;
 }
 
-function renderMassiveEditorialTitle({
-  children,
-  color,
-}: {
-  children: React.ReactNode;
-  color: string;
-}) {
-  const baseStyle = {
-    display: "flex",
-    position: "absolute" as const,
-    left: 0,
-    bottom: 0,
-    fontFamily: '"Arial Black", Arial, Helvetica, sans-serif',
-    fontSize: 194,
-    fontWeight: 900,
-    lineHeight: 0.68,
-    letterSpacing: -17,
-    color,
-    textTransform: "uppercase" as const,
-  };
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        position: "relative",
-        width: "100%",
-        height: "100%",
-      }}
-    >
-      <div style={{ ...baseStyle, transform: "translateX(-2px)" }}>
-        {children}
-      </div>
-      <div style={{ ...baseStyle, transform: "translateX(2px)" }}>
-        {children}
-      </div>
-      <div style={{ ...baseStyle, transform: "translateY(-1px)" }}>
-        {children}
-      </div>
-      <div style={{ ...baseStyle, transform: "translateY(1px)" }}>
-        {children}
-      </div>
-      <div style={baseStyle}>{children}</div>
-    </div>
-  );
-}
-
 export function SportsEditorialLayout({
   data,
 }: {
@@ -256,7 +209,6 @@ export function SportsEditorialLayout({
   const palette = buildPalette(data.clubPrimaryColor, "sports_editorial");
   const score = getScoreModel(data);
   const colorway = pickResultShareColorway(data.sessionId);
-  const editorialTitle = getEditorialTitle(copy.headline);
 
   return (
     <div
@@ -267,7 +219,6 @@ export function SportsEditorialLayout({
         padding: 24,
         background: "#020617",
         color: "#FFFFFF",
-        fontFamily: '"Arial Black", Arial, Helvetica, sans-serif',
       }}
     >
       <div
@@ -333,10 +284,19 @@ export function SportsEditorialLayout({
             overflow: "hidden",
           }}
         >
-          {renderMassiveEditorialTitle({
-            children: editorialTitle,
-            color: colorway.titleColor,
-          })}
+          <div
+            style={{
+              display: "flex",
+              fontSize: 194,
+              fontWeight: 950,
+              lineHeight: 0.68,
+              letterSpacing: -16,
+              color: colorway.titleColor,
+              textTransform: "uppercase",
+            }}
+          >
+            {getEditorialTitle(copy.headline)}
+          </div>
         </div>
 
         <div
