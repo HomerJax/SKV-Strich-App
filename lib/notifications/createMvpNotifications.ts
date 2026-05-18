@@ -51,6 +51,42 @@ function getDisplayName(player: PlayerRow | null) {
   );
 }
 
+
+async function getClubShareBranding(supabase: SupabaseClient, clubId: string) {
+  const { data: clubData, error: clubError } = await supabase
+    .from("clubs")
+    .select("display_name, logo_path")
+    .eq("id", clubId)
+    .maybeSingle();
+
+  if (clubError) {
+    throw new Error(`MVP notification club load failed: ${clubError.message}`);
+  }
+
+  let clubLogoUrl: string | null = null;
+
+  const logoPath =
+    typeof clubData?.logo_path === "string" && clubData.logo_path.trim()
+      ? clubData.logo_path.trim()
+      : null;
+
+  if (logoPath) {
+    const { data: logoData } = supabase.storage
+      .from("club-logos")
+      .getPublicUrl(logoPath);
+
+    clubLogoUrl = logoData?.publicUrl ?? null;
+  }
+
+  return {
+    clubName:
+      typeof clubData?.display_name === "string" && clubData.display_name.trim()
+        ? clubData.display_name.trim()
+        : "strikr Team",
+    clubLogoUrl,
+  };
+}
+
 export async function createMvpNotifications({
   supabase,
   clubId,
@@ -59,6 +95,8 @@ export async function createMvpNotifications({
   badgeUpgrade = null,
   leaderboard = [],
 }: CreateMvpNotificationsArgs) {
+  const clubBranding = await getClubShareBranding(supabase, clubId);
+
   const { data: sessionPlayers, error: playersError } = await supabase
     .from("session_players")
     .select(
@@ -127,6 +165,8 @@ export async function createMvpNotifications({
         payload: {
           sessionId,
           clubId,
+          clubName: clubBranding.clubName,
+          clubLogoUrl: clubBranding.clubLogoUrl,
           winnerPlayerId,
           winnerName,
           viewerPlayerId,

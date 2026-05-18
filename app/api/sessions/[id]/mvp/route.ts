@@ -516,6 +516,44 @@ function buildResultsAfterFreshFinalization(results: MvpResults): MvpResults {
   };
 }
 
+
+async function getClubShareBranding(clubId: string) {
+  const admin = createAdminClient();
+
+  const { data: clubData, error: clubError } = await admin
+    .from("clubs")
+    .select("display_name, logo_path")
+    .eq("id", clubId)
+    .maybeSingle();
+
+  if (clubError) {
+    throw new Error(`Clubdaten konnten nicht geladen werden: ${clubError.message}`);
+  }
+
+  let clubLogoUrl: string | null = null;
+
+  const logoPath =
+    typeof clubData?.logo_path === "string" && clubData.logo_path.trim()
+      ? clubData.logo_path.trim()
+      : null;
+
+  if (logoPath) {
+    const { data: logoData } = admin.storage
+      .from("club-logos")
+      .getPublicUrl(logoPath);
+
+    clubLogoUrl = logoData?.publicUrl ?? null;
+  }
+
+  return {
+    clubName:
+      typeof clubData?.display_name === "string" && clubData.display_name.trim()
+        ? clubData.display_name.trim()
+        : "strikr Team",
+    clubLogoUrl,
+  };
+}
+
 async function ensureResultNotifications(params: {
   clubId: string;
   sessionId: number;
@@ -526,6 +564,7 @@ async function ensureResultNotifications(params: {
   const { clubId, sessionId, winners, participants, results } = params;
 
   const admin = createAdminClient();
+  const clubBranding = await getClubShareBranding(clubId);
 
   const hasSingleWinner = winners.length === 1;
   const winner = hasSingleWinner ? winners[0] : null;
@@ -559,6 +598,8 @@ async function ensureResultNotifications(params: {
         payload: {
           sessionId,
           clubId,
+          clubName: clubBranding.clubName,
+          clubLogoUrl: clubBranding.clubLogoUrl,
           viewerPlayerId: participant.id,
           winnerPlayerId: winner?.playerId ?? null,
           winnerName,
@@ -691,6 +732,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 
   const { supabase, user, session, isPowerUser } = base;
+  const clubBranding = await getClubShareBranding(session.club_id);
   const forceFinalize =
     request.nextUrl.searchParams.get("forceFinalize") === "1";
 
@@ -730,6 +772,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
   if (!hasResult) {
     return NextResponse.json({
       sessionId,
+      clubName: clubBranding.clubName,
+      clubLogoUrl: clubBranding.clubLogoUrl,
       hasResult: false,
       votingOpen: false,
       revealLabel: null,
@@ -789,6 +833,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({
       sessionId,
+      clubName: clubBranding.clubName,
+      clubLogoUrl: clubBranding.clubLogoUrl,
       hasResult: true,
       votingOpen: forceFinalize ? false : votingOpen,
       revealLabel,
