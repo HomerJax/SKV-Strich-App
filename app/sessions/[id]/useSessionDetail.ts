@@ -28,6 +28,7 @@ import {
   withDisplayNames,
 } from "./session-detail-helpers";
 import { fetchImageAsFile } from "@/lib/share/utils";
+import { compressImageFile } from "@/lib/client-images/compress-image";
 
 type SessionDetailClientProps = {
   sessionId: number;
@@ -1441,10 +1442,16 @@ ${sessionUrl}`;
       clearFeedback();
 
       const orientation = await detectImageOrientation(file);
+      const uploadFile = await compressImageFile(file, {
+        maxWidth: 1800,
+        maxHeight: 1800,
+        quality: 0.84,
+        outputType: "image/jpeg",
+      });
 
       const formData = new FormData();
       formData.set("intent", "upload_winner_photo");
-      formData.set("file", file);
+      formData.set("file", uploadFile);
 
       const result = await postForm(formData);
 
