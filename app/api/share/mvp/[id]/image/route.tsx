@@ -204,26 +204,6 @@ export async function GET(request: Request, context: RouteContext) {
       );
     }
 
-    if (counts.size === 0 && session.mvp_winner_player_id) {
-      counts.set(session.mvp_winner_player_id, 1);
-    }
-
-    if (
-      session.mvp_winner_player_id &&
-      !playerById.has(session.mvp_winner_player_id)
-    ) {
-      const { data: winnerPlayerData } = await admin
-        .from("players")
-        .select("id, first_name, last_name, mvp_count")
-        .eq("id", session.mvp_winner_player_id)
-        .maybeSingle();
-
-      if (winnerPlayerData) {
-        const winnerPlayer = winnerPlayerData as PlayerRow;
-        playerById.set(winnerPlayer.id, winnerPlayer);
-      }
-    }
-
     const leaderboard = [...counts.entries()]
       .map(([playerId, votes]) =>
         buildLeaderboardEntry({
