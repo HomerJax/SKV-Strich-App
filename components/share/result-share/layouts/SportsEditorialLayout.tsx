@@ -216,8 +216,8 @@ export function SportsEditorialLayout({
         display: "flex",
         width: "100%",
         height: "100%",
-        padding: 24,
-        background: "#020617",
+        padding: 20,
+        background: "radial-gradient(circle at 50% -8%, rgba(255,255,255,0.12), transparent 30%), #020617",
         color: "#FFFFFF",
       }}
     >
@@ -228,9 +228,10 @@ export function SportsEditorialLayout({
           height: "100%",
           position: "relative",
           overflow: "hidden",
-          borderRadius: 36,
+          borderRadius: 42,
           background: "#050505",
-          border: "1px solid rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.10)",
+          boxShadow: "0 40px 120px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.08)",
         }}
       >
         <div
@@ -240,8 +241,9 @@ export function SportsEditorialLayout({
             top: 0,
             left: 0,
             right: 0,
-            height: 430,
+            height: 455,
             background: colorway.topBackground,
+            boxShadow: `0 42px 96px ${colorway.accentGlow}`,
           }}
         />
 
@@ -277,8 +279,8 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 54,
             right: 54,
-            top: 170,
-            height: 250,
+            top: 158,
+            height: 286,
             alignItems: "flex-end",
             zIndex: 10,
             overflow: "hidden",
@@ -287,10 +289,11 @@ export function SportsEditorialLayout({
           <div
             style={{
               display: "flex",
-              fontSize: 194,
+              fontSize: 218,
               fontWeight: 950,
-              lineHeight: 0.68,
-              letterSpacing: -16,
+              lineHeight: 0.66,
+              letterSpacing: -18,
+              textShadow: "0 18px 46px rgba(0,0,0,0.32)",
               color: colorway.titleColor,
               textTransform: "uppercase",
             }}
@@ -305,7 +308,7 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 0,
             right: 0,
-            top: 430,
+            top: 455,
             bottom: 0,
             overflow: "hidden",
           }}
@@ -329,7 +332,7 @@ export function SportsEditorialLayout({
             top: 430,
             bottom: 0,
             background:
-              "linear-gradient(to top, rgba(1,4,10,0.92) 0%, rgba(1,4,10,0.72) 17%, rgba(1,4,10,0.22) 46%, rgba(1,4,10,0.04) 100%)",
+              "linear-gradient(to top, rgba(1,4,10,0.96) 0%, rgba(1,4,10,0.80) 22%, rgba(1,4,10,0.30) 52%, rgba(1,4,10,0.04) 100%)",
           }}
         />
 
@@ -339,7 +342,7 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 54,
             right: 54,
-            bottom: 48,
+            bottom: 42,
             justifyContent: "space-between",
             alignItems: "flex-end",
             gap: 30,
@@ -351,10 +354,10 @@ export function SportsEditorialLayout({
               display: "flex",
               alignItems: "baseline",
               gap: 2,
-              fontSize: 142,
+              fontSize: 166,
               fontWeight: 950,
-              lineHeight: 0.9,
-              letterSpacing: -11,
+              lineHeight: 0.82,
+              letterSpacing: -13,
               color: colorway.accent,
               textShadow: `0 0 34px ${colorway.accentGlow}`,
             }}
@@ -381,10 +384,10 @@ export function SportsEditorialLayout({
               maxWidth: 360,
               textAlign: "right",
               justifyContent: "flex-end",
-              fontSize: 48,
+              fontSize: 56,
               fontWeight: 950,
-              lineHeight: 0.86,
-              letterSpacing: -1.8,
+              lineHeight: 0.84,
+              letterSpacing: -2.4,
               color: colorway.accent,
               textTransform: "uppercase",
               textShadow: `0 0 28px ${colorway.accentGlow}`,
