@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import MvpSharePreviewCard from "@/components/share/mvp-share/MvpSharePreviewCard";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
 import type { LeaderboardEntry as ShareLeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 import { preloadMvpShareImage, shareMvpResult } from "@/lib/share/mvp-share";
@@ -370,7 +369,7 @@ export function NotificationToastCenter() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex flex-col items-center gap-3 px-3 sm:top-4 sm:px-4">
+    <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex flex-col items-center gap-2 px-3 sm:top-4 sm:px-4">
       {visibleNotifications.map((notification) => {
         const isBusy = busyIds.includes(notification.id);
         const isMvp = isMvpNotification(notification);
@@ -378,11 +377,12 @@ export function NotificationToastCenter() {
         const isWinner = payload?.isWinner === true;
         const shareData = isMvp ? buildShareData(notification) : null;
         const display = getDisplayText(notification);
+        const toneIcon = isMvp ? (isWinner ? "⭐" : "🏅") : "•";
 
         return (
           <div
             key={notification.id}
-            className="pointer-events-auto relative w-full max-w-[22rem] overflow-hidden rounded-[26px] border border-white/10 bg-[#020617] shadow-2xl sm:max-w-sm"
+            className="pointer-events-auto relative w-full max-w-[21rem] overflow-hidden rounded-[20px] border border-white/10 bg-[#020617]/95 shadow-lg backdrop-blur sm:max-w-sm"
           >
             {shareData ? (
               <div
@@ -422,47 +422,42 @@ export function NotificationToastCenter() {
               type="button"
               onClick={() => void dismissNotification(notification.id)}
               disabled={isBusy}
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/55 text-base font-black text-white/80 shadow-lg backdrop-blur transition hover:bg-black/75 hover:text-white disabled:opacity-50"
+              className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs font-black text-white/65 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
               aria-label="Benachrichtigung schließen"
             >
               ×
             </button>
 
-            {isMvp ? (
-              <div className="p-2.5 sm:p-3">
-                <MvpSharePreviewCard
-                  isWinner={isWinner}
-                  winnerName={payload?.winnerName}
-                  leaderboard={payload?.leaderboard}
-                  badgeUpgrade={payload?.badgeUpgrade}
-                />
-              </div>
-            ) : null}
-
-            <div className="p-3.5 pt-1.5 sm:p-4 sm:pt-2">
-              <div className="mb-2 pr-10">
-                <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white/70">
-                    {getTypeLabel(notification.type)}
-                  </span>
-                  <span className="text-[11px] text-white/40">
-                    {formatRelativeTime(notification.created_at)}
-                  </span>
+            <div className="p-3 pr-10">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-base">
+                  {toneIcon}
                 </div>
 
-                <p className="text-[13px] font-black leading-snug text-white sm:text-sm">
-                  {display.title}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">
+                      {getTypeLabel(notification.type)}
+                    </span>
+                    <span className="text-[10px] font-semibold text-white/35">
+                      {formatRelativeTime(notification.created_at)}
+                    </span>
+                  </div>
 
-                {display.body ? (
-                  <p className="mt-1 text-[12px] font-semibold leading-snug text-white/58 sm:text-sm">
-                    {display.body}
+                  <p className="text-[13px] font-black leading-snug text-white">
+                    {display.title}
                   </p>
-                ) : null}
+
+                  {display.body ? (
+                    <p className="mt-0.5 line-clamp-2 text-[12px] font-semibold leading-snug text-white/55">
+                      {display.body}
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               {errorById[notification.id] ? (
-                <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-100">
+                <div className="mt-2 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-100">
                   {errorById[notification.id]}
                 </div>
               ) : null}
@@ -472,7 +467,7 @@ export function NotificationToastCenter() {
                   type="button"
                   onClick={() => void handleCta(notification)}
                   disabled={isBusy}
-                  className="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-sm font-black text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-2 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-xs font-black text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isBusy
                     ? isMvp
