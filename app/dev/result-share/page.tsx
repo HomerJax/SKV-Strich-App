@@ -3,6 +3,8 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useMemo, useState } from "react";
+import ResultShareCard from "@/components/share/result-share/ResultShareCard";
+import type { ExtendedResultShareData } from "@/components/share/result-share/result-share.types";
 
 type VoteState = "like" | "dislike";
 
@@ -16,6 +18,33 @@ const SCENARIOS = [
     image: "/dev/mock-winner-story.png",
   },
 ];
+
+const REAL_RESULT_SHARE_PREVIEW_DATA: ExtendedResultShareData = {
+  sessionId: 312,
+  title: "Ergebnis",
+  subtitle: "match result by strikr",
+  date: "18.05.2026",
+  goalsA: "6",
+  goalsB: "4",
+  teamAName: "",
+  teamBName: "",
+  winnerLabel: "Team A gewinnt",
+  winnerPhotoUrl: "/dev/mock-winner-story.png",
+  branding: {
+    appName: "strikr",
+    appTagline: "Training redefined",
+    appLogoUrl: "/brand/strikr-mark.png",
+    clubName: "SKV Rutesheim AH",
+    clubCrestUrl: "/brand/strikr-mark.png",
+  },
+  clubName: "SKV Rutesheim AH",
+  clubLogoUrl: "/brand/strikr-mark.png",
+  strikrLogoUrl: "/brand/strikr-mark.png",
+  clubPrimaryColor: "#2563eb",
+  winnerWasShorthanded: true,
+  upsetWin: true,
+  dramaticFinish: true,
+};
 
 const COLORWAYS = [
   {
@@ -273,6 +302,41 @@ export default function DevResultSharePage() {
   return (
     <main className="min-h-screen bg-[#ece9e2] px-4 py-8">
       <div className="mx-auto max-w-7xl">
+        <section className="mb-8 rounded-[28px] border border-black/5 bg-white/80 p-5 shadow-sm backdrop-blur">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="text-[12px] font-black uppercase tracking-[0.28em] text-slate-500">
+                Real Product Preview
+              </div>
+              <h2 className="mt-2 text-2xl font-black tracking-[-0.05em] text-slate-950">
+                Echte ResultShareCard
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                Diese Vorschau nutzt dieselbe Komponente wie die API-Route:
+                <span className="font-semibold text-slate-900"> ResultShareCard / SportsEditorialLayout</span>.
+              </p>
+            </div>
+
+            <div className="rounded-full bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">
+              1080 × 1350
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-center overflow-auto rounded-[28px] bg-slate-950/95 p-4">
+            <div
+              style={{
+                width: 1080,
+                height: 1350,
+                transform: "scale(0.34)",
+                transformOrigin: "top center",
+                marginBottom: -891,
+              }}
+            >
+              <ResultShareCard data={REAL_RESULT_SHARE_PREVIEW_DATA} />
+            </div>
+          </div>
+        </section>
+
         <div className="mb-8 rounded-[28px] border border-black/5 bg-white/70 p-6 shadow-sm backdrop-blur">
           <div className="text-[12px] font-black uppercase tracking-[0.28em] text-slate-500">
             Dev Exploration
