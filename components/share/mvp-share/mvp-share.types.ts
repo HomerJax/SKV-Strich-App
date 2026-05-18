@@ -49,5 +49,6 @@ export type MvpShareImageProps = {
   clubName: string;
   sessionDateLabel: string;
   winner: LeaderboardEntry;
+  winners?: LeaderboardEntry[];
   leaderboard: LeaderboardEntry[];
 };

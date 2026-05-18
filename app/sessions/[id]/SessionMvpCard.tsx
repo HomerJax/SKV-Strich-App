@@ -48,6 +48,7 @@ type MvpState = {
     leaderboard: ResultEntry[];
     totalVotes: number;
     badgeUpgrade?: BadgeUpgrade | null;
+    badgeUpgrades?: BadgeUpgrade[];
   } | null;
 };
 
@@ -138,6 +139,17 @@ function toAbsoluteAssetUrl(url: string | null | undefined) {
   }
 
   return new URL(url, window.location.origin).toString();
+}
+
+function getBadgeUpgradeForPlayer(
+  badgeUpgrades: BadgeUpgrade[],
+  playerId: number,
+  fallback: BadgeUpgrade | null = null
+) {
+  return (
+    badgeUpgrades.find((upgrade) => upgrade.playerId === playerId) ??
+    (fallback?.playerId === playerId ? fallback : null)
+  );
 }
 
 function toShareEntry(
@@ -313,13 +325,8 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       return null;
     }
 
-    const badgeUpgrade = state.results.badgeUpgrade ?? null;
-    const winner = state.results.winners[0];
-    const shareWinner = toShareEntry(winner, badgeUpgrade);
-
-    const shareLeaderboard = state.results.leaderboard.map((entry) =>
-      toShareEntry(entry, badgeUpgrade)
-    );
+    const badgeUpgrades = state.results.badgeUpgrades ?? [];
+    const fallbackBadgeUpgrade = state.results.badgeUpgrade ?? null;
 
     const isCurrentUserWinner =
       state.currentUserPlayerId !== null &&
@@ -327,22 +334,52 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         (resultWinner) => resultWinner.playerId === state.currentUserPlayerId
       );
 
+    const winner =
+      isCurrentUserWinner && state.currentUserPlayerId !== null
+        ? state.results.winners.find(
+            (resultWinner) => resultWinner.playerId === state.currentUserPlayerId
+          ) ?? state.results.winners[0]
+        : state.results.winners[0];
+
+    const winnerBadgeUpgrade = getBadgeUpgradeForPlayer(
+      badgeUpgrades,
+      winner.playerId,
+      fallbackBadgeUpgrade
+    );
+
+    const shareWinner = toShareEntry(winner, winnerBadgeUpgrade);
+
+    const shareWinners = state.results.winners.map((entry) =>
+      toShareEntry(
+        entry,
+        getBadgeUpgradeForPlayer(badgeUpgrades, entry.playerId, fallbackBadgeUpgrade)
+      )
+    );
+
+    const shareLeaderboard = state.results.leaderboard.map((entry) =>
+      toShareEntry(
+        entry,
+        getBadgeUpgradeForPlayer(badgeUpgrades, entry.playerId, fallbackBadgeUpgrade)
+      )
+    );
+
     const badgeKey = getBadgeAssetKeyFromMvpCount(shareWinner.current);
     const strikrLogoUrl =
       toAbsoluteAssetUrl("/brand/strikr-mark.png") ?? "/brand/strikr-mark.png";
 
     return {
-      mode: isCurrentUserWinner ? "winner" : "team",
+      mode: isCurrentUserWinner ? ("winner" as const) : ("team" as const),
       winner: shareWinner,
+      winners: shareWinners,
       leaderboard: shareLeaderboard,
       badgeImageUrl:
         toAbsoluteAssetUrl(`/badges/hero/${badgeKey}.webp`) ??
         `/badges/hero/${badgeKey}.webp`,
-      clubName: state.clubName?.trim() || "strikr Team",
       clubLogoUrl: toAbsoluteAssetUrl(state.clubLogoUrl) ?? strikrLogoUrl,
       strikrLogoUrl,
-      sessionDateLabel: state.revealLabel || "MVP Ergebnis",
-    } as const;
+      clubName: state.clubName ?? "strikr Team",
+      sessionDateLabel: state.revealLabel,
+    };
   }, [state]);
 
   async function handleVoteSubmit() {
@@ -473,6 +510,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
   const votingOpen = state.votingOpen;
   const badgeUpgrade = state.results?.badgeUpgrade ?? null;
+  const badgeUpgrades = state.results?.badgeUpgrades ?? [];
   const progressPercent =
     state.eligibleVoterCount > 0
       ? Math.max(
@@ -533,6 +571,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               sessionDateLabel={shareData.sessionDateLabel}
               badgeImageUrl={shareData.badgeImageUrl}
               winner={shareData.winner}
+              winners={shareData.winners}
               leaderboard={shareData.leaderboard}
             />
           </div>
@@ -801,11 +840,11 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                       <MergedWinnerCard
                         key={winner.playerId}
                         winner={winner}
-                        badgeUpgrade={
-                          badgeUpgrade?.playerId === winner.playerId
-                            ? badgeUpgrade
-                            : null
-                        }
+                        badgeUpgrade={getBadgeUpgradeForPlayer(
+                          badgeUpgrades,
+                          winner.playerId,
+                          badgeUpgrade
+                        )}
                       />
                     ))}
                   </div>

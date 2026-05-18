@@ -78,6 +78,7 @@ type MvpResults = {
   leaderboard: ResultEntry[];
   totalVotes: number;
   badgeUpgrade: BadgeUpgrade | null;
+  badgeUpgrades: BadgeUpgrade[];
 };
 
 const MVP_REVEAL_TIME = "18:00";
@@ -104,6 +105,15 @@ function getPlayerName(player: PlayerRow | null) {
 
 function safeMvpCount(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function buildBadgeUpgrades(winners: ResultEntry[]): BadgeUpgrade[] {
+  return winners.map((winner) => ({
+    playerId: winner.playerId,
+    playerName: winner.name,
+    previousMvpCount: Math.max(safeMvpCount(winner.mvpCount) - 1, 0),
+    newMvpCount: safeMvpCount(winner.mvpCount),
+  }));
 }
 
 function addDays(dateString: string, days: number) {
@@ -418,6 +428,7 @@ function buildResults(params: {
       leaderboard: [],
       totalVotes: 0,
       badgeUpgrade: null,
+      badgeUpgrades: [],
     };
   }
 
@@ -451,26 +462,15 @@ function buildResults(params: {
   const topVotes = leaderboard[0]?.votes ?? 0;
   const winners = leaderboard.filter((entry) => entry.votes === topVotes);
 
-  let badgeUpgrade: BadgeUpgrade | null = null;
-
-  if (winners.length === 1) {
-    const winner = winners[0];
-    const newMvpCount = safeMvpCount(winner.mvpCount);
-    const previousMvpCount = Math.max(newMvpCount - 1, 0);
-
-    badgeUpgrade = {
-      playerId: winner.playerId,
-      playerName: winner.name,
-      previousMvpCount,
-      newMvpCount,
-    };
-  }
+  const badgeUpgrades = buildBadgeUpgrades(winners);
+  const badgeUpgrade = badgeUpgrades.length === 1 ? badgeUpgrades[0] : null;
 
   return {
     winners,
     leaderboard,
     totalVotes: voteRows.length,
     badgeUpgrade,
+    badgeUpgrades,
   };
 }
 
@@ -495,24 +495,15 @@ function buildResultsAfterFreshFinalization(results: MvpResults): MvpResults {
     mvpCount: winner.mvpCount + 1,
   }));
 
-  let badgeUpgrade: BadgeUpgrade | null = null;
-
-  if (winners.length === 1) {
-    const winner = winners[0];
-
-    badgeUpgrade = {
-      playerId: winner.playerId,
-      playerName: winner.name,
-      previousMvpCount: Math.max(winner.mvpCount - 1, 0),
-      newMvpCount: winner.mvpCount,
-    };
-  }
+  const badgeUpgrades = buildBadgeUpgrades(winners);
+  const badgeUpgrade = badgeUpgrades.length === 1 ? badgeUpgrades[0] : null;
 
   return {
     ...results,
     winners,
     leaderboard,
     badgeUpgrade,
+    badgeUpgrades,
   };
 }
 
@@ -567,14 +558,20 @@ async function ensureResultNotifications(params: {
   const clubBranding = await getClubShareBranding(clubId);
 
   const hasSingleWinner = winners.length === 1;
-  const winner = hasSingleWinner ? winners[0] : null;
-  const winnerName = winner?.name ?? "Der MVP";
+  const winnerNames = winners.map((entry) => entry.name).join(", ") || "Der MVP";
+  const winnerById = new Map(winners.map((winner) => [winner.playerId, winner]));
+  const badgeUpgradeByPlayerId = new Map(
+    results.badgeUpgrades.map((upgrade) => [upgrade.playerId, upgrade])
+  );
 
   const inserts: NotificationInsert[] = participants
     .filter((participant) => participant.userId)
     .map((participant) => {
       const userId = participant.userId as string;
-      const isWinner = Boolean(winner && participant.id === winner.playerId);
+      const participantWinner = winnerById.get(participant.id) ?? null;
+      const isWinner = Boolean(participantWinner);
+      const winnerName =
+        participantWinner?.name ?? (hasSingleWinner ? winners[0]?.name ?? "Der MVP" : winnerNames);
       const shareVariant = isWinner ? "winner" : "team";
 
       return {
@@ -601,15 +598,20 @@ async function ensureResultNotifications(params: {
           clubName: clubBranding.clubName,
           clubLogoUrl: clubBranding.clubLogoUrl,
           viewerPlayerId: participant.id,
-          winnerPlayerId: winner?.playerId ?? null,
+          winnerPlayerId:
+            participantWinner?.playerId ?? (hasSingleWinner ? winners[0]?.playerId ?? null : null),
           winnerName,
+          winnerNames,
           isWinner,
           shareVariant,
           shareImageUrl: `/api/share/mvp/${sessionId}/image?variant=${shareVariant}`,
           sessionHref: `/sessions/${sessionId}`,
           leaderboard: results.leaderboard,
           winners: results.winners,
-          badgeUpgrade: results.badgeUpgrade,
+          badgeUpgrade: isWinner
+            ? badgeUpgradeByPlayerId.get(participant.id) ?? null
+            : results.badgeUpgrade,
+          badgeUpgrades: results.badgeUpgrades,
           totalVotes: results.totalVotes,
         },
         dedupe_key: `${

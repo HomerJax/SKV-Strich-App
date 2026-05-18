@@ -149,11 +149,18 @@ export default function TeamLayout({
   clubName,
   sessionDateLabel,
   winner,
+  winners = [],
   leaderboard,
 }: TeamLayoutProps) {
   const palette = buildPalette(null, "floodlight");
   const tier = getTierMeta(winner.badgeLabel);
   const topThree = leaderboard.slice(0, 3);
+  const displayWinners =
+    winners.length > 0
+      ? winners
+      : leaderboard.filter((entry) => entry.votes === winner.votes);
+  const winnerNames = displayWinners.map((entry) => entry.name).join(", ");
+  const hasMultipleWinners = displayWinners.length > 1;
 
   return (
     <div
@@ -332,7 +339,7 @@ export default function TeamLayout({
               color: "#020617",
             }}
           >
-            {winner.name}
+            {winnerNames || winner.name}
           </div>
 
           <div
@@ -344,7 +351,9 @@ export default function TeamLayout({
               color: "rgba(15,23,42,0.58)",
             }}
           >
-            wurde zum MVP gewählt.
+            {hasMultipleWinners
+              ? "wurden gemeinsam zum MVP gewählt."
+              : "wurde zum MVP gewählt."}
           </div>
 
           {topThree.length > 0 ? (
