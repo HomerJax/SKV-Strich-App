@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import * as htmlToImage from "html-to-image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import ExportButtons from "@/components/ExportButtons";
@@ -10,7 +11,6 @@ import { getPlayerDisplayName } from "@/lib/player-display";
 import StandingsShareCard from "./StandingsShareCard";
 import type { RankRow, Season } from "./standings-types";
 import {
-  buildStandingsShareText,
   chunkRows,
   getErrorMessage,
   movementClass,
@@ -25,6 +25,96 @@ type RankingCard = {
   exportId: string;
   fileBaseName: string;
 };
+
+
+type NavigatorWithFileShare = Navigator & {
+  canShare?: (data: ShareData) => boolean;
+};
+
+function padShareNumber(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function buildShareStamp() {
+  const now = new Date();
+
+  return `${now.getFullYear()}-${padShareNumber(now.getMonth() + 1)}-${padShareNumber(
+    now.getDate()
+  )}_${padShareNumber(now.getHours())}-${padShareNumber(now.getMinutes())}`;
+}
+
+function sanitizeShareFileBaseName(value: string) {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9äöüß_-]/gi, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "") || "strikr-tabelle"
+  );
+}
+
+async function blobFromDataUrl(dataUrl: string) {
+  const response = await fetch(dataUrl);
+  return response.blob();
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+}
+
+async function createStandingsShareBlob(targetId: string) {
+  const element = document.getElementById(targetId);
+
+  if (!element) {
+    throw new Error(`Share Card nicht gefunden: #${targetId}`);
+  }
+
+  const dataUrl = await htmlToImage.toPng(element, {
+    cacheBust: true,
+    pixelRatio: Math.max(2, Math.min(4, window.devicePixelRatio || 2)),
+    backgroundColor: "#020617",
+    skipFonts: false,
+  });
+
+  return blobFromDataUrl(dataUrl);
+}
+
+async function shareOrDownloadStandingsBlob(blob: Blob, fileBaseName: string) {
+  const fileName = `${sanitizeShareFileBaseName(fileBaseName)}_${buildShareStamp()}.png`;
+  const file = new File([blob], fileName, { type: blob.type || "image/png" });
+  const nav = navigator as NavigatorWithFileShare;
+
+  if (typeof nav.share === "function") {
+    const shareData: ShareData = {
+      files: [file],
+      title: "strikr Tabelle",
+      text: "Standings Card aus strikr.",
+    };
+
+    if (!nav.canShare || nav.canShare(shareData)) {
+      await nav.share(shareData);
+      return "shared" as const;
+    }
+  }
+
+  downloadBlob(blob, fileName);
+  return "downloaded" as const;
+}
+
 
 type StandingsClientProps = {
   initialClubId: string;
@@ -156,54 +246,30 @@ export default function StandingsClient({
     };
   }, [seasonParam]);
 
-  async function shareText(text: string, title: string) {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      await navigator.share({
-        title,
-        text,
-      });
-
-      return "shared";
-    }
-
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return "copied";
-    }
-
-    throw new Error(
-      "Teilen wird auf diesem Gerät oder Browser nicht unterstützt."
-    );
-  }
-
   async function handleShareCard(card: RankingCard) {
     try {
       setSharingCardIndex(card.index);
       setErr(null);
       setMsg(null);
 
-      const text = buildStandingsShareText(
-        selectedLabel,
-        card.rows,
-        card.startRank,
-        card.endRank
+      const blob = await createStandingsShareBlob(card.exportId);
+      const result = await shareOrDownloadStandingsBlob(blob, card.fileBaseName);
+
+      setMsg(
+        result === "shared"
+          ? "Tabellenkarte erfolgreich geteilt."
+          : "Tabellenkarte als PNG heruntergeladen."
       );
-
-      const title =
-        card.startRank === card.endRank
-          ? `Platz ${card.startRank}`
-          : `Plätze ${card.startRank}-${card.endRank}`;
-
-      const result = await shareText(text, title);
-
-      if (result === "copied") {
-        setMsg(
-          "Share-Text der Tabellenkarte wurde in die Zwischenablage kopiert."
-        );
-      } else {
-        setMsg("Tabellenkarte erfolgreich geteilt.");
-      }
     } catch (error: unknown) {
+      const errorName =
+        error instanceof DOMException ? error.name : "";
+
+      if (errorName === "AbortError") {
+        setErr(null);
+        setMsg(null);
+        return;
+      }
+
       setErr(
         getErrorMessage(error, "Tabellenkarte konnte nicht geteilt werden.")
       );
@@ -456,7 +522,7 @@ export default function StandingsClient({
                           >
                             {sharingCardIndex === card.index
                               ? "Teile…"
-                              : "Text teilen"}
+                              : "Bild teilen"}
                           </button>
 
                           <ExportButtons
@@ -477,7 +543,7 @@ export default function StandingsClient({
       {!loading && !err && rankingCards.length > 0 ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed -left-[99999px] top-0 opacity-0"
+          className="pointer-events-none fixed -left-[99999px] top-0"
         >
           {rankingCards.map((card) => (
             <StandingsShareCard
