@@ -66,9 +66,9 @@ function getTierMeta(label: string): TierMeta {
   return {
     label: "Blech",
     key: "blech",
-    top: "linear-gradient(135deg,#d4d4d8 0%,#52525b 48%,#020617 100%)",
-    glow: "rgba(161,161,170,0.34)",
-    text: "#d4d4d8",
+    top: "linear-gradient(135deg,#18181b 0%,#3f3f46 42%,#09090b 100%)",
+    glow: "rgba(82,82,91,0.42)",
+    text: "#a1a1aa",
     sub: "Ab jetzt zählt’s.",
   };
 }
@@ -228,7 +228,7 @@ export default function WinnerLayout({
             glowStrength={tier.key === "goat" ? 1.7 : 1.12}
             imageFilter={
               tier.key === "blech"
-                ? "brightness(0.72) contrast(1.30) saturate(0.35) sepia(0.10) drop-shadow(0 54px 90px rgba(0,0,0,0.78))"
+                ? "brightness(0.58) contrast(1.45) saturate(0.18) sepia(0.16) hue-rotate(-8deg) drop-shadow(0 58px 96px rgba(0,0,0,0.86)) drop-shadow(0 0 18px rgba(120,113,108,0.16))"
                 : "drop-shadow(0 54px 90px rgba(0,0,0,0.78)) drop-shadow(0 0 34px rgba(255,255,255,0.14))"
             }
           />
