@@ -16,6 +16,7 @@ type HomeMvpHighlightCardProps = {
   sessionDateLabel: string;
   isWinner: boolean;
   winner: LeaderboardEntry;
+  winners?: LeaderboardEntry[];
   leaderboard: LeaderboardEntry[];
   badgeImageUrl: string;
 };
@@ -30,6 +31,7 @@ export default function HomeMvpHighlightCard({
   sessionDateLabel,
   isWinner,
   winner,
+  winners = [],
   leaderboard,
   badgeImageUrl,
 }: HomeMvpHighlightCardProps) {
@@ -103,6 +105,7 @@ export default function HomeMvpHighlightCard({
             sessionDateLabel={sessionDateLabel}
             badgeImageUrl={badgeImageUrl}
             winner={winner}
+            winners={winners}
             leaderboard={leaderboard}
           />
         </div>

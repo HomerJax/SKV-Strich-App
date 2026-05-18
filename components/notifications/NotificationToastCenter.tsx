@@ -159,6 +159,9 @@ function buildShareData(notification: NotificationItem) {
   if (!winnerSource) return null;
 
   const winner = toShareEntry(winnerSource, payload.badgeUpgrade);
+  const winners = (payload.winners ?? [winnerSource]).map((entry) =>
+    toShareEntry(entry, payload.badgeUpgrade)
+  );
   const leaderboard = (payload.leaderboard ?? [winnerSource]).map((entry) =>
     toShareEntry(entry, payload.badgeUpgrade)
   );
@@ -178,6 +181,7 @@ function buildShareData(notification: NotificationItem) {
       toAbsoluteAssetUrl(`/badges/hero/${badgeKey}.webp`) ??
       `/badges/hero/${badgeKey}.webp`,
     winner,
+    winners,
     leaderboard,
   } as const;
 }
@@ -412,6 +416,7 @@ export function NotificationToastCenter() {
                     sessionDateLabel={shareData.sessionDateLabel}
                     badgeImageUrl={shareData.badgeImageUrl}
                     winner={shareData.winner}
+                    winners={shareData.winners}
                     leaderboard={shareData.leaderboard}
                   />
                 </div>

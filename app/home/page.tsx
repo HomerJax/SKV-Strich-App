@@ -68,6 +68,7 @@ type HomeMvpHighlight = {
   sessionDateLabel: string;
   isWinner: boolean;
   winner: LeaderboardEntry;
+  winners: LeaderboardEntry[];
   leaderboard: LeaderboardEntry[];
   badgeImageUrl: string;
 };
@@ -506,17 +507,25 @@ export default async function HomePage() {
         );
 
       const winner = leaderboard[0] ?? null;
+      const topVotes = winner?.votes ?? 0;
+      const winners = topVotes > 0
+        ? leaderboard.filter((entry) => entry.votes === topVotes)
+        : [];
       const userId = authResult.data.user?.id ?? null;
 
       if (winner) {
-        const winnerParticipant = participantByPlayerId.get(winner.playerId);
-        const isWinner = Boolean(
-          userId &&
-            winnerParticipant?.userId &&
-            winnerParticipant.userId === userId
-        );
+        const currentUserWinner =
+          userId
+            ? winners.find((entry) => {
+                const participant = participantByPlayerId.get(entry.playerId);
+                return participant?.userId === userId;
+              }) ?? null
+            : null;
 
-        const badgeKey = getBadgeKey(winner.current);
+        const displayWinner = currentUserWinner ?? winner;
+        const isWinner = Boolean(currentUserWinner);
+
+        const badgeKey = getBadgeKey(displayWinner.current);
 
         mvpHighlight = {
           notificationKey: `home:mvp-highlight:${clubId}:${latestRevealedSession.id}`,
@@ -524,7 +533,8 @@ export default async function HomePage() {
           sessionHref: `/sessions/${latestRevealedSession.id}`,
           sessionDateLabel: fmtDateLong(latestRevealedSession.date),
           isWinner,
-          winner,
+          winner: displayWinner,
+          winners,
           leaderboard,
           badgeImageUrl: `/badges/hero/${badgeKey}.webp`,
         };
@@ -638,6 +648,7 @@ export default async function HomePage() {
             sessionDateLabel={mvpHighlight.sessionDateLabel}
             isWinner={mvpHighlight.isWinner}
             winner={mvpHighlight.winner}
+            winners={mvpHighlight.winners}
             leaderboard={mvpHighlight.leaderboard}
             badgeImageUrl={mvpHighlight.badgeImageUrl}
           />
