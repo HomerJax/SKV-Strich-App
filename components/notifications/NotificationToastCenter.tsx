@@ -353,7 +353,7 @@ export function NotificationToastCenter() {
 
       setErrorById((prev) => ({
         ...prev,
-        [notification.id]: "Teilen konnte nicht gestartet werden.",
+        [notification.id]: "Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.",
       }));
     } finally {
       setBusyIds((prev) => prev.filter((item) => item !== notification.id));

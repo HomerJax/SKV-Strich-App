@@ -1,7 +1,7 @@
 import * as htmlToImage from "html-to-image";
 
 type ShareMvpResultOptions = {
-  element?: HTMLElement;
+  element: HTMLElement;
   imageUrl?: string;
   fileName?: string;
   title?: string;
@@ -11,27 +11,29 @@ type ShareMvpResultOptions = {
 type RestoreImage = () => void;
 
 const dataUrlCache = new Map<string, string>();
-const shareFileCache = new Map<string, File>();
 
-function waitForTwoFrames() {
-  return new Promise<void>((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => resolve());
-    });
-  });
+function wait(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 }
 
-function waitForMilliseconds(ms: number) {
-  return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
+function waitForFrame() {
+  return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 }
 
-async function waitForRenderSettled() {
-  await waitForTwoFrames();
-  await waitForTwoFrames();
-  await waitForMilliseconds(450);
-  await waitForTwoFrames();
+async function waitForFrames(count = 2) {
+  for (let i = 0; i < count; i += 1) {
+    await waitForFrame();
+  }
+}
+
+async function waitForFonts() {
+  if ("fonts" in document && document.fonts?.ready) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Font readiness is best effort.
+    }
+  }
 }
 
 async function waitForImage(img: HTMLImageElement) {
@@ -44,9 +46,10 @@ async function waitForImage(img: HTMLImageElement) {
       try {
         await img.decode();
       } catch {
-        // bewusst still
+        // Some browsers reject decode even when image loaded.
       }
     }
+
     return;
   }
 
@@ -61,12 +64,12 @@ async function waitForImage(img: HTMLImageElement) {
     try {
       await img.decode();
     } catch {
-      // bewusst still
+      // Best effort.
     }
   }
 }
 
-function toAbsoluteImageUrl(src: string) {
+function toAbsoluteUrl(src: string) {
   if (
     src.startsWith("data:") ||
     src.startsWith("blob:") ||
@@ -79,47 +82,28 @@ function toAbsoluteImageUrl(src: string) {
   return new URL(src, window.location.origin).toString();
 }
 
-function loadBlobImage(blob: Blob) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(blob);
-    const img = new Image();
+function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
 
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(img);
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Bild konnte nicht vorbereitet werden."));
     };
 
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Bild konnte nicht für PNG-Capture geladen werden."));
-    };
-
-    img.src = objectUrl;
+    reader.onerror = () => reject(new Error("Bild konnte nicht gelesen werden."));
+    reader.readAsDataURL(blob);
   });
 }
 
-async function blobToPngDataUrl(blob: Blob) {
-  const img = await loadBlobImage(blob);
+async function fetchImageAsDataUrl(src: string) {
+  const absoluteSrc = toAbsoluteUrl(src);
 
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, img.naturalWidth || img.width);
-  canvas.height = Math.max(1, img.naturalHeight || img.height);
-
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
-    throw new Error("Canvas konnte nicht erstellt werden.");
-  }
-
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-  return canvas.toDataURL("image/png");
-}
-
-async function fetchImageAsPngDataUrl(src: string) {
-  const absoluteSrc = toAbsoluteImageUrl(src);
-
-  if (absoluteSrc.startsWith("data:image/png")) {
+  if (absoluteSrc.startsWith("data:")) {
     return absoluteSrc;
   }
 
@@ -132,42 +116,60 @@ async function fetchImageAsPngDataUrl(src: string) {
   const response = await fetch(absoluteSrc, {
     method: "GET",
     cache: "no-store",
+    credentials: absoluteSrc.startsWith(window.location.origin)
+      ? "include"
+      : "omit",
   });
 
   if (!response.ok) {
-    throw new Error(`Bild konnte nicht geladen werden: ${absoluteSrc}`);
+    throw new Error(`Asset konnte nicht geladen werden (${response.status}).`);
   }
 
   const blob = await response.blob();
-  const pngDataUrl = await blobToPngDataUrl(blob);
 
-  dataUrlCache.set(absoluteSrc, pngDataUrl);
+  if (!blob.type.startsWith("image/")) {
+    throw new Error("Asset ist kein Bild.");
+  }
 
-  return pngDataUrl;
+  const dataUrl = await blobToDataUrl(blob);
+  dataUrlCache.set(absoluteSrc, dataUrl);
+
+  return dataUrl;
 }
 
-async function inlineImageForCapture(
-  img: HTMLImageElement
-): Promise<RestoreImage> {
+async function inlineImage(img: HTMLImageElement): Promise<RestoreImage> {
   const originalSrc = img.getAttribute("src");
   const originalSrcSet = img.getAttribute("srcset");
   const originalSizes = img.getAttribute("sizes");
-  const sourceSrc = img.currentSrc || img.src || originalSrc;
+  const src = img.currentSrc || img.src || originalSrc;
 
-  if (!sourceSrc || sourceSrc.startsWith("data:image/png")) {
+  if (!src || src.startsWith("data:")) {
+    await waitForImage(img);
     return () => undefined;
   }
 
   await waitForImage(img);
 
-  const pngDataUrl = await fetchImageAsPngDataUrl(sourceSrc);
+  let dataUrl: string | null = null;
+
+  try {
+    dataUrl = await fetchImageAsDataUrl(src);
+  } catch {
+    // If fetch fails because of CORS, keep the original image but still wait.
+    dataUrl = null;
+  }
+
+  if (!dataUrl) {
+    await waitForImage(img);
+    return () => undefined;
+  }
 
   img.removeAttribute("srcset");
   img.removeAttribute("sizes");
-  img.setAttribute("src", pngDataUrl);
+  img.setAttribute("src", dataUrl);
 
   await waitForImage(img);
-  await waitForTwoFrames();
+  await waitForFrames(2);
 
   return () => {
     if (originalSrcSet !== null) {
@@ -194,78 +196,76 @@ async function prepareShareElement(element: HTMLElement) {
   const images = Array.from(element.querySelectorAll("img"));
   const restoreImages: RestoreImage[] = [];
 
+  await waitForFonts();
+
   for (const img of images) {
-    const restoreImage = await inlineImageForCapture(img);
+    const restoreImage = await inlineImage(img);
     restoreImages.push(restoreImage);
   }
 
-  const unresolvedImages = images.filter((img) => {
-    const src = img.currentSrc || img.src;
-    return !src || !src.startsWith("data:image/png") || !img.complete || img.naturalWidth <= 0;
-  });
-
-  if (unresolvedImages.length > 0) {
-    await Promise.all(unresolvedImages.map((img) => waitForImage(img)));
-  }
-
-  await waitForRenderSettled();
+  await Promise.all(images.map((img) => waitForImage(img)));
+  await waitForFonts();
+  await waitForFrames(4);
+  await wait(350);
+  await waitForFrames(2);
 
   return restoreImages;
 }
 
-async function fetchShareImageFile(imageUrl: string, fileName: string) {
-  const absoluteUrl = toAbsoluteImageUrl(imageUrl);
-  const cacheKey = `${absoluteUrl}::${fileName}`;
-  const cachedFile = shareFileCache.get(cacheKey);
+function loadBlobAsImage(blob: Blob) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const img = new Image();
 
-  if (cachedFile) {
-    return cachedFile;
-  }
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(img);
+    };
 
-  const response = await fetch(absoluteUrl, {
-    method: "GET",
-    cache: "no-store",
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Share Card konnte nicht geprüft werden."));
+    };
+
+    img.src = objectUrl;
   });
-
-  if (!response.ok) {
-    throw new Error(`Share-Bild konnte nicht geladen werden: ${absoluteUrl}`);
-  }
-
-  const blob = await response.blob();
-  const file = new File([blob], fileName, {
-    type: blob.type || "image/png",
-  });
-
-  shareFileCache.set(cacheKey, file);
-
-  return file;
 }
 
-export async function preloadMvpShareImage(params: {
-  imageUrl: string;
-  fileName: string;
-}) {
-  await fetchShareImageFile(params.imageUrl, params.fileName);
-}
-
-async function shareFile(params: {
-  file: File;
-  fileName: string;
-  title: string;
-  text: string;
-}) {
-  const { file, fileName, title, text } = params;
-
-  if (navigator.canShare?.({ files: [file] })) {
-    await navigator.share({
-      title,
-      text,
-      files: [file],
-    });
-
-    return;
+async function assertUsableShareBlob(blob: Blob | null) {
+  if (!blob) {
+    throw new Error("MVP Share Card konnte nicht erstellt werden.");
   }
 
+  if (blob.size < 40_000) {
+    throw new Error("MVP Share Card wirkt unvollständig.");
+  }
+
+  const image = await loadBlobAsImage(blob);
+
+  if (image.naturalWidth < 500 || image.naturalHeight < 500) {
+    throw new Error("MVP Share Card ist beschädigt.");
+  }
+
+  return blob;
+}
+
+async function captureElement(element: HTMLElement) {
+  const blob = await htmlToImage.toBlob(element, {
+    cacheBust: true,
+    pixelRatio: 2,
+    backgroundColor: "#020617",
+    width: 1080,
+    height: 1920,
+    style: {
+      width: "1080px",
+      height: "1920px",
+    },
+  });
+
+  return assertUsableShareBlob(blob);
+}
+
+function downloadFile(file: File, fileName: string) {
   const url = URL.createObjectURL(file);
 
   try {
@@ -281,35 +281,69 @@ async function shareFile(params: {
   }
 }
 
-async function shareFromElement(params: {
-  element: HTMLElement;
+async function shareFile(params: {
+  file: File;
   fileName: string;
   title: string;
   text: string;
 }) {
-  const { element, fileName, title, text } = params;
+  const { file, fileName, title, text } = params;
+
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    navigator.canShare?.({ files: [file] })
+  ) {
+    await navigator.share({
+      title,
+      text,
+      files: [file],
+    });
+
+    return { mode: "shared_file" as const };
+  }
+
+  downloadFile(file, fileName);
+  return { mode: "downloaded" as const };
+}
+
+export async function shareMvpResult({
+  element,
+  fileName = "strikr-mvp.png",
+  title = "strikr MVP",
+  text = "MVP Card erstellt mit strikr.",
+}: ShareMvpResultOptions) {
   const restoreImages = await prepareShareElement(element);
 
   try {
-    await waitForRenderSettled();
+    let blob: Blob | null = null;
+    let lastError: unknown = null;
 
-    const blob = await htmlToImage.toBlob(element, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: "#020617",
-      width: 1080,
-      height: 1920,
-    });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        await waitForFonts();
+        await waitForFrames(3);
+        blob = await captureElement(element);
+        break;
+      } catch (error) {
+        lastError = error;
+        await wait(500);
+        await waitForFrames(4);
+      }
+    }
 
     if (!blob) {
-      throw new Error("MVP Share Card konnte nicht erstellt werden.");
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("MVP Share Card konnte nicht erstellt werden.");
     }
 
     const file = new File([blob], fileName, {
       type: "image/png",
+      lastModified: Date.now(),
     });
 
-    await shareFile({
+    return shareFile({
       file,
       fileName,
       title,
@@ -320,45 +354,31 @@ async function shareFromElement(params: {
   }
 }
 
-export async function shareMvpResult({
-  element,
-  imageUrl,
-  fileName = "strikr-mvp.png",
-  title = "strikr MVP",
-  text = "MVP Card erstellt mit strikr.",
-}: ShareMvpResultOptions) {
-  if (imageUrl) {
-    try {
-      const file = await fetchShareImageFile(imageUrl, fileName);
+export async function preloadMvpShareImage(params: {
+  imageUrl: string;
+  fileName?: string;
+}) {
+  if (typeof window === "undefined") return;
 
-      await shareFile({
-        file,
-        fileName,
-        title,
-        text,
-      });
+  try {
+    const absoluteUrl = new URL(params.imageUrl, window.location.origin).toString();
 
-      return;
-    } catch (error) {
-      console.warn(
-        "Server MVP share image failed, falling back to DOM capture:",
-        error
-      );
+    const response = await fetch(absoluteUrl, {
+      method: "GET",
+      cache: "no-store",
+      credentials: absoluteUrl.startsWith(window.location.origin)
+        ? "include"
+        : "omit",
+    });
 
-      if (!element) {
-        throw error;
-      }
-    }
+    if (!response.ok) return;
+
+    const blob = await response.blob();
+
+    if (!blob.type.startsWith("image/")) return;
+
+    await loadBlobAsImage(blob);
+  } catch {
+    // Preload ist nur Warmup. Teilen darf daran nicht scheitern.
   }
-
-  if (!element) {
-    throw new Error("MVP Share Card ist noch nicht bereit.");
-  }
-
-  await shareFromElement({
-    element,
-    fileName,
-    title,
-    text,
-  });
 }

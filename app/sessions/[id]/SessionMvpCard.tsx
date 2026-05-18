@@ -413,7 +413,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
     try {
       setSharingResult(true);
-      setShareMsg(null);
+      setShareMsg("Bereite Share Card vor…");
 
       await shareMvpResult({
         element: shareCardRef.current,
@@ -436,7 +436,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         return;
       }
 
-      setShareMsg("Teilen konnte nicht gestartet werden.");
+      setShareMsg("Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.");
     } finally {
       setSharingResult(false);
     }
