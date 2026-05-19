@@ -678,11 +678,11 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
                 {mvpAccess && !mvpAccess.isPro ? (
                   <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
-                    Free: {mvpAccess.usedThisSeason}/{mvpAccess.freeLimit} MVPs genutzt
+                    Free: {mvpAccess.usedThisSeason}/{mvpAccess.freeLimit} MVP-Abstimmungen genutzt
                   </span>
                 ) : mvpAccess?.isPro ? (
                   <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    Pro: unbegrenzt
+                    Pro: MVP unbegrenzt
                   </span>
                 ) : null}
               </div>
@@ -711,12 +711,12 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             <div className="mt-4">
               <ProFeatureLock
                 clubName={state.clubName}
-                title="MVP Voting unbegrenzt mit strikr Pro"
-                description={`Ihr habt die ${mvpAccess?.freeLimit ?? 4} kostenlosen MVP-Abstimmungen dieser Saison genutzt. Mit strikr Pro könnt ihr MVP Voting unbegrenzt weiter nutzen.`}
+                title="4 kostenlose MVP-Abstimmungen genutzt"
+                description={`Ihr habt die ${mvpAccess?.freeLimit ?? 4} kostenlosen MVP-Abstimmungen dieser Saison ausgeschöpft. Mit strikr Pro bleibt MVP Voting für euer Team unbegrenzt aktiv.`}
                 featureList={[
-                  "Unbegrenzte MVP-Abstimmungen pro Saison",
+                  "Unbegrenztes MVP Voting pro Saison",
                   "MVP-Badges und Fortschritt",
-                  "MVP Share Cards",
+                  "MVP- und Ergebnis-Share-Cards",
                   "Awards, Serien und Trophäenraum",
                 ]}
                 compact

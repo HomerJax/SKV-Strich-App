@@ -25,11 +25,11 @@ function buildContactMessage(clubName?: string | null) {
   const teamName = clubName?.trim() || "unser Team";
 
   return [
-    "Hi, wir möchten strikr Pro freischalten.",
+    "Hi, wir möchten strikr Pro für unser Team freischalten.",
     "",
     `Team: ${teamName}`,
     "",
-    "Bitte schick mir kurz die Infos zum Supercup-Angebot.",
+    "Bitte schick mir kurz die Infos zum aktuellen Angebot.",
   ].join("\n");
 }
 
@@ -49,8 +49,8 @@ function buildMailHref(clubName?: string | null) {
 
 export default function ProFeatureLock({
   clubName,
-  title = "Mit strikr Pro freischalten",
-  description = "Dieses Feature ist in Free sichtbar, aber erst mit Pro nutzbar.",
+  title = "Mehr Team-Momente mit strikr Pro",
+  description = "Free ist zum Ausprobieren da. Mit Pro nutzt ihr die starken Team-Features dauerhaft und ohne Limit.",
   featureList = [],
   compact = false,
 }: ProFeatureLockProps) {
@@ -96,7 +96,7 @@ export default function ProFeatureLock({
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
         >
-          Pro per WhatsApp anfragen
+          Pro-Angebot per WhatsApp anfragen
         </a>
 
         <a
@@ -108,7 +108,7 @@ export default function ProFeatureLock({
       </div>
 
       <p className="mt-3 text-center text-xs font-medium text-slate-400">
-        Supercup-Angebot: kostenlos testen, danach manuell freischalten.
+        Aktuell: Supercup-Angebot und manuelle Freischaltung.
       </p>
     </div>
   );
