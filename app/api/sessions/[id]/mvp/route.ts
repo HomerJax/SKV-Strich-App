@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import { getMvpVotingAccessForSession } from "@/lib/billing/mvp-access";
 
 type RouteContext = {
   params: Promise<{
@@ -13,6 +14,7 @@ type SessionRow = {
   id: number;
   club_id: string;
   date: string;
+  season_id: number | null;
   mvp_voting_finalized_at: string | null;
 };
 
@@ -238,7 +240,7 @@ async function loadSessionBase(sessionId: number) {
 
   const { data: sessionData, error: sessionError } = await db
     .from("sessions")
-    .select("id, club_id, date, mvp_voting_finalized_at")
+    .select("id, club_id, date, season_id, mvp_voting_finalized_at")
     .eq("id", sessionId)
     .maybeSingle<SessionRow>();
 
@@ -735,6 +737,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const { supabase, user, session, isPowerUser } = base;
   const clubBranding = await getClubShareBranding(session.club_id);
+  const mvpAccess = await getMvpVotingAccessForSession({
+    supabase,
+    clubId: session.club_id,
+    sessionId: session.id,
+    seasonId: session.season_id,
+  });
   const forceFinalize =
     request.nextUrl.searchParams.get("forceFinalize") === "1";
 
@@ -776,6 +784,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       sessionId,
       clubName: clubBranding.clubName,
       clubLogoUrl: clubBranding.clubLogoUrl,
+      mvpAccess,
       hasResult: false,
       votingOpen: false,
       revealLabel: null,
@@ -837,6 +846,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       sessionId,
       clubName: clubBranding.clubName,
       clubLogoUrl: clubBranding.clubLogoUrl,
+      mvpAccess,
       hasResult: true,
       votingOpen: forceFinalize ? false : votingOpen,
       revealLabel,
@@ -907,6 +917,24 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json(
       { error: "MVP Voting startet erst, sobald ein Ergebnis gespeichert wurde." },
       { status: 400 }
+    );
+  }
+
+  const mvpAccess = await getMvpVotingAccessForSession({
+    supabase,
+    clubId: session.club_id,
+    sessionId: session.id,
+    seasonId: session.season_id,
+  });
+
+  if (!mvpAccess.allowed) {
+    return NextResponse.json(
+      {
+        error:
+          "Die 4 kostenlosen MVP-Abstimmungen dieser Saison sind aufgebraucht. Mit strikr Pro ist MVP Voting unbegrenzt.",
+        mvpAccess,
+      },
+      { status: 403 }
     );
   }
 
