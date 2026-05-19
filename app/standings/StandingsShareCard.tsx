@@ -2,7 +2,7 @@
 
 import { getPlayerDisplayName } from "@/lib/player-display";
 import type { RankRow } from "./standings-types";
-import { movementClass, movementText } from "./standings-ui";
+import { getTrainingAwards, movementClass, movementText } from "./standings-ui";
 
 type StandingsShareCardProps = {
   exportId: string;
@@ -46,6 +46,21 @@ function MiniRow({ row, index }: { row: RankRow; index: number }) {
           <div className={`mt-0.5 text-[10px] font-bold ${movementClass(row.deltaRank)}`}>
             {movementText(row.deltaRank)}
           </div>
+
+          {getTrainingAwards(row).length > 0 ? (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {getTrainingAwards(row)
+                .slice(0, 2)
+                .map((award) => (
+                  <span
+                    key={award.key}
+                    className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[8px] font-black text-slate-600"
+                  >
+                    {award.icon} {award.shortLabel}
+                  </span>
+                ))}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -137,6 +152,21 @@ export default function StandingsShareCard({
                 <div className={`mt-2 text-xs font-black ${movementClass(leader.deltaRank)}`}>
                   {movementText(leader.deltaRank)}
                 </div>
+
+                {getTrainingAwards(leader).length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {getTrainingAwards(leader)
+                      .slice(0, 3)
+                      .map((award) => (
+                        <span
+                          key={award.key}
+                          className="rounded-full bg-slate-950 px-2 py-1 text-[9px] font-black text-white"
+                        >
+                          {award.icon} {award.shortLabel}
+                        </span>
+                      ))}
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-slate-950 text-3xl font-black text-white">
@@ -188,6 +218,21 @@ export default function StandingsShareCard({
                 <div className={`mt-1 text-[10px] font-bold ${movementClass(row.deltaRank)}`}>
                   {movementText(row.deltaRank)}
                 </div>
+
+                {getTrainingAwards(row).length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {getTrainingAwards(row)
+                      .slice(0, 2)
+                      .map((award) => (
+                        <span
+                          key={award.key}
+                          className="rounded-full bg-white/10 px-1.5 py-0.5 text-[8px] font-black text-white/70"
+                        >
+                          {award.icon} {award.shortLabel}
+                        </span>
+                      ))}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

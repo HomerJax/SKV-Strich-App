@@ -11,8 +11,10 @@ import { getPlayerDisplayName } from "@/lib/player-display";
 import StandingsShareCard from "./StandingsShareCard";
 import type { RankRow, Season } from "./standings-types";
 import {
+  awardClass,
   chunkRows,
   getErrorMessage,
+  getTrainingAwards,
   movementClass,
   movementText,
 } from "./standings-ui";
@@ -436,6 +438,24 @@ export default function StandingsClient({
                               iconOnly
                             />
                           </div>
+
+                          {getTrainingAwards(row).length > 0 ? (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {getTrainingAwards(row)
+                                .slice(0, 3)
+                                .map((award) => (
+                                  <span
+                                    key={award.key}
+                                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${awardClass(
+                                      award.tone
+                                    )}`}
+                                  >
+                                    <span>{award.icon}</span>
+                                    <span>{award.shortLabel}</span>
+                                  </span>
+                                ))}
+                            </div>
+                          ) : null}
                         </td>
 
                         <td className="px-2 py-2 text-right font-semibold text-slate-900">

@@ -59,6 +59,104 @@ export function movementClass(d: number | null) {
   return "text-red-600";
 }
 
+export type TrainingAward = {
+  key:
+    | "leader"
+    | "win_streak"
+    | "loss_streak"
+    | "attendance_streak"
+    | "riser"
+    | "evergreen";
+  label: string;
+  shortLabel: string;
+  icon: string;
+  tone: "dark" | "green" | "red" | "blue" | "slate" | "amber";
+};
+
+export function getTrainingAwards(row: RankRow): TrainingAward[] {
+  const awards: TrainingAward[] = [];
+
+  if (row.rank === 1) {
+    awards.push({
+      key: "leader",
+      label: "Tabellenführer",
+      shortLabel: "Leader",
+      icon: "👑",
+      tone: "dark",
+    });
+  }
+
+  if (row.currentWinStreak >= 3) {
+    awards.push({
+      key: "win_streak",
+      label: `${row.currentWinStreak} Siege am Stück`,
+      shortLabel: "Siegesserie",
+      icon: "🔥",
+      tone: "green",
+    });
+  }
+
+  if (row.currentLossStreak >= 3) {
+    awards.push({
+      key: "loss_streak",
+      label: `${row.currentLossStreak} Niederlagen am Stück`,
+      shortLabel: "Pechvogel",
+      icon: "🐦",
+      tone: "red",
+    });
+  }
+
+  if (row.currentAttendanceStreak >= 5) {
+    awards.push({
+      key: "attendance_streak",
+      label: `${row.currentAttendanceStreak}x in Folge dabei`,
+      shortLabel: "Immer dabei",
+      icon: "✅",
+      tone: "blue",
+    });
+  }
+
+  if (row.deltaRank !== null && row.deltaRank >= 2) {
+    awards.push({
+      key: "riser",
+      label: `${row.deltaRank} Plätze gutgemacht`,
+      shortLabel: "Aufsteiger",
+      icon: "🚀",
+      tone: "amber",
+    });
+  }
+
+  if (row.sessions >= 10) {
+    awards.push({
+      key: "evergreen",
+      label: `${row.sessions} Teilnahmen`,
+      shortLabel: "Dauerbrenner",
+      icon: "🧱",
+      tone: "slate",
+    });
+  }
+
+  return awards;
+}
+
+export function awardClass(tone: TrainingAward["tone"]) {
+  switch (tone) {
+    case "dark":
+      return "border-slate-900 bg-slate-950 text-white";
+    case "green":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "red":
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    case "blue":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+    case "amber":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "slate":
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-700";
+  }
+}
+
 export function buildStandingsShareText(
   selectedLabel: string,
   cardRows: RankRow[],

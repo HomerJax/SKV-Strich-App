@@ -29,6 +29,9 @@ type StandingRow = {
   wins: number;
   sessions: number;
   mvps: number;
+  currentWinStreak: number;
+  currentLossStreak: number;
+  currentAttendanceStreak: number;
 };
 
 type RankRow = StandingRow & {
@@ -90,6 +93,165 @@ async function fetchSessions(
   }
 
   return (data ?? []) as Session[];
+}
+
+function buildPresentPlayersBySession(rows: SessionPlayerRow[]) {
+  const presentBySession = new Map<number, Set<number>>();
+
+  for (const row of rows) {
+    if (!presentBySession.has(row.session_id)) {
+      presentBySession.set(row.session_id, new Set<number>());
+    }
+
+    presentBySession.get(row.session_id)!.add(row.player_id);
+  }
+
+  return presentBySession;
+}
+
+function buildTeamPlayerSets(rows: TeamPlayerRow[]) {
+  const playersByTeamSet = new Map<number, Set<number>>();
+
+  for (const row of rows) {
+    if (!playersByTeamSet.has(row.team_id)) {
+      playersByTeamSet.set(row.team_id, new Set<number>());
+    }
+
+    playersByTeamSet.get(row.team_id)!.add(row.player_id);
+  }
+
+  return playersByTeamSet;
+}
+
+function buildDecidedResultMap(results: ResultSourceRow[]) {
+  const resultBySession = new Map<
+    number,
+    {
+      winnerTeamId: number;
+      loserTeamId: number;
+    }
+  >();
+
+  for (const result of results) {
+    const ga = result.goals_team_a;
+    const gb = result.goals_team_b;
+
+    if (
+      ga == null ||
+      gb == null ||
+      ga === gb ||
+      result.team_a_id == null ||
+      result.team_b_id == null
+    ) {
+      continue;
+    }
+
+    resultBySession.set(result.session_id, {
+      winnerTeamId: ga > gb ? result.team_a_id : result.team_b_id,
+      loserTeamId: ga > gb ? result.team_b_id : result.team_a_id,
+    });
+  }
+
+  return resultBySession;
+}
+
+function computeCurrentTrainingStreaks({
+  sessions,
+  presentRows,
+  results,
+  teamPlayers,
+  nonGuestPlayerIds,
+}: {
+  sessions: Session[];
+  presentRows: SessionPlayerRow[];
+  results: ResultSourceRow[];
+  teamPlayers: TeamPlayerRow[];
+  nonGuestPlayerIds: Set<number>;
+}) {
+  const presentBySession = buildPresentPlayersBySession(presentRows);
+  const teamPlayerSets = buildTeamPlayerSets(teamPlayers);
+  const resultBySession = buildDecidedResultMap(results);
+  const sessionsDesc = [...sessions].sort((a, b) => b.date.localeCompare(a.date));
+
+  const currentAttendanceStreak = new Map<number, number>();
+  const currentWinStreak = new Map<number, number>();
+  const currentLossStreak = new Map<number, number>();
+
+  for (const playerId of nonGuestPlayerIds) {
+    let attendanceStreak = 0;
+
+    for (const session of sessionsDesc) {
+      const present = presentBySession.get(session.id)?.has(playerId) === true;
+
+      if (!present) {
+        break;
+      }
+
+      attendanceStreak += 1;
+    }
+
+    currentAttendanceStreak.set(playerId, attendanceStreak);
+
+    let winStreak = 0;
+
+    for (const session of sessionsDesc) {
+      const result = resultBySession.get(session.id);
+
+      if (!result) {
+        continue;
+      }
+
+      const present = presentBySession.get(session.id)?.has(playerId) === true;
+
+      if (!present) {
+        break;
+      }
+
+      const winnerPlayers = teamPlayerSets.get(result.winnerTeamId);
+
+      if (winnerPlayers?.has(playerId)) {
+        winStreak += 1;
+        continue;
+      }
+
+      break;
+    }
+
+    currentWinStreak.set(playerId, winStreak);
+
+    let lossStreak = 0;
+
+    for (const session of sessionsDesc) {
+      const result = resultBySession.get(session.id);
+
+      if (!result) {
+        continue;
+      }
+
+      const present = presentBySession.get(session.id)?.has(playerId) === true;
+
+      if (!present) {
+        break;
+      }
+
+      const loserPlayers = teamPlayerSets.get(result.loserTeamId);
+
+      if (loserPlayers?.has(playerId)) {
+        lossStreak += 1;
+        continue;
+      }
+
+      break;
+    }
+
+    currentLossStreak.set(playerId, lossStreak);
+  }
+
+  return {
+    currentAttendanceStreak,
+    currentWinStreak,
+    currentLossStreak,
+  };
 }
 
 function buildMvpWinsMap(votes: MvpVoteRow[]) {
@@ -284,6 +446,14 @@ async function computeStandings(
     }
   }
 
+  const streaks = computeCurrentTrainingStreaks({
+    sessions,
+    presentRows,
+    results,
+    teamPlayers,
+    nonGuestPlayerIds,
+  });
+
   const finalizedSessionIds = sessions
     .filter((session) => session.mvp_voting_finalized_at !== null)
     .map((session) => session.id);
@@ -324,6 +494,9 @@ async function computeStandings(
       wins: winsCount.get(playerId) ?? 0,
       sessions: sessionsCount.get(playerId) ?? 0,
       mvps: mvpWinsMap.get(playerId) ?? 0,
+      currentWinStreak: streaks.currentWinStreak.get(playerId) ?? 0,
+      currentLossStreak: streaks.currentLossStreak.get(playerId) ?? 0,
+      currentAttendanceStreak: streaks.currentAttendanceStreak.get(playerId) ?? 0,
     };
   });
 }

@@ -26,6 +26,9 @@ export type StandingRow = {
   wins: number;
   sessions: number;
   mvps: number;
+  currentWinStreak: number;
+  currentLossStreak: number;
+  currentAttendanceStreak: number;
 };
 
 export type RankRow = StandingRow & {
