@@ -69,7 +69,7 @@ export type TrainingAward = {
     | "evergreen";
   label: string;
   shortLabel: string;
-  icon: string;
+  mark: string;
   tone: "dark" | "green" | "red" | "blue" | "slate" | "amber";
 };
 
@@ -81,7 +81,7 @@ export function getTrainingAwards(row: RankRow): TrainingAward[] {
       key: "leader",
       label: "Tabellenführer",
       shortLabel: "Leader",
-      icon: "👑",
+      mark: "L",
       tone: "dark",
     });
   }
@@ -91,7 +91,7 @@ export function getTrainingAwards(row: RankRow): TrainingAward[] {
       key: "win_streak",
       label: `${row.currentWinStreak} Siege am Stück`,
       shortLabel: "Siegesserie",
-      icon: "🔥",
+      mark: "S",
       tone: "green",
     });
   }
@@ -101,7 +101,7 @@ export function getTrainingAwards(row: RankRow): TrainingAward[] {
       key: "loss_streak",
       label: `${row.currentLossStreak} Niederlagen am Stück`,
       shortLabel: "Pechvogel",
-      icon: "🐦",
+      mark: "P",
       tone: "red",
     });
   }
@@ -111,7 +111,7 @@ export function getTrainingAwards(row: RankRow): TrainingAward[] {
       key: "attendance_streak",
       label: `${row.currentAttendanceStreak}x in Folge dabei`,
       shortLabel: "Immer dabei",
-      icon: "✅",
+      mark: "I",
       tone: "blue",
     });
   }
@@ -121,7 +121,7 @@ export function getTrainingAwards(row: RankRow): TrainingAward[] {
       key: "riser",
       label: `${row.deltaRank} Plätze gutgemacht`,
       shortLabel: "Aufsteiger",
-      icon: "🚀",
+      mark: "A",
       tone: "amber",
     });
   }
@@ -131,7 +131,7 @@ export function getTrainingAwards(row: RankRow): TrainingAward[] {
       key: "evergreen",
       label: `${row.sessions} Teilnahmen`,
       shortLabel: "Dauerbrenner",
-      icon: "🧱",
+      mark: "D",
       tone: "slate",
     });
   }

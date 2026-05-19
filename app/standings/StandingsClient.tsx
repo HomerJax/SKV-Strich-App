@@ -18,6 +18,7 @@ import {
   movementClass,
   movementText,
 } from "./standings-ui";
+import type { TrainingAward } from "./standings-ui";
 
 type RankingCard = {
   index: number;
@@ -147,6 +148,10 @@ export default function StandingsClient({
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [sharingCardIndex, setSharingCardIndex] = useState<number | null>(null);
+  const [activeAward, setActiveAward] = useState<{
+    playerName: string;
+    award: TrainingAward;
+  } | null>(null);
 
   const options = useMemo(() => {
     const sorted = [...seasons].sort((a, b) => b.id - a.id);
@@ -283,6 +288,46 @@ export default function StandingsClient({
   return (
     <>
       <div className="space-y-4">
+        {activeAward ? (
+          <div className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-sm rounded-[22px] border border-slate-200 bg-white p-4 shadow-2xl sm:bottom-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <div
+                  className={`flex h-10 min-w-10 items-center justify-center rounded-2xl border text-sm font-black shadow-sm ${awardClass(
+                    activeAward.award.tone
+                  )}`}
+                >
+                  {activeAward.award.mark}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                    Award
+                  </div>
+                  <div className="mt-1 text-base font-black tracking-tight text-slate-950">
+                    {activeAward.award.shortLabel}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-600">
+                    {activeAward.playerName}
+                  </div>
+                  <div className="mt-2 text-sm leading-5 text-slate-500">
+                    {activeAward.award.label}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveAward(null)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-black text-slate-500"
+                aria-label="Award Erklärung schließen"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <PageHero
           eyebrow="Tabellen"
           title="Tabellenübersicht"
@@ -398,7 +443,6 @@ export default function StandingsClient({
                       <th className="w-20 px-2 py-2 text-left">Platz</th>
                       <th className="px-2 py-2 text-left">Spieler</th>
                       <th className="w-20 px-2 py-2 text-right">Siege</th>
-                      <th className="w-20 px-2 py-2 text-right">MVPs</th>
                       <th className="w-28 px-2 py-2 text-right">
                         Teilnahmen
                       </th>
@@ -442,17 +486,24 @@ export default function StandingsClient({
                           {getTrainingAwards(row).length > 0 ? (
                             <div className="mt-1.5 flex flex-wrap gap-1">
                               {getTrainingAwards(row)
-                                .slice(0, 3)
+                                .slice(0, 4)
                                 .map((award) => (
-                                  <span
+                                  <button
                                     key={award.key}
-                                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${awardClass(
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveAward({
+                                        playerName: getPlayerDisplayName(row),
+                                        award,
+                                      })
+                                    }
+                                    title={`${award.shortLabel}: ${award.label}`}
+                                    className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1.5 text-[9px] font-black leading-none shadow-sm transition hover:scale-105 ${awardClass(
                                       award.tone
                                     )}`}
                                   >
-                                    <span>{award.icon}</span>
-                                    <span>{award.shortLabel}</span>
-                                  </span>
+                                    {award.mark}
+                                  </button>
                                 ))}
                             </div>
                           ) : null}
@@ -460,10 +511,6 @@ export default function StandingsClient({
 
                         <td className="px-2 py-2 text-right font-semibold text-slate-900">
                           {row.wins}
-                        </td>
-
-                        <td className="px-2 py-2 text-right font-semibold text-amber-700">
-                          {row.mvps}
                         </td>
 
                         <td className="px-2 py-2 text-right text-slate-700">

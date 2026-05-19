@@ -56,7 +56,7 @@ function MiniRow({ row, index }: { row: RankRow; index: number }) {
                     key={award.key}
                     className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[8px] font-black text-slate-600"
                   >
-                    {award.icon} {award.shortLabel}
+                    {award.mark} {award.shortLabel}
                   </span>
                 ))}
             </div>
@@ -162,7 +162,7 @@ export default function StandingsShareCard({
                           key={award.key}
                           className="rounded-full bg-slate-950 px-2 py-1 text-[9px] font-black text-white"
                         >
-                          {award.icon} {award.shortLabel}
+                          {award.mark} {award.shortLabel}
                         </span>
                       ))}
                   </div>
@@ -182,9 +182,11 @@ export default function StandingsShareCard({
                 </div>
               </div>
               <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
-                <div className="text-xl font-black text-slate-950">{leader.mvps}</div>
+                <div className="text-xl font-black text-slate-950">
+                  {getTrainingAwards(leader).length}
+                </div>
                 <div className="text-[9px] font-black uppercase tracking-wide text-slate-400">
-                  MVPs
+                  Awards
                 </div>
               </div>
               <div className="rounded-2xl bg-slate-100 px-3 py-2 text-center">
@@ -228,7 +230,7 @@ export default function StandingsShareCard({
                           key={award.key}
                           className="rounded-full bg-white/10 px-1.5 py-0.5 text-[8px] font-black text-white/70"
                         >
-                          {award.icon} {award.shortLabel}
+                          {award.mark} {award.shortLabel}
                         </span>
                       ))}
                   </div>
