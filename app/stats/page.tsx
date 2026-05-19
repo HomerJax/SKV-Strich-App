@@ -987,13 +987,38 @@ export default async function StatsPage({ searchParams }: PageProps) {
               />
 
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-900">
-                  Coming Soon
+                <div className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-800">
+                  Preview
                 </div>
-                <p className="mt-1 text-sm text-slate-600">
-                  Weitere Badges folgen. Hier werden später zusätzliche Erfolge
-                  und Auszeichnungen für Training, Teilnahme, Serien und
-                  besondere Leistungen sichtbar.
+
+                <div className="mt-3 text-sm font-black text-slate-950">
+                  Trophäenraum kommt
+                </div>
+
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Hier sammeln Spieler später ihre freigeschalteten Awards:
+                  Siegesserien, Teilnahme-Serien, Aufsteiger-Momente,
+                  MVP-Badges und weitere Trainings-Erfolge.
+                </p>
+
+                <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-600 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                    Freigeschaltete Badges sichtbar
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                    Offene Badges ausgegraut
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                    Häufigkeit & beste Serien
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                    Später als Share Card teilbar
+                  </div>
+                </div>
+
+                <p className="mt-3 text-xs leading-5 text-slate-500">
+                  Wichtig: Trainings-Awards zählen offiziell erst ab eurem Go.
+                  Alte Daten bleiben bis dahin nur Preview/Test.
                 </p>
               </div>
             </div>
