@@ -22,31 +22,31 @@ const trainingBlocks = [
     icon: Users,
   },
   {
-    title: "Teams",
-    text: "Fair und automatisch erstellte Teams – mit dem strikr Algorithmus.",
+    title: "Faire Teams",
+    text: "Teams schnell erstellen, anpassen und direkt ins Training starten.",
     icon: Sparkles,
   },
   {
-    title: "Ergebnis",
-    text: "Das Training bleibt dokumentiert statt vergessen.",
-    icon: Trophy,
+    title: "Ergebnis & Siegerfoto",
+    text: "Ergebnis speichern, Moment festhalten und direkt teilbar machen.",
+    icon: Camera,
   },
 ];
 
 const competitionBlocks = [
   {
-    title: "MVP",
-    text: "Leistung wird sichtbar, ohne das Teamgefühl zu verlieren.",
+    title: "MVP Voting",
+    text: "4 MVP-Abstimmungen pro Saison kostenlos testen – mit Pro unbegrenzt.",
     icon: Star,
   },
   {
-    title: "Tabelle",
-    text: "Siege und Teilnahmen fließen in eure Saison – und treiben euch weiter an.",
+    title: "Tabelle & Share Cards",
+    text: "Siege, Teilnahmen und Rankings werden sichtbar und teilbar.",
     icon: Trophy,
   },
   {
-    title: "Statistiken",
-    text: "Jeder Spieler sieht Fortschritt, Ergebnisse und Entwicklung auf einen Blick.",
+    title: "Stats & Awards",
+    text: "Form, Team Impact, Badges und Trophäenraum für mehr Motivation.",
     icon: ChartColumn,
   },
 ];
@@ -121,7 +121,7 @@ export default async function LandingPage() {
 
           <div className="mt-8 inline-block rounded-2xl bg-black px-7 py-3.5">
             <p className="text-sm font-semibold text-white sm:text-base">
-              Macht euer Training zum Erlebnis!
+              Euer Training. Mehr Struktur. Mehr Emotion.
             </p>
           </div>
         </div>
@@ -136,12 +136,12 @@ export default async function LandingPage() {
             </div>
 
             <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-              Mehr als nur Anwesenheit und Teams.
+              Aus jedem Training wird ein Team-Moment.
             </h2>
 
             <p className="mt-4 text-base leading-7 text-white/75 sm:text-lg">
-              strikr bringt Struktur ins Training – und macht daraus etwas, das
-              im Team hängen bleibt.
+              strikr organisiert Anwesenheit, Teams und Ergebnisse – und macht
+              daraus MVP-Momente, Share Cards, Tabellen und echte Motivation.
             </p>
           </div>
         </div>
@@ -155,7 +155,7 @@ export default async function LandingPage() {
           </div>
 
           <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-            Alles, was euer Training braucht.
+            Der komplette Trainingsflow in einer App.
           </h2>
         </div>
 
@@ -175,7 +175,7 @@ export default async function LandingPage() {
             </div>
 
             <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-              Motivation, die bleibt.
+              Der Teil, über den danach gesprochen wird.
             </h2>
           </div>
 
@@ -196,12 +196,12 @@ export default async function LandingPage() {
             </div>
 
             <h2 className="mt-4 text-3xl font-black sm:text-4xl">
-              Und am Ende bleibt mehr als nur ein Ergebnis.
+              Nicht nur spielen. Festhalten, teilen, feiern.
             </h2>
 
             <p className="mt-4 text-base leading-7 text-zinc-600 sm:text-lg">
-              Siegerfoto, MVP und Saison machen aus Training ein Erlebnis, das
-              bleibt.
+              Siegerfoto, Ergebnis-Card, MVP Voting und Tabelle machen aus
+              einem normalen Training einen Moment fürs Team.
             </p>
           </div>
         </div>
@@ -216,13 +216,13 @@ export default async function LandingPage() {
             </div>
 
             <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-              Kostenlos starten. Pro freischalten, wenn es bei euch läuft.
+              Kostenlos starten. Pro nutzen, wenn strikr bei euch läuft.
             </h2>
 
             <p className="mt-4 text-base leading-7 text-zinc-600 sm:text-lg">
-              strikr bleibt bewusst einfach: Teams können kostenlos starten.
-              Die emotionalen Extras wie Stats, Tabelle, MVP-Entwicklung,
-              Badges und Share-Momente sind Teil von strikr Pro.
+              Free ist zum Ausprobieren da. Mit Pro wird strikr zum dauerhaften
+              Team-System: unbegrenztes MVP Voting, Share Cards, Stats, Awards
+              und Trophäenraum.
             </p>
           </div>
 
@@ -237,8 +237,8 @@ export default async function LandingPage() {
               </h3>
 
               <p className="mt-3 text-sm leading-6 text-zinc-600">
-                Für Teams, die strikr ausprobieren und den Trainingsflow
-                kennenlernen möchten.
+                Für Teams, die strikr testen und den Trainingsflow kennenlernen
+                möchten.
               </p>
 
               <div className="mt-6 space-y-3 text-sm font-semibold text-zinc-800">
@@ -247,11 +247,12 @@ export default async function LandingPage() {
                 <div>✓ Anwesenheit erfassen</div>
                 <div>✓ Teams erstellen</div>
                 <div>✓ Ergebnis speichern</div>
+                <div>✓ 4 MVP-Abstimmungen pro Saison</div>
               </div>
 
               <div className="mt-6 rounded-2xl bg-white p-4 text-sm leading-6 text-zinc-600">
-                Premium-Bereiche bleiben sichtbar, sind in Free aber teilweise
-                gesperrt oder als Pro markiert.
+                Perfekt zum Reinkommen: Der Kernflow bleibt einfach, Pro-Features
+                sind sichtbar und können später freigeschaltet werden.
               </div>
             </div>
 
@@ -265,8 +266,8 @@ export default async function LandingPage() {
               </h3>
 
               <p className="mt-3 text-sm leading-6 text-white/70">
-                Für Teams, die mehr Motivation, Sichtbarkeit und echte
-                Team-Momente aus jedem Training machen wollen.
+                Für Teams, die strikr dauerhaft nutzen und aus jedem Training
+                mehr Motivation, Sichtbarkeit und Team-Momente machen wollen.
               </p>
 
               <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -280,10 +281,10 @@ export default async function LandingPage() {
               </div>
 
               <div className="mt-6 space-y-3 text-sm font-semibold text-white">
-                <div>✓ Stats und Formkurven</div>
-                <div>✓ Tabelle und Rankings</div>
-                <div>✓ MVP- und Badge-Fortschritt</div>
-                <div>✓ Premium Share-Momente</div>
+                <div>✓ Unbegrenztes MVP Voting</div>
+                <div>✓ Stats, Formkurven und Team Impact</div>
+                <div>✓ Tabelle, Rankings und Share Cards</div>
+                <div>✓ MVP-Badges, Awards und Trophäenraum</div>
                 <div>✓ Saisons, Branding und erweiterte Einstellungen</div>
               </div>
 
@@ -328,7 +329,7 @@ export default async function LandingPage() {
       <section className="border-t border-black/10">
         <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 lg:px-8">
           <h2 className="text-3xl font-black sm:text-4xl">
-            Startet jetzt mit strikr.
+            Startet kostenlos. Wenn es passt, wird Pro daraus.
           </h2>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
