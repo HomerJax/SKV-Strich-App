@@ -426,6 +426,14 @@ export default function StandingsClient({
 
         {!loading && !err && rows.length > 0 ? (
           <>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900 shadow-sm">
+              <div className="font-black">Awards Preview</div>
+              <div className="mt-0.5">
+                Die Awards werden aktuell nur testweise aus bestehenden Daten berechnet.
+                Offiziell zählen Serien und Badges erst ab eurem späteren Go.
+              </div>
+            </div>
+
             <div
               id="export-standings"
               className="rounded-xl border border-slate-200 bg-white p-3"
