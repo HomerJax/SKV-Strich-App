@@ -440,11 +440,11 @@ export default function StandingsClient({
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-[11px] text-slate-600">
                     <tr>
-                      <th className="w-20 px-2 py-2 text-left">Platz</th>
+                      <th className="w-14 px-2 py-2 text-left">Platz</th>
                       <th className="px-2 py-2 text-left">Spieler</th>
-                      <th className="w-20 px-2 py-2 text-right">Siege</th>
-                      <th className="w-28 px-2 py-2 text-right">
-                        Teilnahmen
+                      <th className="w-14 px-1.5 py-2 text-right">Siege</th>
+                      <th className="w-20 px-1.5 py-2 text-right">
+                        Teiln.
                       </th>
                     </tr>
                   </thead>
@@ -470,23 +470,21 @@ export default function StandingsClient({
                         </td>
 
                         <td className="px-2 py-2 align-middle">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-slate-900">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="min-w-0 truncate whitespace-nowrap font-medium text-slate-900">
                               {getPlayerDisplayName(row)}
                             </span>
 
-                            <PlayerBadge
-                              mvpCount={row.mvps}
-                              size="sm"
-                              hideIfNone
-                              iconOnly
-                            />
-                          </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <PlayerBadge
+                                mvpCount={row.mvps}
+                                size="sm"
+                                hideIfNone
+                                iconOnly
+                              />
 
-                          {getTrainingAwards(row).length > 0 ? (
-                            <div className="mt-1.5 flex flex-wrap gap-1">
                               {getTrainingAwards(row)
-                                .slice(0, 4)
+                                .slice(0, 3)
                                 .map((award) => (
                                   <button
                                     key={award.key}
@@ -498,22 +496,20 @@ export default function StandingsClient({
                                       })
                                     }
                                     title={`${award.shortLabel}: ${award.label}`}
-                                    className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1.5 text-[9px] font-black leading-none shadow-sm transition hover:scale-105 ${awardClass(
-                                      award.tone
-                                    )}`}
+                                    className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[7px] border border-slate-300 bg-gradient-to-br from-white to-slate-100 px-1 text-[8px] font-black leading-none text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(15,23,42,0.12)] transition hover:scale-105"
                                   >
                                     {award.mark}
                                   </button>
                                 ))}
                             </div>
-                          ) : null}
+                          </div>
                         </td>
 
-                        <td className="px-2 py-2 text-right font-semibold text-slate-900">
+                        <td className="px-1.5 py-2 text-right font-semibold text-slate-900">
                           {row.wins}
                         </td>
 
-                        <td className="px-2 py-2 text-right text-slate-700">
+                        <td className="px-1.5 py-2 text-right text-slate-700">
                           {row.sessions}
                         </td>
                       </tr>
