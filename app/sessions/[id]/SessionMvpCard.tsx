@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import PlayerBadge from "@/components/badges/PlayerBadge";
+import ProFeatureLock from "@/components/billing/ProFeatureLock";
 import { getBadgeMetaFromMvpCount } from "@/lib/badges/helpers";
 import { preloadMvpShareImage, shareMvpResult } from "@/lib/share/mvp-share";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
@@ -28,6 +29,14 @@ type BadgeUpgrade = {
   newMvpCount: number;
 };
 
+type MvpVotingAccess = {
+  isPro: boolean;
+  allowed: boolean;
+  usedThisSeason: number;
+  freeLimit: number;
+  reason: "pro" | "free_available" | "free_limit_reached";
+};
+
 type MvpState = {
   sessionId: number;
   hasResult: boolean;
@@ -43,6 +52,7 @@ type MvpState = {
   votedByNames: string[];
   clubName?: string | null;
   clubLogoUrl?: string | null;
+  mvpAccess?: MvpVotingAccess;
   results: {
     winners: ResultEntry[];
     leaderboard: ResultEntry[];
@@ -509,6 +519,12 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   }
 
   const votingOpen = state.votingOpen;
+  const mvpAccess = state.mvpAccess ?? null;
+  const showMvpLimitLock =
+    votingOpen && mvpAccess?.allowed === false && mvpAccess.reason === "free_limit_reached";
+  const freeMvpSlotsLeft = mvpAccess
+    ? Math.max(0, mvpAccess.freeLimit - mvpAccess.usedThisSeason)
+    : null;
   const badgeUpgrade = state.results?.badgeUpgrade ?? null;
   const badgeUpgrades = state.results?.badgeUpgrades ?? [];
   const progressPercent =
@@ -659,6 +675,16 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   }
                   tone={pillTone}
                 />
+
+                {mvpAccess && !mvpAccess.isPro ? (
+                  <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    Free: {mvpAccess.usedThisSeason}/{mvpAccess.freeLimit} MVPs genutzt
+                  </span>
+                ) : mvpAccess?.isPro ? (
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                    Pro: unbegrenzt
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
@@ -681,7 +707,22 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             </div>
           ) : null}
 
-          {votingOpen ? (
+          {showMvpLimitLock ? (
+            <div className="mt-4">
+              <ProFeatureLock
+                clubName={state.clubName}
+                title="MVP Voting unbegrenzt mit strikr Pro"
+                description={`Ihr habt die ${mvpAccess?.freeLimit ?? 4} kostenlosen MVP-Abstimmungen dieser Saison genutzt. Mit strikr Pro könnt ihr MVP Voting unbegrenzt weiter nutzen.`}
+                featureList={[
+                  "Unbegrenzte MVP-Abstimmungen pro Saison",
+                  "MVP-Badges und Fortschritt",
+                  "MVP Share Cards",
+                  "Awards, Serien und Trophäenraum",
+                ]}
+                compact
+              />
+            </div>
+          ) : votingOpen ? (
             <>
               <div
                 className={`mt-4 rounded-2xl border px-4 py-4 ${
