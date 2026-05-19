@@ -131,78 +131,12 @@ type StandingsApiResponse = {
   error?: string;
 };
 
-function AwardIcon({ award }: { award: TrainingAward }) {
-  const stroke = "currentColor";
-
-  const icon =
-    award.key === "leader" ? (
-      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
-        <path
-          d="M5 17h14l1-9-5 4-3-6-3 6-5-4 1 9Z"
-          fill="none"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <path d="M6 20h12" stroke={stroke} strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    ) : award.key === "win_streak" ? (
-      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
-        <path
-          d="M13 3 6 13h5l-1 8 8-11h-5l0-7Z"
-          fill="none"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ) : award.key === "loss_streak" ? (
-      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
-        <path
-          d="M7 7c3-3 7-3 10 0M8 12h8M10 17h4"
-          fill="none"
-          stroke={stroke}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-    ) : award.key === "attendance_streak" ? (
-      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
-        <path
-          d="m5 12 4 4L19 6"
-          fill="none"
-          stroke={stroke}
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ) : award.key === "riser" ? (
-      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
-        <path
-          d="M5 17 17 5M10 5h7v7"
-          fill="none"
-          stroke={stroke}
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ) : (
-      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
-        <path
-          d="M5 8h14M5 13h14M5 18h14M8 5v16M16 5v16"
-          fill="none"
-          stroke={stroke}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      </svg>
-    );
+function AwardSummaryBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
 
   return (
-    <span className="flex h-full w-full items-center justify-center">
-      {icon}
+    <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-slate-300/70 bg-[radial-gradient(circle_at_35%_22%,#f8fafc_0%,#cbd5e1_36%,#334155_100%)] px-1 text-[8px] font-black leading-none text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(15,23,42,0.22)] ring-1 ring-white/70">
+      {count > 1 ? `+${count}` : "•"}
     </span>
   );
 }
@@ -559,24 +493,42 @@ export default function StandingsClient({
                                 iconOnly
                               />
 
-                              {getTrainingAwards(row)
-                                .slice(0, 2)
-                                .map((award) => (
-                                  <button
-                                    key={award.key}
-                                    type="button"
-                                    onClick={() =>
-                                      setActiveAward({
-                                        playerName: getPlayerDisplayName(row),
-                                        award,
-                                      })
-                                    }
-                                    title={`${award.shortLabel}: ${award.label}`}
-                                    className="inline-flex h-[17px] w-[17px] items-center justify-center rounded-[6px] border border-white/10 bg-[linear-gradient(145deg,#111827_0%,#020617_58%,#334155_100%)] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_1px_3px_rgba(15,23,42,0.28)] ring-1 ring-slate-950/10 transition hover:scale-105"
-                                  >
-                                    <AwardIcon award={award} />
-                                  </button>
-                                ))}
+                              {getTrainingAwards(row).length > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const awards = getTrainingAwards(row);
+                                    const firstAward = awards[0];
+
+                                    if (!firstAward) return;
+
+                                    setActiveAward({
+                                      playerName: getPlayerDisplayName(row),
+                                      award: {
+                                        ...firstAward,
+                                        shortLabel:
+                                          awards.length > 1
+                                            ? `${awards.length} Awards`
+                                            : firstAward.shortLabel,
+                                        label:
+                                          awards.length > 1
+                                            ? awards
+                                                .map((award) => `${award.shortLabel}: ${award.label}`)
+                                                .join(" · ")
+                                            : firstAward.label,
+                                      },
+                                    });
+                                  }}
+                                  title={`${getTrainingAwards(row).length} Award${
+                                    getTrainingAwards(row).length === 1 ? "" : "s"
+                                  }`}
+                                  className="inline-flex transition hover:scale-105"
+                                >
+                                  <AwardSummaryBadge
+                                    count={getTrainingAwards(row).length}
+                                  />
+                                </button>
+                              ) : null}
                             </div>
                           </div>
                         </td>
