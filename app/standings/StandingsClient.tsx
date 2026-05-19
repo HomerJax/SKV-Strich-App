@@ -127,6 +127,8 @@ type StandingsClientProps = {
 type StandingsApiResponse = {
   seasons: Season[];
   selected: string;
+  awardsStartedAt?: string | null;
+  awardsOfficial?: boolean;
   rows: RankRow[];
   error?: string;
 };
@@ -158,6 +160,8 @@ export default function StandingsClient({
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [sharingCardIndex, setSharingCardIndex] = useState<number | null>(null);
+  const [awardsStartedAt, setAwardsStartedAt] = useState<string | null>(null);
+  const [awardsOfficial, setAwardsOfficial] = useState(false);
   const [activeAward, setActiveAward] = useState<{
     playerName: string;
     award: TrainingAward;
@@ -426,11 +430,22 @@ export default function StandingsClient({
 
         {!loading && !err && rows.length > 0 ? (
           <>
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900 shadow-sm">
-              <div className="font-black">Awards Preview</div>
+            <div
+              className={`rounded-2xl border px-4 py-3 text-xs leading-5 shadow-sm ${
+                awardsOfficial
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                  : "border-amber-200 bg-amber-50 text-amber-900"
+              }`}
+            >
+              <div className="font-black">
+                {awardsOfficial ? "Awards aktiv" : "Awards Preview"}
+              </div>
               <div className="mt-0.5">
-                Die Awards werden aktuell nur testweise aus bestehenden Daten berechnet.
-                Offiziell zählen Serien und Badges erst ab eurem späteren Go.
+                {awardsOfficial
+                  ? `Trainings-Awards zählen offiziell seit ${new Date(
+                      `${awardsStartedAt}T12:00:00`
+                    ).toLocaleDateString("de-DE")}.`
+                  : "Die Awards werden aktuell nur testweise aus bestehenden Daten berechnet. Offiziell zählen Serien und Badges erst ab eurem späteren Go."}
               </div>
             </div>
 

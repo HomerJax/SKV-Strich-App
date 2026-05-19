@@ -13,6 +13,10 @@ type Season = {
   end_date?: string | null;
 };
 
+type ClubSettings = {
+  awards_started_at: string | null;
+};
+
 type Session = {
   id: number;
   date: string;
@@ -303,7 +307,8 @@ function buildMvpWinsMap(votes: MvpVoteRow[]) {
 async function computeStandings(
   clubId: string,
   sessions: Session[],
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  awardsStartedAt: string | null = null
 ): Promise<StandingRow[]> {
   const sessionIds = sessions.map((session) => session.id);
 
@@ -446,10 +451,20 @@ async function computeStandings(
     }
   }
 
+  const awardSessions = awardsStartedAt
+    ? sessions.filter((session) => session.date >= awardsStartedAt)
+    : sessions;
+
+  const awardSessionIds = new Set(awardSessions.map((session) => session.id));
+
   const streaks = computeCurrentTrainingStreaks({
-    sessions,
-    presentRows,
-    results,
+    sessions: awardSessions,
+    presentRows: awardsStartedAt
+      ? presentRows.filter((row) => awardSessionIds.has(row.session_id))
+      : presentRows,
+    results: awardsStartedAt
+      ? results.filter((result) => awardSessionIds.has(result.session_id))
+      : results,
     teamPlayers,
     nonGuestPlayerIds,
   });
@@ -547,12 +562,27 @@ export async function GET(request: NextRequest) {
     const selected =
       requestedSeason ?? (seasons.length > 0 ? String(seasons[0].id) : "all");
 
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("club_settings")
+      .select("awards_started_at")
+      .eq("club_id", clubId)
+      .maybeSingle<ClubSettings>();
+
+    if (settingsError) {
+      return NextResponse.json({ error: settingsError.message }, { status: 500 });
+    }
+
+    const awardsStartedAt = settingsData?.awards_started_at ?? null;
+    const awardsOfficial = Boolean(awardsStartedAt);
+
     const sessions = await fetchSessions(clubId, selected, supabase);
 
     if (sessions.length === 0) {
       return NextResponse.json({
         seasons,
         selected,
+        awardsStartedAt,
+        awardsOfficial,
         rows: [],
       });
     }
@@ -561,12 +591,12 @@ export async function GET(request: NextRequest) {
       sessions.length >= 2 ? sessions.slice(0, sessions.length - 1) : null;
 
     const currentRows = addRanks(
-      await computeStandings(clubId, sessions, supabase)
+      await computeStandings(clubId, sessions, supabase, awardsStartedAt)
     ) as RankRow[];
 
     const previousRows = previousSessions
       ? (addRanks(
-          await computeStandings(clubId, previousSessions, supabase)
+          await computeStandings(clubId, previousSessions, supabase, awardsStartedAt)
         ) as RankRow[])
       : null;
 
@@ -575,6 +605,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       seasons,
       selected,
+      awardsStartedAt,
+      awardsOfficial,
       rows,
     });
   } catch (error) {

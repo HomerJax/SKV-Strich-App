@@ -20,6 +20,7 @@ type ClubSettingsRow = {
   season_end_day: number | null;
   season_end_month: number | null;
   season_year_mode: string | null;
+  awards_started_at: string | null;
 };
 
 function redirectWithParams(
@@ -67,6 +68,26 @@ function isValidMonth(value: number) {
 
 function isValidYearMode(value: string) {
   return value === "start_year" || value === "end_year";
+}
+
+function parseOptionalDate(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return null;
+
+  const trimmed = value.trim();
+
+  if (!trimmed) return null;
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return "invalid";
+  }
+
+  const date = new Date(`${trimmed}T12:00:00Z`);
+
+  if (Number.isNaN(date.getTime())) {
+    return "invalid";
+  }
+
+  return trimmed;
 }
 
 export async function POST(request: Request) {
@@ -183,14 +204,16 @@ export async function POST(request: Request) {
     hasField(formData, "season_end_month") ||
     hasField(formData, "season_year_mode");
 
-  if (!submitsTeamGeneratorSettings && !submitsSeasonSettings) {
+  const submitsAwardSettings = hasField(formData, "awards_started_at");
+
+  if (!submitsTeamGeneratorSettings && !submitsSeasonSettings && !submitsAwardSettings) {
     return redirectWithParams(request, redirectTo, { error: "nothing_to_save" });
   }
 
   const { data: existingSettings, error: existingSettingsError } = await supabase
     .from("club_settings")
     .select(
-      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode"
+      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode, awards_started_at"
     )
     .eq("club_id", activeClubId)
     .maybeSingle<ClubSettingsRow>();
@@ -208,6 +231,7 @@ export async function POST(request: Request) {
     season_end_day: 31,
     season_end_month: 12,
     season_year_mode: "start_year",
+    awards_started_at: null,
   };
 
   const useStrength = submitsTeamGeneratorSettings
@@ -264,6 +288,17 @@ export async function POST(request: Request) {
     return redirectWithParams(request, redirectTo, { error: "invalid_season_year_mode" });
   }
 
+  const parsedAwardsStartedAt = submitsAwardSettings
+    ? parseOptionalDate(formData.get("awards_started_at"))
+    : currentSettings.awards_started_at;
+
+  if (parsedAwardsStartedAt === "invalid") {
+    return redirectWithParams(request, redirectTo, { error: "invalid_awards_started_at" });
+  }
+
+  const awardsStartedAt =
+    submitsAwardSettings ? parsedAwardsStartedAt : currentSettings.awards_started_at;
+
   const { error: upsertError } = await supabase.from("club_settings").upsert(
     {
       club_id: activeClubId,
@@ -274,6 +309,7 @@ export async function POST(request: Request) {
       season_end_day: seasonEndDay,
       season_end_month: seasonEndMonth,
       season_year_mode: seasonYearMode,
+      awards_started_at: awardsStartedAt,
     },
     {
       onConflict: "club_id",

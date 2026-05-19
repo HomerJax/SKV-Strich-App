@@ -23,6 +23,8 @@ function getErrorMessage(error?: string) {
       return "Der Saison-Endmonat ist ungültig.";
     case "invalid_season_year_mode":
       return "Die Saison-Jahreslogik ist ungültig.";
+    case "invalid_awards_started_at":
+      return "Das Startdatum für Awards ist ungültig.";
     case "save_failed":
       return "Die Einstellungen konnten nicht gespeichert werden.";
     default:
