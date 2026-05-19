@@ -131,6 +131,82 @@ type StandingsApiResponse = {
   error?: string;
 };
 
+function AwardIcon({ award }: { award: TrainingAward }) {
+  const stroke = "currentColor";
+
+  const icon =
+    award.key === "leader" ? (
+      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
+        <path
+          d="M5 17h14l1-9-5 4-3-6-3 6-5-4 1 9Z"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <path d="M6 20h12" stroke={stroke} strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ) : award.key === "win_streak" ? (
+      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
+        <path
+          d="M13 3 6 13h5l-1 8 8-11h-5l0-7Z"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ) : award.key === "loss_streak" ? (
+      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
+        <path
+          d="M7 7c3-3 7-3 10 0M8 12h8M10 17h4"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    ) : award.key === "attendance_streak" ? (
+      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
+        <path
+          d="m5 12 4 4L19 6"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ) : award.key === "riser" ? (
+      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
+        <path
+          d="M5 17 17 5M10 5h7v7"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
+        <path
+          d="M5 8h14M5 13h14M5 18h14M8 5v16M16 5v16"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+
+  return (
+    <span className="flex h-full w-full items-center justify-center">
+      {icon}
+    </span>
+  );
+}
+
 export default function StandingsClient({
   initialClubId,
   initialPrimaryColor,
@@ -440,10 +516,10 @@ export default function StandingsClient({
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-[11px] text-slate-600">
                     <tr>
-                      <th className="w-14 px-2 py-2 text-left">Platz</th>
-                      <th className="px-2 py-2 text-left">Spieler</th>
-                      <th className="w-14 px-1.5 py-2 text-right">Siege</th>
-                      <th className="w-20 px-1.5 py-2 text-right">
+                      <th className="w-11 px-2 py-2 text-left">Platz</th>
+                      <th className="px-1.5 py-2 text-left">Spieler</th>
+                      <th className="w-12 px-1 py-2 text-right">Siege</th>
+                      <th className="w-14 px-1 py-2 text-right">
                         Teiln.
                       </th>
                     </tr>
@@ -469,13 +545,13 @@ export default function StandingsClient({
                           </div>
                         </td>
 
-                        <td className="px-2 py-2 align-middle">
+                        <td className="min-w-0 px-1.5 py-2 align-middle">
                           <div className="flex min-w-0 items-center gap-1.5">
-                            <span className="min-w-0 truncate whitespace-nowrap font-medium text-slate-900">
+                            <span className="min-w-0 truncate whitespace-nowrap text-[13px] font-semibold text-slate-950 sm:text-sm">
                               {getPlayerDisplayName(row)}
                             </span>
 
-                            <div className="flex shrink-0 items-center gap-1">
+                            <div className="flex shrink-0 items-center gap-0.5">
                               <PlayerBadge
                                 mvpCount={row.mvps}
                                 size="sm"
@@ -484,7 +560,7 @@ export default function StandingsClient({
                               />
 
                               {getTrainingAwards(row)
-                                .slice(0, 3)
+                                .slice(0, 2)
                                 .map((award) => (
                                   <button
                                     key={award.key}
@@ -496,20 +572,20 @@ export default function StandingsClient({
                                       })
                                     }
                                     title={`${award.shortLabel}: ${award.label}`}
-                                    className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[7px] border border-slate-300 bg-gradient-to-br from-white to-slate-100 px-1 text-[8px] font-black leading-none text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(15,23,42,0.12)] transition hover:scale-105"
+                                    className="inline-flex h-[17px] w-[17px] items-center justify-center rounded-[6px] border border-white/10 bg-[linear-gradient(145deg,#111827_0%,#020617_58%,#334155_100%)] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_1px_3px_rgba(15,23,42,0.28)] ring-1 ring-slate-950/10 transition hover:scale-105"
                                   >
-                                    {award.mark}
+                                    <AwardIcon award={award} />
                                   </button>
                                 ))}
                             </div>
                           </div>
                         </td>
 
-                        <td className="px-1.5 py-2 text-right font-semibold text-slate-900">
+                        <td className="px-1 py-2 text-right font-semibold text-slate-900">
                           {row.wins}
                         </td>
 
-                        <td className="px-1.5 py-2 text-right text-slate-700">
+                        <td className="px-1 py-2 text-right text-slate-700">
                           {row.sessions}
                         </td>
                       </tr>
