@@ -86,15 +86,15 @@ export default async function SeasonSettingsCard({
           Warum braucht strikr eine Saison?
         </div>
         <p className="mt-1">
-          Saisons trennen Tabellen, Statistiken, MVP-Limits und spätere Awards
-          sauber voneinander. So bleibt klar, welche Ergebnisse zu welchem
-          Zeitraum gehören.
+          Ohne Saison können saisonbezogene Tabellen, Statistiken, MVP-Limits
+          und spätere Awards nicht sauber berechnet und voneinander getrennt
+          werden.
         </p>
         <p className="mt-2">
           Das <span className="font-semibold text-slate-900">Startdatum</span>{" "}
-          ist Pflicht. Das{" "}
+          ist Pflicht, weil strikr wissen muss, ab wann Ergebnisse zählen. Das{" "}
           <span className="font-semibold text-slate-900">Enddatum</span> kannst
-          du offen lassen – dann läuft die Saison weiter, bis du später ein Ende
+          du offen lassen. Dann läuft die Saison weiter, bis du später ein Ende
           setzt.
         </p>
       </div>
@@ -158,7 +158,6 @@ export default async function SeasonSettingsCard({
               name="end_date"
               type="date"
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none"
-              required
             />
           </div>
         </div>

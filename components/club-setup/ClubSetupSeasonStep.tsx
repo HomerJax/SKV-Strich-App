@@ -81,7 +81,6 @@ export default function ClubSetupSeasonStep({
               name="end_date"
               type="date"
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none"
-              required
             />
           </div>
         </div>
