@@ -39,13 +39,13 @@ function toDateInputValue(date: string | null) {
 }
 
 function isCurrentSeason(startDate: string | null, endDate: string | null) {
-  if (!startDate || !endDate) return false;
+  if (!startDate) return false;
 
   const now = new Date();
   const start = new Date(startDate);
-  const end = new Date(endDate);
+  const end = endDate ? new Date(endDate) : null;
 
-  return now >= start && now <= end;
+  return now >= start && (!end || now <= end);
 }
 
 export default async function SeasonSettingsCard({
@@ -82,10 +82,21 @@ export default async function SeasonSettingsCard({
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-        Trainings werden automatisch einer Saison zugeordnet, wenn ihr Datum
-        zwischen <span className="font-semibold text-slate-900">Start</span>{" "}
-        und <span className="font-semibold text-slate-900">Ende</span> dieser
-        Saison liegt.
+        <div className="font-semibold text-slate-900">
+          Warum braucht strikr eine Saison?
+        </div>
+        <p className="mt-1">
+          Saisons trennen Tabellen, Statistiken, MVP-Limits und spätere Awards
+          sauber voneinander. So bleibt klar, welche Ergebnisse zu welchem
+          Zeitraum gehören.
+        </p>
+        <p className="mt-2">
+          Das <span className="font-semibold text-slate-900">Startdatum</span>{" "}
+          ist Pflicht. Das{" "}
+          <span className="font-semibold text-slate-900">Enddatum</span> kannst
+          du offen lassen – dann läuft die Saison weiter, bis du später ein Ende
+          setzt.
+        </p>
       </div>
 
       <form
@@ -129,8 +140,10 @@ export default async function SeasonSettingsCard({
               name="start_date"
               type="date"
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none"
-              required
             />
+            <div className="mt-1.5 text-xs leading-5 text-slate-500">
+              Leer lassen = laufende Saison ohne festes Ende.
+            </div>
           </div>
 
           <div>
@@ -138,7 +151,7 @@ export default async function SeasonSettingsCard({
               htmlFor="season_create_end_date"
               className="mb-1.5 block text-sm font-medium text-slate-900"
             >
-              Enddatum
+              Enddatum <span className="font-normal text-slate-500">(optional)</span>
             </label>
             <input
               id="season_create_end_date"
@@ -150,8 +163,9 @@ export default async function SeasonSettingsCard({
           </div>
         </div>
 
-        <div className="text-xs text-slate-500">
-          Beispiel: Start 01.07.2026, Ende 30.06.2027.
+        <div className="text-xs leading-5 text-slate-500">
+          Beispiel: Start 01.07.2026, Ende 30.06.2027. Wenn ihr das Ende noch
+          nicht kennt, lasst es leer.
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -211,8 +225,9 @@ export default async function SeasonSettingsCard({
           </div>
 
           <div className="mt-3 text-xs text-slate-500">
-            Beginn der Serie ist automatisch der Saisonstart, Ende der Serie
-            automatisch das Saisonende. Doppelte Tage werden ignoriert.
+            Beginn der Serie ist automatisch der Saisonstart. Serientrainings
+            können nur erzeugt werden, wenn ein Saisonende gesetzt ist. Doppelte
+            Tage werden ignoriert.
           </div>
         </div>
 
@@ -270,7 +285,7 @@ export default async function SeasonSettingsCard({
                       Start: {formatDate(season.start_date)}
                     </div>
                     <div className="text-xs text-slate-500">
-                      Ende: {formatDate(season.end_date)}
+                      Ende: {season.end_date ? formatDate(season.end_date) : "offen"}
                     </div>
                   </div>
 

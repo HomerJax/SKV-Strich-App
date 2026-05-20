@@ -211,15 +211,15 @@ export async function POST(request: Request) {
       }
 
       const parsedStart = parseIsoDate(startDate);
-      const parsedEnd = parseIsoDate(endDate);
+      const parsedEnd = endDate ? parseIsoDate(endDate) : null;
 
-      if (!parsedStart || !parsedEnd) {
+      if (!parsedStart || (endDate && !parsedEnd)) {
         return withMessage(request.url, redirectTo, {
           error: "Bitte gültige Datumswerte wählen.",
         });
       }
 
-      if (parsedStart > parsedEnd) {
+      if (parsedEnd && parsedStart > parsedEnd) {
         return withMessage(request.url, redirectTo, {
           error: "Das Startdatum muss vor oder am Enddatum liegen.",
         });
@@ -244,7 +244,7 @@ export async function POST(request: Request) {
         .update({
           name,
           start_date: startDate,
-          end_date: endDate,
+          end_date: endDate || null,
         })
         .eq("club_id", clubId)
         .eq("id", seasonId);
@@ -297,15 +297,15 @@ export async function POST(request: Request) {
     }
 
     const parsedStart = parseIsoDate(startDate);
-    const parsedEnd = parseIsoDate(endDate);
+    const parsedEnd = endDate ? parseIsoDate(endDate) : null;
 
-    if (!parsedStart || !parsedEnd) {
+    if (!parsedStart || (endDate && !parsedEnd)) {
       return withMessage(request.url, redirectTo, {
         error: "Bitte gültige Datumswerte wählen.",
       });
     }
 
-    if (parsedStart > parsedEnd) {
+    if (parsedEnd && parsedStart > parsedEnd) {
       return withMessage(request.url, redirectTo, {
         error: "Das Startdatum muss vor oder am Enddatum liegen.",
       });
@@ -325,7 +325,7 @@ export async function POST(request: Request) {
         club_id: clubId,
         name,
         start_date: startDate,
-        end_date: endDate,
+        end_date: endDate || null,
       })
       .select("id, name, start_date, end_date")
       .single<SeasonRow>();
