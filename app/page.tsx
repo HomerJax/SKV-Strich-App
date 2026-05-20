@@ -51,6 +51,8 @@ const competitionBlocks = [
   },
 ];
 
+const productBlocks = [...trainingBlocks, ...competitionBlocks];
+
 function InfoCard({
   title,
   text,
@@ -64,7 +66,7 @@ function InfoCard({
 }) {
   return (
     <div
-      className={`rounded-[24px] p-6 text-center ${
+      className={`rounded-[24px] p-5 text-center ${
         inverted
           ? "border border-white/10 bg-white/5 text-white"
           : "border border-black/10 bg-white text-black"
@@ -104,7 +106,7 @@ export default async function LandingPage() {
   return (
     <main className="min-h-screen bg-white text-black">
       {/* HERO */}
-      <section className="mx-auto w-full max-w-4xl px-4 pb-20 pt-16 text-center sm:px-6 lg:px-8 lg:pt-20">
+      <section className="mx-auto w-full max-w-4xl px-4 pb-14 pt-16 text-center sm:px-6 lg:px-8 lg:pt-20">
         <div className="flex flex-col items-center">
           <Image
             src="/icon-dark.png"
@@ -124,92 +126,59 @@ export default async function LandingPage() {
               Euer Training. Mehr Struktur. Mehr Emotion.
             </p>
           </div>
+
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/signup?next=%2Fclub-setup"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-black px-6 py-3.5 text-sm font-bold text-white transition hover:bg-zinc-800"
+            >
+              Team kostenlos starten
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center rounded-2xl border border-black/20 px-6 py-3.5 text-sm font-bold text-black transition hover:bg-zinc-100"
+            >
+              Login
+            </Link>
+          </div>
+
+          <p className="mt-3 text-xs font-medium text-zinc-500">
+            Kostenlos starten. 4 MVP-Abstimmungen pro Saison inklusive.
+          </p>
         </div>
       </section>
 
-      {/* BLACK BLOCK */}
+      {/* PRODUCT FLOW */}
       <section className="w-full bg-black text-white">
-        <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
-              Warum strikr
+              Was strikr macht
             </div>
 
             <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-              Aus jedem Training wird ein Team-Moment.
+              Vom Training zum Team-Moment.
             </h2>
 
-            <p className="mt-4 text-base leading-7 text-white/75 sm:text-lg">
-              strikr organisiert Anwesenheit, Teams und Ergebnisse – und macht
-              daraus MVP-Momente, Share Cards, Tabellen und echte Motivation.
+            <p className="mt-4 text-sm leading-6 text-white/70 sm:text-base">
+              Anwesenheit, Teams, Ergebnis, MVP, Tabelle und Share Cards — ein
+              klarer Flow statt Chat-Chaos.
             </p>
           </div>
-        </div>
-      </section>
 
-      {/* TRAINING (weiß) */}
-      <section className="mx-auto w-full max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            Training
-          </div>
-
-          <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-            Der komplette Trainingsflow in einer App.
-          </h2>
-        </div>
-
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {trainingBlocks.map((block) => (
-            <InfoCard key={block.title} {...block} />
-          ))}
-        </div>
-      </section>
-
-      {/* COMPETITION (schwarz) */}
-      <section className="w-full bg-black">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center text-white">
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
-              Mehr daraus machen
-            </div>
-
-            <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-              Der Teil, über den danach gesprochen wird.
-            </h2>
-          </div>
-
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {competitionBlocks.map((block) => (
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {productBlocks.map((block) => (
               <InfoCard key={block.title} {...block} inverted />
             ))}
           </div>
         </div>
       </section>
 
-      {/* EMOTION */}
-      <section className="border-t border-black/10 bg-zinc-50">
-        <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-white">
-              <Camera className="h-5 w-5" />
-            </div>
-
-            <h2 className="mt-4 text-3xl font-black sm:text-4xl">
-              Nicht nur spielen. Festhalten, teilen, feiern.
-            </h2>
-
-            <p className="mt-4 text-base leading-7 text-zinc-600 sm:text-lg">
-              Siegerfoto, Ergebnis-Card, MVP Voting und Tabelle machen aus
-              einem normalen Training einen Moment fürs Team.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* PRICING */}
       <section className="border-t border-black/10 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
               strikr Pro
@@ -226,7 +195,7 @@ export default async function LandingPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-2">
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
             <div className="rounded-[28px] border border-black/10 bg-zinc-50 p-6">
               <div className="inline-flex rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-bold text-zinc-700">
                 Free
@@ -327,17 +296,17 @@ export default async function LandingPage() {
 
       {/* CTA */}
       <section className="border-t border-black/10">
-        <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-12 text-center sm:px-6 lg:px-8">
           <h2 className="text-3xl font-black sm:text-4xl">
             Startet kostenlos. Wenn es passt, wird Pro daraus.
           </h2>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
-              href="/register"
+              href="/signup?next=%2Fclub-setup"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-black px-6 py-3.5 text-sm font-semibold text-white hover:bg-zinc-800"
             >
-              Team starten
+              Team kostenlos starten
               <ArrowRight className="h-4 w-4" />
             </Link>
 
