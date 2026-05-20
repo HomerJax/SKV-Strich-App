@@ -298,5 +298,5 @@ export async function completeOnboarding(
     maxAge: 60 * 60 * 24 * 365,
   });
 
-  redirect("/");
+  redirect("/club-setup?created=1");
 }
