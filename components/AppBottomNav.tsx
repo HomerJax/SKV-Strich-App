@@ -10,11 +10,18 @@ type AppBottomNavProps = {
 };
 
 const HIDDEN_ON_PATHS = [
+  "/",
+  "/about",
+  "/datenschutz",
+  "/impressum",
+  "/join",
   "/login",
   "/login/forgot-password",
   "/login/reset-password",
   "/signup",
   "/onboarding",
+  "/forgot-password",
+  "/reset-password",
 ];
 
 type NavItemProps = {
