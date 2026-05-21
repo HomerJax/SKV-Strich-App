@@ -11,6 +11,7 @@ import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionRow, TeamMap } from "./session-types";
 import type { ClubSettings } from "./session-detail-helpers";
 import { normalizeGoalValue } from "./session-ui";
+import type { BalanceCategory } from "./session-ui";
 import { useSessionDetail } from "./useSessionDetail";
 
 type SessionDetailClientProps = {
@@ -22,6 +23,7 @@ type SessionDetailClientProps = {
   initialClubId: string;
   initialIsAdmin: boolean;
   initialClubSettings: ClubSettings;
+  initialBalanceCategories?: BalanceCategory[];
   initialWinnerPhotoUrl: string | null;
   initialGoalsA: string;
   initialGoalsB: string;

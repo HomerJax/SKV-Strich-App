@@ -18,6 +18,7 @@ import {
   shuffle,
   sumTeamScore,
 } from "./session-ui";
+import type { BalanceCategory } from "./session-ui";
 import {
   ClubSettings,
   getAutoTeamNames,
@@ -40,6 +41,7 @@ type SessionDetailClientProps = {
   initialClubId: string;
   initialIsAdmin: boolean;
   initialClubSettings: ClubSettings;
+  initialBalanceCategories?: BalanceCategory[];
   initialWinnerPhotoUrl: string | null;
   initialGoalsA: string;
   initialGoalsB: string;
@@ -166,6 +168,7 @@ export function useSessionDetail({
   initialClubId,
   initialIsAdmin,
   initialClubSettings,
+  initialBalanceCategories,
   initialWinnerPhotoUrl,
   initialGoalsA,
   initialGoalsB,
@@ -1127,16 +1130,18 @@ ${sessionUrl}`;
 
       const shouldUseScore = useStrength || useCategories;
 
+      const balanceCategories = initialBalanceCategories ?? [];
+
       const scoreDiff = shouldUseScore
         ? Math.abs(
-            sumTeamScore(A, { useStrength, useCategories }) -
-              sumTeamScore(B, { useStrength, useCategories })
+            sumTeamScore(A, { useStrength, useCategories, balanceCategories }) -
+              sumTeamScore(B, { useStrength, useCategories, balanceCategories })
           )
         : 0;
 
       const posPenalty = positionBalancePenalty(A, B);
       const categoryPositionPenalty = useCategories
-        ? categoryPositionBalancePenalty(A, B)
+        ? categoryPositionBalancePenalty(A, B, balanceCategories)
         : 0;
 
       return scoreDiff * 10 + posPenalty * 3 + categoryPositionPenalty * 8;

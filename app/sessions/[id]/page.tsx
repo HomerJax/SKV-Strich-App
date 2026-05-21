@@ -51,6 +51,13 @@ type SessionPlayerRow = {
   player_id: number;
 };
 
+type BalanceCategoryRow = {
+  key: string;
+  label: string;
+  sort_order: number;
+  is_active: boolean;
+};
+
 type PageProps = {
   params: Promise<{ id: string }>;
 };
@@ -196,6 +203,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     { data: settingsData, error: settingsError },
     { data: sessionData, error: sessionError },
     { data: playersData, error: playersError },
+    { data: categoriesData, error: categoriesError },
     { data: sessionPlayersData, error: sessionPlayersError },
     { data: resultData, error: resultError },
     { data: teamsData, error: teamsError },
@@ -221,10 +229,16 @@ export default async function SessionDetailPage({ params }: PageProps) {
     supabase
       .from("players")
       .select(
-        "id, name, first_name, last_name, nickname, is_active, age_group, preferred_position, strength, is_guest, mvp_count"
+        "id, name, first_name, last_name, nickname, is_active, age_group, category_key, preferred_position, strength, is_guest, mvp_count"
       )
       .eq("club_id", clubId)
       .order("name"),
+    supabase
+      .from("club_categories")
+      .select("key, label, sort_order, is_active")
+      .eq("club_id", clubId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
     supabase
       .from("session_players")
       .select("player_id")
@@ -258,6 +272,12 @@ export default async function SessionDetailPage({ params }: PageProps) {
   if (playersError) {
     throw new Error(
       `Spieler konnten nicht geladen werden: ${playersError.message}`
+    );
+  }
+
+  if (categoriesError) {
+    throw new Error(
+      `Kategorien konnten nicht geladen werden: ${categoriesError.message}`
     );
   }
 
@@ -352,6 +372,14 @@ export default async function SessionDetailPage({ params }: PageProps) {
     hasResult = true;
   }
 
+  const balanceCategories = ((categoriesData ?? []) as BalanceCategoryRow[])
+    .filter((category) => category.is_active)
+    .slice(0, 2)
+    .map((category) => ({
+      key: category.key,
+      label: category.label,
+    }));
+
   let winnerPhotoUrl: string | null = null;
 
   if (session.winner_photo_path) {
@@ -374,6 +402,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialClubId={clubId}
       initialIsAdmin={isPowerUser || isAdminRole(membership.role)}
       initialClubSettings={clubSettings}
+      initialBalanceCategories={balanceCategories}
       initialWinnerPhotoUrl={winnerPhotoUrl}
       initialGoalsA={goalsA}
       initialGoalsB={goalsB}

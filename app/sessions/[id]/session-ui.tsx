@@ -39,26 +39,50 @@ export const strengthScore = (s: number | null) => {
   return Math.max(1, Math.min(5, s));
 };
 
-export const categoryBaseScore = (age: Player["age_group"]) => {
-  if (age === "Ü32") return 5;
-  if (age === "AH") return 0;
-  return 0;
+export type BalanceCategory = {
+  key: string;
+  label: string;
 };
 
 type GeneratorScoreOptions = {
   useStrength: boolean;
   useCategories: boolean;
+  balanceCategories?: BalanceCategory[];
 };
+
+function generatorCategoryClass(
+  player: Player,
+  balanceCategories: BalanceCategory[] = []
+) {
+  const key = player.category_key ?? null;
+
+  if (key && balanceCategories[0]?.key === key) return "strong";
+  if (key && balanceCategories[1]?.key === key) return "normal";
+
+  // Fallback für ältere Daten/Clubs, solange age_group noch existiert.
+  if (!key && player.age_group === "Ü32") return "strong";
+  if (!key && player.age_group === "AH") return "normal";
+
+  return "other";
+}
+
+export function categoryBaseScore(
+  player: Player,
+  balanceCategories: BalanceCategory[] = []
+) {
+  return generatorCategoryClass(player, balanceCategories) === "strong" ? 5 : 0;
+}
 
 export function playerGeneratorScore(
   player: Player,
   options: GeneratorScoreOptions = {
     useStrength: true,
     useCategories: true,
+    balanceCategories: [],
   }
 ) {
   const categoryScore = options.useCategories
-    ? categoryBaseScore(player.age_group)
+    ? categoryBaseScore(player, options.balanceCategories ?? [])
     : 0;
   const playerStrength = options.useStrength ? strengthScore(player.strength) : 0;
 
@@ -70,6 +94,7 @@ export function sumTeamScore(
   options: GeneratorScoreOptions = {
     useStrength: true,
     useCategories: true,
+    balanceCategories: [],
   }
 ) {
   return team.reduce(
@@ -97,39 +122,44 @@ export function positionBalancePenalty(teamA: Player[], teamB: Player[]) {
   );
 }
 
-function categoryPositionKey(player: Player) {
-  const category = player.age_group ?? "ohne";
-  const position = player.preferred_position ?? "unbekannt";
+function categoryPositionKey(
+  player: Player,
+  balanceCategories: BalanceCategory[] = []
+) {
+  const category = generatorCategoryClass(player, balanceCategories);
+  const position = player.preferred_position ?? "unknown";
 
   return `${category}:${position}`;
 }
 
-function categoryPositionCounts(team: Player[]) {
+function categoryPositionCounts(
+  team: Player[],
+  balanceCategories: BalanceCategory[] = []
+) {
   const counts = new Map<string, number>();
 
   for (const player of team) {
-    const key = categoryPositionKey(player);
+    const key = categoryPositionKey(player, balanceCategories);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
   return counts;
 }
 
-export function categoryPositionBalancePenalty(teamA: Player[], teamB: Player[]) {
-  const a = categoryPositionCounts(teamA);
-  const b = categoryPositionCounts(teamB);
+export function categoryPositionBalancePenalty(
+  teamA: Player[],
+  teamB: Player[],
+  balanceCategories: BalanceCategory[] = []
+) {
+  const a = categoryPositionCounts(teamA, balanceCategories);
+  const b = categoryPositionCounts(teamB, balanceCategories);
   const keys = new Set([...a.keys(), ...b.keys()]);
 
   let penalty = 0;
 
   for (const key of keys) {
     const diff = Math.abs((a.get(key) ?? 0) - (b.get(key) ?? 0));
-
-    if (diff <= 1) {
-      penalty += diff;
-    } else {
-      penalty += diff * diff;
-    }
+    penalty += diff <= 1 ? diff : diff * diff;
   }
 
   return penalty;
