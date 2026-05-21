@@ -93,10 +93,48 @@ export default function TeamGeneratorSettingsCard({
                 <span className="font-semibold text-slate-900">
                   Kategorien erklärt:
                 </span>{" "}
-                Kategorien sind Gruppen wie zum Beispiel <strong>AH</strong>{" "}
-                oder <strong>Ü32</strong>. strikr ist aktuell auf maximal zwei
-                aktive Kategorien für die Team-Balance ausgelegt.
+                Kategorien sind sportliche Gruppen wie zum Beispiel{" "}
+                <strong>Ü32</strong> und <strong>AH</strong>. Wenn Kategorien
+                aktiv sind, nutzt strikr maximal zwei aktive Kategorien für die
+                Team-Balance.
               </p>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+                <div className="text-sm font-bold">
+                  So bewertet strikr Kategorien
+                </div>
+
+                <p className="mt-2">
+                  Die erste aktive Kategorie gilt als stärkere Kategorie. Die
+                  zweite aktive Kategorie gilt als normale Kategorie.
+                </p>
+
+                <p className="mt-2">
+                  Spieler aus der stärkeren Kategorie bekommen beim Generieren
+                  einen deutlichen Kategoriebonus. Dadurch wird ein Spieler aus
+                  der stärkeren Kategorie mit Stärke 1 höher bewertet als ein
+                  Spieler aus der normalen Kategorie mit Stärke 5.
+                </p>
+
+                <p className="mt-2">
+                  Die individuelle Stärke 1–5 bleibt trotzdem wichtig: Sie
+                  entscheidet innerhalb der jeweiligen Kategorie, wer dort eher
+                  stark oder schwach ist.
+                </p>
+
+                <p className="mt-2">
+                  Zusätzlich bewertet strikr die Kombination aus Kategorie und
+                  Position. Beispiel: Wenn es stärkere vordere Spieler und
+                  normale vordere Spieler gibt, versucht der Generator diese
+                  Profile möglichst sauber auf beide Teams zu verteilen.
+                </p>
+
+                <p className="mt-2">
+                  Wenn Kategorien bei euch keine sportliche Stärke bedeuten,
+                  schaltet Kategorien für den Generator aus und arbeitet nur mit
+                  der individuellen Stärke.
+                </p>
+              </div>
 
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
                 <div className="text-sm font-bold">

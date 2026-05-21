@@ -45,6 +45,30 @@ function buildRedirectUrlWithParams(
   return `${target}${separator}${query}`;
 }
 
+async function getActiveCategoryCount(
+  supabase: ReturnType<typeof createAdminClient>,
+  clubId: string,
+  excludeCategoryId?: number
+) {
+  let query = supabase
+    .from("club_categories")
+    .select("id", { count: "exact", head: true })
+    .eq("club_id", clubId)
+    .eq("is_active", true);
+
+  if (excludeCategoryId) {
+    query = query.neq("id", excludeCategoryId);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return count ?? 0;
+}
+
 function revalidateSettingsPaths() {
   revalidatePath("/admin/settings");
   revalidatePath("/admin/categories");
@@ -95,12 +119,27 @@ export async function addCategoryAction(formData: FormData) {
 
   const nextSortOrder = (maxRow?.sort_order ?? 0) + 1;
 
+  let activeCount = 0;
+
+  try {
+    activeCount = await getActiveCategoryCount(supabase, clubId);
+  } catch (error) {
+    redirect(
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error:
+          error instanceof Error ? error.message : "Aktive Kategorien konnten nicht geprüft werden",
+      })
+    );
+  }
+
+  const shouldActivateNewCategory = activeCount < 2;
+
   const { error } = await supabase.from("club_categories").insert({
     club_id: clubId,
     key,
     label,
     sort_order: nextSortOrder,
-    is_active: true,
+    is_active: shouldActivateNewCategory,
   });
 
   if (error) {
@@ -116,6 +155,12 @@ export async function addCategoryAction(formData: FormData) {
   redirect(
     buildRedirectUrlWithParams(redirectTo, {
       category_saved: "1",
+      ...(shouldActivateNewCategory
+        ? {}
+        : {
+            category_error:
+              "Kategorie wurde angelegt, aber nicht aktiviert. Für die Team-Balance können maximal zwei Kategorien aktiv sein.",
+          }),
     })
   );
 }
@@ -149,6 +194,34 @@ export async function updateCategoryAction(formData: FormData) {
   }
 
   const safeSortOrder = Number.isFinite(sortOrder) ? sortOrder : 0;
+
+  if (isActive) {
+    let activeCountWithoutCurrent = 0;
+
+    try {
+      activeCountWithoutCurrent = await getActiveCategoryCount(
+        supabase,
+        clubId,
+        id
+      );
+    } catch (error) {
+      redirect(
+        buildRedirectUrlWithParams(redirectTo, {
+          category_error:
+            error instanceof Error ? error.message : "Aktive Kategorien konnten nicht geprüft werden",
+        })
+      );
+    }
+
+    if (activeCountWithoutCurrent >= 2) {
+      redirect(
+        buildRedirectUrlWithParams(redirectTo, {
+          category_error:
+            "Maximal zwei Kategorien können gleichzeitig aktiv sein. Deaktiviere zuerst eine andere Kategorie.",
+        })
+      );
+    }
+  }
 
   const { error } = await supabase
     .from("club_categories")
