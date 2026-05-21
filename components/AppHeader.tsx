@@ -198,20 +198,20 @@ export default async function AppHeader() {
                 priority
               />
 
-              <div className="min-w-0">
-                <div className="flex items-baseline gap-1.5 sm:gap-2">
-                  <span className="truncate lowercase text-[32px] font-black leading-none tracking-[-0.04em] text-slate-950 sm:text-[36px]">
-                    strikr
-                  </span>
-
-                  {ctx.user ? (
-                    <span className="text-[10px] font-medium text-slate-400 sm:text-[11px]">
-                      v0.7
-                    </span>
-                  ) : null}
-                </div>
-              </div>
+              <span className="truncate lowercase text-[32px] font-black leading-none tracking-[-0.04em] text-slate-950 sm:text-[36px]">
+                strikr
+              </span>
             </Link>
+
+            {ctx.user ? (
+              <Link
+                href="/about"
+                className="rounded-full px-1.5 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 sm:text-[11px]"
+                title="Was ist neu?"
+              >
+                v0.7
+              </Link>
+            ) : null}
           </div>
 
           {ctx.user ? (
