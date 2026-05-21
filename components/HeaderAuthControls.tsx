@@ -49,7 +49,7 @@ export default function HeaderAuthControls({
           Login
         </button>
       ) : (
-        <div className="w-[320px] rounded-2xl border border-neutral-200 bg-white p-4 shadow-xl">
+        <div className="w-[min(320px,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-neutral-200 bg-white p-4 shadow-xl">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold text-neutral-900">Login</div>

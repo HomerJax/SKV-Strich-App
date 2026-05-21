@@ -93,7 +93,7 @@ export default function StandingsShareCard({
   return (
     <div
       id={exportId}
-      className="w-[390px] overflow-hidden rounded-[34px] border border-slate-200 bg-slate-950 shadow-2xl"
+      className="w-full max-w-[390px] overflow-hidden rounded-[34px] border border-slate-200 bg-slate-950 shadow-2xl"
     >
       <div className="relative overflow-hidden bg-[radial-gradient(circle_at_18%_8%,rgba(255,255,255,0.18),transparent_28%),linear-gradient(135deg,#020617_0%,#0f172a_52%,#111827_100%)] px-5 pb-5 pt-5 text-white">
         <div className="absolute -right-20 top-10 h-56 w-56 rounded-full bg-emerald-400/12 blur-3xl" />

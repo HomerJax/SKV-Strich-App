@@ -94,7 +94,7 @@ export default function HomeMvpHighlightCard({
     <>
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed left-[-200vw] top-0"
+        className="pointer-events-none fixed left-[-9999px] top-0 max-w-full overflow-hidden"
       >
         <div ref={shareRef} style={{ width: 1080, height: 1920 }}>
           <MvpShareImage

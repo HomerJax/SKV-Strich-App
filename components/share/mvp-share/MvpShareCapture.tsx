@@ -34,7 +34,7 @@ export default function MvpShareCapture(props: Props) {
   }
 
   return (
-    <div className="fixed left-[-9999px] top-[-9999px]">
+    <div className="fixed left-[-9999px] top-[-9999px] max-w-full overflow-hidden">
       <div ref={ref}>
         <MvpShareImage {...props} />
       </div>

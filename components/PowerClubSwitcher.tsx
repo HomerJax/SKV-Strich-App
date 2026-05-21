@@ -221,7 +221,7 @@ export default function ClubSwitcher({
 
       {open ? (
         <div
-          className="absolute right-0 top-14 z-50 w-[320px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+          className="absolute right-0 top-14 z-50 w-[min(320px,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
           role="menu"
         >
           <div className="border-b border-slate-100 px-4 py-3">

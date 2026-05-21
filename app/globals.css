@@ -22,3 +22,49 @@ body {
 html {
   color-scheme: light;
 }
+
+/* Mobile overflow safety net:
+   Prevents tiny horizontal scrolling on iPhone/Safari caused by 100vw,
+   fixed-width media, SVGs, canvas or full-bleed elements.
+*/
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  position: relative;
+  min-width: 0;
+}
+
+body > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+main,
+header,
+footer,
+section,
+article,
+nav {
+  max-width: 100%;
+  min-width: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
