@@ -13,6 +13,7 @@ import {
   buildLineupShareText,
   getErrorMessage,
   normalizeGoalValue,
+  categoryPositionBalancePenalty,
   positionBalancePenalty,
   shuffle,
   sumTeamScore,
@@ -1127,12 +1128,18 @@ ${sessionUrl}`;
       const shouldUseScore = useStrength || useCategories;
 
       const scoreDiff = shouldUseScore
-        ? Math.abs(sumTeamScore(A) - sumTeamScore(B))
+        ? Math.abs(
+            sumTeamScore(A, { useStrength, useCategories }) -
+              sumTeamScore(B, { useStrength, useCategories })
+          )
         : 0;
 
       const posPenalty = positionBalancePenalty(A, B);
+      const categoryPositionPenalty = useCategories
+        ? categoryPositionBalancePenalty(A, B)
+        : 0;
 
-      return scoreDiff * 10 + posPenalty * 3;
+      return scoreDiff * 10 + posPenalty * 3 + categoryPositionPenalty * 8;
     }
 
     let bestA: Player[] = [];

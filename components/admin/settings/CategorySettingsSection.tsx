@@ -56,6 +56,14 @@ export function CategorySettingsSection({
         <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
           {activeCount} aktiv
         </span>
+      </div>\n\n      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+        <div className="font-bold">Hinweis zur Team-Balance</div>
+        <p className="mt-1">
+          Für den Teamgenerator sollten maximal zwei Kategorien aktiv sein. Die
+          stärkere Kategorie sollte zuerst stehen, die normale Kategorie danach.
+          Wenn Kategorien keine sportliche Stärke abbilden, lass Kategorien im
+          Generator besser aus und nutze nur die individuelle Stärke.
+        </p>
       </div>
 
       <div className="rounded-xl border border-black/10 bg-neutral-50 p-3">

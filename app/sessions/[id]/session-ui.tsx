@@ -45,12 +45,37 @@ export const categoryBaseScore = (age: Player["age_group"]) => {
   return 0;
 };
 
-export function playerGeneratorScore(player: Player) {
-  return categoryBaseScore(player.age_group) + strengthScore(player.strength);
+type GeneratorScoreOptions = {
+  useStrength: boolean;
+  useCategories: boolean;
+};
+
+export function playerGeneratorScore(
+  player: Player,
+  options: GeneratorScoreOptions = {
+    useStrength: true,
+    useCategories: true,
+  }
+) {
+  const categoryScore = options.useCategories
+    ? categoryBaseScore(player.age_group)
+    : 0;
+  const playerStrength = options.useStrength ? strengthScore(player.strength) : 0;
+
+  return categoryScore + playerStrength;
 }
 
-export function sumTeamScore(team: Player[]) {
-  return team.reduce((sum, player) => sum + playerGeneratorScore(player), 0);
+export function sumTeamScore(
+  team: Player[],
+  options: GeneratorScoreOptions = {
+    useStrength: true,
+    useCategories: true,
+  }
+) {
+  return team.reduce(
+    (sum, player) => sum + playerGeneratorScore(player, options),
+    0
+  );
 }
 
 export function teamPositionCounts(team: Player[]) {
@@ -70,6 +95,44 @@ export function positionBalancePenalty(teamA: Player[], teamB: Player[]) {
     Math.abs(a.def - b.def) +
     Math.abs(a.att - b.att)
   );
+}
+
+function categoryPositionKey(player: Player) {
+  const category = player.age_group ?? "ohne";
+  const position = player.preferred_position ?? "unbekannt";
+
+  return `${category}:${position}`;
+}
+
+function categoryPositionCounts(team: Player[]) {
+  const counts = new Map<string, number>();
+
+  for (const player of team) {
+    const key = categoryPositionKey(player);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
+export function categoryPositionBalancePenalty(teamA: Player[], teamB: Player[]) {
+  const a = categoryPositionCounts(teamA);
+  const b = categoryPositionCounts(teamB);
+  const keys = new Set([...a.keys(), ...b.keys()]);
+
+  let penalty = 0;
+
+  for (const key of keys) {
+    const diff = Math.abs((a.get(key) ?? 0) - (b.get(key) ?? 0));
+
+    if (diff <= 1) {
+      penalty += diff;
+    } else {
+      penalty += diff * diff;
+    }
+  }
+
+  return penalty;
 }
 
 export function shuffle<T>(arr: T[]) {

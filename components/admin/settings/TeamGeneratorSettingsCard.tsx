@@ -94,10 +94,31 @@ export default function TeamGeneratorSettingsCard({
                   Kategorien erklärt:
                 </span>{" "}
                 Kategorien sind Gruppen wie zum Beispiel <strong>AH</strong>{" "}
-                oder <strong>Ü32</strong>. Wenn Kategorien aktiv sind, verteilt
-                der Generator diese Gruppen möglichst gleichmäßig auf beide
-                Teams.
+                oder <strong>Ü32</strong>. strikr ist aktuell auf maximal zwei
+                aktive Kategorien für die Team-Balance ausgelegt.
               </p>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+                <div className="text-sm font-bold">
+                  Wichtig für faire Teams
+                </div>
+                <p className="mt-2">
+                  Die stärkere Kategorie wird beim Generieren deutlich höher
+                  bewertet als die normale Kategorie. Die individuelle Stärke
+                  1–5 dient danach zur Feinabstimmung innerhalb der Kategorie.
+                </p>
+                <p className="mt-2">
+                  Beispiel: Ein Spieler aus der stärkeren Kategorie mit Stärke
+                  1 wird höher bewertet als ein Spieler aus der normalen
+                  Kategorie mit Stärke 5.
+                </p>
+                <p className="mt-2">
+                  Zusätzlich achtet strikr darauf, dass Positionen innerhalb der
+                  Kategorien möglichst gleichmäßig verteilt werden. So soll
+                  vermieden werden, dass ein Team alle stärkeren vorderen
+                  Spieler bekommt.
+                </p>
+              </div>
 
               <p>
                 <span className="font-semibold text-slate-900">
