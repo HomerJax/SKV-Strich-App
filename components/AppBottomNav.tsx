@@ -11,7 +11,6 @@ type AppBottomNavProps = {
 
 const HIDDEN_ON_PATHS = [
   "/",
-  "/about",
   "/datenschutz",
   "/impressum",
   "/join",
@@ -69,9 +68,9 @@ export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
       <div className="mx-auto w-full max-w-6xl px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2">
         <div className="mx-auto flex h-16 w-full max-w-md items-center gap-1 rounded-[24px] bg-white">
           <NavItem
-            href="/"
+            href="/home"
             label="Home"
-            active={pathname === "/"}
+            active={pathname === "/" || pathname === "/home"}
             icon={<Home className="h-5 w-5" />}
           />
 

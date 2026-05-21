@@ -42,7 +42,7 @@ export default async function RootLayout({
 
         <div className="min-h-[100dvh] pb-20">{children}</div>
 
-        <AppBottomNav isAdmin={isAdmin} />
+        {ctx.user ? <AppBottomNav isAdmin={isAdmin} /> : null}
       </body>
     </html>
   );
