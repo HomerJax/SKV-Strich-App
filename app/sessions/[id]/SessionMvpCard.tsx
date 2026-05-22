@@ -275,6 +275,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [err, setErr] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [sharingResult, setSharingResult] = useState(false);
+  const [sharingVotingReminder, setSharingVotingReminder] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
 
   async function loadMvpState() {
@@ -486,6 +487,55 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setShareMsg("Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.");
     } finally {
       setSharingResult(false);
+    }
+  }
+
+  async function handleShareVotingReminder() {
+    if (sharingVotingReminder) return;
+
+    try {
+      setSharingVotingReminder(true);
+      setShareMsg(null);
+
+      const sessionUrl =
+        typeof window !== "undefined"
+          ? window.location.href
+          : `/sessions/${sessionId}`;
+
+      const text = [
+        "MVP-Voting läuft 🗳️",
+        "",
+        "Jungs, denkt dran abzustimmen:",
+        sessionUrl,
+        "",
+        "made with strikr",
+      ].join("\n");
+
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: "MVP-Voting läuft",
+          text,
+          url: sessionUrl,
+        });
+
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        setShareMsg("Voting-Erinnerung wurde in die Zwischenablage kopiert.");
+        return;
+      }
+
+      setShareMsg("Teilen ist auf diesem Gerät leider nicht verfügbar.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      setShareMsg("Voting-Erinnerung konnte nicht geteilt werden.");
+    } finally {
+      setSharingVotingReminder(false);
     }
   }
 
@@ -751,6 +801,22 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
                 <div className="mt-3 text-xs text-slate-500">
                   Sichtbar ist nur, wer bereits abgestimmt hat — nicht, für wen.
+                </div>
+
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={handleShareVotingReminder}
+                    disabled={sharingVotingReminder}
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  >
+                    {sharingVotingReminder
+                      ? "Bereite Teilen vor…"
+                      : "Voting teilen"}
+                  </button>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    Teilt eine kurze Erinnerung mit Link zur Session.
+                  </p>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
