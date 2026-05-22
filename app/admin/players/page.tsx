@@ -16,6 +16,7 @@ type PlayerRow = {
   email: string | null;
   preferred_position: "attack" | "defense" | "goalkeeper" | null;
   category_key: string | null;
+  balance_group: string | null;
   strength: number | null;
   is_active: boolean | null;
   is_guest: boolean | null;
@@ -121,7 +122,7 @@ export default async function AdminPlayersPage({
     supabase
       .from("players")
       .select(
-        "id, club_id, name, first_name, last_name, nickname, email, preferred_position, category_key, strength, is_active, is_guest"
+        "id, club_id, name, first_name, last_name, nickname, email, preferred_position, category_key, balance_group, strength, is_active, is_guest"
       )
       .eq("club_id", clubId)
       .order("is_guest", { ascending: true })
@@ -174,6 +175,15 @@ export default async function AdminPlayersPage({
           Lege zuerst eure wichtigsten Grundlagen fest. Besonders sinnvoll ist es,
           früh eine oder mehrere Saisons anzulegen, damit Trainings und Tabelle
           später sauber zugeordnet werden.
+        </div>
+
+        <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm leading-6 text-indigo-950">
+          <span className="font-semibold">Balance-Gruppen:</span>{" "}
+          Spieler aus derselben Balance-Gruppe werden vom Generator möglichst
+          auf verschiedene Teams verteilt. Beispiel: Sind Kalle und Toni beide in
+          der Gruppe „Gehfußballer“, versucht strikr, sie nicht ins gleiche Team
+          zu legen. Spieler aus unterschiedlichen Balance-Gruppen dürfen
+          weiterhin zusammen spielen, wenn es für die Gesamtbalance passt.
         </div>
 
         <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600">
@@ -420,6 +430,27 @@ export default async function AdminPlayersPage({
                         </select>
                       </div>
                     ) : null}
+
+                    <div>
+                      <label
+                        htmlFor={`balance_group_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Balance-Gruppe
+                      </label>
+                      <input
+                        id={`balance_group_${player.id}`}
+                        name="balance_group"
+                        defaultValue={player.balance_group ?? ""}
+                        placeholder="z. B. Gehfußballer, Defensivanker"
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      />
+                      <p className="mt-1.5 text-xs leading-5 text-neutral-500">
+                        Spieler mit derselben Balance-Gruppe werden möglichst
+                        auf verschiedene Teams verteilt. Leer lassen, wenn keine
+                        besondere Verteilung nötig ist.
+                      </p>
+                    </div>
 
                     <div>
                       <label

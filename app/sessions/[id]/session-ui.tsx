@@ -165,6 +165,40 @@ export function categoryPositionBalancePenalty(
   return penalty;
 }
 
+function normalizeBalanceGroup(value: string | null | undefined) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function balanceGroupCounts(team: Player[]) {
+  const counts = new Map<string, number>();
+
+  for (const player of team) {
+    const key = normalizeBalanceGroup(player.balance_group);
+
+    if (!key) continue;
+
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
+export function balanceGroupPenalty(teamA: Player[], teamB: Player[]) {
+  const a = balanceGroupCounts(teamA);
+  const b = balanceGroupCounts(teamB);
+  const keys = new Set([...a.keys(), ...b.keys()]);
+
+  let penalty = 0;
+
+  for (const key of keys) {
+    const diff = Math.abs((a.get(key) ?? 0) - (b.get(key) ?? 0));
+    penalty += diff <= 1 ? diff : diff * diff;
+  }
+
+  return penalty;
+}
+
 export function shuffle<T>(arr: T[]) {
   const c = [...arr];
 

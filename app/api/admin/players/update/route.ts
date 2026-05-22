@@ -73,6 +73,7 @@ export async function POST(request: Request) {
   const email = emailRaw ? emailRaw.toLowerCase() : null;
   const preferredPosition = toNullableText(formData.get("preferred_position"));
   const categoryKey = toNullableText(formData.get("category_key"));
+  const balanceGroup = toNullableText(formData.get("balance_group"));
   const strengthRaw = toNullableText(formData.get("strength"));
   const isActive = toBool(formData.get("is_active"));
   const isGuest = toBool(formData.get("is_guest"));
@@ -231,6 +232,7 @@ export async function POST(request: Request) {
     email,
     preferred_position: preferredPosition,
     category_key: categoryKey,
+    balance_group: balanceGroup,
     is_active: isActive,
     is_guest: isGuest,
     name: displayName || nickname || null,

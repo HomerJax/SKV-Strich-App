@@ -13,6 +13,7 @@ import {
   buildLineupShareText,
   getErrorMessage,
   normalizeGoalValue,
+  balanceGroupPenalty,
   categoryPositionBalancePenalty,
   positionBalancePenalty,
   shuffle,
@@ -1143,8 +1144,14 @@ ${sessionUrl}`;
       const categoryPositionPenalty = useCategories
         ? categoryPositionBalancePenalty(A, B, balanceCategories)
         : 0;
+      const groupPenalty = balanceGroupPenalty(A, B);
 
-      return scoreDiff * 10 + posPenalty * 3 + categoryPositionPenalty * 8;
+      return (
+        scoreDiff * 10 +
+        posPenalty * 3 +
+        categoryPositionPenalty * 8 +
+        groupPenalty * 20
+      );
     }
 
     let bestA: Player[] = [];
@@ -1226,22 +1233,29 @@ ${sessionUrl}`;
 
     const useStrength = clubSettings?.use_strength ?? true;
     const useCategories = clubSettings?.use_categories ?? true;
+    const usesBalanceGroups = present.some((player) =>
+      Boolean(player.balance_group?.trim())
+    );
+
+    const balanceGroupText = usesBalanceGroups
+      ? " und Balance-Gruppen"
+      : "";
 
     if (useStrength && useCategories) {
       setMsg(
-        "Teams automatisch verteilt. Kategorie, Stärke und Positionsverteilung wurden berücksichtigt."
+        `Teams automatisch verteilt. Kategorie, Stärke, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
       );
     } else if (useStrength && !useCategories) {
       setMsg(
-        "Teams automatisch verteilt. Stärke und Positionsverteilung wurden berücksichtigt."
+        `Teams automatisch verteilt. Stärke, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
       );
     } else if (!useStrength && useCategories) {
       setMsg(
-        "Teams automatisch verteilt. Kategorien und Positionsverteilung wurden berücksichtigt."
+        `Teams automatisch verteilt. Kategorien, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
       );
     } else {
       setMsg(
-        "Teams automatisch verteilt. Positionsverteilung wurde berücksichtigt."
+        `Teams automatisch verteilt. Positionsverteilung${balanceGroupText} wurde berücksichtigt.`
       );
     }
 
