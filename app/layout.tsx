@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import type { Metadata } from "next";
 import AppHeader from "@/components/AppHeader";
@@ -43,6 +44,7 @@ export default async function RootLayout({
         <div className="min-h-[100dvh] pb-20">{children}</div>
 
         {ctx.user ? <AppBottomNav isAdmin={isAdmin} /> : null}
+              <Analytics />
       </body>
     </html>
   );
