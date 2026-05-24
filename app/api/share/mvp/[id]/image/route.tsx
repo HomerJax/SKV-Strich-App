@@ -73,6 +73,9 @@ export async function GET(request: Request, context: RouteContext) {
 
   const url = new URL(request.url);
   const variant = url.searchParams.get("variant") === "winner" ? "winner" : "team";
+  const requestedWinnerPlayerIdRaw = url.searchParams.get("playerId");
+  const requestedWinnerPlayerId =
+    requestedWinnerPlayerIdRaw !== null ? Number(requestedWinnerPlayerIdRaw) : null;
 
   const admin = createAdminClient();
 
@@ -146,8 +149,24 @@ export async function GET(request: Request, context: RouteContext) {
       return a.name.localeCompare(b.name, "de");
     });
 
+  const highestVoteCount = leaderboard[0]?.votes ?? 0;
+  const tiedWinners = leaderboard.filter((entry) => entry.votes === highestVoteCount);
+
+  const requestedWinner =
+    requestedWinnerPlayerId !== null && Number.isFinite(requestedWinnerPlayerId)
+      ? tiedWinners.find((entry) => entry.playerId === requestedWinnerPlayerId)
+      : null;
+
+  if (variant === "winner" && requestedWinnerPlayerId !== null && !requestedWinner) {
+    return new Response("Requested player is not an MVP winner for this session", {
+      status: 404,
+    });
+  }
+
   const winner =
-    leaderboard.find((entry) => entry.playerId === session.mvp_winner_player_id) ??
+    requestedWinner ??
+    tiedWinners.find((entry) => entry.playerId === session.mvp_winner_player_id) ??
+    tiedWinners[0] ??
     leaderboard[0];
 
   if (!winner) {
