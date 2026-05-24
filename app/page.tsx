@@ -1,3 +1,4 @@
+import LandingPageTracker from "@/components/analytics/LandingPageTracker";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
