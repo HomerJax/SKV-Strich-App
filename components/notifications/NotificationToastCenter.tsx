@@ -151,22 +151,82 @@ function toShareEntry(
   };
 }
 
+function normalizeName(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function pickNotificationWinnerSource(
+  payload: NotificationPayload,
+  isWinnerNotification: boolean
+) {
+  const winners = payload.winners ?? [];
+  const leaderboard = payload.leaderboard ?? [];
+  const allCandidates = [...winners, ...leaderboard];
+
+  if (allCandidates.length === 0) return null;
+
+  if (!isWinnerNotification) {
+    return winners[0] ?? leaderboard[0] ?? null;
+  }
+
+  const badgePlayerId = payload.badgeUpgrade?.playerId ?? null;
+
+  if (badgePlayerId !== null) {
+    const byBadgePlayer = allCandidates.find(
+      (entry) => entry.playerId === badgePlayerId
+    );
+
+    if (byBadgePlayer) return byBadgePlayer;
+  }
+
+  const payloadWinnerName = normalizeName(payload.winnerName);
+
+  if (payloadWinnerName) {
+    const byWinnerName = allCandidates.find(
+      (entry) => normalizeName(entry.name) === payloadWinnerName
+    );
+
+    if (byWinnerName) return byWinnerName;
+  }
+
+  return winners[0] ?? leaderboard[0] ?? null;
+}
+
 function buildShareData(notification: NotificationItem) {
   const payload = notification.payload;
   if (!payload) return null;
 
-  const winnerSource = payload.winners?.[0] ?? payload.leaderboard?.[0];
+  const isWinner = payload.isWinner === true;
+  const winnerSource = pickNotificationWinnerSource(payload, isWinner);
   if (!winnerSource) return null;
 
-  const winner = toShareEntry(winnerSource, payload.badgeUpgrade);
   const winners = (payload.winners ?? [winnerSource]).map((entry) =>
-    toShareEntry(entry, payload.badgeUpgrade)
-  );
-  const leaderboard = (payload.leaderboard ?? [winnerSource]).map((entry) =>
-    toShareEntry(entry, payload.badgeUpgrade)
+    toShareEntry(
+      entry,
+      payload.badgeUpgrade?.playerId === entry.playerId
+        ? payload.badgeUpgrade
+        : null
+    )
   );
 
-  const isWinner = payload.isWinner === true;
+  const leaderboard = (payload.leaderboard ?? [winnerSource]).map((entry) =>
+    toShareEntry(
+      entry,
+      payload.badgeUpgrade?.playerId === entry.playerId
+        ? payload.badgeUpgrade
+        : null
+    )
+  );
+
+  const winnerBadgeUpgrade =
+    payload.badgeUpgrade?.playerId === winnerSource.playerId
+      ? payload.badgeUpgrade
+      : null;
+
+  const winner = toShareEntry(winnerSource, winnerBadgeUpgrade);
   const badgeKey = getBadgeKey(winner.current);
   const strikrLogoUrl =
     toAbsoluteAssetUrl("/brand/strikr-mark.png") ?? "/brand/strikr-mark.png";
@@ -331,7 +391,12 @@ export function NotificationToastCenter() {
 
         await shareMvpResult({
           element,
-          imageUrl: notification.payload?.shareImageUrl ?? undefined,
+          // Bei MVP-Gleichstand ist die API-URL ohne konkrete playerId nicht eindeutig.
+          // Für persönliche Gewinner-Notifications deshalb immer die lokal gerenderte
+          // Card verwenden, damit Chris nicht aus Versehen Alexanders Card teilt.
+          imageUrl: isWinner
+            ? undefined
+            : notification.payload?.shareImageUrl ?? undefined,
           fileName: isWinner
             ? `strikr-mvp-winner-${notification.payload?.sessionId ?? notification.id}.png`
             : `strikr-mvp-result-${notification.payload?.sessionId ?? notification.id}.png`,
