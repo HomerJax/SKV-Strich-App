@@ -106,6 +106,7 @@ export default async function LandingPage() {
 
   return (
     <main className="min-h-screen bg-white text-black">
+      <LandingPageTracker />
       {/* HERO */}
       <section className="mx-auto w-full max-w-4xl px-4 pb-14 pt-16 text-center sm:px-6 lg:px-8 lg:pt-20">
         <div className="flex flex-col items-center">
