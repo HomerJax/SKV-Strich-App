@@ -223,6 +223,14 @@ export default async function PowerUserPage() {
           />
 
           <KpiCard
+            href="/power-user/landing-stats"
+            label="Landing Analytics"
+            value="Live"
+            description="Besuche, Quellen, Kampagnen, Geräte und letzte Landingpage-Aufrufe ansehen."
+            icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <KpiCard
             href="/power-user/users"
             label="User gesamt"
             value={String(usersCount)}
