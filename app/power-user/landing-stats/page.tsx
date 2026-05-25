@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { BarChart3, Globe2, Laptop, MousePointerClick, Smartphone } from "lucide-react";
+import {
+  BarChart3,
+  Globe2,
+  Laptop,
+  LogIn,
+  MousePointerClick,
+  Smartphone,
+  UserPlus,
+} from "lucide-react";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -9,6 +17,21 @@ export const revalidate = 0;
 type LandingVisitRow = {
   id: number;
   created_at: string;
+  path: string;
+  referrer_host: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  country_code: string | null;
+  device_type: string | null;
+  user_agent_family: string | null;
+  app_env: string | null;
+};
+
+type LandingEventRow = {
+  id: number;
+  created_at: string;
+  event_name: string;
   path: string;
   referrer_host: string | null;
   utm_source: string | null;
@@ -59,14 +82,23 @@ function formatSource(value: string | null | undefined) {
   return value;
 }
 
-function countSince(rows: LandingVisitRow[], date: Date) {
+function countSince<T extends { created_at: string }>(rows: T[], date: Date) {
   const minTime = date.getTime();
   return rows.filter((row) => new Date(row.created_at).getTime() >= minTime).length;
 }
 
-function getTopCounts(
-  rows: LandingVisitRow[],
-  getKey: (row: LandingVisitRow) => string | null | undefined,
+function countEvent(rows: LandingEventRow[], eventName: string) {
+  return rows.filter((row) => row.event_name === eventName).length;
+}
+
+function formatPercent(value: number) {
+  if (!Number.isFinite(value)) return "0%";
+  return `${value.toFixed(value >= 10 ? 0 : 1)}%`;
+}
+
+function getTopCounts<T>(
+  rows: T[],
+  getKey: (row: T) => string | null | undefined,
   fallback = "unbekannt",
   limit = 8
 ) {
@@ -146,26 +178,48 @@ export default async function LandingStatsPage() {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const { data, error } = await admin
-    .from("landing_page_visits")
-    .select(
-      "id, created_at, path, referrer_host, utm_source, utm_medium, utm_campaign, country_code, device_type, user_agent_family, app_env"
-    )
-    .order("created_at", { ascending: false })
-    .limit(500);
+  const [visitsResult, eventsResult] = await Promise.all([
+    admin
+      .from("landing_page_visits")
+      .select(
+        "id, created_at, path, referrer_host, utm_source, utm_medium, utm_campaign, country_code, device_type, user_agent_family, app_env"
+      )
+      .order("created_at", { ascending: false })
+      .limit(500),
 
-  const rows = error ? [] : ((data ?? []) as LandingVisitRow[]);
+    admin
+      .from("landing_page_events")
+      .select(
+        "id, created_at, event_name, path, referrer_host, utm_source, utm_medium, utm_campaign, country_code, device_type, user_agent_family, app_env"
+      )
+      .order("created_at", { ascending: false })
+      .limit(500),
+  ]);
 
-  const visitsToday = countSince(rows, todayStart);
-  const visits7d = countSince(rows, sevenDaysAgo);
-  const visits30d = countSince(rows, thirtyDaysAgo);
+  const visits = visitsResult.error ? [] : ((visitsResult.data ?? []) as LandingVisitRow[]);
+  const events = eventsResult.error ? [] : ((eventsResult.data ?? []) as LandingEventRow[]);
 
-  const sourceItems = getTopCounts(rows, (row) => formatSource(row.utm_source));
-  const campaignItems = getTopCounts(rows, (row) => row.utm_campaign, "ohne Kampagne");
-  const deviceItems = getTopCounts(rows, (row) => row.device_type, "unbekannt");
-  const countryItems = getTopCounts(rows, (row) => row.country_code, "unbekannt");
-  const browserItems = getTopCounts(rows, (row) => row.user_agent_family, "unbekannt");
-  const referrerItems = getTopCounts(rows, (row) => row.referrer_host, "direct");
+  const visitsToday = countSince(visits, todayStart);
+  const visits7d = countSince(visits, sevenDaysAgo);
+  const visits30d = countSince(visits, thirtyDaysAgo);
+
+  const events30d = events.filter(
+    (event) => new Date(event.created_at).getTime() >= thirtyDaysAgo.getTime()
+  );
+
+  const signupClicks = countEvent(events, "landing_signup_cta_click");
+  const loginClicks = countEvent(events, "landing_login_click");
+  const signupClicks30d = countEvent(events30d, "landing_signup_cta_click");
+  const conversionRate30d =
+    visits30d > 0 ? (signupClicks30d / visits30d) * 100 : 0;
+
+  const sourceItems = getTopCounts(visits, (row) => formatSource(row.utm_source));
+  const campaignItems = getTopCounts(visits, (row) => row.utm_campaign, "ohne Kampagne");
+  const eventItems = getTopCounts(events, (row) => row.event_name, "unbekannt");
+  const deviceItems = getTopCounts(visits, (row) => row.device_type, "unbekannt");
+  const countryItems = getTopCounts(visits, (row) => row.country_code, "unbekannt");
+  const browserItems = getTopCounts(visits, (row) => row.user_agent_family, "unbekannt");
+  const referrerItems = getTopCounts(visits, (row) => row.referrer_host, "direct");
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -191,22 +245,30 @@ export default async function LandingStatsPage() {
               </h1>
 
               <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-                Übersicht über Landingpage-Besuche, Quellen, Kampagnen, Geräte
-                und letzte Aufrufe. Ohne IP-Adressen oder personenbezogene
-                Besucherprofile.
+                Übersicht über Landingpage-Besuche, Quellen, Kampagnen,
+                CTA-Klicks und erste Conversion-Signale. Ohne IP-Adressen oder
+                personenbezogene Besucherprofile.
               </p>
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-slate-950">
               <div className="text-sm font-medium">Datensätze</div>
-              <div className="mt-1 text-2xl font-bold">{rows.length}</div>
+              <div className="mt-1 text-2xl font-bold">
+                {visits.length} Visits · {events.length} Events
+              </div>
             </div>
           </div>
         </div>
 
-        {error ? (
+        {visitsResult.error ? (
           <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-800">
-            Landing-Stats konnten nicht geladen werden: {error.message}
+            Landing-Visits konnten nicht geladen werden: {visitsResult.error.message}
+          </div>
+        ) : null}
+
+        {eventsResult.error ? (
+          <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-800">
+            Landing-Events konnten nicht geladen werden: {eventsResult.error.message}
           </div>
         ) : null}
 
@@ -234,19 +296,116 @@ export default async function LandingStatsPage() {
 
           <StatCard
             label="Mobile"
-            value={String(rows.filter((row) => row.device_type === "mobile").length)}
+            value={String(visits.filter((row) => row.device_type === "mobile").length)}
             description="Besuche von Smartphones."
             icon={<Smartphone className="h-6 w-6" strokeWidth={2.1} />}
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Signup-Klicks"
+            value={String(signupClicks)}
+            description="Klicks auf Team kostenlos starten."
+            icon={<UserPlus className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <StatCard
+            label="Login-Klicks"
+            value={String(loginClicks)}
+            description="Klicks auf Login von der Landingpage."
+            icon={<LogIn className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <StatCard
+            label="Signup-Rate 30T"
+            value={formatPercent(conversionRate30d)}
+            description="Signup-Klicks geteilt durch Besuche der letzten 30 Tage."
+            icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <StatCard
+            label="Events gesamt"
+            value={String(events.length)}
+            description="Alle erfassten Landingpage-CTA-Events."
+            icon={<Laptop className="h-6 w-6" strokeWidth={2.1} />}
           />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <BreakdownCard title="Quellen" items={sourceItems} />
           <BreakdownCard title="Kampagnen" items={campaignItems} />
+          <BreakdownCard title="CTA Events" items={eventItems} />
           <BreakdownCard title="Geräte" items={deviceItems} />
           <BreakdownCard title="Länder" items={countryItems} />
           <BreakdownCard title="Browser / App" items={browserItems} />
           <BreakdownCard title="Referrer" items={referrerItems} />
+        </div>
+
+        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 p-5">
+            <h2 className="text-lg font-extrabold tracking-tight text-slate-950">
+              Letzte CTA Events
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Klicks auf Landingpage-Aktionen wie Signup oder Login.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.16em] text-slate-400">
+                <tr>
+                  <th className="px-5 py-3 font-bold">Zeit</th>
+                  <th className="px-5 py-3 font-bold">Event</th>
+                  <th className="px-5 py-3 font-bold">Quelle</th>
+                  <th className="px-5 py-3 font-bold">Medium</th>
+                  <th className="px-5 py-3 font-bold">Kampagne</th>
+                  <th className="px-5 py-3 font-bold">Gerät</th>
+                  <th className="px-5 py-3 font-bold">Browser/App</th>
+                  <th className="px-5 py-3 font-bold">Land</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {events.slice(0, 30).map((event) => (
+                  <tr key={event.id} className="align-top">
+                    <td className="whitespace-nowrap px-5 py-3 font-semibold text-slate-700">
+                      {formatDateTime(event.created_at)}
+                    </td>
+                    <td className="px-5 py-3 font-bold text-slate-950">
+                      {event.event_name}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {formatSource(event.utm_source)}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {event.utm_medium ?? "–"}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {event.utm_campaign ?? "–"}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {event.device_type ?? "–"}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {event.user_agent_family ?? "–"}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {event.country_code ?? "–"}
+                    </td>
+                  </tr>
+                ))}
+
+                {events.length === 0 ? (
+                  <tr>
+                    <td className="px-5 py-5 text-sm text-slate-500" colSpan={8}>
+                      Noch keine CTA Events erfasst.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
@@ -274,7 +433,7 @@ export default async function LandingStatsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {rows.slice(0, 50).map((row) => (
+                {visits.slice(0, 50).map((row) => (
                   <tr key={row.id} className="align-top">
                     <td className="whitespace-nowrap px-5 py-3 font-semibold text-slate-700">
                       {formatDateTime(row.created_at)}
@@ -302,6 +461,14 @@ export default async function LandingStatsPage() {
                     </td>
                   </tr>
                 ))}
+
+                {visits.length === 0 ? (
+                  <tr>
+                    <td className="px-5 py-5 text-sm text-slate-500" colSpan={8}>
+                      Noch keine Landingpage-Besuche erfasst.
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
