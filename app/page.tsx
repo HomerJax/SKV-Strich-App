@@ -132,6 +132,7 @@ export default async function LandingPage() {
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/signup?next=%2Fclub-setup"
+              data-analytics-event="landing_signup_cta_click"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-black px-6 py-3.5 text-sm font-bold text-white transition hover:bg-zinc-800"
             >
               Team kostenlos starten
@@ -140,6 +141,7 @@ export default async function LandingPage() {
 
             <Link
               href="/login"
+              data-analytics-event="landing_login_click"
               className="inline-flex items-center justify-center rounded-2xl border border-black/20 px-6 py-3.5 text-sm font-bold text-black transition hover:bg-zinc-100"
             >
               Login

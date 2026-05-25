@@ -35,17 +35,59 @@ export default function LandingPageTracker() {
         "/api/analytics/landing-visit",
         new Blob([body], { type: "application/json" })
       );
-      return;
+    } else {
+      void fetch("/api/analytics/landing-visit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => {
+        // Tracking darf nie UX kaputt machen.
+      });
     }
 
-    void fetch("/api/analytics/landing-visit", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body,
-      keepalive: true,
-    }).catch(() => {
-      // Tracking darf nie UX kaputt machen.
-    });
+    function trackEvent(eventName: string) {
+      const eventBody = JSON.stringify({
+        ...payload,
+        event_name: eventName,
+      });
+
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(
+          "/api/analytics/landing-event",
+          new Blob([eventBody], { type: "application/json" })
+        );
+        return;
+      }
+
+      void fetch("/api/analytics/landing-event", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: eventBody,
+        keepalive: true,
+      }).catch(() => {
+        // Tracking darf nie UX kaputt machen.
+      });
+    }
+
+    function handleClick(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const trigger = target.closest("[data-analytics-event]");
+      if (!(trigger instanceof HTMLElement)) return;
+
+      const eventName = trigger.dataset.analyticsEvent;
+      if (!eventName) return;
+
+      trackEvent(eventName);
+    }
+
+    document.addEventListener("click", handleClick);
+
+    return () => {
+      document.removeEventListener("click", handleClick);
+    };
   }, []);
 
   return null;
