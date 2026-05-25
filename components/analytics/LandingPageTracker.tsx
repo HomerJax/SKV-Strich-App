@@ -7,15 +7,29 @@ function getParam(searchParams: URLSearchParams, key: string) {
   return value && value.trim() ? value.trim() : null;
 }
 
+function sendAnalyticsEvent(endpoint: string, payload: Record<string, unknown>) {
+  const body = JSON.stringify(payload);
+
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(
+      endpoint,
+      new Blob([body], { type: "application/json" })
+    );
+    return;
+  }
+
+  void fetch(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body,
+    keepalive: true,
+  }).catch(() => {
+    // Tracking darf nie UX kaputt machen.
+  });
+}
+
 export default function LandingPageTracker() {
   useEffect(() => {
-    const key = `strikr-landing-visit-${window.location.pathname}-${new Date()
-      .toISOString()
-      .slice(0, 10)}`;
-
-    if (sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key, "1");
-
     const searchParams = new URLSearchParams(window.location.search);
 
     const payload = {
@@ -28,46 +42,13 @@ export default function LandingPageTracker() {
       utm_term: getParam(searchParams, "utm_term"),
     };
 
-    const body = JSON.stringify(payload);
+    const visitKey = `strikr-landing-visit-${window.location.pathname}-${new Date()
+      .toISOString()
+      .slice(0, 10)}`;
 
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(
-        "/api/analytics/landing-visit",
-        new Blob([body], { type: "application/json" })
-      );
-    } else {
-      void fetch("/api/analytics/landing-visit", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body,
-        keepalive: true,
-      }).catch(() => {
-        // Tracking darf nie UX kaputt machen.
-      });
-    }
-
-    function trackEvent(eventName: string) {
-      const eventBody = JSON.stringify({
-        ...payload,
-        event_name: eventName,
-      });
-
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(
-          "/api/analytics/landing-event",
-          new Blob([eventBody], { type: "application/json" })
-        );
-        return;
-      }
-
-      void fetch("/api/analytics/landing-event", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: eventBody,
-        keepalive: true,
-      }).catch(() => {
-        // Tracking darf nie UX kaputt machen.
-      });
+    if (!sessionStorage.getItem(visitKey)) {
+      sessionStorage.setItem(visitKey, "1");
+      sendAnalyticsEvent("/api/analytics/landing-visit", payload);
     }
 
     function handleClick(event: MouseEvent) {
@@ -80,7 +61,10 @@ export default function LandingPageTracker() {
       const eventName = trigger.dataset.analyticsEvent;
       if (!eventName) return;
 
-      trackEvent(eventName);
+      sendAnalyticsEvent("/api/analytics/landing-event", {
+        ...payload,
+        event_name: eventName,
+      });
     }
 
     document.addEventListener("click", handleClick);
