@@ -389,14 +389,18 @@ export function NotificationToastCenter() {
           throw new Error("MVP Share Card ist noch nicht bereit.");
         }
 
+        const shareData = buildShareData(notification);
+        const sessionId = notification.payload?.sessionId ?? null;
+        const playerSpecificWinnerImageUrl =
+          isWinner && sessionId && shareData?.winner.playerId
+            ? `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${shareData.winner.playerId}`
+            : null;
+
         await shareMvpResult({
           element,
-          // Bei MVP-Gleichstand ist die API-URL ohne konkrete playerId nicht eindeutig.
-          // Für persönliche Gewinner-Notifications deshalb immer die lokal gerenderte
-          // Card verwenden, damit Chris nicht aus Versehen Alexanders Card teilt.
-          imageUrl: isWinner
-            ? undefined
-            : notification.payload?.shareImageUrl ?? undefined,
+          // Winner-Card bei Gleichstand serverseitig, aber eindeutig per playerId rendern.
+          // Dadurch bleiben Bilder/Badges stabil und Chris bekommt trotzdem Chris.
+          imageUrl: playerSpecificWinnerImageUrl ?? notification.payload?.shareImageUrl ?? undefined,
           fileName: isWinner
             ? `strikr-mvp-winner-${notification.payload?.sessionId ?? notification.id}.png`
             : `strikr-mvp-result-${notification.payload?.sessionId ?? notification.id}.png`,
