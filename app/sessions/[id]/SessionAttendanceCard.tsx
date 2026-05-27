@@ -216,6 +216,8 @@ function ToggleSwitch({
 }
 
 function PlayerMetaChips({ player }: { player: Player }) {
+  const categoryLabel = player.category_label ?? player.age_group ?? null;
+
   return (
     <span className="flex shrink-0 items-center gap-1">
       <span
@@ -223,7 +225,7 @@ function PlayerMetaChips({ player }: { player: Player }) {
           player.age_group
         )}`}
       >
-        {player.age_group ?? "?"}
+        {categoryLabel ?? "?"}
       </span>
       <span
         className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${badgeColor(
