@@ -216,7 +216,7 @@ function ToggleSwitch({
 }
 
 function PlayerMetaChips({ player }: { player: Player }) {
-  const categoryLabel = player.category_label ?? player.age_group ?? null;
+  const categoryLabel = player.category_label ?? null;
 
   return (
     <span className="flex shrink-0 items-center gap-1">

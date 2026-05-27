@@ -320,7 +320,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     category_label:
       player.category_key && categoryLabelByKey.has(player.category_key)
         ? categoryLabelByKey.get(player.category_key) ?? null
-        : player.age_group ?? null,
+        : null,
   }));
 
   const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[]).map(
