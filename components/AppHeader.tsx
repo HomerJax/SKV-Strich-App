@@ -184,9 +184,9 @@ export default async function AppHeader() {
 
       <header
         style={{ borderTop: `3px solid ${primaryColor}` }}
-        className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur"
+        className="sticky top-0 z-[200] border-b border-slate-200 bg-white/95 backdrop-blur"
       >
-        <div className="mx-auto flex h-16 w-full max-w-6xl min-w-0 items-center justify-between gap-2 overflow-hidden px-3 sm:h-[72px] sm:gap-3 sm:px-6">
+        <div className="mx-auto flex h-16 w-full max-w-6xl min-w-0 items-center justify-between gap-2 overflow-visible px-3 sm:h-[72px] sm:gap-3 sm:px-6">
           <div className="min-w-0 flex items-center gap-2 sm:gap-3">
             <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
               <Image

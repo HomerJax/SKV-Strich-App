@@ -69,7 +69,7 @@ export default function MobileUserMenu({
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-14 z-50 min-w-[190px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+        <div className="absolute right-0 top-14 z-[300] min-w-[190px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
           <Link
             href="/profile"
             onClick={() => setOpen(false)}
