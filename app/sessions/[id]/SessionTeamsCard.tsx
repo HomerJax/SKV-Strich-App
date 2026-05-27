@@ -152,7 +152,7 @@ function PlayerInlineMeta({ player }: { player: Player }) {
   return (
     <span className="flex items-center gap-1 shrink-0">
       <CompactTag className={ageBadgeColor(player.age_group)}>
-        {player.age_group ?? "?"}
+        {player.category_label ?? player.age_group ?? "?"}
       </CompactTag>
       <CompactTag className={badgeColor(player.preferred_position)}>
         {positionLabel(player.preferred_position)}
@@ -469,7 +469,7 @@ function FieldPlayerChip({
             {positionLabel(player.preferred_position).slice(0, 2)}
           </CompactTag>
           <CompactTag className={ageBadgeColor(player.age_group)}>
-            {player.age_group ?? "?"}
+            {player.category_label ?? player.age_group ?? "?"}
           </CompactTag>
 
           {!hasResult ? (

@@ -8,7 +8,9 @@ export type Player = {
   nickname?: string | null;
   age_group: "AH" | "Ü32" | null;
   category_key?: string | null;
+  category_label?: string | null;
   balance_group?: string | null;
+  roster_role?: "player" | "staff" | null;
   preferred_position: "defense" | "attack" | "goalkeeper" | null;
   strength: number | null;
   is_active: boolean | null;

@@ -20,6 +20,7 @@ type PlayerRow = {
   strength: number | null;
   is_active: boolean | null;
   is_guest: boolean | null;
+  roster_role: "player" | "staff" | null;
 };
 
 type ClubSettingsRow = {
@@ -81,9 +82,13 @@ function getPlayerHeadline(player: PlayerRow) {
   return `Spieler #${player.id}`;
 }
 
+function getRosterRoleLabel(player: PlayerRow) {
+  return player.roster_role === "staff" ? "Trainer/Betreuer" : "Spieler";
+}
+
 function getPlayerSubline(player: PlayerRow, settings: ClubSettingsRow | null) {
   return [
-    player.is_guest ? "Gastspieler" : "Normaler Spieler",
+    player.is_guest ? "Gastspieler" : getRosterRoleLabel(player),
     player.is_active ? "Aktiv" : "Inaktiv",
     positionLabel(player.preferred_position, settings),
   ].join(" · ");
@@ -122,7 +127,7 @@ export default async function AdminPlayersPage({
     supabase
       .from("players")
       .select(
-        "id, club_id, name, first_name, last_name, nickname, email, preferred_position, category_key, balance_group, strength, is_active, is_guest"
+        "id, club_id, name, first_name, last_name, nickname, email, preferred_position, category_key, balance_group, strength, is_active, is_guest, roster_role"
       )
       .eq("club_id", clubId)
       .order("is_guest", { ascending: true })
@@ -162,7 +167,7 @@ export default async function AdminPlayersPage({
           Spieler & Team-Generator
         </h1>
         <p className="mt-2 text-sm text-neutral-600">
-          Bearbeite Namen, E-Mail, Position, Kategorie, Stärke und Status deiner
+          Bearbeite Namen, E-Mail, Rolle, Position, Kategorie, Stärke und Status deiner
           Spieler und prüfe die Grundlagen für den Generator.
         </p>
       </div>
@@ -238,8 +243,8 @@ export default async function AdminPlayersPage({
 
       {players.length > 0 ? (
         <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-          {players.length} Spieler im Team hinterlegt. Tippe auf einen Eintrag,
-          um die Bearbeitungsfelder aufzuklappen.
+          {players.length} Personen im Team hinterlegt. Tippe auf einen Eintrag,
+          um die Bearbeitungsfelder aufzuklappen. Trainer/Betreuer können als anwesend geführt werden, landen aber nicht im Teamgenerator.
         </div>
       ) : null}
 
@@ -253,7 +258,6 @@ export default async function AdminPlayersPage({
             <details
               key={player.id}
               className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm"
-              open={index === 0}
             >
               <summary className="list-none cursor-pointer px-4 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -358,6 +362,28 @@ export default async function AdminPlayersPage({
 
                     <div>
                       <label
+                        htmlFor={`roster_role_${player.id}`}
+                        className="mb-1.5 block text-sm font-medium text-neutral-900"
+                      >
+                        Rolle
+                      </label>
+                      <select
+                        id={`roster_role_${player.id}`}
+                        name="roster_role"
+                        defaultValue={player.roster_role ?? "player"}
+                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
+                      >
+                        <option value="player">Spieler</option>
+                        <option value="staff">Trainer/Betreuer</option>
+                      </select>
+                      <p className="mt-1.5 text-xs leading-5 text-neutral-500">
+                        Trainer/Betreuer können beim Training anwesend sein,
+                        werden aber nicht vom Teamgenerator berücksichtigt.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label
                         htmlFor={`preferred_position_${player.id}`}
                         className="mb-1.5 block text-sm font-medium text-neutral-900"
                       >
@@ -457,7 +483,7 @@ export default async function AdminPlayersPage({
                         htmlFor={`is_active_${player.id}`}
                         className="mb-1.5 block text-sm font-medium text-neutral-900"
                       >
-                        Aktiv
+                        Für Trainings aktiv
                       </label>
                       <select
                         id={`is_active_${player.id}`}

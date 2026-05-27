@@ -142,6 +142,10 @@ function removePlayerFromTeamMap(source: TeamMap, playerId: number): TeamMap {
   return next;
 }
 
+function isTeamGeneratorPlayer(player: Player) {
+  return (player.roster_role ?? "player") !== "staff";
+}
+
 function ensurePresentPlayersExistInTeamMap(source: TeamMap, playerIds: number[]): TeamMap {
   const next = { ...source };
 
@@ -404,10 +408,15 @@ export function useSessionDetail({
     [players, presentIds]
   );
 
+  const teamGeneratorPlayers = useMemo(
+    () => presentPlayers.filter(isTeamGeneratorPlayer),
+    [presentPlayers]
+  );
+
   const teamA = useMemo(
     () =>
       sortPlayersByFirstName(
-        presentPlayers.filter((player) => manualTeams[player.id] === "A")
+        teamGeneratorPlayers.filter((player) => manualTeams[player.id] === "A")
       ),
     [presentPlayers, manualTeams]
   );
@@ -415,7 +424,7 @@ export function useSessionDetail({
   const teamB = useMemo(
     () =>
       sortPlayersByFirstName(
-        presentPlayers.filter((player) => manualTeams[player.id] === "B")
+        teamGeneratorPlayers.filter((player) => manualTeams[player.id] === "B")
       ),
     [presentPlayers, manualTeams]
   );
@@ -423,7 +432,7 @@ export function useSessionDetail({
   const unassigned = useMemo(
     () =>
       sortPlayersByFirstName(
-        presentPlayers.filter((player) => !manualTeams[player.id])
+        teamGeneratorPlayers.filter((player) => !manualTeams[player.id])
       ),
     [presentPlayers, manualTeams]
   );
@@ -503,7 +512,7 @@ export function useSessionDetail({
       ? "Ergebnis ist gespeichert"
       : attendanceDirty
         ? "Anwesenheit speichern"
-        : presentPlayers.length < 2
+        : teamGeneratorPlayers.length < 2
           ? "Mehr Spieler auf anwesend setzen"
           : !teamsComplete
             ? "Teams fertig zuweisen"
@@ -1112,7 +1121,7 @@ ${sessionUrl}`;
 
     clearFeedback();
 
-    const present = presentPlayers;
+    const present = teamGeneratorPlayers;
     if (present.length < 2) {
       setErr("Mindestens 2 Spieler nötig.");
       restoreScroll();

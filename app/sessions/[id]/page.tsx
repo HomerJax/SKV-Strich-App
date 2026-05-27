@@ -229,7 +229,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     supabase
       .from("players")
       .select(
-        "id, name, first_name, last_name, nickname, is_active, age_group, category_key, balance_group, preferred_position, strength, is_guest, mvp_count"
+        "id, name, first_name, last_name, nickname, is_active, age_group, category_key, balance_group, roster_role, preferred_position, strength, is_guest, mvp_count"
       )
       .eq("club_id", clubId)
       .order("name"),
@@ -305,9 +305,23 @@ export default async function SessionDetailPage({ params }: PageProps) {
     use_field_view: useFieldView,
   };
 
-  const players = ((playersData ?? []).filter(
+  const categoryLabelByKey = new Map(
+    ((categoriesData ?? []) as BalanceCategoryRow[]).map((category) => [
+      category.key,
+      category.label,
+    ])
+  );
+
+  const players = (((playersData ?? []).filter(
     (player) => player.is_active !== false
-  ) ?? []) as Player[];
+  ) ?? []) as Player[]).map((player) => ({
+    ...player,
+    roster_role: player.roster_role ?? "player",
+    category_label:
+      player.category_key && categoryLabelByKey.has(player.category_key)
+        ? categoryLabelByKey.get(player.category_key) ?? null
+        : player.age_group ?? null,
+  }));
 
   const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[]).map(
     (row) => row.player_id
