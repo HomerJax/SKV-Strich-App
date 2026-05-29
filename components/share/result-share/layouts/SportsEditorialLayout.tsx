@@ -354,10 +354,10 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 0,
             right: 0,
-            bottom: 150,
-            height: 260,
+            bottom: 120,
+            height: 300,
             background:
-              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.70) 100%)",
+              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.08) 20%, rgba(2,6,23,0.30) 48%, rgba(2,6,23,0.68) 76%, rgba(2,6,23,0.96) 100%)",
             zIndex: 4,
           }}
         />
@@ -370,8 +370,9 @@ export function SportsEditorialLayout({
             left: 0,
             right: 0,
             bottom: 0,
-            height: 150,
-            background: "#020617",
+            height: 120,
+            background:
+              "linear-gradient(180deg, rgba(2,6,23,0.92) 0%, #020617 22%, #020617 100%)",
             zIndex: 5,
           }}
         />
@@ -383,7 +384,7 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 64,
             right: 72,
-            bottom: 42,
+            bottom: 34,
             justifyContent: "space-between",
             alignItems: "flex-end",
             gap: 28,
