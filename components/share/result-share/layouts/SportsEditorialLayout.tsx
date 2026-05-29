@@ -4,6 +4,7 @@ import {
   getClubLogoUrl,
   getDisplayClubName,
   getScoreModel,
+  renderClubBadge,
 } from "../result-share.helpers";
 import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
@@ -13,14 +14,144 @@ function pickBySessionId<T>(sessionId: number, values: T[]) {
   return values[Math.abs(sessionId) % values.length] ?? values[0];
 }
 
-function getHeroTitle(headline: string, sessionId: number) {
+function renderStrikrTopBadge({
+  strikrLogoUrl,
+}: {
+  strikrLogoUrl?: string | null;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        width: 220,
+        padding: "16px 16px 13px",
+        borderRadius: 0,
+        background: "rgba(2,6,12,0.48)",
+        border: "1px solid rgba(255,255,255,0.10)",
+      }}
+    >
+      {strikrLogoUrl ? (
+        <img
+          src={strikrLogoUrl}
+          alt="strikr"
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 16,
+            objectFit: "cover",
+            display: "flex",
+          }}
+        />
+      ) : null}
+
+      <div
+        style={{
+          display: "flex",
+          fontSize: 28,
+          fontWeight: 900,
+          lineHeight: 1,
+          letterSpacing: -1,
+          color: "#FFFFFF",
+        }}
+      >
+        strikr
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          fontSize: 10,
+          fontWeight: 800,
+          lineHeight: 1,
+          letterSpacing: 2,
+          textTransform: "uppercase",
+          color: "rgba(255,255,255,0.70)",
+        }}
+      >
+        TEAM TRAINING. REDEFINED.
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginTop: 4,
+          paddingTop: 9,
+          borderTop: "1px solid rgba(255,255,255,0.10)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontSize: 11,
+            fontWeight: 800,
+            color: "rgba(255,255,255,0.78)",
+          }}
+        >
+          @getstrikr
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            width: 1,
+            height: 11,
+            background: "rgba(255,255,255,0.16)",
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            fontSize: 11,
+            fontWeight: 800,
+            color: "#34d399",
+          }}
+        >
+          strikr.team
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getEditorialTitle(headline: string, sessionId: number) {
   const lower = headline.toLowerCase();
 
   if (lower.includes("unterzahl") || lower.includes("papier")) {
+    return pickBySessionId(sessionId, ["UNDERDOG.", "UPSET.", "MENTALITY."]);
+  }
+
+  if (
+    lower.includes("diskussion") ||
+    lower.includes("deutlich") ||
+    lower.includes("gewonnen")
+  ) {
     return pickBySessionId(sessionId, [
-      "Mentalität gezeigt.",
-      "Stark geblieben.",
-      "Team gezogen.",
+      "STATEMENT.",
+      "DONE.",
+      "BIG WIN.",
+      "CLINICAL.",
+      "DELIVERED.",
+    ]);
+  }
+
+  return pickBySessionId(sessionId, ["MATCHDAY.", "TRAINING.", "GAME ON."]);
+}
+
+function getShortHeadline(headline: string, sessionId: number) {
+  const lower = headline.toLowerCase();
+
+  if (lower.includes("unterzahl")) {
+    return pickBySessionId(sessionId, [
+      "MENTALITÄT.",
+      "STARK GEBLIEBEN.",
+      "TEAM GEZOGEN.",
     ]);
   }
 
@@ -30,230 +161,15 @@ function getHeroTitle(headline: string, sessionId: number) {
     lower.includes("gewonnen")
   ) {
     return pickBySessionId(sessionId, [
-      "Klare Sache.",
-      "Starker Auftritt.",
-      "Sauber gezogen.",
-      "Team Moment.",
-      "Geliefert.",
+      "KLARE SACHE.",
+      "STARKER AUFTRITT.",
+      "SAUBER GEZOGEN.",
+      "TEAM MOMENT.",
+      "GELIEFERT.",
     ]);
   }
 
-  return pickBySessionId(sessionId, [
-    "Training entschieden.",
-    "Matchday erledigt.",
-    "Team Moment.",
-  ]);
-}
-
-function getResultLabel(goalsA: number, goalsB: number) {
-  if (goalsA === goalsB) return "Remis";
-  return goalsA > goalsB ? "Team 1 gewinnt" : "Team 2 gewinnt";
-}
-
-function getCrestInitial(clubName: string) {
-  return clubName.trim().charAt(0).toUpperCase() || "S";
-}
-
-function ClubBadge({
-  clubName,
-  clubLogoUrl,
-}: {
-  clubName: string;
-  clubLogoUrl: string | null;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        minWidth: 0,
-      }}
-    >
-      <div
-        style={{
-          width: 82,
-          height: 82,
-          borderRadius: 24,
-          overflow: "hidden",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "rgba(255,255,255,0.86)",
-          border: "1px solid rgba(255,255,255,0.38)",
-          boxShadow: "0 18px 44px rgba(0,0,0,0.26)",
-          flexShrink: 0,
-        }}
-      >
-        {clubLogoUrl ? (
-          <img
-            src={clubLogoUrl}
-            alt={clubName}
-            width={82}
-            height={82}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              display: "block",
-              padding: 9,
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "100%",
-              height: "100%",
-              color: "#0F172A",
-              fontSize: 34,
-              fontWeight: 950,
-            }}
-          >
-            {getCrestInitial(clubName)}
-          </div>
-        )}
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-          minWidth: 0,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            fontSize: 26,
-            fontWeight: 900,
-            lineHeight: 1.05,
-            letterSpacing: -0.6,
-            color: "#FFFFFF",
-            textShadow: "0 8px 22px rgba(0,0,0,0.45)",
-            maxWidth: 520,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-          }}
-        >
-          {clubName}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            fontSize: 12,
-            fontWeight: 800,
-            letterSpacing: 2.1,
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.70)",
-          }}
-        >
-          Match result by strikr
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StrikrBadge({
-  strikrLogoUrl,
-}: {
-  strikrLogoUrl?: string | null;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "12px 14px",
-        borderRadius: 22,
-        background: "rgba(2,6,23,0.62)",
-        border: "1px solid rgba(255,255,255,0.14)",
-        boxShadow: "0 18px 44px rgba(0,0,0,0.24)",
-      }}
-    >
-      <div
-        style={{
-          width: 48,
-          height: 48,
-          borderRadius: 14,
-          overflow: "hidden",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#020617",
-          flexShrink: 0,
-        }}
-      >
-        {strikrLogoUrl ? (
-          <img
-            src={strikrLogoUrl}
-            alt="strikr"
-            width={48}
-            height={48}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              display: "block",
-              padding: 6,
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              color: "#FFFFFF",
-              fontSize: 24,
-              fontWeight: 950,
-            }}
-          >
-            s
-          </div>
-        )}
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            fontSize: 25,
-            fontWeight: 950,
-            lineHeight: 1,
-            letterSpacing: -0.8,
-            color: "#FFFFFF",
-          }}
-        >
-          strikr
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            fontSize: 9,
-            fontWeight: 800,
-            lineHeight: 1,
-            letterSpacing: 1.8,
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.62)",
-          }}
-        >
-          training redefined
-        </div>
-      </div>
-    </div>
-  );
+  return headline;
 }
 
 export function SportsEditorialLayout({
@@ -268,18 +184,15 @@ export function SportsEditorialLayout({
   const score = getScoreModel(data);
   const colorway = pickResultShareColorway(data.sessionId);
 
-  const heroTitle = getHeroTitle(copy.headline, data.sessionId);
-  const resultLabel = getResultLabel(score.goalsA, score.goalsB);
-
   return (
     <div
       style={{
         display: "flex",
         width: "100%",
         height: "100%",
-        padding: 22,
+        padding: 20,
         background:
-          "radial-gradient(circle at 50% -12%, rgba(255,255,255,0.16), transparent 32%), #020617",
+          "radial-gradient(circle at 50% -8%, rgba(255,255,255,0.12), transparent 30%), #020617",
         color: "#FFFFFF",
       }}
     >
@@ -290,240 +203,239 @@ export function SportsEditorialLayout({
           height: "100%",
           position: "relative",
           overflow: "hidden",
-          borderRadius: 46,
+          borderRadius: 42,
           background: "#020617",
           border: "1px solid rgba(255,255,255,0.10)",
           boxShadow:
-            "0 44px 130px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.10)",
+            "0 40px 120px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.08)",
         }}
       >
-        {/* Full hero photo */}
-        {data.winnerPhotoUrl ? (
-          <img
-            src={data.winnerPhotoUrl}
-            alt="Siegerfoto"
-            width={1040}
-            height={1306}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center 74%",
-              display: "block",
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background:
-                "radial-gradient(circle at 50% 20%, rgba(255,255,255,0.14), transparent 34%), linear-gradient(180deg,#1E293B,#020617)",
-              color: "rgba(255,255,255,0.55)",
-              fontSize: 48,
-              fontWeight: 950,
-            }}
-          >
-            Siegerfoto
-          </div>
-        )}
-
-        {/* Photo grading */}
+        {/* Top color field */}
         <div
           style={{
-            position: "absolute",
-            inset: 0,
             display: "flex",
-            background:
-              "linear-gradient(180deg, rgba(2,6,23,0.44) 0%, rgba(2,6,23,0.10) 26%, rgba(2,6,23,0.04) 52%, rgba(2,6,23,0.82) 100%)",
-          }}
-        />
-
-        {/* Brand glow top */}
-        <div
-          style={{
             position: "absolute",
-            left: 0,
-            right: 0,
             top: 0,
-            height: 250,
-            display: "flex",
-            background:
-              "linear-gradient(180deg, rgba(8,145,178,0.62) 0%, rgba(8,145,178,0.24) 52%, rgba(8,145,178,0) 100%)",
-          }}
-        />
-
-        {/* Bottom readability */}
-        <div
-          style={{
-            position: "absolute",
             left: 0,
             right: 0,
-            bottom: 0,
-            height: 430,
-            display: "flex",
-            background:
-              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.58) 38%, rgba(2,6,23,0.96) 100%)",
+            height: 400,
+            background: colorway.topBackground,
+            boxShadow: `0 42px 96px ${colorway.accentGlow}`,
+            zIndex: 1,
           }}
         />
 
         {/* Header */}
         <div
           style={{
+            display: "flex",
             position: "absolute",
             top: 34,
             left: 34,
             right: 34,
-            display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
             gap: 24,
+            zIndex: 10,
           }}
         >
-          <ClubBadge clubName={clubName} clubLogoUrl={clubLogoUrl} />
+          {renderClubBadge({
+            clubName,
+            clubLogoUrl,
+            palette,
+            dark: true,
+            strikrLogoUrl: data.strikrLogoUrl,
+          })}
 
-          <StrikrBadge strikrLogoUrl={data.strikrLogoUrl} />
+          {renderStrikrTopBadge({
+            strikrLogoUrl: data.strikrLogoUrl,
+          })}
         </div>
 
-        {/* Small editorial tag */}
+        {/* Big editorial title */}
         <div
           style={{
-            position: "absolute",
-            left: 42,
-            top: 178,
             display: "flex",
-            padding: "10px 14px",
-            borderRadius: 999,
-            background: "rgba(2,6,23,0.50)",
-            border: `1px solid ${colorway.accent}55`,
-            color: "rgba(255,255,255,0.78)",
-            fontSize: 12,
-            fontWeight: 850,
-            letterSpacing: 1.6,
-            textTransform: "uppercase",
-          }}
-        >
-          {resultLabel}
-        </div>
-
-        {/* Main bottom content */}
-        <div
-          style={{
             position: "absolute",
-            left: 46,
-            right: 46,
-            bottom: 42,
-            display: "flex",
-            flexDirection: "column",
-            gap: 22,
+            left: 54,
+            right: 54,
+            top: 165,
+            height: 180,
+            alignItems: "flex-end",
+            zIndex: 8,
+            overflow: "hidden",
           }}
         >
           <div
             style={{
               display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              gap: 30,
+              fontSize: 132,
+              fontWeight: 950,
+              lineHeight: 0.9,
+              letterSpacing: -6,
+              textShadow: "0 18px 46px rgba(0,0,0,0.32)",
+              color: colorway.titleColor,
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
             }}
           >
+            {getEditorialTitle(copy.headline, data.sessionId)}
+          </div>
+        </div>
+
+        {/* Photo: endet VOR dem Footer, dadurch keine grünen unteren Ecken */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 400,
+            bottom: 150,
+            overflow: "hidden",
+            background: "#0F172A",
+            zIndex: 2,
+          }}
+        >
+          {data.winnerPhotoUrl ? (
+            <img
+              src={data.winnerPhotoUrl}
+              alt="Siegerfoto"
+              width={1040}
+              height={950}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center 82%",
+                display: "block",
+              }}
+            />
+          ) : (
             <div
               style={{
+                width: "100%",
+                height: "100%",
                 display: "flex",
-                alignItems: "baseline",
-                gap: 6,
-                fontSize: 150,
-                fontWeight: 950,
-                lineHeight: 0.82,
-                letterSpacing: -8,
-                color: colorway.accent,
-                textShadow: `0 0 34px ${colorway.accentGlow}`,
+                alignItems: "center",
+                justifyContent: "center",
+                background:
+                  "radial-gradient(circle at 50% 20%, rgba(255,255,255,0.12), transparent 34%), linear-gradient(180deg,#1E293B,#020617)",
+                color: "rgba(255,255,255,0.55)",
+                fontSize: 42,
+                fontWeight: 900,
+                letterSpacing: -1,
               }}
             >
-              <span style={{ display: "flex" }}>{score.goalsA}</span>
-              <span
-                style={{
-                  display: "flex",
-                  fontSize: 82,
-                  opacity: 0.9,
-                  letterSpacing: -3,
-                }}
-              >
-                :
-              </span>
-              <span style={{ display: "flex" }}>{score.goalsB}</span>
+              Siegerfoto
             </div>
+          )}
+        </div>
 
-            <div
+        {/* Übergang Top → Foto */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 400,
+            height: 80,
+            background:
+              "linear-gradient(180deg, rgba(8,145,178,0.38) 0%, rgba(8,145,178,0.10) 48%, rgba(8,145,178,0) 100%)",
+            zIndex: 3,
+          }}
+        />
+
+        {/* Foto unten abdunkeln */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 150,
+            height: 260,
+            background:
+              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.70) 100%)",
+            zIndex: 4,
+          }}
+        />
+
+        {/* Echter Footer, volle Breite */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 150,
+            background: "#020617",
+            zIndex: 5,
+          }}
+        />
+
+        {/* Score + short headline */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 64,
+            right: 72,
+            bottom: 42,
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            gap: 28,
+            zIndex: 20,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: 2,
+              fontSize: 138,
+              fontWeight: 950,
+              lineHeight: 0.86,
+              letterSpacing: -8,
+              color: colorway.accent,
+              textShadow: `0 0 34px ${colorway.accentGlow}`,
+            }}
+          >
+            <span style={{ display: "flex" }}>{score.goalsA}</span>
+
+            <span
               style={{
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                gap: 8,
-                maxWidth: 455,
-                textAlign: "right",
+                fontSize: 78,
+                letterSpacing: -3,
+                opacity: 0.92,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: 42,
-                  fontWeight: 950,
-                  lineHeight: 0.98,
-                  letterSpacing: -1.4,
-                  color: "#FFFFFF",
-                  textShadow: "0 16px 44px rgba(0,0,0,0.46)",
-                }}
-              >
-                {heroTitle}
-              </div>
+              :
+            </span>
 
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: 15,
-                  fontWeight: 800,
-                  lineHeight: 1,
-                  letterSpacing: 2.2,
-                  textTransform: "uppercase",
-                  color: palette.accent,
-                  textShadow: `0 0 24px ${palette.accentGlow}`,
-                }}
-              >
-                made with strikr
-              </div>
-            </div>
+            <span style={{ display: "flex" }}>{score.goalsB}</span>
           </div>
 
           <div
             style={{
               display: "flex",
-              height: 1,
-              width: "100%",
-              background:
-                "linear-gradient(90deg, rgba(255,255,255,0.0), rgba(255,255,255,0.22), rgba(255,255,255,0.0))",
-            }}
-          />
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 20,
-              color: "rgba(255,255,255,0.66)",
-              fontSize: 17,
-              fontWeight: 750,
+              width: 440,
+              maxWidth: 440,
+              textAlign: "right",
+              justifyContent: "flex-end",
+              fontSize: 32,
+              fontWeight: 950,
+              lineHeight: 1,
+              letterSpacing: -0.9,
+              color: colorway.accent,
+              textTransform: "uppercase",
+              textShadow: `0 0 28px ${colorway.accentGlow}`,
             }}
           >
-            <div style={{ display: "flex" }}>{copy.subline}</div>
-            <div style={{ display: "flex", color: palette.accent }}>
-              @getstrikr
-            </div>
+            {getShortHeadline(copy.headline, data.sessionId)}
           </div>
         </div>
       </div>
