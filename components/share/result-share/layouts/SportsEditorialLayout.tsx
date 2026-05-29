@@ -244,7 +244,7 @@ export function SportsEditorialLayout({
             justifyContent: "space-between",
             alignItems: "flex-start",
             gap: 24,
-            zIndex: 24,
+            zIndex: 90,
           }}
         >
           {renderClubBadge({
@@ -356,13 +356,12 @@ export function SportsEditorialLayout({
           style={{
             display: "flex",
             position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 110,
-            height: 180,
-            background:
-              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.72) 100%)",
-            zIndex: 17,
+            left: -8,
+            right: -8,
+            bottom: -8,
+            height: 170,
+            background: "#020617",
+            zIndex: 80,
             pointerEvents: "none",
           }}
         />
@@ -371,12 +370,13 @@ export function SportsEditorialLayout({
           style={{
             display: "flex",
             position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 110,
-            background: "#020617",
-            zIndex: 18,
+            left: -8,
+            right: -8,
+            bottom: 120,
+            height: 120,
+            background:
+              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.76) 100%)",
+            zIndex: 79,
             pointerEvents: "none",
           }}
         />
