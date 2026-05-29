@@ -5,7 +5,6 @@ import {
   getDisplayClubName,
   getScoreModel,
   renderClubBadge,
-  renderPhotoOrFallback,
 } from "../result-share.helpers";
 import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
@@ -299,16 +298,44 @@ export function SportsEditorialLayout({
             top: 392,
             bottom: 0,
             overflow: "hidden",
+            background: "#0F172A",
           }}
         >
-          {renderPhotoOrFallback({
-            winnerPhotoUrl: data.winnerPhotoUrl,
-            palette,
-            dark: true,
-            width: 1032,
-            height: 1320,
-            borderRadius: 0,
-          })}
+          {data.winnerPhotoUrl ? (
+            <img
+              src={data.winnerPhotoUrl}
+              alt="Siegerfoto"
+              width={1040}
+              height={918}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center 88%",
+                display: "block",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background:
+                  "radial-gradient(circle at 50% 20%, rgba(255,255,255,0.12), transparent 34%), linear-gradient(180deg,#1E293B,#020617)",
+                color: "rgba(255,255,255,0.55)",
+                fontSize: 42,
+                fontWeight: 900,
+                letterSpacing: -1,
+              }}
+            >
+              Siegerfoto
+            </div>
+          )}
         </div>
 
         <div
@@ -317,10 +344,11 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 0,
             right: 0,
-            top: 430,
+            top: 392,
             bottom: 0,
             background:
-              "linear-gradient(to top, rgba(1,4,10,0.96) 0%, rgba(1,4,10,0.80) 22%, rgba(1,4,10,0.30) 52%, rgba(1,4,10,0.04) 100%)",
+              "linear-gradient(180deg, rgba(8,145,178,0.34) 0%, rgba(8,145,178,0.10) 14%, rgba(2,6,23,0.10) 34%, rgba(2,6,23,0.62) 78%, rgba(2,6,23,0.92) 100%)",
+            zIndex: 12,
           }}
         />
 
@@ -328,9 +356,9 @@ export function SportsEditorialLayout({
           style={{
             display: "flex",
             position: "absolute",
-            left: 54,
-            right: 64,
-            bottom: 62,
+            left: 64,
+            right: 84,
+            bottom: 76,
             justifyContent: "space-between",
             alignItems: "flex-end",
             gap: 30,
