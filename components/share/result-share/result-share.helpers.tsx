@@ -256,7 +256,7 @@ export function renderPhotoOrFallback(params: {
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            objectPosition: "center 40%",
+            objectPosition: "center 72%",
             display: "block",
           }}
         />

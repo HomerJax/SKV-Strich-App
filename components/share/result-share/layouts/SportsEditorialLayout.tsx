@@ -130,11 +130,15 @@ function renderStrikrTopBadge({
   );
 }
 
-function getEditorialTitle(headline: string) {
+function pickBySessionId<T>(sessionId: number, values: T[]) {
+  return values[Math.abs(sessionId) % values.length] ?? values[0];
+}
+
+function getEditorialTitle(headline: string, sessionId: number) {
   const lower = headline.toLowerCase();
 
   if (lower.includes("unterzahl") || lower.includes("papier")) {
-    return "UNDERDOG.";
+    return pickBySessionId(sessionId, ["UNDERDOG.", "UPSET.", "MENTALITY."]);
   }
 
   if (
@@ -142,25 +146,27 @@ function getEditorialTitle(headline: string) {
     lower.includes("deutlich") ||
     lower.includes("gewonnen")
   ) {
-    return "DELIVERED.";
+    return pickBySessionId(sessionId, [
+      "DELIVERED.",
+      "STATEMENT.",
+      "DONE.",
+      "BIG WIN.",
+      "CLINICAL.",
+    ]);
   }
 
-  return "MATCHDAY.";
+  return pickBySessionId(sessionId, ["MATCHDAY.", "TRAINING.", "GAME ON."]);
 }
 
-function getShortHeadline(headline: string) {
+function getShortHeadline(headline: string, sessionId: number) {
   const lower = headline.toLowerCase();
 
   if (lower.includes("unterzahl")) {
-    return (
-      <>
-        IN
-        <br />
-        UNTERZAHL
-        <br />
-        GEWONNEN.
-      </>
-    );
+    return pickBySessionId(sessionId, [
+      "IN UNTERZAHL.",
+      "STARK GEBLIEBEN.",
+      "MENTALITÄT.",
+    ]);
   }
 
   if (
@@ -168,13 +174,13 @@ function getShortHeadline(headline: string) {
     lower.includes("deutlich") ||
     lower.includes("gewonnen")
   ) {
-    return (
-      <>
-        HEUTE
-        <br />
-        GELIEFERT.
-      </>
-    );
+    return pickBySessionId(sessionId, [
+      "HEUTE GELIEFERT.",
+      "KLARE SACHE.",
+      "STARKER AUFTRITT.",
+      "SAUBER GEZOGEN.",
+      "TEAM MOMENT.",
+    ]);
   }
 
   return headline;
@@ -280,7 +286,7 @@ export function SportsEditorialLayout({
               textTransform: "uppercase",
             }}
           >
-            {getEditorialTitle(copy.headline)}
+            {getEditorialTitle(copy.headline, data.sessionId)}
           </div>
         </div>
 
@@ -323,8 +329,8 @@ export function SportsEditorialLayout({
             display: "flex",
             position: "absolute",
             left: 54,
-            right: 54,
-            bottom: 42,
+            right: 42,
+            bottom: 52,
             justifyContent: "space-between",
             alignItems: "flex-end",
             gap: 30,
@@ -363,19 +369,20 @@ export function SportsEditorialLayout({
           <div
             style={{
               display: "flex",
-              maxWidth: 360,
+              width: 470,
+              maxWidth: 470,
               textAlign: "right",
               justifyContent: "flex-end",
-              fontSize: 56,
+              fontSize: 40,
               fontWeight: 950,
-              lineHeight: 0.84,
-              letterSpacing: -2.4,
+              lineHeight: 0.95,
+              letterSpacing: -1.4,
               color: colorway.accent,
               textTransform: "uppercase",
               textShadow: `0 0 28px ${colorway.accentGlow}`,
             }}
           >
-            {getShortHeadline(copy.headline)}
+            {getShortHeadline(copy.headline, data.sessionId)}
           </div>
         </div>
       </div>
