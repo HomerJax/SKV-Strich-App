@@ -357,26 +357,13 @@ export function SportsEditorialLayout({
             display: "flex",
             position: "absolute",
             left: 0,
-            bottom: 0,
-            width: 110,
-            height: 110,
-            background: "#020617",
-            borderTopRightRadius: 110,
-            zIndex: 18,
-            pointerEvents: "none",
-          }}
-        />
-
-        <div
-          style={{
-            display: "flex",
-            position: "absolute",
             right: 0,
             bottom: 0,
-            width: 110,
-            height: 110,
-            background: "#020617",
-            borderTopLeftRadius: 110,
+            height: 260,
+            borderBottomLeftRadius: 42,
+            borderBottomRightRadius: 42,
+            background:
+              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.48) 42%, rgba(2,6,23,0.92) 100%)",
             zIndex: 18,
             pointerEvents: "none",
           }}
@@ -392,7 +379,7 @@ export function SportsEditorialLayout({
             justifyContent: "space-between",
             alignItems: "flex-end",
             gap: 30,
-            zIndex: 20,
+            zIndex: 24,
           }}
         >
           <div
