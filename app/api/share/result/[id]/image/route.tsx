@@ -33,19 +33,18 @@ export async function GET(
               width: "972px",
               height: "1215px",
               display: "flex",
-              transform: "scale(0.9)",
-              transformOrigin: "center",
               borderRadius: "54px",
               boxShadow: "0 42px 120px rgba(0,0,0,0.38)",
               overflow: "hidden",
+              position: "relative",
             }}
           >
             <div
               style={{
-                width: "1080px",
-                height: "1350px",
+                width: "1200px",
+                height: "1500px",
                 display: "flex",
-                transform: "scale(0.9)",
+                transform: "scale(0.81)",
                 transformOrigin: "top left",
               }}
             >

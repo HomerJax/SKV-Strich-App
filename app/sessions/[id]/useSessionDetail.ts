@@ -732,7 +732,7 @@ ${sessionUrl}`;
       let shareFile = preparedResultShareFile;
 
       if (!shareFile) {
-        setResultShareMessage("SiegerCard wird vorbereitet ...");
+        setResultShareMessage(null);
 
         const prepared = await prepareResultShare();
 
@@ -794,7 +794,6 @@ ${sessionUrl}`;
         ? "Direktes Teilen wurde vom Browser blockiert. Bitte Button erneut antippen."
         : getErrorMessage(error, "SiegerCard konnte nicht geteilt werden.");
 
-      setErr(message);
       setResultShareMessage(message);
     } finally {
       setSharingResult(false);
