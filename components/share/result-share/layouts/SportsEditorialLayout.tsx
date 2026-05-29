@@ -376,8 +376,6 @@ export function SportsEditorialLayout({
             bottom: 0,
             height: 110,
             background: "#020617",
-            borderBottomLeftRadius: 42,
-            borderBottomRightRadius: 42,
             zIndex: 18,
             pointerEvents: "none",
           }}
