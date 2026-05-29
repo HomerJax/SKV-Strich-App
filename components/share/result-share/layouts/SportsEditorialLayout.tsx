@@ -134,13 +134,7 @@ function getEditorialTitle(headline: string) {
   const lower = headline.toLowerCase();
 
   if (lower.includes("unterzahl") || lower.includes("papier")) {
-    return (
-      <>
-        UNDER
-        <br />
-        DOG.
-      </>
-    );
+    return "UNDERDOG.";
   }
 
   if (
@@ -148,22 +142,10 @@ function getEditorialTitle(headline: string) {
     lower.includes("deutlich") ||
     lower.includes("gewonnen")
   ) {
-    return (
-      <>
-        DELIV
-        <br />
-        ERED.
-      </>
-    );
+    return "DELIVERED.";
   }
 
-  return (
-    <>
-      MATCH
-      <br />
-      DAY.
-    </>
-  );
+  return "MATCHDAY.";
 }
 
 function getShortHeadline(headline: string) {
@@ -241,7 +223,7 @@ export function SportsEditorialLayout({
             top: 0,
             left: 0,
             right: 0,
-            height: 455,
+            height: 410,
             background: colorway.topBackground,
             boxShadow: `0 42px 96px ${colorway.accentGlow}`,
           }}
@@ -279,8 +261,8 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 54,
             right: 54,
-            top: 158,
-            height: 286,
+            top: 178,
+            height: 190,
             alignItems: "flex-end",
             zIndex: 10,
             overflow: "hidden",
@@ -289,10 +271,10 @@ export function SportsEditorialLayout({
           <div
             style={{
               display: "flex",
-              fontSize: 218,
+              fontSize: 154,
               fontWeight: 950,
-              lineHeight: 0.66,
-              letterSpacing: -18,
+              lineHeight: 0.88,
+              letterSpacing: -8,
               textShadow: "0 18px 46px rgba(0,0,0,0.32)",
               color: colorway.titleColor,
               textTransform: "uppercase",
@@ -308,7 +290,7 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 0,
             right: 0,
-            top: 455,
+            top: 410,
             bottom: 0,
             overflow: "hidden",
           }}
