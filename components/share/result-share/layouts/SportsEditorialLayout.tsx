@@ -358,12 +358,26 @@ export function SportsEditorialLayout({
             position: "absolute",
             left: 0,
             right: 0,
+            bottom: 110,
+            height: 180,
+            background:
+              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.72) 100%)",
+            zIndex: 17,
+            pointerEvents: "none",
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 0,
+            right: 0,
             bottom: 0,
-            height: 260,
+            height: 110,
+            background: "#020617",
             borderBottomLeftRadius: 42,
             borderBottomRightRadius: 42,
-            background:
-              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.48) 42%, rgba(2,6,23,0.92) 100%)",
             zIndex: 18,
             pointerEvents: "none",
           }}
