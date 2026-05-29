@@ -244,7 +244,7 @@ export function SportsEditorialLayout({
             justifyContent: "space-between",
             alignItems: "flex-start",
             gap: 24,
-            zIndex: 90,
+            zIndex: 80,
           }}
         >
           {renderClubBadge({
@@ -296,7 +296,7 @@ export function SportsEditorialLayout({
             left: 0,
             right: 0,
             top: 392,
-            bottom: 0,
+            bottom: 170,
             overflow: "hidden",
             background: "#0F172A",
           }}
@@ -345,9 +345,9 @@ export function SportsEditorialLayout({
             left: 0,
             right: 0,
             top: 392,
-            bottom: 0,
+            bottom: 170,
             background:
-              "linear-gradient(180deg, rgba(8,145,178,0.34) 0%, rgba(8,145,178,0.10) 14%, rgba(2,6,23,0.10) 34%, rgba(2,6,23,0.62) 78%, rgba(2,6,23,0.92) 100%)",
+              "linear-gradient(180deg, rgba(8,145,178,0.24) 0%, rgba(8,145,178,0.06) 18%, rgba(2,6,23,0.18) 56%, rgba(2,6,23,0.62) 100%)",
             zIndex: 12,
           }}
         />
@@ -356,27 +356,12 @@ export function SportsEditorialLayout({
           style={{
             display: "flex",
             position: "absolute",
-            left: -8,
-            right: -8,
-            bottom: -8,
+            left: 64,
+            right: 84,
+            bottom: 58,
             height: 170,
             background: "#020617",
-            zIndex: 80,
-            pointerEvents: "none",
-          }}
-        />
-
-        <div
-          style={{
-            display: "flex",
-            position: "absolute",
-            left: -8,
-            right: -8,
-            bottom: 120,
-            height: 120,
-            background:
-              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.76) 100%)",
-            zIndex: 79,
+            zIndex: 40,
             pointerEvents: "none",
           }}
         />
@@ -391,7 +376,7 @@ export function SportsEditorialLayout({
             justifyContent: "space-between",
             alignItems: "flex-end",
             gap: 30,
-            zIndex: 24,
+            zIndex: 80,
           }}
         >
           <div
