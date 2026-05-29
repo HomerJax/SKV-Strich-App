@@ -10,6 +10,10 @@ import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
 import { ExtendedResultShareData } from "../result-share.types";
 
+function pickBySessionId<T>(sessionId: number, values: T[]) {
+  return values[Math.abs(sessionId) % values.length] ?? values[0];
+}
+
 function renderStrikrTopBadge({
   strikrLogoUrl,
 }: {
@@ -22,13 +26,12 @@ function renderStrikrTopBadge({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
-        minWidth: 250,
-        padding: "18px 18px 14px",
-        borderRadius: 24,
-        background: "rgba(2,6,12,0.42)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        backdropFilter: "blur(10px)",
+        gap: 7,
+        width: 220,
+        padding: "16px 16px 13px",
+        borderRadius: 22,
+        background: "rgba(2,6,12,0.48)",
+        border: "1px solid rgba(255,255,255,0.10)",
       }}
     >
       {strikrLogoUrl ? (
@@ -36,9 +39,9 @@ function renderStrikrTopBadge({
           src={strikrLogoUrl}
           alt="strikr"
           style={{
-            width: 68,
-            height: 68,
-            borderRadius: 18,
+            width: 60,
+            height: 60,
+            borderRadius: 16,
             objectFit: "cover",
             display: "flex",
           }}
@@ -48,10 +51,10 @@ function renderStrikrTopBadge({
       <div
         style={{
           display: "flex",
-          fontSize: 30,
+          fontSize: 28,
           fontWeight: 900,
           lineHeight: 1,
-          letterSpacing: -1.2,
+          letterSpacing: -1,
           color: "#FFFFFF",
         }}
       >
@@ -61,12 +64,12 @@ function renderStrikrTopBadge({
       <div
         style={{
           display: "flex",
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 800,
           lineHeight: 1,
-          letterSpacing: 2.2,
+          letterSpacing: 2,
           textTransform: "uppercase",
-          color: "rgba(255,255,255,0.74)",
+          color: "rgba(255,255,255,0.70)",
         }}
       >
         TEAM TRAINING. REDEFINED.
@@ -78,38 +81,26 @@ function renderStrikrTopBadge({
           alignItems: "center",
           gap: 10,
           marginTop: 4,
-          paddingTop: 10,
-          borderTop: "1px solid rgba(255,255,255,0.08)",
+          paddingTop: 9,
+          borderTop: "1px solid rgba(255,255,255,0.10)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="white"
-            style={{ display: "flex", opacity: 0.8 }}
-          >
-            <path d="M7 2C4.2 2 2 4.2 2 7v10c0 2.8 2.2 5 5 5h10c2.8 0 5-2.2 5-5V7c0-2.8-2.2-5-5-5H7zm0 2h10c1.7 0 3 1.3 3 3v10c0 1.7-1.3 3-3 3H7c-1.7 0-3-1.3-3-3V7c0-1.7 1.3-3 3-3zm5 2.5A5.5 5.5 0 1 0 17.5 12 5.5 5.5 0 0 0 12 6.5zm0 2A3.5 3.5 0 1 1 8.5 12 3.5 3.5 0 0 1 12 8.5zm4.8-3.3a1.2 1.2 0 1 0 1.2 1.2 1.2 1.2 0 0 0-1.2-1.2z" />
-          </svg>
-
-          <div
-            style={{
-              display: "flex",
-              fontSize: 12,
-              fontWeight: 800,
-              color: "rgba(255,255,255,0.82)",
-            }}
-          >
-            @getstrikr
-          </div>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 11,
+            fontWeight: 800,
+            color: "rgba(255,255,255,0.78)",
+          }}
+        >
+          @getstrikr
         </div>
 
         <div
           style={{
             display: "flex",
             width: 1,
-            height: 12,
+            height: 11,
             background: "rgba(255,255,255,0.16)",
           }}
         />
@@ -117,20 +108,16 @@ function renderStrikrTopBadge({
         <div
           style={{
             display: "flex",
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 800,
             color: "#34d399",
           }}
         >
-          www.strikr.team
+          strikr.team
         </div>
       </div>
     </div>
   );
-}
-
-function pickBySessionId<T>(sessionId: number, values: T[]) {
-  return values[Math.abs(sessionId) % values.length] ?? values[0];
 }
 
 function getEditorialTitle(headline: string, sessionId: number) {
@@ -146,11 +133,11 @@ function getEditorialTitle(headline: string, sessionId: number) {
     lower.includes("gewonnen")
   ) {
     return pickBySessionId(sessionId, [
-      "DELIVERED.",
       "STATEMENT.",
       "DONE.",
       "BIG WIN.",
       "CLINICAL.",
+      "DELIVERED.",
     ]);
   }
 
@@ -162,9 +149,9 @@ function getShortHeadline(headline: string, sessionId: number) {
 
   if (lower.includes("unterzahl")) {
     return pickBySessionId(sessionId, [
-      "IN UNTERZAHL.",
-      "STARK GEBLIEBEN.",
       "MENTALITÄT.",
+      "STARK GEBLIEBEN.",
+      "TEAM GEZOGEN.",
     ]);
   }
 
@@ -174,11 +161,11 @@ function getShortHeadline(headline: string, sessionId: number) {
     lower.includes("gewonnen")
   ) {
     return pickBySessionId(sessionId, [
-      "HEUTE GELIEFERT.",
       "KLARE SACHE.",
       "STARKER AUFTRITT.",
       "SAUBER GEZOGEN.",
       "TEAM MOMENT.",
+      "GELIEFERT.",
     ]);
   }
 
@@ -204,7 +191,8 @@ export function SportsEditorialLayout({
         width: "100%",
         height: "100%",
         padding: 20,
-        background: "radial-gradient(circle at 50% -8%, rgba(255,255,255,0.12), transparent 30%), #020617",
+        background:
+          "radial-gradient(circle at 50% -8%, rgba(255,255,255,0.12), transparent 30%), #020617",
         color: "#FFFFFF",
       }}
     >
@@ -216,11 +204,13 @@ export function SportsEditorialLayout({
           position: "relative",
           overflow: "hidden",
           borderRadius: 42,
-          background: "#050505",
+          background: "#020617",
           border: "1px solid rgba(255,255,255,0.10)",
-          boxShadow: "0 40px 120px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.08)",
+          boxShadow:
+            "0 40px 120px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.08)",
         }}
       >
+        {/* Top color field */}
         <div
           style={{
             display: "flex",
@@ -228,12 +218,14 @@ export function SportsEditorialLayout({
             top: 0,
             left: 0,
             right: 0,
-            height: 392,
+            height: 400,
             background: colorway.topBackground,
             boxShadow: `0 42px 96px ${colorway.accentGlow}`,
+            zIndex: 1,
           }}
         />
 
+        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -244,7 +236,7 @@ export function SportsEditorialLayout({
             justifyContent: "space-between",
             alignItems: "flex-start",
             gap: 24,
-            zIndex: 80,
+            zIndex: 10,
           }}
         >
           {renderClubBadge({
@@ -260,45 +252,49 @@ export function SportsEditorialLayout({
           })}
         </div>
 
+        {/* Big editorial title */}
         <div
           style={{
             display: "flex",
             position: "absolute",
             left: 54,
             right: 54,
-            top: 172,
-            height: 178,
+            top: 165,
+            height: 180,
             alignItems: "flex-end",
-            zIndex: 10,
+            zIndex: 8,
             overflow: "hidden",
           }}
         >
           <div
             style={{
               display: "flex",
-              fontSize: 146,
+              fontSize: 132,
               fontWeight: 950,
-              lineHeight: 0.88,
-              letterSpacing: -7,
+              lineHeight: 0.9,
+              letterSpacing: -6,
               textShadow: "0 18px 46px rgba(0,0,0,0.32)",
               color: colorway.titleColor,
               textTransform: "uppercase",
+              whiteSpace: "nowrap",
             }}
           >
             {getEditorialTitle(copy.headline, data.sessionId)}
           </div>
         </div>
 
+        {/* Photo: endet VOR dem Footer, dadurch keine grünen unteren Ecken */}
         <div
           style={{
             display: "flex",
             position: "absolute",
             left: 0,
             right: 0,
-            top: 392,
-            bottom: 170,
+            top: 400,
+            bottom: 150,
             overflow: "hidden",
             background: "#0F172A",
+            zIndex: 2,
           }}
         >
           {data.winnerPhotoUrl ? (
@@ -306,22 +302,20 @@ export function SportsEditorialLayout({
               src={data.winnerPhotoUrl}
               alt="Siegerfoto"
               width={1040}
-              height={918}
+              height={950}
               style={{
-                position: "absolute",
-                inset: 0,
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                objectPosition: "center 88%",
+                objectPosition: "center 82%",
                 display: "block",
               }}
             />
           ) : (
             <div
               style={{
-                position: "absolute",
-                inset: 0,
+                width: "100%",
+                height: "100%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -338,45 +332,62 @@ export function SportsEditorialLayout({
           )}
         </div>
 
+        {/* Übergang Top → Foto */}
         <div
           style={{
             display: "flex",
             position: "absolute",
             left: 0,
             right: 0,
-            top: 392,
-            bottom: 170,
+            top: 400,
+            height: 80,
             background:
-              "linear-gradient(180deg, rgba(8,145,178,0.24) 0%, rgba(8,145,178,0.06) 18%, rgba(2,6,23,0.18) 56%, rgba(2,6,23,0.62) 100%)",
-            zIndex: 12,
+              "linear-gradient(180deg, rgba(8,145,178,0.38) 0%, rgba(8,145,178,0.10) 48%, rgba(8,145,178,0) 100%)",
+            zIndex: 3,
           }}
         />
 
+        {/* Foto unten abdunkeln */}
         <div
           style={{
             display: "flex",
             position: "absolute",
-            left: 64,
-            right: 84,
-            bottom: 58,
-            height: 170,
+            left: 0,
+            right: 0,
+            bottom: 150,
+            height: 260,
+            background:
+              "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.70) 100%)",
+            zIndex: 4,
+          }}
+        />
+
+        {/* Echter Footer, volle Breite */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 150,
             background: "#020617",
-            zIndex: 40,
-            pointerEvents: "none",
+            zIndex: 5,
           }}
         />
 
+        {/* Score + short headline */}
         <div
           style={{
             display: "flex",
             position: "absolute",
             left: 64,
-            right: 84,
-            bottom: 76,
+            right: 72,
+            bottom: 42,
             justifyContent: "space-between",
             alignItems: "flex-end",
-            gap: 30,
-            zIndex: 80,
+            gap: 28,
+            zIndex: 20,
           }}
         >
           <div
@@ -384,10 +395,10 @@ export function SportsEditorialLayout({
               display: "flex",
               alignItems: "baseline",
               gap: 2,
-              fontSize: 166,
+              fontSize: 138,
               fontWeight: 950,
-              lineHeight: 0.82,
-              letterSpacing: -13,
+              lineHeight: 0.86,
+              letterSpacing: -8,
               color: colorway.accent,
               textShadow: `0 0 34px ${colorway.accentGlow}`,
             }}
@@ -397,8 +408,8 @@ export function SportsEditorialLayout({
             <span
               style={{
                 display: "flex",
-                fontSize: 92,
-                letterSpacing: -4,
+                fontSize: 78,
+                letterSpacing: -3,
                 opacity: 0.92,
               }}
             >
@@ -411,14 +422,14 @@ export function SportsEditorialLayout({
           <div
             style={{
               display: "flex",
-              width: 430,
-              maxWidth: 430,
+              width: 440,
+              maxWidth: 440,
               textAlign: "right",
               justifyContent: "flex-end",
-              fontSize: 34,
+              fontSize: 32,
               fontWeight: 950,
               lineHeight: 1,
-              letterSpacing: -0.8,
+              letterSpacing: -0.9,
               color: colorway.accent,
               textTransform: "uppercase",
               textShadow: `0 0 28px ${colorway.accentGlow}`,
