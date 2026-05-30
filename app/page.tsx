@@ -37,17 +37,17 @@ const trainingBlocks = [
 const competitionBlocks = [
   {
     title: "MVP Voting",
-    text: "4 MVP-Abstimmungen pro Saison kostenlos testen – mit Pro unbegrenzt.",
+    text: "4 MVP-Abstimmungen pro Saison inklusive – mit Pro unbegrenzt.",
     icon: Star,
   },
   {
     title: "Tabelle & Share Cards",
-    text: "Siege, Teilnahmen und Rankings werden sichtbar und teilbar.",
+    text: "Aktuelle Tabelle, Siege und Rankings werden sichtbar und teilbar.",
     icon: Trophy,
   },
   {
     title: "Stats & Awards",
-    text: "Form, Team Impact, Badges und Trophäenraum für mehr Motivation.",
+    text: "Form, Team Impact, Awards und erweiterte Auswertungen für mehr Motivation.",
     icon: ChartColumn,
   },
 ];
@@ -149,7 +149,7 @@ export default async function LandingPage() {
           </div>
 
           <p className="mt-3 text-xs font-medium text-zinc-500">
-            Kostenlos starten. 4 MVP-Abstimmungen pro Saison inklusive.
+            Kostenlos starten. 4 MVP-Abstimmungen pro Saison inklusive. Bald auch als App verfügbar.
           </p>
         </div>
       </section>
@@ -194,8 +194,12 @@ export default async function LandingPage() {
 
             <p className="mt-4 text-base leading-7 text-zinc-600 sm:text-lg">
               Free ist zum Ausprobieren da. Mit Pro wird strikr zum dauerhaften
-              Team-System: unbegrenztes MVP Voting, Share Cards, Stats, Awards
-              und Trophäenraum.
+              Team-System: unbegrenztes MVP Voting, volle Tabellen, Stats,
+              Premium Share Cards und zukünftige Awards.
+            </p>
+
+            <p className="mt-3 text-sm font-semibold text-zinc-500">
+              Aktuell als Web-App nutzbar – bald auch als App verfügbar.
             </p>
           </div>
 
@@ -211,7 +215,7 @@ export default async function LandingPage() {
 
               <p className="mt-3 text-sm leading-6 text-zinc-600">
                 Für Teams, die strikr testen und den Trainingsflow kennenlernen
-                möchten.
+                möchten – ohne Abo-Zwang.
               </p>
 
               <div className="mt-6 space-y-3 text-sm font-semibold text-zinc-800">
@@ -220,18 +224,20 @@ export default async function LandingPage() {
                 <div>✓ Anwesenheit erfassen</div>
                 <div>✓ Teams erstellen</div>
                 <div>✓ Ergebnis speichern</div>
+                <div>✓ Siegerfoto teilen</div>
+                <div>✓ Aktuelle Tabelle</div>
                 <div>✓ 4 MVP-Abstimmungen pro Saison</div>
               </div>
 
               <div className="mt-6 rounded-2xl bg-white p-4 text-sm leading-6 text-zinc-600">
-                Perfekt zum Reinkommen: Der Kernflow bleibt einfach, Pro-Features
-                sind sichtbar und können später freigeschaltet werden.
+                Perfekt zum Reinkommen: Der Kernflow bleibt einfach. Historische
+                Tabellen, volle Statistiken und Premium-Auswertungen gehören zu Pro.
               </div>
             </div>
 
             <div className="rounded-[28px] border border-black bg-black p-6 text-white shadow-xl">
               <div className="inline-flex rounded-full border border-amber-300/40 bg-amber-300/15 px-3 py-1 text-xs font-bold text-amber-100">
-                Supercup-Angebot
+                DAHSC Special
               </div>
 
               <h3 className="mt-4 text-2xl font-black tracking-tight">
@@ -240,39 +246,40 @@ export default async function LandingPage() {
 
               <p className="mt-3 text-sm leading-6 text-white/70">
                 Für Teams, die strikr dauerhaft nutzen und aus jedem Training
-                mehr Motivation, Sichtbarkeit und Team-Momente machen wollen.
+                mehr Struktur, Motivation und Team-Momente machen wollen.
               </p>
 
               <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
                 <div className="text-sm font-bold text-white">
-                  Bis 31.07. kostenlos testen
+                  4 Wochen Pro kostenlos testen
                 </div>
                 <div className="mt-1 text-sm leading-6 text-white/65">
-                  Danach manuell freischalten. Kein Abo-Zwang, kein Checkout,
-                  persönliche Absprache per WhatsApp oder E-Mail.
+                  Danach Free weiter nutzen oder den DAHSC Preis sichern:
+                  149 € im ersten Jahr statt 199 €.
                 </div>
               </div>
 
               <div className="mt-6 space-y-3 text-sm font-semibold text-white">
                 <div>✓ Unbegrenztes MVP Voting</div>
-                <div>✓ Stats, Formkurven und Team Impact</div>
-                <div>✓ Tabelle, Rankings und Share Cards</div>
-                <div>✓ MVP-Badges, Awards und Trophäenraum</div>
-                <div>✓ Saisons, Branding und erweiterte Einstellungen</div>
+                <div>✓ Volle Statistiken, Formkurven und Team Impact</div>
+                <div>✓ Vergangene Tabellen und ewige Tabelle</div>
+                <div>✓ Premium Share Cards</div>
+                <div>✓ Optionale Strafenkasse / Strafen</div>
+                <div>✓ Zukünftige Awards, Badges und Trophäenraum</div>
               </div>
 
               <div className="mt-6 grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-white/65">Monatlich</span>
-                  <span className="font-black text-white">19,99 €</span>
+                  <span className="text-white/65">Normalpreis</span>
+                  <span className="font-black text-white">199 € / Jahr</span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-white/65">6 Monate</span>
-                  <span className="font-black text-white">99 €</span>
+                  <span className="text-white/65">entspricht</span>
+                  <span className="font-black text-white">16,58 € / Monat</span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-white/65">12 Monate</span>
-                  <span className="font-black text-white">149 €</span>
+                  <span className="text-white/65">DAHSC Special</span>
+                  <span className="font-black text-white">149 € im 1. Jahr</span>
                 </div>
               </div>
 
