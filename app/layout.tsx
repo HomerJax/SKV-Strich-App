@@ -36,7 +36,7 @@ export default async function RootLayout({
 
         {ctx.user ? (
           <>
-            <WhatsNewModal version="v0.7" />
+            <WhatsNewModal version="v1.0" />
             <NotificationToastCenter />
           </>
         ) : null}

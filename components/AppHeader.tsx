@@ -209,7 +209,7 @@ export default async function AppHeader() {
                 className="rounded-full px-1.5 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 sm:text-[11px]"
                 title="Was ist neu?"
               >
-                v0.7
+                v1.0
               </Link>
             ) : null}
           </div>

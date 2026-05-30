@@ -9,7 +9,7 @@ type ReleaseItem = {
 
 const RELEASES: ReleaseItem[] = [
   {
-    version: "v0.7",
+    version: "v1.0",
     title: "MVP Sharing, Notifications & Premium Polish",
     dateLabel: "Neuestes Release",
     items: [
