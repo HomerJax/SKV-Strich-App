@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { addRanks } from "@/app/standings/standings-ui";
 
 export const runtime = "nodejs";
@@ -558,9 +559,13 @@ export async function GET(request: NextRequest) {
 
     const seasons = (seasonData ?? []) as Season[];
 
+    const billingAccess = await getClubBillingAccess(supabase, clubId);
     const requestedSeason = request.nextUrl.searchParams.get("season");
-    const selected =
-      requestedSeason ?? (seasons.length > 0 ? String(seasons[0].id) : "all");
+    const latestSeasonId = seasons.length > 0 ? String(seasons[0].id) : "all";
+
+    const selected = billingAccess.isPro
+      ? requestedSeason ?? latestSeasonId
+      : latestSeasonId;
 
     const { data: settingsData, error: settingsError } = await supabase
       .from("club_settings")

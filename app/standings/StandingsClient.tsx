@@ -122,6 +122,8 @@ async function shareOrDownloadStandingsBlob(blob: Blob, fileBaseName: string) {
 type StandingsClientProps = {
   initialClubId: string;
   initialPrimaryColor?: string | null;
+  isPro?: boolean;
+  clubName?: string;
 };
 
 type StandingsApiResponse = {
@@ -146,6 +148,8 @@ function AwardSummaryBadge({ count }: { count: number }) {
 export default function StandingsClient({
   initialClubId,
   initialPrimaryColor,
+  isPro = false,
+  clubName = "dein Team",
 }: StandingsClientProps) {
   void initialClubId;
 
@@ -181,8 +185,12 @@ export default function StandingsClient({
         label: season.name,
       }));
 
+    if (!isPro) {
+      return first;
+    }
+
     return [...first, { value: "all", label: "Ewige Tabelle" }, ...rest];
-  }, [seasons]);
+  }, [isPro, seasons]);
 
   const selectedLabel = useMemo(() => {
     return selected === "all"
@@ -224,9 +232,10 @@ export default function StandingsClient({
         setErr(null);
         setMsg(null);
 
-        const url = seasonParam
-          ? `/api/standings?season=${encodeURIComponent(seasonParam)}`
-          : "/api/standings";
+        const url =
+          isPro && seasonParam
+            ? `/api/standings?season=${encodeURIComponent(seasonParam)}`
+            : "/api/standings";
 
         const response = await fetch(url, {
           method: "GET",
@@ -265,7 +274,7 @@ export default function StandingsClient({
     return () => {
       cancelled = true;
     };
-  }, [seasonParam]);
+  }, [isPro, seasonParam]);
 
   async function handleShareCard(card: RankingCard) {
     try {
@@ -350,29 +359,46 @@ export default function StandingsClient({
           backLabel="Zurück"
           backHref="/"
           topRightSlot={
-            <select
-              value={selected}
-              onChange={(e) => {
-                const value = e.target.value;
+            isPro ? (
+              <select
+                value={selected}
+                onChange={(e) => {
+                  const value = e.target.value;
 
-                setSelected(value);
-                router.replace(`/standings?season=${value}`);
-              }}
-              className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none backdrop-blur transition hover:bg-white/15"
-            >
-              {options.map((option) => (
-                <option
-                  key={option.value}
-                  value={option.value}
-                  className="text-slate-900"
-                >
-                  {option.label}
-                </option>
-              ))}
-            </select>
+                  setSelected(value);
+                  router.replace(`/standings?season=${value}`);
+                }}
+                className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none backdrop-blur transition hover:bg-white/15"
+              >
+                {options.map((option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                    className="text-slate-900"
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white backdrop-blur">
+                Aktuelle Tabelle
+              </div>
+            )
           }
           compact
         />
+
+        {!isPro ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 shadow-sm">
+            <div className="font-black">Free: aktuelle Tabelle</div>
+            <div className="mt-1">
+              {clubName} sieht hier die aktuelle Tabelle. Vergangene Saisons,
+              ewige Tabelle und erweiterte Tabellen-Auswertungen sind Teil von
+              strikr Pro.
+            </div>
+          </div>
+        ) : null}
 
         {msg ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
