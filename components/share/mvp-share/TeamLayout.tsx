@@ -311,7 +311,7 @@ export default function TeamLayout({
             position: "absolute",
             left: 56,
             right: 56,
-            top: hasMultipleWinners ? 1185 : 1265,
+            top: hasMultipleWinners ? 1135 : 1265,
             zIndex: 7,
             padding: 36,
             borderRadius: 40,
