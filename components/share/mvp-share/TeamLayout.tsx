@@ -295,13 +295,13 @@ export default function TeamLayout({
           <PremiumBadge
             badgeImageUrl={badgeImageUrl}
             fallbackLabel={winner.badgeLabel}
-            size={tier.key === "goat" ? 640 : 585}
+            size={tier.key === "goat" ? 560 : 500}
             glowColor={tier.glow}
-            glowStrength={tier.key === "goat" ? 1.45 : 1.05}
+            glowStrength={tier.key === "goat" ? 0.75 : 0.35}
             imageFilter={
               tier.key === "blech"
-                ? "brightness(0.58) contrast(1.45) saturate(0.18) sepia(0.16) hue-rotate(-8deg) drop-shadow(0 58px 96px rgba(0,0,0,0.86)) drop-shadow(0 0 18px rgba(120,113,108,0.16))"
-                : "drop-shadow(0 54px 90px rgba(0,0,0,0.78)) drop-shadow(0 0 34px rgba(255,255,255,0.14))"
+                ? "brightness(0.72) contrast(1.2) saturate(0.28) drop-shadow(0 34px 54px rgba(0,0,0,0.52))"
+                : "drop-shadow(0 34px 58px rgba(0,0,0,0.52))"
             }
           />
         </div>
