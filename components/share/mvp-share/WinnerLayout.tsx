@@ -223,6 +223,7 @@ export default function WinnerLayout({
         >
           <PremiumBadge
             badgeImageUrl={badgeImageUrl}
+            fallbackLabel={winner.badgeLabel}
             size={tier.key === "goat" ? 735 : 675}
             glowColor={tier.glow}
             glowStrength={tier.key === "goat" ? 1.7 : 1.12}

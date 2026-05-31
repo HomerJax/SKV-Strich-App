@@ -294,6 +294,7 @@ export default function TeamLayout({
         >
           <PremiumBadge
             badgeImageUrl={badgeImageUrl}
+            fallbackLabel={winner.badgeLabel}
             size={tier.key === "goat" ? 640 : 585}
             glowColor={tier.glow}
             glowStrength={tier.key === "goat" ? 1.45 : 1.05}
