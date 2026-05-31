@@ -311,7 +311,7 @@ export default function TeamLayout({
             position: "absolute",
             left: 56,
             right: 56,
-            top: 1265,
+            top: hasMultipleWinners ? 1185 : 1265,
             zIndex: 7,
             padding: 36,
             borderRadius: 40,
@@ -387,7 +387,7 @@ export default function TeamLayout({
               : "wurde zum MVP gewählt."}
           </div>
 
-          {topThree.length > 0 ? (
+          {topThree.length > 0 && !hasMultipleWinners ? (
             <div
               style={{
                 display: "flex",
