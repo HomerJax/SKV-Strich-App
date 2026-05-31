@@ -109,7 +109,7 @@ function VoteLine({
             flexShrink: 0,
           }}
         >
-          {rank}
+          {rank === 0 ? "🏆" : rank}
         </div>
 
         <div
@@ -159,8 +159,11 @@ export default function TeamLayout({
     winners.length > 0
       ? winners
       : leaderboard.filter((entry) => entry.votes === winner.votes);
-  const winnerNames = displayWinners.map((entry) => entry.name).join(", ");
   const hasMultipleWinners = displayWinners.length > 1;
+  const winnerCount = displayWinners.length;
+  const isTie =
+    topThree.length > 1 &&
+    topThree.every((entry) => entry.votes === topThree[0].votes);
 
   return (
     <div
@@ -332,15 +335,42 @@ export default function TeamLayout({
             style={{
               display: "flex",
               marginTop: 16,
-              fontSize: 70,
+              fontSize: hasMultipleWinners ? 52 : 70,
               fontWeight: 900,
-              letterSpacing: -5,
-              lineHeight: 0.92,
+              letterSpacing: hasMultipleWinners ? -3 : -5,
+              lineHeight: hasMultipleWinners ? 1.02 : 0.92,
               color: "#020617",
             }}
           >
-            {winnerNames || winner.name}
+            {hasMultipleWinners ? `${winnerCount} MVPs gewählt` : winner.name}
           </div>
+
+          {hasMultipleWinners ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                marginTop: 18,
+                gap: 8,
+              }}
+            >
+              {displayWinners.map((entry) => (
+                <div
+                  key={entry.playerId}
+                  style={{
+                    display: "flex",
+                    fontSize: 38,
+                    fontWeight: 900,
+                    letterSpacing: -1,
+                    lineHeight: 1,
+                    color: "#020617",
+                  }}
+                >
+                  {entry.name}
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <div
             style={{
@@ -383,10 +413,10 @@ export default function TeamLayout({
               {topThree.map((entry, index) => (
                 <VoteLine
                   key={entry.playerId}
-                  rank={index + 1}
+                  rank={isTie ? 0 : index + 1}
                   name={entry.name}
                   votes={entry.votes}
-                  muted={index > 0}
+                  muted={isTie ? false : index > 0}
                 />
               ))}
             </div>
