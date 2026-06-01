@@ -502,7 +502,14 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             return next;
           });
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error(
+            "[MVP SHARE PREP FAILED]",
+            playerId,
+            imageUrl,
+            error
+          );
+
           winnerShareFilesRef.current[playerId] = null;
         });
     }
