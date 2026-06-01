@@ -465,6 +465,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     }).catch(() => {
       // Komfort-Preload. Beim Klick wird es erneut versucht.
     });
+
+    for (const winnerCard of shareData.winnerCards) {
+      void preloadMvpShareImage({
+        imageUrl: winnerCard.badgeImageUrl,
+        fileName: `strikr-mvp-badge-${winnerCard.winner.playerId}.webp`,
+      }).catch(() => {
+        // Badge-Preload ist Komfort. Beim Klick wird erneut gewartet.
+      });
+    }
   }, [sessionId, shareData]);
 
   async function handleShareMvpResult() {
@@ -522,6 +531,13 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
     try {
       setSharingWinnerPlayerId(playerId);
+      setShareMsg("Lade Badge…");
+
+      await preloadMvpShareImage({
+        imageUrl: card.badgeImageUrl,
+        fileName: `strikr-mvp-badge-${playerId}.webp`,
+      });
+
       setShareMsg("Bereite MVP Gewinner-Card vor…");
 
       await shareMvpResult({
