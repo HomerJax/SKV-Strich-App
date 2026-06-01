@@ -686,14 +686,10 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           aria-hidden="true"
           style={{
             position: "fixed",
-            left: 0,
+            left: "-10000px",
             top: 0,
-            width: 1080,
-            height: 1920,
             pointerEvents: "none",
-            zIndex: 0,
-            transform: "scale(0.01)",
-            transformOrigin: "top left",
+            zIndex: -1,
           }}
         >
           <div
