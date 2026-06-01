@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import PlayerBadge from "@/components/badges/PlayerBadge";
 import ProFeatureLock from "@/components/billing/ProFeatureLock";
 import { getBadgeMetaFromMvpCount } from "@/lib/badges/helpers";
-import { preloadMvpShareImage, shareMvpResult } from "@/lib/share/mvp-share";
+import {
+  createMvpShareFileFromImageUrl,
+  preloadMvpShareImage,
+  shareMvpResult,
+  sharePreparedMvpFile,
+} from "@/lib/share/mvp-share";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
 import type { LeaderboardEntry as ShareLeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 
@@ -267,6 +272,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const router = useRouter();
   const shareCardRef = useRef<HTMLDivElement>(null);
   const winnerShareRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const winnerShareFilesRef = useRef<Record<number, File | null>>({});
 
   const [state, setState] = useState<MvpState | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
@@ -277,6 +283,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [sharingResult, setSharingResult] = useState(false);
   const [sharingWinnerPlayerId, setSharingWinnerPlayerId] = useState<number | null>(null);
+  const [readyWinnerPlayerIds, setReadyWinnerPlayerIds] = useState<Set<number>>(
+    () => new Set()
+  );
   const [sharingVotingReminder, setSharingVotingReminder] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
 
@@ -466,13 +475,36 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       // Komfort-Preload. Beim Klick wird es erneut versucht.
     });
 
+    winnerShareFilesRef.current = {};
+    setReadyWinnerPlayerIds(new Set());
+
     for (const winnerCard of shareData.winnerCards) {
+      const playerId = winnerCard.winner.playerId;
+      const fileName = `strikr-mvp-${sessionId}-${playerId}.png`;
+      const imageUrl = `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${playerId}&perspective=team`;
+
       void preloadMvpShareImage({
         imageUrl: winnerCard.badgeImageUrl,
-        fileName: `strikr-mvp-badge-${winnerCard.winner.playerId}.webp`,
+        fileName: `strikr-mvp-badge-${playerId}.webp`,
       }).catch(() => {
-        // Badge-Preload ist Komfort. Beim Klick wird erneut gewartet.
+        // Badge-Preload ist Komfort.
       });
+
+      void createMvpShareFileFromImageUrl({
+        imageUrl,
+        fileName,
+      })
+        .then((file) => {
+          winnerShareFilesRef.current[playerId] = file;
+          setReadyWinnerPlayerIds((previous) => {
+            const next = new Set(previous);
+            next.add(playerId);
+            return next;
+          });
+        })
+        .catch(() => {
+          winnerShareFilesRef.current[playerId] = null;
+        });
     }
   }, [sessionId, shareData]);
 
@@ -1108,7 +1140,10 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                               onClick={() =>
                                 handleShareWinnerCard(winnerCard.winner.playerId)
                               }
-                              disabled={sharingWinnerPlayerId !== null}
+                              disabled={
+                                sharingWinnerPlayerId !== null ||
+                                !readyWinnerPlayerIds.has(winnerCard.winner.playerId)
+                              }
                               className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <span className="truncate">
@@ -1116,8 +1151,10 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                               </span>
                               <span className="shrink-0 text-xs font-extrabold text-slate-500">
                                 {sharingWinnerPlayerId === winnerCard.winner.playerId
-                                  ? "Bereite vor…"
-                                  : "teilen"}
+                                  ? "Teile…"
+                                  : readyWinnerPlayerIds.has(winnerCard.winner.playerId)
+                                    ? "teilen"
+                                    : "wird vorbereitet…"}
                               </span>
                             </button>
                           ))}

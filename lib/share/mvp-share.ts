@@ -296,6 +296,35 @@ function downloadFile(file: File, fileName: string) {
   }
 }
 
+async function fetchShareImageAsFile(imageUrl: string, fileName: string) {
+  const absoluteUrl = new URL(imageUrl, window.location.origin).toString();
+
+  const response = await fetch(absoluteUrl, {
+    method: "GET",
+    cache: "no-store",
+    credentials: absoluteUrl.startsWith(window.location.origin)
+      ? "include"
+      : "omit",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Share Bild konnte nicht geladen werden (${response.status}).`);
+  }
+
+  const blob = await response.blob();
+
+  if (!blob.type.startsWith("image/")) {
+    throw new Error("Share Bild ist kein Bild.");
+  }
+
+  await assertUsableShareBlob(blob);
+
+  return new File([blob], fileName, {
+    type: blob.type || "image/png",
+    lastModified: Date.now(),
+  });
+}
+
 async function shareFile(params: {
   file: File;
   fileName: string;
@@ -320,6 +349,22 @@ async function shareFile(params: {
 
   downloadFile(file, fileName);
   return { mode: "downloaded" as const };
+}
+
+export async function createMvpShareFileFromImageUrl(params: {
+  imageUrl: string;
+  fileName: string;
+}) {
+  return fetchShareImageAsFile(params.imageUrl, params.fileName);
+}
+
+export async function sharePreparedMvpFile(params: {
+  file: File;
+  fileName: string;
+  title: string;
+  text: string;
+}) {
+  return shareFile(params);
 }
 
 export async function shareMvpResult({
