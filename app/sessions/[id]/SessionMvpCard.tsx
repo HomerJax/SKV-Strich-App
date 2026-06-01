@@ -561,27 +561,25 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     const card = shareData.winnerCards.find(
       (winnerCard) => winnerCard.winner.playerId === playerId
     );
-    const element = winnerShareRefs.current[playerId];
 
-    if (!card || !element) {
+    if (!card) {
       setShareMsg("MVP Gewinner-Card ist noch nicht bereit.");
+      return;
+    }
+
+    const preparedFile = winnerShareFilesRef.current[playerId];
+
+    if (!preparedFile) {
+      setShareMsg("MVP Gewinner-Card wird noch vorbereitet. Bitte kurz warten.");
       return;
     }
 
     try {
       setSharingWinnerPlayerId(playerId);
-      setShareMsg("Lade Badge…");
+      setShareMsg("Teilen…");
 
-      await preloadMvpShareImage({
-        imageUrl: card.badgeImageUrl,
-        fileName: `strikr-mvp-badge-${playerId}.webp`,
-      });
-
-      setShareMsg("Bereite MVP Gewinner-Card vor…");
-
-      await shareMvpResult({
-        element,
-        imageUrl: `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${playerId}&perspective=team`,
+      await sharePreparedMvpFile({
+        file: preparedFile,
         fileName: `strikr-mvp-${sessionId}-${playerId}.png`,
         title: `${card.winner.name} wurde zum MVP gewählt`,
         text: `MVP Card von ${card.winner.name} aus strikr.`,

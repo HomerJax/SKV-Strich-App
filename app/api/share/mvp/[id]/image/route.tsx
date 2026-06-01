@@ -428,6 +428,7 @@ export async function GET(request: Request, context: RouteContext) {
                   src={badgeDataUrl}
                   width={560}
                   height={560}
+                  style={{ objectFit: "contain" }}
                   alt=""
                 />
               </div>
