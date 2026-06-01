@@ -484,9 +484,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
     try {
       setSharingResult(true);
-      setShareMsg("Share Card wird gebaut…");
-
-      await new Promise((resolve) => window.setTimeout(resolve, 1400));
+      setShareMsg("Bereite Share Card vor…");
 
       await shareMvpResult({
         element: shareCardRef.current,
@@ -540,9 +538,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         fileName: `strikr-mvp-badge-${playerId}.webp`,
       });
 
-      setShareMsg("MVP Gewinner-Card wird gebaut…");
-
-      await new Promise((resolve) => window.setTimeout(resolve, 1400));
+      setShareMsg("Bereite MVP Gewinner-Card vor…");
 
       await shareMvpResult({
         element,
@@ -688,6 +684,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             position: "fixed",
             left: "-10000px",
             top: 0,
+            opacity: 0,
             pointerEvents: "none",
             zIndex: -1,
           }}
