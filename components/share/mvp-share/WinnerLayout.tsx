@@ -85,6 +85,55 @@ export default function WinnerLayout({
   const palette = buildPalette(null, "floodlight");
   const tier = getTierMeta(winner.badgeLabel);
 
+  const nextTarget =
+    tier.key === "blech"
+      ? 3
+      : tier.key === "bronze"
+        ? 5
+        : tier.key === "silber"
+          ? 7
+          : tier.key === "gold"
+            ? 10
+            : null;
+
+  const nextLabel =
+    tier.key === "blech"
+      ? "Bronze"
+      : tier.key === "bronze"
+        ? "Silber"
+        : tier.key === "silber"
+          ? "Gold"
+          : tier.key === "gold"
+            ? "GOAT"
+            : null;
+
+  const progressBase =
+    tier.key === "blech"
+      ? 1
+      : tier.key === "bronze"
+        ? 3
+        : tier.key === "silber"
+          ? 5
+          : tier.key === "gold"
+            ? 7
+            : winner.current;
+
+  const progressPercent =
+    nextTarget === null
+      ? 100
+      : Math.max(
+          8,
+          Math.min(
+            100,
+            ((winner.current - progressBase) / (nextTarget - progressBase)) * 100
+          )
+        );
+
+  const progressText =
+    nextTarget === null
+      ? "Höchstes Badge erreicht"
+      : `${winner.current} / ${nextTarget} MVPs bis ${nextLabel}`;
+
   return (
     <div
       style={{
@@ -281,7 +330,71 @@ export default function WinnerLayout({
             </div>
           </div>
 
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 18,
+              padding: "28px 34px",
+              borderRadius: 32,
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                gap: 18,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 22,
+                  fontWeight: 900,
+                  letterSpacing: 3,
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.52)",
+                }}
+              >
+                Badge-Fortschritt
+              </div>
 
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: tier.text,
+                }}
+              >
+                {progressText}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: 16,
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.14)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  width: `${progressPercent}%`,
+                  height: "100%",
+                  borderRadius: 999,
+                  background: tier.text,
+                }}
+              />
+            </div>
+          </div>
         </div>
 
         <div
