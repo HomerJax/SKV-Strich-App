@@ -73,6 +73,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const url = new URL(request.url);
   const variant = url.searchParams.get("variant") === "winner" ? "winner" : "team";
+  const sharePerspective = url.searchParams.get("perspective") === "team" ? "team" : "self";
   const requestedWinnerPlayerIdRaw = url.searchParams.get("playerId");
   const requestedWinnerPlayerId =
     requestedWinnerPlayerIdRaw !== null ? Number(requestedWinnerPlayerIdRaw) : null;
@@ -183,6 +184,7 @@ export async function GET(request: Request, context: RouteContext) {
   ]);
 
   const isWinnerCard = variant === "winner";
+  const isTeamPerspective = isWinnerCard && sharePerspective === "team";
 
   return new ImageResponse(
     (
@@ -286,7 +288,7 @@ export async function GET(request: Request, context: RouteContext) {
               color: isWinnerCard ? "rgba(255,255,255,0.48)" : "rgba(15,23,42,0.36)",
             }}
           >
-            {isWinnerCard ? "Ich wurde zum" : "Glückwunsch"}
+            {isWinnerCard ? (isTeamPerspective ? winner.name : "Ich wurde zum") : "Glückwunsch"}
           </div>
 
           <div
@@ -315,7 +317,9 @@ export async function GET(request: Request, context: RouteContext) {
             }}
           >
             {isWinnerCard
-              ? `${winner.name} · ${clubName}`
+              ? isTeamPerspective
+                ? `wurde zum MVP gewählt · ${clubName}`
+                : `${winner.name} · ${clubName}`
               : "wurde von seinem Team zum MVP des Trainings gewählt."}
           </div>
         </div>
