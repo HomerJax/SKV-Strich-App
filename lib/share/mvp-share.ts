@@ -192,6 +192,20 @@ async function inlineImage(img: HTMLImageElement): Promise<RestoreImage> {
   };
 }
 
+function assertImagesReady(element: HTMLElement) {
+  const images = Array.from(element.querySelectorAll("img"));
+
+  for (const img of images) {
+    const src = img.currentSrc || img.src || img.getAttribute("src") || "";
+
+    if (!src) continue;
+
+    if (!img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) {
+      throw new Error("Share Card Assets sind noch nicht vollständig geladen.");
+    }
+  }
+}
+
 async function prepareShareElement(element: HTMLElement) {
   const images = Array.from(element.querySelectorAll("img"));
   const restoreImages: RestoreImage[] = [];
@@ -208,6 +222,7 @@ async function prepareShareElement(element: HTMLElement) {
   await waitForFrames(4);
   await wait(350);
   await waitForFrames(2);
+  assertImagesReady(element);
 
   return restoreImages;
 }
@@ -319,16 +334,17 @@ export async function shareMvpResult({
     let blob: Blob | null = null;
     let lastError: unknown = null;
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
       try {
         await waitForFonts();
-        await waitForFrames(3);
+        await waitForFrames(4);
+        assertImagesReady(element);
         blob = await captureElement(element);
         break;
       } catch (error) {
         lastError = error;
-        await wait(500);
-        await waitForFrames(4);
+        await wait(450 + attempt * 250);
+        await waitForFrames(5);
       }
     }
 
