@@ -80,6 +80,7 @@ export default function WinnerLayout({
   clubName,
   sessionDateLabel,
   winner,
+  sharePerspective = "self",
 }: WinnerLayoutProps) {
   const palette = buildPalette(null, "floodlight");
   const tier = getTierMeta(winner.badgeLabel);
@@ -180,7 +181,7 @@ export default function WinnerLayout({
               textTransform: "uppercase",
             }}
           >
-            Ich wurde
+            {sharePerspective === "self" ? "Ich wurde" : winner.name}
           </div>
 
           <div

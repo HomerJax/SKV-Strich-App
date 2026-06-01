@@ -3,6 +3,7 @@ export type RouteContext = {
 };
 
 export type ShareMode = "winner" | "team";
+export type SharePerspective = "self" | "team";
 
 export type VoteRow = {
   voted_player_id: number;
@@ -43,6 +44,7 @@ export type LeaderboardEntry = {
 
 export type MvpShareImageProps = {
   mode: ShareMode;
+  sharePerspective?: SharePerspective;
   strikrLogoUrl: string;
   clubLogoUrl: string | null;
   badgeImageUrl: string;
