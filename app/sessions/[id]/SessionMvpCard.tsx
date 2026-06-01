@@ -266,6 +266,7 @@ function MergedWinnerCard({
 export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const router = useRouter();
   const shareCardRef = useRef<HTMLDivElement>(null);
+  const winnerShareRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const [state, setState] = useState<MvpState | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
@@ -275,6 +276,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [err, setErr] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [sharingResult, setSharingResult] = useState(false);
+  const [sharingWinnerPlayerId, setSharingWinnerPlayerId] = useState<number | null>(null);
   const [sharingVotingReminder, setSharingVotingReminder] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
 
@@ -374,6 +376,17 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       )
     );
 
+    const shareWinnerCards = shareWinners.map((winnerEntry) => {
+      const winnerBadgeKey = getBadgeAssetKeyFromMvpCount(winnerEntry.current);
+
+      return {
+        winner: winnerEntry,
+        badgeImageUrl:
+          toAbsoluteAssetUrl(`/badges/hero/${winnerBadgeKey}.webp`) ??
+          `/badges/hero/${winnerBadgeKey}.webp`,
+      };
+    });
+
     const badgeKey = getBadgeAssetKeyFromMvpCount(shareWinner.current);
     const strikrLogoUrl =
       toAbsoluteAssetUrl("/brand/strikr-mark.png") ?? "/brand/strikr-mark.png";
@@ -382,6 +395,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       mode: isCurrentUserWinner ? ("winner" as const) : ("team" as const),
       winner: shareWinner,
       winners: shareWinners,
+      winnerCards: shareWinnerCards,
       leaderboard: shareLeaderboard,
       badgeImageUrl:
         toAbsoluteAssetUrl(`/badges/hero/${badgeKey}.webp`) ??
@@ -487,6 +501,44 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setShareMsg("Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.");
     } finally {
       setSharingResult(false);
+    }
+  }
+
+  async function handleShareWinnerCard(playerId: number) {
+    if (!shareData) {
+      setShareMsg("MVP Share Card ist noch nicht bereit.");
+      return;
+    }
+
+    const card = shareData.winnerCards.find(
+      (winnerCard) => winnerCard.winner.playerId === playerId
+    );
+    const element = winnerShareRefs.current[playerId];
+
+    if (!card || !element) {
+      setShareMsg("MVP Gewinner-Card ist noch nicht bereit.");
+      return;
+    }
+
+    try {
+      setSharingWinnerPlayerId(playerId);
+      setShareMsg("Bereite MVP Gewinner-Card vor…");
+
+      await shareMvpResult({
+        element,
+        imageUrl: `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${playerId}&perspective=team`,
+        fileName: `strikr-mvp-${sessionId}-${playerId}.png`,
+        title: `${card.winner.name} wurde zum MVP gewählt`,
+        text: `MVP Card von ${card.winner.name} aus strikr.`,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      setShareMsg("MVP Gewinner-Card konnte nicht geteilt werden.");
+    } finally {
+      setSharingWinnerPlayerId(null);
     }
   }
 
@@ -641,6 +693,33 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
               leaderboard={shareData.leaderboard}
             />
           </div>
+
+          {shareData.winnerCards.map((winnerCard) => (
+            <div
+              key={winnerCard.winner.playerId}
+              ref={(node) => {
+                winnerShareRefs.current[winnerCard.winner.playerId] = node;
+              }}
+              style={{
+                width: 1080,
+                height: 1920,
+                background: "#020617",
+              }}
+            >
+              <MvpShareImage
+                mode="winner"
+                sharePerspective="team"
+                strikrLogoUrl={shareData.strikrLogoUrl}
+                clubLogoUrl={shareData.clubLogoUrl}
+                clubName={shareData.clubName}
+                sessionDateLabel={shareData.sessionDateLabel}
+                badgeImageUrl={winnerCard.badgeImageUrl}
+                winner={winnerCard.winner}
+                winners={shareData.winners}
+                leaderboard={shareData.leaderboard}
+              />
+            </div>
+          ))}
         </div>
       ) : null}
 
@@ -986,7 +1065,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                     </div>
                   </div>
 
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-3">
                     <button
                       type="button"
                       onClick={handleShareMvpResult}
@@ -999,6 +1078,36 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                           ? "Meinen MVP teilen"
                           : "MVP Ergebnis teilen"}
                     </button>
+
+                    {shareData && shareData.winners.length > 1 ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                        <div className="px-1 pb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                          Einzelne MVP Cards
+                        </div>
+                        <div className="space-y-2">
+                          {shareData.winnerCards.map((winnerCard) => (
+                            <button
+                              key={winnerCard.winner.playerId}
+                              type="button"
+                              onClick={() =>
+                                handleShareWinnerCard(winnerCard.winner.playerId)
+                              }
+                              disabled={sharingWinnerPlayerId !== null}
+                              className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <span className="truncate">
+                                {winnerCard.winner.name}
+                              </span>
+                              <span className="shrink-0 text-xs font-extrabold text-slate-500">
+                                {sharingWinnerPlayerId === winnerCard.winner.playerId
+                                  ? "Bereite vor…"
+                                  : "teilen"}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ) : null}

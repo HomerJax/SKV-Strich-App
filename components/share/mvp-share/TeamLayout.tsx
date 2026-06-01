@@ -238,9 +238,9 @@ export default function TeamLayout({
               display: "flex",
               alignItems: "baseline",
               gap: 24,
-              fontSize: 106,
+              fontSize: hasMultipleWinners ? 124 : 106,
               fontWeight: 900,
-              letterSpacing: -8.5,
+              letterSpacing: hasMultipleWinners ? -9 : -8.5,
               lineHeight: 0.78,
               color: "#ffffff",
               whiteSpace: "nowrap",
@@ -249,9 +249,9 @@ export default function TeamLayout({
             <span
               style={{
                 display: "flex",
-                fontSize: 116,
+                fontSize: hasMultipleWinners ? 132 : 116,
                 fontWeight: 900,
-                letterSpacing: -10,
+                letterSpacing: hasMultipleWinners ? -10 : -10,
                 textTransform: "lowercase",
               }}
             >
@@ -260,58 +260,62 @@ export default function TeamLayout({
             <span style={{ display: "flex", textTransform: "uppercase" }}>
               MVP
             </span>
-            <span style={{ display: "flex", textTransform: "uppercase" }}>
-              Badge
-            </span>
+            {!hasMultipleWinners ? (
+              <span style={{ display: "flex", textTransform: "uppercase" }}>
+                Badge
+              </span>
+            ) : null}
           </div>
 
           <div
             style={{
               display: "flex",
-              marginTop: 20,
-              fontSize: 132,
+              marginTop: 22,
+              fontSize: hasMultipleWinners ? 148 : 132,
               fontWeight: 900,
-              letterSpacing: -9,
+              letterSpacing: hasMultipleWinners ? -8 : -9,
               lineHeight: 0.78,
               textTransform: "uppercase",
               color: "#ffffff",
             }}
           >
-            {tier.label}
+            {hasMultipleWinners ? `${winnerCount} Gewinner` : tier.label}
           </div>
         </div>
 
-        <div
-          style={{
-            position: "absolute",
-            top: 605,
-            left: 0,
-            right: 0,
-            display: "flex",
-            justifyContent: "center",
-            zIndex: 6,
-          }}
-        >
-          <PremiumBadge
-            badgeImageUrl={badgeImageUrl}
-            fallbackLabel={winner.badgeLabel}
-            size={tier.key === "goat" ? 560 : 500}
-            glowColor={tier.glow}
-            glowStrength={tier.key === "goat" ? 0.75 : 0.35}
-            imageFilter={
-              tier.key === "blech"
-                ? "brightness(0.72) contrast(1.2) saturate(0.28) drop-shadow(0 34px 54px rgba(0,0,0,0.52))"
-                : "drop-shadow(0 34px 58px rgba(0,0,0,0.52))"
-            }
-          />
-        </div>
+        {!hasMultipleWinners ? (
+          <div
+            style={{
+              position: "absolute",
+              top: 605,
+              left: 0,
+              right: 0,
+              display: "flex",
+              justifyContent: "center",
+              zIndex: 6,
+            }}
+          >
+            <PremiumBadge
+              badgeImageUrl={badgeImageUrl}
+              fallbackLabel={winner.badgeLabel}
+              size={tier.key === "goat" ? 560 : 500}
+              glowColor={tier.glow}
+              glowStrength={tier.key === "goat" ? 0.75 : 0.35}
+              imageFilter={
+                tier.key === "blech"
+                  ? "brightness(0.72) contrast(1.2) saturate(0.28) drop-shadow(0 34px 54px rgba(0,0,0,0.52))"
+                  : "drop-shadow(0 34px 58px rgba(0,0,0,0.52))"
+              }
+            />
+          </div>
+        ) : null}
 
         <div
           style={{
             position: "absolute",
             left: 56,
             right: 56,
-            top: hasMultipleWinners ? 1135 : 1265,
+            top: hasMultipleWinners ? 705 : 1265,
             zIndex: 7,
             padding: 36,
             borderRadius: 40,
@@ -336,7 +340,7 @@ export default function TeamLayout({
             style={{
               display: "flex",
               marginTop: 16,
-              fontSize: hasMultipleWinners ? 52 : 70,
+              fontSize: hasMultipleWinners ? 64 : 70,
               fontWeight: 900,
               letterSpacing: hasMultipleWinners ? -3 : -5,
               lineHeight: hasMultipleWinners ? 1.02 : 0.92,
@@ -360,7 +364,7 @@ export default function TeamLayout({
                   key={entry.playerId}
                   style={{
                     display: "flex",
-                    fontSize: 38,
+                    fontSize: 48,
                     fontWeight: 900,
                     letterSpacing: -1,
                     lineHeight: 1,
