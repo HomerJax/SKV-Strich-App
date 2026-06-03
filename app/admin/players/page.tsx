@@ -47,6 +47,17 @@ type PageProps = {
   }>;
 };
 
+const BALANCE_GROUP_OPTIONS = [
+  "Gehfußballer",
+  "Defensivanker",
+  "Offensivfokus",
+  "Laufstark",
+  "Techniker",
+  "Balance-Gruppe 1",
+  "Balance-Gruppe 2",
+  "Balance-Gruppe 3",
+] as const;
+
 function boolToYesNo(value: boolean | null | undefined) {
   return value ? "1" : "0";
 }
@@ -464,13 +475,27 @@ export default async function AdminPlayersPage({
                       >
                         Balance-Gruppe
                       </label>
-                      <input
+                      <select
                         id={`balance_group_${player.id}`}
                         name="balance_group"
                         defaultValue={player.balance_group ?? ""}
-                        placeholder="z. B. Gehfußballer, Defensivanker"
-                        className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-                      />
+                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                      >
+                        <option value="">Keine Balance-Gruppe</option>
+                        {BALANCE_GROUP_OPTIONS.map((group) => (
+                          <option key={group} value={group}>
+                            {group}
+                          </option>
+                        ))}
+                        {player.balance_group &&
+                        !BALANCE_GROUP_OPTIONS.includes(
+                          player.balance_group as (typeof BALANCE_GROUP_OPTIONS)[number]
+                        ) ? (
+                          <option value={player.balance_group}>
+                            Aktuell: {player.balance_group}
+                          </option>
+                        ) : null}
+                      </select>
                       <p className="mt-1.5 text-xs leading-5 text-neutral-500">
                         Spieler mit derselben Balance-Gruppe werden möglichst
                         auf verschiedene Teams verteilt. Leer lassen, wenn keine
