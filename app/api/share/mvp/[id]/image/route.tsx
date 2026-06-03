@@ -109,6 +109,31 @@ async function fetchAsDataUrl(url: string) {
   return `data:image/png;base64,${pngBuffer.toString("base64")}`;
 }
 
+async function fetchBadgeAsDataUrl(url: string, badgeKey: string) {
+  const response = await fetch(url, { cache: "no-store" });
+
+  if (!response.ok) {
+    throw new Error(`Badge konnte nicht geladen werden: ${url}`);
+  }
+
+  const inputBuffer = Buffer.from(await response.arrayBuffer());
+  let image = sharp(inputBuffer);
+
+  if (badgeKey === "blech") {
+    image = image
+      .modulate({
+        brightness: 0.72,
+        saturation: 0.5,
+      })
+      .linear(1.08, -14)
+      .sharpen();
+  }
+
+  const pngBuffer = await image.png().toBuffer();
+
+  return `data:image/png;base64,${pngBuffer.toString("base64")}`;
+}
+
 async function maybeFetchAsDataUrl(url: string | null) {
   if (!url) return null;
 
@@ -256,7 +281,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const [badgeDataUrl, strikrLogoDataUrl, clubLogoDataUrl] = await Promise.all([
-    fetchAsDataUrl(badgeImageUrl),
+    fetchBadgeAsDataUrl(badgeImageUrl, winner.badgeKey),
     fetchAsDataUrl(strikrLogoUrl),
     maybeFetchAsDataUrl(clubLogoUrl),
   ]);
