@@ -319,51 +319,21 @@ export async function GET(request: Request, context: RouteContext) {
               display: "flex",
               width: "100%",
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: "flex-start",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <img
-                src={strikrLogoDataUrl}
-                width={72}
-                height={72}
-                style={{ borderRadius: 20 }}
-                alt=""
-              />
-
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  marginLeft: 18,
-                }}
-              >
-                <div style={{ display: "flex", fontSize: 38, fontWeight: 900 }}>
-                  strikr
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    marginTop: 4,
-                    fontSize: 15,
-                    fontWeight: 900,
-                    letterSpacing: 3,
-                    color: isWinnerCard ? "rgba(255,255,255,0.50)" : "rgba(15,23,42,0.42)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  MVP Moment
-                </div>
-              </div>
-            </div>
-
             <div style={{ display: "flex", alignItems: "center" }}>
               {clubLogoDataUrl ? (
                 <img
                   src={clubLogoDataUrl}
-                  width={76}
-                  height={76}
-                  style={{ borderRadius: 22 }}
+                  width={82}
+                  height={82}
+                  style={{
+                    borderRadius: 22,
+                    objectFit: "contain",
+                    background: isWinnerCard ? "rgba(255,255,255,0.10)" : "#ffffff",
+                    padding: 8,
+                  }}
                   alt=""
                 />
               ) : null}
@@ -381,6 +351,64 @@ export async function GET(request: Request, context: RouteContext) {
                 }}
               >
                 {clubName}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "14px 16px",
+                borderRadius: 24,
+                background: isWinnerCard ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.05)",
+                border: isWinnerCard
+                  ? "1px solid rgba(255,255,255,0.14)"
+                  : "1px solid rgba(15,23,42,0.08)",
+              }}
+            >
+              <img
+                src={strikrLogoDataUrl}
+                width={62}
+                height={62}
+                style={{
+                  borderRadius: 17,
+                  objectFit: "cover",
+                }}
+                alt=""
+              />
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  marginLeft: 14,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: 31,
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    letterSpacing: -1.1,
+                    color: isWinnerCard ? "#ffffff" : "#020617",
+                  }}
+                >
+                  strikr
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    marginTop: 7,
+                    fontSize: 11,
+                    fontWeight: 900,
+                    letterSpacing: 2.2,
+                    color: isWinnerCard ? "rgba(255,255,255,0.58)" : "rgba(15,23,42,0.42)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  MVP Moment
+                </div>
               </div>
             </div>
           </div>
