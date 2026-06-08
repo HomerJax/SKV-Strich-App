@@ -58,15 +58,14 @@ export default function HomeMvpHighlightCard({
   const topThree = useMemo(() => leaderboard.slice(0, 3), [leaderboard]);
 
   useEffect(() => {
-    const imageUrl =
-      mode === "winner"
-        ? `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${winner.playerId}`
-        : `/api/share/mvp/${sessionId}/image?variant=team`;
+    const hasSingleWinner = winners.length <= 1;
+    const imageUrl = hasSingleWinner
+      ? `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${winner.playerId}&perspective=team`
+      : `/api/share/mvp/${sessionId}/image?variant=team`;
 
-    const fileName =
-      mode === "winner"
-        ? `strikr-mvp-winner-${sessionId}.png`
-        : `strikr-mvp-result-${sessionId}.png`;
+    const fileName = hasSingleWinner
+      ? `strikr-mvp-winner-team-${sessionId}-${winner.playerId}.png`
+      : `strikr-mvp-result-${sessionId}.png`;
 
     shareFileRef.current = null;
 
@@ -100,17 +99,19 @@ export default function HomeMvpHighlightCard({
       setSharing(true);
       setShareError(null);
 
+      const hasSingleWinner = winners.length <= 1;
+
       await sharePreparedMvpFile({
         file: preparedFile,
-        fileName:
-          mode === "winner"
-            ? `strikr-mvp-winner-${sessionId}.png`
-            : `strikr-mvp-result-${sessionId}.png`,
-        title: mode === "winner" ? "Ich wurde zum MVP gewählt" : "MVP Ergebnis",
-        text:
-          mode === "winner"
-            ? "Meine MVP Card aus strikr."
-            : "Das MVP Ergebnis aus strikr.",
+        fileName: hasSingleWinner
+          ? `strikr-mvp-winner-team-${sessionId}-${winner.playerId}.png`
+          : `strikr-mvp-result-${sessionId}.png`,
+        title: hasSingleWinner
+          ? `${winner.name} wurde zum MVP gewählt`
+          : "MVP Ergebnis",
+        text: hasSingleWinner
+          ? `MVP Card von ${winner.name} aus strikr.`
+          : "Das MVP Ergebnis aus strikr.",
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;

@@ -461,12 +461,13 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   useEffect(() => {
     if (!shareData) return;
 
-    const mode = shareData.mode;
-    const imageUrl = `/api/share/mvp/${sessionId}/image?variant=${mode}`;
-    const fileName =
-      mode === "winner"
-        ? `strikr-mvp-winner-${sessionId}.png`
-        : `strikr-mvp-result-${sessionId}.png`;
+    const hasSingleWinner = shareData.winners.length <= 1;
+    const imageUrl = hasSingleWinner
+      ? `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${shareData.winner.playerId}&perspective=team`
+      : `/api/share/mvp/${sessionId}/image?variant=team`;
+    const fileName = hasSingleWinner
+      ? `strikr-mvp-winner-team-${sessionId}-${shareData.winner.playerId}.png`
+      : `strikr-mvp-result-${sessionId}.png`;
 
     mvpShareFileRef.current = null;
 
@@ -546,20 +547,19 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       setSharingResult(true);
       setShareMsg("Teilen…");
 
+      const hasSingleWinner = shareData.winners.length <= 1;
+
       await sharePreparedMvpFile({
         file: preparedFile,
-        fileName:
-          shareData.mode === "winner"
-            ? `strikr-mvp-winner-${sessionId}.png`
-            : `strikr-mvp-result-${sessionId}.png`,
-        title:
-          shareData.mode === "winner"
-            ? "Ich wurde zum MVP gewählt"
-            : "MVP Ergebnis",
-        text:
-          shareData.mode === "winner"
-            ? "Meine MVP Card aus strikr."
-            : "Das MVP Ergebnis aus strikr.",
+        fileName: hasSingleWinner
+          ? `strikr-mvp-winner-team-${sessionId}-${shareData.winner.playerId}.png`
+          : `strikr-mvp-result-${sessionId}.png`,
+        title: hasSingleWinner
+          ? `${shareData.winner.name} wurde zum MVP gewählt`
+          : "MVP Ergebnis",
+        text: hasSingleWinner
+          ? `MVP Card von ${shareData.winner.name} aus strikr.`
+          : "Das MVP Ergebnis aus strikr.",
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
