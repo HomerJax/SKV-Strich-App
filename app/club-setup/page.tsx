@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createClubAction } from "./actions";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
-import ClubSetupSeasonStep from "@/components/club-setup/ClubSetupSeasonStep";
 import ClubSetupInviteActions from "@/components/club-setup/ClubSetupInviteActions";
 import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
@@ -74,11 +73,10 @@ type CategoryRow = {
   is_active: boolean;
 };
 
-type SetupStep = "club" | "season" | "team" | "categories" | "done";
+type SetupStep = "club" | "team" | "categories" | "done";
 
 const STEP_ORDER: SetupStep[] = [
   "club",
-  "season",
   "team",
   "categories",
   "done",
@@ -86,7 +84,6 @@ const STEP_ORDER: SetupStep[] = [
 
 const STEP_LABELS: Record<SetupStep, string> = {
   club: "Sport & Club",
-  season: "Saison",
   team: "Teamgenerator",
   categories: "Kategorien",
   done: "Fertig",
@@ -95,7 +92,6 @@ const STEP_LABELS: Record<SetupStep, string> = {
 function getStep(value: string | null): SetupStep {
   if (
     value === "club" ||
-    value === "season" ||
     value === "team" ||
     value === "categories" ||
     value === "done"
@@ -286,21 +282,18 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
     getSearchParam(resolvedSearchParams.error) ??
     "";
 
-  const seasonMessage =
-    getSearchParam(resolvedSearchParams.season_message) ??
-    getSearchParam(resolvedSearchParams.message) ??
-    "";
-  const seasonError =
-    getSearchParam(resolvedSearchParams.season_error) ??
-    getSearchParam(resolvedSearchParams.error) ??
-    "";
-
   const settingsSaved = getSearchParam(resolvedSearchParams.saved) === "1";
   const settingsError = getSearchParam(resolvedSearchParams.error) ?? "";
 
   const categorySaved =
     getSearchParam(resolvedSearchParams.category_saved) === "1";
   const categoryError = getSearchParam(resolvedSearchParams.category_error) ?? "";
+
+  const useCategories = settings?.use_categories === true;
+
+  if (currentStep === "categories" && !useCategories) {
+    redirect(buildWizardUrl("done"));
+  }
 
   const previousStep = getPreviousStep(currentStep);
 
@@ -404,7 +397,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                   <ClubSetupClubStep
                     saved={clubSaved}
                     error={clubError}
-                    redirectTo={buildWizardUrl("season")}
+                    redirectTo={buildWizardUrl("team")}
                     submitLabel="Weiter"
                     removeLogoRedirectTo={buildWizardUrl("club")}
                     initialDisplayName={club?.display_name ?? ""}
@@ -416,45 +409,11 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                 </div>
               ) : null}
 
-              {currentStep === "season" ? (
-                <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
-                  <div className="mb-5">
-                    <div className="text-sm font-semibold text-neutral-500">
-                      Schritt 2
-                    </div>
-                    <h2 className="mt-1 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
-                      Saison
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-neutral-700">
-                      Lege direkt eure erste Saison an.
-                    </p>
-                  </div>
-
-                  <ClubSetupSeasonStep
-                    message={seasonMessage}
-                    error={seasonError}
-                    redirectTo={buildWizardUrl("team")}
-                    submitLabel="Weiter"
-                  />
-
-                  {previousStep ? (
-                    <div className="mt-6 flex justify-start">
-                      <Link
-                        href={buildWizardUrl(previousStep)}
-                        className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50"
-                      >
-                        Zurück
-                      </Link>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
               {currentStep === "team" ? (
                 <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
                   <div className="mb-5">
                     <div className="text-sm font-semibold text-neutral-500">
-                      Schritt 3
+                      Schritt 2
                     </div>
                     <h2 className="mt-1 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
                       Teamgenerator
@@ -466,7 +425,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
                   <TeamGeneratorSettingsCard
                     useStrength={settings?.use_strength ?? false}
-                    useCategories={settings?.use_categories ?? false}
+                    useCategories={useCategories}
                     redirectTo={buildWizardUrl("categories")}
                     submitLabel="Weiter"
                     saved={settingsSaved}
@@ -490,7 +449,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                 <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
                   <div className="mb-5">
                     <div className="text-sm font-semibold text-neutral-500">
-                      Schritt 4
+                      Schritt 3
                     </div>
                     <h2 className="mt-1 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
                       Kategorien
@@ -502,7 +461,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
                   <CategorySettingsSection
                     categories={categories}
-                    useCategories={settings?.use_categories ?? false}
+                    useCategories={useCategories}
                     redirectTo={buildWizardUrl("categories")}
                     saved={categorySaved}
                     error={categoryError}
