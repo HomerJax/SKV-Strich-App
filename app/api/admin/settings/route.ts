@@ -320,5 +320,13 @@ export async function POST(request: Request) {
     return redirectWithParams(request, redirectTo, { error: "save_failed" });
   }
 
-  return redirectWithParams(request, redirectTo, { saved: "1" });
+  const savedRedirectTo =
+    submitsTeamGeneratorSettings &&
+    !useCategories &&
+    redirectTo.includes("/club-setup") &&
+    redirectTo.includes("step=categories")
+      ? "/club-setup?created=1&step=done"
+      : redirectTo;
+
+  return redirectWithParams(request, savedRedirectTo, { saved: "1" });
 }
