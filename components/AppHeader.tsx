@@ -271,7 +271,7 @@ export default async function AppHeader() {
               </Link>
 
               <Link
-                href="/register"
+                href="/signup?next=%2Fclub-setup"
                 className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-slate-800 sm:px-4 sm:py-2"
               >
                 Team starten

@@ -64,39 +64,6 @@ export async function POST(request: NextRequest) {
 
   const user = signInData.user;
 
-  const { data: players, error: playerError } = await supabase
-    .from("players")
-    .select("id, user_id, club_id, first_name, last_name, nickname")
-    .eq("user_id", user.id)
-    .eq("is_guest", false);
-
-  if (playerError) {
-    const url = buildRedirect(
-      request,
-      `/login?error=${encodeURIComponent(
-        `player-load-failed:${playerError.message}`
-      )}&email=${encodeURIComponent(email)}`
-    );
-    return NextResponse.redirect(url, { status: 303 });
-  }
-
-  const normalizedPlayers = (players ?? []).filter(
-    (player) => player.club_id !== null
-  );
-
-  if (!normalizedPlayers.length) {
-    const redirectResponse = NextResponse.redirect(
-      buildRedirect(request, AUTH_ROUTES.onboarding),
-      { status: 303 }
-    );
-
-    for (const cookie of response.cookies.getAll()) {
-      redirectResponse.cookies.set(cookie);
-    }
-
-    return redirectResponse;
-  }
-
   const { data: memberships, error: membershipsError } = await supabase
     .from("club_memberships")
     .select("id, club_id, user_id, role")
@@ -115,8 +82,31 @@ export async function POST(request: NextRequest) {
   const normalizedMemberships = (memberships ?? []) as MembershipRow[];
 
   if (!normalizedMemberships.length) {
+    const { data: players, error: playerError } = await supabase
+      .from("players")
+      .select("id, user_id, club_id, first_name, last_name, nickname")
+      .eq("user_id", user.id)
+      .eq("is_guest", false);
+
+    if (playerError) {
+      const url = buildRedirect(
+        request,
+        `/login?error=${encodeURIComponent(
+          `player-load-failed:${playerError.message}`
+        )}&email=${encodeURIComponent(email)}`
+      );
+      return NextResponse.redirect(url, { status: 303 });
+    }
+
+    const hasAnyPlayerProfile = (players ?? []).length > 0;
+
     const redirectResponse = NextResponse.redirect(
-      buildRedirect(request, AUTH_ROUTES.waitingForInvite),
+      buildRedirect(
+        request,
+        hasAnyPlayerProfile
+          ? AUTH_ROUTES.waitingForInvite
+          : AUTH_ROUTES.onboarding
+      ),
       { status: 303 }
     );
 
