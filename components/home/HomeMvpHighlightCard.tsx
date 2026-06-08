@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
-import { shareMvpResult } from "@/lib/share/mvp-share";
+import {
+  createMvpShareFileFromImageUrl,
+  sharePreparedMvpFile,
+} from "@/lib/share/mvp-share";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 
 type HomeMvpHighlightCardProps = {
@@ -35,7 +37,7 @@ export default function HomeMvpHighlightCard({
   leaderboard,
   badgeImageUrl,
 }: HomeMvpHighlightCardProps) {
-  const shareRef = useRef<HTMLDivElement>(null);
+  const shareFileRef = useRef<File | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
@@ -55,21 +57,51 @@ export default function HomeMvpHighlightCard({
 
   const topThree = useMemo(() => leaderboard.slice(0, 3), [leaderboard]);
 
+  useEffect(() => {
+    const imageUrl =
+      mode === "winner"
+        ? `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${winner.playerId}`
+        : `/api/share/mvp/${sessionId}/image?variant=team`;
+
+    const fileName =
+      mode === "winner"
+        ? `strikr-mvp-winner-${sessionId}.png`
+        : `strikr-mvp-result-${sessionId}.png`;
+
+    shareFileRef.current = null;
+
+    void createMvpShareFileFromImageUrl({
+      imageUrl,
+      fileName,
+    })
+      .then((file) => {
+        shareFileRef.current = file;
+      })
+      .catch((error) => {
+        console.error("[HOME MVP SHARE PREP FAILED]", imageUrl, error);
+        shareFileRef.current = null;
+      });
+  }, [mode, sessionId, winner.playerId]);
+
   function dismiss() {
     window.localStorage.setItem(notificationKey, "dismissed");
     setDismissed(true);
   }
 
   async function handleShare() {
-    if (!shareRef.current) return;
+    const preparedFile = shareFileRef.current;
+
+    if (!preparedFile) {
+      setShareError("MVP Share Card wird noch vorbereitet. Bitte kurz warten.");
+      return;
+    }
 
     try {
       setSharing(true);
       setShareError(null);
 
-      await shareMvpResult({
-        element: shareRef.current,
-        imageUrl: `/api/share/mvp/${sessionId}/image?variant=${mode}`,
+      await sharePreparedMvpFile({
+        file: preparedFile,
         fileName:
           mode === "winner"
             ? `strikr-mvp-winner-${sessionId}.png`
@@ -92,25 +124,6 @@ export default function HomeMvpHighlightCard({
 
   return (
     <>
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed left-[-9999px] top-0 max-w-full overflow-hidden"
-      >
-        <div ref={shareRef} style={{ width: 1080, height: 1920 }}>
-          <MvpShareImage
-            mode={mode}
-            clubName={clubName}
-            clubLogoUrl={clubLogoUrl}
-            strikrLogoUrl={strikrLogoUrl}
-            sessionDateLabel={sessionDateLabel}
-            badgeImageUrl={badgeImageUrl}
-            winner={winner}
-            winners={winners}
-            leaderboard={leaderboard}
-          />
-        </div>
-      </div>
-
       <section className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[#020617] p-4 text-white shadow-sm">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.14),transparent_26%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.08),transparent_30%)]" />
 
