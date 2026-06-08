@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthContext } from "@/lib/auth/context";
+import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
 
 function getStringValue(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -114,6 +115,16 @@ export async function createClubAction(formData: FormData) {
   }
 
   const adminSupabase = createAdminClient();
+
+  const { error: defaultSeasonError } = await ensureDefaultSeasonForClub(
+    adminSupabase,
+    clubId
+  );
+
+  if (defaultSeasonError) {
+    console.error("default season create failed:", defaultSeasonError);
+    redirect("/club-setup?error=season-create-failed");
+  }
 
   const { error: billingError } = await adminSupabase
     .from("club_billing")

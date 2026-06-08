@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
 
 export type OnboardingState = {
   error: string;
@@ -286,6 +287,19 @@ export async function completeOnboarding(
       error:
         settingsError.message ||
         "Team-Einstellungen konnten nicht erstellt werden.",
+    };
+  }
+
+  const { error: defaultSeasonError } = await ensureDefaultSeasonForClub(
+    adminSupabase,
+    club.id
+  );
+
+  if (defaultSeasonError) {
+    return {
+      error:
+        defaultSeasonError ||
+        "Standard-Saison konnte nicht für das Team erstellt werden.",
     };
   }
 

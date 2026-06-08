@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
 
 export type CreateClubState = {
   error: string;
@@ -158,6 +159,16 @@ export async function createClubAction(
 
   if (settingsError) {
     return { error: "settings-create-failed" };
+  }
+
+  const { error: defaultSeasonError } = await ensureDefaultSeasonForClub(
+    adminSupabase,
+    club.id
+  );
+
+  if (defaultSeasonError) {
+    console.error("default season create failed:", defaultSeasonError);
+    return { error: "default-season-create-failed" };
   }
 
   const { error: billingError } = await adminSupabase
