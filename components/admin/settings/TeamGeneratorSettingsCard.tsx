@@ -216,6 +216,7 @@ export default function TeamGeneratorSettingsCard({
         className="space-y-4"
       >
         <input type="hidden" name="redirect_to" value={redirectTo} />
+        <input type="hidden" name="settings_scope" value="team_generator" />
 
         <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
           <div className="mb-3 text-sm font-semibold text-slate-500">

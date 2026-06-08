@@ -194,8 +194,12 @@ export async function POST(request: Request) {
     }
   }
 
+  const settingsScope = String(formData.get("settings_scope") ?? "").trim();
+
   const submitsTeamGeneratorSettings =
-    hasField(formData, "use_strength") || hasField(formData, "use_categories");
+    settingsScope === "team_generator" ||
+    hasField(formData, "use_strength") ||
+    hasField(formData, "use_categories");
 
   const submitsSeasonSettings =
     hasField(formData, "season_start_day") ||
