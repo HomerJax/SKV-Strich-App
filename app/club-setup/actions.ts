@@ -120,11 +120,11 @@ export async function createClubAction(formData: FormData) {
     .upsert(
       {
         club_id: clubId,
-        plan_key: "free",
+        plan_key: "supercup_trial",
         status: "active",
-        trial_ends_at: null,
-        pro_ends_at: null,
-        billing_note: "Automatisch beim Club-Setup als Free angelegt.",
+        trial_ends_at: "2026-07-31T21:59:59.000Z",
+        pro_ends_at: "2026-07-31T21:59:59.000Z",
+        billing_note: "Automatisch beim Club-Setup als Supercup Trial bis Ende Juli angelegt.",
         updated_at: new Date().toISOString(),
       },
       {

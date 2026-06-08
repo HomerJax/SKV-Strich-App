@@ -289,6 +289,32 @@ export async function completeOnboarding(
     };
   }
 
+  const { error: billingError } = await adminSupabase
+    .from("club_billing")
+    .upsert(
+      {
+        club_id: club.id,
+        plan_key: "supercup_trial",
+        status: "active",
+        trial_ends_at: "2026-07-31T21:59:59.000Z",
+        pro_ends_at: "2026-07-31T21:59:59.000Z",
+        billing_note:
+          "Automatisch beim Onboarding als Supercup Trial bis Ende Juli angelegt.",
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "club_id",
+      }
+    );
+
+  if (billingError) {
+    return {
+      error:
+        billingError.message ||
+        "Billing konnte nicht für das Team erstellt werden.",
+    };
+  }
+
   const cookieStore = await cookies();
   cookieStore.set("active_club_id", club.id, {
     path: "/",
