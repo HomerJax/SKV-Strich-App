@@ -8,7 +8,6 @@ import { getBadgeMetaFromMvpCount } from "@/lib/badges/helpers";
 import {
   createMvpShareFileFromImageUrl,
   preloadMvpShareImage,
-  shareMvpResult,
   sharePreparedMvpFile,
 } from "@/lib/share/mvp-share";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
@@ -272,6 +271,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const router = useRouter();
   const shareCardRef = useRef<HTMLDivElement>(null);
   const winnerShareRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const mvpShareFileRef = useRef<File | null>(null);
   const winnerShareFilesRef = useRef<Record<number, File | null>>({});
 
   const [state, setState] = useState<MvpState | null>(null);
@@ -468,12 +468,26 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         ? `strikr-mvp-winner-${sessionId}.png`
         : `strikr-mvp-result-${sessionId}.png`;
 
+    mvpShareFileRef.current = null;
+
     void preloadMvpShareImage({
       imageUrl,
       fileName,
     }).catch(() => {
-      // Komfort-Preload. Beim Klick wird es erneut versucht.
+      // Komfort-Preload.
     });
+
+    void createMvpShareFileFromImageUrl({
+      imageUrl,
+      fileName,
+    })
+      .then((file) => {
+        mvpShareFileRef.current = file;
+      })
+      .catch((error) => {
+        console.error("[MVP MAIN SHARE PREP FAILED]", imageUrl, error);
+        mvpShareFileRef.current = null;
+      });
 
     winnerShareFilesRef.current = {};
     setReadyWinnerPlayerIds(new Set());
@@ -516,18 +530,24 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   }, [sessionId, shareData]);
 
   async function handleShareMvpResult() {
-    if (!shareCardRef.current || !shareData) {
+    if (!shareData) {
       setShareMsg("MVP Share Card ist noch nicht bereit.");
+      return;
+    }
+
+    const preparedFile = mvpShareFileRef.current;
+
+    if (!preparedFile) {
+      setShareMsg("MVP Share Card wird noch vorbereitet. Bitte kurz warten.");
       return;
     }
 
     try {
       setSharingResult(true);
-      setShareMsg("Bereite Share Card vor…");
+      setShareMsg("Teilen…");
 
-      await shareMvpResult({
-        element: shareCardRef.current,
-        imageUrl: `/api/share/mvp/${sessionId}/image?variant=${shareData.mode}`,
+      await sharePreparedMvpFile({
+        file: preparedFile,
         fileName:
           shareData.mode === "winner"
             ? `strikr-mvp-winner-${sessionId}.png`
