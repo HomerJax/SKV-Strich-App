@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { createAdminClient } from "@/lib/supabase/admin";
 import sharp from "sharp";
+import ShareTopBar from "@/components/share/mvp-share/TopBar";
 
 export const runtime = "nodejs";
 
@@ -286,6 +287,17 @@ export async function GET(request: Request, context: RouteContext) {
     maybeFetchAsDataUrl(clubLogoUrl),
   ]);
 
+  const palette = {
+    accent: "#34d399",
+    accentSoft: "rgba(52,211,153,0.16)",
+    accentGlow: "rgba(52,211,153,0.24)",
+    loser: "#94a3b8",
+    textPrimary: isWinnerCard ? "#ffffff" : "#020617",
+    textSecondary: isWinnerCard ? "rgba(255,255,255,0.64)" : "rgba(15,23,42,0.58)",
+    badgeBg: isWinnerCard ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.06)",
+    panelBg: isWinnerCard ? "rgba(255,255,255,0.08)" : "#f8fafc",
+  };
+
   return new ImageResponse(
     (
       <div
@@ -312,106 +324,16 @@ export async function GET(request: Request, context: RouteContext) {
               : "1px solid rgba(15,23,42,0.10)",
             background: isWinnerCard ? "#07111f" : "#ffffff",
             padding: 48,
+            position: "relative",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              width: "100%",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center" }}>
-              {clubLogoDataUrl ? (
-                <img
-                  src={clubLogoDataUrl}
-                  width={82}
-                  height={82}
-                  style={{
-                    borderRadius: 22,
-                    objectFit: "contain",
-                    background: isWinnerCard ? "rgba(255,255,255,0.10)" : "#ffffff",
-                    padding: 8,
-                  }}
-                  alt=""
-                />
-              ) : null}
-
-              <div
-                style={{
-                  display: "flex",
-                  marginLeft: clubLogoDataUrl ? 16 : 0,
-                  padding: "15px 22px",
-                  borderRadius: 999,
-                  background: isWinnerCard ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.06)",
-                  color: isWinnerCard ? "rgba(255,255,255,0.76)" : "rgba(15,23,42,0.60)",
-                  fontSize: 22,
-                  fontWeight: 900,
-                }}
-              >
-                {clubName}
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "14px 16px",
-                borderRadius: 24,
-                background: isWinnerCard ? "rgba(255,255,255,0.10)" : "rgba(15,23,42,0.05)",
-                border: isWinnerCard
-                  ? "1px solid rgba(255,255,255,0.14)"
-                  : "1px solid rgba(15,23,42,0.08)",
-              }}
-            >
-              <img
-                src={strikrLogoDataUrl}
-                width={62}
-                height={62}
-                style={{
-                  borderRadius: 17,
-                  objectFit: "cover",
-                }}
-                alt=""
-              />
-
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  marginLeft: 14,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 31,
-                    fontWeight: 900,
-                    lineHeight: 1,
-                    letterSpacing: -1.1,
-                    color: isWinnerCard ? "#ffffff" : "#020617",
-                  }}
-                >
-                  strikr
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    marginTop: 7,
-                    fontSize: 11,
-                    fontWeight: 900,
-                    letterSpacing: 2.2,
-                    color: isWinnerCard ? "rgba(255,255,255,0.58)" : "rgba(15,23,42,0.42)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  MVP Moment
-                </div>
-              </div>
-            </div>
-          </div>
+          <ShareTopBar
+            clubName={clubName}
+            clubLogoUrl={clubLogoDataUrl}
+            strikrLogoUrl={strikrLogoDataUrl}
+            palette={palette}
+            dark
+          />
 
           {isWinnerCard ? (
             <div
@@ -420,7 +342,7 @@ export async function GET(request: Request, context: RouteContext) {
                 flexDirection: "column",
                 alignItems: "center",
                 textAlign: "center",
-                marginTop: 132,
+                marginTop: 220,
               }}
             >
               <div
@@ -570,7 +492,7 @@ export async function GET(request: Request, context: RouteContext) {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                marginTop: 142,
+                marginTop: 230,
               }}
             >
               <div
