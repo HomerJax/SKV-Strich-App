@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { CalendarDays, Medal, Star, TrendingUp, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getAuthContext } from "@/lib/auth/context";
@@ -109,6 +111,17 @@ function fmtDateLong(iso: string) {
     month: "2-digit",
     year: "numeric",
   });
+}
+
+
+function fmtDateCompact(iso: string) {
+  return new Date(iso)
+    .toLocaleDateString("de-DE", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+    })
+    .replace(/\.$/, "");
 }
 
 function getPartsInBerlin(date: Date) {
@@ -504,6 +517,33 @@ function HighlightsCard({
         </div>
       )}
     </section>
+  );
+}
+
+
+function MiniStatCard({
+  icon,
+  value,
+  label,
+}: {
+  icon: ReactNode;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2.5 py-2">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500">
+        {icon}
+      </div>
+      <div className="min-w-0 leading-tight">
+        <div className="truncate text-base font-semibold tracking-[-0.03em] text-slate-950">
+          {value}
+        </div>
+        <div className="truncate text-[10px] font-medium text-slate-500">
+          {label}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -988,7 +1028,7 @@ export default async function HomePage() {
           homeSessionRsvpEnabled ? (
             <NextSessionAttendanceCard
               sessionId={nextSession.id}
-              title={fmtDateLong(nextSession.date)}
+              title={fmtDateCompact(nextSession.date)}
               text={
                 nextSession.notes?.trim()
                   ? nextSession.notes.trim()
@@ -1002,7 +1042,7 @@ export default async function HomePage() {
           ) : (
             <MainActionCard
               eyebrow="Nächstes Training"
-              title={fmtDateLong(nextSession.date)}
+              title={fmtDateCompact(nextSession.date)}
               text={
                 nextSession.notes?.trim()
                   ? nextSession.notes.trim()
@@ -1026,55 +1066,68 @@ export default async function HomePage() {
           />
         )}
 
-        <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+        <section className="rounded-[24px] border border-black/10 bg-white p-3 shadow-sm">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             Meine Kurzinfo
           </div>
 
           {currentPlayer ? (
             <>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-black text-slate-900">
-                  {personalAttendanceCount} Teilnahmen
-                </div>
-                <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-black text-slate-900">
-                  {formatPercent(attendanceRate)} Quote
-                </div>
-                <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-black text-slate-900">
-                  {formatRank(attendanceRank)} Teilnahme
-                </div>
-                <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-black text-slate-900">
-                  {currentMvpCount} MVP
-                </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <MiniStatCard
+                  icon={<CalendarDays className="h-4 w-4" />}
+                  value={String(personalAttendanceCount)}
+                  label="Teilnahmen"
+                />
+
+                <MiniStatCard
+                  icon={<TrendingUp className="h-4 w-4" />}
+                  value={formatPercent(attendanceRate)}
+                  label="Quote"
+                />
+
+                <MiniStatCard
+                  icon={<Medal className="h-4 w-4" />}
+                  value={formatRank(attendanceRank)}
+                  label="Teilnahme"
+                />
+
+                <MiniStatCard
+                  icon={<Star className="h-4 w-4" />}
+                  value={String(currentMvpCount)}
+                  label="MVP"
+                />
               </div>
 
               {currentStreak > 0 ? (
-                <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
-                  Aktuelle Serie: {currentStreak} Trainings in Folge.
+                <div className="mt-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
+                  Noch {Math.max(0, getNextStreakTarget(currentStreak) - currentStreak)} bis zur {getNextStreakTarget(currentStreak)}er-Serie
                 </div>
               ) : null}
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Link
+                  href="/stats"
+                  className="flex min-h-12 items-center justify-between rounded-2xl bg-slate-950 px-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  <span>Mein Fortschritt</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+
+                <Link
+                  href="/standings"
+                  className="flex min-h-12 items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                >
+                  <span>Club-Ranking</span>
+                  <Trophy className="h-4 w-4 text-slate-500" />
+                </Link>
+              </div>
             </>
           ) : (
-            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">
-              Dein Spielerprofil ist noch nicht verknüpft. Danach siehst du hier deine persönlichen Stats.
+            <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 text-sm font-medium text-slate-600">
+              Dein Profil ist noch nicht mit einem Spieler verknüpft.
             </div>
           )}
-
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <Link
-              href="/stats"
-              className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white"
-            >
-              Meine Stats ansehen
-            </Link>
-
-            <Link
-              href="/standings"
-              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-black text-slate-900"
-            >
-              Tabelle ansehen
-            </Link>
-          </div>
         </section>
 
         {activeVotingSession ? (
