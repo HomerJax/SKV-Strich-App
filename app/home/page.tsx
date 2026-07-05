@@ -42,6 +42,21 @@ type VoteRow = {
 type PlayerRow = {
   id: number;
   email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  user_id: string | null;
+  mvp_count: number | null;
+};
+
+type ClubPlayerStatsRow = {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  mvp_count: number | null;
+};
+
+type AttendanceRow = {
+  player_id: number;
 };
 
 type MvpPlayerRow = {
@@ -59,6 +74,20 @@ type MvpSessionPlayerRow = {
 
 type MvpVoteRow = {
   voted_player_id: number;
+};
+
+type NextSessionParticipantRow = {
+  player_id: number;
+  players:
+    | {
+        first_name: string | null;
+        last_name: string | null;
+      }
+    | {
+        first_name: string | null;
+        last_name: string | null;
+      }[]
+    | null;
 };
 
 type HomeMvpHighlight = {
@@ -141,9 +170,34 @@ function getPlayerName(player: MvpPlayerRow | null | undefined) {
   return name || "Spieler";
 }
 
+function getSimplePlayerName(
+  player:
+    | { first_name: string | null; last_name: string | null }
+    | null
+    | undefined
+) {
+  if (!player) return "Spieler";
+
+  const name = [player.first_name, player.last_name]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return name || "Spieler";
+}
+
 function normalizePlayerRelation(
   player: MvpSessionPlayerRow["players"]
 ): MvpPlayerRow | null {
+  if (!player) return null;
+  if (Array.isArray(player)) return player[0] ?? null;
+  return player;
+}
+
+function normalizeSimplePlayerRelation(
+  player: NextSessionParticipantRow["players"]
+): { first_name: string | null; last_name: string | null } | null {
   if (!player) return null;
   if (Array.isArray(player)) return player[0] ?? null;
   return player;
@@ -190,48 +244,29 @@ function toLeaderboardEntry(params: {
   };
 }
 
-function StepCard({
-  done,
-  title,
-  text,
-  href,
-  cta,
-}: {
-  done: boolean;
-  title: string;
-  text: string;
-  href: string;
-  cta: string;
-}) {
-  return (
-    <div className="rounded-[20px] border border-black/10 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-slate-950">{title}</div>
-          <p className="mt-1.5 text-sm leading-6 text-slate-600">{text}</p>
-        </div>
+function formatPercent(value: number | null) {
+  if (value === null) return "–";
+  return `${value}%`;
+}
 
-        <div
-          className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[11px] font-semibold ${
-            done
-              ? "bg-emerald-100 text-emerald-800"
-              : "bg-slate-100 text-slate-700"
-          }`}
-        >
-          {done ? "Erledigt" : "Offen"}
-        </div>
-      </div>
+function formatRank(value: number | null) {
+  if (!value) return "–";
+  return `#${value}`;
+}
 
-      <div className="mt-3">
-        <Link
-          href={href}
-          className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          {cta}
-        </Link>
-      </div>
-    </div>
-  );
+function getNextStreakTarget(currentStreak: number) {
+  if (currentStreak < 5) return 5;
+  if (currentStreak < 10) return 10;
+  if (currentStreak < 15) return 15;
+  return Math.ceil((currentStreak + 1) / 5) * 5;
+}
+
+function getNextMvpTarget(currentMvpCount: number) {
+  if (currentMvpCount < 3) return 3;
+  if (currentMvpCount < 5) return 5;
+  if (currentMvpCount < 7) return 7;
+  if (currentMvpCount < 10) return 10;
+  return Math.ceil((currentMvpCount + 1) / 5) * 5;
 }
 
 function QuickActionCard({
@@ -246,10 +281,12 @@ function QuickActionCard({
   return (
     <Link
       href={href}
-      className="rounded-2xl border border-black/10 bg-white p-3.5 shadow-sm transition hover:bg-slate-50"
+      className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm transition hover:bg-slate-50"
     >
-      <div className="text-sm font-semibold text-slate-900">{title}</div>
-      <div className="mt-1 text-xs leading-5 text-slate-600">{text}</div>
+      <div className="text-sm font-black text-slate-950">{title}</div>
+      <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+        {text}
+      </div>
     </Link>
   );
 }
@@ -268,19 +305,19 @@ function MainActionCard({
   cta: string;
 }) {
   return (
-    <section className="rounded-[22px] border border-black/10 bg-white p-4 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <section className="rounded-[28px] border border-black/10 bg-white p-5 shadow-sm">
+      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
         {eyebrow}
       </div>
-      <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-950 sm:text-xl">
+      <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
         {title}
       </h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+      <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{text}</p>
 
       <div className="mt-4">
         <Link
           href={href}
-          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
         >
           {cta}
         </Link>
@@ -289,22 +326,208 @@ function MainActionCard({
   );
 }
 
+function MetricCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-black tracking-[-0.04em] text-slate-950">
+        {value}
+      </div>
+      <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+        {hint}
+      </div>
+    </div>
+  );
+}
+
+function SeasonSummaryCard({
+  attendanceCount,
+  attendanceRate,
+  currentStreak,
+  mvpCount,
+  hasLinkedPlayer,
+}: {
+  attendanceCount: number;
+  attendanceRate: number | null;
+  currentStreak: number;
+  mvpCount: number;
+  hasLinkedPlayer: boolean;
+}) {
+  return (
+    <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+            Meine Saison
+          </div>
+          <h2 className="mt-1 text-xl font-black tracking-[-0.04em] text-slate-950">
+            Dein aktueller Stand
+          </h2>
+        </div>
+
+        <Link
+          href="/stats"
+          className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-700"
+        >
+          Stats
+        </Link>
+      </div>
+
+      {hasLinkedPlayer ? (
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <MetricCard
+            label="Teilnahmen"
+            value={String(attendanceCount)}
+            hint="bisher dabei"
+          />
+          <MetricCard
+            label="Quote"
+            value={formatPercent(attendanceRate)}
+            hint="Anwesenheit"
+          />
+          <MetricCard
+            label="Serie"
+            value={String(currentStreak)}
+            hint="Trainings in Folge"
+          />
+          <MetricCard
+            label="MVP"
+            value={String(mvpCount)}
+            hint="Badges & Votes"
+          />
+        </div>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">
+          Dein Benutzer ist noch nicht eindeutig mit einem Spielerprofil
+          verknüpft. Danach werden hier deine persönlichen Stats angezeigt.
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RankingSummaryCard({
+  attendanceRank,
+  mvpRank,
+  playerCount,
+}: {
+  attendanceRank: number | null;
+  mvpRank: number | null;
+  playerCount: number;
+}) {
+  return (
+    <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
+      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+        Mein Ranking
+      </div>
+      <h2 className="mt-1 text-xl font-black tracking-[-0.04em] text-slate-950">
+        Wo stehe ich?
+      </h2>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <MetricCard
+          label="Teilnahmen"
+          value={formatRank(attendanceRank)}
+          hint={playerCount > 0 ? `von ${playerCount} Spielern` : "noch offen"}
+        />
+        <MetricCard
+          label="MVP"
+          value={formatRank(mvpRank)}
+          hint={playerCount > 0 ? `von ${playerCount} Spielern` : "noch offen"}
+        />
+      </div>
+    </section>
+  );
+}
+
+function HighlightsCard({
+  currentStreak,
+  mvpCount,
+  hasLinkedPlayer,
+}: {
+  currentStreak: number;
+  mvpCount: number;
+  hasLinkedPlayer: boolean;
+}) {
+  const nextStreakTarget = getNextStreakTarget(currentStreak);
+  const streakMissing = Math.max(0, nextStreakTarget - currentStreak);
+
+  const nextMvpTarget = getNextMvpTarget(mvpCount);
+  const mvpMissing = Math.max(0, nextMvpTarget - mvpCount);
+
+  return (
+    <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
+      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+        Nächste Highlights
+      </div>
+      <h2 className="mt-1 text-xl font-black tracking-[-0.04em] text-slate-950">
+        Was kommt als nächstes?
+      </h2>
+
+      {hasLinkedPlayer ? (
+        <div className="mt-4 space-y-2">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="text-sm font-black text-slate-950">
+              {streakMissing === 0
+                ? `Serie ${nextStreakTarget} erreicht`
+                : `Noch ${streakMissing} bis zur ${nextStreakTarget}er-Serie`}
+            </div>
+            <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+              Aktuelle Serie: {currentStreak} Trainings in Folge.
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="text-sm font-black text-slate-950">
+              {mvpMissing === 0
+                ? `MVP-Ziel ${nextMvpTarget} erreicht`
+                : `Noch ${mvpMissing} MVP bis zum nächsten Badge-Ziel`}
+            </div>
+            <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+              Aktuell: {mvpCount} MVP-Auszeichnungen.
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-500">
+          Highlights erscheinen, sobald dein Spielerprofil verknüpft ist.
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default async function HomePage() {
-  const [{ clubId }, ctx] = await Promise.all([requireClub(), getAuthContext()]);
+  const [clubAccess, ctx] = await Promise.all([requireClub(), getAuthContext()]);
+  const { clubId, membership, isPowerUser } = clubAccess;
   const supabase = await createClient();
 
   const today = new Date().toISOString().slice(0, 10);
   const featureFlags = await getFeatureFlagsForClub(clubId);
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
   const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
+  const isAdmin =
+    isPowerUser || membership.role === "admin" || membership.role === "owner";
 
   const [
     { data: clubData },
     { count: invitesCount },
     { count: sessionsCount },
+    { count: pastSessionsCount },
     { count: seasonsCount },
     { data: nextSessionData },
     { data: recentSessionsData },
+    { data: pastSessionsData },
     authResult,
   ] = await Promise.all([
     supabase
@@ -320,6 +543,11 @@ export default async function HomePage() {
       .from("sessions")
       .select("*", { count: "exact", head: true })
       .eq("club_id", clubId),
+    supabase
+      .from("sessions")
+      .select("*", { count: "exact", head: true })
+      .eq("club_id", clubId)
+      .lte("date", today),
     supabase
       .from("seasons")
       .select("*", { count: "exact", head: true })
@@ -338,15 +566,51 @@ export default async function HomePage() {
       .eq("club_id", clubId)
       .order("date", { ascending: false })
       .limit(12),
+    supabase
+      .from("sessions")
+      .select("id, date, notes")
+      .eq("club_id", clubId)
+      .lte("date", today)
+      .order("date", { ascending: false })
+      .limit(20),
     supabase.auth.getUser(),
   ]);
 
   const club = (clubData ?? null) as ClubRow | null;
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
+  const pastSessions = (pastSessionsData ?? []) as SessionRow[];
 
   const clubName = club?.display_name?.trim() || "Dein Team";
+  const userId = authResult.data.user?.id ?? null;
+  const userEmail = authResult.data.user?.email?.trim().toLowerCase() ?? null;
+
+  let currentPlayer: PlayerRow | null = null;
+
+  if (userId) {
+    const { data } = await supabase
+      .from("players")
+      .select("id, email, first_name, last_name, user_id, mvp_count")
+      .eq("club_id", clubId)
+      .eq("user_id", userId)
+      .maybeSingle<PlayerRow>();
+
+    currentPlayer = data ?? null;
+  }
+
+  if (!currentPlayer && userEmail) {
+    const { data } = await supabase
+      .from("players")
+      .select("id, email, first_name, last_name, user_id, mvp_count")
+      .eq("club_id", clubId)
+      .eq("email", userEmail)
+      .maybeSingle<PlayerRow>();
+
+    currentPlayer = data ?? null;
+  }
+
   const showGettingStarted =
+    isAdmin &&
     !ctx.isPowerUser &&
     ((sessionsCount ?? 0) === 0 ||
       (seasonsCount ?? 0) === 0 ||
@@ -362,7 +626,6 @@ export default async function HomePage() {
     clubLogoUrl = data?.publicUrl ?? null;
   }
 
-  const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
   const hasSessions = (sessionsCount ?? 0) > 0;
   const recentSessionIds = recentSessions.map((session) => session.id);
 
@@ -508,10 +771,10 @@ export default async function HomePage() {
 
       const winner = leaderboard[0] ?? null;
       const topVotes = winner?.votes ?? 0;
-      const winners = topVotes > 0
-        ? leaderboard.filter((entry) => entry.votes === topVotes)
-        : [];
-      const userId = authResult.data.user?.id ?? null;
+      const winners =
+        topVotes > 0
+          ? leaderboard.filter((entry) => entry.votes === topVotes)
+          : [];
 
       if (winner) {
         const currentUserWinner =
@@ -524,7 +787,6 @@ export default async function HomePage() {
 
         const displayWinner = currentUserWinner ?? winner;
         const isWinner = Boolean(currentUserWinner);
-
         const badgeKey = getBadgeKey(displayWinner.current);
 
         mvpHighlight = {
@@ -544,41 +806,129 @@ export default async function HomePage() {
 
   let nextSessionPresenceStatus: "in" | "out" | "open" = "open";
   let nextSessionPresentCount = 0;
+  let nextSessionParticipantNames: string[] = [];
 
   if (homeSessionRsvpEnabled && nextSession) {
-    const [{ count: nextSessionPresentCountValue }, authUserResult] =
+    const [{ count: nextSessionPresentCountValue }, { data: participantRows }] =
       await Promise.all([
         supabase
           .from("session_players")
           .select("*", { count: "exact", head: true })
           .eq("session_id", nextSession.id),
-        Promise.resolve(authResult),
+        supabase
+          .from("session_players")
+          .select(
+            `
+            player_id,
+            players (
+              first_name,
+              last_name
+            )
+          `
+          )
+          .eq("session_id", nextSession.id),
       ]);
 
     nextSessionPresentCount = nextSessionPresentCountValue ?? 0;
 
-    const userEmail =
-      authUserResult.data.user?.email?.trim().toLowerCase() ?? null;
+    nextSessionParticipantNames = ((participantRows ?? []) as NextSessionParticipantRow[])
+      .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players)))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, "de"));
 
-    if (userEmail) {
-      const { data: playerData } = await supabase
-        .from("players")
-        .select("id, email")
-        .eq("club_id", clubId)
-        .eq("email", userEmail)
-        .maybeSingle<PlayerRow>();
+    if (currentPlayer?.id) {
+      const { data: selfPresence } = await supabase
+        .from("session_players")
+        .select("player_id")
+        .eq("session_id", nextSession.id)
+        .eq("player_id", currentPlayer.id)
+        .maybeSingle();
 
-      const playerId = playerData?.id ?? null;
+      nextSessionPresenceStatus = selfPresence ? "in" : "open";
+    }
+  }
 
-      if (playerId) {
-        const { data: selfPresence } = await supabase
-          .from("session_players")
-          .select("player_id")
-          .eq("session_id", nextSession.id)
-          .eq("player_id", playerId)
-          .maybeSingle();
+  let personalAttendanceCount = 0;
+  let attendanceRate: number | null = null;
+  let currentStreak = 0;
+  let attendanceRank: number | null = null;
+  let mvpRank: number | null = null;
+  let clubPlayerCount = 0;
+  const currentMvpCount = safeMvpCount(currentPlayer?.mvp_count);
 
-        nextSessionPresenceStatus = selfPresence ? "in" : "open";
+  if (currentPlayer?.id) {
+    const { count: personalAttendanceCountValue } = await supabase
+      .from("session_players")
+      .select("*", { count: "exact", head: true })
+      .eq("player_id", currentPlayer.id);
+
+    personalAttendanceCount = personalAttendanceCountValue ?? 0;
+
+    const pastCount = pastSessionsCount ?? 0;
+    attendanceRate =
+      pastCount > 0 ? Math.round((personalAttendanceCount / pastCount) * 100) : null;
+
+    const { data: clubPlayersData } = await supabase
+      .from("players")
+      .select("id, first_name, last_name, mvp_count")
+      .eq("club_id", clubId);
+
+    const clubPlayers = (clubPlayersData ?? []) as ClubPlayerStatsRow[];
+    clubPlayerCount = clubPlayers.length;
+
+    const clubPlayerIds = clubPlayers
+      .map((player) => Number(player.id))
+      .filter((id) => Number.isFinite(id));
+
+    if (clubPlayerIds.length > 0) {
+      const { data: allAttendanceRows } = await supabase
+        .from("session_players")
+        .select("player_id")
+        .in("player_id", clubPlayerIds);
+
+      const attendanceCounts = new Map<number, number>();
+
+      for (const row of (allAttendanceRows ?? []) as AttendanceRow[]) {
+        const playerId = Number(row.player_id);
+        attendanceCounts.set(playerId, (attendanceCounts.get(playerId) ?? 0) + 1);
+      }
+
+      const currentAttendance = attendanceCounts.get(currentPlayer.id) ?? 0;
+      attendanceRank =
+        1 +
+        clubPlayers.filter((player) => {
+          const count = attendanceCounts.get(player.id) ?? 0;
+          return count > currentAttendance;
+        }).length;
+
+      mvpRank =
+        1 +
+        clubPlayers.filter(
+          (player) => safeMvpCount(player.mvp_count) > currentMvpCount
+        ).length;
+    }
+
+    const pastSessionIds = pastSessions.map((session) => session.id);
+
+    if (pastSessionIds.length > 0) {
+      const { data: recentPresenceRows } = await supabase
+        .from("session_players")
+        .select("session_id")
+        .eq("player_id", currentPlayer.id)
+        .in("session_id", pastSessionIds);
+
+      const presentSessionIds = new Set(
+        ((recentPresenceRows ?? []) as { session_id: number }[]).map((row) =>
+          Number(row.session_id)
+        )
+      );
+
+      for (const session of pastSessions) {
+        if (presentSessionIds.has(session.id)) {
+          currentStreak += 1;
+        } else {
+          break;
+        }
       }
     }
   }
@@ -591,7 +941,7 @@ export default async function HomePage() {
         <PageHero
           primaryColorKey={club?.primary_color ?? "black"}
           title={clubName}
-          description="strikr – Das System für euer Training."
+          description="Training checken. Stats ansehen. Fertig."
           align="center"
           centerSlot={
             clubLogoUrl ? (
@@ -619,23 +969,139 @@ export default async function HomePage() {
           actionsSlot={
             <>
               <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
-                faire Teams
+                Zu-/Absagen
               </div>
               <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
-                effektives Training
-              </div>
-              <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
-                echte Stats
+                Stats
               </div>
               {ctx.isPowerUser ? (
                 <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
-                  Power User Ansicht
+                  Power User
                 </div>
               ) : null}
             </>
           }
           compact
         />
+
+        {nextSession ? (
+          homeSessionRsvpEnabled ? (
+            <NextSessionAttendanceCard
+              sessionId={nextSession.id}
+              title={fmtDateLong(nextSession.date)}
+              text={
+                nextSession.notes?.trim()
+                  ? nextSession.notes.trim()
+                  : "Check kurz deine Teilnahme und wer dabei ist."
+              }
+              href={`/sessions/${nextSession.id}`}
+              initialStatus={nextSessionPresenceStatus}
+              initialPresentCount={nextSessionPresentCount}
+              participantNames={nextSessionParticipantNames}
+            />
+          ) : (
+            <MainActionCard
+              eyebrow="Nächstes Training"
+              title={fmtDateLong(nextSession.date)}
+              text={
+                nextSession.notes?.trim()
+                  ? nextSession.notes.trim()
+                  : "Dein nächstes Training ist bereits angelegt."
+              }
+              href={`/sessions/${nextSession.id}`}
+              cta="Training ansehen"
+            />
+          )
+        ) : (
+          <MainActionCard
+            eyebrow="Nächstes Training"
+            title="Noch kein Training geplant"
+            text={
+              isAdmin
+                ? "Lege direkt ein neues Training an, damit dein Team planen kann."
+                : "Sobald ein Admin das nächste Training anlegt, kannst du hier zu- oder absagen."
+            }
+            href={isAdmin ? "/sessions/new" : "/sessions"}
+            cta={isAdmin ? "Training anlegen" : "Sessions ansehen"}
+          />
+        )}
+
+        <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+            Meine Kurzinfo
+          </div>
+
+          {currentPlayer ? (
+            <>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-black text-slate-900">
+                  {personalAttendanceCount} Teilnahmen
+                </div>
+                <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-black text-slate-900">
+                  {formatPercent(attendanceRate)} Quote
+                </div>
+                <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-black text-slate-900">
+                  {formatRank(attendanceRank)} Teilnahme
+                </div>
+                <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-black text-slate-900">
+                  {currentMvpCount} MVP
+                </div>
+              </div>
+
+              {currentStreak > 0 ? (
+                <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
+                  Aktuelle Serie: {currentStreak} Trainings in Folge.
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">
+              Dein Spielerprofil ist noch nicht verknüpft. Danach siehst du hier deine persönlichen Stats.
+            </div>
+          )}
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Link
+              href="/stats"
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white"
+            >
+              Meine Stats ansehen
+            </Link>
+
+            <Link
+              href="/standings"
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-black text-slate-900"
+            >
+              Tabelle ansehen
+            </Link>
+          </div>
+        </section>
+
+        {activeVotingSession ? (
+          <section className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-800">
+                  MVP Voting läuft
+                </div>
+                <div className="mt-1 text-sm font-black text-slate-950">
+                  Abstimmung offen
+                </div>
+                <div className="mt-1 text-xs font-semibold text-slate-600">
+                  {activeVotingSession.voteCount}/
+                  {activeVotingSession.eligibleVoterCount} Stimmen
+                </div>
+              </div>
+
+              <Link
+                href={`/sessions/${activeVotingSession.id}`}
+                className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-slate-950 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800"
+              >
+                Abstimmen
+              </Link>
+            </div>
+          </section>
+        ) : null}
 
         {mvpHighlight ? (
           <HomeMvpHighlightCard
@@ -654,149 +1120,91 @@ export default async function HomePage() {
           />
         ) : null}
 
-        {nextSession ? (
-          homeSessionRsvpEnabled ? (
-            <NextSessionAttendanceCard
-              sessionId={nextSession.id}
-              title={fmtDateLong(nextSession.date)}
-              text={
-                nextSession.notes?.trim()
-                  ? nextSession.notes.trim()
-                  : "Dein nächstes Training ist bereits angelegt."
-              }
-              href={`/sessions/${nextSession.id}`}
-              initialStatus={nextSessionPresenceStatus}
-              initialPresentCount={nextSessionPresentCount}
-            />
-          ) : (
-            <MainActionCard
-              eyebrow="Nächstes Training"
-              title={fmtDateLong(nextSession.date)}
-              text={
-                nextSession.notes?.trim()
-                  ? nextSession.notes.trim()
-                  : "Dein nächstes Training ist bereits angelegt."
-              }
-              href={`/sessions/${nextSession.id}`}
-              cta="Zur Session"
-            />
-          )
-        ) : (
-          <MainActionCard
-            eyebrow="Nächstes Training"
-            title="Noch kein Training geplant"
-            text="Lege direkt eine neue Session an, damit euer nächstes Training vorbereitet ist."
-            href="/sessions/new"
-            cta="Training anlegen"
-          />
-        )}
-
-        {activeVotingSession ? (
-          <section className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
-                  MVP Voting läuft
-                </div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">
-                  Stimme jetzt direkt in der Session ab
-                </div>
-                <div className="mt-1 text-xs text-slate-600">
-                  {activeVotingSession.voteCount}/
-                  {activeVotingSession.eligibleVoterCount} Stimmen
-                </div>
-              </div>
-
-              <Link
-                href={`/sessions/${activeVotingSession.id}`}
-                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Zum Voting
-              </Link>
-            </div>
-          </section>
-        ) : null}
-
         <section className="space-y-2">
-          <div className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Schnellzugriff
+          <div className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+            Mehr
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <QuickActionCard
-              title="Training anlegen"
-              text="Neue Session starten"
-              href="/sessions/new"
+              title="Stats komplett"
+              text="Alle Zahlen ansehen"
+              href="/stats"
             />
 
             <QuickActionCard
-              title={hasSessions ? "Sessions" : "Stats & Sessions"}
-              text={hasSessions ? "Verlauf ansehen" : "Stats ansehen"}
-              href={hasSessions ? "/sessions" : "/stats"}
+              title={hasSessions ? "Sessions" : "Archiv"}
+              text={hasSessions ? "Trainingsverlauf" : "Noch leer"}
+              href="/sessions"
             />
+
+            {isAdmin ? (
+              <>
+                <QuickActionCard
+                  title="Training anlegen"
+                  text="Admin-Aktion"
+                  href="/sessions/new"
+                />
+
+                <QuickActionCard
+                  title="Admin"
+                  text="Club verwalten"
+                  href="/admin"
+                />
+              </>
+            ) : null}
           </div>
         </section>
 
         {showGettingStarted ? (
-          <section className="flex flex-col gap-3">
-            <StepCard
-              done={(sessionsCount ?? 0) > 0}
-              title="Training starten"
-              text="Erstes Training erstellen"
-              href="/sessions/new"
-              cta="Training starten"
-            />
+          <section className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+              Admin Setup
+            </div>
+            <h2 className="mt-1 text-lg font-black text-slate-950">
+              Club fertig einrichten
+            </h2>
+            <div className="mt-3 grid gap-2">
+              {(sessionsCount ?? 0) === 0 ? (
+                <Link
+                  href="/sessions/new"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800"
+                >
+                  Erstes Training anlegen
+                </Link>
+              ) : null}
 
-            <StepCard
-              done={(invitesCount ?? 0) > 0}
-              title="Mitglieder einladen"
-              text="Team reinholen"
-              href="/admin/invites"
-              cta="Einladen"
-            />
-
-            <div className="rounded-[20px] border border-black/10 bg-white p-4 shadow-sm">
-              <a
-                href={feedbackHref}
-                className="text-sm font-medium text-slate-900"
-              >
-                Feedback senden
-              </a>
-              <br />
-              <Link
-                href="/about"
-                className="mt-2 inline-block text-sm font-medium text-slate-900"
-              >
-                Über strikr ansehen
-              </Link>
+              {(invitesCount ?? 0) === 0 ? (
+                <Link
+                  href="/admin/invites"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800"
+                >
+                  Mitglieder einladen
+                </Link>
+              ) : null}
             </div>
           </section>
-        ) : (
-          <Link
-            href="/about"
-            className="rounded-[20px] border border-black/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="text-sm font-semibold text-slate-500">
-              Über strikr
-            </div>
+        ) : null}
 
-            <h2 className="mt-1 text-lg font-bold text-slate-950">
-              Vom Bierdeckel zur Web-App 🍻⚽
-            </h2>
+        <Link
+          href="/about"
+          className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="text-sm font-black text-slate-500">Über strikr</div>
 
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Angefangen mit Strichen auf Papier, dann Excel und irgendwann die
-              Frage: Warum sind Teams eigentlich immer unfair?
-              <br />
-              Daraus entstand strikr – mit dem Ziel, Training besser, fairer und
-              spannender zu machen.
-            </p>
+          <h2 className="mt-1 text-lg font-black text-slate-950">
+            Vom Bierdeckel zur Web-App 🍻⚽
+          </h2>
 
-            <div className="mt-3 text-sm font-semibold text-slate-900">
-              Geschichte lesen →
-            </div>
-          </Link>
-        )}
+          <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
+            Angefangen mit Strichen auf Papier, dann Excel und irgendwann die
+            Frage: Warum sind Teams eigentlich immer unfair?
+          </p>
+
+          <div className="mt-3 text-sm font-black text-slate-900">
+            Geschichte lesen →
+          </div>
+        </Link>
       </section>
     </main>
   );
