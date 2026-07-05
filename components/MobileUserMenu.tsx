@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { LogOut, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import LogoutButton from "@/components/LogoutButton";
 
 type MobileUserMenuProps = {
   profileLabel: string;
@@ -15,7 +17,6 @@ function getInitial(value: string | null) {
 
 export default function MobileUserMenu({
   profileLabel,
-  showPlayerStatsLink,
 }: MobileUserMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -44,39 +45,28 @@ export default function MobileUserMenu({
   }, []);
 
   return (
-    <div ref={rootRef} className="relative sm:hidden">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
-        aria-label="Profil und Stats"
+        aria-label="Profilmenü"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
         className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-5 w-5"
-          aria-hidden="true"
-        >
-          <path d="M20 21a8 8 0 0 0-16 0" />
-          <circle cx="12" cy="8" r="4" />
-        </svg>
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-700">
+          {getInitial(profileLabel)}
+        </span>
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-14 z-[300] min-w-[190px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+        <div className="absolute right-0 top-14 z-[300] min-w-[210px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
           <Link
             href="/profile"
             onClick={() => setOpen(false)}
             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
           >
-            <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
-              {getInitial(profileLabel)}
+            <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-700">
+              <UserRound className="h-4 w-4" />
             </div>
             <div className="min-w-0">
               <div className="truncate">{profileLabel}</div>
@@ -86,36 +76,19 @@ export default function MobileUserMenu({
             </div>
           </Link>
 
-          {showPlayerStatsLink ? (
-            <Link
-              href="/stats"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-            >
+          <LogoutButton className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-50">
+            <>
               <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-700">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
-                  aria-hidden="true"
-                >
-                  <path d="M3 3v18h18" />
-                  <path d="M7 14l4-4 3 3 5-7" />
-                </svg>
+                <LogOut className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="truncate">Meine Stats</div>
+                <div className="truncate">Logout</div>
                 <div className="text-[11px] font-medium text-slate-500">
-                  Übersicht
+                  Abmelden
                 </div>
               </div>
-            </Link>
-          ) : null}
+            </>
+          </LogoutButton>
         </div>
       ) : null}
     </div>

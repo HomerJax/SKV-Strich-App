@@ -221,35 +221,6 @@ export default async function AppHeader() {
                 showPlayerStatsLink={showPlayerStatsLink}
               />
 
-              <div className="hidden items-center gap-2 sm:flex">
-                {showPlayerStatsLink ? (
-                  <Link
-                    href="/stats"
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Meine Stats
-                  </Link>
-                ) : null}
-
-                <Link
-                  href="/profile"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-sm transition hover:bg-slate-50"
-                >
-                  <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
-                    {profileInitial}
-                  </div>
-
-                  <div className="min-w-0 text-left leading-tight">
-                    <div className="truncate text-sm font-semibold text-slate-900">
-                      {profileLabel}
-                    </div>
-                    <div className="truncate text-[11px] text-slate-500">
-                      Profil
-                    </div>
-                  </div>
-                </Link>
-              </div>
-
               <ClubSwitcher
                 isPowerUser={ctx.isPowerUser}
                 activeClubId={activeClubId}

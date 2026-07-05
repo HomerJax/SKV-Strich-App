@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, CalendarDays, Trophy, Shield, LogOut } from "lucide-react";
-import LogoutButton from "@/components/LogoutButton";
+import { BarChart3, CalendarDays, Home, Shield, Trophy } from "lucide-react";
 
 type AppBottomNavProps = {
   isAdmin?: boolean;
@@ -84,8 +83,15 @@ export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
           />
 
           <NavItem
+            href="/stats"
+            label="Meine Stats"
+            active={pathname === "/stats" || pathname.startsWith("/stats/")}
+            icon={<BarChart3 className="h-5 w-5" />}
+          />
+
+          <NavItem
             href="/standings"
-            label="Tabellen"
+            label="Tabelle"
             active={
               pathname === "/standings" || pathname.startsWith("/standings/")
             }
@@ -100,13 +106,6 @@ export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
               icon={<Shield className="h-5 w-5" />}
             />
           ) : null}
-
-          <LogoutButton className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-semibold leading-none text-slate-500 transition hover:bg-slate-100">
-            <>
-              <LogOut className="h-5 w-5" />
-              <span className="truncate">Logout</span>
-            </>
-          </LogoutButton>
         </div>
       </div>
     </nav>
