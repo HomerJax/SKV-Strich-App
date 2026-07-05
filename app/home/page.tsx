@@ -531,17 +531,15 @@ function MiniStatCard({
   label: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2.5 py-2">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500">
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-1.5 py-2 text-center">
+      <div className="mx-auto flex h-6 w-6 items-center justify-center rounded-lg bg-slate-50 text-slate-500">
         {icon}
       </div>
-      <div className="min-w-0 leading-tight">
-        <div className="truncate text-base font-semibold tracking-[-0.03em] text-slate-950">
-          {value}
-        </div>
-        <div className="truncate text-[10px] font-medium text-slate-500">
-          {label}
-        </div>
+      <div className="mt-1 truncate text-sm font-semibold tracking-[-0.03em] text-slate-950">
+        {value}
+      </div>
+      <div className="truncate text-[9px] font-medium text-slate-500">
+        {label}
       </div>
     </div>
   );
@@ -1073,7 +1071,7 @@ export default async function HomePage() {
 
           {currentPlayer ? (
             <>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="mt-3 grid grid-cols-4 gap-1.5">
                 <MiniStatCard
                   icon={<CalendarDays className="h-4 w-4" />}
                   value={String(personalAttendanceCount)}
@@ -1108,7 +1106,7 @@ export default async function HomePage() {
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Link
                   href="/stats"
-                  className="flex min-h-12 items-center justify-between rounded-2xl bg-slate-950 px-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  className="flex min-h-10 items-center justify-between rounded-2xl bg-slate-950 px-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
                 >
                   <span>Mein Fortschritt</span>
                   <span aria-hidden="true">→</span>
@@ -1116,9 +1114,9 @@ export default async function HomePage() {
 
                 <Link
                   href="/standings"
-                  className="flex min-h-12 items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                  className="flex min-h-10 items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-900 transition hover:bg-slate-50"
                 >
-                  <span>Club-Ranking</span>
+                  <span>Tabelle</span>
                   <Trophy className="h-4 w-4 text-slate-500" />
                 </Link>
               </div>

@@ -15,10 +15,6 @@ type NextSessionAttendanceCardProps = {
   participantNames?: string[];
 };
 
-function formatCount(count: number, singular: string, plural: string) {
-  return count === 1 ? `1 ${singular}` : `${count} ${plural}`;
-}
-
 export default function NextSessionAttendanceCard({
   sessionId,
   title,
@@ -100,10 +96,10 @@ export default function NextSessionAttendanceCard({
           onClick={() => updateStatus("in")}
           disabled={busy}
           className={[
-            "min-h-11 rounded-2xl px-3 text-sm font-semibold transition disabled:opacity-60",
+            "flex min-h-14 items-center justify-between rounded-2xl px-3 text-left transition disabled:opacity-60",
             inButtonActive
               ? "text-white shadow-sm"
-              : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50",
+              : "border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100",
           ].join(" ")}
           style={
             inButtonActive
@@ -111,7 +107,19 @@ export default function NextSessionAttendanceCard({
               : undefined
           }
         >
-          {busy && inButtonActive ? "Speichert…" : "Dabei"}
+          <span className="text-sm font-semibold">
+            {busy && inButtonActive ? "Speichert…" : "Dabei"}
+          </span>
+          <span
+            className={[
+              "rounded-full px-2 py-1 text-xs font-semibold",
+              inButtonActive
+                ? "bg-white/15 text-white"
+                : "bg-white text-slate-700",
+            ].join(" ")}
+          >
+            {presentCount}
+          </span>
         </button>
 
         <button
@@ -119,19 +127,26 @@ export default function NextSessionAttendanceCard({
           onClick={() => updateStatus("out")}
           disabled={busy}
           className={[
-            "min-h-11 rounded-2xl px-3 text-sm font-semibold transition disabled:opacity-60",
+            "flex min-h-14 items-center justify-between rounded-2xl px-3 text-left transition disabled:opacity-60",
             outButtonActive
               ? "bg-slate-900 text-white shadow-sm"
-              : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50",
+              : "border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100",
           ].join(" ")}
         >
-          {busy && outButtonActive ? "Speichert…" : "Nicht dabei"}
+          <span className="text-sm font-semibold">
+            {busy && outButtonActive ? "Speichert…" : "Nicht dabei"}
+          </span>
+          <span
+            className={[
+              "rounded-full px-2 py-1 text-xs font-semibold",
+              outButtonActive
+                ? "bg-white/15 text-white"
+                : "bg-white text-slate-700",
+            ].join(" ")}
+          >
+            {absentCount}
+          </span>
         </button>
-      </div>
-
-      <div className="mt-3 flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
-        <span>{formatCount(presentCount, "Zusage", "Zusagen")}</span>
-        <span>{formatCount(absentCount, "Absage", "Absagen")}</span>
       </div>
     </section>
   );
