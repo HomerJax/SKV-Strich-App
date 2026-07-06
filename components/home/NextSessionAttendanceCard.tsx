@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import { useState } from "react";
 
 type PresenceStatus = "in" | "out" | "open";
@@ -96,10 +97,10 @@ export default function NextSessionAttendanceCard({
           onClick={() => updateStatus("in")}
           disabled={busy}
           className={[
-            "flex min-h-14 items-center justify-between rounded-2xl px-3 text-left transition disabled:opacity-60",
+            "group min-h-[72px] rounded-2xl border px-3 py-3 text-left transition disabled:opacity-60",
             inButtonActive
-              ? "text-white shadow-sm"
-              : "border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100",
+              ? "border-transparent text-white shadow-sm"
+              : "border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100",
           ].join(" ")}
           style={
             inButtonActive
@@ -107,19 +108,33 @@ export default function NextSessionAttendanceCard({
               : undefined
           }
         >
-          <span className="text-sm font-semibold">
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={[
+                "flex h-8 w-8 items-center justify-center rounded-full",
+                inButtonActive
+                  ? "bg-white/15 text-white"
+                  : "bg-white text-slate-600 shadow-sm",
+              ].join(" ")}
+            >
+              <Check className="h-4 w-4" />
+            </span>
+
+            <span
+              className={[
+                "rounded-full px-2.5 py-1 text-xs font-semibold",
+                inButtonActive
+                  ? "bg-white/15 text-white"
+                  : "bg-white text-slate-700 shadow-sm",
+              ].join(" ")}
+            >
+              {presentCount}
+            </span>
+          </div>
+
+          <div className="mt-2 text-sm font-semibold">
             {busy && inButtonActive ? "Speichert…" : "Dabei"}
-          </span>
-          <span
-            className={[
-              "rounded-full px-2 py-1 text-xs font-semibold",
-              inButtonActive
-                ? "bg-white/15 text-white"
-                : "bg-white text-slate-700",
-            ].join(" ")}
-          >
-            {presentCount}
-          </span>
+          </div>
         </button>
 
         <button
@@ -127,25 +142,39 @@ export default function NextSessionAttendanceCard({
           onClick={() => updateStatus("out")}
           disabled={busy}
           className={[
-            "flex min-h-14 items-center justify-between rounded-2xl px-3 text-left transition disabled:opacity-60",
+            "group min-h-[72px] rounded-2xl border px-3 py-3 text-left transition disabled:opacity-60",
             outButtonActive
-              ? "bg-slate-900 text-white shadow-sm"
-              : "border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100",
+              ? "border-transparent bg-slate-900 text-white shadow-sm"
+              : "border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100",
           ].join(" ")}
         >
-          <span className="text-sm font-semibold">
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={[
+                "flex h-8 w-8 items-center justify-center rounded-full",
+                outButtonActive
+                  ? "bg-white/15 text-white"
+                  : "bg-white text-slate-600 shadow-sm",
+              ].join(" ")}
+            >
+              <X className="h-4 w-4" />
+            </span>
+
+            <span
+              className={[
+                "rounded-full px-2.5 py-1 text-xs font-semibold",
+                outButtonActive
+                  ? "bg-white/15 text-white"
+                  : "bg-white text-slate-700 shadow-sm",
+              ].join(" ")}
+            >
+              {absentCount}
+            </span>
+          </div>
+
+          <div className="mt-2 text-sm font-semibold">
             {busy && outButtonActive ? "Speichert…" : "Nicht dabei"}
-          </span>
-          <span
-            className={[
-              "rounded-full px-2 py-1 text-xs font-semibold",
-              outButtonActive
-                ? "bg-white/15 text-white"
-                : "bg-white text-slate-700",
-            ].join(" ")}
-          >
-            {absentCount}
-          </span>
+          </div>
         </button>
       </div>
     </section>
