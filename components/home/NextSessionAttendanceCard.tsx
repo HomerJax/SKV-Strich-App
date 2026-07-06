@@ -78,13 +78,13 @@ export default function NextSessionAttendanceCard({
     }
   }
 
-  const inActive = status === "in";
+  const inActive = status === "in" || status === "open";
   const outActive = status === "out";
 
   return (
-    <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.10)] ring-1 ring-slate-950/5">
-      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-100/60 blur-3xl" />
-      <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-slate-100/70 blur-3xl" />
+    <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_20px_52px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5">
+      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-200/50 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-rose-100/50 blur-3xl" />
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -109,10 +109,10 @@ export default function NextSessionAttendanceCard({
             onClick={() => updateStatus("in")}
             disabled={busy}
             className={[
-              "min-h-[74px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
+              "min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
               inActive
-                ? "bg-gradient-to-br from-blue-600 to-slate-950 text-white shadow-[0_16px_34px_rgba(37,99,235,0.24)]"
-                : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50/60",
+                ? "bg-gradient-to-br from-blue-600 via-blue-700 to-slate-950 text-white shadow-[0_18px_36px_rgba(37,99,235,0.28)]"
+                : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50",
             ].join(" ")}
           >
             <div className="flex items-center gap-2.5">
@@ -129,7 +129,7 @@ export default function NextSessionAttendanceCard({
 
               <span className="min-w-0">
                 <span className="block text-sm font-semibold tracking-[-0.03em]">
-                  {busy && inActive ? "Speichert…" : "Zusagen"}
+                  {busy && status === "in" ? "Speichert…" : "Zusagen"}
                 </span>
                 <span
                   className={[
@@ -148,10 +148,10 @@ export default function NextSessionAttendanceCard({
             onClick={() => updateStatus("out")}
             disabled={busy}
             className={[
-              "min-h-[74px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
+              "min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
               outActive
-                ? "bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_16px_34px_rgba(244,63,94,0.20)]"
-                : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-rose-50/70",
+                ? "bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_18px_36px_rgba(244,63,94,0.24)]"
+                : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70",
             ].join(" ")}
           >
             <div className="flex items-center gap-2.5">
@@ -160,7 +160,7 @@ export default function NextSessionAttendanceCard({
                   "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
                   outActive
                     ? "bg-white/15 text-white ring-1 ring-white/20"
-                    : "bg-rose-50 text-rose-500 ring-1 ring-rose-100",
+                    : "bg-white text-rose-500 ring-1 ring-rose-100",
                 ].join(" ")}
               >
                 <UserX className="h-5 w-5" />
@@ -168,12 +168,12 @@ export default function NextSessionAttendanceCard({
 
               <span className="min-w-0">
                 <span className="block text-sm font-semibold tracking-[-0.03em]">
-                  {busy && outActive ? "Speichert…" : "Absagen"}
+                  {busy && status === "out" ? "Speichert…" : "Absagen"}
                 </span>
                 <span
                   className={[
                     "mt-0.5 block text-xs font-medium",
-                    outActive ? "text-white/75" : "text-slate-500",
+                    outActive ? "text-white/75" : "text-rose-500",
                   ].join(" ")}
                 >
                   {absentCount} raus
