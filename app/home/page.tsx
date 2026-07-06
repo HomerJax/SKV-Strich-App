@@ -1215,12 +1215,6 @@ export default async function HomePage() {
                 />
               </div>
 
-              {currentStreak > 0 ? (
-                <div className="mt-3 rounded-[22px] bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 ring-1 ring-slate-200">
-                  Noch {Math.max(0, getNextStreakTarget(currentStreak) - currentStreak)} bis zur {getNextStreakTarget(currentStreak)}er-Serie
-                </div>
-              ) : null}
-
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Link
                   href="/stats"

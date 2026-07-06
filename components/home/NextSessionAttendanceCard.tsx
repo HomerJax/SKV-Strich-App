@@ -19,7 +19,6 @@ type NextSessionAttendanceCardProps = {
   participantNames?: string[];
 };
 
-
 function getDeadline(
   sessionDate: string | undefined,
   startTime: string | null | undefined,
@@ -108,8 +107,10 @@ export default function NextSessionAttendanceCard({
   const remainingText =
     deadlineInfo && now ? getRemainingLabel(deadlineInfo.deadline, now) : null;
 
-  async function updateStatus(nextStatus: "in" | "out") {
+  async function updateStatus(nextStatus: PresenceStatus) {
     if (busy || status === nextStatus) return;
+
+    const previousStatus = status;
 
     try {
       setBusy(true);
@@ -133,23 +134,22 @@ export default function NextSessionAttendanceCard({
         );
       }
 
-      const previousStatus = status;
       setStatus(nextStatus);
 
-      if (previousStatus !== "in" && nextStatus === "in") {
-        setPresentCount((prev) => prev + 1);
-      }
-
-      if (previousStatus === "in" && nextStatus === "out") {
+      if (previousStatus === "in") {
         setPresentCount((prev) => Math.max(0, prev - 1));
       }
 
-      if (previousStatus !== "out" && nextStatus === "out") {
-        setAbsentCount((prev) => prev + 1);
+      if (previousStatus === "out") {
+        setAbsentCount((prev) => Math.max(0, prev - 1));
       }
 
-      if (previousStatus === "out" && nextStatus === "in") {
-        setAbsentCount((prev) => Math.max(0, prev - 1));
+      if (nextStatus === "in") {
+        setPresentCount((prev) => prev + 1);
+      }
+
+      if (nextStatus === "out") {
+        setAbsentCount((prev) => prev + 1);
       }
     } catch (error) {
       console.error(error);
@@ -158,8 +158,9 @@ export default function NextSessionAttendanceCard({
     }
   }
 
-  const inActive = status === "in" || status === "open";
+  const inActive = status === "in";
   const outActive = status === "out";
+  const isOpen = status === "open";
 
   return (
     <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_20px_52px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5">
@@ -191,11 +192,18 @@ export default function NextSessionAttendanceCard({
         </div>
       </div>
 
+      {isOpen ? (
+        <div className="relative mt-4 flex items-center justify-between rounded-[22px] bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 ring-1 ring-amber-100">
+          <span>Noch nichts ausgewählt</span>
+          <span className="text-amber-600">Bitte wählen</span>
+        </div>
+      ) : null}
+
       <div className="relative mt-5 rounded-[28px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
         <div className="grid grid-cols-2 gap-1.5">
           <button
             type="button"
-            onClick={() => updateStatus("in")}
+            onClick={() => updateStatus(inActive ? "open" : "in")}
             disabled={busy}
             className={[
               "min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
@@ -218,7 +226,11 @@ export default function NextSessionAttendanceCard({
 
               <span className="min-w-0">
                 <span className="block text-sm font-semibold tracking-[-0.03em]">
-                  {busy && status === "in" ? "Speichert…" : "Zusagen"}
+                  {busy && inActive
+                    ? "Speichert…"
+                    : inActive
+                      ? "Zugesagt"
+                      : "Zusagen"}
                 </span>
                 <span
                   className={[
@@ -234,7 +246,7 @@ export default function NextSessionAttendanceCard({
 
           <button
             type="button"
-            onClick={() => updateStatus("out")}
+            onClick={() => updateStatus(outActive ? "open" : "out")}
             disabled={busy}
             className={[
               "min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
@@ -257,7 +269,11 @@ export default function NextSessionAttendanceCard({
 
               <span className="min-w-0">
                 <span className="block text-sm font-semibold tracking-[-0.03em]">
-                  {busy && status === "out" ? "Speichert…" : "Absagen"}
+                  {busy && outActive
+                    ? "Speichert…"
+                    : outActive
+                      ? "Abgesagt"
+                      : "Absagen"}
                 </span>
                 <span
                   className={[

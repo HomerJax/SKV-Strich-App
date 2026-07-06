@@ -136,7 +136,7 @@ export async function POST(
 
       const status = String(formData.get("status") ?? "").trim();
 
-      if (status !== "in" && status !== "out") {
+      if (status !== "in" && status !== "out" && status !== "open") {
         return fail("Ungültiger Status.", 400);
       }
 
