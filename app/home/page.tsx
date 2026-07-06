@@ -531,14 +531,14 @@ function MiniStatCard({
   label: string;
 }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-1.5 py-2 text-center">
-      <div className="mx-auto flex h-6 w-6 items-center justify-center rounded-lg bg-slate-50 text-slate-500">
+    <div className="min-w-0 rounded-[22px] border border-slate-200 bg-white px-2 py-3 text-center shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
+      <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
         {icon}
       </div>
-      <div className="mt-1 truncate text-sm font-semibold tracking-[-0.03em] text-slate-950">
+      <div className="mt-2 truncate text-base font-semibold tracking-[-0.03em] text-slate-950">
         {value}
       </div>
-      <div className="truncate text-[9px] font-medium text-slate-500">
+      <div className="truncate text-[11px] font-medium text-slate-500">
         {label}
       </div>
     </div>
@@ -1064,14 +1064,14 @@ export default async function HomePage() {
           />
         )}
 
-        <section className="rounded-[24px] border border-black/10 bg-white p-3 shadow-sm">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        <section className="rounded-[32px] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.09)] ring-1 ring-slate-950/5">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
             Meine Kurzinfo
           </div>
 
           {currentPlayer ? (
             <>
-              <div className="mt-3 grid grid-cols-4 gap-1.5">
+              <div className="mt-4 grid grid-cols-4 gap-2.5">
                 <MiniStatCard
                   icon={<CalendarDays className="h-4 w-4" />}
                   value={String(personalAttendanceCount)}
@@ -1098,7 +1098,7 @@ export default async function HomePage() {
               </div>
 
               {currentStreak > 0 ? (
-                <div className="mt-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
+                <div className="mt-3 rounded-[22px] bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 ring-1 ring-slate-200">
                   Noch {Math.max(0, getNextStreakTarget(currentStreak) - currentStreak)} bis zur {getNextStreakTarget(currentStreak)}er-Serie
                 </div>
               ) : null}
