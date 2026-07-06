@@ -82,59 +82,60 @@ export default function NextSessionAttendanceCard({
   const outButtonActive = status === "out";
 
   return (
-    <section className="rounded-[32px] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.09)] ring-1 ring-slate-950/5">
-      <div className="flex items-start justify-between gap-4">
+    <section className="rounded-[28px] bg-white p-4 shadow-[0_14px_36px_rgba(15,23,42,0.08)] ring-1 ring-slate-950/5">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-blue-600">
             Nächstes Training
           </div>
 
-          <h2 className="mt-3 text-[30px] font-semibold leading-none tracking-[-0.05em] text-slate-950">
+          <h2 className="mt-2 truncate text-2xl font-semibold leading-tight tracking-[-0.05em] text-slate-950">
             {title}
           </h2>
         </div>
 
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 ring-1 ring-slate-950/5">
-          <CalendarDays className="h-5 w-5" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-slate-600 ring-1 ring-slate-950/5">
+          <CalendarDays className="h-4 w-4" />
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3">
+      <div className="mt-4 overflow-hidden rounded-[24px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
         <button
           type="button"
           onClick={() => updateStatus("in")}
           disabled={busy}
           className={[
-            "min-h-[86px] rounded-[24px] border px-4 py-4 text-left transition disabled:opacity-60",
+            "flex w-full items-center justify-between rounded-[20px] px-3 py-3 text-left transition disabled:opacity-60",
             inButtonActive
-              ? "border-blue-300 bg-blue-50/80 shadow-[0_10px_24px_rgba(37,99,235,0.10)]"
-              : "border-slate-200 bg-white hover:bg-slate-50",
+              ? "bg-white shadow-[0_10px_24px_rgba(37,99,235,0.12)] ring-1 ring-blue-200"
+              : "hover:bg-white/70",
           ].join(" ")}
         >
-          <div className="flex items-center gap-3">
+          <span className="flex min-w-0 items-center gap-3">
             <span
               className={[
-                "flex h-12 w-12 shrink-0 items-center justify-center rounded-full",
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
                 inButtonActive
-                  ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300"
-                  : "bg-slate-50 text-slate-500 ring-1 ring-slate-200",
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-white text-slate-500 ring-1 ring-slate-200",
               ].join(" ")}
             >
-              <Check className="h-6 w-6" />
+              <Check className="h-4 w-4" />
             </span>
 
             <span className="min-w-0">
-              <span className="block text-base font-semibold tracking-[-0.03em] text-slate-950">
+              <span className="block truncate text-sm font-semibold text-slate-950">
                 {busy && inButtonActive ? "Speichert…" : "Dabei"}
               </span>
-              <span className="mt-1 flex items-center gap-2 text-sm font-medium text-slate-500">
-                <span className="rounded-lg bg-blue-100 px-2 py-0.5 font-semibold text-blue-700">
-                  {presentCount}
-                </span>
+              <span className="block text-xs font-medium text-slate-500">
                 Zusagen
               </span>
             </span>
-          </div>
+          </span>
+
+          <span className="ml-3 rounded-xl bg-blue-100 px-2.5 py-1 text-sm font-semibold text-blue-700">
+            {presentCount}
+          </span>
         </button>
 
         <button
@@ -142,36 +143,37 @@ export default function NextSessionAttendanceCard({
           onClick={() => updateStatus("out")}
           disabled={busy}
           className={[
-            "min-h-[86px] rounded-[24px] border px-4 py-4 text-left transition disabled:opacity-60",
+            "mt-1 flex w-full items-center justify-between rounded-[20px] px-3 py-3 text-left transition disabled:opacity-60",
             outButtonActive
-              ? "border-rose-200 bg-rose-50/80 shadow-[0_10px_24px_rgba(244,63,94,0.08)]"
-              : "border-slate-200 bg-white hover:bg-slate-50",
+              ? "bg-white shadow-[0_10px_24px_rgba(244,63,94,0.10)] ring-1 ring-rose-200"
+              : "hover:bg-white/70",
           ].join(" ")}
         >
-          <div className="flex items-center gap-3">
+          <span className="flex min-w-0 items-center gap-3">
             <span
               className={[
-                "flex h-12 w-12 shrink-0 items-center justify-center rounded-full",
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
                 outButtonActive
-                  ? "bg-rose-100 text-rose-600 ring-1 ring-rose-300"
-                  : "bg-slate-50 text-slate-500 ring-1 ring-slate-200",
+                  ? "bg-rose-100 text-rose-600"
+                  : "bg-white text-slate-500 ring-1 ring-slate-200",
               ].join(" ")}
             >
-              <X className="h-6 w-6" />
+              <X className="h-4 w-4" />
             </span>
 
             <span className="min-w-0">
-              <span className="block text-base font-semibold tracking-[-0.03em] text-slate-950">
+              <span className="block truncate text-sm font-semibold text-slate-950">
                 {busy && outButtonActive ? "Speichert…" : "Nicht dabei"}
               </span>
-              <span className="mt-1 flex items-center gap-2 text-sm font-medium text-slate-500">
-                <span className="rounded-lg bg-rose-100 px-2 py-0.5 font-semibold text-rose-600">
-                  {absentCount}
-                </span>
+              <span className="block text-xs font-medium text-slate-500">
                 Absagen
               </span>
             </span>
-          </div>
+          </span>
+
+          <span className="ml-3 rounded-xl bg-rose-100 px-2.5 py-1 text-sm font-semibold text-rose-600">
+            {absentCount}
+          </span>
         </button>
       </div>
     </section>
