@@ -37,6 +37,19 @@ type ResultSessionRow = {
   session_id: number;
 };
 
+type HomeResultRow = {
+  session_id: number;
+  team_a_id: number | null;
+  team_b_id: number | null;
+  goals_team_a: number | null;
+  goals_team_b: number | null;
+};
+
+type HomeTeamPlayerRow = {
+  team_id: number;
+  player_id: number;
+};
+
 type SessionPlayerCountRow = {
   session_id: number;
 };
@@ -416,7 +429,7 @@ function SeasonSummaryCard({
             hint="bisher dabei"
           />
           <MetricCard
-            label="Siegquote"
+            label="Erfolgsquote"
             value={formatPercent(attendanceRate)}
             hint="Anwesenheit"
           />
@@ -675,6 +688,74 @@ export default async function HomePage() {
       .maybeSingle<PlayerRow>();
 
     currentPlayer = data ?? null;
+  }
+
+  let personalSuccessRate: number | null = null;
+
+  if (currentPlayer) {
+    const { data: resultRows } = await supabase
+      .from("results")
+      .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+      .eq("club_id", clubId);
+
+    const results = (resultRows ?? []) as HomeResultRow[];
+
+    const resultTeamIds = Array.from(
+      new Set(
+        results.flatMap((result) =>
+          [result.team_a_id, result.team_b_id].filter(
+            (value): value is number =>
+              typeof value === "number" && Number.isFinite(value)
+          )
+        )
+      )
+    );
+
+    if (resultTeamIds.length > 0) {
+      const { data: myTeamRows } = await supabase
+        .from("team_players")
+        .select("team_id, player_id")
+        .eq("player_id", currentPlayer.id)
+        .in("team_id", resultTeamIds);
+
+      const myTeamIds = new Set(
+        ((myTeamRows ?? []) as HomeTeamPlayerRow[])
+          .map((row) => row.team_id)
+          .filter((value) => Number.isFinite(value))
+      );
+
+      let wins = 0;
+      let completedResults = 0;
+
+      for (const result of results) {
+        const myTeamIsA =
+          result.team_a_id !== null && myTeamIds.has(result.team_a_id);
+        const myTeamIsB =
+          result.team_b_id !== null && myTeamIds.has(result.team_b_id);
+
+        if (!myTeamIsA && !myTeamIsB) {
+          continue;
+        }
+
+        const goalsA =
+          typeof result.goals_team_a === "number" ? result.goals_team_a : null;
+        const goalsB =
+          typeof result.goals_team_b === "number" ? result.goals_team_b : null;
+
+        if (goalsA === null || goalsB === null) {
+          continue;
+        }
+
+        completedResults += 1;
+
+        if ((myTeamIsA && goalsA > goalsB) || (myTeamIsB && goalsB > goalsA)) {
+          wins += 1;
+        }
+      }
+
+      personalSuccessRate =
+        completedResults > 0 ? Math.round((wins / completedResults) * 100) : null;
+    }
   }
 
   const showGettingStarted =
@@ -1114,8 +1195,8 @@ export default async function HomePage() {
 
                 <MiniStatCard
                   icon={<TrendingUp className="h-4 w-4" />}
-                  value="?"
-                  label="Siegquote"
+                  value={formatPercent(personalSuccessRate)}
+                  label="Erfolgsquote"
                   tone="emerald"
                 />
 
