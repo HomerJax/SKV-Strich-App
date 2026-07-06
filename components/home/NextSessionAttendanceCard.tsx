@@ -82,60 +82,58 @@ export default function NextSessionAttendanceCard({
   const outButtonActive = status === "out";
 
   return (
-    <section className="rounded-[28px] bg-white p-4 shadow-[0_14px_36px_rgba(15,23,42,0.08)] ring-1 ring-slate-950/5">
-      <div className="flex items-start justify-between gap-3">
+    <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.10)] ring-1 ring-slate-950/5">
+      <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-100/40 blur-3xl" />
+
+      <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-blue-600">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-600">
             Nächstes Training
           </div>
 
-          <h2 className="mt-2 truncate text-2xl font-semibold leading-tight tracking-[-0.05em] text-slate-950">
+          <h2 className="mt-2 text-[25px] font-semibold leading-none tracking-[-0.05em] text-slate-950">
             {title}
           </h2>
         </div>
 
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-slate-600 ring-1 ring-slate-950/5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.08)] ring-1 ring-slate-950/5">
           <CalendarDays className="h-4 w-4" />
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-[24px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
+      <div className="relative mt-5 grid grid-cols-2 gap-3">
         <button
           type="button"
           onClick={() => updateStatus("in")}
           disabled={busy}
           className={[
-            "flex w-full items-center justify-between rounded-[20px] px-3 py-3 text-left transition disabled:opacity-60",
+            "min-h-[122px] rounded-[28px] border px-3 py-4 text-center transition disabled:opacity-60",
             inButtonActive
-              ? "bg-white shadow-[0_10px_24px_rgba(37,99,235,0.12)] ring-1 ring-blue-200"
-              : "hover:bg-white/70",
+              ? "border-blue-300 bg-blue-50 shadow-[0_16px_32px_rgba(37,99,235,0.14)]"
+              : "border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:bg-slate-50",
           ].join(" ")}
         >
-          <span className="flex min-w-0 items-center gap-3">
-            <span
-              className={[
-                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                inButtonActive
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-white text-slate-500 ring-1 ring-slate-200",
-              ].join(" ")}
-            >
-              <Check className="h-4 w-4" />
-            </span>
+          <div
+            className={[
+              "mx-auto flex h-12 w-12 items-center justify-center rounded-full",
+              inButtonActive
+                ? "bg-blue-600 text-white shadow-[0_10px_22px_rgba(37,99,235,0.30)]"
+                : "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
+            ].join(" ")}
+          >
+            <Check className="h-6 w-6" />
+          </div>
 
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold text-slate-950">
-                {busy && inButtonActive ? "Speichert…" : "Dabei"}
-              </span>
-              <span className="block text-xs font-medium text-slate-500">
-                Zusagen
-              </span>
-            </span>
-          </span>
+          <div className="mt-3 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+            {busy && inButtonActive ? "Speichert…" : "Dabei"}
+          </div>
 
-          <span className="ml-3 rounded-xl bg-blue-100 px-2.5 py-1 text-sm font-semibold text-blue-700">
-            {presentCount}
-          </span>
+          <div className="mt-1 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-500">
+            <span className="rounded-lg bg-blue-100 px-2 py-0.5 font-semibold text-blue-700">
+              {presentCount}
+            </span>
+            <span>Zusagen</span>
+          </div>
         </button>
 
         <button
@@ -143,37 +141,33 @@ export default function NextSessionAttendanceCard({
           onClick={() => updateStatus("out")}
           disabled={busy}
           className={[
-            "mt-1 flex w-full items-center justify-between rounded-[20px] px-3 py-3 text-left transition disabled:opacity-60",
+            "min-h-[122px] rounded-[28px] border px-3 py-4 text-center transition disabled:opacity-60",
             outButtonActive
-              ? "bg-white shadow-[0_10px_24px_rgba(244,63,94,0.10)] ring-1 ring-rose-200"
-              : "hover:bg-white/70",
+              ? "border-rose-200 bg-rose-50 shadow-[0_16px_32px_rgba(244,63,94,0.12)]"
+              : "border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:bg-slate-50",
           ].join(" ")}
         >
-          <span className="flex min-w-0 items-center gap-3">
-            <span
-              className={[
-                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                outButtonActive
-                  ? "bg-rose-100 text-rose-600"
-                  : "bg-white text-slate-500 ring-1 ring-slate-200",
-              ].join(" ")}
-            >
-              <X className="h-4 w-4" />
-            </span>
+          <div
+            className={[
+              "mx-auto flex h-12 w-12 items-center justify-center rounded-full",
+              outButtonActive
+                ? "bg-rose-500 text-white shadow-[0_10px_22px_rgba(244,63,94,0.26)]"
+                : "bg-rose-50 text-rose-500 ring-1 ring-rose-100",
+            ].join(" ")}
+          >
+            <X className="h-6 w-6" />
+          </div>
 
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold text-slate-950">
-                {busy && outButtonActive ? "Speichert…" : "Nicht dabei"}
-              </span>
-              <span className="block text-xs font-medium text-slate-500">
-                Absagen
-              </span>
-            </span>
-          </span>
+          <div className="mt-3 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
+            {busy && outButtonActive ? "Speichert…" : "Nicht dabei"}
+          </div>
 
-          <span className="ml-3 rounded-xl bg-rose-100 px-2.5 py-1 text-sm font-semibold text-rose-600">
-            {absentCount}
-          </span>
+          <div className="mt-1 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-500">
+            <span className="rounded-lg bg-rose-100 px-2 py-0.5 font-semibold text-rose-600">
+              {absentCount}
+            </span>
+            <span>Absagen</span>
+          </div>
         </button>
       </div>
     </section>
