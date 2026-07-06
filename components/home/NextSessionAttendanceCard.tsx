@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Check, X } from "lucide-react";
+import { CalendarDays, UserCheck, UserX } from "lucide-react";
 import { useState } from "react";
 
 type PresenceStatus = "in" | "out" | "open";
@@ -78,12 +78,13 @@ export default function NextSessionAttendanceCard({
     }
   }
 
-  const showPrimaryIn = status === "in" || status === "open";
-  const showPrimaryOut = status === "out";
+  const inActive = status === "in";
+  const outActive = status === "out";
 
   return (
     <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.10)] ring-1 ring-slate-950/5">
-      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-100/50 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-100/60 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-slate-100/70 blur-3xl" />
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -101,92 +102,86 @@ export default function NextSessionAttendanceCard({
         </div>
       </div>
 
-      <div className="relative mt-5 grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => updateStatus("in")}
-          disabled={busy}
-          className={[
-            "min-h-[92px] rounded-[26px] px-3 py-3 text-left transition disabled:opacity-60",
-            showPrimaryIn
-              ? "bg-slate-950 text-white shadow-[0_16px_34px_rgba(15,23,42,0.22)]"
-              : "border border-slate-200 bg-white text-slate-950 shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:bg-slate-50",
-          ].join(" ")}
-        >
-          <div className="flex h-full items-center gap-2.5">
-            <span
-              className={[
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                showPrimaryIn
-                  ? "bg-white/12 text-white ring-1 ring-white/20"
-                  : "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
-              ].join(" ")}
-            >
-              <Check className="h-5 w-5" />
-            </span>
-
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold tracking-[-0.03em]">
-                {busy && status === "in" ? "Speichert…" : "Dabei"}
-              </span>
+      <div className="relative mt-5 rounded-[28px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => updateStatus("in")}
+            disabled={busy}
+            className={[
+              "min-h-[74px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
+              inActive
+                ? "bg-gradient-to-br from-blue-600 to-slate-950 text-white shadow-[0_16px_34px_rgba(37,99,235,0.24)]"
+                : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50/60",
+            ].join(" ")}
+          >
+            <div className="flex items-center gap-2.5">
               <span
                 className={[
-                  "mt-1 flex items-center gap-1.5 text-xs font-medium",
-                  showPrimaryIn ? "text-white/70" : "text-slate-500",
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                  inActive
+                    ? "bg-white/15 text-white ring-1 ring-white/20"
+                    : "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
                 ].join(" ")}
               >
+                <UserCheck className="h-5 w-5" />
+              </span>
+
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold tracking-[-0.03em]">
+                  {busy && inActive ? "Speichert…" : "Zusagen"}
+                </span>
                 <span
                   className={[
-                    "rounded-lg px-2 py-0.5 font-semibold",
-                    showPrimaryIn
-                      ? "bg-white/12 text-white"
-                      : "bg-blue-100 text-blue-700",
+                    "mt-0.5 block text-xs font-medium",
+                    inActive ? "text-white/75" : "text-slate-500",
                   ].join(" ")}
                 >
-                  {presentCount}
+                  {presentCount} dabei
                 </span>
-                Zusagen
               </span>
-            </span>
-          </div>
-        </button>
+            </div>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => updateStatus("out")}
-          disabled={busy}
-          className={[
-            "min-h-[92px] rounded-[26px] px-3 py-3 text-left transition disabled:opacity-60",
-            showPrimaryOut
-              ? "bg-rose-50 text-slate-950 shadow-[0_16px_34px_rgba(244,63,94,0.12)] ring-1 ring-rose-200"
-              : "border border-slate-200 bg-white text-slate-950 shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:bg-slate-50",
-          ].join(" ")}
-        >
-          <div className="flex h-full items-center gap-2.5">
-            <span
-              className={[
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                showPrimaryOut
-                  ? "bg-rose-500 text-white shadow-[0_10px_22px_rgba(244,63,94,0.25)]"
-                  : "bg-rose-50 text-rose-500 ring-1 ring-rose-100",
-              ].join(" ")}
-            >
-              <X className="h-5 w-5" />
-            </span>
-
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold leading-tight tracking-[-0.03em]">
-                {busy && status === "out" ? "Speichert…" : "Nicht dabei"}
+          <button
+            type="button"
+            onClick={() => updateStatus("out")}
+            disabled={busy}
+            className={[
+              "min-h-[74px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
+              outActive
+                ? "bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_16px_34px_rgba(244,63,94,0.20)]"
+                : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-rose-50/70",
+            ].join(" ")}
+          >
+            <div className="flex items-center gap-2.5">
+              <span
+                className={[
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                  outActive
+                    ? "bg-white/15 text-white ring-1 ring-white/20"
+                    : "bg-rose-50 text-rose-500 ring-1 ring-rose-100",
+                ].join(" ")}
+              >
+                <UserX className="h-5 w-5" />
               </span>
-              <span className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                <span className="rounded-lg bg-rose-100 px-2 py-0.5 font-semibold text-rose-600">
-                  {absentCount}
+
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold tracking-[-0.03em]">
+                  {busy && outActive ? "Speichert…" : "Absagen"}
                 </span>
-                Absagen
+                <span
+                  className={[
+                    "mt-0.5 block text-xs font-medium",
+                    outActive ? "text-white/75" : "text-slate-500",
+                  ].join(" ")}
+                >
+                  {absentCount} raus
+                </span>
               </span>
-            </span>
-          </div>
-        </button>
+            </div>
+          </button>
+        </div>
       </div>
     </section>
   );

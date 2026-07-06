@@ -525,14 +525,23 @@ function MiniStatCard({
   icon,
   value,
   label,
+  tone,
 }: {
   icon: ReactNode;
   value: string;
   label: string;
+  tone: "blue" | "emerald" | "violet" | "amber";
 }) {
+  const toneClass = {
+    blue: "bg-blue-50 text-blue-600 ring-blue-100",
+    emerald: "bg-emerald-50 text-emerald-600 ring-emerald-100",
+    violet: "bg-violet-50 text-violet-600 ring-violet-100",
+    amber: "bg-amber-50 text-amber-500 ring-amber-100",
+  }[tone];
+
   return (
     <div className="min-w-0 rounded-[22px] border border-slate-200 bg-white px-2 py-3 text-center shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-      <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
+      <div className={`mx-auto flex h-8 w-8 items-center justify-center rounded-xl ring-1 ${toneClass}`}>
         {icon}
       </div>
       <div className="mt-2 truncate text-base font-semibold tracking-[-0.03em] text-slate-950">
@@ -1076,24 +1085,28 @@ export default async function HomePage() {
                   icon={<CalendarDays className="h-4 w-4" />}
                   value={String(personalAttendanceCount)}
                   label="Teilnahmen"
+                  tone="blue"
                 />
 
                 <MiniStatCard
                   icon={<TrendingUp className="h-4 w-4" />}
                   value={formatPercent(attendanceRate)}
                   label="Quote"
+                  tone="emerald"
                 />
 
                 <MiniStatCard
                   icon={<Medal className="h-4 w-4" />}
                   value={formatRank(attendanceRank)}
                   label="Teilnahme"
+                  tone="violet"
                 />
 
                 <MiniStatCard
                   icon={<Star className="h-4 w-4" />}
                   value={String(currentMvpCount)}
                   label="MVP"
+                  tone="amber"
                 />
               </div>
 
