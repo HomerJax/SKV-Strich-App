@@ -111,7 +111,7 @@ export default function NextSessionAttendanceCard({
             className={[
               "min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
               inActive
-                ? "bg-gradient-to-br from-blue-600 via-blue-700 to-slate-950 text-white shadow-[0_18px_36px_rgba(37,99,235,0.28)]"
+                ? "bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 text-white shadow-[0_18px_36px_rgba(15,23,42,0.24)]"
                 : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50",
             ].join(" ")}
           >
@@ -120,7 +120,7 @@ export default function NextSessionAttendanceCard({
                 className={[
                   "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
                   inActive
-                    ? "bg-white/15 text-white ring-1 ring-white/20"
+                    ? "bg-white/12 text-white ring-1 ring-white/20"
                     : "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
                 ].join(" ")}
               >

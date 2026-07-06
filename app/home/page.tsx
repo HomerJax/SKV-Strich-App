@@ -547,7 +547,7 @@ function MiniStatCard({
       <div className="mt-2 truncate text-base font-semibold tracking-[-0.03em] text-slate-950">
         {value}
       </div>
-      <div className="truncate text-[11px] font-medium text-slate-500">
+      <div className="whitespace-nowrap text-[9px] font-medium leading-tight text-slate-500">
         {label}
       </div>
     </div>
