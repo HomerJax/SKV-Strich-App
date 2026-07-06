@@ -416,7 +416,7 @@ function SeasonSummaryCard({
             hint="bisher dabei"
           />
           <MetricCard
-            label="Quote"
+            label="Siegquote"
             value={formatPercent(attendanceRate)}
             hint="Anwesenheit"
           />
@@ -426,7 +426,7 @@ function SeasonSummaryCard({
             hint="Trainings in Folge"
           />
           <MetricCard
-            label="MVP"
+            label="Awards"
             value={String(mvpCount)}
             hint="Badges & Votes"
           />
@@ -466,7 +466,7 @@ function RankingSummaryCard({
           hint={playerCount > 0 ? `von ${playerCount} Spielern` : "noch offen"}
         />
         <MetricCard
-          label="MVP"
+          label="Awards"
           value={formatRank(mvpRank)}
           hint={playerCount > 0 ? `von ${playerCount} Spielern` : "noch offen"}
         />
@@ -1114,22 +1114,22 @@ export default async function HomePage() {
 
                 <MiniStatCard
                   icon={<TrendingUp className="h-4 w-4" />}
-                  value={formatPercent(attendanceRate)}
-                  label="Quote"
+                  value="?"
+                  label="Siegquote"
                   tone="emerald"
                 />
 
                 <MiniStatCard
                   icon={<Medal className="h-4 w-4" />}
                   value={formatRank(attendanceRank)}
-                  label="Teilnahme"
+                  label="Tabelle"
                   tone="violet"
                 />
 
                 <MiniStatCard
                   icon={<Star className="h-4 w-4" />}
-                  value={String(currentMvpCount)}
-                  label="MVP"
+                  value="?"
+                  label="Awards"
                   tone="amber"
                 />
               </div>
