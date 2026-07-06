@@ -78,12 +78,12 @@ export default function NextSessionAttendanceCard({
     }
   }
 
-  const inButtonActive = status === "in";
-  const outButtonActive = status === "out";
+  const showPrimaryIn = status === "in" || status === "open";
+  const showPrimaryOut = status === "out";
 
   return (
     <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.10)] ring-1 ring-slate-950/5">
-      <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-100/40 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-100/50 blur-3xl" />
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -107,32 +107,47 @@ export default function NextSessionAttendanceCard({
           onClick={() => updateStatus("in")}
           disabled={busy}
           className={[
-            "min-h-[122px] rounded-[28px] border px-3 py-4 text-center transition disabled:opacity-60",
-            inButtonActive
-              ? "border-blue-300 bg-blue-50 shadow-[0_16px_32px_rgba(37,99,235,0.14)]"
-              : "border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:bg-slate-50",
+            "min-h-[92px] rounded-[26px] px-3 py-3 text-left transition disabled:opacity-60",
+            showPrimaryIn
+              ? "bg-slate-950 text-white shadow-[0_16px_34px_rgba(15,23,42,0.22)]"
+              : "border border-slate-200 bg-white text-slate-950 shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:bg-slate-50",
           ].join(" ")}
         >
-          <div
-            className={[
-              "mx-auto flex h-12 w-12 items-center justify-center rounded-full",
-              inButtonActive
-                ? "bg-blue-600 text-white shadow-[0_10px_22px_rgba(37,99,235,0.30)]"
-                : "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
-            ].join(" ")}
-          >
-            <Check className="h-6 w-6" />
-          </div>
-
-          <div className="mt-3 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-            {busy && inButtonActive ? "Speichert…" : "Dabei"}
-          </div>
-
-          <div className="mt-1 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-500">
-            <span className="rounded-lg bg-blue-100 px-2 py-0.5 font-semibold text-blue-700">
-              {presentCount}
+          <div className="flex h-full items-center gap-2.5">
+            <span
+              className={[
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                showPrimaryIn
+                  ? "bg-white/12 text-white ring-1 ring-white/20"
+                  : "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
+              ].join(" ")}
+            >
+              <Check className="h-5 w-5" />
             </span>
-            <span>Zusagen</span>
+
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold tracking-[-0.03em]">
+                {busy && status === "in" ? "Speichert…" : "Dabei"}
+              </span>
+              <span
+                className={[
+                  "mt-1 flex items-center gap-1.5 text-xs font-medium",
+                  showPrimaryIn ? "text-white/70" : "text-slate-500",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "rounded-lg px-2 py-0.5 font-semibold",
+                    showPrimaryIn
+                      ? "bg-white/12 text-white"
+                      : "bg-blue-100 text-blue-700",
+                  ].join(" ")}
+                >
+                  {presentCount}
+                </span>
+                Zusagen
+              </span>
+            </span>
           </div>
         </button>
 
@@ -141,32 +156,35 @@ export default function NextSessionAttendanceCard({
           onClick={() => updateStatus("out")}
           disabled={busy}
           className={[
-            "min-h-[122px] rounded-[28px] border px-3 py-4 text-center transition disabled:opacity-60",
-            outButtonActive
-              ? "border-rose-200 bg-rose-50 shadow-[0_16px_32px_rgba(244,63,94,0.12)]"
-              : "border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:bg-slate-50",
+            "min-h-[92px] rounded-[26px] px-3 py-3 text-left transition disabled:opacity-60",
+            showPrimaryOut
+              ? "bg-rose-50 text-slate-950 shadow-[0_16px_34px_rgba(244,63,94,0.12)] ring-1 ring-rose-200"
+              : "border border-slate-200 bg-white text-slate-950 shadow-[0_10px_24px_rgba(15,23,42,0.04)] hover:bg-slate-50",
           ].join(" ")}
         >
-          <div
-            className={[
-              "mx-auto flex h-12 w-12 items-center justify-center rounded-full",
-              outButtonActive
-                ? "bg-rose-500 text-white shadow-[0_10px_22px_rgba(244,63,94,0.26)]"
-                : "bg-rose-50 text-rose-500 ring-1 ring-rose-100",
-            ].join(" ")}
-          >
-            <X className="h-6 w-6" />
-          </div>
-
-          <div className="mt-3 text-[15px] font-semibold tracking-[-0.03em] text-slate-950">
-            {busy && outButtonActive ? "Speichert…" : "Nicht dabei"}
-          </div>
-
-          <div className="mt-1 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-500">
-            <span className="rounded-lg bg-rose-100 px-2 py-0.5 font-semibold text-rose-600">
-              {absentCount}
+          <div className="flex h-full items-center gap-2.5">
+            <span
+              className={[
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                showPrimaryOut
+                  ? "bg-rose-500 text-white shadow-[0_10px_22px_rgba(244,63,94,0.25)]"
+                  : "bg-rose-50 text-rose-500 ring-1 ring-rose-100",
+              ].join(" ")}
+            >
+              <X className="h-5 w-5" />
             </span>
-            <span>Absagen</span>
+
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold leading-tight tracking-[-0.03em]">
+                {busy && status === "out" ? "Speichert…" : "Nicht dabei"}
+              </span>
+              <span className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                <span className="rounded-lg bg-rose-100 px-2 py-0.5 font-semibold text-rose-600">
+                  {absentCount}
+                </span>
+                Absagen
+              </span>
+            </span>
           </div>
         </button>
       </div>

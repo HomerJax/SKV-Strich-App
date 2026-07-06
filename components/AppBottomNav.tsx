@@ -34,17 +34,18 @@ function NavItem({ href, label, active, icon }: NavItemProps) {
     <Link
       href={href}
       className={[
-        "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-semibold leading-none transition",
-        active ? "text-white shadow-sm" : "text-slate-500 hover:bg-slate-100",
-      ].join(" ")}
-      style={
+        "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[22px] px-1 py-2 text-[11px] font-semibold leading-none transition",
         active
-          ? { backgroundColor: "var(--club-primary, #0f172a)" }
-          : undefined
-      }
+          ? "bg-blue-50 text-blue-700"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-800",
+      ].join(" ")}
     >
       <div className="flex h-5 w-5 items-center justify-center">{icon}</div>
       <span className="truncate">{label}</span>
+
+      {active ? (
+        <span className="absolute -bottom-1 h-1 w-6 rounded-full bg-blue-600" />
+      ) : null}
     </Link>
   );
 }
@@ -63,9 +64,9 @@ export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-[80] border-t border-slate-200 bg-white/98 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-white/90">
-      <div className="mx-auto w-full max-w-6xl px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2">
-        <div className="mx-auto flex h-16 w-full max-w-md items-center gap-1 rounded-[24px] bg-white">
+    <nav className="fixed inset-x-0 bottom-0 z-[80] bg-transparent px-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
+      <div className="mx-auto w-full max-w-md rounded-[30px] bg-white/95 p-2 shadow-[0_-12px_42px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5 backdrop-blur">
+        <div className="flex h-16 items-center gap-1">
           <NavItem
             href="/home"
             label="Home"
