@@ -172,16 +172,21 @@ export default function NextSessionAttendanceCard({
             Nächstes Training
           </div>
 
-          <h2 className="mt-2 text-[25px] font-semibold leading-none tracking-[-0.05em] text-slate-950">
+          <h2 className="mt-2 whitespace-nowrap text-[19px] font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-[22px]">
             {title}
           </h2>
 
           {deadlineText ? (
-            <div className="mt-3 inline-flex max-w-full items-center rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
-              <span className="truncate">
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <span className="rounded-full bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
                 {deadlineText}
-                {remainingText ? ` · ${remainingText}` : ""}
               </span>
+
+              {remainingText ? (
+                <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[11px] font-semibold text-blue-700 ring-1 ring-blue-100">
+                  {remainingText}
+                </span>
+              ) : null}
             </div>
           ) : null}
         </div>

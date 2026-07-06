@@ -133,7 +133,7 @@ function formatSessionTitle(iso: string, startTime: string | null) {
   const dateLabel = fmtDateCompact(iso);
   const timeLabel = startTime?.slice(0, 5);
 
-  return timeLabel ? `${dateLabel} · ${timeLabel} Uhr` : dateLabel;
+  return timeLabel ? `${dateLabel} · ${timeLabel}` : dateLabel;
 }
 
 function getPartsInBerlin(date: Date) {

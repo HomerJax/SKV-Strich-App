@@ -184,6 +184,7 @@ export default function NewSessionForm({
               <input
                 name="start_time"
                 type="time"
+                step="900"
                 defaultValue="19:30"
                 required
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -267,6 +268,7 @@ export default function NewSessionForm({
                 <input
                   name="start_time"
                   type="time"
+                  step="900"
                   defaultValue="19:30"
                   required
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
