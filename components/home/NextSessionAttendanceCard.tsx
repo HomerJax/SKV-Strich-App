@@ -16,6 +16,16 @@ type NextSessionAttendanceCardProps = {
   participantNames?: string[];
 };
 
+function getStatusLabel(status: PresenceStatus) {
+  if (status === "in") return "Zugesagt";
+  if (status === "out") return "Abgesagt";
+  return "Offen";
+}
+
+function getCountLabel(count: number, singular: string, plural: string) {
+  return count === 1 ? `1 ${singular}` : `${count} ${plural}`;
+}
+
 export default function NextSessionAttendanceCard({
   sessionId,
   title,
@@ -82,33 +92,36 @@ export default function NextSessionAttendanceCard({
   const outButtonActive = status === "out";
 
   return (
-    <section className="rounded-[24px] border border-black/10 bg-white p-3 shadow-sm">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-        Nächstes Training
+    <section className="rounded-[28px] bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.08)] ring-1 ring-slate-950/5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Nächstes Training
+          </div>
+
+          <h2 className="mt-1.5 truncate text-xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
+            {title}
+          </h2>
+        </div>
+
+        <div className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+          {getStatusLabel(status)}
+        </div>
       </div>
 
-      <h2 className="mt-1.5 text-xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
-        {title}
-      </h2>
-
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-4 grid grid-cols-2 gap-1.5 rounded-[24px] bg-slate-100 p-1.5">
         <button
           type="button"
           onClick={() => updateStatus("in")}
           disabled={busy}
           className={[
-            "group min-h-[72px] rounded-2xl border px-3 py-3 text-left transition disabled:opacity-60",
+            "rounded-[20px] px-3 py-3 text-left transition disabled:opacity-60",
             inButtonActive
-              ? "border-transparent text-white shadow-sm"
-              : "border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100",
+              ? "bg-slate-950 text-white shadow-sm"
+              : "text-slate-700 hover:bg-white/70",
           ].join(" ")}
-          style={
-            inButtonActive
-              ? { backgroundColor: "var(--club-primary, #0f172a)" }
-              : undefined
-          }
         >
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <span
               className={[
                 "flex h-8 w-8 items-center justify-center rounded-full",
@@ -120,20 +133,19 @@ export default function NextSessionAttendanceCard({
               <Check className="h-4 w-4" />
             </span>
 
-            <span
-              className={[
-                "rounded-full px-2.5 py-1 text-xs font-semibold",
-                inButtonActive
-                  ? "bg-white/15 text-white"
-                  : "bg-white text-slate-700 shadow-sm",
-              ].join(" ")}
-            >
-              {presentCount}
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold">
+                {busy && inButtonActive ? "Speichert…" : "Dabei"}
+              </span>
+              <span
+                className={[
+                  "block text-[11px] font-medium",
+                  inButtonActive ? "text-white/70" : "text-slate-500",
+                ].join(" ")}
+              >
+                {getCountLabel(presentCount, "Zusage", "Zusagen")}
+              </span>
             </span>
-          </div>
-
-          <div className="mt-2 text-sm font-semibold">
-            {busy && inButtonActive ? "Speichert…" : "Dabei"}
           </div>
         </button>
 
@@ -142,13 +154,13 @@ export default function NextSessionAttendanceCard({
           onClick={() => updateStatus("out")}
           disabled={busy}
           className={[
-            "group min-h-[72px] rounded-2xl border px-3 py-3 text-left transition disabled:opacity-60",
+            "rounded-[20px] px-3 py-3 text-left transition disabled:opacity-60",
             outButtonActive
-              ? "border-transparent bg-slate-900 text-white shadow-sm"
-              : "border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100",
+              ? "bg-slate-950 text-white shadow-sm"
+              : "text-slate-700 hover:bg-white/70",
           ].join(" ")}
         >
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <span
               className={[
                 "flex h-8 w-8 items-center justify-center rounded-full",
@@ -160,20 +172,19 @@ export default function NextSessionAttendanceCard({
               <X className="h-4 w-4" />
             </span>
 
-            <span
-              className={[
-                "rounded-full px-2.5 py-1 text-xs font-semibold",
-                outButtonActive
-                  ? "bg-white/15 text-white"
-                  : "bg-white text-slate-700 shadow-sm",
-              ].join(" ")}
-            >
-              {absentCount}
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold">
+                {busy && outButtonActive ? "Speichert…" : "Nicht dabei"}
+              </span>
+              <span
+                className={[
+                  "block text-[11px] font-medium",
+                  outButtonActive ? "text-white/70" : "text-slate-500",
+                ].join(" ")}
+              >
+                {getCountLabel(absentCount, "Absage", "Absagen")}
+              </span>
             </span>
-          </div>
-
-          <div className="mt-2 text-sm font-semibold">
-            {busy && outButtonActive ? "Speichert…" : "Nicht dabei"}
           </div>
         </button>
       </div>
