@@ -25,7 +25,12 @@ type ClubRow = {
 type SessionRow = {
   id: number;
   date: string;
+  start_time: string | null;
   notes: string | null;
+};
+
+type HomeClubSettingsRow = {
+  rsvp_deadline_minutes_before: number | null;
 };
 
 type ResultSessionRow = {
@@ -122,6 +127,13 @@ function fmtDateCompact(iso: string) {
       month: "2-digit",
     })
     .replace(/\.$/, "");
+}
+
+function formatSessionTitle(iso: string, startTime: string | null) {
+  const dateLabel = fmtDateCompact(iso);
+  const timeLabel = startTime?.slice(0, 5);
+
+  return timeLabel ? `${dateLabel} · ${timeLabel} Uhr` : dateLabel;
 }
 
 function getPartsInBerlin(date: Date) {
@@ -568,6 +580,7 @@ export default async function HomePage() {
 
   const [
     { data: clubData },
+    { data: homeSettingsData },
     { count: invitesCount },
     { count: sessionsCount },
     { count: pastSessionsCount },
@@ -582,6 +595,11 @@ export default async function HomePage() {
       .select("id, display_name, logo_path, primary_color")
       .eq("id", clubId)
       .maybeSingle<ClubRow>(),
+    supabase
+      .from("club_settings")
+      .select("rsvp_deadline_minutes_before")
+      .eq("club_id", clubId)
+      .maybeSingle<HomeClubSettingsRow>(),
     supabase
       .from("invites")
       .select("*", { count: "exact", head: true })
@@ -601,7 +619,7 @@ export default async function HomePage() {
       .eq("club_id", clubId),
     supabase
       .from("sessions")
-      .select("id, date, notes")
+      .select("id, date, start_time, notes")
       .eq("club_id", clubId)
       .gte("date", today)
       .order("date", { ascending: true })
@@ -609,13 +627,13 @@ export default async function HomePage() {
       .maybeSingle<SessionRow>(),
     supabase
       .from("sessions")
-      .select("id, date, notes")
+      .select("id, date, start_time, notes")
       .eq("club_id", clubId)
       .order("date", { ascending: false })
       .limit(12),
     supabase
       .from("sessions")
-      .select("id, date, notes")
+      .select("id, date, start_time, notes")
       .eq("club_id", clubId)
       .lte("date", today)
       .order("date", { ascending: false })
@@ -624,6 +642,9 @@ export default async function HomePage() {
   ]);
 
   const club = (clubData ?? null) as ClubRow | null;
+  const homeSettings = (homeSettingsData ?? null) as HomeClubSettingsRow | null;
+  const rsvpDeadlineMinutesBefore =
+    homeSettings?.rsvp_deadline_minutes_before ?? 30;
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
   const pastSessions = (pastSessionsData ?? []) as SessionRow[];
@@ -1035,7 +1056,7 @@ export default async function HomePage() {
           homeSessionRsvpEnabled ? (
             <NextSessionAttendanceCard
               sessionId={nextSession.id}
-              title={fmtDateCompact(nextSession.date)}
+              title={formatSessionTitle(nextSession.date, nextSession.start_time)}
               text={
                 nextSession.notes?.trim()
                   ? nextSession.notes.trim()
@@ -1044,12 +1065,15 @@ export default async function HomePage() {
               href={`/sessions/${nextSession.id}`}
               initialStatus={nextSessionPresenceStatus}
               initialPresentCount={nextSessionPresentCount}
+              sessionDate={nextSession.date}
+              startTime={nextSession.start_time}
+              rsvpDeadlineMinutesBefore={rsvpDeadlineMinutesBefore}
               participantNames={nextSessionParticipantNames}
             />
           ) : (
             <MainActionCard
               eyebrow="Nächstes Training"
-              title={fmtDateCompact(nextSession.date)}
+              title={formatSessionTitle(nextSession.date, nextSession.start_time)}
               text={
                 nextSession.notes?.trim()
                   ? nextSession.notes.trim()

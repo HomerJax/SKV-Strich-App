@@ -24,7 +24,68 @@ type ClubSettingsRow = {
   use_strength: boolean | null;
   use_categories: boolean | null;
   awards_started_at: string | null;
+  rsvp_deadline_minutes_before: number | null;
 };
+
+function RsvpSettingsCard({
+  value,
+  saved,
+  error,
+}: {
+  value: number;
+  saved: boolean;
+  error: string;
+}) {
+  return (
+    <div className="space-y-4">
+      {saved ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Zusagefrist gespeichert.
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Zusagefrist konnte nicht gespeichert werden.
+        </div>
+      ) : null}
+
+      <form method="post" action="/api/admin/settings" className="space-y-4">
+        <input type="hidden" name="redirect_to" value="/admin/settings" />
+        <input type="hidden" name="settings_scope" value="rsvp" />
+
+        <label className="block rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+          <div className="text-sm font-semibold text-slate-950">
+            Zusagen bis
+          </div>
+          <div className="mt-1 text-sm leading-6 text-slate-600">
+            Diese Frist wird auf der Startseite beim nächsten Training angezeigt.
+          </div>
+
+          <select
+            name="rsvp_deadline_minutes_before"
+            defaultValue={String(value)}
+            className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
+          >
+            <option value="0">bis Trainingsbeginn</option>
+            <option value="15">15 Minuten vorher</option>
+            <option value="30">30 Minuten vorher</option>
+            <option value="60">1 Stunde vorher</option>
+            <option value="120">2 Stunden vorher</option>
+            <option value="1440">1 Tag vorher</option>
+          </select>
+        </label>
+
+        <button
+          type="submit"
+          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+        >
+          Zusagefrist speichern
+        </button>
+      </form>
+    </div>
+  );
+}
 
 function AwardsSettingsCard({
   awardsStartedAt,
@@ -156,7 +217,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
   const [{ data: settingsData }, { data: categoriesData }] = await Promise.all([
     supabase
       .from("club_settings")
-      .select("use_strength, use_categories, awards_started_at")
+      .select("use_strength, use_categories, awards_started_at, rsvp_deadline_minutes_before")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -241,6 +302,17 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
           <TeamGeneratorSettingsCard
             useStrength={settings?.use_strength ?? false}
             useCategories={settings?.use_categories ?? false}
+          />
+        </SettingsShell>
+
+        <SettingsShell
+          title="Zusagen"
+          description="Uhrzeit und Frist für Zu- und Absagen steuern."
+        >
+          <RsvpSettingsCard
+            value={settings?.rsvp_deadline_minutes_before ?? 30}
+            saved={clubSaved}
+            error={clubError}
           />
         </SettingsShell>
 

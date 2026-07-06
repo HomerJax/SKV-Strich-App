@@ -205,6 +205,10 @@ export default async function NewSessionPage({
     );
 
     const date = String(formData.get("date") ?? "").trim();
+    const startTimeRaw = String(formData.get("start_time") ?? "").trim();
+    const startTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(startTimeRaw)
+      ? startTimeRaw
+      : null;
     const notesRaw = String(formData.get("notes") ?? "").trim();
     const notes = notesRaw === "" ? null : notesRaw;
 
@@ -224,6 +228,10 @@ export default async function NewSessionPage({
           redirect("/sessions/new?error=Bitte%20Datum%20ausw%C3%A4hlen.");
         }
 
+        if (!startTime) {
+          redirect("/sessions/new?error=Bitte%20Uhrzeit%20ausw%C3%A4hlen.");
+        }
+
         const seasonId = await findSeasonIdForDate(
           actionSupabase,
           actionClubId,
@@ -234,6 +242,7 @@ export default async function NewSessionPage({
           .from("sessions")
           .insert({
             date,
+            start_time: startTime,
             notes,
             season_id: seasonId,
             club_id: actionClubId,
@@ -356,6 +365,7 @@ export default async function NewSessionPage({
 
       const rowsToInsert = datesToCreate.map((currentDate) => ({
         date: currentDate,
+        start_time: startTime,
         notes,
         season_id: season.id,
         club_id: actionClubId,

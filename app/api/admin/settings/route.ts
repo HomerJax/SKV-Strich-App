@@ -21,6 +21,7 @@ type ClubSettingsRow = {
   season_end_month: number | null;
   season_year_mode: string | null;
   awards_started_at: string | null;
+  rsvp_deadline_minutes_before: number | null;
 };
 
 function redirectWithParams(
@@ -210,14 +211,22 @@ export async function POST(request: Request) {
 
   const submitsAwardSettings = hasField(formData, "awards_started_at");
 
-  if (!submitsTeamGeneratorSettings && !submitsSeasonSettings && !submitsAwardSettings) {
+  const submitsRsvpSettings =
+    settingsScope === "rsvp" || hasField(formData, "rsvp_deadline_minutes_before");
+
+  if (
+    !submitsTeamGeneratorSettings &&
+    !submitsSeasonSettings &&
+    !submitsAwardSettings &&
+    !submitsRsvpSettings
+  ) {
     return redirectWithParams(request, redirectTo, { error: "nothing_to_save" });
   }
 
   const { data: existingSettings, error: existingSettingsError } = await supabase
     .from("club_settings")
     .select(
-      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode, awards_started_at"
+      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode, awards_started_at, rsvp_deadline_minutes_before"
     )
     .eq("club_id", activeClubId)
     .maybeSingle<ClubSettingsRow>();
@@ -236,6 +245,7 @@ export async function POST(request: Request) {
     season_end_month: 12,
     season_year_mode: "start_year",
     awards_started_at: null,
+    rsvp_deadline_minutes_before: 30,
   };
 
   const useStrength = submitsTeamGeneratorSettings
@@ -303,6 +313,20 @@ export async function POST(request: Request) {
   const awardsStartedAt =
     submitsAwardSettings ? parsedAwardsStartedAt : currentSettings.awards_started_at;
 
+  const rawRsvpDeadline = parseInteger(formData.get("rsvp_deadline_minutes_before"));
+  const allowedRsvpDeadlines = new Set([0, 15, 30, 60, 120, 1440]);
+
+  const rsvpDeadlineMinutesBefore = submitsRsvpSettings
+    ? rawRsvpDeadline
+    : (currentSettings.rsvp_deadline_minutes_before ?? 30);
+
+  if (
+    !Number.isInteger(rsvpDeadlineMinutesBefore) ||
+    !allowedRsvpDeadlines.has(rsvpDeadlineMinutesBefore)
+  ) {
+    return redirectWithParams(request, redirectTo, { error: "invalid_rsvp_deadline" });
+  }
+
   const { error: upsertError } = await supabase.from("club_settings").upsert(
     {
       club_id: activeClubId,
@@ -314,6 +338,7 @@ export async function POST(request: Request) {
       season_end_month: seasonEndMonth,
       season_year_mode: seasonYearMode,
       awards_started_at: awardsStartedAt,
+      rsvp_deadline_minutes_before: rsvpDeadlineMinutesBefore,
     },
     {
       onConflict: "club_id",

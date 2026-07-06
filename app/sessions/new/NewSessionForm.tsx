@@ -167,16 +167,29 @@ export default function NewSessionForm({
             Einzeltermin
           </div>
 
-          <label className="block">
-            <div className="mb-1 text-xs font-semibold text-slate-700">Datum</div>
-            <input
-              name="date"
-              type="date"
-              defaultValue={initialDate}
-              required={mode === "single"}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-            />
-          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <div className="mb-1 text-xs font-semibold text-slate-700">Datum</div>
+              <input
+                name="date"
+                type="date"
+                defaultValue={initialDate}
+                required={mode === "single"}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+
+            <label className="block">
+              <div className="mb-1 text-xs font-semibold text-slate-700">Uhrzeit</div>
+              <input
+                name="start_time"
+                type="time"
+                defaultValue="19:30"
+                required
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
         </div>
       ) : null}
 
@@ -246,6 +259,19 @@ export default function NewSessionForm({
                   />
                 </label>
               </div>
+
+              <label className="block">
+                <div className="mb-1 text-xs font-semibold text-slate-700">
+                  Uhrzeit
+                </div>
+                <input
+                  name="start_time"
+                  type="time"
+                  defaultValue="19:30"
+                  required
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                />
+              </label>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">

@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, UserCheck, UserX } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type PresenceStatus = "in" | "out" | "open";
 
@@ -13,8 +13,55 @@ type NextSessionAttendanceCardProps = {
   initialStatus: PresenceStatus;
   initialPresentCount: number;
   initialAbsentCount?: number;
+  sessionDate?: string;
+  startTime?: string | null;
+  rsvpDeadlineMinutesBefore?: number;
   participantNames?: string[];
 };
+
+
+function getDeadline(
+  sessionDate: string | undefined,
+  startTime: string | null | undefined,
+  minutesBefore: number
+) {
+  if (!sessionDate || !startTime) return null;
+
+  const [year, month, day] = sessionDate.split("-").map(Number);
+  const [hour, minute] = startTime.slice(0, 5).split(":").map(Number);
+
+  if (!year || !month || !day || !Number.isFinite(hour) || !Number.isFinite(minute)) {
+    return null;
+  }
+
+  const start = new Date(year, month - 1, day, hour, minute, 0);
+  const deadline = new Date(start);
+  deadline.setMinutes(deadline.getMinutes() - minutesBefore);
+
+  return { start, deadline };
+}
+
+function formatTime(date: Date) {
+  return date.toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getRemainingLabel(deadline: Date, now: Date) {
+  const diffMs = deadline.getTime() - now.getTime();
+
+  if (diffMs <= 0) return "Frist vorbei";
+
+  const totalMinutes = Math.ceil(diffMs / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return `noch ${days} Tg ${hours} Std`;
+  if (hours > 0) return `noch ${hours} Std ${minutes} Min`;
+  return `noch ${minutes} Min`;
+}
 
 export default function NextSessionAttendanceCard({
   sessionId,
@@ -22,11 +69,44 @@ export default function NextSessionAttendanceCard({
   initialStatus,
   initialPresentCount,
   initialAbsentCount = 0,
+  sessionDate,
+  startTime,
+  rsvpDeadlineMinutesBefore = 30,
 }: NextSessionAttendanceCardProps) {
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [presentCount, setPresentCount] = useState<number>(initialPresentCount);
   const [absentCount, setAbsentCount] = useState<number>(initialAbsentCount);
   const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+
+    const interval = window.setInterval(() => {
+      setNow(new Date());
+    }, 30000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const deadlineInfo = getDeadline(
+    sessionDate,
+    startTime,
+    rsvpDeadlineMinutesBefore
+  );
+
+  const deadlinePrefix =
+    deadlineInfo &&
+    deadlineInfo.deadline.toDateString() !== deadlineInfo.start.toDateString()
+      ? "Zusage bis Vortag"
+      : "Zusage bis";
+
+  const deadlineText = deadlineInfo
+    ? `${deadlinePrefix} ${formatTime(deadlineInfo.deadline)} Uhr`
+    : null;
+
+  const remainingText =
+    deadlineInfo && now ? getRemainingLabel(deadlineInfo.deadline, now) : null;
 
   async function updateStatus(nextStatus: "in" | "out") {
     if (busy || status === nextStatus) return;
@@ -95,6 +175,15 @@ export default function NextSessionAttendanceCard({
           <h2 className="mt-2 text-[25px] font-semibold leading-none tracking-[-0.05em] text-slate-950">
             {title}
           </h2>
+
+          {deadlineText ? (
+            <div className="mt-3 inline-flex max-w-full items-center rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+              <span className="truncate">
+                {deadlineText}
+                {remainingText ? ` · ${remainingText}` : ""}
+              </span>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.08)] ring-1 ring-slate-950/5">
