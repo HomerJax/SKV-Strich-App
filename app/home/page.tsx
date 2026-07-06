@@ -1218,18 +1218,28 @@ export default async function HomePage() {
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Link
                   href="/stats"
-                  className="flex min-h-10 items-center justify-between rounded-2xl bg-slate-950 px-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
+                  className="flex min-h-[54px] items-center justify-between rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 via-cyan-50 to-white px-4 text-sm font-semibold text-slate-950 shadow-[0_12px_28px_rgba(37,99,235,0.08)] transition hover:from-blue-100 hover:via-cyan-50 hover:to-white"
                 >
-                  <span>Mein Fortschritt</span>
-                  <span aria-hidden="true">→</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                      <TrendingUp className="h-4 w-4" />
+                    </span>
+                    <span>Mein Fortschritt</span>
+                  </span>
+                  <span className="text-blue-700" aria-hidden="true">→</span>
                 </Link>
 
                 <Link
                   href="/standings"
-                  className="flex min-h-10 items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-900 transition hover:bg-slate-50"
+                  className="flex min-h-[54px] items-center justify-between rounded-[24px] border border-amber-100 bg-gradient-to-br from-amber-50 via-orange-50 to-white px-4 text-sm font-semibold text-slate-950 shadow-[0_12px_28px_rgba(245,158,11,0.08)] transition hover:from-amber-100 hover:via-orange-50 hover:to-white"
                 >
-                  <span>Tabelle</span>
-                  <Trophy className="h-4 w-4 text-slate-500" />
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                      <Trophy className="h-4 w-4" />
+                    </span>
+                    <span>Tabelle</span>
+                  </span>
+                  <span className="text-amber-600" aria-hidden="true">→</span>
                 </Link>
               </div>
             </>
