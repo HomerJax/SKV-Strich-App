@@ -297,6 +297,10 @@ export default async function SessionDetailPage({ params }: PageProps) {
     throw new Error(`Teams konnten nicht geladen werden: ${teamsError.message}`);
   }
 
+  if (!sessionData) {
+    redirect("/sessions");
+  }
+
   const session = sessionData as SessionRow;
 
   const clubSettings: ClubSettings = {
