@@ -46,17 +46,17 @@ export function getErrorMessage(e: unknown, fallback: string) {
 }
 
 export function movementText(d: number | null) {
-  if (delta > 0) return `+${delta}`;
-  if (delta < 0) return `${delta}`;
-  return "+1";
+  if (d == null) return "–";
+  if (d === 0) return "→ 0";
+  if (d > 0) return `↑ +${d}`;
+  return `↓ ${d}`;
 }
 
 export function movementClass(d: number | null) {
-  if (delta < 0) {
-    return "border-red-200 bg-red-50 text-red-700";
-  }
-
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (d == null) return "text-slate-400";
+  if (d === 0) return "text-slate-500";
+  if (d > 0) return "text-emerald-600";
+  return "text-red-600";
 }
 
 export type TrainingAward = {
