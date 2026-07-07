@@ -64,6 +64,11 @@ type SessionPlayerRow = {
   player_id: number;
 };
 
+type SessionRsvpRow = {
+  player_id: number;
+  status: "in" | "out";
+};
+
 type BalanceCategoryRow = {
   key: string;
   label: string;
@@ -218,6 +223,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     { data: playersData, error: playersError },
     { data: categoriesData, error: categoriesError },
     { data: sessionPlayersData, error: sessionPlayersError },
+    { data: sessionRsvpsData, error: sessionRsvpsError },
     { data: resultData, error: resultError },
     { data: teamsData, error: teamsError },
   ] = await Promise.all([
@@ -257,6 +263,11 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .from("session_players")
       .select("player_id")
       .eq("session_id", sessionId),
+    supabase
+      .from("session_rsvps")
+      .select("player_id, status")
+      .eq("session_id", sessionId)
+      .eq("club_id", clubId),
     supabase
       .from("results")
       .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
@@ -301,6 +312,12 @@ export default async function SessionDetailPage({ params }: PageProps) {
     );
   }
 
+  if (sessionRsvpsError) {
+    throw new Error(
+      `Rückmeldungen konnten nicht geladen werden: ${sessionRsvpsError.message}`
+    );
+  }
+
   if (resultError) {
     throw new Error(
       `Ergebnis konnte nicht geladen werden: ${resultError.message}`
@@ -331,6 +348,13 @@ export default async function SessionDetailPage({ params }: PageProps) {
     ])
   );
 
+  const rsvpStatusByPlayerId = new Map(
+    ((sessionRsvpsData ?? []) as SessionRsvpRow[]).map((row) => [
+      row.player_id,
+      row.status,
+    ])
+  );
+
   const players = (((playersData ?? []).filter(
     (player) => player.is_active !== false
   ) ?? []) as Player[]).map((player) => ({
@@ -340,6 +364,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       player.category_key && categoryLabelByKey.has(player.category_key)
         ? categoryLabelByKey.get(player.category_key) ?? null
         : null,
+    rsvp_status: rsvpStatusByPlayerId.get(player.id) ?? null,
   }));
 
   const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[]).map(

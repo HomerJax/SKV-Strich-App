@@ -955,15 +955,25 @@ export default async function HomePage() {
 
   let nextSessionPresenceStatus: "in" | "out" | "open" = "open";
   let nextSessionPresentCount = 0;
+  let nextSessionAbsentCount = 0;
   let nextSessionParticipantNames: string[] = [];
 
   if (homeSessionRsvpEnabled && nextSession) {
-    const [{ count: nextSessionPresentCountValue }, { data: participantRows }] =
+    const [
+      { count: nextSessionPresentCountValue },
+      { count: nextSessionAbsentCountValue },
+      { data: participantRows },
+    ] =
       await Promise.all([
         supabase
           .from("session_players")
           .select("*", { count: "exact", head: true })
           .eq("session_id", nextSession.id),
+        supabase
+          .from("session_rsvps")
+          .select("*", { count: "exact", head: true })
+          .eq("session_id", nextSession.id)
+          .eq("status", "out"),
         supabase
           .from("session_players")
           .select(
@@ -979,6 +989,7 @@ export default async function HomePage() {
       ]);
 
     nextSessionPresentCount = nextSessionPresentCountValue ?? 0;
+    nextSessionAbsentCount = nextSessionAbsentCountValue ?? 0;
 
     nextSessionParticipantNames = ((participantRows ?? []) as NextSessionParticipantRow[])
       .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players)))
@@ -986,14 +997,28 @@ export default async function HomePage() {
       .sort((a, b) => a.localeCompare(b, "de"));
 
     if (currentPlayer?.id) {
-      const { data: selfPresence } = await supabase
-        .from("session_players")
-        .select("player_id")
-        .eq("session_id", nextSession.id)
-        .eq("player_id", currentPlayer.id)
-        .maybeSingle();
+      const [{ data: selfRsvp }, { data: selfPresence }] = await Promise.all([
+        supabase
+          .from("session_rsvps")
+          .select("status")
+          .eq("session_id", nextSession.id)
+          .eq("player_id", currentPlayer.id)
+          .maybeSingle(),
+        supabase
+          .from("session_players")
+          .select("player_id")
+          .eq("session_id", nextSession.id)
+          .eq("player_id", currentPlayer.id)
+          .maybeSingle(),
+      ]);
 
-      nextSessionPresenceStatus = selfPresence ? "in" : "open";
+      if (selfRsvp?.status === "out") {
+        nextSessionPresenceStatus = "out";
+      } else if (selfRsvp?.status === "in" || selfPresence) {
+        nextSessionPresenceStatus = "in";
+      } else {
+        nextSessionPresenceStatus = "open";
+      }
     }
   }
 
@@ -1146,6 +1171,7 @@ export default async function HomePage() {
               href={`/sessions/${nextSession.id}`}
               initialStatus={nextSessionPresenceStatus}
               initialPresentCount={nextSessionPresentCount}
+              initialAbsentCount={nextSessionAbsentCount}
               sessionDate={nextSession.date}
               startTime={nextSession.start_time}
               rsvpDeadlineMinutesBefore={rsvpDeadlineMinutesBefore}

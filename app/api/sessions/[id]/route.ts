@@ -189,6 +189,28 @@ export async function POST(
           );
         }
 
+        const { error: rsvpError } = await adminSupabase
+          .from("session_rsvps")
+          .upsert(
+            {
+              club_id: clubId,
+              session_id: sessionId,
+              player_id: playerId,
+              status: "in",
+              updated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: "session_id,player_id",
+            }
+          );
+
+        if (rsvpError) {
+          return fail(
+            `Zusage konnte nicht gespeichert werden: ${rsvpError.message}`,
+            500
+          );
+        }
+
         return ok({
           message:
             sessionType === "training"
@@ -206,7 +228,49 @@ export async function POST(
 
       if (deleteError) {
         return fail(
-          `Absage konnte nicht gespeichert werden: ${deleteError.message}`,
+          `Rückmeldung konnte nicht gespeichert werden: ${deleteError.message}`,
+          500
+        );
+      }
+
+      if (status === "open") {
+        const { error: clearRsvpError } = await adminSupabase
+          .from("session_rsvps")
+          .delete()
+          .eq("session_id", sessionId)
+          .eq("player_id", playerId);
+
+        if (clearRsvpError) {
+          return fail(
+            `Rückmeldung konnte nicht zurückgesetzt werden: ${clearRsvpError.message}`,
+            500
+          );
+        }
+
+        return ok({
+          message: "Deine Rückmeldung wurde zurückgesetzt.",
+          status: "open",
+        });
+      }
+
+      const { error: rsvpError } = await adminSupabase
+        .from("session_rsvps")
+        .upsert(
+          {
+            club_id: clubId,
+            session_id: sessionId,
+            player_id: playerId,
+            status: "out",
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "session_id,player_id",
+          }
+        );
+
+      if (rsvpError) {
+        return fail(
+          `Absage konnte nicht gespeichert werden: ${rsvpError.message}`,
           500
         );
       }

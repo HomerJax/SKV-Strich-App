@@ -238,6 +238,14 @@ function PlayerMetaChips({ player }: { player: Player }) {
   );
 }
 
+
+function getPlayerRsvpStatus(player: Player) {
+  return (
+    (player as Player & { rsvp_status?: "in" | "out" | null }).rsvp_status ??
+    null
+  );
+}
+
 export default function SessionAttendanceCard({
   players,
   presentIds,
@@ -267,7 +275,11 @@ export default function SessionAttendanceCard({
   onSavePresence,
 }: SessionAttendanceCardProps) {
   const presentCount = presentIds.length;
-  const absentCount = Math.max(players.length - presentCount, 0);
+  const rsvpAbsentCount = players.filter(
+    (player) =>
+      !presentIds.includes(player.id) && getPlayerRsvpStatus(player) === "out"
+  ).length;
+  const openCount = Math.max(players.length - presentCount - rsvpAbsentCount, 0);
   const done = directSaveEnabled ? presentCount > 0 : !dirty && presentCount > 0;
 
   const wasSavingRef = useRef(false);
@@ -378,9 +390,15 @@ export default function SessionAttendanceCard({
                   {presentCount} anwesend
                 </SectionSummaryPill>
 
+                {rsvpAbsentCount > 0 ? (
+                  <SectionSummaryPill tone="muted">
+                    {rsvpAbsentCount} abgesagt
+                  </SectionSummaryPill>
+                ) : null}
+
                 {!done ? (
                   <SectionSummaryPill tone="muted">
-                    {absentCount} offen
+                    {openCount} offen
                   </SectionSummaryPill>
                 ) : null}
 
@@ -423,8 +441,13 @@ export default function SessionAttendanceCard({
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <SectionSummaryPill>{presentCount} anwesend</SectionSummaryPill>
+                  {rsvpAbsentCount > 0 ? (
+                    <SectionSummaryPill tone="muted">
+                      {rsvpAbsentCount} abgesagt
+                    </SectionSummaryPill>
+                  ) : null}
                   <SectionSummaryPill tone="muted">
-                    {absentCount} offen
+                    {openCount} offen
                   </SectionSummaryPill>
                   {!directSaveEnabled && dirty ? (
                     <SectionSummaryPill tone="muted">
@@ -606,6 +629,7 @@ export default function SessionAttendanceCard({
         <div className="grid gap-1.5">
           {players.map((player) => {
             const isPresent = presentIds.includes(player.id);
+            const isAbsent = !isPresent && getPlayerRsvpStatus(player) === "out";
             const mvpCount = getPlayerMvpCount(player);
             const isDeletingGuest = deletingGuestPlayerId === player.id;
             const canDeleteGuest = isAdmin && player.is_guest && !hasResult;
@@ -627,12 +651,16 @@ export default function SessionAttendanceCard({
                       ? "Gesperrt: Ergebnis gespeichert"
                       : isPresent
                         ? "Klick: als nicht anwesend markieren"
-                        : "Klick: als anwesend markieren"
+                        : isAbsent
+                          ? "Hat abgesagt · Klick: als anwesend markieren"
+                          : "Klick: als anwesend markieren"
                   }
                   className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
                     isPresent
                       ? "border-emerald-200 bg-emerald-50"
-                      : "border-slate-200 bg-white hover:bg-slate-50"
+                      : isAbsent
+                        ? "border-rose-200 bg-rose-50"
+                        : "border-slate-200 bg-white hover:bg-slate-50"
                   } ${
                     isLastChanged && savingPresence
                       ? "ring-2 ring-blue-200"
@@ -644,10 +672,12 @@ export default function SessionAttendanceCard({
                       className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                         isPresent
                           ? "bg-emerald-600 text-white"
-                          : "bg-slate-100 text-slate-500"
+                          : isAbsent
+                            ? "bg-rose-600 text-white"
+                            : "bg-slate-100 text-slate-500"
                       }`}
                     >
-                      {isPresent ? "✓" : ""}
+                      {isPresent ? "✓" : isAbsent ? "×" : ""}
                     </span>
 
                     <span className="min-w-0">
@@ -672,6 +702,12 @@ export default function SessionAttendanceCard({
                     {isLastChanged && savingPresence ? (
                       <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">
                         Speichert…
+                      </span>
+                    ) : null}
+
+                    {isAbsent ? (
+                      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-semibold text-rose-700">
+                        Abgesagt
                       </span>
                     ) : null}
 

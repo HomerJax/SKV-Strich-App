@@ -71,6 +71,16 @@ export async function handleTogglePresence({
       return fail(deleteError.message, 500);
     }
 
+    const { error: rsvpDeleteError } = await supabase
+      .from("session_rsvps")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("player_id", playerId);
+
+    if (rsvpDeleteError) {
+      return fail(rsvpDeleteError.message, 500);
+    }
+
     return ok({
       mode: "removed",
       playerId,
@@ -84,6 +94,23 @@ export async function handleTogglePresence({
 
   if (insertError) {
     return fail(insertError.message, 500);
+  }
+
+  const { error: rsvpError } = await supabase.from("session_rsvps").upsert(
+    {
+      club_id: clubId,
+      session_id: sessionId,
+      player_id: playerId,
+      status: "in",
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "session_id,player_id",
+    }
+  );
+
+  if (rsvpError) {
+    return fail(rsvpError.message, 500);
   }
 
   return ok({
