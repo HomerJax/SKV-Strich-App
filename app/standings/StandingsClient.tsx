@@ -396,14 +396,6 @@ export default function StandingsClient({
         />
 
         {!isPro ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 shadow-sm">
-            <div className="font-black">Free: aktuelle Tabelle</div>
-            <div className="mt-1">
-              {clubName} sieht hier die aktuelle Tabelle. Vergangene Saisons,
-              ewige Tabelle und erweiterte Tabellen-Auswertungen sind Teil von
-              strikr Pro.
-            </div>
-          </div>
         ) : null}
 
         {msg ? (
@@ -477,7 +469,7 @@ export default function StandingsClient({
                   ? `Trainings-Awards zählen offiziell seit ${new Date(
                       `${awardsStartedAt}T12:00:00`
                     ).toLocaleDateString("de-DE")}.`
-                  : "Die Awards werden aktuell nur testweise aus bestehenden Daten berechnet. Offiziell zählen Serien und Badges erst ab eurem späteren Go."}
+                  : ""}
               </div>
             </div>
 
