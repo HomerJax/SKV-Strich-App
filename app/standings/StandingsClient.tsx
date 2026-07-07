@@ -26,16 +26,24 @@ function getTrainingAwards(_row: unknown): TrainingAward[] {
   return [];
 }
 
-function getDemoMovement(rank: number) {
+function getDemoMovementValue(rank: number, movement: number | null | undefined) {
+  if (movement && movement !== 0) return movement;
+
   if (rank === 1) return 0;
   if (rank === 2) return 2;
   if (rank === 3) return -1;
   if (rank === 4) return 1;
   if (rank === 5) return -2;
+  if (rank === 6) return 1;
+  if (rank === 7) return -1;
+  if (rank === 8) return 2;
+  if (rank === 9) return -2;
   if (rank % 4 === 0) return 1;
   if (rank % 5 === 0) return -1;
+
   return 0;
 }
+
 
 type RankingCard = {
   index: number;
@@ -469,9 +477,6 @@ export default function StandingsClient({
                   : "border-amber-200 bg-amber-50 text-amber-900"
               }`}
             >
-              <div className="font-black">
-                {awardsOfficial ? "Awards aktiv" : "Awards Preview"}
-              </div>
               <div className="mt-0.5">
                 {awardsOfficial
                   ? `Trainings-Awards zählen offiziell seit ${new Date(
