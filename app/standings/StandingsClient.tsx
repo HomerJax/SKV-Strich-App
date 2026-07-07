@@ -18,6 +18,8 @@ import {
 } from "./standings-ui";
 import type { TrainingAward } from "./standings-ui";
 
+const DEMO_STANDINGS_MOVEMENT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
+
 function PlayerBadge(_props: Record<string, unknown>) {
   return null;
 }
@@ -517,10 +519,16 @@ export default function StandingsClient({
 
                           <div
                             className={`text-[11px] font-semibold ${movementClass(
-                              row.deltaRank
+                              initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID
+                                ? getDemoMovementValue(row.rank, row.deltaRank)
+                                : row.deltaRank
                             )}`}
                           >
-                            {movementText(row.deltaRank)}
+                            {movementText(
+                              initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID
+                                ? getDemoMovementValue(row.rank, row.deltaRank)
+                                : row.deltaRank
+                            )}
                           </div>
                         </td>
 
