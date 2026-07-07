@@ -26,6 +26,17 @@ function getTrainingAwards(_row: unknown): TrainingAward[] {
   return [];
 }
 
+function getDemoMovement(rank: number) {
+  if (rank === 1) return 0;
+  if (rank === 2) return 2;
+  if (rank === 3) return -1;
+  if (rank === 4) return 1;
+  if (rank === 5) return -2;
+  if (rank % 4 === 0) return 1;
+  if (rank % 5 === 0) return -1;
+  return 0;
+}
+
 type RankingCard = {
   index: number;
   rows: RankRow[];
