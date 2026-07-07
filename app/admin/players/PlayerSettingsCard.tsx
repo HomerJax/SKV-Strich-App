@@ -7,24 +7,6 @@ type PlayerSettingsCardProps = {
 };
 
 
-function getFullPlayerName(player: {
-  first_name?: string | null;
-  last_name?: string | null;
-  nickname?: string | null;
-  name?: string | null;
-}) {
-  const firstName = player.first_name?.trim() ?? "";
-  const lastName = player.last_name?.trim() ?? "";
-  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
-
-  return (
-    fullName ||
-    player.name?.trim() ||
-    player.nickname?.trim() ||
-    "Unbenannter Spieler"
-  );
-}
-
 export default function PlayerSettingsCard({
   className = "",
 }: PlayerSettingsCardProps) {
@@ -40,11 +22,11 @@ export default function PlayerSettingsCard({
             Einstellungen
           </div>
           <h2 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950">
-            Spieler & Generator
+            Kader & Teamgenerator
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Hier pflegst du die Grundlagen für die Teamverteilung und kannst
-            nachlesen, wie der Generator arbeitet.
+            Erst verstehen, wie strikr faire Teams bildet – danach pflegst du
+            Spieler, Kategorien, Positionen, Stärken und Balance-Gruppen.
           </p>
         </div>
 
@@ -68,6 +50,7 @@ export default function PlayerSettingsCard({
             <li>• Kategorien wie AH und Ü32 werden bewusst getrennt behandelt.</li>
             <li>• Stärke wird innerhalb der Kategorie von 1 bis 5 vergeben.</li>
             <li>• Position dient der fairen Verteilung, nicht als Bonuswert.</li>
+            <li>• Balance-Gruppen helfen bei Sonderfällen wie Torhütern oder festen Profilen.</li>
             <li>• Grundlage sind nur anwesende Spieler der Session.</li>
           </ul>
         </div>
@@ -165,6 +148,22 @@ export default function PlayerSettingsCard({
                     Position ist kein Bonus und kein Malus. Ein Vorderer ist
                     also nicht automatisch mehr wert als ein Hinterer. Die
                     Position dient nur dazu, die Teams sauber zu verteilen.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="font-semibold text-slate-900">
+                    4. Balance-Gruppen
+                  </div>
+                  <p className="mt-2">
+                    Balance-Gruppen sind Sondermarker für den Generator. Sie
+                    helfen, bestimmte Spielerprofile fair zu verteilen – zum
+                    Beispiel Torhüter, sehr starke Spieler oder Spieler, die
+                    nicht zufällig alle im selben Team landen sollen.
+                  </p>
+                  <p className="mt-2">
+                    Sie erklären also direkt, warum Spieler im Kader zusätzlich
+                    markiert werden können.
                   </p>
                 </div>
               </div>
