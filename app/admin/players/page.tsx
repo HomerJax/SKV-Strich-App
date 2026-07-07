@@ -73,11 +73,8 @@ function positionLabel(
 }
 
 function getPlayerHeadline(player: PlayerRow) {
-  if (player.nickname?.trim()) {
-    return player.nickname.trim();
-  }
-
   const fullName = [player.first_name, player.last_name]
+    .map((part) => part?.trim())
     .filter(Boolean)
     .join(" ")
     .trim();
@@ -88,6 +85,10 @@ function getPlayerHeadline(player: PlayerRow) {
 
   if (player.name?.trim()) {
     return player.name.trim();
+  }
+
+  if (player.nickname?.trim()) {
+    return player.nickname.trim();
   }
 
   return `Spieler #${player.id}`;
@@ -193,14 +194,6 @@ export default async function AdminPlayersPage({
           später sauber zugeordnet werden.
         </div>
 
-        <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm leading-6 text-indigo-950">
-          <span className="font-semibold">Balance-Gruppen:</span>{" "}
-          Spieler aus derselben Balance-Gruppe werden vom Generator möglichst
-          auf verschiedene Teams verteilt. Beispiel: Sind Kalle und Toni beide in
-          der Gruppe „Gehfußballer“, versucht strikr, sie nicht ins gleiche Team
-          zu legen. Spieler aus unterschiedlichen Balance-Gruppen dürfen
-          weiterhin zusammen spielen, wenn es für die Gesamtbalance passt.
-        </div>
 
         <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600">
           In den{" "}

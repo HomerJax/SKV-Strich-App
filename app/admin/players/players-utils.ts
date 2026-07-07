@@ -29,14 +29,16 @@ export function buildLegacyName(player: {
   last_name: string | null;
   nickname: string | null;
 }) {
-  const nickname = clean(player.nickname);
-  if (nickname) return nickname;
-
   const firstName = clean(player.first_name);
   const lastName = clean(player.last_name);
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
 
-  return fullName || "Unbekannter Spieler";
+  if (fullName) return fullName;
+
+  const nickname = clean(player.nickname);
+  if (nickname) return nickname;
+
+  return "Unbekannter Spieler";
 }
 
 export function sortPlayersByDisplayName(list: Player[]) {
