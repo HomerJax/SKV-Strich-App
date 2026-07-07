@@ -26,6 +26,34 @@ function getTrainingAwards(_row: unknown): TrainingAward[] {
   return [];
 }
 
+function getDemoMovementForStandingsRow(row: unknown, movement: number | null | undefined) {
+  if (typeof movement === "number" && Number.isFinite(movement) && movement !== 0) {
+    return movement;
+  }
+
+  const source = row as Record<string, unknown>;
+  const rawSeed =
+    source.rank ??
+    source.position ??
+    source.place ??
+    source.playerId ??
+    source.player_id ??
+    source.id ??
+    source.name ??
+    source.playerName ??
+    "";
+
+  const seedText = String(rawSeed);
+  let hash = 0;
+
+  for (let i = 0; i < seedText.length; i += 1) {
+    hash += seedText.charCodeAt(i) * (i + 1);
+  }
+
+  const demoValues = [0, 2, -1, 1, -2, 1, -1, 2, -2, 1, -1, 0];
+  return demoValues[Math.abs(hash) % demoValues.length] ?? 0;
+}
+
 function getDemoMovementValue(rank: number, movement: number | null | undefined) {
   if (movement && movement !== 0) return movement;
 
@@ -520,7 +548,7 @@ export default function StandingsClient({
                               row.deltaRank
                             )}`}
                           >
-                            {movementText(row.deltaRank)}
+                            {movementText(getDemoMovementForStandingsRow(row, row.deltaRank))}
                           </div>
                         </td>
 
