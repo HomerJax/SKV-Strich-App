@@ -470,21 +470,6 @@ export default function StandingsClient({
 
         {!loading && !err && rows.length > 0 ? (
           <>
-            <div
-              className={`rounded-2xl border px-4 py-3 text-xs leading-5 shadow-sm ${
-                awardsOfficial
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                  : "border-amber-200 bg-amber-50 text-amber-900"
-              }`}
-            >
-              <div className="mt-0.5">
-                {awardsOfficial
-                  ? `Trainings-Awards zählen offiziell seit ${new Date(
-                      `${awardsStartedAt}T12:00:00`
-                    ).toLocaleDateString("de-DE")}.`
-                  : ""}
-              </div>
-            </div>
 
             <div
               id="export-standings"
