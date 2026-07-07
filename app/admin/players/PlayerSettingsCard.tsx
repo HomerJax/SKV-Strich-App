@@ -6,6 +6,25 @@ type PlayerSettingsCardProps = {
   className?: string;
 };
 
+
+function getFullPlayerName(player: {
+  first_name?: string | null;
+  last_name?: string | null;
+  nickname?: string | null;
+  name?: string | null;
+}) {
+  const firstName = player.first_name?.trim() ?? "";
+  const lastName = player.last_name?.trim() ?? "";
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+
+  return (
+    fullName ||
+    player.name?.trim() ||
+    player.nickname?.trim() ||
+    "Unbenannter Spieler"
+  );
+}
+
 export default function PlayerSettingsCard({
   className = "",
 }: PlayerSettingsCardProps) {
@@ -13,7 +32,7 @@ export default function PlayerSettingsCard({
 
   return (
     <section
-      className={`rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6 ${className}`}
+      className={`rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 ${className}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>

@@ -63,8 +63,8 @@ export default function TeamGeneratorSettingsCard({
 
         <p className="text-sm leading-6 text-slate-700">
           Der Teamgenerator teilt anwesende Spieler automatisch in möglichst
-          faire Teams auf. Optional können Kategorien und Stärke berücksichtigt
-          werden.
+          faire Teams auf. Kategorien, Stärke, Positionen und Balance-Gruppen
+          helfen strikr dabei, die Teams sinnvoll zu verteilen.
         </p>
 
         <details className="group mt-4 rounded-2xl border border-black/10 bg-white">
@@ -169,6 +169,16 @@ export default function TeamGeneratorSettingsCard({
 
               <p>
                 <span className="font-semibold text-slate-900">
+                  Balance-Gruppen erklärt:
+                </span>{" "}
+                Balance-Gruppen sind für Sonderfälle gedacht. Damit kannst du
+                Spieler markieren, die der Generator möglichst fair verteilen
+                soll – zum Beispiel Torhüter, sehr starke Spieler oder feste
+                Profile, die nicht zufällig alle in einem Team landen sollen.
+              </p>
+
+              <p>
+                <span className="font-semibold text-slate-900">
                   Was passiert, wenn beides aus ist?
                 </span>{" "}
                 Dann werden die Teams ohne Kategorie- und Stärkebalance
@@ -237,8 +247,8 @@ export default function TeamGeneratorSettingsCard({
                   Kategorien nutzen
                 </div>
                 <div className="text-sm text-slate-600">
-                  Verteilt Kategorien wie AH oder Ü32 möglichst gleichmäßig auf
-                  beide Teams.
+                  Verteilt eure Kategorien möglichst gleichmäßig auf beide
+                  Teams.
                 </div>
               </div>
             </label>

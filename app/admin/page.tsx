@@ -178,7 +178,7 @@ export default async function AdminPage() {
           primaryColorKey={club.primary_color}
           eyebrow="Adminbereich"
           title={clubName}
-          description="Hier verwaltest du die wichtigsten Bereiche für dein Team: Mitglieder, Spieler und zentrale Einstellungen für Club, Kategorien, Teamgenerator und Saisonlogik."
+          description="Hier verwaltest du die wichtigsten Bereiche für dein Team: Mitglieder, Kader, Teamgenerator und zentrale Einstellungen für Club, Kategorien, Teamgenerator und Saisonlogik."
           backLabel="Zurück"
           backHref="/"
           topRightSlot={
@@ -196,7 +196,9 @@ export default async function AdminPage() {
           compact
         />
 
-        <ProStatusPanel clubName={clubName} isPro={billingAccess.isPro} />
+        {billingAccess.isPro ? null : (
+          <ProStatusPanel clubName={clubName} isPro={billingAccess.isPro} />
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           <AdminCard
@@ -210,8 +212,8 @@ export default async function AdminPage() {
           <AdminCard
             href="/admin/players"
             eyebrow="Spielbetrieb"
-            title="Spieler"
-            description="Pflege Spielerprofile, Positionen, Stärken und weitere Grundlagen für euren Trainings- und Teamgenerator-Workflow."
+            title="Kader & Teamgenerator"
+            description="Lege fest, wie strikr faire Teams bildet – und pflege danach Spieler, Kategorien, Positionen und Stärken."
             icon={<UserRound className="h-6 w-6" strokeWidth={2.1} />}
           />
 
