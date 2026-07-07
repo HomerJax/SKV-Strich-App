@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import ExportButtons from "@/components/ExportButtons";
 import PageHero from "@/components/ui/PageHero";
-import PlayerBadge from "@/components/badges/PlayerBadge";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import StandingsShareCard from "./StandingsShareCard";
 import type { RankRow, Season } from "./standings-types";
@@ -14,11 +13,18 @@ import {
   awardClass,
   chunkRows,
   getErrorMessage,
-  getTrainingAwards,
   movementClass,
   movementText,
 } from "./standings-ui";
 import type { TrainingAward } from "./standings-ui";
+
+function PlayerBadge(_props: Record<string, unknown>) {
+  return null;
+}
+
+function getTrainingAwards(_row: unknown): TrainingAward[] {
+  return [];
+}
 
 type RankingCard = {
   index: number;
