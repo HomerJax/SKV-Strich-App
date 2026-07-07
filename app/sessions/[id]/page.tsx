@@ -24,6 +24,19 @@ type ClubSettings = {
   use_field_view?: boolean;
 };
 
+const DEFAULT_CLUB_SETTINGS: ClubSettings = {
+  use_strength: true,
+  strength_default: 3,
+  use_categories: true,
+  category_label: "Kategorie",
+  position_label: "Position",
+  attack_label: "Vorne",
+  defense_label: "Hinten",
+  goalkeeper_label: "Torwart",
+  use_nicknames: false,
+  use_field_view: false,
+};
+
 type ClubRow = {
   id: string;
   primary_color: string | null;
@@ -219,7 +232,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
         "use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label"
       )
       .eq("club_id", clubId)
-      .single(),
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from("sessions")
       .select("id, date, notes, type, winner_photo_path, club_id")
@@ -304,7 +318,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const session = sessionData as SessionRow;
 
   const clubSettings: ClubSettings = {
-    ...(settingsData as ClubSettings),
+    ...DEFAULT_CLUB_SETTINGS,
+    ...((settingsData ?? {}) as Partial<ClubSettings>),
     use_nicknames: useNicknames,
     use_field_view: useFieldView,
   };
