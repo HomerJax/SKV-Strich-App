@@ -507,7 +507,13 @@ export default function StandingsClient({
                   </thead>
 
                   <tbody>
-                    {rows.map((row) => (
+                    {rows.map((row) => {
+                      const tableDeltaRank =
+                        initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID
+                          ? getDemoMovementValue(row.rank, row.deltaRank)
+                          : row.deltaRank;
+
+                      return (
                       <tr
                         key={row.player_id}
                         className="border-t border-slate-100"
@@ -594,7 +600,8 @@ export default function StandingsClient({
                           {row.sessions}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
