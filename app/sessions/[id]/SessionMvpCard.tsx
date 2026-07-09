@@ -158,7 +158,7 @@ function toAbsoluteAssetUrl(url: string | null | undefined) {
 function getBadgeUpgradeForPlayer(
   badgeUpgrades: BadgeUpgrade[],
   playerId: number,
-  fallback: BadgeUpgrade | null = null
+  fallback: BadgeUpgrade | null = null,
 ) {
   return (
     badgeUpgrades.find((upgrade) => upgrade.playerId === playerId) ??
@@ -168,7 +168,7 @@ function getBadgeUpgradeForPlayer(
 
 function toShareEntry(
   entry: ResultEntry,
-  badgeUpgrade: BadgeUpgrade | null
+  badgeUpgrade: BadgeUpgrade | null,
 ): ShareLeaderboardEntry {
   const fallbackCurrent = Math.max(safeMvpCount(entry.mvpCount), 1);
 
@@ -282,9 +282,11 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const [err, setErr] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [sharingResult, setSharingResult] = useState(false);
-  const [sharingWinnerPlayerId, setSharingWinnerPlayerId] = useState<number | null>(null);
+  const [sharingWinnerPlayerId, setSharingWinnerPlayerId] = useState<
+    number | null
+  >(null);
   const [readyWinnerPlayerIds, setReadyWinnerPlayerIds] = useState<Set<number>>(
-    () => new Set()
+    () => new Set(),
   );
   const [sharingVotingReminder, setSharingVotingReminder] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
@@ -304,7 +306,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       if (!response.ok) {
         throw new Error(
-          payload?.error || "MVP-Daten konnten nicht geladen werden."
+          payload?.error || "MVP-Daten konnten nicht geladen werden.",
         );
       }
 
@@ -353,20 +355,21 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     const isCurrentUserWinner =
       state.currentUserPlayerId !== null &&
       state.results.winners.some(
-        (resultWinner) => resultWinner.playerId === state.currentUserPlayerId
+        (resultWinner) => resultWinner.playerId === state.currentUserPlayerId,
       );
 
     const winner =
       isCurrentUserWinner && state.currentUserPlayerId !== null
-        ? state.results.winners.find(
-            (resultWinner) => resultWinner.playerId === state.currentUserPlayerId
-          ) ?? state.results.winners[0]
+        ? (state.results.winners.find(
+            (resultWinner) =>
+              resultWinner.playerId === state.currentUserPlayerId,
+          ) ?? state.results.winners[0])
         : state.results.winners[0];
 
     const winnerBadgeUpgrade = getBadgeUpgradeForPlayer(
       badgeUpgrades,
       winner.playerId,
-      fallbackBadgeUpgrade
+      fallbackBadgeUpgrade,
     );
 
     const shareWinner = toShareEntry(winner, winnerBadgeUpgrade);
@@ -374,15 +377,23 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     const shareWinners = state.results.winners.map((entry) =>
       toShareEntry(
         entry,
-        getBadgeUpgradeForPlayer(badgeUpgrades, entry.playerId, fallbackBadgeUpgrade)
-      )
+        getBadgeUpgradeForPlayer(
+          badgeUpgrades,
+          entry.playerId,
+          fallbackBadgeUpgrade,
+        ),
+      ),
     );
 
     const shareLeaderboard = state.results.leaderboard.map((entry) =>
       toShareEntry(
         entry,
-        getBadgeUpgradeForPlayer(badgeUpgrades, entry.playerId, fallbackBadgeUpgrade)
-      )
+        getBadgeUpgradeForPlayer(
+          badgeUpgrades,
+          entry.playerId,
+          fallbackBadgeUpgrade,
+        ),
+      ),
     );
 
     const shareWinnerCards = shareWinners.map((winnerEntry) => {
@@ -439,7 +450,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       if (!response.ok) {
         throw new Error(
-          payload?.error || "MVP-Stimme konnte nicht gespeichert werden."
+          payload?.error || "MVP-Stimme konnte nicht gespeichert werden.",
         );
       }
 
@@ -518,12 +529,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           });
         })
         .catch((error) => {
-          console.error(
-            "[MVP SHARE PREP FAILED]",
-            playerId,
-            imageUrl,
-            error
-          );
+          console.error("[MVP SHARE PREP FAILED]", playerId, imageUrl, error);
 
           winnerShareFilesRef.current[playerId] = null;
         });
@@ -566,7 +572,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
         return;
       }
 
-      setShareMsg("Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.");
+      setShareMsg(
+        "Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.",
+      );
     } finally {
       setSharingResult(false);
     }
@@ -579,7 +587,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     }
 
     const card = shareData.winnerCards.find(
-      (winnerCard) => winnerCard.winner.playerId === playerId
+      (winnerCard) => winnerCard.winner.playerId === playerId,
     );
 
     if (!card) {
@@ -590,7 +598,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     const preparedFile = winnerShareFilesRef.current[playerId];
 
     if (!preparedFile) {
-      setShareMsg("MVP Gewinner-Card wird noch vorbereitet. Bitte kurz warten.");
+      setShareMsg(
+        "MVP Gewinner-Card wird noch vorbereitet. Bitte kurz warten.",
+      );
       return;
     }
 
@@ -667,7 +677,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   if (loadState === "loading" || loadState === "idle") {
     return (
       <section className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm">
-        <div className="text-sm font-semibold text-amber-700">⭐ MVP Voting</div>
+        <div className="text-sm font-semibold text-amber-700">
+          ⭐ MVP Voting
+        </div>
         <div className="mt-2 text-sm text-slate-600">Lade MVP-Bereich…</div>
       </section>
     );
@@ -696,7 +708,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   const votingOpen = state.votingOpen;
   const mvpAccess = state.mvpAccess ?? null;
   const showMvpLimitLock =
-    votingOpen && mvpAccess?.allowed === false && mvpAccess.reason === "free_limit_reached";
+    votingOpen &&
+    mvpAccess?.allowed === false &&
+    mvpAccess.reason === "free_limit_reached";
   const freeMvpSlotsLeft = mvpAccess
     ? Math.max(0, mvpAccess.freeLimit - mvpAccess.usedThisSeason)
     : null;
@@ -706,7 +720,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     state.eligibleVoterCount > 0
       ? Math.max(
           0,
-          Math.min(100, (state.voteCount / state.eligibleVoterCount) * 100)
+          Math.min(100, (state.voteCount / state.eligibleVoterCount) * 100),
         )
       : 0;
 
@@ -830,7 +844,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             </div>
 
             <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-              Aufklappen
+              Bearbeiten
             </div>
           </button>
         </section>
@@ -846,7 +860,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
               }`}
             >
-              Einklappen
+              Kompakt anzeigen
             </button>
 
             <div className="pr-28">
@@ -880,7 +894,8 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
                 {mvpAccess && !mvpAccess.isPro ? (
                   <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
-                    Free: {mvpAccess.usedThisSeason}/{mvpAccess.freeLimit} MVP-Abstimmungen genutzt
+                    Free: {mvpAccess.usedThisSeason}/{mvpAccess.freeLimit}{" "}
+                    MVP-Abstimmungen genutzt
                   </span>
                 ) : mvpAccess?.isPro ? (
                   <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
@@ -1102,7 +1117,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                         badgeUpgrade={getBadgeUpgradeForPlayer(
                           badgeUpgrades,
                           winner.playerId,
-                          badgeUpgrade
+                          badgeUpgrade,
                         )}
                       />
                     ))}
@@ -1163,11 +1178,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                               key={winnerCard.winner.playerId}
                               type="button"
                               onClick={() =>
-                                handleShareWinnerCard(winnerCard.winner.playerId)
+                                handleShareWinnerCard(
+                                  winnerCard.winner.playerId,
+                                )
                               }
                               disabled={
                                 sharingWinnerPlayerId !== null ||
-                                !readyWinnerPlayerIds.has(winnerCard.winner.playerId)
+                                !readyWinnerPlayerIds.has(
+                                  winnerCard.winner.playerId,
+                                )
                               }
                               className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                             >
@@ -1175,9 +1194,12 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                                 {winnerCard.winner.name}
                               </span>
                               <span className="shrink-0 text-xs font-extrabold text-slate-500">
-                                {sharingWinnerPlayerId === winnerCard.winner.playerId
+                                {sharingWinnerPlayerId ===
+                                winnerCard.winner.playerId
                                   ? "Teile…"
-                                  : readyWinnerPlayerIds.has(winnerCard.winner.playerId)
+                                  : readyWinnerPlayerIds.has(
+                                        winnerCard.winner.playerId,
+                                      )
                                     ? "teilen"
                                     : "wird vorbereitet…"}
                               </span>

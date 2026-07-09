@@ -30,7 +30,9 @@ function SummaryPill({
         : "bg-white text-slate-700 ring-1 ring-slate-200";
 
   return (
-    <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${className}`}>
+    <div
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${className}`}
+    >
       {children}
     </div>
   );
@@ -131,8 +133,10 @@ export default function SessionScoreCard({
             )}
 
             <div className="min-w-0">
-              <div className={`text-sm font-bold sm:text-base ${hasResult ? "text-emerald-950" : "text-slate-950"}`}>
-                {hasResult ? "Ergebnis erledigt" : title}
+              <div
+                className={`text-sm font-bold sm:text-base ${hasResult ? "text-emerald-950" : "text-slate-950"}`}
+              >
+                {hasResult ? "Ergebnis gespeichert" : title}
               </div>
 
               <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -148,7 +152,7 @@ export default function SessionScoreCard({
           </div>
 
           <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-            Aufklappen
+            Bearbeiten
           </div>
         </button>
       </section>
@@ -186,7 +190,7 @@ export default function SessionScoreCard({
             onClick={onToggleCollapsed}
             className="shrink-0 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Einklappen
+            Kompakt anzeigen
           </button>
         </div>
       </div>
@@ -215,7 +219,11 @@ export default function SessionScoreCard({
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <ControlButton onClick={onSaveResult} disabled={saving} tone="primary">
+          <ControlButton
+            onClick={onSaveResult}
+            disabled={saving}
+            tone="primary"
+          >
             {saving
               ? "Speichert..."
               : hasResult
@@ -224,7 +232,11 @@ export default function SessionScoreCard({
           </ControlButton>
 
           {hasResult ? (
-            <ControlButton onClick={onDeleteResult} disabled={saving} tone="danger">
+            <ControlButton
+              onClick={onDeleteResult}
+              disabled={saving}
+              tone="danger"
+            >
               Ergebnis löschen
             </ControlButton>
           ) : null}

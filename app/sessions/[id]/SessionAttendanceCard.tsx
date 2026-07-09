@@ -51,10 +51,7 @@ const ATTENDANCE_SCROLL_KEY = "strikr-session-attendance-scroll-y";
 function rememberScrollPosition() {
   if (typeof window === "undefined") return;
 
-  window.sessionStorage.setItem(
-    ATTENDANCE_SCROLL_KEY,
-    String(window.scrollY)
-  );
+  window.sessionStorage.setItem(ATTENDANCE_SCROLL_KEY, String(window.scrollY));
 }
 
 function restoreScrollPosition() {
@@ -85,7 +82,8 @@ function guestBadge(player: Player) {
 }
 
 function getPlayerMvpCount(player: Player) {
-  const candidate = (player as Player & { mvp_count?: number | null }).mvp_count;
+  const candidate = (player as Player & { mvp_count?: number | null })
+    .mvp_count;
   return typeof candidate === "number" && Number.isFinite(candidate)
     ? candidate
     : 0;
@@ -123,7 +121,8 @@ function AttendanceStatus({
   if (savingPresence && directSaveEnabled) {
     return (
       <div className="rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] font-semibold text-blue-800">
-        Speichert Anwesenheit{lastChangedPlayerName ? ` für ${lastChangedPlayerName}` : ""}…
+        Speichert Anwesenheit
+        {lastChangedPlayerName ? ` für ${lastChangedPlayerName}` : ""}…
       </div>
     );
   }
@@ -222,14 +221,14 @@ function PlayerMetaChips({ player }: { player: Player }) {
     <span className="flex shrink-0 items-center gap-1">
       <span
         className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${ageBadgeColor(
-          player.age_group
+          player.age_group,
         )}`}
       >
         {categoryLabel ?? "?"}
       </span>
       <span
         className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${badgeColor(
-          player.preferred_position
+          player.preferred_position,
         )}`}
       >
         {positionLabel(player.preferred_position)}
@@ -237,7 +236,6 @@ function PlayerMetaChips({ player }: { player: Player }) {
     </span>
   );
 }
-
 
 function getPlayerRsvpStatus(player: Player) {
   return (
@@ -277,14 +275,19 @@ export default function SessionAttendanceCard({
   const presentCount = presentIds.length;
   const rsvpAbsentCount = players.filter(
     (player) =>
-      !presentIds.includes(player.id) && getPlayerRsvpStatus(player) === "out"
+      !presentIds.includes(player.id) && getPlayerRsvpStatus(player) === "out",
   ).length;
-  const openCount = Math.max(players.length - presentCount - rsvpAbsentCount, 0);
-  const done = directSaveEnabled ? presentCount > 0 : !dirty && presentCount > 0;
+  const openCount = Math.max(
+    players.length - presentCount - rsvpAbsentCount,
+    0,
+  );
+  const done = directSaveEnabled
+    ? presentCount > 0
+    : !dirty && presentCount > 0;
 
   const wasSavingRef = useRef(false);
   const [lastChangedPlayerId, setLastChangedPlayerId] = useState<number | null>(
-    null
+    null,
   );
   const [lastChangedPlayerName, setLastChangedPlayerName] = useState<
     string | null
@@ -293,7 +296,7 @@ export default function SessionAttendanceCard({
 
   const presentIdsSignature = useMemo(
     () => [...presentIds].sort((a, b) => a - b).join(","),
-    [presentIds]
+    [presentIds],
   );
 
   useEffect(() => {
@@ -305,28 +308,28 @@ export default function SessionAttendanceCard({
   }, [presentIdsSignature]);
 
   useEffect(() => {
-  if (!wasSavingRef.current || savingPresence) {
+    if (!wasSavingRef.current || savingPresence) {
+      wasSavingRef.current = savingPresence;
+      return undefined;
+    }
+
     wasSavingRef.current = savingPresence;
-    return undefined;
-  }
 
-  wasSavingRef.current = savingPresence;
+    const showTimeout = window.setTimeout(() => {
+      setJustSaved(true);
+    }, 0);
 
-  const showTimeout = window.setTimeout(() => {
-    setJustSaved(true);
-  }, 0);
+    const hideTimeout = window.setTimeout(() => {
+      setJustSaved(false);
+      setLastChangedPlayerId(null);
+      setLastChangedPlayerName(null);
+    }, 1800);
 
-  const hideTimeout = window.setTimeout(() => {
-    setJustSaved(false);
-    setLastChangedPlayerId(null);
-    setLastChangedPlayerName(null);
-  }, 1800);
-
-  return () => {
-    window.clearTimeout(showTimeout);
-    window.clearTimeout(hideTimeout);
-  };
-}, [savingPresence]);
+    return () => {
+      window.clearTimeout(showTimeout);
+      window.clearTimeout(hideTimeout);
+    };
+  }, [savingPresence]);
 
   function handleTogglePresence(player: Player) {
     if (hasResult || savingPresence) return;
@@ -382,7 +385,7 @@ export default function SessionAttendanceCard({
                   done ? "text-emerald-950" : "text-slate-950"
                 }`}
               >
-                {done ? "Anwesenheit erledigt" : "Anwesenheit"}
+                {done ? "Anwesenheit bestätigt" : "Anwesenheit"}
               </div>
 
               <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -418,7 +421,7 @@ export default function SessionAttendanceCard({
           </div>
 
           <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-            Aufklappen
+            Bearbeiten
           </div>
         </button>
       </section>
@@ -440,7 +443,9 @@ export default function SessionAttendanceCard({
                   Anwesenheit
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <SectionSummaryPill>{presentCount} anwesend</SectionSummaryPill>
+                  <SectionSummaryPill>
+                    {presentCount} anwesend
+                  </SectionSummaryPill>
                   {rsvpAbsentCount > 0 ? (
                     <SectionSummaryPill tone="muted">
                       {rsvpAbsentCount} abgesagt
@@ -478,7 +483,7 @@ export default function SessionAttendanceCard({
             }}
             className="shrink-0 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Einklappen
+            Anwesenheit bestätigen
           </button>
         </div>
 
@@ -569,7 +574,7 @@ export default function SessionAttendanceCard({
                     value={guestPosition ?? ""}
                     onChange={(e) =>
                       onGuestPositionChange(
-                        e.target.value as Player["preferred_position"] | ""
+                        e.target.value as Player["preferred_position"] | "",
                       )
                     }
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
@@ -595,7 +600,7 @@ export default function SessionAttendanceCard({
                     value={guestAgeGroup ?? ""}
                     onChange={(e) =>
                       onGuestAgeGroupChange(
-                        e.target.value as Player["age_group"] | ""
+                        e.target.value as Player["age_group"] | "",
                       )
                     }
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
@@ -629,7 +634,8 @@ export default function SessionAttendanceCard({
         <div className="grid gap-1.5">
           {players.map((player) => {
             const isPresent = presentIds.includes(player.id);
-            const isAbsent = !isPresent && getPlayerRsvpStatus(player) === "out";
+            const isAbsent =
+              !isPresent && getPlayerRsvpStatus(player) === "out";
             const mvpCount = getPlayerMvpCount(player);
             const isDeletingGuest = deletingGuestPlayerId === player.id;
             const canDeleteGuest = isAdmin && player.is_guest && !hasResult;

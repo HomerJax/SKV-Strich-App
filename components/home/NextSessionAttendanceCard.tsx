@@ -23,14 +23,20 @@ type NextSessionAttendanceCardProps = {
 function getDeadline(
   sessionDate: string | undefined,
   startTime: string | null | undefined,
-  minutesBefore: number
+  minutesBefore: number,
 ) {
   if (!sessionDate || !startTime) return null;
 
   const [year, month, day] = sessionDate.split("-").map(Number);
   const [hour, minute] = startTime.slice(0, 5).split(":").map(Number);
 
-  if (!year || !month || !day || !Number.isFinite(hour) || !Number.isFinite(minute)) {
+  if (
+    !year ||
+    !month ||
+    !day ||
+    !Number.isFinite(hour) ||
+    !Number.isFinite(minute)
+  ) {
     return null;
   }
 
@@ -93,7 +99,7 @@ export default function NextSessionAttendanceCard({
   const deadlineInfo = getDeadline(
     sessionDate,
     startTime,
-    rsvpDeadlineMinutesBefore
+    rsvpDeadlineMinutesBefore,
   );
 
   const deadlinePrefix =
@@ -132,7 +138,7 @@ export default function NextSessionAttendanceCard({
 
       if (!response.ok) {
         throw new Error(
-          payload?.error || "Status konnte nicht gespeichert werden."
+          payload?.error || "Status konnte nicht gespeichert werden.",
         );
       }
 

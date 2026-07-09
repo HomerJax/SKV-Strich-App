@@ -255,11 +255,13 @@ function sortForList(players: Player[]) {
 
 function preferKeeperFromDefense(players: Player[]) {
   const explicitKeeper = players.find(
-    (player) => player.preferred_position === "goalkeeper"
+    (player) => player.preferred_position === "goalkeeper",
   );
   if (explicitKeeper) return explicitKeeper;
 
-  const defender = players.find((player) => player.preferred_position === "defense");
+  const defender = players.find(
+    (player) => player.preferred_position === "defense",
+  );
   if (defender) return defender;
 
   return players[0] ?? null;
@@ -268,7 +270,7 @@ function preferKeeperFromDefense(players: Player[]) {
 function takePlayers(
   source: Player[],
   predicate: (player: Player) => boolean,
-  count: number
+  count: number,
 ) {
   const picked: Player[] = [];
   const rest: Player[] = [];
@@ -307,7 +309,7 @@ function buildFormationBuckets(players: Player[]) {
   const targetMid = Math.min(4, remainingAfterDefTarget);
   const remainingAfterMidTarget = Math.max(
     0,
-    withoutKeeper.length - targetDef - targetMid
+    withoutKeeper.length - targetDef - targetMid,
   );
   const targetAtt = Math.min(2, remainingAfterMidTarget);
 
@@ -316,7 +318,7 @@ function buildFormationBuckets(players: Player[]) {
   const defPreferred = takePlayers(
     pool,
     (player) => player.preferred_position === "defense",
-    targetDef
+    targetDef,
   );
   const def = [...defPreferred.picked];
   pool = defPreferred.rest;
@@ -330,7 +332,7 @@ function buildFormationBuckets(players: Player[]) {
   const midPreferred = takePlayers(
     pool,
     (player) => player.preferred_position !== "attack",
-    targetMid
+    targetMid,
   );
   const mid = [...midPreferred.picked];
   pool = midPreferred.rest;
@@ -344,7 +346,7 @@ function buildFormationBuckets(players: Player[]) {
   const attPreferred = takePlayers(
     pool,
     (player) => player.preferred_position === "attack",
-    targetAtt
+    targetAtt,
   );
   const att = [...attPreferred.picked];
   pool = attPreferred.rest;
@@ -358,7 +360,7 @@ function buildFormationBuckets(players: Player[]) {
   const extraDef = takePlayers(
     pool,
     () => true,
-    Math.min(4 - def.length, pool.length)
+    Math.min(4 - def.length, pool.length),
   );
   def.push(...extraDef.picked);
   pool = extraDef.rest;
@@ -366,7 +368,7 @@ function buildFormationBuckets(players: Player[]) {
   const extraMid = takePlayers(
     pool,
     () => true,
-    Math.min(4 - mid.length, pool.length)
+    Math.min(4 - mid.length, pool.length),
   );
   mid.push(...extraMid.picked);
   pool = extraMid.rest;
@@ -374,7 +376,7 @@ function buildFormationBuckets(players: Player[]) {
   const extraAtt = takePlayers(
     pool,
     () => true,
-    Math.min(2 - att.length, pool.length)
+    Math.min(2 - att.length, pool.length),
   );
   att.push(...extraAtt.picked);
 
@@ -507,7 +509,7 @@ function CombinedTeamField({
       acc[item.row] += 1;
       return acc;
     },
-    { gk: 0, def: 0, mid: 0, att: 0 }
+    { gk: 0, def: 0, mid: 0, att: 0 },
   );
 
   const countByRowB = positionedB.reduce<Record<SlotRow, number>>(
@@ -515,7 +517,7 @@ function CombinedTeamField({
       acc[item.row] += 1;
       return acc;
     },
-    { gk: 0, def: 0, mid: 0, att: 0 }
+    { gk: 0, def: 0, mid: 0, att: 0 },
   );
 
   return (
@@ -744,7 +746,7 @@ export default function SessionTeamsCard({
                   done ? "text-emerald-950" : "text-slate-950"
                 }`}
               >
-                {done ? "Teams erledigt" : "Teams"}
+                {done ? "Teams bestätigt" : "Teams"}
               </div>
 
               <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -764,7 +766,7 @@ export default function SessionTeamsCard({
           </div>
 
           <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-            Aufklappen
+            Bearbeiten
           </div>
         </button>
       </section>
@@ -782,7 +784,9 @@ export default function SessionTeamsCard({
               </div>
 
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-slate-900">Teams</div>
+                <div className="text-sm font-semibold text-slate-900">
+                  Teams
+                </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   {teamsComplete ? (
                     teamsConfirmed ? (
@@ -803,7 +807,7 @@ export default function SessionTeamsCard({
             onClick={onToggleCollapsed}
             className="shrink-0 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Einklappen
+            Kompakt anzeigen
           </button>
         </div>
 

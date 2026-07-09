@@ -143,7 +143,7 @@ export default function SessionWinnerPhotoCard({
 
             <div>
               <div className="text-sm font-bold text-slate-950">
-                {done ? "Siegerfoto erledigt" : title}
+                {done ? "Siegerfoto übernommen" : title}
               </div>
               <SummaryPill tone={done ? "success" : "muted"}>
                 {done ? "Foto vorhanden" : "Optional"}
@@ -152,7 +152,7 @@ export default function SessionWinnerPhotoCard({
           </div>
 
           <div className="rounded-full border px-4 py-2 text-sm font-semibold">
-            Aufklappen
+            Bearbeiten
           </div>
         </button>
       </section>
@@ -168,9 +168,7 @@ export default function SessionWinnerPhotoCard({
           </div>
 
           <div>
-            <div className="text-sm font-semibold text-slate-900">
-              {title}
-            </div>
+            <div className="text-sm font-semibold text-slate-900">{title}</div>
             <SummaryPill tone={done ? "success" : "muted"}>
               {done ? "Foto vorhanden" : "Optional"}
             </SummaryPill>
@@ -182,7 +180,7 @@ export default function SessionWinnerPhotoCard({
           onClick={onToggleCollapsed}
           className="rounded-full border px-4 py-2 text-sm font-semibold"
         >
-          Einklappen
+          {done ? "Foto übernehmen" : "Ohne Foto weiter"}
         </button>
       </div>
 
@@ -203,11 +201,7 @@ export default function SessionWinnerPhotoCard({
             disabled={!canUploadWinnerPhoto || photoBusy || saving}
             tone="primary"
           >
-            {photoBusy
-              ? "Lädt..."
-              : done
-                ? "Foto ersetzen"
-                : "Foto auswählen"}
+            {photoBusy ? "Lädt..." : done ? "Foto ersetzen" : "Foto auswählen"}
           </ControlButton>
 
           {done && (
