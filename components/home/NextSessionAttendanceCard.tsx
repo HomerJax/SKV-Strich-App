@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarDays, UserCheck, UserX } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, CalendarDays, UserCheck, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type PresenceStatus = "in" | "out" | "open";
@@ -65,6 +66,7 @@ function getRemainingLabel(deadline: Date, now: Date) {
 export default function NextSessionAttendanceCard({
   sessionId,
   title,
+  href,
   initialStatus,
   initialPresentCount,
   initialAbsentCount = 0,
@@ -287,6 +289,16 @@ export default function NextSessionAttendanceCard({
             </div>
           </button>
         </div>
+      </div>
+
+      <div className="relative mt-3 flex justify-end">
+        <Link
+          href={href}
+          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+        >
+          Training öffnen
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
     </section>
   );
