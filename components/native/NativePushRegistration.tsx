@@ -8,14 +8,14 @@ type NotificationData = {
   url?: unknown;
 };
 
-async function registerToken(token: string) {
+async function registerToken(token: string, platform: string) {
   await fetch("/api/push/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
     body: JSON.stringify({
       token,
-      platform: Capacitor.getPlatform(),
+      platform,
       appVersion: "native-capacitor",
     }),
   });
@@ -24,6 +24,12 @@ async function registerToken(token: string) {
 export default function NativePushRegistration() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
+
+    const platform = Capacitor.getPlatform();
+
+    // iOS native app shell is supported for now, but iOS push stays disabled
+    // until Apple Developer/APNs/TestFlight setup is worth doing properly.
+    if (platform !== "android") return;
 
     let cancelled = false;
     const removeListeners: Array<() => void> = [];
@@ -43,7 +49,7 @@ export default function NativePushRegistration() {
             if (cancelled || !event.token) return;
 
             try {
-              await registerToken(event.token);
+              await registerToken(event.token, platform);
             } catch (error) {
               console.error("Push token registration failed", error);
             }
@@ -82,7 +88,7 @@ export default function NativePushRegistration() {
           void actionListener.remove();
         });
 
-        if (Capacitor.getPlatform() === "android") {
+        if (platform === "android") {
           await FirebaseMessaging.createChannel({
             id: "default",
             name: "strikr",
@@ -107,7 +113,7 @@ export default function NativePushRegistration() {
         const tokenResult = await FirebaseMessaging.getToken();
 
         if (!cancelled && tokenResult.token) {
-          await registerToken(tokenResult.token);
+          await registerToken(tokenResult.token, platform);
         }
       } catch (error) {
         console.error("Native push setup failed", error);
