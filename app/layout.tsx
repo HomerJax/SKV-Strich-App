@@ -7,6 +7,7 @@ import { NotificationToastCenter } from "@/components/notifications/Notification
 import WhatsNewModal from "@/components/WhatsNewModal";
 import { getAuthContext } from "@/lib/auth/context";
 import { isAdminRole } from "@/lib/auth/access";
+import NativePushRegistration from "@/components/native/NativePushRegistration";
 
 export const metadata: Metadata = {
   title: "strikr",
@@ -21,9 +22,9 @@ export default async function RootLayout({
   const ctx = await getAuthContext();
 
   const activeMembership = ctx.activeClubId
-    ? ctx.memberships.find(
-        (membership) => membership.club_id === ctx.activeClubId
-      ) ?? null
+    ? (ctx.memberships.find(
+        (membership) => membership.club_id === ctx.activeClubId,
+      ) ?? null)
     : null;
 
   const isAdmin =
@@ -38,13 +39,14 @@ export default async function RootLayout({
           <>
             <WhatsNewModal version="v1.0" />
             <NotificationToastCenter />
+            <NativePushRegistration />
           </>
         ) : null}
 
         <div className="min-h-[100dvh] pb-20">{children}</div>
 
         {ctx.user ? <AppBottomNav isAdmin={isAdmin} /> : null}
-              <Analytics />
+        <Analytics />
       </body>
     </html>
   );
