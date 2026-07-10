@@ -43,3 +43,4 @@ android/app/google-services.json
 
 # Firebase private server keys
 firebase-service-account*.json
+ios/App/App/GoogleService-Info.plist

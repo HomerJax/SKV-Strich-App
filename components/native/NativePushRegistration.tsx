@@ -1,8 +1,25 @@
 "use client";
 
 import { Capacitor } from "@capacitor/core";
-import { PushNotifications } from "@capacitor/push-notifications";
+import { FirebaseMessaging } from "@capacitor-firebase/messaging";
 import { useEffect } from "react";
+
+type NotificationData = {
+  url?: unknown;
+};
+
+async function registerToken(token: string) {
+  await fetch("/api/push/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      token,
+      platform: Capacitor.getPlatform(),
+      appVersion: "native-capacitor",
+    }),
+  });
+}
 
 export default function NativePushRegistration() {
   useEffect(() => {
@@ -13,22 +30,20 @@ export default function NativePushRegistration() {
 
     async function registerPush() {
       try {
-        const registrationListener = await PushNotifications.addListener(
-          "registration",
-          async (token) => {
-            if (cancelled) return;
+        const supported = await FirebaseMessaging.isSupported();
+
+        if (!supported.isSupported) {
+          console.info("Firebase Messaging is not supported on this platform");
+          return;
+        }
+
+        const tokenListener = await FirebaseMessaging.addListener(
+          "tokenReceived",
+          async (event) => {
+            if (cancelled || !event.token) return;
 
             try {
-              await fetch("/api/push/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "same-origin",
-                body: JSON.stringify({
-                  token: token.value,
-                  platform: Capacitor.getPlatform(),
-                  appVersion: "native-capacitor",
-                }),
-              });
+              await registerToken(event.token);
             } catch (error) {
               console.error("Push token registration failed", error);
             }
@@ -36,35 +51,26 @@ export default function NativePushRegistration() {
         );
 
         removeListeners.push(() => {
-          void registrationListener.remove();
+          void tokenListener.remove();
         });
 
-        const registrationErrorListener = await PushNotifications.addListener(
-          "registrationError",
-          (error) => {
-            console.error("Push registration error", error);
+        const notificationListener = await FirebaseMessaging.addListener(
+          "notificationReceived",
+          (event) => {
+            console.info("Push notification received", event.notification);
           },
         );
 
         removeListeners.push(() => {
-          void registrationErrorListener.remove();
+          void notificationListener.remove();
         });
 
-        const receivedListener = await PushNotifications.addListener(
-          "pushNotificationReceived",
-          (notification) => {
-            console.info("Push notification received", notification);
-          },
-        );
-
-        removeListeners.push(() => {
-          void receivedListener.remove();
-        });
-
-        const actionListener = await PushNotifications.addListener(
-          "pushNotificationActionPerformed",
-          (action) => {
-            const url = action.notification.data?.url;
+        const actionListener = await FirebaseMessaging.addListener(
+          "notificationActionPerformed",
+          (event) => {
+            const data = event.notification.data as
+              NotificationData | undefined;
+            const url = data?.url;
 
             if (typeof url === "string" && url.startsWith("/")) {
               window.location.href = url;
@@ -77,7 +83,7 @@ export default function NativePushRegistration() {
         });
 
         if (Capacitor.getPlatform() === "android") {
-          await PushNotifications.createChannel({
+          await FirebaseMessaging.createChannel({
             id: "default",
             name: "strikr",
             description: "strikr Benachrichtigungen",
@@ -86,11 +92,11 @@ export default function NativePushRegistration() {
           });
         }
 
-        const permission = await PushNotifications.checkPermissions();
+        const permission = await FirebaseMessaging.checkPermissions();
 
         const finalPermission =
           permission.receive === "prompt"
-            ? await PushNotifications.requestPermissions()
+            ? await FirebaseMessaging.requestPermissions()
             : permission;
 
         if (finalPermission.receive !== "granted") {
@@ -98,7 +104,11 @@ export default function NativePushRegistration() {
           return;
         }
 
-        await PushNotifications.register();
+        const tokenResult = await FirebaseMessaging.getToken();
+
+        if (!cancelled && tokenResult.token) {
+          await registerToken(tokenResult.token);
+        }
       } catch (error) {
         console.error("Native push setup failed", error);
       }
