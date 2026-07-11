@@ -41,7 +41,7 @@ workflows:
             --scheme "$XCODE_SCHEME"
 
     artifacts:
-      - ios/App/build/ios/ipa/*.ipa
+      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
 
