@@ -10,10 +10,8 @@ const config: CapacitorConfig = {
     url: "https://www.strikr.team",
     cleartext: false,
   },
-  plugins: {
-    FirebaseMessaging: {
-      presentationOptions: ["badge", "sound", "alert"],
-    },
+  ios: {
+    includePlugins: [],
   },
 };
 
