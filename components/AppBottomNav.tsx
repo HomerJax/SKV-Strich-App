@@ -64,8 +64,8 @@ export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-[80] bg-transparent px-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
-      <div className="mx-auto w-full max-w-md rounded-[30px] bg-white/95 p-2 shadow-[0_-12px_42px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5 backdrop-blur">
+    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-[250] w-full max-w-full bg-transparent px-3 pb-[max(10px,env(safe-area-inset-bottom))] [transform:translateZ(0)]">
+      <div className="pointer-events-auto mx-auto w-full max-w-md rounded-[30px] bg-white/95 p-2 shadow-[0_-12px_42px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5 backdrop-blur">
         <div className="flex h-16 items-center gap-1">
           <NavItem
             href="/home"

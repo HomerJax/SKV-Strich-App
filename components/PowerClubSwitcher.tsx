@@ -188,7 +188,7 @@ export default function ClubSwitcher({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-white shadow-md transition hover:scale-[1.02] active:scale-[0.98] ${
+        className={`relative flex h-10 w-10 shrink-0 sm:h-12 sm:w-12 items-center justify-center overflow-hidden rounded-2xl border bg-white shadow-md transition hover:scale-[1.02] active:scale-[0.98] ${
           pending ? "opacity-70" : ""
         }`}
         style={{ borderColor: `${primaryColor}33` }}

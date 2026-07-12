@@ -184,21 +184,21 @@ export default async function AppHeader() {
 
       <header
         style={{ borderTop: `3px solid ${primaryColor}` }}
-        className="sticky top-0 z-[200] border-b border-slate-200 bg-white/95 backdrop-blur"
+        className="sticky top-0 z-[200] border-b border-slate-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur"
       >
-        <div className="mx-auto flex h-16 w-full max-w-6xl min-w-0 items-center justify-between gap-2 overflow-visible px-3 sm:h-[72px] sm:gap-3 sm:px-6">
+        <div className="mx-auto flex h-14 w-full max-w-6xl min-w-0 items-center justify-between gap-1.5 overflow-visible px-2.5 sm:h-[72px] sm:gap-3 sm:px-6">
           <div className="min-w-0 flex items-center gap-2 sm:gap-3">
-            <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <Link href={ctx.user ? "/home" : "/"} className="flex min-w-0 items-center gap-1.5 sm:gap-3">
               <Image
                 src="/icon-dark.png"
                 alt="strikr"
                 width={40}
                 height={40}
-                className="shrink-0 rounded-[14px] sm:h-11 sm:w-11 sm:rounded-xl"
+                className="h-9 w-9 shrink-0 rounded-xl sm:h-11 sm:w-11"
                 priority
               />
 
-              <span className="truncate lowercase text-[32px] font-black leading-none tracking-[-0.04em] text-slate-950 sm:text-[36px]">
+              <span className="truncate lowercase text-[27px] font-black leading-none tracking-[-0.04em] text-slate-950 sm:text-[36px]">
                 strikr
               </span>
             </Link>
@@ -206,7 +206,7 @@ export default async function AppHeader() {
             {ctx.user ? (
               <Link
                 href="/about"
-                className="rounded-full px-1.5 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 sm:text-[11px]"
+                className="hidden rounded-full px-1.5 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 sm:inline-flex sm:text-[11px]"
                 title="Was ist neu?"
               >
                 v1.0
@@ -236,14 +236,14 @@ export default async function AppHeader() {
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <Link
                 href="/login"
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 sm:px-4 sm:py-2"
+                className="rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 sm:px-4 sm:py-2 sm:text-sm"
               >
                 Login
               </Link>
 
               <Link
                 href="/signup?next=%2Fclub-setup"
-                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-slate-800 sm:px-4 sm:py-2"
+                className="inline-flex items-center gap-1 rounded-full bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
               >
                 Team starten
               </Link>

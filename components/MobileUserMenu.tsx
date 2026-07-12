@@ -51,7 +51,7 @@ export default function MobileUserMenu({
         aria-label="Profilmenü"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-xl sm:h-11 sm:w-11 border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
       >
         <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-700">
           {getInitial(profileLabel)}
