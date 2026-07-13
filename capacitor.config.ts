@@ -9,7 +9,6 @@ const config: CapacitorConfig = {
   server: {
     url: "https://www.strikr.team",
     cleartext: false,
-    appStartPath: "/app-start",
   },
   ios: {
     includePlugins: [],
