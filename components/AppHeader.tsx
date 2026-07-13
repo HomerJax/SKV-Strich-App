@@ -184,7 +184,7 @@ export default async function AppHeader() {
 
       <header
         style={{ borderTop: `3px solid ${primaryColor}` }}
-        className="sticky top-0 z-[200] border-b border-slate-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur"
+        className="fixed inset-x-0 top-0 z-[350] w-full border-b border-slate-200 bg-white pt-[env(safe-area-inset-top)] shadow-sm"
       >
         <div className="mx-auto flex h-14 w-full max-w-6xl min-w-0 items-center justify-between gap-1.5 overflow-visible px-2.5 sm:h-[72px] sm:gap-3 sm:px-6">
           <div className="min-w-0 flex items-center gap-2 sm:gap-3">

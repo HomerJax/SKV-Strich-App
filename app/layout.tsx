@@ -49,7 +49,7 @@ export default async function RootLayout({
           </>
         ) : null}
 
-        <div className="min-h-[100dvh] w-full min-w-0 overflow-x-hidden pb-[calc(6rem+env(safe-area-inset-bottom))]">{children}</div>
+        <div className="min-h-[100dvh] w-full min-w-0 overflow-x-hidden pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top)+3px)] sm:pt-[calc(4.5rem+env(safe-area-inset-top)+3px)]">{children}</div>
 
         {ctx.user ? <AppBottomNav isAdmin={isAdmin} /> : null}
         <Analytics />
