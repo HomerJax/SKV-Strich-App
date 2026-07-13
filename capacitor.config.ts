@@ -7,8 +7,9 @@ const config: CapacitorConfig = {
   appName: "strikr",
   webDir: "public",
   server: {
-    url: "https://www.strikr.team/app-start",
+    url: "https://www.strikr.team",
     cleartext: false,
+    appStartPath: "/app-start",
   },
   ios: {
     includePlugins: [],
