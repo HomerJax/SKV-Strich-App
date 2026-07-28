@@ -126,7 +126,7 @@ const RELEASES: ReleaseItem[] = [
 
 export default function AboutPage() {
   const feedbackHref = "mailto:mb1607@gmx.de?subject=strikr%20Feedback";
-  const instagramHref = "https://www.instagram.com/strikr.app/";
+  const instagramHref = "https://www.instagram.com/getstrikr/";
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
@@ -262,12 +262,12 @@ export default function AboutPage() {
           </div>
 
           <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
-            Pilotphase
+            Aktueller Stand
           </h2>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-            strikr läuft aktuell in einer Pilotphase. Die App ist stabil und wird
-            aktiv im Training genutzt.
+            strikr wird aktiv in echten Trainings genutzt und als Web-App sowie
+            mobile App Schritt für Schritt weiterentwickelt.
           </p>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
@@ -276,12 +276,13 @@ export default function AboutPage() {
           </p>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-            Der aktuelle Fokus liegt auf Stabilität, MVP Flow, Sharing,
-            Notifications, Mobile UX und echtem Feedback aus Test-Teams.
+            Der aktuelle Fokus liegt auf Stabilität, einem klaren Session-Flow,
+            Sharing, Mobile UX und echtem Feedback aus den Clubs.
           </p>
 
           <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-            Perspektivisch ist auch eine Veröffentlichung als mobile App denkbar.
+            Version 1.0 bildet die stabile Grundlage für den öffentlichen Start
+            und die weitere Entwicklung von strikr.
           </p>
         </div>
 

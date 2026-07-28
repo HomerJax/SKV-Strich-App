@@ -11,7 +11,7 @@ export default function ImpressumPage() {
           ← Zurück
         </Link>
 
-        <div className="mt-5 rounded-[28px] border border-black/10 bg-white p-6 shadow-sm">
+        <div className="mt-5 rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-8">
           <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
             Rechtliches
           </div>
@@ -20,13 +20,17 @@ export default function ImpressumPage() {
             Impressum
           </h1>
 
-          <div className="mt-6 space-y-6 text-sm leading-7 text-slate-700">
+          <div className="mt-7 space-y-7 text-sm leading-7 text-slate-700">
             <section>
               <h2 className="font-extrabold text-slate-950">
-                Angaben gemäß § 5 TMG
+                Angaben gemäß § 5 DDG
               </h2>
               <p className="mt-2">
                 Marcus Bofinger
+                <br />
+                Flachter Straße 9
+                <br />
+                71277 Rutesheim
                 <br />
                 Deutschland
               </p>
@@ -49,15 +53,46 @@ export default function ImpressumPage() {
               <h2 className="font-extrabold text-slate-950">
                 Verantwortlich für den Inhalt
               </h2>
-              <p className="mt-2">Marcus Bofinger</p>
+              <p className="mt-2">
+                Marcus Bofinger
+                <br />
+                Flachter Straße 9
+                <br />
+                71277 Rutesheim
+              </p>
             </section>
 
-            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
-              Hinweis: Diese Seite ist aktuell als erste vertrauensbildende
-              Kontakt- und Anbieterkennzeichnung angelegt. Die finalen
-              rechtlichen Angaben sollten vor aktiver Bewerbung noch vollständig
-              geprüft und ergänzt werden.
+            <section>
+              <h2 className="font-extrabold text-slate-950">
+                Verbraucherstreitbeilegung
+              </h2>
+              <p className="mt-2">
+                Ich bin nicht verpflichtet und nicht bereit, an einem
+                Streitbeilegungsverfahren vor einer
+                Verbraucherschlichtungsstelle teilzunehmen.
+              </p>
             </section>
+
+            <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-slate-200 pt-5">
+              <Link
+                href="/support"
+                className="font-semibold text-slate-950 underline underline-offset-4"
+              >
+                Support
+              </Link>
+              <Link
+                href="/datenschutz"
+                className="font-semibold text-slate-950 underline underline-offset-4"
+              >
+                Datenschutz
+              </Link>
+              <Link
+                href="/account-loeschen"
+                className="font-semibold text-slate-950 underline underline-offset-4"
+              >
+                Konto löschen
+              </Link>
+            </div>
           </div>
         </div>
       </section>

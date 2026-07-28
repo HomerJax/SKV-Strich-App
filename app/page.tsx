@@ -38,7 +38,7 @@ const trainingBlocks = [
 const competitionBlocks = [
   {
     title: "MVP Voting",
-    text: "4 MVP-Abstimmungen pro Saison inklusive – mit Pro unbegrenzt.",
+    text: "MVP-Abstimmungen, Badges und Auszeichnungen für mehr Motivation.",
     icon: Star,
   },
   {
@@ -151,7 +151,7 @@ export default async function LandingPage() {
           </div>
 
           <p className="mt-3 text-xs font-medium text-zinc-500">
-            Kostenlos starten. 4 MVP-Abstimmungen pro Saison inklusive. Bald auch als App verfügbar.
+            Zum Start kostenlos. Alle aktuellen Funktionen sind freigeschaltet.
           </p>
         </div>
       </section>
@@ -182,127 +182,44 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* PRICING */}
+      {/* FREE LAUNCH */}
       <section className="border-t border-black/10 bg-white">
         <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-              strikr Pro
+              Kostenloser Start
             </div>
 
             <h2 className="mt-3 text-3xl font-black sm:text-4xl">
-              Kostenlos starten. Pro nutzen, wenn strikr bei euch läuft.
+              Alle aktuellen Funktionen. Zum Start kostenlos.
             </h2>
 
             <p className="mt-4 text-base leading-7 text-zinc-600 sm:text-lg">
-              Free ist zum Ausprobieren da. Mit Pro wird strikr zum dauerhaften
-              Team-System: unbegrenztes MVP Voting, volle Tabellen, Stats,
-              Premium Share Cards und zukünftige Awards.
-            </p>
-
-            <p className="mt-3 text-sm font-semibold text-zinc-500">
-              Aktuell als Web-App nutzbar – bald auch als App verfügbar.
+              strikr startet ohne Paywall und ohne Abo. Clubs können den
+              kompletten Trainings-Workflow direkt nutzen und gemeinsam testen,
+              was für ihr Team funktioniert.
             </p>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <div className="rounded-[28px] border border-black/10 bg-zinc-50 p-6">
-              <div className="inline-flex rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-bold text-zinc-700">
-                Free
-              </div>
-
-              <h3 className="mt-4 text-2xl font-black tracking-tight">
-                Zum Starten
-              </h3>
-
-              <p className="mt-3 text-sm leading-6 text-zinc-600">
-                Für Teams, die strikr testen und den Trainingsflow kennenlernen
-                möchten – ohne Abo-Zwang.
-              </p>
-
-              <div className="mt-6 space-y-3 text-sm font-semibold text-zinc-800">
-                <div>✓ Club erstellen</div>
-                <div>✓ Spieler einladen</div>
-                <div>✓ Anwesenheit erfassen</div>
-                <div>✓ Teams erstellen</div>
-                <div>✓ Ergebnis speichern</div>
-                <div>✓ Siegerfoto teilen</div>
-                <div>✓ Aktuelle Tabelle</div>
-                <div>✓ 4 MVP-Abstimmungen pro Saison</div>
-              </div>
-
-              <div className="mt-6 rounded-2xl bg-white p-4 text-sm leading-6 text-zinc-600">
-                Perfekt zum Reinkommen: Der Kernflow bleibt einfach. Historische
-                Tabellen, volle Statistiken und Premium-Auswertungen gehören zu Pro.
-              </div>
+          <div className="mx-auto mt-8 max-w-3xl rounded-[28px] border border-black bg-black p-6 text-white shadow-xl sm:p-8">
+            <div className="inline-flex rounded-full border border-blue-300/40 bg-blue-300/15 px-3 py-1 text-xs font-bold text-blue-100">
+              Zum Start vollständig freigeschaltet
             </div>
 
-            <div className="rounded-[28px] border border-black bg-black p-6 text-white shadow-xl">
-              <div className="inline-flex rounded-full border border-amber-300/40 bg-amber-300/15 px-3 py-1 text-xs font-bold text-amber-100">
-                DAHSC Special
-              </div>
-
-              <h3 className="mt-4 text-2xl font-black tracking-tight">
-                strikr Pro
-              </h3>
-
-              <p className="mt-3 text-sm leading-6 text-white/70">
-                Für Teams, die strikr dauerhaft nutzen und aus jedem Training
-                mehr Struktur, Motivation und Team-Momente machen wollen.
-              </p>
-
-              <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm font-bold text-white">
-                  4 Wochen Pro kostenlos testen
-                </div>
-                <div className="mt-1 text-sm leading-6 text-white/65">
-                  Danach Free weiter nutzen oder den DAHSC Preis sichern:
-                  149 € im ersten Jahr statt 199 €.
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3 text-sm font-semibold text-white">
-                <div>✓ Unbegrenztes MVP Voting</div>
-                <div>✓ Volle Statistiken, Formkurven und Team Impact</div>
-                <div>✓ Vergangene Tabellen und ewige Tabelle</div>
-                <div>✓ Premium Share Cards</div>
-                <div>✓ Optionale Strafenkasse / Strafen</div>
-                <div>✓ Zukünftige Awards, Badges und Trophäenraum</div>
-              </div>
-
-              <div className="mt-6 grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-white/65">Normalpreis</span>
-                  <span className="font-black text-white">199 € / Jahr</span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-white/65">entspricht</span>
-                  <span className="font-black text-white">16,58 € / Monat</span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-white/65">DAHSC Special</span>
-                  <span className="font-black text-white">149 € im 1. Jahr</span>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <a
-                  href="https://wa.me/491772685717?text=Hi%2C%20wir%20interessieren%20uns%20f%C3%BCr%20strikr%20Pro%20und%20das%20Supercup-Angebot."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-bold text-black transition hover:bg-zinc-200"
-                >
-                  WhatsApp
-                </a>
-
-                <a
-                  href="mailto:mb1607@gmx.de?subject=strikr%20Pro%20Anfrage&body=Hi%2C%20wir%20interessieren%20uns%20f%C3%BCr%20strikr%20Pro%20und%20das%20Supercup-Angebot."
-                  className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
-                >
-                  E-Mail
-                </a>
-              </div>
+            <div className="mt-6 grid gap-3 text-sm font-semibold text-white sm:grid-cols-2">
+              <div>✓ Club erstellen und Spieler einladen</div>
+              <div>✓ Anwesenheit und Sessions verwalten</div>
+              <div>✓ Faire Teams generieren und anpassen</div>
+              <div>✓ Ergebnisse und Siegerfotos speichern</div>
+              <div>✓ MVP-Abstimmungen und Badges nutzen</div>
+              <div>✓ Tabellen, Statistiken und Share Cards öffnen</div>
             </div>
+
+            <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white/70">
+              Für die aktuell verfügbaren Funktionen entstehen zum Start keine
+              Kosten. Änderungen am späteren Leistungsumfang werden transparent
+              angekündigt.
+            </p>
           </div>
         </div>
       </section>
@@ -311,7 +228,7 @@ export default async function LandingPage() {
       <section className="border-t border-black/10">
         <div className="mx-auto max-w-5xl px-4 py-12 text-center sm:px-6 lg:px-8">
           <h2 className="text-3xl font-black sm:text-4xl">
-            Startet kostenlos. Wenn es passt, wird Pro daraus.
+            Startet kostenlos. Alles drin.
           </h2>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -345,9 +262,12 @@ export default async function LandingPage() {
             <Link href="/datenschutz" className="hover:text-black">
               Datenschutz
             </Link>
-            <a href="mailto:mb1607@gmx.de" className="hover:text-black">
-              Kontakt
-            </a>
+            <Link href="/support" className="hover:text-black">
+              Support
+            </Link>
+            <Link href="/account-loeschen" className="hover:text-black">
+              Konto löschen
+            </Link>
           </div>
         </div>
       </footer>
