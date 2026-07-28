@@ -1,3 +1,5 @@
+import { isFreeLaunchEnabled } from "@/lib/env";
+
 type ProFeatureLockProps = {
   clubName?: string | null;
   title?: string;
@@ -54,6 +56,29 @@ export default function ProFeatureLock({
   featureList = [],
   compact = false,
 }: ProFeatureLockProps) {
+  if (isFreeLaunchEnabled()) {
+    return (
+      <div
+        className={`rounded-[24px] border border-sky-200 bg-sky-50 shadow-sm ${
+          compact ? "p-4" : "p-5"
+        }`}
+      >
+        <div className="inline-flex rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-bold text-sky-800">
+          Zum Start kostenlos
+        </div>
+
+        <h3 className="mt-3 text-lg font-extrabold tracking-tight text-slate-950">
+          Alle aktuellen Funktionen sind freigeschaltet
+        </h3>
+
+        <p className="mt-2 text-sm leading-6 text-slate-700">
+          strikr startet ohne Funktionslimit. Ihr könnt die App vollständig
+          nutzen. Weitere Funktionen folgen später.
+        </p>
+      </div>
+    );
+  }
+
   const whatsappHref = buildWhatsAppHref(clubName);
   const mailHref = buildMailHref(clubName);
 

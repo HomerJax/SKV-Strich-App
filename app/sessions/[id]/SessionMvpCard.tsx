@@ -38,7 +38,7 @@ type MvpVotingAccess = {
   allowed: boolean;
   usedThisSeason: number;
   freeLimit: number;
-  reason: "pro" | "free_available" | "free_limit_reached";
+  reason: "free_launch" | "pro" | "free_available" | "free_limit_reached";
 };
 
 type MvpState = {
@@ -892,7 +892,11 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   tone={pillTone}
                 />
 
-                {mvpAccess && !mvpAccess.isPro ? (
+                {mvpAccess?.reason === "free_launch" ? (
+                  <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
+                    Zum Start kostenlos: MVP unbegrenzt
+                  </span>
+                ) : mvpAccess && !mvpAccess.isPro ? (
                   <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
                     Free: {mvpAccess.usedThisSeason}/{mvpAccess.freeLimit}{" "}
                     MVP-Abstimmungen genutzt

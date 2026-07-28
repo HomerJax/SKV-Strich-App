@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { isFreeLaunchEnabled } from "@/lib/env";
 
 export type ClubBillingPlanKey =
   | "free"
@@ -28,6 +29,7 @@ export type BillingAccess = {
   billing: ClubBilling;
   isFree: boolean;
   isPro: boolean;
+  isFreeLaunch: boolean;
   isFounder: boolean;
   isTrial: boolean;
   isExpired: boolean;
@@ -111,7 +113,9 @@ export function getBillingAccess(
     billing.plan_key !== "supercup_trial" &&
     (billing.pro_ends_at === null || isDateInFuture(billing.pro_ends_at));
 
-  const isPro = isFounder || isTrial || hasActiveTimedPro;
+  const paidOrGrantedPro = isFounder || isTrial || hasActiveTimedPro;
+  const isFreeLaunch = isFreeLaunchEnabled();
+  const isPro = isFreeLaunch || paidOrGrantedPro;
 
   const isExpired =
     billing.status !== "active" ||
@@ -124,10 +128,13 @@ export function getBillingAccess(
     billing,
     isFree: !isPro,
     isPro,
+    isFreeLaunch,
     isFounder,
     isTrial,
     isExpired,
-    planLabel: getPlanLabel(billing.plan_key),
+    planLabel: isFreeLaunch
+      ? "Zum Start kostenlos"
+      : getPlanLabel(billing.plan_key),
   };
 }
 

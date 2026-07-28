@@ -43,3 +43,13 @@ export function getAppUrl() {
 
   return "http://localhost:3000";
 }
+
+export function isFreeLaunchEnabled() {
+  const value = process.env.NEXT_PUBLIC_FREE_LAUNCH?.trim().toLowerCase();
+
+  if (value === "false" || value === "0" || value === "off" || value === "no") {
+    return false;
+  }
+
+  return true;
+}

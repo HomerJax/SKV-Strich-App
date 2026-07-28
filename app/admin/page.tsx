@@ -196,7 +196,20 @@ export default async function AdminPage() {
           compact
         />
 
-        {billingAccess.isPro ? null : (
+        {billingAccess.isFreeLaunch ? (
+          <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 shadow-sm">
+            <div className="inline-flex rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-bold text-sky-800">
+              Zum Start kostenlos
+            </div>
+            <h2 className="mt-3 text-lg font-extrabold tracking-tight text-slate-950">
+              Alle aktuellen Funktionen sind für {clubName} freigeschaltet
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-700">
+              Ihr könnt strikr aktuell vollständig und ohne Funktionslimit
+              nutzen. Weitere Funktionen folgen später.
+            </p>
+          </div>
+        ) : billingAccess.isPro ? null : (
           <ProStatusPanel clubName={clubName} isPro={billingAccess.isPro} />
         )}
 

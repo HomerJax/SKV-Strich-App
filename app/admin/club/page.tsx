@@ -12,12 +12,14 @@ type ClubRow = {
   display_name: string | null;
   logo_path: string | null;
   primary_color: string | null;
+  name: string | null;
 };
 
 type ClubAdminPageProps = {
   searchParams?: Promise<{
     saved?: string;
     error?: string;
+    club_delete_error?: string;
   }>;
 };
 
@@ -27,6 +29,19 @@ const COLOR_OPTIONS = [
   { value: "red", label: "Rot", color: "#dc2626" },
   { value: "green", label: "Grün", color: "#16a34a" },
 ] as const;
+
+function getClubDeleteErrorMessage(error?: string) {
+  switch (error) {
+    case "confirmation":
+      return 'Bitte gib exakt „CLUB LÖSCHEN“ ein und bestätige die Checkbox.';
+    case "unauthorized":
+      return "Nur ein echter Club-Admin darf den Club dauerhaft löschen.";
+    case "delete_failed":
+      return "Der Club konnte nicht vollständig gelöscht werden. Bitte versuche es erneut.";
+    default:
+      return "";
+  }
+}
 
 function getErrorMessage(error?: string) {
   switch (error) {
@@ -97,7 +112,7 @@ export default async function ClubAdminPage({
   const [{ data: clubData, error: clubError }, flags] = await Promise.all([
     supabase
       .from("clubs")
-      .select("id, display_name, logo_path, primary_color")
+      .select("id, display_name, logo_path, primary_color, name")
       .eq("id", clubId)
       .maybeSingle(),
     getFeatureFlagsForClub(clubId),
@@ -130,7 +145,12 @@ export default async function ClubAdminPage({
 
   const errorMessage = getErrorMessage(resolvedSearchParams?.error);
   const saved = resolvedSearchParams?.saved === "1";
+  const clubDeleteError = getClubDeleteErrorMessage(
+    resolvedSearchParams?.club_delete_error
+  );
   const useNicknames = flags.use_nicknames ?? false;
+  const canDeleteClub = membership.role === "admin";
+  const clubLabel = club.display_name?.trim() || club.name?.trim() || "dieser Club";
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -347,6 +367,73 @@ export default async function ClubAdminPage({
                 Logo entfernen
               </button>
             </form>
+          ) : null}
+
+          {canDeleteClub ? (
+            <div className="mt-8 rounded-[24px] border border-rose-200 bg-rose-50/50 p-5">
+              <div className="inline-flex rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-bold text-rose-700">
+                Gefahrenbereich
+              </div>
+
+              <h2 className="mt-3 text-xl font-extrabold tracking-tight text-slate-950">
+                Club dauerhaft löschen
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                Dadurch werden {clubLabel}, alle Mitglieder, Spieler, Sessions,
+                Ergebnisse, Teams, Statistiken, MVP-Daten und hochgeladenen
+                Bilder dauerhaft entfernt.
+              </p>
+
+              {clubDeleteError ? (
+                <div className="mt-4 rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-800">
+                  {clubDeleteError}
+                </div>
+              ) : null}
+
+              <form
+                method="post"
+                action="/api/admin/club/delete"
+                className="mt-5 space-y-4"
+              >
+                <div>
+                  <label
+                    htmlFor="club_delete_confirmation"
+                    className="block text-sm font-semibold text-slate-900"
+                  >
+                    Zur Bestätigung „CLUB LÖSCHEN“ eingeben
+                  </label>
+                  <input
+                    id="club_delete_confirmation"
+                    name="confirmation"
+                    type="text"
+                    autoComplete="off"
+                    className="mt-2 w-full rounded-xl border border-rose-200 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-rose-500"
+                    placeholder="CLUB LÖSCHEN"
+                  />
+                </div>
+
+                <label className="flex items-start gap-3 rounded-2xl border border-rose-100 bg-white px-4 py-3">
+                  <input
+                    type="checkbox"
+                    name="acknowledgement"
+                    value="1"
+                    className="mt-1 h-4 w-4 rounded border-rose-300"
+                  />
+                  <span className="text-sm leading-6 text-rose-900">
+                    Mir ist bewusst, dass sämtliche Clubdaten endgültig
+                    gelöscht werden und nicht wiederhergestellt werden können.
+                  </span>
+                </label>
+
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-rose-700"
+                >
+                  Club dauerhaft löschen
+                </button>
+              </form>
+            </div>
           ) : null}
         </div>
       </section>

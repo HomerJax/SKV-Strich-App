@@ -8,7 +8,7 @@ export type MvpVotingAccess = {
   allowed: boolean;
   usedThisSeason: number;
   freeLimit: number;
-  reason: "pro" | "free_available" | "free_limit_reached";
+  reason: "free_launch" | "pro" | "free_available" | "free_limit_reached";
 };
 
 type GetMvpVotingAccessArgs = {
@@ -25,6 +25,16 @@ export async function getMvpVotingAccessForSession({
   seasonId,
 }: GetMvpVotingAccessArgs): Promise<MvpVotingAccess> {
   const billingAccess = await getClubBillingAccess(supabase, clubId);
+
+  if (billingAccess.isFreeLaunch) {
+    return {
+      isPro: false,
+      allowed: true,
+      usedThisSeason: 0,
+      freeLimit: FREE_MVP_VOTING_LIMIT_PER_SEASON,
+      reason: "free_launch",
+    };
+  }
 
   if (billingAccess.isPro) {
     return {
