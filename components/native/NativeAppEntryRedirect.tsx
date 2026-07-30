@@ -7,7 +7,7 @@ export default function NativeAppEntryRedirect() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
-    window.location.replace("/login");
+    window.location.replace("/home");
   }, []);
 
   return null;
