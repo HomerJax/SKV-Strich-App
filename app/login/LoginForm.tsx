@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
-import { loginAction, type LoginState } from "./actions";
+import { useMemo, useState } from "react";
 
 type LoginFormProps = {
   initialEmail?: string;
@@ -28,10 +27,6 @@ function initialErrorMessage(error: string) {
   return error || "";
 }
 
-const INITIAL_STATE: LoginState = {
-  error: "",
-};
-
 export default function LoginForm({
   initialEmail = "",
   initialError = "",
@@ -41,14 +36,9 @@ export default function LoginForm({
   const [password, setPassword] = useState("");
   const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
 
-  const [state, formAction, isPending] = useActionState(
-    loginAction,
-    INITIAL_STATE
-  );
+  const [isPending, setIsPending] = useState(false);
 
-  const activeErrorCode = hasEditedSinceSubmit
-    ? ""
-    : state.error || initialError || "";
+  const activeErrorCode = hasEditedSinceSubmit ? "" : initialError || "";
 
   const errorMessage = useMemo(
     () => getErrorMessage(activeErrorCode),
@@ -95,8 +85,12 @@ export default function LoginForm({
           ) : null}
 
           <form
-            action={formAction}
-            onSubmit={() => setHasEditedSinceSubmit(false)}
+            action="/api/login"
+            method="post"
+            onSubmit={() => {
+              setHasEditedSinceSubmit(false);
+              setIsPending(true);
+            }}
             className="mt-6 space-y-4"
           >
             <input type="hidden" name="next" value={initialNext} />

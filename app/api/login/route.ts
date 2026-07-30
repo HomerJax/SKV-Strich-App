@@ -13,6 +13,16 @@ function buildRedirect(request: NextRequest, path: string) {
   return new URL(path, request.url);
 }
 
+function normalizeNext(value: FormDataEntryValue | null) {
+  const next = String(value ?? "").trim();
+
+  if (!next) return "";
+  if (!next.startsWith("/")) return "";
+  if (next.startsWith("//")) return "";
+
+  return next;
+}
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
 
@@ -20,11 +30,13 @@ export async function POST(request: NextRequest) {
     .trim()
     .toLowerCase();
   const password = String(formData.get("password") ?? "").trim();
+  const next = normalizeNext(formData.get("next"));
+  const nextQuery = next ? `&next=${encodeURIComponent(next)}` : "";
 
   if (!email || !password) {
     const url = buildRedirect(
       request,
-      `/login?error=missing-fields&email=${encodeURIComponent(email)}`
+      `/login?error=missing-fields&email=${encodeURIComponent(email)}${nextQuery}`
     );
     return NextResponse.redirect(url, { status: 303 });
   }
@@ -57,12 +69,25 @@ export async function POST(request: NextRequest) {
   if (signInError || !signInData.user) {
     const url = buildRedirect(
       request,
-      `/login?error=invalid-credentials&email=${encodeURIComponent(email)}`
+      `/login?error=invalid-credentials&email=${encodeURIComponent(email)}${nextQuery}`
     );
     return NextResponse.redirect(url, { status: 303 });
   }
 
   const user = signInData.user;
+
+  if (next) {
+    const redirectResponse = NextResponse.redirect(
+      buildRedirect(request, next),
+      { status: 303 }
+    );
+
+    for (const cookie of response.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie);
+    }
+
+    return redirectResponse;
+  }
 
   const { data: memberships, error: membershipsError } = await supabase
     .from("club_memberships")
