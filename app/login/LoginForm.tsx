@@ -36,8 +36,6 @@ export default function LoginForm({
   const [password, setPassword] = useState("");
   const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
 
-  const [isPending, setIsPending] = useState(false);
-
   const activeErrorCode = hasEditedSinceSubmit ? "" : initialError || "";
 
   const errorMessage = useMemo(
@@ -87,10 +85,7 @@ export default function LoginForm({
           <form
             action="/api/login"
             method="post"
-            onSubmit={() => {
-              setHasEditedSinceSubmit(false);
-              setIsPending(true);
-            }}
+            onSubmit={() => setHasEditedSinceSubmit(false)}
             className="mt-6 space-y-4"
           >
             <input type="hidden" name="next" value={initialNext} />
@@ -111,7 +106,6 @@ export default function LoginForm({
                 autoComplete="email"
                 className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
                 placeholder="du@beispiel.de"
-                disabled={isPending}
               />
             </div>
 
@@ -140,16 +134,14 @@ export default function LoginForm({
                 required
                 autoComplete="current-password"
                 className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-                disabled={isPending}
               />
             </div>
 
             <button
               type="submit"
-              disabled={isPending}
-              className="mt-2 w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-2 w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
             >
-              {isPending ? "Einloggen..." : "Einloggen"}
+              Einloggen
             </button>
           </form>
 
