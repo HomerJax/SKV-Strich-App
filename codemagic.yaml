@@ -30,6 +30,39 @@ workflows:
     artifacts:
       - android/app/build/outputs/apk/debug/app-debug.apk
 
+  android-play-release:
+    name: strikr Google Play AAB
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+
+    environment:
+      android_signing:
+        - strikr_upload
+      node: 22
+      java: 21
+
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+
+      - name: Sync Capacitor Android
+        script: |
+          npx cap sync android
+
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+
+      - name: Build signed Android App Bundle
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
+
+    artifacts:
+      - android/app/build/outputs/bundle/release/app-release.aab
+
   ios-testflight:
     name: strikr iOS TestFlight
     instance_type: mac_mini_m2
