@@ -34,7 +34,7 @@ export function getAppUrl() {
   }
 
   if (isProductionEnv()) {
-    return "https://strikr.team";
+    return "https://www.strikr.team";
   }
 
   if (isStagingEnv()) {

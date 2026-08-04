@@ -9,6 +9,7 @@ import { formatDate, getMemberRoleLabel } from "./members-utils";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import InviteActions from "./InviteActions";
 import { getAuthContext } from "@/lib/auth/context";
+import { buildAbsoluteInviteUrl } from "@/lib/invites/url";
 
 function getAdminSupabase() {
   return createAdminClient(
@@ -57,9 +58,6 @@ async function getRequestOrigin() {
   return "http://localhost:3000";
 }
 
-function buildAbsoluteInviteUrl(origin: string, token: string) {
-  return `${origin.replace(/\/$/, "")}/join?token=${encodeURIComponent(token)}`;
-}
 
 function buildFullName(player: {
   first_name: string | null;

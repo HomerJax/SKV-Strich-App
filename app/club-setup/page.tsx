@@ -9,6 +9,7 @@ import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
 import ClubSetupInviteActions from "@/components/club-setup/ClubSetupInviteActions";
 import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
+import { buildAbsoluteInviteUrl } from "@/lib/invites/url";
 
 function getErrorMessage(error?: string | null) {
   switch (error) {
@@ -271,7 +272,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
   const clubName = club?.display_name?.trim() || "dein Team";
   const errorMessage = getErrorMessage(error);
   const inviteUrl = inviteToken
-    ? `${origin}/join?token=${encodeURIComponent(inviteToken)}`
+    ? buildAbsoluteInviteUrl(origin, inviteToken)
     : null;
 
   const clubSaved =
