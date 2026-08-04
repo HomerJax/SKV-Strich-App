@@ -14,6 +14,11 @@ export default function NativeAppEntryRedirect() {
       return;
     }
 
+    if (!Capacitor.isPluginAvailable("App")) {
+      window.location.replace("/home");
+      return;
+    }
+
     let cancelled = false;
 
     async function redirect() {

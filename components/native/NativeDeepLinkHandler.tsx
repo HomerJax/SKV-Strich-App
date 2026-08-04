@@ -43,6 +43,7 @@ export default function NativeDeepLinkHandler() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     if (Capacitor.getPlatform() !== "android") return;
+    if (!Capacitor.isPluginAvailable("App")) return;
 
     let cancelled = false;
     let removeUrlListener: (() => void) | null = null;
