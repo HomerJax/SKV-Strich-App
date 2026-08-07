@@ -15,9 +15,9 @@ export type ResultSharePhotoLayout = {
 
 const PHOTO_LAYOUTS: Record<ResultSharePhotoLayoutId, ResultSharePhotoLayout> = {
   sports_editorial: {
-    // The winner photo is stored as a non-destructive master image.
-    // This layout keeps the visual focus high so faces stay clear of the footer
-    // and close to the start of the photo area below the editorial header.
+    // Winner photos are stored as non-destructive master images.
+    // This layout keeps the visual focus high so faces stay close to the
+    // start of the photo area and away from the score/footer overlay.
     focusX: 0.5,
     focusY: 0.18,
     safeZone: {
