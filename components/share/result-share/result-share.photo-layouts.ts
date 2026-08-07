@@ -15,11 +15,11 @@ export type ResultSharePhotoLayout = {
 
 const PHOTO_LAYOUTS: Record<ResultSharePhotoLayoutId, ResultSharePhotoLayout> = {
   sports_editorial: {
-    // Keep faces / upper bodies higher in the visible photo area.
-    // The current card uses a wide photo window, so a centered 4:5 master
-    // would otherwise lose too much of the upper part of the image.
+    // The winner photo is stored as a non-destructive master image.
+    // This layout keeps the visual focus high so faces stay clear of the footer
+    // and close to the start of the photo area below the editorial header.
     focusX: 0.5,
-    focusY: 0.34,
+    focusY: 0.18,
     safeZone: {
       top: 0.08,
       right: 0.05,
