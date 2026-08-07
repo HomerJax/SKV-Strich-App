@@ -7,10 +7,13 @@ import type {
   PointerEvent as ReactPointerEvent,
   RefObject,
 } from "react";
+import { compressImageFile } from "@/lib/client-images/compress-image";
 
 const CROP_ASPECT = 4 / 5;
 const CROP_OUTPUT_WIDTH = 1080;
 const CROP_OUTPUT_HEIGHT = 1350;
+const CROP_WORKING_MAX_SIZE = 2400;
+const MAX_SOURCE_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
 type CropRect = {
   x: number;
@@ -202,6 +205,7 @@ export default function SessionWinnerPhotoCard({
   const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null);
   const [cropRect, setCropRect] = useState<CropRect | null>(null);
   const [cropBusy, setCropBusy] = useState(false);
+  const [cropPreparing, setCropPreparing] = useState(false);
   const [cropError, setCropError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -218,6 +222,7 @@ export default function SessionWinnerPhotoCard({
     setCropSourceUrl(null);
     setCropRect(null);
     setCropBusy(false);
+    setCropPreparing(false);
     setCropError(null);
   }
 
@@ -227,7 +232,7 @@ export default function SessionWinnerPhotoCard({
     setCropRect(getInitialCropRect(image));
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     event.target.value = "";
 
@@ -238,16 +243,35 @@ export default function SessionWinnerPhotoCard({
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setCropError("Das Bild ist zu groß. Bitte maximal 10 MB verwenden.");
+    if (file.size > MAX_SOURCE_FILE_SIZE_BYTES) {
+      setCropError("Das Originalbild ist zu groß. Bitte maximal 20 MB verwenden.");
       return;
     }
 
-    const nextUrl = URL.createObjectURL(file);
-    setCropFile(file);
-    setCropSourceUrl(nextUrl);
-    setCropRect(null);
-    setCropError(null);
+    try {
+      setCropPreparing(true);
+      setCropError(null);
+      setCropRect(null);
+
+      const preparedFile = await compressImageFile(file, {
+        maxWidth: CROP_WORKING_MAX_SIZE,
+        maxHeight: CROP_WORKING_MAX_SIZE,
+        quality: 0.84,
+        outputType: "image/jpeg",
+      });
+
+      const nextUrl = URL.createObjectURL(preparedFile);
+      setCropFile(preparedFile);
+      setCropSourceUrl(nextUrl);
+    } catch (error) {
+      setCropError(
+        error instanceof Error
+          ? error.message
+          : "Das Bild konnte nicht für den Zuschnitt vorbereitet werden."
+      );
+    } finally {
+      setCropPreparing(false);
+    }
   }
 
   function triggerFilePicker() {
@@ -270,7 +294,7 @@ export default function SessionWinnerPhotoCard({
   }
 
   function startInteraction(mode: CropMode, event: ReactPointerEvent<HTMLElement>) {
-    if (!cropRect || cropBusy || photoBusy) return;
+    if (!cropRect || cropBusy || cropPreparing || photoBusy) return;
 
     event.preventDefault();
     event.stopPropagation();
@@ -427,7 +451,7 @@ export default function SessionWinnerPhotoCard({
   async function useCroppedPhoto() {
     const image = cropImageRef.current;
 
-    if (!cropFile || !image || !cropRect || cropBusy || photoBusy) {
+    if (!cropFile || !image || !cropRect || cropBusy || cropPreparing || photoBusy) {
       return;
     }
 
@@ -456,8 +480,38 @@ export default function SessionWinnerPhotoCard({
   }
 
   const done = hasWinnerPhoto;
-  const controlsBusy = photoBusy || saving || cropBusy;
-  const cropReady = Boolean(cropRect && cropImageRef.current);
+  const controlsBusy = photoBusy || saving || cropBusy || cropPreparing;
+  const cropReady = Boolean(cropRect && cropImageRef.current && !cropPreparing);
+
+  useEffect(() => {
+    if (!cropSourceUrl) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !controlsBusy) {
+        event.preventDefault();
+        clearCropSelection();
+        return;
+      }
+
+      if (event.key !== "Enter" || !cropReady || controlsBusy || cropError) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        ["BUTTON", "INPUT", "TEXTAREA", "SELECT", "A"].includes(target.tagName)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      void useCroppedPhoto();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cropSourceUrl, cropReady, controlsBusy, cropError]);
 
   const cropStyle = cropRect && cropImageRef.current
     ? {
@@ -537,7 +591,9 @@ export default function SessionWinnerPhotoCard({
           ref={winnerPhotoInputRef}
           type="file"
           accept="image/*"
-          onChange={handleFileChange}
+          onChange={(event) => {
+            void handleFileChange(event);
+          }}
           disabled={!canUploadWinnerPhoto || controlsBusy}
           className="hidden"
         />
@@ -548,13 +604,15 @@ export default function SessionWinnerPhotoCard({
             disabled={!canUploadWinnerPhoto || controlsBusy}
             tone="primary"
           >
-            {photoBusy
-              ? "Speichert..."
-              : done
-                ? "Foto ersetzen"
-                : cropSourceUrl
-                  ? "Anderes Foto"
-                  : "Foto auswählen"}
+            {cropPreparing
+              ? "Bild wird optimiert..."
+              : photoBusy
+                ? "Speichert..."
+                : done
+                  ? "Foto ersetzen"
+                  : cropSourceUrl
+                    ? "Anderes Foto"
+                    : "Foto auswählen"}
           </ControlButton>
 
           {done && !cropSourceUrl ? (
@@ -662,6 +720,22 @@ export default function SessionWinnerPhotoCard({
                   })}
                 </div>
               ) : null}
+
+              {cropReady ? (
+                <button
+                  type="button"
+                  aria-label="Ausschnitt verwenden"
+                  title="Ausschnitt verwenden"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => {
+                    void useCroppedPhoto();
+                  }}
+                  disabled={controlsBusy || Boolean(cropError)}
+                  className="absolute bottom-3 right-3 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-slate-950/90 text-xl font-black text-white shadow-lg backdrop-blur transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {cropBusy || photoBusy ? "…" : "✓"}
+                </button>
+              ) : null}
             </div>
 
             {!cropReady && !cropError ? (
@@ -684,7 +758,7 @@ export default function SessionWinnerPhotoCard({
                 disabled={!cropReady || controlsBusy || Boolean(cropError)}
                 tone="primary"
               >
-                {cropBusy || photoBusy ? "Speichert..." : "Foto verwenden"}
+                {cropBusy || photoBusy ? "Speichert..." : "✓ Foto verwenden"}
               </ControlButton>
 
               <ControlButton
@@ -697,6 +771,10 @@ export default function SessionWinnerPhotoCard({
               <ControlButton onClick={clearCropSelection} disabled={controlsBusy}>
                 Abbrechen
               </ControlButton>
+            </div>
+
+            <div className="text-[11px] font-medium text-slate-500">
+              Desktop: Enter = verwenden · Esc = abbrechen
             </div>
           </div>
         ) : (
