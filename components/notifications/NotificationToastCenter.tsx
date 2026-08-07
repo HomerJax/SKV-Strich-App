@@ -524,8 +524,8 @@ export function NotificationToastCenter() {
               ×
             </button>
 
-            <div className="p-3 pr-10">
-              <div className="flex items-start gap-3">
+            <div className="p-3">
+              <div className="flex items-start gap-3 pr-7">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-base">
                   {toneIcon}
                 </div>
@@ -563,20 +563,30 @@ export function NotificationToastCenter() {
                 </div>
               ) : null}
 
-              {display.cta ? (
+              <div className="mt-2 flex flex-col gap-2">
+                {display.cta ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleCta(notification)}
+                    disabled={isBusy}
+                    className="inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-xs font-black text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isBusy
+                      ? isMvp
+                        ? "Bereite Card vor…"
+                        : "Öffne…"
+                      : display.cta}
+                  </button>
+                ) : null}
+
                 <button
                   type="button"
-                  onClick={() => void handleCta(notification)}
-                  disabled={isBusy}
-                  className="mt-2 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-xs font-black text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => void dismissNotification(notification.id)}
+                  className="inline-flex w-full justify-center rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-black text-white/80 transition hover:bg-white/10 hover:text-white"
                 >
-                  {isBusy
-                    ? isMvp
-                      ? "Bereite Card vor…"
-                      : "Öffne…"
-                    : display.cta}
+                  Schließen
                 </button>
-              ) : null}
+              </div>
             </div>
           </div>
         );
