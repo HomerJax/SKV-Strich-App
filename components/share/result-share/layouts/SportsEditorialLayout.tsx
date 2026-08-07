@@ -215,7 +215,6 @@ export function SportsEditorialLayout({
             "0 40px 120px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.08)",
         }}
       >
-        {/* Top color field */}
         <div
           style={{
             display: "flex",
@@ -230,7 +229,6 @@ export function SportsEditorialLayout({
           }}
         />
 
-        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -257,7 +255,6 @@ export function SportsEditorialLayout({
           })}
         </div>
 
-        {/* Big editorial title */}
         <div
           style={{
             display: "flex",
@@ -288,7 +285,6 @@ export function SportsEditorialLayout({
           </div>
         </div>
 
-        {/* Photo: endet VOR dem Footer, dadurch keine grünen unteren Ecken */}
         <div
           style={{
             display: "flex",
@@ -337,7 +333,6 @@ export function SportsEditorialLayout({
           )}
         </div>
 
-        {/* Übergang Top → Foto */}
         <div
           style={{
             display: "flex",
@@ -352,7 +347,6 @@ export function SportsEditorialLayout({
           }}
         />
 
-        {/* Foto unten abdunkeln */}
         <div
           style={{
             display: "flex",
@@ -367,7 +361,6 @@ export function SportsEditorialLayout({
           }}
         />
 
-        {/* Echter Footer, volle Breite */}
         <div
           style={{
             display: "flex",
@@ -382,7 +375,6 @@ export function SportsEditorialLayout({
           }}
         />
 
-        {/* Score + short headline */}
         <div
           style={{
             display: "flex",
