@@ -637,7 +637,7 @@ export default function SessionWinnerPhotoCard({
 
             <div
               ref={cropWorkspaceRef}
-              className="relative overflow-hidden rounded-[18px] bg-slate-950 shadow-inner select-none"
+              className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[18px] bg-slate-950 shadow-inner select-none"
               style={{ touchAction: "none" }}
               onPointerMove={handlePointerMove}
               onPointerUp={finishInteraction}
