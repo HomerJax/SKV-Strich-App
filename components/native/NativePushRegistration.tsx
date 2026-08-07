@@ -27,9 +27,7 @@ export default function NativePushRegistration() {
 
     const platform = Capacitor.getPlatform();
 
-    // iOS native app shell is supported for now, but iOS push stays disabled
-    // until Apple Developer/APNs/TestFlight setup is worth doing properly.
-    if (platform !== "android") return;
+    if (platform !== "android" && platform !== "ios") return;
 
     let cancelled = false;
     const removeListeners: Array<() => void> = [];

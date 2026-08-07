@@ -11,7 +11,23 @@ const config: CapacitorConfig = {
     cleartext: false,
   },
   ios: {
-    includePlugins: [],
+    includePlugins: ["@capacitor-firebase/messaging"],
+  },
+  plugins: {
+    FirebaseMessaging: {
+      presentationOptions: ["alert", "badge", "sound"],
+    },
+  },
+  experimental: {
+    ios: {
+      spm: {
+        packageOptions: {
+          "@capacitor-firebase/messaging": {
+            symlink: true,
+          },
+        },
+      },
+    },
   },
 };
 
