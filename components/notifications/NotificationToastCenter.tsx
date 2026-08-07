@@ -563,7 +563,7 @@ export function NotificationToastCenter() {
                 </div>
               ) : null}
 
-              <div className="mt-2 flex flex-col gap-2">
+              <div className="mt-2 flex flex-col gap-1.5">
                 {display.cta ? (
                   <button
                     type="button"
@@ -582,9 +582,11 @@ export function NotificationToastCenter() {
                 <button
                   type="button"
                   onClick={() => void dismissNotification(notification.id)}
-                  className="inline-flex w-full justify-center rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-black text-white/80 transition hover:bg-white/10 hover:text-white"
+                  className="mx-auto inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-white/45 transition hover:text-white/80"
+                  aria-label="Benachrichtigung schließen"
                 >
-                  Schließen
+                  <span aria-hidden="true" className="text-sm leading-none">×</span>
+                  <span>Schließen</span>
                 </button>
               </div>
             </div>
