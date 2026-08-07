@@ -1,15 +1,28 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import type { ChangeEvent, RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
+import type {
+  ChangeEvent,
+  PointerEvent as ReactPointerEvent,
+  RefObject,
+} from "react";
 import { compressImageFile } from "@/lib/client-images/compress-image";
 
 const MASTER_MAX_SIZE = 2400;
 const MAX_SOURCE_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 const MAX_UPLOAD_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MIN_FOCUS_ZOOM = 0.75;
+const MAX_FOCUS_ZOOM = 2.5;
+
+type PhotoFocus = {
+  x: number;
+  y: number;
+  zoom: number;
+};
 
 type SessionWinnerPhotoCardProps = {
+  sessionId: number;
   hasResult: boolean;
   saving: boolean;
   photoBusy: boolean;
@@ -25,6 +38,10 @@ type SessionWinnerPhotoCardProps = {
   collapsed: boolean;
   onToggleCollapsed: () => void;
 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function SummaryPill({
   children,
@@ -80,6 +97,7 @@ function ControlButton({
 }
 
 export default function SessionWinnerPhotoCard({
+  sessionId,
   saving,
   photoBusy,
   canUploadWinnerPhoto,
@@ -92,8 +110,17 @@ export default function SessionWinnerPhotoCard({
   collapsed,
   onToggleCollapsed,
 }: SessionWinnerPhotoCardProps) {
+  const focusWorkspaceRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startClientX: number;
+    startClientY: number;
+    startFocus: PhotoFocus;
+  } | null>(null);
+
   const [masterFile, setMasterFile] = useState<File | null>(null);
   const [masterPreviewUrl, setMasterPreviewUrl] = useState<string | null>(null);
+  const [focus, setFocus] = useState<PhotoFocus>({ x: 0.5, y: 0.5, zoom: 1 });
   const [preparing, setPreparing] = useState(false);
   const [localBusy, setLocalBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -104,11 +131,17 @@ export default function SessionWinnerPhotoCard({
   }, [masterPreviewUrl]);
 
   function clearPreparedPhoto() {
+    dragRef.current = null;
     setMasterFile(null);
     setMasterPreviewUrl(null);
+    setFocus({ x: 0.5, y: 0.5, zoom: 1 });
     setPreparing(false);
     setLocalBusy(false);
     setPhotoError(null);
+  }
+
+  function resetFocus() {
+    setFocus({ x: 0.5, y: 0.5, zoom: 1 });
   }
 
   function triggerFilePicker() {
@@ -134,6 +167,7 @@ export default function SessionWinnerPhotoCard({
     try {
       setPreparing(true);
       setPhotoError(null);
+      setFocus({ x: 0.5, y: 0.5, zoom: 1 });
 
       const preparedFile = await compressImageFile(file, {
         maxWidth: MASTER_MAX_SIZE,
@@ -164,12 +198,84 @@ export default function SessionWinnerPhotoCard({
     }
   }
 
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (controlsBusy) return;
+
+    const workspace = focusWorkspaceRef.current;
+    if (!workspace) return;
+
+    event.preventDefault();
+    workspace.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startFocus: focus,
+    };
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    const workspace = focusWorkspaceRef.current;
+    if (!drag || !workspace || drag.pointerId !== event.pointerId) return;
+
+    event.preventDefault();
+    const bounds = workspace.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+
+    const dx = (event.clientX - drag.startClientX) / bounds.width;
+    const dy = (event.clientY - drag.startClientY) / bounds.height;
+
+    setFocus((current) => ({
+      ...current,
+      x: clamp(drag.startFocus.x - dx / Math.max(drag.startFocus.zoom, 0.75), 0, 1),
+      y: clamp(drag.startFocus.y - dy / Math.max(drag.startFocus.zoom, 0.75), 0, 1),
+    }));
+  }
+
+  function finishPointer(event: ReactPointerEvent<HTMLDivElement>) {
+    const workspace = focusWorkspaceRef.current;
+    if (workspace?.hasPointerCapture(event.pointerId)) {
+      workspace.releasePointerCapture(event.pointerId);
+    }
+    dragRef.current = null;
+  }
+
+  function adjustZoom(nextZoom: number) {
+    setFocus((current) => ({
+      ...current,
+      zoom: clamp(nextZoom, MIN_FOCUS_ZOOM, MAX_FOCUS_ZOOM),
+    }));
+  }
+
+  async function saveFocus() {
+    const response = await fetch(`/api/sessions/${sessionId}/winner-photo-focus`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        x: focus.x,
+        y: focus.y,
+        zoom: focus.zoom,
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+      throw new Error(payload?.error || "Foto-Fokus konnte nicht gespeichert werden.");
+    }
+  }
+
   async function usePreparedPhoto() {
     if (!masterFile || localBusy || photoBusy || saving) return;
 
     try {
       setLocalBusy(true);
       setPhotoError(null);
+
+      await saveFocus();
 
       const syntheticEvent = {
         target: {
@@ -190,6 +296,7 @@ export default function SessionWinnerPhotoCard({
 
   const done = hasWinnerPhoto;
   const controlsBusy = photoBusy || saving || preparing || localBusy;
+  const objectPosition = `${Math.round(focus.x * 100)}% ${Math.round(focus.y * 100)}%`;
 
   if (collapsed) {
     return (
@@ -296,19 +403,61 @@ export default function SessionWinnerPhotoCard({
         {masterPreviewUrl ? (
           <div className="space-y-3 rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             <div>
-              <div className="text-sm font-bold text-slate-950">Foto prüfen</div>
+              <div className="text-sm font-bold text-slate-950">Motiv ausrichten</div>
               <div className="mt-1 text-xs leading-5 text-slate-600">
-                Das vollständige Foto wird als Master gespeichert. Die SiegerCard wählt daraus später passend zu ihrem Layout den sichtbaren Ausschnitt.
+                Das vollständige Foto bleibt gespeichert. Richte hier nur den Motiv-Fokus aus. 100 % zeigt das ganze Foto; mit Minus bekommst du zusätzlich Luft um die Gruppe.
               </div>
             </div>
 
-            <div className="mx-auto flex max-h-[420px] w-full max-w-[420px] items-center justify-center overflow-hidden rounded-[18px] bg-slate-950">
+            <div
+              ref={focusWorkspaceRef}
+              className="relative mx-auto aspect-[4/5] w-full max-w-[420px] cursor-grab overflow-hidden rounded-[18px] bg-slate-950 shadow-inner select-none active:cursor-grabbing"
+              style={{ touchAction: "none" }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={finishPointer}
+              onPointerCancel={finishPointer}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={masterPreviewUrl}
-                alt="Siegerfoto Vorschau"
-                className="max-h-[420px] h-auto w-auto max-w-full object-contain"
+                alt="Siegerfoto Motivfokus"
+                draggable={false}
+                className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain transition-transform duration-150"
+                style={{
+                  objectPosition,
+                  transform: `scale(${focus.zoom})`,
+                  transformOrigin: objectPosition,
+                }}
               />
+
+              <div className="pointer-events-none absolute inset-0 border-2 border-white/80">
+                <div className="absolute inset-x-0 top-1/3 border-t border-white/30" />
+                <div className="absolute inset-x-0 top-2/3 border-t border-white/30" />
+                <div className="absolute inset-y-0 left-1/3 border-l border-white/30" />
+                <div className="absolute inset-y-0 left-2/3 border-l border-white/30" />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <ControlButton
+                onClick={() => adjustZoom(focus.zoom - 0.15)}
+                disabled={controlsBusy || focus.zoom <= MIN_FOCUS_ZOOM}
+              >
+                −
+              </ControlButton>
+              <div className="min-w-24 text-center text-[11px] font-semibold text-slate-500">
+                Zoom {Math.round(focus.zoom * 100)} %
+              </div>
+              <ControlButton
+                onClick={() => adjustZoom(focus.zoom + 0.15)}
+                disabled={controlsBusy || focus.zoom >= MAX_FOCUS_ZOOM}
+              >
+                +
+              </ControlButton>
+              <ControlButton onClick={resetFocus} disabled={controlsBusy}>
+                Zurücksetzen
+              </ControlButton>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -328,12 +477,13 @@ export default function SessionWinnerPhotoCard({
         ) : (
           <div className="rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             {winnerPhotoUrl ? (
-              <div className="relative mx-auto aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-[16px]">
+              <div className="relative mx-auto flex min-h-[180px] w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[16px] bg-slate-950">
                 <Image
                   src={winnerPhotoUrl}
                   alt="Siegerfoto"
-                  fill
-                  className="object-cover"
+                  width={280}
+                  height={280}
+                  className="max-h-[320px] h-auto w-auto max-w-full object-contain"
                 />
               </div>
             ) : (
