@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
 import type { LeaderboardEntry as ShareLeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 import { preloadMvpShareImage, shareMvpResult } from "@/lib/share/mvp-share";
@@ -283,6 +283,8 @@ function getDisplayText(notification: NotificationItem) {
 export function NotificationToastCenter() {
   const pathname = usePathname();
   const shareRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const dismissedIdsRef = useRef<Set<number>>(new Set());
+  const loadRequestRef = useRef(0);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -290,29 +292,35 @@ export function NotificationToastCenter() {
   const [errorById, setErrorById] = useState<Record<number, string>>({});
 
   async function loadNotifications() {
+    const requestId = ++loadRequestRef.current;
+
     try {
       const res = await fetch("/api/notifications/unseen", {
         method: "GET",
         cache: "no-store",
       });
 
-      if (!res.ok) return;
+      if (!res.ok || requestId !== loadRequestRef.current) return;
 
       const json = (await res.json()) as {
         notifications?: NotificationItem[];
       };
 
-      setNotifications(json.notifications ?? []);
+      const dismissedIds = dismissedIdsRef.current;
+
+      setNotifications(
+        (json.notifications ?? []).filter(
+          (notification) => !dismissedIds.has(notification.id),
+        ),
+      );
     } catch {
       // bewusst still
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestRef.current) {
+        setLoading(false);
+      }
     }
   }
-
-  useEffect(() => {
-    void loadNotifications();
-  }, []);
 
   useEffect(() => {
     void loadNotifications();
@@ -348,25 +356,41 @@ export function NotificationToastCenter() {
     }
   }, [notifications]);
 
+  function hideNotification(id: number) {
+    dismissedIdsRef.current.add(id);
+    setNotifications((prev) => prev.filter((item) => item.id !== id));
+    setErrorById((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }
 
-
-  async function markSeen(id: number) {
+  async function markSeenOnServer(id: number) {
     const res = await fetch(`/api/notifications/${id}/seen`, {
       method: "POST",
+      keepalive: true,
     });
 
-    if (!res.ok) return;
+    if (!res.ok) {
+      throw new Error(`Notification ${id} could not be marked as seen.`);
+    }
+  }
 
-    setNotifications((prev) => prev.filter((item) => item.id !== id));
+  async function markSeen(id: number) {
+    await markSeenOnServer(id);
+    hideNotification(id);
   }
 
   async function dismissNotification(id: number) {
-    setBusyIds((prev) => [...prev, id]);
+    // Sofort ausblenden. Ein paralleler Reload darf die Notification
+    // in dieser App-Sitzung danach nicht wieder einblenden.
+    hideNotification(id);
 
     try {
-      await markSeen(id);
-    } finally {
-      setBusyIds((prev) => prev.filter((item) => item !== id));
+      await markSeenOnServer(id);
+    } catch (error) {
+      console.error("Notification dismiss could not be persisted", error);
     }
   }
 
@@ -432,17 +456,15 @@ export function NotificationToastCenter() {
     }
   }
 
-  const visibleNotifications = useMemo(
-    () => notifications.slice(0, 2),
-    [notifications]
-  );
+  const visibleNotifications = notifications.slice(0, 1);
+  const queuedCount = Math.max(notifications.length - 1, 0);
 
   if (loading || visibleNotifications.length === 0) {
     return null;
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex flex-col items-center gap-2 px-3 sm:top-4 sm:px-4">
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(4rem+env(safe-area-inset-top))] z-[70] flex flex-col items-center px-3 sm:top-[calc(5rem+env(safe-area-inset-top))] sm:px-4">
       {visibleNotifications.map((notification) => {
         const isBusy = busyIds.includes(notification.id);
         const isMvp = isMvpNotification(notification);
@@ -502,8 +524,8 @@ export function NotificationToastCenter() {
               ×
             </button>
 
-            <div className="p-3 pr-10">
-              <div className="flex items-start gap-3">
+            <div className="p-3">
+              <div className="flex items-start gap-3 pr-7">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-base">
                   {toneIcon}
                 </div>
@@ -516,6 +538,11 @@ export function NotificationToastCenter() {
                     <span className="text-[10px] font-semibold text-white/35">
                       {formatRelativeTime(notification.created_at)}
                     </span>
+                    {queuedCount > 0 ? (
+                      <span className="text-[10px] font-semibold text-white/35">
+                        Noch {queuedCount}
+                      </span>
+                    ) : null}
                   </div>
 
                   <p className="text-[13px] font-black leading-snug text-white">
@@ -536,20 +563,32 @@ export function NotificationToastCenter() {
                 </div>
               ) : null}
 
-              {display.cta ? (
+              <div className="mt-2 flex flex-col gap-1.5">
+                {display.cta ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleCta(notification)}
+                    disabled={isBusy}
+                    className="inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-xs font-black text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isBusy
+                      ? isMvp
+                        ? "Bereite Card vor…"
+                        : "Öffne…"
+                      : display.cta}
+                  </button>
+                ) : null}
+
                 <button
                   type="button"
-                  onClick={() => void handleCta(notification)}
-                  disabled={isBusy}
-                  className="mt-2 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-xs font-black text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => void dismissNotification(notification.id)}
+                  className="mx-auto inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-white/45 transition hover:text-white/80"
+                  aria-label="Benachrichtigung schließen"
                 >
-                  {isBusy
-                    ? isMvp
-                      ? "Bereite Card vor…"
-                      : "Öffne…"
-                    : display.cta}
+                  <span aria-hidden="true" className="text-sm leading-none">×</span>
+                  <span>Schließen</span>
                 </button>
-              ) : null}
+              </div>
             </div>
           </div>
         );
