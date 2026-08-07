@@ -778,9 +778,9 @@ export default function SessionWinnerPhotoCard({
             </div>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50">
+          <div className="rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             {winnerPhotoUrl ? (
-              <div className="relative aspect-[4/5] w-full">
+              <div className="relative mx-auto aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-[16px]">
                 <Image
                   src={winnerPhotoUrl}
                   alt="Siegerfoto"
