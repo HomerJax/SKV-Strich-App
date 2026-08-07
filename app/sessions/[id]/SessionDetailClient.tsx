@@ -82,18 +82,6 @@ function WorkspaceIntro({
   );
 }
 
-function SecondarySectionHeader({ title }: { title: string }) {
-  return (
-    <div className="flex items-center gap-3 py-1">
-      <div className="h-px flex-1 bg-slate-200" />
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-        {title}
-      </div>
-      <div className="h-px flex-1 bg-slate-200" />
-    </div>
-  );
-}
-
 export default function SessionDetailClient(props: SessionDetailClientProps) {
   const {
     router,
@@ -342,28 +330,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     return showMvpSection ? <SessionMvpCard sessionId={props.sessionId} /> : null;
   }
 
-  const secondarySections: Array<{ key: SectionKey; node: React.ReactNode }> = [];
-
-  if (activeSection !== "attendance") {
-    secondarySections.push({ key: "attendance", node: renderAttendance() });
-  }
-
-  if (allowTeams && activeSection !== "teams") {
-    secondarySections.push({ key: "teams", node: renderTeams() });
-  }
-
-  if (allowWinnerPhoto && activeSection !== "photo") {
-    secondarySections.push({ key: "photo", node: renderWinnerPhoto() });
-  }
-
-  if (allowResult && activeSection !== "result") {
-    secondarySections.push({ key: "result", node: renderResult() });
-  }
-
-  if (showMvpSection && activeSection !== "mvp") {
-    secondarySections.push({ key: "mvp", node: renderMvp() });
-  }
-
   const activeTitle =
     activeSection === "attendance"
       ? isEventSession
@@ -393,6 +359,25 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             : activeSection === "mvp"
               ? "Nach dem Ergebnis läuft hier das Voting bzw. Reveal."
               : undefined;
+
+  function renderWorkflowSection(key: SectionKey, node: React.ReactNode) {
+    if (!node) return null;
+
+    const isActive = activeSection === key;
+
+    return (
+      <section className="space-y-3">
+        {isActive && activeTitle ? (
+          <WorkspaceIntro
+            step="Jetzt dran"
+            title={activeTitle}
+            description={activeDescription}
+          />
+        ) : null}
+        {node}
+      </section>
+    );
+  }
 
   return (
     <>
@@ -431,32 +416,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
 
-        {activeSection && activeTitle ? (
-          <section className="space-y-3">
-            <WorkspaceIntro
-              step="Jetzt dran"
-              title={activeTitle}
-              description={activeDescription}
-            />
-
-            {activeSection === "attendance" ? renderAttendance() : null}
-            {activeSection === "teams" ? renderTeams() : null}
-            {activeSection === "photo" ? renderWinnerPhoto() : null}
-            {activeSection === "result" ? renderResult() : null}
-            {activeSection === "mvp" ? renderMvp() : null}
-          </section>
-        ) : null}
-
-        {secondarySections.length > 0 ? (
-          <section className="space-y-2.5">
-            <SecondarySectionHeader title="Weitere Bereiche" />
-            <div className="space-y-2.5">
-              {secondarySections.map((section) => (
-                <div key={section.key}>{section.node}</div>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        {renderWorkflowSection("attendance", renderAttendance())}
+        {allowTeams ? renderWorkflowSection("teams", renderTeams()) : null}
+        {allowWinnerPhoto
+          ? renderWorkflowSection("photo", renderWinnerPhoto())
+          : null}
+        {allowResult ? renderWorkflowSection("result", renderResult()) : null}
+        {showMvpSection ? renderWorkflowSection("mvp", renderMvp()) : null}
 
         {isTrainingSession && !hasResult && !activeSection ? (
           <NoticeCard tone="default">
