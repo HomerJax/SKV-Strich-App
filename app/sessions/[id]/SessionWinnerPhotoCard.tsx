@@ -6,6 +6,7 @@ import type {
   ChangeEvent,
   PointerEvent as ReactPointerEvent,
   RefObject,
+  WheelEvent as ReactWheelEvent,
 } from "react";
 import { compressImageFile } from "@/lib/client-images/compress-image";
 
@@ -14,6 +15,7 @@ const CROP_OUTPUT_WIDTH = 1080;
 const CROP_OUTPUT_HEIGHT = 1350;
 const CROP_WORKING_MAX_SIZE = 2400;
 const MAX_SOURCE_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+const MAX_ZOOM = 4;
 
 type CropRect = {
   x: number;
@@ -22,15 +24,26 @@ type CropRect = {
   height: number;
 };
 
-type CropMode = "move" | "n" | "e" | "s" | "w" | "nw" | "ne" | "se" | "sw";
-
-type CropInteraction = {
-  mode: CropMode;
-  pointerId: number;
-  startClientX: number;
-  startClientY: number;
-  startRect: CropRect;
+type Point = {
+  x: number;
+  y: number;
 };
+
+type Gesture =
+  | {
+      mode: "drag";
+      pointerId: number;
+      startPoint: Point;
+      startCrop: CropRect;
+    }
+  | {
+      mode: "pinch";
+      pointerIds: [number, number];
+      startDistance: number;
+      startMidpoint: Point;
+      startCrop: CropRect;
+      startZoom: number;
+    };
 
 type SessionWinnerPhotoCardProps = {
   hasResult: boolean;
@@ -51,6 +64,17 @@ type SessionWinnerPhotoCardProps = {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function distance(a: Point, b: Point) {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function midpoint(a: Point, b: Point): Point {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
 }
 
 function getInitialCropRect(image: HTMLImageElement): CropRect {
@@ -80,6 +104,36 @@ function getInitialCropRect(image: HTMLImageElement): CropRect {
     y: (imageHeight - height) / 2,
     width,
     height,
+  };
+}
+
+function cropForZoom(
+  image: HTMLImageElement,
+  zoom: number,
+  centerX: number,
+  centerY: number
+): CropRect {
+  const base = getInitialCropRect(image);
+  const width = base.width / zoom;
+  const height = base.height / zoom;
+
+  return {
+    x: clamp(centerX - width / 2, 0, image.naturalWidth - width),
+    y: clamp(centerY - height / 2, 0, image.naturalHeight - height),
+    width,
+    height,
+  };
+}
+
+function clampCropPosition(
+  crop: CropRect,
+  imageWidth: number,
+  imageHeight: number
+): CropRect {
+  return {
+    ...crop,
+    x: clamp(crop.x, 0, Math.max(0, imageWidth - crop.width)),
+    y: clamp(crop.y, 0, Math.max(0, imageHeight - crop.height)),
   };
 }
 
@@ -119,7 +173,7 @@ async function cropToJpegFile(
         }
       },
       "image/jpeg",
-      0.9
+      0.88
     );
   });
 
@@ -199,11 +253,14 @@ export default function SessionWinnerPhotoCard({
 }: SessionWinnerPhotoCardProps) {
   const cropImageRef = useRef<HTMLImageElement | null>(null);
   const cropWorkspaceRef = useRef<HTMLDivElement | null>(null);
-  const interactionRef = useRef<CropInteraction | null>(null);
+  const cropRectRef = useRef<CropRect | null>(null);
+  const activePointersRef = useRef(new Map<number, Point>());
+  const gestureRef = useRef<Gesture | null>(null);
 
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null);
   const [cropRect, setCropRect] = useState<CropRect | null>(null);
+  const [zoom, setZoom] = useState(1);
   const [cropBusy, setCropBusy] = useState(false);
   const [cropPreparing, setCropPreparing] = useState(false);
   const [cropError, setCropError] = useState<string | null>(null);
@@ -216,20 +273,43 @@ export default function SessionWinnerPhotoCard({
     };
   }, [cropSourceUrl]);
 
+  function applyCropRect(next: CropRect) {
+    cropRectRef.current = next;
+    setCropRect(next);
+  }
+
   function clearCropSelection() {
-    interactionRef.current = null;
+    activePointersRef.current.clear();
+    gestureRef.current = null;
+    cropRectRef.current = null;
     setCropFile(null);
     setCropSourceUrl(null);
     setCropRect(null);
+    setZoom(1);
     setCropBusy(false);
     setCropPreparing(false);
     setCropError(null);
   }
 
-  function resetCropRect() {
+  function resetCrop() {
     const image = cropImageRef.current;
     if (!image) return;
-    setCropRect(getInitialCropRect(image));
+
+    setZoom(1);
+    applyCropRect(getInitialCropRect(image));
+  }
+
+  function adjustZoom(nextZoomValue: number) {
+    const image = cropImageRef.current;
+    const current = cropRectRef.current;
+    if (!image || !current) return;
+
+    const nextZoom = clamp(nextZoomValue, 1, MAX_ZOOM);
+    const centerX = current.x + current.width / 2;
+    const centerY = current.y + current.height / 2;
+
+    setZoom(nextZoom);
+    applyCropRect(cropForZoom(image, nextZoom, centerX, centerY));
   }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -251,12 +331,14 @@ export default function SessionWinnerPhotoCard({
     try {
       setCropPreparing(true);
       setCropError(null);
+      cropRectRef.current = null;
       setCropRect(null);
+      setZoom(1);
 
       const preparedFile = await compressImageFile(file, {
         maxWidth: CROP_WORKING_MAX_SIZE,
         maxHeight: CROP_WORKING_MAX_SIZE,
-        quality: 0.84,
+        quality: 0.82,
         outputType: "image/jpeg",
       });
 
@@ -282,176 +364,151 @@ export default function SessionWinnerPhotoCard({
     const image = cropImageRef.current;
     if (!image) return;
 
-    setCropRect(getInitialCropRect(image));
+    setZoom(1);
+    applyCropRect(getInitialCropRect(image));
     setCropError(null);
   }
 
   function handleCropImageError() {
+    cropRectRef.current = null;
     setCropRect(null);
     setCropError(
       "Das Foto kann in diesem Browser nicht zugeschnitten werden. Bitte ein anderes Bild versuchen."
     );
   }
 
-  function startInteraction(mode: CropMode, event: ReactPointerEvent<HTMLElement>) {
-    if (!cropRect || cropBusy || cropPreparing || photoBusy) return;
+  function beginGestureFromPointers() {
+    const currentCrop = cropRectRef.current;
+    if (!currentCrop) return;
+
+    const entries = Array.from(activePointersRef.current.entries());
+
+    if (entries.length >= 2) {
+      const [first, second] = entries;
+      gestureRef.current = {
+        mode: "pinch",
+        pointerIds: [first[0], second[0]],
+        startDistance: Math.max(1, distance(first[1], second[1])),
+        startMidpoint: midpoint(first[1], second[1]),
+        startCrop: currentCrop,
+        startZoom: zoom,
+      };
+      return;
+    }
+
+    if (entries.length === 1) {
+      gestureRef.current = {
+        mode: "drag",
+        pointerId: entries[0][0],
+        startPoint: entries[0][1],
+        startCrop: currentCrop,
+      };
+      return;
+    }
+
+    gestureRef.current = null;
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!cropRectRef.current || cropBusy || cropPreparing || photoBusy) return;
 
     event.preventDefault();
-    event.stopPropagation();
-
     cropWorkspaceRef.current?.setPointerCapture(event.pointerId);
-    interactionRef.current = {
-      mode,
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startRect: cropRect,
-    };
+    activePointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+    beginGestureFromPointers();
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    const interaction = interactionRef.current;
     const image = cropImageRef.current;
-
-    if (!interaction || !image || interaction.pointerId !== event.pointerId) return;
-
-    event.preventDefault();
-
-    const imageBounds = image.getBoundingClientRect();
-    const imageWidth = image.naturalWidth;
-    const imageHeight = image.naturalHeight;
-
-    if (!imageBounds.width || !imageBounds.height || !imageWidth || !imageHeight) {
-      return;
-    }
-
-    const start = interaction.startRect;
-    const toNaturalX = imageWidth / imageBounds.width;
-    const toNaturalY = imageHeight / imageBounds.height;
-    const dx = (event.clientX - interaction.startClientX) * toNaturalX;
-    const dy = (event.clientY - interaction.startClientY) * toNaturalY;
-
-    if (interaction.mode === "move") {
-      setCropRect({
-        ...start,
-        x: clamp(start.x + dx, 0, imageWidth - start.width),
-        y: clamp(start.y + dy, 0, imageHeight - start.height),
-      });
-      return;
-    }
-
-    const pointerX = clamp(
-      (event.clientX - imageBounds.left) * toNaturalX,
-      0,
-      imageWidth
-    );
-    const pointerY = clamp(
-      (event.clientY - imageBounds.top) * toNaturalY,
-      0,
-      imageHeight
-    );
-
-    const minWidthBase = Math.max(80, imageWidth * 0.15);
+    const workspace = cropWorkspaceRef.current;
+    const gesture = gestureRef.current;
 
     if (
-      interaction.mode === "nw" ||
-      interaction.mode === "ne" ||
-      interaction.mode === "se" ||
-      interaction.mode === "sw"
+      !image ||
+      !workspace ||
+      !gesture ||
+      !activePointersRef.current.has(event.pointerId)
     ) {
-      const leftSide = interaction.mode === "nw" || interaction.mode === "sw";
-      const topSide = interaction.mode === "nw" || interaction.mode === "ne";
-      const anchorX = leftSide ? start.x + start.width : start.x;
-      const anchorY = topSide ? start.y + start.height : start.y;
-
-      const widthFromX = leftSide ? anchorX - pointerX : pointerX - anchorX;
-      const widthFromY =
-        (topSide ? anchorY - pointerY : pointerY - anchorY) * CROP_ASPECT;
-
-      const deltaFromX = Math.abs(widthFromX - start.width);
-      const deltaFromY = Math.abs(widthFromY - start.width);
-      const requestedWidth = deltaFromX >= deltaFromY ? widthFromX : widthFromY;
-
-      const horizontalCapacity = leftSide ? anchorX : imageWidth - anchorX;
-      const verticalCapacity = topSide ? anchorY : imageHeight - anchorY;
-      const maxWidth = Math.max(
-        1,
-        Math.min(horizontalCapacity, verticalCapacity * CROP_ASPECT)
-      );
-      const minWidth = Math.min(minWidthBase, maxWidth);
-      const width = clamp(requestedWidth, minWidth, maxWidth);
-      const height = width / CROP_ASPECT;
-
-      setCropRect({
-        x: leftSide ? anchorX - width : anchorX,
-        y: topSide ? anchorY - height : anchorY,
-        width,
-        height,
-      });
       return;
     }
 
-    if (interaction.mode === "e" || interaction.mode === "w") {
-      const leftSide = interaction.mode === "w";
-      const anchorX = leftSide ? start.x + start.width : start.x;
-      const centerY = start.y + start.height / 2;
-      const requestedWidth = leftSide ? anchorX - pointerX : pointerX - anchorX;
-      const horizontalCapacity = leftSide ? anchorX : imageWidth - anchorX;
-      const verticalHalfCapacity = Math.min(centerY, imageHeight - centerY);
-      const maxWidth = Math.max(
-        1,
-        Math.min(horizontalCapacity, verticalHalfCapacity * 2 * CROP_ASPECT)
-      );
-      const minWidth = Math.min(minWidthBase, maxWidth);
-      const width = clamp(requestedWidth, minWidth, maxWidth);
-      const height = width / CROP_ASPECT;
-
-      setCropRect({
-        x: leftSide ? anchorX - width : anchorX,
-        y: centerY - height / 2,
-        width,
-        height,
-      });
-      return;
-    }
-
-    const topSide = interaction.mode === "n";
-    const anchorY = topSide ? start.y + start.height : start.y;
-    const centerX = start.x + start.width / 2;
-    const requestedHeight = topSide ? anchorY - pointerY : pointerY - anchorY;
-    const verticalCapacity = topSide ? anchorY : imageHeight - anchorY;
-    const horizontalHalfCapacity = Math.min(centerX, imageWidth - centerX);
-    const maxHeight = Math.max(
-      1,
-      Math.min(verticalCapacity, (horizontalHalfCapacity * 2) / CROP_ASPECT)
-    );
-    const minHeight = Math.min(minWidthBase / CROP_ASPECT, maxHeight);
-    const height = clamp(requestedHeight, minHeight, maxHeight);
-    const width = height * CROP_ASPECT;
-
-    setCropRect({
-      x: centerX - width / 2,
-      y: topSide ? anchorY - height : anchorY,
-      width,
-      height,
+    event.preventDefault();
+    activePointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
     });
+
+    const bounds = workspace.getBoundingClientRect();
+    if (!bounds.width) return;
+
+    if (gesture.mode === "drag") {
+      const pointer = activePointersRef.current.get(gesture.pointerId);
+      if (!pointer) return;
+
+      const scale = bounds.width / gesture.startCrop.width;
+      const dx = (pointer.x - gesture.startPoint.x) / scale;
+      const dy = (pointer.y - gesture.startPoint.y) / scale;
+
+      applyCropRect(
+        clampCropPosition(
+          {
+            ...gesture.startCrop,
+            x: gesture.startCrop.x - dx,
+            y: gesture.startCrop.y - dy,
+          },
+          image.naturalWidth,
+          image.naturalHeight
+        )
+      );
+      return;
+    }
+
+    const first = activePointersRef.current.get(gesture.pointerIds[0]);
+    const second = activePointersRef.current.get(gesture.pointerIds[1]);
+    if (!first || !second) return;
+
+    const currentDistance = Math.max(1, distance(first, second));
+    const ratio = currentDistance / gesture.startDistance;
+    const nextZoom = clamp(gesture.startZoom * ratio, 1, MAX_ZOOM);
+    const currentMidpoint = midpoint(first, second);
+    const scale = bounds.width / gesture.startCrop.width;
+    const midpointDx = (currentMidpoint.x - gesture.startMidpoint.x) / scale;
+    const midpointDy = (currentMidpoint.y - gesture.startMidpoint.y) / scale;
+    const centerX =
+      gesture.startCrop.x + gesture.startCrop.width / 2 - midpointDx;
+    const centerY =
+      gesture.startCrop.y + gesture.startCrop.height / 2 - midpointDy;
+
+    setZoom(nextZoom);
+    applyCropRect(cropForZoom(image, nextZoom, centerX, centerY));
   }
 
-  function finishInteraction(event: ReactPointerEvent<HTMLDivElement>) {
-    const interaction = interactionRef.current;
-    if (!interaction || interaction.pointerId !== event.pointerId) return;
-
-    interactionRef.current = null;
+  function finishPointer(event: ReactPointerEvent<HTMLDivElement>) {
+    activePointersRef.current.delete(event.pointerId);
 
     if (cropWorkspaceRef.current?.hasPointerCapture(event.pointerId)) {
       cropWorkspaceRef.current.releasePointerCapture(event.pointerId);
     }
+
+    beginGestureFromPointers();
+  }
+
+  function handleWheel(event: ReactWheelEvent<HTMLDivElement>) {
+    if (!cropRectRef.current || cropBusy || cropPreparing || photoBusy) return;
+
+    event.preventDefault();
+    const factor = Math.exp(-event.deltaY * 0.0015);
+    adjustZoom(zoom * factor);
   }
 
   async function useCroppedPhoto() {
     const image = cropImageRef.current;
+    const currentCrop = cropRectRef.current;
 
-    if (!cropFile || !image || !cropRect || cropBusy || cropPreparing || photoBusy) {
+    if (!cropFile || !image || !currentCrop || cropBusy || cropPreparing || photoBusy) {
       return;
     }
 
@@ -459,7 +516,7 @@ export default function SessionWinnerPhotoCard({
       setCropBusy(true);
       setCropError(null);
 
-      const croppedFile = await cropToJpegFile(image, cropFile, cropRect);
+      const croppedFile = await cropToJpegFile(image, cropFile, currentCrop);
       const syntheticEvent = {
         target: {
           files: [croppedFile],
@@ -513,14 +570,15 @@ export default function SessionWinnerPhotoCard({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [cropSourceUrl, cropReady, controlsBusy, cropError]);
 
-  const cropStyle = cropRect && cropImageRef.current
-    ? {
-        left: `${(cropRect.x / cropImageRef.current.naturalWidth) * 100}%`,
-        top: `${(cropRect.y / cropImageRef.current.naturalHeight) * 100}%`,
-        width: `${(cropRect.width / cropImageRef.current.naturalWidth) * 100}%`,
-        height: `${(cropRect.height / cropImageRef.current.naturalHeight) * 100}%`,
-      }
-    : undefined;
+  const cropImageStyle =
+    cropRect && cropImageRef.current
+      ? {
+          width: `${(cropImageRef.current.naturalWidth / cropRect.width) * 100}%`,
+          maxWidth: "none",
+          left: `${-(cropRect.x / cropRect.width) * 100}%`,
+          top: `${-(cropRect.y / cropRect.height) * 100}%`,
+        }
+      : undefined;
 
   if (collapsed) {
     return (
@@ -629,113 +687,76 @@ export default function SessionWinnerPhotoCard({
         {cropSourceUrl ? (
           <div className="space-y-4 rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             <div>
-              <div className="text-sm font-bold text-slate-950">Foto zuschneiden</div>
+              <div className="text-sm font-bold text-slate-950">Foto ausrichten</div>
               <div className="mt-1 text-xs leading-5 text-slate-600">
-                Ziehe den Rahmen oder seine Seiten und Ecken direkt im Bild. Der Ausschnitt bleibt im 4:5-Format für die SiegerCard.
+                Ziehe das Bild unter dem festen 4:5-Rahmen. Mit zwei Fingern oder dem Mausrad kannst du zoomen.
               </div>
             </div>
 
-            <div
-              ref={cropWorkspaceRef}
-              className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[18px] bg-slate-950 shadow-inner select-none"
-              style={{ touchAction: "none" }}
-              onPointerMove={handlePointerMove}
-              onPointerUp={finishInteraction}
-              onPointerCancel={finishInteraction}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                ref={cropImageRef}
-                src={cropSourceUrl}
-                alt="Siegerfoto zuschneiden"
-                draggable={false}
-                onLoad={handleCropImageLoad}
-                onError={handleCropImageError}
-                className="block h-auto w-full select-none"
-              />
+            <div className="mx-auto w-full max-w-[420px]">
+              <div
+                ref={cropWorkspaceRef}
+                className="relative aspect-[4/5] w-full cursor-grab overflow-hidden rounded-[18px] bg-slate-950 shadow-inner select-none active:cursor-grabbing"
+                style={{ touchAction: "none" }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={finishPointer}
+                onPointerCancel={finishPointer}
+                onWheel={handleWheel}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={cropImageRef}
+                  src={cropSourceUrl}
+                  alt="Siegerfoto ausrichten"
+                  draggable={false}
+                  onLoad={handleCropImageLoad}
+                  onError={handleCropImageError}
+                  className="pointer-events-none absolute h-auto select-none"
+                  style={cropImageStyle}
+                />
 
-              {cropStyle ? (
-                <div
-                  className="absolute cursor-move border-2 border-white shadow-[0_0_0_9999px_rgba(15,23,42,0.62)]"
-                  style={cropStyle}
-                  onPointerDown={(event) => startInteraction("move", event)}
-                >
-                  <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-white/50" />
-                  <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-white/50" />
-                  <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-white/50" />
-                  <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-white/50" />
-
-                  <button
-                    type="button"
-                    aria-label="Obere Kante ziehen"
-                    onPointerDown={(event) => startInteraction("n", event)}
-                    className="absolute -top-3 left-1/2 h-6 w-14 -translate-x-1/2 cursor-ns-resize touch-none bg-transparent"
-                  >
-                    <span className="absolute left-1/2 top-2.5 h-1 w-10 -translate-x-1/2 rounded-full bg-white shadow" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Untere Kante ziehen"
-                    onPointerDown={(event) => startInteraction("s", event)}
-                    className="absolute -bottom-3 left-1/2 h-6 w-14 -translate-x-1/2 cursor-ns-resize touch-none bg-transparent"
-                  >
-                    <span className="absolute bottom-2.5 left-1/2 h-1 w-10 -translate-x-1/2 rounded-full bg-white shadow" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Linke Kante ziehen"
-                    onPointerDown={(event) => startInteraction("w", event)}
-                    className="absolute -left-3 top-1/2 h-14 w-6 -translate-y-1/2 cursor-ew-resize touch-none bg-transparent"
-                  >
-                    <span className="absolute left-2.5 top-1/2 h-10 w-1 -translate-y-1/2 rounded-full bg-white shadow" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Rechte Kante ziehen"
-                    onPointerDown={(event) => startInteraction("e", event)}
-                    className="absolute -right-3 top-1/2 h-14 w-6 -translate-y-1/2 cursor-ew-resize touch-none bg-transparent"
-                  >
-                    <span className="absolute right-2.5 top-1/2 h-10 w-1 -translate-y-1/2 rounded-full bg-white shadow" />
-                  </button>
-
-                  {(["nw", "ne", "se", "sw"] as const).map((mode) => {
-                    const positionClass =
-                      mode === "nw"
-                        ? "-left-3 -top-3 cursor-nwse-resize"
-                        : mode === "ne"
-                          ? "-right-3 -top-3 cursor-nesw-resize"
-                          : mode === "se"
-                            ? "-bottom-3 -right-3 cursor-nwse-resize"
-                            : "-bottom-3 -left-3 cursor-nesw-resize";
-
-                    return (
-                      <button
-                        key={mode}
-                        type="button"
-                        aria-label="Ecke des Ausschnitts ziehen"
-                        onPointerDown={(event) => startInteraction(mode, event)}
-                        className={`absolute h-7 w-7 touch-none rounded-full border-2 border-slate-900 bg-white shadow-md ${positionClass}`}
-                      />
-                    );
-                  })}
+                <div className="pointer-events-none absolute inset-0 z-20 border-2 border-white/90">
+                  <div className="absolute inset-x-0 top-1/3 border-t border-white/45" />
+                  <div className="absolute inset-x-0 top-2/3 border-t border-white/45" />
+                  <div className="absolute inset-y-0 left-1/3 border-l border-white/45" />
+                  <div className="absolute inset-y-0 left-2/3 border-l border-white/45" />
                 </div>
-              ) : null}
 
-              {cropReady ? (
-                <button
-                  type="button"
-                  aria-label="Ausschnitt verwenden"
-                  title="Ausschnitt verwenden"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => {
-                    void useCroppedPhoto();
-                  }}
-                  disabled={controlsBusy || Boolean(cropError)}
-                  className="absolute bottom-3 right-3 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-slate-950/90 text-xl font-black text-white shadow-lg backdrop-blur transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                {cropReady ? (
+                  <button
+                    type="button"
+                    aria-label="Ausschnitt verwenden"
+                    title="Ausschnitt verwenden"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={() => {
+                      void useCroppedPhoto();
+                    }}
+                    disabled={controlsBusy || Boolean(cropError)}
+                    className="absolute bottom-3 right-3 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-slate-950/90 text-xl font-black text-white shadow-lg backdrop-blur transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {cropBusy || photoBusy ? "…" : "✓"}
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <ControlButton
+                  onClick={() => adjustZoom(zoom / 1.2)}
+                  disabled={!cropReady || controlsBusy || zoom <= 1}
                 >
-                  {cropBusy || photoBusy ? "…" : "✓"}
-                </button>
-              ) : null}
+                  −
+                </ControlButton>
+                <div className="min-w-20 text-center text-[11px] font-semibold text-slate-500">
+                  Zoom {Math.round(zoom * 100)} %
+                </div>
+                <ControlButton
+                  onClick={() => adjustZoom(zoom * 1.2)}
+                  disabled={!cropReady || controlsBusy || zoom >= MAX_ZOOM}
+                >
+                  +
+                </ControlButton>
+              </div>
             </div>
 
             {!cropReady && !cropError ? (
@@ -761,10 +782,7 @@ export default function SessionWinnerPhotoCard({
                 {cropBusy || photoBusy ? "Speichert..." : "✓ Foto verwenden"}
               </ControlButton>
 
-              <ControlButton
-                onClick={resetCropRect}
-                disabled={!cropReady || controlsBusy}
-              >
+              <ControlButton onClick={resetCrop} disabled={!cropReady || controlsBusy}>
                 Zurücksetzen
               </ControlButton>
 
@@ -774,7 +792,7 @@ export default function SessionWinnerPhotoCard({
             </div>
 
             <div className="text-[11px] font-medium text-slate-500">
-              Desktop: Enter = verwenden · Esc = abbrechen
+              Desktop: Bild ziehen · Mausrad = Zoom · Enter = verwenden · Esc = abbrechen
             </div>
           </div>
         ) : (
