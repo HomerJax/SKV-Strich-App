@@ -11,6 +11,9 @@ export type ExtendedResultShareData = ResultShareData & {
   winnerWasShorthanded?: boolean;
   upsetWin?: boolean;
   dramaticFinish?: boolean;
+  winnerPhotoFocusX?: number;
+  winnerPhotoFocusY?: number;
+  winnerPhotoZoom?: number;
 };
 
 export type ShareCopy = {
