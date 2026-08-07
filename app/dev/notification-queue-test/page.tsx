@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthContext } from "@/lib/auth/context";
 import { assertNotProduction } from "@/lib/safety/assertions";
 
 async function getCurrentUser() {
@@ -42,21 +43,36 @@ async function createQueueTestNotifications() {
 
   assertNotProduction("Create notification queue test notifications");
 
-  const user = await getCurrentUser();
-  await assertDevAccess(user.id);
+  const ctx = await getAuthContext();
+
+  if (!ctx.user) {
+    redirect("/login");
+  }
+
+  await assertDevAccess(ctx.user.id);
+
+  const clubId =
+    ctx.activeClubId ??
+    ctx.memberships[0]?.club_id ??
+    ctx.player?.club_id ??
+    null;
+
+  if (!clubId) {
+    redirect("/dev/notification-queue-test?error=no-club");
+  }
 
   const admin = createAdminClient();
 
   await admin
     .from("user_notifications")
     .delete()
-    .eq("user_id", user.id)
+    .eq("user_id", ctx.user.id)
     .eq("type", "dev_toast_test");
 
   const { error } = await admin.from("user_notifications").insert([
     {
-      user_id: user.id,
-      club_id: null,
+      user_id: ctx.user.id,
+      club_id: clubId,
       type: "dev_toast_test",
       title: "Toast Test 1",
       body: "Erste von drei Test-Benachrichtigungen.",
@@ -66,8 +82,8 @@ async function createQueueTestNotifications() {
       payload: { dev: true, toastQueueTest: true, order: 1 },
     },
     {
-      user_id: user.id,
-      club_id: null,
+      user_id: ctx.user.id,
+      club_id: clubId,
       type: "dev_toast_test",
       title: "Toast Test 2",
       body: "Zweite von drei Test-Benachrichtigungen.",
@@ -77,8 +93,8 @@ async function createQueueTestNotifications() {
       payload: { dev: true, toastQueueTest: true, order: 2 },
     },
     {
-      user_id: user.id,
-      club_id: null,
+      user_id: ctx.user.id,
+      club_id: clubId,
       type: "dev_toast_test",
       title: "Toast Test 3",
       body: "Dritte von drei Test-Benachrichtigungen.",
@@ -90,7 +106,9 @@ async function createQueueTestNotifications() {
   ]);
 
   if (error) {
-    redirect("/dev/notification-queue-test?error=insert");
+    redirect(
+      `/dev/notification-queue-test?error=${encodeURIComponent(error.message)}`,
+    );
   }
 
   revalidatePath("/home");
@@ -113,7 +131,9 @@ async function deleteQueueTestNotifications() {
     .eq("type", "dev_toast_test");
 
   if (error) {
-    redirect("/dev/notification-queue-test?error=delete");
+    redirect(
+      `/dev/notification-queue-test?error=${encodeURIComponent(error.message)}`,
+    );
   }
 
   revalidatePath("/home");
