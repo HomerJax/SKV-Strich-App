@@ -9,6 +9,10 @@ import {
 import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
 import { ExtendedResultShareData } from "../result-share.types";
+import {
+  getPhotoObjectPosition,
+  getResultSharePhotoLayout,
+} from "../result-share.photo-layouts";
 
 function pickBySessionId<T>(sessionId: number, values: T[]) {
   return values[Math.abs(sessionId) % values.length] ?? values[0];
@@ -183,6 +187,7 @@ export function SportsEditorialLayout({
   const palette = buildPalette(data.clubPrimaryColor, "sports_editorial");
   const score = getScoreModel(data);
   const colorway = pickResultShareColorway(data.sessionId);
+  const photoLayout = getResultSharePhotoLayout("sports_editorial");
 
   return (
     <div
@@ -307,7 +312,7 @@ export function SportsEditorialLayout({
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                objectPosition: "center 82%",
+                objectPosition: getPhotoObjectPosition(photoLayout),
                 display: "block",
               }}
             />
