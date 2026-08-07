@@ -18,6 +18,10 @@ function pickBySessionId<T>(sessionId: number, values: T[]) {
   return values[Math.abs(sessionId) % values.length] ?? values[0];
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function renderStrikrTopBadge({
   strikrLogoUrl,
 }: {
@@ -188,6 +192,15 @@ export function SportsEditorialLayout({
   const score = getScoreModel(data);
   const colorway = pickResultShareColorway(data.sessionId);
   const photoLayout = getResultSharePhotoLayout("sports_editorial");
+  const userFocusX = clamp(data.winnerPhotoFocusX ?? 0.5, 0, 1);
+  const userFocusY = clamp(data.winnerPhotoFocusY ?? 0.5, 0, 1);
+  const userZoom = clamp(data.winnerPhotoZoom ?? 1, 0.75, 2.5);
+  const photoFocus = {
+    ...photoLayout,
+    focusX: clamp(photoLayout.focusX * 0.35 + userFocusX * 0.65, 0, 1),
+    focusY: clamp(photoLayout.focusY * 0.35 + userFocusY * 0.65, 0, 1),
+  };
+  const photoObjectPosition = getPhotoObjectPosition(photoFocus);
 
   return (
     <div
@@ -294,24 +307,55 @@ export function SportsEditorialLayout({
             top: 330,
             bottom: 150,
             overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
             background: "#0F172A",
             zIndex: 2,
           }}
         >
           {data.winnerPhotoUrl ? (
-            <img
-              src={data.winnerPhotoUrl}
-              alt="Siegerfoto"
-              width={1040}
-              height={950}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: getPhotoObjectPosition(photoLayout),
-                display: "block",
-              }}
-            />
+            <>
+              <img
+                src={data.winnerPhotoUrl}
+                alt=""
+                width={1040}
+                height={950}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: photoObjectPosition,
+                  opacity: 0.36,
+                  transform: "scale(1.08)",
+                }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(2,6,23,0.26)",
+                }}
+              />
+              <img
+                src={data.winnerPhotoUrl}
+                alt="Siegerfoto"
+                width={1040}
+                height={950}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  objectPosition: photoObjectPosition,
+                  transform: `scale(${userZoom})`,
+                  transformOrigin: photoObjectPosition,
+                }}
+              />
+            </>
           ) : (
             <div
               style={{
