@@ -9,7 +9,6 @@ import type {
   WheelEvent as ReactWheelEvent,
 } from "react";
 import { compressImageFile } from "@/lib/client-images/compress-image";
-import { detectSmartPersonCrop } from "@/lib/client-images/smart-person-crop";
 
 const CROP_ASPECT = 4 / 5;
 const CROP_OUTPUT_WIDTH = 1080;
@@ -25,7 +24,10 @@ type CropRect = {
   height: number;
 };
 
-type Point = { x: number; y: number };
+type Point = {
+  x: number;
+  y: number;
+};
 
 type Gesture =
   | {
@@ -42,8 +44,6 @@ type Gesture =
       startCrop: CropRect;
       startZoom: number;
     };
-
-type SmartCropState = "idle" | "checking" | "applied" | "fallback";
 
 type SessionWinnerPhotoCardProps = {
   hasResult: boolean;
@@ -71,7 +71,10 @@ function distance(a: Point, b: Point) {
 }
 
 function midpoint(a: Point, b: Point): Point {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
 }
 
 function getInitialCropRect(image: HTMLImageElement): CropRect {
@@ -85,12 +88,23 @@ function getInitialCropRect(image: HTMLImageElement): CropRect {
   if (imageWidth / imageHeight >= CROP_ASPECT) {
     const height = imageHeight;
     const width = height * CROP_ASPECT;
-    return { x: (imageWidth - width) / 2, y: 0, width, height };
+    return {
+      x: (imageWidth - width) / 2,
+      y: 0,
+      width,
+      height,
+    };
   }
 
   const width = imageWidth;
   const height = width / CROP_ASPECT;
-  return { x: 0, y: (imageHeight - height) / 2, width, height };
+
+  return {
+    x: 0,
+    y: (imageHeight - height) / 2,
+    width,
+    height,
+  };
 }
 
 function cropForZoom(
@@ -151,16 +165,20 @@ async function cropToJpegFile(
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (nextBlob) =>
-        nextBlob
-          ? resolve(nextBlob)
-          : reject(new Error("Das zugeschnittene Bild konnte nicht erstellt werden.")),
+      (nextBlob) => {
+        if (nextBlob) {
+          resolve(nextBlob);
+        } else {
+          reject(new Error("Das zugeschnittene Bild konnte nicht erstellt werden."));
+        }
+      },
       "image/jpeg",
       0.88
     );
   });
 
   const baseName = originalFile.name.replace(/\.[^.]+$/, "") || "siegerfoto";
+
   return new File([blob], `${baseName}-crop.jpg`, {
     type: "image/jpeg",
     lastModified: Date.now(),
@@ -238,7 +256,6 @@ export default function SessionWinnerPhotoCard({
   const cropRectRef = useRef<CropRect | null>(null);
   const activePointersRef = useRef(new Map<number, Point>());
   const gestureRef = useRef<Gesture | null>(null);
-  const detectionRunRef = useRef(0);
 
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null);
@@ -247,12 +264,13 @@ export default function SessionWinnerPhotoCard({
   const [cropBusy, setCropBusy] = useState(false);
   const [cropPreparing, setCropPreparing] = useState(false);
   const [cropError, setCropError] = useState<string | null>(null);
-  const [smartCropState, setSmartCropState] = useState<SmartCropState>("idle");
-  const [detectedPersonCount, setDetectedPersonCount] = useState(0);
 
   useEffect(() => {
     if (!cropSourceUrl) return;
-    return () => URL.revokeObjectURL(cropSourceUrl);
+
+    return () => {
+      URL.revokeObjectURL(cropSourceUrl);
+    };
   }, [cropSourceUrl]);
 
   function applyCropRect(next: CropRect) {
@@ -261,7 +279,6 @@ export default function SessionWinnerPhotoCard({
   }
 
   function clearCropSelection() {
-    detectionRunRef.current += 1;
     activePointersRef.current.clear();
     gestureRef.current = null;
     cropRectRef.current = null;
@@ -272,17 +289,14 @@ export default function SessionWinnerPhotoCard({
     setCropBusy(false);
     setCropPreparing(false);
     setCropError(null);
-    setSmartCropState("idle");
-    setDetectedPersonCount(0);
   }
 
   function resetCrop() {
     const image = cropImageRef.current;
     if (!image) return;
+
     setZoom(1);
     applyCropRect(getInitialCropRect(image));
-    setSmartCropState("idle");
-    setDetectedPersonCount(0);
   }
 
   function adjustZoom(nextZoomValue: number) {
@@ -293,54 +307,30 @@ export default function SessionWinnerPhotoCard({
     const nextZoom = clamp(nextZoomValue, 1, MAX_ZOOM);
     const centerX = current.x + current.width / 2;
     const centerY = current.y + current.height / 2;
+
     setZoom(nextZoom);
     applyCropRect(cropForZoom(image, nextZoom, centerX, centerY));
-  }
-
-  async function runSmartCrop() {
-    const image = cropImageRef.current;
-    if (!image || !image.naturalWidth || !image.naturalHeight) return;
-
-    const runId = ++detectionRunRef.current;
-    setSmartCropState("checking");
-    setDetectedPersonCount(0);
-
-    const result = await detectSmartPersonCrop(image);
-    if (runId !== detectionRunRef.current) return;
-
-    if (!result) {
-      setSmartCropState("fallback");
-      return;
-    }
-
-    const baseCrop = getInitialCropRect(image);
-    const smartZoom = clamp(baseCrop.width / result.crop.width, 1, MAX_ZOOM);
-    setZoom(smartZoom);
-    applyCropRect(result.crop);
-    setDetectedPersonCount(result.personCount);
-    setSmartCropState("applied");
   }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     event.target.value = "";
+
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
       setCropError("Bitte ein Bild auswählen.");
       return;
     }
+
     if (file.size > MAX_SOURCE_FILE_SIZE_BYTES) {
       setCropError("Das Originalbild ist zu groß. Bitte maximal 20 MB verwenden.");
       return;
     }
 
     try {
-      detectionRunRef.current += 1;
       setCropPreparing(true);
       setCropError(null);
-      setSmartCropState("idle");
-      setDetectedPersonCount(0);
       cropRectRef.current = null;
       setCropRect(null);
       setZoom(1);
@@ -352,8 +342,9 @@ export default function SessionWinnerPhotoCard({
         outputType: "image/jpeg",
       });
 
+      const nextUrl = URL.createObjectURL(preparedFile);
       setCropFile(preparedFile);
-      setCropSourceUrl(URL.createObjectURL(preparedFile));
+      setCropSourceUrl(nextUrl);
     } catch (error) {
       setCropError(
         error instanceof Error
@@ -376,7 +367,6 @@ export default function SessionWinnerPhotoCard({
     setZoom(1);
     applyCropRect(getInitialCropRect(image));
     setCropError(null);
-    void runSmartCrop();
   }
 
   function handleCropImageError() {
@@ -390,6 +380,7 @@ export default function SessionWinnerPhotoCard({
   function beginGestureFromPointers() {
     const currentCrop = cropRectRef.current;
     if (!currentCrop) return;
+
     const entries = Array.from(activePointersRef.current.entries());
 
     if (entries.length >= 2) {
@@ -402,20 +393,25 @@ export default function SessionWinnerPhotoCard({
         startCrop: currentCrop,
         startZoom: zoom,
       };
-    } else if (entries.length === 1) {
+      return;
+    }
+
+    if (entries.length === 1) {
       gestureRef.current = {
         mode: "drag",
         pointerId: entries[0][0],
         startPoint: entries[0][1],
         startCrop: currentCrop,
       };
-    } else {
-      gestureRef.current = null;
+      return;
     }
+
+    gestureRef.current = null;
   }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (!cropRectRef.current || cropBusy || cropPreparing || photoBusy) return;
+
     event.preventDefault();
     cropWorkspaceRef.current?.setPointerCapture(event.pointerId);
     activePointersRef.current.set(event.pointerId, {
@@ -429,7 +425,13 @@ export default function SessionWinnerPhotoCard({
     const image = cropImageRef.current;
     const workspace = cropWorkspaceRef.current;
     const gesture = gestureRef.current;
-    if (!image || !workspace || !gesture || !activePointersRef.current.has(event.pointerId)) {
+
+    if (
+      !image ||
+      !workspace ||
+      !gesture ||
+      !activePointersRef.current.has(event.pointerId)
+    ) {
       return;
     }
 
@@ -445,6 +447,7 @@ export default function SessionWinnerPhotoCard({
     if (gesture.mode === "drag") {
       const pointer = activePointersRef.current.get(gesture.pointerId);
       if (!pointer) return;
+
       const scale = bounds.width / gesture.startCrop.width;
       const dx = (pointer.x - gesture.startPoint.x) / scale;
       const dy = (pointer.y - gesture.startPoint.y) / scale;
@@ -467,14 +470,17 @@ export default function SessionWinnerPhotoCard({
     const second = activePointersRef.current.get(gesture.pointerIds[1]);
     if (!first || !second) return;
 
-    const ratio = Math.max(1, distance(first, second)) / gesture.startDistance;
+    const currentDistance = Math.max(1, distance(first, second));
+    const ratio = currentDistance / gesture.startDistance;
     const nextZoom = clamp(gesture.startZoom * ratio, 1, MAX_ZOOM);
     const currentMidpoint = midpoint(first, second);
     const scale = bounds.width / gesture.startCrop.width;
     const midpointDx = (currentMidpoint.x - gesture.startMidpoint.x) / scale;
     const midpointDy = (currentMidpoint.y - gesture.startMidpoint.y) / scale;
-    const centerX = gesture.startCrop.x + gesture.startCrop.width / 2 - midpointDx;
-    const centerY = gesture.startCrop.y + gesture.startCrop.height / 2 - midpointDy;
+    const centerX =
+      gesture.startCrop.x + gesture.startCrop.width / 2 - midpointDx;
+    const centerY =
+      gesture.startCrop.y + gesture.startCrop.height / 2 - midpointDy;
 
     setZoom(nextZoom);
     applyCropRect(cropForZoom(image, nextZoom, centerX, centerY));
@@ -482,21 +488,26 @@ export default function SessionWinnerPhotoCard({
 
   function finishPointer(event: ReactPointerEvent<HTMLDivElement>) {
     activePointersRef.current.delete(event.pointerId);
+
     if (cropWorkspaceRef.current?.hasPointerCapture(event.pointerId)) {
       cropWorkspaceRef.current.releasePointerCapture(event.pointerId);
     }
+
     beginGestureFromPointers();
   }
 
   function handleWheel(event: ReactWheelEvent<HTMLDivElement>) {
     if (!cropRectRef.current || cropBusy || cropPreparing || photoBusy) return;
+
     event.preventDefault();
-    adjustZoom(zoom * Math.exp(-event.deltaY * 0.0015));
+    const factor = Math.exp(-event.deltaY * 0.0015);
+    adjustZoom(zoom * factor);
   }
 
   async function useCroppedPhoto() {
     const image = cropImageRef.current;
     const currentCrop = cropRectRef.current;
+
     if (!cropFile || !image || !currentCrop || cropBusy || cropPreparing || photoBusy) {
       return;
     }
@@ -504,10 +515,15 @@ export default function SessionWinnerPhotoCard({
     try {
       setCropBusy(true);
       setCropError(null);
+
       const croppedFile = await cropToJpegFile(image, cropFile, currentCrop);
       const syntheticEvent = {
-        target: { files: [croppedFile], value: "" },
+        target: {
+          files: [croppedFile],
+          value: "",
+        },
       } as unknown as ChangeEvent<HTMLInputElement>;
+
       await Promise.resolve(onWinnerPhotoUpload(syntheticEvent));
       clearCropSelection();
     } catch (error) {
@@ -533,12 +549,19 @@ export default function SessionWinnerPhotoCard({
         clearCropSelection();
         return;
       }
-      if (event.key !== "Enter" || !cropReady || controlsBusy || cropError) return;
 
-      const target = event.target as HTMLElement | null;
-      if (target && ["BUTTON", "INPUT", "TEXTAREA", "SELECT", "A"].includes(target.tagName)) {
+      if (event.key !== "Enter" || !cropReady || controlsBusy || cropError) {
         return;
       }
+
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        ["BUTTON", "INPUT", "TEXTAREA", "SELECT", "A"].includes(target.tagName)
+      ) {
+        return;
+      }
+
       event.preventDefault();
       void useCroppedPhoto();
     }
@@ -563,12 +586,21 @@ export default function SessionWinnerPhotoCard({
         <button
           type="button"
           onClick={onToggleCollapsed}
-          className={`flex w-full items-center justify-between gap-4 rounded-[20px] px-4 py-3.5 text-left transition ${done ? "bg-emerald-50" : "hover:bg-slate-50/70"}`}
+          className={`flex w-full items-center justify-between gap-4 rounded-[20px] px-4 py-3.5 text-left transition ${
+            done ? "bg-emerald-50" : "hover:bg-slate-50/70"
+          }`}
         >
           <div className="flex items-center gap-3">
-            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${done ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500"}`}>
-              {done ? "✓" : "3"}
-            </span>
+            {done ? (
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white">
+                ✓
+              </span>
+            ) : (
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                3
+              </span>
+            )}
+
             <div>
               <div className="text-sm font-bold text-slate-950">
                 {done ? "Siegerfoto übernommen" : title}
@@ -578,7 +610,10 @@ export default function SessionWinnerPhotoCard({
               </SummaryPill>
             </div>
           </div>
-          <div className="rounded-full border px-4 py-2 text-sm font-semibold">Bearbeiten</div>
+
+          <div className="rounded-full border px-4 py-2 text-sm font-semibold">
+            Bearbeiten
+          </div>
         </button>
       </section>
     );
@@ -588,7 +623,10 @@ export default function SessionWinnerPhotoCard({
     <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between px-4 py-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-600">3</div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-600">
+            3
+          </div>
+
           <div>
             <div className="text-sm font-semibold text-slate-900">{title}</div>
             <SummaryPill tone={done ? "success" : "muted"}>
@@ -596,6 +634,7 @@ export default function SessionWinnerPhotoCard({
             </SummaryPill>
           </div>
         </div>
+
         <button
           type="button"
           onClick={onToggleCollapsed}
@@ -610,7 +649,9 @@ export default function SessionWinnerPhotoCard({
           ref={winnerPhotoInputRef}
           type="file"
           accept="image/*"
-          onChange={(event) => void handleFileChange(event)}
+          onChange={(event) => {
+            void handleFileChange(event);
+          }}
           disabled={!canUploadWinnerPhoto || controlsBusy}
           className="hidden"
         />
@@ -631,8 +672,13 @@ export default function SessionWinnerPhotoCard({
                     ? "Anderes Foto"
                     : "Foto auswählen"}
           </ControlButton>
+
           {done && !cropSourceUrl ? (
-            <ControlButton onClick={onWinnerPhotoDelete} disabled={controlsBusy} tone="danger">
+            <ControlButton
+              onClick={onWinnerPhotoDelete}
+              disabled={controlsBusy}
+              tone="danger"
+            >
               Löschen
             </ControlButton>
           ) : null}
@@ -641,18 +687,9 @@ export default function SessionWinnerPhotoCard({
         {cropSourceUrl ? (
           <div className="space-y-4 rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="text-sm font-bold text-slate-950">Foto ausrichten</div>
-                {smartCropState === "checking" ? (
-                  <SummaryPill tone="muted">Personen werden erkannt...</SummaryPill>
-                ) : smartCropState === "applied" ? (
-                  <SummaryPill tone="success">
-                    Auto-Ausschnitt · {detectedPersonCount} {detectedPersonCount === 1 ? "Person" : "Personen"}
-                  </SummaryPill>
-                ) : null}
-              </div>
+              <div className="text-sm font-bold text-slate-950">Foto ausrichten</div>
               <div className="mt-1 text-xs leading-5 text-slate-600">
-                strikr versucht zuerst, alle Personen automatisch im 4:5-Rahmen zu halten. Danach kannst du das Bild wie gewohnt verschieben oder zoomen.
+                Ziehe das Bild unter dem festen 4:5-Rahmen. Mit zwei Fingern oder dem Mausrad kannst du zoomen.
               </div>
             </div>
 
@@ -692,7 +729,9 @@ export default function SessionWinnerPhotoCard({
                     aria-label="Ausschnitt verwenden"
                     title="Ausschnitt verwenden"
                     onPointerDown={(event) => event.stopPropagation()}
-                    onClick={() => void useCroppedPhoto()}
+                    onClick={() => {
+                      void useCroppedPhoto();
+                    }}
                     disabled={controlsBusy || Boolean(cropError)}
                     className="absolute bottom-3 right-3 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-slate-950/90 text-xl font-black text-white shadow-lg backdrop-blur transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -701,7 +740,7 @@ export default function SessionWinnerPhotoCard({
                 ) : null}
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <div className="mt-3 flex items-center justify-center gap-2">
                 <ControlButton
                   onClick={() => adjustZoom(zoom / 1.2)}
                   disabled={!cropReady || controlsBusy || zoom <= 1}
@@ -717,23 +756,13 @@ export default function SessionWinnerPhotoCard({
                 >
                   +
                 </ControlButton>
-                <ControlButton
-                  onClick={() => void runSmartCrop()}
-                  disabled={!cropReady || controlsBusy || smartCropState === "checking"}
-                >
-                  {smartCropState === "checking" ? "Erkennt..." : "Auto-Ausschnitt"}
-                </ControlButton>
               </div>
             </div>
 
-            {smartCropState === "fallback" ? (
-              <div className="text-center text-[11px] font-medium text-slate-500">
-                Keine Personen sicher erkannt – manueller Ausschnitt bleibt aktiv.
-              </div>
-            ) : null}
-
             {!cropReady && !cropError ? (
-              <div className="text-xs font-medium text-slate-500">Vorschau wird vorbereitet...</div>
+              <div className="text-xs font-medium text-slate-500">
+                Vorschau wird vorbereitet...
+              </div>
             ) : null}
 
             {cropError ? (
@@ -744,15 +773,19 @@ export default function SessionWinnerPhotoCard({
 
             <div className="flex flex-wrap gap-2">
               <ControlButton
-                onClick={() => void useCroppedPhoto()}
+                onClick={() => {
+                  void useCroppedPhoto();
+                }}
                 disabled={!cropReady || controlsBusy || Boolean(cropError)}
                 tone="primary"
               >
                 {cropBusy || photoBusy ? "Speichert..." : "✓ Foto verwenden"}
               </ControlButton>
+
               <ControlButton onClick={resetCrop} disabled={!cropReady || controlsBusy}>
                 Zurücksetzen
               </ControlButton>
+
               <ControlButton onClick={clearCropSelection} disabled={controlsBusy}>
                 Abbrechen
               </ControlButton>
@@ -766,7 +799,12 @@ export default function SessionWinnerPhotoCard({
           <div className="rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             {winnerPhotoUrl ? (
               <div className="relative mx-auto aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-[16px]">
-                <Image src={winnerPhotoUrl} alt="Siegerfoto" fill className="object-cover" />
+                <Image
+                  src={winnerPhotoUrl}
+                  alt="Siegerfoto"
+                  fill
+                  className="object-cover"
+                />
               </div>
             ) : (
               <div className="flex min-h-[150px] flex-col items-center justify-center text-center text-xs text-slate-500">
