@@ -10,7 +10,6 @@ import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
 import { ExtendedResultShareData } from "../result-share.types";
 import {
-  getPhotoObjectPosition,
   getResultSharePhotoLayout,
 } from "../result-share.photo-layouts";
 
@@ -195,12 +194,11 @@ export function SportsEditorialLayout({
   const userFocusX = clamp(data.winnerPhotoFocusX ?? 0.5, 0, 1);
   const userFocusY = clamp(data.winnerPhotoFocusY ?? 0.5, 0, 1);
   const userZoom = clamp(data.winnerPhotoZoom ?? 1, 0.75, 2.5);
-  const photoFocus = {
-    ...photoLayout,
-    focusX: clamp(photoLayout.focusX * 0.35 + userFocusX * 0.65, 0, 1),
-    focusY: clamp(photoLayout.focusY * 0.35 + userFocusY * 0.65, 0, 1),
-  };
-  const photoObjectPosition = getPhotoObjectPosition(photoFocus);
+  const focusX = clamp(photoLayout.focusX * 0.35 + userFocusX * 0.65, 0, 1);
+  const focusY = clamp(photoLayout.focusY * 0.35 + userFocusY * 0.65, 0, 1);
+  const photoSize = userZoom * 100;
+  const photoLeft = (100 - photoSize) * focusX;
+  const photoTop = (100 - photoSize) * focusY;
 
   return (
     <div
@@ -307,55 +305,27 @@ export function SportsEditorialLayout({
             top: 330,
             bottom: 150,
             overflow: "hidden",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#0F172A",
+            background:
+              "radial-gradient(circle at 50% 30%, rgba(30,41,59,0.78), #0F172A 72%)",
             zIndex: 2,
           }}
         >
           {data.winnerPhotoUrl ? (
-            <>
-              <img
-                src={data.winnerPhotoUrl}
-                alt=""
-                width={1040}
-                height={950}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: photoObjectPosition,
-                  opacity: 0.36,
-                  transform: "scale(1.08)",
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  position: "absolute",
-                  inset: 0,
-                  background: "rgba(2,6,23,0.26)",
-                }}
-              />
-              <img
-                src={data.winnerPhotoUrl}
-                alt="Siegerfoto"
-                width={1040}
-                height={950}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                  objectPosition: photoObjectPosition,
-                  transform: `scale(${userZoom})`,
-                  transformOrigin: photoObjectPosition,
-                }}
-              />
-            </>
+            <img
+              src={data.winnerPhotoUrl}
+              alt="Siegerfoto"
+              width={1040}
+              height={950}
+              style={{
+                position: "absolute",
+                left: `${photoLeft}%`,
+                top: `${photoTop}%`,
+                width: `${photoSize}%`,
+                height: `${photoSize}%`,
+                objectFit: "contain",
+                display: "block",
+              }}
+            />
           ) : (
             <div
               style={{
