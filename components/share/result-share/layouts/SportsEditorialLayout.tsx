@@ -9,9 +9,7 @@ import {
 import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
 import { ExtendedResultShareData } from "../result-share.types";
-import {
-  getResultSharePhotoLayout,
-} from "../result-share.photo-layouts";
+import { getResultSharePhotoLayout } from "../result-share.photo-layouts";
 
 function pickBySessionId<T>(sessionId: number, values: T[]) {
   return values[Math.abs(sessionId) % values.length] ?? values[0];
@@ -346,20 +344,6 @@ export function SportsEditorialLayout({
             </div>
           )}
         </div>
-
-        <div
-          style={{
-            display: "flex",
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: 355,
-            height: 80,
-            background:
-              "linear-gradient(180deg, rgba(8,145,178,0.38) 0%, rgba(8,145,178,0.10) 48%, rgba(8,145,178,0) 100%)",
-            zIndex: 3,
-          }}
-        />
 
         <div
           style={{
