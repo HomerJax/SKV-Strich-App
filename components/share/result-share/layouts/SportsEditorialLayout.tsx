@@ -9,9 +9,14 @@ import {
 import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
 import { ExtendedResultShareData } from "../result-share.types";
+import { getResultSharePhotoLayout } from "../result-share.photo-layouts";
 
 function pickBySessionId<T>(sessionId: number, values: T[]) {
   return values[Math.abs(sessionId) % values.length] ?? values[0];
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function renderStrikrTopBadge({
@@ -183,6 +188,15 @@ export function SportsEditorialLayout({
   const palette = buildPalette(data.clubPrimaryColor, "sports_editorial");
   const score = getScoreModel(data);
   const colorway = pickResultShareColorway(data.sessionId);
+  const photoLayout = getResultSharePhotoLayout("sports_editorial");
+  const userFocusX = clamp(data.winnerPhotoFocusX ?? 0.5, 0, 1);
+  const userFocusY = clamp(data.winnerPhotoFocusY ?? 0.5, 0, 1);
+  const userZoom = clamp(data.winnerPhotoZoom ?? 1, 0.75, 2.5);
+  const focusX = clamp(photoLayout.focusX * 0.35 + userFocusX * 0.65, 0, 1);
+  const focusY = clamp(photoLayout.focusY * 0.35 + userFocusY * 0.65, 0, 1);
+  const photoSize = userZoom * 100;
+  const photoLeft = (100 - photoSize) * focusX;
+  const photoTop = (100 - photoSize) * focusY;
 
   return (
     <div
@@ -210,7 +224,6 @@ export function SportsEditorialLayout({
             "0 40px 120px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.08)",
         }}
       >
-        {/* Top color field */}
         <div
           style={{
             display: "flex",
@@ -225,7 +238,6 @@ export function SportsEditorialLayout({
           }}
         />
 
-        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -252,7 +264,6 @@ export function SportsEditorialLayout({
           })}
         </div>
 
-        {/* Big editorial title */}
         <div
           style={{
             display: "flex",
@@ -283,7 +294,6 @@ export function SportsEditorialLayout({
           </div>
         </div>
 
-        {/* Photo: endet VOR dem Footer, dadurch keine grünen unteren Ecken */}
         <div
           style={{
             display: "flex",
@@ -293,7 +303,8 @@ export function SportsEditorialLayout({
             top: 330,
             bottom: 150,
             overflow: "hidden",
-            background: "#0F172A",
+            background:
+              "radial-gradient(circle at 50% 30%, rgba(30,41,59,0.78), #0F172A 72%)",
             zIndex: 2,
           }}
         >
@@ -304,10 +315,12 @@ export function SportsEditorialLayout({
               width={1040}
               height={950}
               style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: "center 82%",
+                position: "absolute",
+                left: `${photoLeft}%`,
+                top: `${photoTop}%`,
+                width: `${photoSize}%`,
+                height: `${photoSize}%`,
+                objectFit: "contain",
                 display: "block",
               }}
             />
@@ -332,22 +345,6 @@ export function SportsEditorialLayout({
           )}
         </div>
 
-        {/* Übergang Top → Foto */}
-        <div
-          style={{
-            display: "flex",
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: 355,
-            height: 80,
-            background:
-              "linear-gradient(180deg, rgba(8,145,178,0.38) 0%, rgba(8,145,178,0.10) 48%, rgba(8,145,178,0) 100%)",
-            zIndex: 3,
-          }}
-        />
-
-        {/* Foto unten abdunkeln */}
         <div
           style={{
             display: "flex",
@@ -362,7 +359,6 @@ export function SportsEditorialLayout({
           }}
         />
 
-        {/* Echter Footer, volle Breite */}
         <div
           style={{
             display: "flex",
@@ -377,7 +373,6 @@ export function SportsEditorialLayout({
           }}
         />
 
-        {/* Score + short headline */}
         <div
           style={{
             display: "flex",

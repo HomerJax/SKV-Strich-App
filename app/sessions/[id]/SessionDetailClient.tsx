@@ -288,6 +288,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
     return (
       <SessionWinnerPhotoCard
+        sessionId={props.sessionId}
         hasResult={hasResult}
         saving={saving}
         photoBusy={photoBusy}

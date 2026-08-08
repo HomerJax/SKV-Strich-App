@@ -6,46 +6,22 @@ import type {
   ChangeEvent,
   PointerEvent as ReactPointerEvent,
   RefObject,
-  WheelEvent as ReactWheelEvent,
 } from "react";
 import { compressImageFile } from "@/lib/client-images/compress-image";
 
-const CROP_ASPECT = 4 / 5;
-const CROP_OUTPUT_WIDTH = 1080;
-const CROP_OUTPUT_HEIGHT = 1350;
-const CROP_WORKING_MAX_SIZE = 2400;
+const MASTER_MAX_SIZE = 2400;
 const MAX_SOURCE_FILE_SIZE_BYTES = 20 * 1024 * 1024;
-const MAX_ZOOM = 4;
+const MAX_UPLOAD_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MIN_FOCUS_ZOOM = 0.75;
+const MAX_FOCUS_ZOOM = 2.5;
+const MAX_COMBINED_TRIM = 60;
 
-type CropRect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-
-type Point = {
-  x: number;
-  y: number;
-};
-
-type Gesture =
-  | {
-      mode: "drag";
-      pointerId: number;
-      startPoint: Point;
-      startCrop: CropRect;
-    }
-  | {
-      mode: "pinch";
-      pointerIds: [number, number];
-      startDistance: number;
-      startMidpoint: Point;
-      startCrop: CropRect;
-      startZoom: number;
-    };
+type PhotoFocus = { x: number; y: number; zoom: number };
+type PhotoTrim = { top: number; right: number; bottom: number; left: number };
+type CropHandle = "top" | "right" | "bottom" | "left";
 
 type SessionWinnerPhotoCardProps = {
+  sessionId: number;
   hasResult: boolean;
   saving: boolean;
   photoBusy: boolean;
@@ -53,192 +29,90 @@ type SessionWinnerPhotoCardProps = {
   winnerPhotoUrl: string | null;
   hasWinnerPhoto: boolean;
   winnerPhotoInputRef: RefObject<HTMLInputElement | null>;
-  onWinnerPhotoUpload: (
-    event: ChangeEvent<HTMLInputElement>
-  ) => void | Promise<void>;
+  onWinnerPhotoUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>;
   onWinnerPhotoDelete: () => void;
   title?: string;
   collapsed: boolean;
   onToggleCollapsed: () => void;
 };
 
+const EMPTY_TRIM: PhotoTrim = { top: 0, right: 0, bottom: 0, left: 0 };
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function distance(a: Point, b: Point) {
-  return Math.hypot(b.x - a.x, b.y - a.y);
-}
-
-function midpoint(a: Point, b: Point): Point {
-  return {
-    x: (a.x + b.x) / 2,
-    y: (a.y + b.y) / 2,
-  };
-}
-
-function getInitialCropRect(image: HTMLImageElement): CropRect {
-  const imageWidth = image.naturalWidth;
-  const imageHeight = image.naturalHeight;
-
-  if (!imageWidth || !imageHeight) {
-    return { x: 0, y: 0, width: 0, height: 0 };
-  }
-
-  if (imageWidth / imageHeight >= CROP_ASPECT) {
-    const height = imageHeight;
-    const width = height * CROP_ASPECT;
-    return {
-      x: (imageWidth - width) / 2,
-      y: 0,
-      width,
-      height,
-    };
-  }
-
-  const width = imageWidth;
-  const height = width / CROP_ASPECT;
-
-  return {
-    x: 0,
-    y: (imageHeight - height) / 2,
-    width,
-    height,
-  };
-}
-
-function cropForZoom(
-  image: HTMLImageElement,
-  zoom: number,
-  centerX: number,
-  centerY: number
-): CropRect {
-  const base = getInitialCropRect(image);
-  const width = base.width / zoom;
-  const height = base.height / zoom;
-
-  return {
-    x: clamp(centerX - width / 2, 0, image.naturalWidth - width),
-    y: clamp(centerY - height / 2, 0, image.naturalHeight - height),
-    width,
-    height,
-  };
-}
-
-function clampCropPosition(
-  crop: CropRect,
-  imageWidth: number,
-  imageHeight: number
-): CropRect {
-  return {
-    ...crop,
-    x: clamp(crop.x, 0, Math.max(0, imageWidth - crop.width)),
-    y: clamp(crop.y, 0, Math.max(0, imageHeight - crop.height)),
-  };
-}
-
-async function cropToJpegFile(
-  image: HTMLImageElement,
-  originalFile: File,
-  crop: CropRect
-) {
-  const canvas = document.createElement("canvas");
-  canvas.width = CROP_OUTPUT_WIDTH;
-  canvas.height = CROP_OUTPUT_HEIGHT;
-
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("Das zugeschnittene Bild konnte nicht erstellt werden.");
-  }
-
-  context.drawImage(
-    image,
-    crop.x,
-    crop.y,
-    crop.width,
-    crop.height,
-    0,
-    0,
-    CROP_OUTPUT_WIDTH,
-    CROP_OUTPUT_HEIGHT
-  );
-
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (nextBlob) => {
-        if (nextBlob) {
-          resolve(nextBlob);
-        } else {
-          reject(new Error("Das zugeschnittene Bild konnte nicht erstellt werden."));
-        }
-      },
-      "image/jpeg",
-      0.88
-    );
-  });
-
-  const baseName = originalFile.name.replace(/\.[^.]+$/, "") || "siegerfoto";
-
-  return new File([blob], `${baseName}-crop.jpg`, {
-    type: "image/jpeg",
-    lastModified: Date.now(),
-  });
-}
-
-function SummaryPill({
-  children,
-  tone = "default",
-}: {
-  children: React.ReactNode;
-  tone?: "default" | "success" | "muted";
-}) {
+function SummaryPill({ children, tone = "default" }: { children: React.ReactNode; tone?: "default" | "success" | "muted" }) {
   const className =
     tone === "success"
       ? "bg-emerald-100 text-emerald-800"
       : tone === "muted"
         ? "bg-slate-100 text-slate-600"
         : "bg-white text-slate-700 ring-1 ring-slate-200";
-
-  return (
-    <div
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${className}`}
-    >
-      {children}
-    </div>
-  );
+  return <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${className}`}>{children}</div>;
 }
 
-function ControlButton({
-  children,
-  onClick,
-  disabled = false,
-  tone = "default",
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  tone?: "default" | "primary" | "danger";
-}) {
+function ControlButton({ children, onClick, disabled = false, tone = "default" }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; tone?: "default" | "primary" | "danger" }) {
   const className =
     tone === "primary"
       ? "bg-slate-950 text-white hover:bg-slate-800"
       : tone === "danger"
         ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
         : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
-
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition ${className} disabled:cursor-not-allowed disabled:opacity-60`}
-    >
+    <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition ${className} disabled:cursor-not-allowed disabled:opacity-60`}>
       {children}
     </button>
   );
 }
 
+function cropImageFile(file: File, trim: PhotoTrim): Promise<File> {
+  if (!trim.top && !trim.right && !trim.bottom && !trim.left) return Promise.resolve(file);
+
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new window.Image();
+
+    image.onload = () => {
+      try {
+        const width = image.naturalWidth || image.width;
+        const height = image.naturalHeight || image.height;
+        const sourceX = Math.round(width * (trim.left / 100));
+        const sourceY = Math.round(height * (trim.top / 100));
+        const sourceWidth = Math.max(1, Math.round(width * (1 - (trim.left + trim.right) / 100)));
+        const sourceHeight = Math.max(1, Math.round(height * (1 - (trim.top + trim.bottom) / 100)));
+        const canvas = document.createElement("canvas");
+        canvas.width = sourceWidth;
+        canvas.height = sourceHeight;
+        const context = canvas.getContext("2d", { alpha: false });
+        if (!context) throw new Error("Bild konnte nicht zugeschnitten werden.");
+
+        context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("Bild konnte nicht zugeschnitten werden."));
+            return;
+          }
+          const baseName = file.name.replace(/\.[^.]+$/, "") || "winner-photo";
+          resolve(new File([blob], `${baseName}-crop.jpg`, { type: "image/jpeg", lastModified: Date.now() }));
+        }, "image/jpeg", 0.9);
+      } catch (error) {
+        reject(error);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Bild konnte nicht zugeschnitten werden."));
+    };
+    image.src = objectUrl;
+  });
+}
+
 export default function SessionWinnerPhotoCard({
+  sessionId,
   saving,
   photoBusy,
   canUploadWinnerPhoto,
@@ -251,369 +125,238 @@ export default function SessionWinnerPhotoCard({
   collapsed,
   onToggleCollapsed,
 }: SessionWinnerPhotoCardProps) {
-  const cropImageRef = useRef<HTMLImageElement | null>(null);
-  const cropWorkspaceRef = useRef<HTMLDivElement | null>(null);
-  const cropRectRef = useRef<CropRect | null>(null);
-  const activePointersRef = useRef(new Map<number, Point>());
-  const gestureRef = useRef<Gesture | null>(null);
+  const focusWorkspaceRef = useRef<HTMLDivElement | null>(null);
+  const focusDragRef = useRef<{ pointerId: number; startClientX: number; startClientY: number; startFocus: PhotoFocus } | null>(null);
+  const cropDragRef = useRef<{ pointerId: number; handle: CropHandle; startClientX: number; startClientY: number; startTrim: PhotoTrim } | null>(null);
 
-  const [cropFile, setCropFile] = useState<File | null>(null);
-  const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null);
-  const [cropRect, setCropRect] = useState<CropRect | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [cropBusy, setCropBusy] = useState(false);
-  const [cropPreparing, setCropPreparing] = useState(false);
-  const [cropError, setCropError] = useState<string | null>(null);
+  const [masterFile, setMasterFile] = useState<File | null>(null);
+  const [masterPreviewUrl, setMasterPreviewUrl] = useState<string | null>(null);
+  const [previewAspectRatio, setPreviewAspectRatio] = useState(4 / 3);
+  const [focus, setFocus] = useState<PhotoFocus>({ x: 0.5, y: 0.5, zoom: 1 });
+  const [trim, setTrim] = useState<PhotoTrim>(EMPTY_TRIM);
+  const [preparing, setPreparing] = useState(false);
+  const [localBusy, setLocalBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!cropSourceUrl) return;
+    if (!masterPreviewUrl) return;
+    return () => URL.revokeObjectURL(masterPreviewUrl);
+  }, [masterPreviewUrl]);
 
-    return () => {
-      URL.revokeObjectURL(cropSourceUrl);
-    };
-  }, [cropSourceUrl]);
-
-  function applyCropRect(next: CropRect) {
-    cropRectRef.current = next;
-    setCropRect(next);
+  function clearPreparedPhoto() {
+    focusDragRef.current = null;
+    cropDragRef.current = null;
+    setMasterFile(null);
+    setMasterPreviewUrl(null);
+    setPreviewAspectRatio(4 / 3);
+    setFocus({ x: 0.5, y: 0.5, zoom: 1 });
+    setTrim(EMPTY_TRIM);
+    setPreparing(false);
+    setLocalBusy(false);
+    setPhotoError(null);
   }
 
-  function clearCropSelection() {
-    activePointersRef.current.clear();
-    gestureRef.current = null;
-    cropRectRef.current = null;
-    setCropFile(null);
-    setCropSourceUrl(null);
-    setCropRect(null);
-    setZoom(1);
-    setCropBusy(false);
-    setCropPreparing(false);
-    setCropError(null);
-  }
-
-  function resetCrop() {
-    const image = cropImageRef.current;
-    if (!image) return;
-
-    setZoom(1);
-    applyCropRect(getInitialCropRect(image));
-  }
-
-  function adjustZoom(nextZoomValue: number) {
-    const image = cropImageRef.current;
-    const current = cropRectRef.current;
-    if (!image || !current) return;
-
-    const nextZoom = clamp(nextZoomValue, 1, MAX_ZOOM);
-    const centerX = current.x + current.width / 2;
-    const centerY = current.y + current.height / 2;
-
-    setZoom(nextZoom);
-    applyCropRect(cropForZoom(image, nextZoom, centerX, centerY));
-  }
-
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    event.target.value = "";
-
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setCropError("Bitte ein Bild auswählen.");
-      return;
-    }
-
-    if (file.size > MAX_SOURCE_FILE_SIZE_BYTES) {
-      setCropError("Das Originalbild ist zu groß. Bitte maximal 20 MB verwenden.");
-      return;
-    }
-
-    try {
-      setCropPreparing(true);
-      setCropError(null);
-      cropRectRef.current = null;
-      setCropRect(null);
-      setZoom(1);
-
-      const preparedFile = await compressImageFile(file, {
-        maxWidth: CROP_WORKING_MAX_SIZE,
-        maxHeight: CROP_WORKING_MAX_SIZE,
-        quality: 0.82,
-        outputType: "image/jpeg",
-      });
-
-      const nextUrl = URL.createObjectURL(preparedFile);
-      setCropFile(preparedFile);
-      setCropSourceUrl(nextUrl);
-    } catch (error) {
-      setCropError(
-        error instanceof Error
-          ? error.message
-          : "Das Bild konnte nicht für den Zuschnitt vorbereitet werden."
-      );
-    } finally {
-      setCropPreparing(false);
-    }
+  function resetFocus() {
+    setFocus({ x: 0.5, y: 0.5, zoom: 1 });
+    setTrim(EMPTY_TRIM);
   }
 
   function triggerFilePicker() {
     winnerPhotoInputRef.current?.click();
   }
 
-  function handleCropImageLoad() {
-    const image = cropImageRef.current;
-    if (!image) return;
-
-    setZoom(1);
-    applyCropRect(getInitialCropRect(image));
-    setCropError(null);
-  }
-
-  function handleCropImageError() {
-    cropRectRef.current = null;
-    setCropRect(null);
-    setCropError(
-      "Das Foto kann in diesem Browser nicht zugeschnitten werden. Bitte ein anderes Bild versuchen."
-    );
-  }
-
-  function beginGestureFromPointers() {
-    const currentCrop = cropRectRef.current;
-    if (!currentCrop) return;
-
-    const entries = Array.from(activePointersRef.current.entries());
-
-    if (entries.length >= 2) {
-      const [first, second] = entries;
-      gestureRef.current = {
-        mode: "pinch",
-        pointerIds: [first[0], second[0]],
-        startDistance: Math.max(1, distance(first[1], second[1])),
-        startMidpoint: midpoint(first[1], second[1]),
-        startCrop: currentCrop,
-        startZoom: zoom,
-      };
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Bitte ein Bild auswählen.");
       return;
     }
-
-    if (entries.length === 1) {
-      gestureRef.current = {
-        mode: "drag",
-        pointerId: entries[0][0],
-        startPoint: entries[0][1],
-        startCrop: currentCrop,
-      };
-      return;
-    }
-
-    gestureRef.current = null;
-  }
-
-  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!cropRectRef.current || cropBusy || cropPreparing || photoBusy) return;
-
-    event.preventDefault();
-    cropWorkspaceRef.current?.setPointerCapture(event.pointerId);
-    activePointersRef.current.set(event.pointerId, {
-      x: event.clientX,
-      y: event.clientY,
-    });
-    beginGestureFromPointers();
-  }
-
-  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    const image = cropImageRef.current;
-    const workspace = cropWorkspaceRef.current;
-    const gesture = gestureRef.current;
-
-    if (
-      !image ||
-      !workspace ||
-      !gesture ||
-      !activePointersRef.current.has(event.pointerId)
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    activePointersRef.current.set(event.pointerId, {
-      x: event.clientX,
-      y: event.clientY,
-    });
-
-    const bounds = workspace.getBoundingClientRect();
-    if (!bounds.width) return;
-
-    if (gesture.mode === "drag") {
-      const pointer = activePointersRef.current.get(gesture.pointerId);
-      if (!pointer) return;
-
-      const scale = bounds.width / gesture.startCrop.width;
-      const dx = (pointer.x - gesture.startPoint.x) / scale;
-      const dy = (pointer.y - gesture.startPoint.y) / scale;
-
-      applyCropRect(
-        clampCropPosition(
-          {
-            ...gesture.startCrop,
-            x: gesture.startCrop.x - dx,
-            y: gesture.startCrop.y - dy,
-          },
-          image.naturalWidth,
-          image.naturalHeight
-        )
-      );
-      return;
-    }
-
-    const first = activePointersRef.current.get(gesture.pointerIds[0]);
-    const second = activePointersRef.current.get(gesture.pointerIds[1]);
-    if (!first || !second) return;
-
-    const currentDistance = Math.max(1, distance(first, second));
-    const ratio = currentDistance / gesture.startDistance;
-    const nextZoom = clamp(gesture.startZoom * ratio, 1, MAX_ZOOM);
-    const currentMidpoint = midpoint(first, second);
-    const scale = bounds.width / gesture.startCrop.width;
-    const midpointDx = (currentMidpoint.x - gesture.startMidpoint.x) / scale;
-    const midpointDy = (currentMidpoint.y - gesture.startMidpoint.y) / scale;
-    const centerX =
-      gesture.startCrop.x + gesture.startCrop.width / 2 - midpointDx;
-    const centerY =
-      gesture.startCrop.y + gesture.startCrop.height / 2 - midpointDy;
-
-    setZoom(nextZoom);
-    applyCropRect(cropForZoom(image, nextZoom, centerX, centerY));
-  }
-
-  function finishPointer(event: ReactPointerEvent<HTMLDivElement>) {
-    activePointersRef.current.delete(event.pointerId);
-
-    if (cropWorkspaceRef.current?.hasPointerCapture(event.pointerId)) {
-      cropWorkspaceRef.current.releasePointerCapture(event.pointerId);
-    }
-
-    beginGestureFromPointers();
-  }
-
-  function handleWheel(event: ReactWheelEvent<HTMLDivElement>) {
-    if (!cropRectRef.current || cropBusy || cropPreparing || photoBusy) return;
-
-    event.preventDefault();
-    const factor = Math.exp(-event.deltaY * 0.0015);
-    adjustZoom(zoom * factor);
-  }
-
-  async function useCroppedPhoto() {
-    const image = cropImageRef.current;
-    const currentCrop = cropRectRef.current;
-
-    if (!cropFile || !image || !currentCrop || cropBusy || cropPreparing || photoBusy) {
+    if (file.size > MAX_SOURCE_FILE_SIZE_BYTES) {
+      setPhotoError("Das Originalbild ist zu groß. Bitte maximal 20 MB verwenden.");
       return;
     }
 
     try {
-      setCropBusy(true);
-      setCropError(null);
-
-      const croppedFile = await cropToJpegFile(image, cropFile, currentCrop);
-      const syntheticEvent = {
-        target: {
-          files: [croppedFile],
-          value: "",
-        },
-      } as unknown as ChangeEvent<HTMLInputElement>;
-
-      await Promise.resolve(onWinnerPhotoUpload(syntheticEvent));
-      clearCropSelection();
+      setPreparing(true);
+      setPhotoError(null);
+      setFocus({ x: 0.5, y: 0.5, zoom: 1 });
+      setTrim(EMPTY_TRIM);
+      const preparedFile = await compressImageFile(file, {
+        maxWidth: MASTER_MAX_SIZE,
+        maxHeight: MASTER_MAX_SIZE,
+        quality: 0.84,
+        outputType: "image/jpeg",
+      });
+      if (preparedFile.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+        setPhotoError("Das Foto konnte nicht weit genug verkleinert werden. Bitte ein kleineres Bild wählen.");
+        setMasterFile(null);
+        setMasterPreviewUrl(null);
+        return;
+      }
+      setMasterFile(preparedFile);
+      setMasterPreviewUrl(URL.createObjectURL(preparedFile));
     } catch (error) {
-      setCropError(
-        error instanceof Error
-          ? error.message
-          : "Das zugeschnittene Foto konnte nicht vorbereitet werden."
-      );
-      setCropBusy(false);
+      setPhotoError(error instanceof Error ? error.message : "Das Foto konnte nicht vorbereitet werden.");
+    } finally {
+      setPreparing(false);
+    }
+  }
+
+  const controlsBusy = photoBusy || saving || preparing || localBusy;
+
+  function handleFocusPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (controlsBusy || cropDragRef.current) return;
+    const workspace = focusWorkspaceRef.current;
+    if (!workspace) return;
+    event.preventDefault();
+    workspace.setPointerCapture(event.pointerId);
+    focusDragRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startFocus: focus,
+    };
+  }
+
+  function handleFocusPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = focusDragRef.current;
+    const workspace = focusWorkspaceRef.current;
+    if (!drag || !workspace || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    const bounds = workspace.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    const dx = (event.clientX - drag.startClientX) / bounds.width;
+    const dy = (event.clientY - drag.startClientY) / bounds.height;
+    setFocus((current) => ({
+      ...current,
+      x: clamp(drag.startFocus.x - dx / Math.max(drag.startFocus.zoom, 0.75), 0, 1),
+      y: clamp(drag.startFocus.y - dy / Math.max(drag.startFocus.zoom, 0.75), 0, 1),
+    }));
+  }
+
+  function finishFocusPointer(event: ReactPointerEvent<HTMLDivElement>) {
+    const workspace = focusWorkspaceRef.current;
+    if (workspace?.hasPointerCapture(event.pointerId)) workspace.releasePointerCapture(event.pointerId);
+    focusDragRef.current = null;
+  }
+
+  function startCropDrag(event: ReactPointerEvent<HTMLDivElement>, handle: CropHandle) {
+    if (controlsBusy) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    cropDragRef.current = {
+      pointerId: event.pointerId,
+      handle,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startTrim: trim,
+    };
+  }
+
+  function moveCropDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = cropDragRef.current;
+    const workspace = focusWorkspaceRef.current;
+    if (!drag || !workspace || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const bounds = workspace.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+
+    const dxPercent = ((event.clientX - drag.startClientX) / bounds.width) * 100;
+    const dyPercent = ((event.clientY - drag.startClientY) / bounds.height) * 100;
+    const next = { ...drag.startTrim };
+
+    if (drag.handle === "top") {
+      next.top = clamp(drag.startTrim.top + dyPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.bottom);
+    } else if (drag.handle === "bottom") {
+      next.bottom = clamp(drag.startTrim.bottom - dyPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.top);
+    } else if (drag.handle === "left") {
+      next.left = clamp(drag.startTrim.left + dxPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.right);
+    } else {
+      next.right = clamp(drag.startTrim.right - dxPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.left);
+    }
+
+    setTrim(next);
+  }
+
+  function finishCropDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    cropDragRef.current = null;
+  }
+
+  function adjustZoom(nextZoom: number) {
+    setFocus((current) => ({ ...current, zoom: clamp(nextZoom, MIN_FOCUS_ZOOM, MAX_FOCUS_ZOOM) }));
+  }
+
+  async function saveFocus(nextFocus: PhotoFocus) {
+    const response = await fetch(`/api/sessions/${sessionId}/winner-photo-focus`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ x: nextFocus.x, y: nextFocus.y, zoom: nextFocus.zoom }),
+    });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(payload?.error || "Foto-Fokus konnte nicht gespeichert werden.");
+    }
+  }
+
+  async function usePreparedPhoto() {
+    if (!masterFile || localBusy || photoBusy || saving) return;
+    try {
+      setLocalBusy(true);
+      setPhotoError(null);
+      const croppedFile = await cropImageFile(masterFile, trim);
+      const visibleWidth = Math.max(0.01, 1 - (trim.left + trim.right) / 100);
+      const visibleHeight = Math.max(0.01, 1 - (trim.top + trim.bottom) / 100);
+      const nextFocus: PhotoFocus = {
+        x: clamp((focus.x - trim.left / 100) / visibleWidth, 0, 1),
+        y: clamp((focus.y - trim.top / 100) / visibleHeight, 0, 1),
+        zoom: focus.zoom,
+      };
+      await saveFocus(nextFocus);
+      const syntheticEvent = { target: { files: [croppedFile], value: "" } } as unknown as ChangeEvent<HTMLInputElement>;
+      await Promise.resolve(onWinnerPhotoUpload(syntheticEvent));
+      clearPreparedPhoto();
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : "Das Foto konnte nicht gespeichert werden.");
+      setLocalBusy(false);
     }
   }
 
   const done = hasWinnerPhoto;
-  const controlsBusy = photoBusy || saving || cropBusy || cropPreparing;
-  const cropReady = Boolean(cropRect && cropImageRef.current && !cropPreparing);
+  const objectPosition = `${Math.round(focus.x * 100)}% ${Math.round(focus.y * 100)}%`;
+  const cropBox = {
+    left: `${trim.left}%`,
+    right: `${trim.right}%`,
+    top: `${trim.top}%`,
+    bottom: `${trim.bottom}%`,
+  };
 
-  useEffect(() => {
-    if (!cropSourceUrl) return;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !controlsBusy) {
-        event.preventDefault();
-        clearCropSelection();
-        return;
-      }
-
-      if (event.key !== "Enter" || !cropReady || controlsBusy || cropError) {
-        return;
-      }
-
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        ["BUTTON", "INPUT", "TEXTAREA", "SELECT", "A"].includes(target.tagName)
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      void useCroppedPhoto();
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cropSourceUrl, cropReady, controlsBusy, cropError]);
-
-  const cropImageStyle =
-    cropRect && cropImageRef.current
-      ? {
-          width: `${(cropImageRef.current.naturalWidth / cropRect.width) * 100}%`,
-          maxWidth: "none",
-          left: `${-(cropRect.x / cropRect.width) * 100}%`,
-          top: `${-(cropRect.y / cropRect.height) * 100}%`,
-        }
-      : undefined;
+  const cropHandleProps = (handle: CropHandle) => ({
+    onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => startCropDrag(event, handle),
+    onPointerMove: moveCropDrag,
+    onPointerUp: finishCropDrag,
+    onPointerCancel: finishCropDrag,
+  });
 
   if (collapsed) {
     return (
       <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className={`flex w-full items-center justify-between gap-4 rounded-[20px] px-4 py-3.5 text-left transition ${
-            done ? "bg-emerald-50" : "hover:bg-slate-50/70"
-          }`}
-        >
+        <button type="button" onClick={onToggleCollapsed} className={`flex w-full items-center justify-between gap-4 rounded-[20px] px-4 py-3.5 text-left transition ${done ? "bg-emerald-50" : "hover:bg-slate-50/70"}`}>
           <div className="flex items-center gap-3">
-            {done ? (
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white">
-                ✓
-              </span>
-            ) : (
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                3
-              </span>
-            )}
-
+            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${done ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500"}`}>{done ? "✓" : "3"}</span>
             <div>
-              <div className="text-sm font-bold text-slate-950">
-                {done ? "Siegerfoto übernommen" : title}
-              </div>
-              <SummaryPill tone={done ? "success" : "muted"}>
-                {done ? "Foto vorhanden" : "Optional"}
-              </SummaryPill>
+              <div className="text-sm font-bold text-slate-950">{done ? "Siegerfoto übernommen" : title}</div>
+              <SummaryPill tone={done ? "success" : "muted"}>{done ? "Foto vorhanden" : "Optional"}</SummaryPill>
             </div>
           </div>
-
-          <div className="rounded-full border px-4 py-2 text-sm font-semibold">
-            Bearbeiten
-          </div>
+          <div className="rounded-full border px-4 py-2 text-sm font-semibold">Bearbeiten</div>
         </button>
       </section>
     );
@@ -623,196 +366,103 @@ export default function SessionWinnerPhotoCard({
     <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between px-4 py-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-600">
-            3
-          </div>
-
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-600">3</div>
           <div>
             <div className="text-sm font-semibold text-slate-900">{title}</div>
-            <SummaryPill tone={done ? "success" : "muted"}>
-              {done ? "Foto vorhanden" : "Optional"}
-            </SummaryPill>
+            <SummaryPill tone={done ? "success" : "muted"}>{done ? "Foto vorhanden" : "Optional"}</SummaryPill>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="rounded-full border px-4 py-2 text-sm font-semibold"
-        >
-          {done ? "Foto übernehmen" : "Ohne Foto weiter"}
-        </button>
+        <button type="button" onClick={onToggleCollapsed} className="rounded-full border px-4 py-2 text-sm font-semibold">{done ? "Foto übernehmen" : "Ohne Foto weiter"}</button>
       </div>
 
       <div className="space-y-3 px-4 pb-4">
-        <input
-          ref={winnerPhotoInputRef}
-          type="file"
-          accept="image/*"
-          onChange={(event) => {
-            void handleFileChange(event);
-          }}
-          disabled={!canUploadWinnerPhoto || controlsBusy}
-          className="hidden"
-        />
+        <input ref={winnerPhotoInputRef} type="file" accept="image/*" onChange={(event) => void handleFileChange(event)} disabled={!canUploadWinnerPhoto || controlsBusy} className="hidden" />
 
         <div className="flex flex-wrap gap-2">
-          <ControlButton
-            onClick={triggerFilePicker}
-            disabled={!canUploadWinnerPhoto || controlsBusy}
-            tone="primary"
-          >
-            {cropPreparing
-              ? "Bild wird optimiert..."
-              : photoBusy
-                ? "Speichert..."
-                : done
-                  ? "Foto ersetzen"
-                  : cropSourceUrl
-                    ? "Anderes Foto"
-                    : "Foto auswählen"}
+          <ControlButton onClick={triggerFilePicker} disabled={!canUploadWinnerPhoto || controlsBusy} tone="primary">
+            {preparing ? "Bild wird optimiert..." : photoBusy || localBusy ? "Speichert..." : done ? "Foto ersetzen" : masterFile ? "Anderes Foto" : "Foto auswählen"}
           </ControlButton>
-
-          {done && !cropSourceUrl ? (
-            <ControlButton
-              onClick={onWinnerPhotoDelete}
-              disabled={controlsBusy}
-              tone="danger"
-            >
-              Löschen
-            </ControlButton>
-          ) : null}
+          {done && !masterFile ? <ControlButton onClick={onWinnerPhotoDelete} disabled={controlsBusy} tone="danger">Löschen</ControlButton> : null}
         </div>
 
-        {cropSourceUrl ? (
-          <div className="space-y-4 rounded-[20px] border border-slate-200 bg-slate-50 p-3">
+        {masterPreviewUrl ? (
+          <div className="space-y-3 rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             <div>
-              <div className="text-sm font-bold text-slate-950">Foto ausrichten</div>
-              <div className="mt-1 text-xs leading-5 text-slate-600">
-                Ziehe das Bild unter dem festen 4:5-Rahmen. Mit zwei Fingern oder dem Mausrad kannst du zoomen.
+              <div className="text-sm font-bold text-slate-950">Foto zuschneiden & ausrichten</div>
+              <div className="mt-1 text-xs leading-5 text-slate-600">Zieh die weißen Griffe direkt mit dem Finger. Dunkle Bereiche werden entfernt. Das Bild selbst kannst du weiterhin verschieben, um den Motiv-Fokus für die SiegerCard festzulegen.</div>
+            </div>
+
+            <div
+              ref={focusWorkspaceRef}
+              className="relative mx-auto w-full max-w-[420px] cursor-grab overflow-hidden rounded-[18px] bg-slate-950 shadow-inner select-none active:cursor-grabbing"
+              style={{ touchAction: "none", aspectRatio: String(previewAspectRatio) }}
+              onPointerDown={handleFocusPointerDown}
+              onPointerMove={handleFocusPointerMove}
+              onPointerUp={finishFocusPointer}
+              onPointerCancel={finishFocusPointer}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={masterPreviewUrl}
+                alt="Siegerfoto Motivfokus"
+                draggable={false}
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  if (image.naturalWidth > 0 && image.naturalHeight > 0) setPreviewAspectRatio(image.naturalWidth / image.naturalHeight);
+                }}
+                className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain transition-transform duration-150"
+                style={{ objectPosition, transform: `scale(${focus.zoom})`, transformOrigin: objectPosition }}
+              />
+
+              <div className="pointer-events-none absolute inset-x-0 top-0 bg-slate-950/65" style={{ height: `${trim.top}%` }} />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-slate-950/65" style={{ height: `${trim.bottom}%` }} />
+              <div className="pointer-events-none absolute inset-y-0 left-0 bg-slate-950/65" style={{ width: `${trim.left}%` }} />
+              <div className="pointer-events-none absolute inset-y-0 right-0 bg-slate-950/65" style={{ width: `${trim.right}%` }} />
+
+              <div className="pointer-events-none absolute border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]" style={cropBox}>
+                <div className="absolute inset-x-0 top-1/3 border-t border-white/25" />
+                <div className="absolute inset-x-0 top-2/3 border-t border-white/25" />
+                <div className="absolute inset-y-0 left-1/3 border-l border-white/25" />
+                <div className="absolute inset-y-0 left-2/3 border-l border-white/25" />
+              </div>
+
+              <div {...cropHandleProps("top")} className="absolute z-20 h-10 -translate-y-1/2 touch-none" style={{ left: `${trim.left}%`, right: `${trim.right}%`, top: `${trim.top}%` }}>
+                <div className="absolute left-1/2 top-1/2 h-1.5 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" />
+              </div>
+              <div {...cropHandleProps("bottom")} className="absolute z-20 h-10 translate-y-1/2 touch-none" style={{ left: `${trim.left}%`, right: `${trim.right}%`, bottom: `${trim.bottom}%` }}>
+                <div className="absolute left-1/2 top-1/2 h-1.5 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" />
+              </div>
+              <div {...cropHandleProps("left")} className="absolute z-20 w-10 -translate-x-1/2 touch-none" style={{ top: `${trim.top}%`, bottom: `${trim.bottom}%`, left: `${trim.left}%` }}>
+                <div className="absolute left-1/2 top-1/2 h-14 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" />
+              </div>
+              <div {...cropHandleProps("right")} className="absolute z-20 w-10 translate-x-1/2 touch-none" style={{ top: `${trim.top}%`, bottom: `${trim.bottom}%`, right: `${trim.right}%` }}>
+                <div className="absolute left-1/2 top-1/2 h-14 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" />
               </div>
             </div>
 
-            <div className="mx-auto w-full max-w-[420px]">
-              <div
-                ref={cropWorkspaceRef}
-                className="relative aspect-[4/5] w-full cursor-grab overflow-hidden rounded-[18px] bg-slate-950 shadow-inner select-none active:cursor-grabbing"
-                style={{ touchAction: "none" }}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={finishPointer}
-                onPointerCancel={finishPointer}
-                onWheel={handleWheel}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  ref={cropImageRef}
-                  src={cropSourceUrl}
-                  alt="Siegerfoto ausrichten"
-                  draggable={false}
-                  onLoad={handleCropImageLoad}
-                  onError={handleCropImageError}
-                  className="pointer-events-none absolute h-auto select-none"
-                  style={cropImageStyle}
-                />
-
-                <div className="pointer-events-none absolute inset-0 z-20 border-2 border-white/90">
-                  <div className="absolute inset-x-0 top-1/3 border-t border-white/45" />
-                  <div className="absolute inset-x-0 top-2/3 border-t border-white/45" />
-                  <div className="absolute inset-y-0 left-1/3 border-l border-white/45" />
-                  <div className="absolute inset-y-0 left-2/3 border-l border-white/45" />
-                </div>
-
-                {cropReady ? (
-                  <button
-                    type="button"
-                    aria-label="Ausschnitt verwenden"
-                    title="Ausschnitt verwenden"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={() => {
-                      void useCroppedPhoto();
-                    }}
-                    disabled={controlsBusy || Boolean(cropError)}
-                    className="absolute bottom-3 right-3 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-slate-950/90 text-xl font-black text-white shadow-lg backdrop-blur transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {cropBusy || photoBusy ? "…" : "✓"}
-                  </button>
-                ) : null}
-              </div>
-
-              <div className="mt-3 flex items-center justify-center gap-2">
-                <ControlButton
-                  onClick={() => adjustZoom(zoom / 1.2)}
-                  disabled={!cropReady || controlsBusy || zoom <= 1}
-                >
-                  −
-                </ControlButton>
-                <div className="min-w-20 text-center text-[11px] font-semibold text-slate-500">
-                  Zoom {Math.round(zoom * 100)} %
-                </div>
-                <ControlButton
-                  onClick={() => adjustZoom(zoom * 1.2)}
-                  disabled={!cropReady || controlsBusy || zoom >= MAX_ZOOM}
-                >
-                  +
-                </ControlButton>
-              </div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <ControlButton onClick={() => adjustZoom(focus.zoom - 0.15)} disabled={controlsBusy || focus.zoom <= MIN_FOCUS_ZOOM}>−</ControlButton>
+              <div className="min-w-24 text-center text-[11px] font-semibold text-slate-500">Zoom {Math.round(focus.zoom * 100)} %</div>
+              <ControlButton onClick={() => adjustZoom(focus.zoom + 0.15)} disabled={controlsBusy || focus.zoom >= MAX_FOCUS_ZOOM}>+</ControlButton>
+              <ControlButton onClick={resetFocus} disabled={controlsBusy}>Zurücksetzen</ControlButton>
             </div>
-
-            {!cropReady && !cropError ? (
-              <div className="text-xs font-medium text-slate-500">
-                Vorschau wird vorbereitet...
-              </div>
-            ) : null}
-
-            {cropError ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                {cropError}
-              </div>
-            ) : null}
 
             <div className="flex flex-wrap gap-2">
-              <ControlButton
-                onClick={() => {
-                  void useCroppedPhoto();
-                }}
-                disabled={!cropReady || controlsBusy || Boolean(cropError)}
-                tone="primary"
-              >
-                {cropBusy || photoBusy ? "Speichert..." : "✓ Foto verwenden"}
-              </ControlButton>
-
-              <ControlButton onClick={resetCrop} disabled={!cropReady || controlsBusy}>
-                Zurücksetzen
-              </ControlButton>
-
-              <ControlButton onClick={clearCropSelection} disabled={controlsBusy}>
-                Abbrechen
-              </ControlButton>
-            </div>
-
-            <div className="text-[11px] font-medium text-slate-500">
-              Desktop: Bild ziehen · Mausrad = Zoom · Enter = verwenden · Esc = abbrechen
+              <ControlButton onClick={() => void usePreparedPhoto()} disabled={controlsBusy} tone="primary">{photoBusy || localBusy ? "Speichert..." : "✓ Foto verwenden"}</ControlButton>
+              <ControlButton onClick={clearPreparedPhoto} disabled={controlsBusy}>Abbrechen</ControlButton>
             </div>
           </div>
         ) : (
           <div className="rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             {winnerPhotoUrl ? (
-              <div className="relative mx-auto aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-[16px]">
-                <Image
-                  src={winnerPhotoUrl}
-                  alt="Siegerfoto"
-                  fill
-                  className="object-cover"
-                />
+              <div className="relative mx-auto flex min-h-[180px] w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[16px] bg-slate-950">
+                <Image src={winnerPhotoUrl} alt="Siegerfoto" width={280} height={280} className="max-h-[320px] h-auto w-auto max-w-full object-contain" />
               </div>
-            ) : (
-              <div className="flex min-h-[150px] flex-col items-center justify-center text-center text-xs text-slate-500">
-                Noch kein Foto
-              </div>
-            )}
+            ) : <div className="flex min-h-[150px] flex-col items-center justify-center text-center text-xs text-slate-500">Noch kein Foto</div>}
           </div>
         )}
+
+        {photoError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{photoError}</div> : null}
       </div>
     </section>
   );

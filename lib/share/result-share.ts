@@ -8,6 +8,9 @@ type SessionRow = {
   date: string | null;
   club_id: string;
   winner_photo_path: string | null;
+  winner_photo_focus_x: number | null;
+  winner_photo_focus_y: number | null;
+  winner_photo_zoom: number | null;
 };
 
 type ClubRow = {
@@ -34,6 +37,9 @@ export type ResultSharePayload = ResultShareData & {
   winnerWasShorthanded?: boolean;
   upsetWin?: boolean;
   dramaticFinish?: boolean;
+  winnerPhotoFocusX?: number;
+  winnerPhotoFocusY?: number;
+  winnerPhotoZoom?: number;
 };
 
 function buildWinnerLabel(goalsA: number, goalsB: number) {
@@ -195,7 +201,9 @@ export async function getResultShareData(
 
   const sessionResponse = await supabase
     .from("sessions")
-    .select("id, date, club_id, winner_photo_path")
+    .select(
+      "id, date, club_id, winner_photo_path, winner_photo_focus_x, winner_photo_focus_y, winner_photo_zoom"
+    )
     .eq("id", sessionId)
     .single();
 
@@ -269,5 +277,8 @@ export async function getResultShareData(
     winnerWasShorthanded: storyFlags.winnerWasShorthanded,
     upsetWin: storyFlags.upsetWin,
     dramaticFinish: storyFlags.dramaticFinish,
+    winnerPhotoFocusX: session.winner_photo_focus_x ?? 0.5,
+    winnerPhotoFocusY: session.winner_photo_focus_y ?? 0.5,
+    winnerPhotoZoom: session.winner_photo_zoom ?? 1,
   };
 }
