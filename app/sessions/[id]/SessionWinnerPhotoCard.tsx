@@ -120,6 +120,7 @@ export default function SessionWinnerPhotoCard({
 
   const [masterFile, setMasterFile] = useState<File | null>(null);
   const [masterPreviewUrl, setMasterPreviewUrl] = useState<string | null>(null);
+  const [previewAspectRatio, setPreviewAspectRatio] = useState(4 / 3);
   const [focus, setFocus] = useState<PhotoFocus>({ x: 0.5, y: 0.5, zoom: 1 });
   const [preparing, setPreparing] = useState(false);
   const [localBusy, setLocalBusy] = useState(false);
@@ -134,6 +135,7 @@ export default function SessionWinnerPhotoCard({
     dragRef.current = null;
     setMasterFile(null);
     setMasterPreviewUrl(null);
+    setPreviewAspectRatio(4 / 3);
     setFocus({ x: 0.5, y: 0.5, zoom: 1 });
     setPreparing(false);
     setLocalBusy(false);
@@ -405,14 +407,17 @@ export default function SessionWinnerPhotoCard({
             <div>
               <div className="text-sm font-bold text-slate-950">Motiv ausrichten</div>
               <div className="mt-1 text-xs leading-5 text-slate-600">
-                Das vollständige Foto bleibt gespeichert. Richte hier nur den Motiv-Fokus aus. 100 % zeigt das ganze Foto; mit Minus bekommst du zusätzlich Luft um die Gruppe.
+                Das vollständige Foto bleibt gespeichert. 100 % zeigt das komplette Foto. Ziehen setzt den Motiv-Fokus; mit Minus gibst du der späteren SiegerCard zusätzlich Luft um die Gruppe.
               </div>
             </div>
 
             <div
               ref={focusWorkspaceRef}
-              className="relative mx-auto aspect-[4/5] w-full max-w-[420px] cursor-grab overflow-hidden rounded-[18px] bg-slate-950 shadow-inner select-none active:cursor-grabbing"
-              style={{ touchAction: "none" }}
+              className="relative mx-auto w-full max-w-[420px] cursor-grab overflow-hidden rounded-[18px] bg-slate-950 shadow-inner select-none active:cursor-grabbing"
+              style={{
+                touchAction: "none",
+                aspectRatio: String(previewAspectRatio),
+              }}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={finishPointer}
@@ -423,6 +428,12 @@ export default function SessionWinnerPhotoCard({
                 src={masterPreviewUrl}
                 alt="Siegerfoto Motivfokus"
                 draggable={false}
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                    setPreviewAspectRatio(image.naturalWidth / image.naturalHeight);
+                  }
+                }}
                 className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain transition-transform duration-150"
                 style={{
                   objectPosition,
