@@ -18,7 +18,7 @@ const MAX_COMBINED_TRIM = 60;
 
 type PhotoFocus = { x: number; y: number; zoom: number };
 type PhotoTrim = { top: number; right: number; bottom: number; left: number };
-type CropHandle = "top" | "right" | "bottom" | "left" | "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
+type CropHandle = "top" | "right" | "bottom" | "left";
 
 type SessionWinnerPhotoCardProps = {
   sessionId: number;
@@ -269,15 +269,15 @@ export default function SessionWinnerPhotoCard({
     const dyPercent = ((event.clientY - drag.startClientY) / bounds.height) * 100;
     const next = { ...drag.startTrim };
 
-    const hasTop = drag.handle === "top" || drag.handle === "topLeft" || drag.handle === "topRight";
-    const hasBottom = drag.handle === "bottom" || drag.handle === "bottomLeft" || drag.handle === "bottomRight";
-    const hasLeft = drag.handle === "left" || drag.handle === "topLeft" || drag.handle === "bottomLeft";
-    const hasRight = drag.handle === "right" || drag.handle === "topRight" || drag.handle === "bottomRight";
-
-    if (hasTop) next.top = clamp(drag.startTrim.top + dyPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.bottom);
-    if (hasBottom) next.bottom = clamp(drag.startTrim.bottom - dyPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.top);
-    if (hasLeft) next.left = clamp(drag.startTrim.left + dxPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.right);
-    if (hasRight) next.right = clamp(drag.startTrim.right - dxPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.left);
+    if (drag.handle === "top") {
+      next.top = clamp(drag.startTrim.top + dyPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.bottom);
+    } else if (drag.handle === "bottom") {
+      next.bottom = clamp(drag.startTrim.bottom - dyPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.top);
+    } else if (drag.handle === "left") {
+      next.left = clamp(drag.startTrim.left + dxPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.right);
+    } else {
+      next.right = clamp(drag.startTrim.right - dxPercent, 0, MAX_COMBINED_TRIM - drag.startTrim.left);
+    }
 
     setTrim(next);
   }
@@ -389,7 +389,7 @@ export default function SessionWinnerPhotoCard({
           <div className="space-y-3 rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             <div>
               <div className="text-sm font-bold text-slate-950">Foto zuschneiden & ausrichten</div>
-              <div className="mt-1 text-xs leading-5 text-slate-600">Zieh den weißen Rahmen direkt mit dem Finger. Dunkle Bereiche werden entfernt. Das Bild selbst kannst du weiterhin verschieben, um den Motiv-Fokus für die SiegerCard festzulegen.</div>
+              <div className="mt-1 text-xs leading-5 text-slate-600">Zieh die weißen Griffe direkt mit dem Finger. Dunkle Bereiche werden entfernt. Das Bild selbst kannst du weiterhin verschieben, um den Motiv-Fokus für die SiegerCard festzulegen.</div>
             </div>
 
             <div
@@ -438,17 +438,6 @@ export default function SessionWinnerPhotoCard({
               <div {...cropHandleProps("right")} className="absolute z-20 w-10 translate-x-1/2 touch-none" style={{ top: `${trim.top}%`, bottom: `${trim.bottom}%`, right: `${trim.right}%` }}>
                 <div className="absolute left-1/2 top-1/2 h-14 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow" />
               </div>
-
-              {([
-                ["topLeft", { left: `${trim.left}%`, top: `${trim.top}%` }],
-                ["topRight", { right: `${trim.right}%`, top: `${trim.top}%` }],
-                ["bottomLeft", { left: `${trim.left}%`, bottom: `${trim.bottom}%` }],
-                ["bottomRight", { right: `${trim.right}%`, bottom: `${trim.bottom}%` }],
-              ] as const).map(([handle, style]) => (
-                <div key={handle} {...cropHandleProps(handle)} className="absolute z-30 h-12 w-12 -translate-x-1/2 -translate-y-1/2 touch-none" style={style}>
-                  <div className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-sm border-2 border-white bg-white/10 shadow" />
-                </div>
-              ))}
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2">
