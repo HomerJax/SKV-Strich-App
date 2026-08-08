@@ -14,11 +14,19 @@ const MAX_SOURCE_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 const MAX_UPLOAD_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const MIN_FOCUS_ZOOM = 0.75;
 const MAX_FOCUS_ZOOM = 2.5;
+const MAX_COMBINED_TRIM = 60;
 
 type PhotoFocus = {
   x: number;
   y: number;
   zoom: number;
+};
+
+type PhotoTrim = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 };
 
 type SessionWinnerPhotoCardProps = {
@@ -37,6 +45,13 @@ type SessionWinnerPhotoCardProps = {
   title?: string;
   collapsed: boolean;
   onToggleCollapsed: () => void;
+};
+
+const EMPTY_TRIM: PhotoTrim = {
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -96,6 +111,84 @@ function ControlButton({
   );
 }
 
+function cropImageFile(file: File, trim: PhotoTrim): Promise<File> {
+  if (!trim.top && !trim.right && !trim.bottom && !trim.left) {
+    return Promise.resolve(file);
+  }
+
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new window.Image();
+
+    image.onload = () => {
+      try {
+        const width = image.naturalWidth || image.width;
+        const height = image.naturalHeight || image.height;
+        const sourceX = Math.round(width * (trim.left / 100));
+        const sourceY = Math.round(height * (trim.top / 100));
+        const sourceWidth = Math.max(
+          1,
+          Math.round(width * (1 - (trim.left + trim.right) / 100))
+        );
+        const sourceHeight = Math.max(
+          1,
+          Math.round(height * (1 - (trim.top + trim.bottom) / 100))
+        );
+
+        const canvas = document.createElement("canvas");
+        canvas.width = sourceWidth;
+        canvas.height = sourceHeight;
+        const context = canvas.getContext("2d", { alpha: false });
+
+        if (!context) {
+          reject(new Error("Bild konnte nicht zugeschnitten werden."));
+          return;
+        }
+
+        context.drawImage(
+          image,
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
+          0,
+          0,
+          sourceWidth,
+          sourceHeight
+        );
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Bild konnte nicht zugeschnitten werden."));
+              return;
+            }
+
+            const baseName = file.name.replace(/\.[^.]+$/, "") || "winner-photo";
+            resolve(
+              new File([blob], `${baseName}-crop.jpg`, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              })
+            );
+          },
+          "image/jpeg",
+          0.9
+        );
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Bild konnte nicht zugeschnitten werden."));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
 export default function SessionWinnerPhotoCard({
   sessionId,
   saving,
@@ -122,6 +215,7 @@ export default function SessionWinnerPhotoCard({
   const [masterPreviewUrl, setMasterPreviewUrl] = useState<string | null>(null);
   const [previewAspectRatio, setPreviewAspectRatio] = useState(4 / 3);
   const [focus, setFocus] = useState<PhotoFocus>({ x: 0.5, y: 0.5, zoom: 1 });
+  const [trim, setTrim] = useState<PhotoTrim>(EMPTY_TRIM);
   const [preparing, setPreparing] = useState(false);
   const [localBusy, setLocalBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -137,6 +231,7 @@ export default function SessionWinnerPhotoCard({
     setMasterPreviewUrl(null);
     setPreviewAspectRatio(4 / 3);
     setFocus({ x: 0.5, y: 0.5, zoom: 1 });
+    setTrim(EMPTY_TRIM);
     setPreparing(false);
     setLocalBusy(false);
     setPhotoError(null);
@@ -144,10 +239,29 @@ export default function SessionWinnerPhotoCard({
 
   function resetFocus() {
     setFocus({ x: 0.5, y: 0.5, zoom: 1 });
+    setTrim(EMPTY_TRIM);
   }
 
   function triggerFilePicker() {
     winnerPhotoInputRef.current?.click();
+  }
+
+  function updateTrim(side: keyof PhotoTrim, value: number) {
+    setTrim((current) => {
+      const opposite =
+        side === "top"
+          ? current.bottom
+          : side === "bottom"
+            ? current.top
+            : side === "left"
+              ? current.right
+              : current.left;
+
+      return {
+        ...current,
+        [side]: clamp(value, 0, MAX_COMBINED_TRIM - opposite),
+      };
+    });
   }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -170,6 +284,7 @@ export default function SessionWinnerPhotoCard({
       setPreparing(true);
       setPhotoError(null);
       setFocus({ x: 0.5, y: 0.5, zoom: 1 });
+      setTrim(EMPTY_TRIM);
 
       const preparedFile = await compressImageFile(file, {
         maxWidth: MASTER_MAX_SIZE,
@@ -250,15 +365,15 @@ export default function SessionWinnerPhotoCard({
     }));
   }
 
-  async function saveFocus() {
+  async function saveFocus(nextFocus: PhotoFocus) {
     const response = await fetch(`/api/sessions/${sessionId}/winner-photo-focus`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       body: JSON.stringify({
-        x: focus.x,
-        y: focus.y,
-        zoom: focus.zoom,
+        x: nextFocus.x,
+        y: nextFocus.y,
+        zoom: nextFocus.zoom,
       }),
     });
 
@@ -277,11 +392,20 @@ export default function SessionWinnerPhotoCard({
       setLocalBusy(true);
       setPhotoError(null);
 
-      await saveFocus();
+      const croppedFile = await cropImageFile(masterFile, trim);
+      const visibleWidth = Math.max(0.01, 1 - (trim.left + trim.right) / 100);
+      const visibleHeight = Math.max(0.01, 1 - (trim.top + trim.bottom) / 100);
+      const nextFocus: PhotoFocus = {
+        x: clamp((focus.x - trim.left / 100) / visibleWidth, 0, 1),
+        y: clamp((focus.y - trim.top / 100) / visibleHeight, 0, 1),
+        zoom: focus.zoom,
+      };
+
+      await saveFocus(nextFocus);
 
       const syntheticEvent = {
         target: {
-          files: [masterFile],
+          files: [croppedFile],
           value: "",
         },
       } as unknown as ChangeEvent<HTMLInputElement>;
@@ -405,9 +529,9 @@ export default function SessionWinnerPhotoCard({
         {masterPreviewUrl ? (
           <div className="space-y-3 rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             <div>
-              <div className="text-sm font-bold text-slate-950">Motiv ausrichten</div>
+              <div className="text-sm font-bold text-slate-950">Foto zuschneiden & ausrichten</div>
               <div className="mt-1 text-xs leading-5 text-slate-600">
-                Das vollständige Foto bleibt gespeichert. 100 % zeigt das komplette Foto. Ziehen setzt den Motiv-Fokus; mit Minus gibst du der späteren SiegerCard zusätzlich Luft um die Gruppe.
+                Schneide bei Bedarf ganz simpel Rand weg. Dunkle Bereiche werden entfernt. Ziehen setzt zusätzlich den Motiv-Fokus für die SiegerCard.
               </div>
             </div>
 
@@ -443,11 +567,71 @@ export default function SessionWinnerPhotoCard({
               />
 
               <div className="pointer-events-none absolute inset-0 border-2 border-white/80">
-                <div className="absolute inset-x-0 top-1/3 border-t border-white/30" />
-                <div className="absolute inset-x-0 top-2/3 border-t border-white/30" />
-                <div className="absolute inset-y-0 left-1/3 border-l border-white/30" />
-                <div className="absolute inset-y-0 left-2/3 border-l border-white/30" />
+                <div className="absolute inset-x-0 top-1/3 border-t border-white/25" />
+                <div className="absolute inset-x-0 top-2/3 border-t border-white/25" />
+                <div className="absolute inset-y-0 left-1/3 border-l border-white/25" />
+                <div className="absolute inset-y-0 left-2/3 border-l border-white/25" />
               </div>
+
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 bg-slate-950/65"
+                style={{ height: `${trim.top}%` }}
+              />
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 bg-slate-950/65"
+                style={{ height: `${trim.bottom}%` }}
+              />
+              <div
+                className="pointer-events-none absolute inset-y-0 left-0 bg-slate-950/65"
+                style={{ width: `${trim.left}%` }}
+              />
+              <div
+                className="pointer-events-none absolute inset-y-0 right-0 bg-slate-950/65"
+                style={{ width: `${trim.right}%` }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {(
+                [
+                  ["top", "Oben"],
+                  ["bottom", "Unten"],
+                  ["left", "Links"],
+                  ["right", "Rechts"],
+                ] as const
+              ).map(([side, label]) => {
+                const opposite =
+                  side === "top"
+                    ? trim.bottom
+                    : side === "bottom"
+                      ? trim.top
+                      : side === "left"
+                        ? trim.right
+                        : trim.left;
+                const max = MAX_COMBINED_TRIM - opposite;
+
+                return (
+                  <label
+                    key={side}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2"
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-semibold text-slate-600">
+                      <span>{label}</span>
+                      <span>{Math.round(trim[side])}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={max}
+                      step={1}
+                      value={trim[side]}
+                      disabled={controlsBusy}
+                      onChange={(event) => updateTrim(side, Number(event.target.value))}
+                      className="w-full"
+                    />
+                  </label>
+                );
+              })}
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2">
