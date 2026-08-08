@@ -1,7 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchImageAsFile } from "@/lib/share/utils";
 
 type SessionEndModalProps = {
   open: boolean;
@@ -133,11 +134,118 @@ export default function SessionEndModal({
   const [showMvpFollowup, setShowMvpFollowup] = useState(false);
   const [sharingMvpVoting, setSharingMvpVoting] = useState(false);
   const [mvpShareMessage, setMvpShareMessage] = useState<string | null>(null);
+  const [preparedWinnerShareFile, setPreparedWinnerShareFile] = useState<File | null>(
+    null
+  );
+  const [preparingWinnerShare, setPreparingWinnerShare] = useState(false);
+  const [winnerShareMessage, setWinnerShareMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open || typeof window === "undefined") {
+      setPreparedWinnerShareFile(null);
+      setPreparingWinnerShare(false);
+      setWinnerShareMessage(null);
+      return;
+    }
+
+    const sessionMatch = window.location.pathname.match(/\/sessions\/(\d+)/);
+    const sessionId = sessionMatch?.[1] ?? null;
+
+    if (!sessionId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function prepareWinnerShare() {
+      try {
+        setPreparingWinnerShare(true);
+        setWinnerShareMessage(null);
+
+        const imageUrl = `/api/share/result/${sessionId}/image?modal_prepare_ts=${Date.now()}`;
+        const file = await fetchImageAsFile(
+          imageUrl,
+          `strikr-result-${sessionId}.png`
+        );
+
+        if (cancelled) return;
+
+        setPreparedWinnerShareFile(file);
+        setWinnerShareMessage("SiegerCard ist bereit.");
+      } catch (error) {
+        if (cancelled) return;
+
+        setPreparedWinnerShareFile(null);
+        setWinnerShareMessage(
+          error instanceof Error
+            ? error.message
+            : "SiegerCard konnte nicht vorbereitet werden."
+        );
+      } finally {
+        if (!cancelled) {
+          setPreparingWinnerShare(false);
+        }
+      }
+    }
+
+    void prepareWinnerShare();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, scoreA, scoreB, winnerPhotoUrl]);
 
   if (!open) return null;
 
   const headline = getHeadline(scoreA, scoreB);
-  const shareBusy = sharingSocial || preparingResultShare;
+  const shareBusy = sharingSocial || preparingResultShare || preparingWinnerShare;
+  const shareReady = Boolean(preparedWinnerShareFile) || resultShareReady;
+  const displayedShareMessage = winnerShareMessage ?? resultShareMessage;
+
+  async function handleShareWinnerCard() {
+    if (!preparedWinnerShareFile) {
+      onShareSocial();
+      return;
+    }
+
+    try {
+      setWinnerShareMessage(null);
+
+      if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+        onShareSocial();
+        return;
+      }
+
+      if (typeof navigator.canShare === "function") {
+        const canShareFiles = navigator.canShare({
+          files: [preparedWinnerShareFile],
+        });
+
+        if (!canShareFiles) {
+          throw new Error(
+            "Dieser Browser unterstützt das direkte Teilen der SiegerCard nicht."
+          );
+        }
+      }
+
+      await navigator.share({
+        files: [preparedWinnerShareFile],
+      });
+
+      setWinnerShareMessage("SiegerCard erfolgreich geteilt.");
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        setWinnerShareMessage("SiegerCard ist bereit.");
+        return;
+      }
+
+      setWinnerShareMessage(
+        error instanceof Error
+          ? error.message
+          : "SiegerCard konnte nicht geteilt werden."
+      );
+    }
+  }
 
   async function handleShareMvpVoting() {
     try {
@@ -147,13 +255,7 @@ export default function SessionEndModal({
       const sessionUrl =
         typeof window !== "undefined" ? window.location.href : "/sessions";
 
-      const shareText = `MVP Voting ist eröffnet 🔥
-
-Stimme jetzt für den Spieler des Trainings ab.
-
-Voting läuft bis morgen 10:00 Uhr.
-
-👉 ${sessionUrl}`;
+      const shareText = `MVP Voting ist eröffnet 🔥\n\nStimme jetzt für den Spieler des Trainings ab.\n\nVoting läuft bis morgen 10:00 Uhr.\n\n👉 ${sessionUrl}`;
 
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
         await navigator.share({
@@ -278,34 +380,28 @@ Voting läuft bis morgen 10:00 Uhr.
 
                 <div className="mt-4">
                   <Button
-                    onClick={onShareSocial}
-                    disabled={shareBusy}
+                    onClick={() => void handleShareWinnerCard()}
+                    disabled={shareBusy || !shareReady}
                     tone="primary"
                   >
                     {sharingSocial
                       ? "SiegerCard wird geteilt..."
-                      : preparingResultShare
+                      : shareBusy || !shareReady
                         ? "SiegerCard wird vorbereitet..."
                         : "SiegerCard teilen"}
                   </Button>
                 </div>
               </div>
 
-              {preparingResultShare ? (
+              {shareBusy && !shareReady ? (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                   SiegerCard wird vorbereitet ...
                 </div>
               ) : null}
 
-              {resultShareMessage ? (
+              {displayedShareMessage ? (
                 <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
-                  {resultShareMessage}
-                </div>
-              ) : null}
-
-              {resultShareReady && !preparingResultShare && !resultShareMessage ? (
-                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-                  SiegerCard ist bereit.
+                  {displayedShareMessage}
                 </div>
               ) : null}
             </div>
