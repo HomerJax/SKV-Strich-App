@@ -23,7 +23,7 @@ export async function sendPushToUsers({
   const uniqueUserIds = [...new Set(userIds)].filter(Boolean);
 
   if (!uniqueUserIds.length) {
-    return { sent: 0, failed: 0, skipped: true };
+    return { sent: 0, failed: 0, skipped: true, errors: [] as string[] };
   }
 
   const supabase = createAdminClient();
@@ -45,7 +45,7 @@ export async function sendPushToUsers({
   ];
 
   if (!tokens.length) {
-    return { sent: 0, failed: 0, skipped: true };
+    return { sent: 0, failed: 0, skipped: true, errors: [] as string[] };
   }
 
   const messaging = getFirebaseMessaging();
@@ -75,9 +75,14 @@ export async function sendPushToUsers({
   });
 
   const invalidTokens: string[] = [];
+  const errors: string[] = [];
 
   response.responses.forEach((result, index) => {
     const code = result.error?.code;
+
+    if (code) {
+      errors.push(code);
+    }
 
     if (
       code === "messaging/invalid-registration-token" ||
@@ -106,5 +111,6 @@ export async function sendPushToUsers({
     failed: response.failureCount,
     disabled: invalidTokens.length,
     skipped: false,
+    errors: [...new Set(errors)],
   };
 }
