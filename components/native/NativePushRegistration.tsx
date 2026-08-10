@@ -2,6 +2,7 @@
 
 import { Capacitor } from "@capacitor/core";
 import { FirebaseMessaging } from "@capacitor-firebase/messaging";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 type NotificationData = {
@@ -22,6 +23,8 @@ async function registerToken(token: string, platform: string) {
 }
 
 export default function NativePushRegistration() {
+  const router = useRouter();
+
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
@@ -73,11 +76,13 @@ export default function NativePushRegistration() {
           "notificationActionPerformed",
           (event) => {
             const data = event.notification.data as
-              NotificationData | undefined;
+              | NotificationData
+              | undefined;
             const url = data?.url;
 
             if (typeof url === "string" && url.startsWith("/")) {
-              window.location.href = url;
+              router.push(url);
+              router.refresh();
             }
           },
         );
@@ -124,7 +129,7 @@ export default function NativePushRegistration() {
       cancelled = true;
       removeListeners.forEach((remove) => remove());
     };
-  }, []);
+  }, [router]);
 
   return null;
 }
