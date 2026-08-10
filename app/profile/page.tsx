@@ -4,6 +4,7 @@ import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import ProfileForm from "./ProfileForm";
 import ProfilePasswordForm from "./ProfilePasswordForm";
+import PushPreferencesForm from "./PushPreferencesForm";
 
 type ProfilePageProps = {
   searchParams?: Promise<{
@@ -116,6 +117,8 @@ export default async function ProfilePage({
           </div>
         </div>
       </section>
+
+      <PushPreferencesForm />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
