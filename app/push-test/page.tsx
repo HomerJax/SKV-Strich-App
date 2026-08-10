@@ -9,6 +9,7 @@ type TestPushResult = {
     sent?: number;
     failed?: number;
     skipped?: boolean;
+    errors?: string[];
   };
 };
 
@@ -37,17 +38,20 @@ export default function PushTestPage() {
       const sent = payload.result?.sent ?? 0;
       const failed = payload.result?.failed ?? 0;
       const skipped = payload.result?.skipped ?? false;
+      const errors = payload.result?.errors ?? [];
 
-      if (skipped || sent === 0) {
+      if (skipped) {
         setMessage("Kein aktives Push-Gerät für diesen Account gefunden.");
         return;
       }
 
-      setMessage(
-        failed > 0
-          ? `Push gesendet: ${sent}, fehlgeschlagen: ${failed}.`
-          : `Push gesendet (${sent}). Jetzt aufs iPhone schauen.`,
-      );
+      if (failed > 0) {
+        const errorText = errors.length > 0 ? ` Fehler: ${errors.join(", ")}.` : "";
+        setMessage(`Push fehlgeschlagen: ${failed}. Erfolgreich: ${sent}.${errorText}`);
+        return;
+      }
+
+      setMessage(`Push gesendet (${sent}). Jetzt aufs iPhone schauen.`);
     } catch (error) {
       setMessage(
         error instanceof Error
