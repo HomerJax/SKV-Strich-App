@@ -159,7 +159,7 @@ export type ClubFeatureFlagMap = Record<FeatureFlagKey, boolean>;
 
 export function getDefaultFeatureFlagMap(): ClubFeatureFlagMap {
   return FEATURE_FLAG_KEYS.reduce((acc, key) => {
-    acc[key] = false;
+    acc[key] = key === "player_stats_overview";
     return acc;
   }, {} as ClubFeatureFlagMap);
 }
@@ -206,6 +206,10 @@ export async function getFeatureFlagsForClub(
       flags[row.feature_key] = Boolean(row.enabled);
     }
   }
+
+  // Basis-Stats sind für jeden Club erreichbar. Nur die einzelnen Stats-Module
+  // werden weiterhin pro Club über ihre eigenen Feature Flags gesteuert.
+  flags.player_stats_overview = true;
 
   return flags;
 }
@@ -313,7 +317,7 @@ export async function ensureFeatureFlagRowsForClub(clubId: string) {
   ).map((featureKey) => ({
     club_id: clubId,
     feature_key: featureKey,
-    enabled: false,
+    enabled: featureKey === "player_stats_overview",
   }));
 
   if (missingPayload.length === 0) {
