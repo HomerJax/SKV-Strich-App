@@ -498,7 +498,7 @@ function HighlightsCard({
   const streakMissing = Math.max(0, nextStreakTarget - currentStreak);
 
   const nextMvpTarget = getNextMvpTarget(mvpCount);
-  const mvpMissing = Math.max(0, nextMvpTarget - currentMvpCount);
+  const mvpMissing = Math.max(0, nextMvpTarget - mvpCount);
 
   return (
     <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
