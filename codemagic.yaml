@@ -13,6 +13,50 @@ workflows:
         script: |
           npm ci
 
+      - name: Restore Firebase Android config
+        script: |
+          node <<'NODE'
+          const fs = require('fs');
+          const raw = process.env.GOOGLE_SERVICES_JSON_BASE64;
+
+          if (!raw) {
+            console.error('GOOGLE_SERVICES_JSON_BASE64 is not set.');
+            process.exit(1);
+          }
+
+          let json;
+          try {
+            json = Buffer.from(raw, 'base64').toString('utf8');
+          } catch (error) {
+            console.error('GOOGLE_SERVICES_JSON_BASE64 is not valid Base64.', error);
+            process.exit(1);
+          }
+
+          let config;
+          try {
+            config = JSON.parse(json);
+          } catch (error) {
+            console.error('Decoded google-services.json is not valid JSON.', error);
+            process.exit(1);
+          }
+
+          const clients = Array.isArray(config.client) ? config.client : [];
+          const matchesPackage = clients.some(
+            (client) =>
+              client?.client_info?.android_client_info?.package_name ===
+              'team.strikr.app',
+          );
+
+          if (!matchesPackage) {
+            console.error('google-services.json does not contain team.strikr.app.');
+            process.exit(1);
+          }
+
+          fs.mkdirSync('android/app', { recursive: true });
+          fs.writeFileSync('android/app/google-services.json', json);
+          console.log('Firebase Android config restored for team.strikr.app.');
+          NODE
+
       - name: Sync Capacitor Android
         script: |
           npx cap sync android
@@ -45,6 +89,50 @@ workflows:
       - name: Install dependencies
         script: |
           npm ci
+
+      - name: Restore Firebase Android config
+        script: |
+          node <<'NODE'
+          const fs = require('fs');
+          const raw = process.env.GOOGLE_SERVICES_JSON_BASE64;
+
+          if (!raw) {
+            console.error('GOOGLE_SERVICES_JSON_BASE64 is not set.');
+            process.exit(1);
+          }
+
+          let json;
+          try {
+            json = Buffer.from(raw, 'base64').toString('utf8');
+          } catch (error) {
+            console.error('GOOGLE_SERVICES_JSON_BASE64 is not valid Base64.', error);
+            process.exit(1);
+          }
+
+          let config;
+          try {
+            config = JSON.parse(json);
+          } catch (error) {
+            console.error('Decoded google-services.json is not valid JSON.', error);
+            process.exit(1);
+          }
+
+          const clients = Array.isArray(config.client) ? config.client : [];
+          const matchesPackage = clients.some(
+            (client) =>
+              client?.client_info?.android_client_info?.package_name ===
+              'team.strikr.app',
+          );
+
+          if (!matchesPackage) {
+            console.error('google-services.json does not contain team.strikr.app.');
+            process.exit(1);
+          }
+
+          fs.mkdirSync('android/app', { recursive: true });
+          fs.writeFileSync('android/app/google-services.json', json);
+          console.log('Firebase Android config restored for team.strikr.app.');
+          NODE
 
       - name: Sync Capacitor Android
         script: |
