@@ -44,9 +44,9 @@ function getErrorMessage(error?: string) {
     case "delete_confirmation":
       return 'Zum Löschen bitte exakt „CLUB LÖSCHEN“ eingeben und die Checkbox bestätigen.';
     case "delete_unauthorized":
-      return "Nur ein echter Club-Admin darf den Club dauerhaft löschen.";
+      return "Nur ein echter Club-Admin darf den Club löschen.";
     case "delete_delete_failed":
-      return "Der Club konnte nicht vollständig gelöscht werden. Bitte versuche es erneut.";
+      return "Der Club konnte nicht in den Papierkorb verschoben werden. Bitte versuche es erneut.";
     default:
       return "";
   }
@@ -305,13 +305,15 @@ export default async function ClubSettingsCard({
           </div>
 
           <h3 className="mt-3 text-lg font-extrabold tracking-tight text-slate-950">
-            Club dauerhaft löschen
+            Club löschen
           </h3>
 
           <p className="mt-2 text-sm leading-6 text-slate-700">
-            Dadurch werden {clubLabel}, alle Mitglieder, Spieler, Trainings,
-            Ergebnisse, Teams, Statistiken, MVP-Daten und hochgeladenen Bilder
-            dauerhaft entfernt. Dein persönlicher strikr-Account bleibt bestehen.
+            {clubLabel} wird sofort für alle Nutzer deaktiviert. Mitglieder,
+            Spieler, Trainings, Ergebnisse, Stats und Bilder bleiben noch 14 Tage
+            vollständig erhalten. Innerhalb dieser Frist kann der Club durch den
+            strikr-Support wiederhergestellt werden. Danach werden die Clubdaten
+            endgültig gelöscht. Dein persönlicher strikr-Account bleibt bestehen.
           </p>
 
           <form
@@ -346,8 +348,8 @@ export default async function ClubSettingsCard({
                 className="mt-1 h-4 w-4 rounded border-rose-300"
               />
               <span className="text-sm leading-6 text-rose-900">
-                Mir ist bewusst, dass sämtliche Clubdaten endgültig gelöscht
-                werden und nicht wiederhergestellt werden können.
+                Mir ist bewusst, dass der Club sofort deaktiviert wird und nach
+                Ablauf von 14 Tagen endgültig gelöscht wird.
               </span>
             </label>
 
@@ -355,7 +357,7 @@ export default async function ClubSettingsCard({
               type="submit"
               className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-rose-700"
             >
-              Club dauerhaft löschen
+              Club löschen · 14 Tage Papierkorb
             </button>
           </form>
         </div>
