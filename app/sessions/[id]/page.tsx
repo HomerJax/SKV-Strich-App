@@ -4,10 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { isAdminRole } from "@/lib/auth/access";
 import { getResultShareData } from "@/lib/share/result-share";
-import {
-  ensureFeatureFlagRowsForClub,
-  getFeatureFlagsForClub,
-} from "@/lib/feature-flags";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import SessionDetailClient from "./SessionDetailClient";
 import type { Player, SessionRow } from "./session-types";
 
@@ -207,8 +204,6 @@ export default async function SessionDetailPage({ params }: PageProps) {
     redirect("/sessions");
   }
 
-  await ensureFeatureFlagRowsForClub(clubId);
-
   const featureFlags = await getFeatureFlagsForClub(clubId);
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
   const useNicknames = featureFlags.use_nicknames === true;
@@ -397,30 +392,45 @@ export default async function SessionDetailPage({ params }: PageProps) {
     (teamId): teamId is number => Number.isFinite(teamId)
   );
 
-  if (teamIds.length > 0) {
-    const { data: teamPlayersData, error: teamPlayersError } = await supabase
-      .from("team_players")
-      .select("team_id, player_id")
-      .in("team_id", teamIds);
+  const teamPlayersPromise =
+    teamIds.length > 0
+      ? supabase
+          .from("team_players")
+          .select("team_id, player_id")
+          .in("team_id", teamIds)
+      : Promise.resolve({ data: [] as TeamPlayerRow[], error: null });
 
-    if (teamPlayersError) {
-      throw new Error(
-        `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`
-      );
+  const winnerPhotoPromise = session.winner_photo_path
+    ? supabase.storage
+        .from("session-photos")
+        .createSignedUrl(session.winner_photo_path, 60 * 60)
+    : Promise.resolve({
+        data: null as { signedUrl: string } | null,
+        error: null,
+      });
+
+  const [
+    { data: teamPlayersData, error: teamPlayersError },
+    { data: winnerPhotoData, error: winnerPhotoError },
+  ] = await Promise.all([teamPlayersPromise, winnerPhotoPromise]);
+
+  if (teamPlayersError) {
+    throw new Error(
+      `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`
+    );
+  }
+
+  for (const teamPlayer of (teamPlayersData ?? []) as TeamPlayerRow[]) {
+    if (!(teamPlayer.player_id in manualTeams)) {
+      continue;
     }
 
-    for (const teamPlayer of (teamPlayersData ?? []) as TeamPlayerRow[]) {
-      if (!(teamPlayer.player_id in manualTeams)) {
-        continue;
-      }
+    if (teamPlayer.team_id === savedTeamAId) {
+      manualTeams[teamPlayer.player_id] = "A";
+    }
 
-      if (teamPlayer.team_id === savedTeamAId) {
-        manualTeams[teamPlayer.player_id] = "A";
-      }
-
-      if (teamPlayer.team_id === savedTeamBId) {
-        manualTeams[teamPlayer.player_id] = "B";
-      }
+    if (teamPlayer.team_id === savedTeamBId) {
+      manualTeams[teamPlayer.player_id] = "B";
     }
   }
 
@@ -438,17 +448,9 @@ export default async function SessionDetailPage({ params }: PageProps) {
       label: category.label,
     }));
 
-  let winnerPhotoUrl: string | null = null;
-
-  if (session.winner_photo_path) {
-    const { data, error } = await supabase.storage
-      .from("session-photos")
-      .createSignedUrl(session.winner_photo_path, 60 * 60);
-
-    if (!error) {
-      winnerPhotoUrl = data?.signedUrl ?? null;
-    }
-  }
+  const winnerPhotoUrl = winnerPhotoError
+    ? null
+    : winnerPhotoData?.signedUrl ?? null;
 
   return (
     <SessionDetailClient
