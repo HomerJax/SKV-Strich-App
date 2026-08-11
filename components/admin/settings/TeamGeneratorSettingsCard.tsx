@@ -60,7 +60,7 @@ export default function TeamGeneratorSettingsCard({
 
           <div className="border-t border-black/10 px-4 py-4">
             <div className="space-y-3 text-sm leading-6 text-slate-600">
-              <p><span className="font-semibold text-slate-900">Was passiert?</span>{" "}Wenn du in einer Session auf „Teams generieren“ gehst, prüft strikr 400 mögliche Varianten und übernimmt die beste gefundene Aufteilung.</p>
+              <p><span className="font-semibold text-slate-900">Was passiert?</span>{" "}Wenn du in einer Session auf „Teams generieren“ gehst, probiert strikr 400 mögliche Varianten aus und übernimmt die beste gefundene Aufteilung.</p>
 
               <p><span className="font-semibold text-slate-900">Kategorien:</span>{" "}Wenn Kategorien sportlich unterschiedliche Niveaus darstellen, kannst du eine aktive Kategorie ausdrücklich als <strong>stärkere Kategorie</strong> markieren. Die Reihenfolge der Kategorien spielt dafür keine Rolle mehr.</p>
 
