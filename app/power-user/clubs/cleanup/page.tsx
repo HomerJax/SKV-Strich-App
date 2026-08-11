@@ -203,6 +203,11 @@ export default async function PowerUserClubCleanupPage({
     const isLikelyTest =
       memberCount <= 1 && sessionCount === 0 && inviteCount === 0;
     const isLowUsage = !isLikelyTest && memberCount <= 2 && sessionCount <= 1;
+    const status: ClubCleanupView["status"] = isLikelyTest
+      ? "test/leer"
+      : isLowUsage
+        ? "kaum genutzt"
+        : "genutzt";
 
     return {
       club,
@@ -215,11 +220,7 @@ export default async function PowerUserClubCleanupPage({
       latestSessionDate: clubSessions[0]?.date ?? null,
       lastActivityAt,
       daysSinceActivity: daysSince(lastActivityAt),
-      status: isLikelyTest
-        ? "test/leer"
-        : isLowUsage
-          ? "kaum genutzt"
-          : "genutzt",
+      status,
       riskScore: isLikelyTest ? 2 : isLowUsage ? 1 : 0,
     };
   });
