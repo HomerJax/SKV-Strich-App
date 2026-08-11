@@ -41,6 +41,12 @@ function getErrorMessage(error?: string) {
       return "Die Änderungen konnten nicht gespeichert werden.";
     case "remove_failed":
       return "Das Logo konnte nicht entfernt werden.";
+    case "delete_confirmation":
+      return 'Zum Löschen bitte exakt „CLUB LÖSCHEN“ eingeben und die Checkbox bestätigen.';
+    case "delete_unauthorized":
+      return "Nur ein echter Club-Admin darf den Club dauerhaft löschen.";
+    case "delete_delete_failed":
+      return "Der Club konnte nicht vollständig gelöscht werden. Bitte versuche es erneut.";
     default:
       return "";
   }
@@ -102,6 +108,8 @@ export default async function ClubSettingsCard({
 
   const errorMessage = getErrorMessage(error);
   const useNicknames = flags.use_nicknames ?? false;
+  const canDeleteClub = membership.role === "admin";
+  const clubLabel = club.display_name?.trim() || "dieser Club";
 
   return (
     <div className="space-y-5">
@@ -285,6 +293,72 @@ export default async function ClubSettingsCard({
             Logo entfernen
           </button>
         </form>
+      ) : null}
+
+      {canDeleteClub ? (
+        <div
+          id="club-delete"
+          className="rounded-[24px] border border-rose-200 bg-rose-50/60 p-5"
+        >
+          <div className="inline-flex rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-bold text-rose-700">
+            Gefahrenbereich
+          </div>
+
+          <h3 className="mt-3 text-lg font-extrabold tracking-tight text-slate-950">
+            Club dauerhaft löschen
+          </h3>
+
+          <p className="mt-2 text-sm leading-6 text-slate-700">
+            Dadurch werden {clubLabel}, alle Mitglieder, Spieler, Trainings,
+            Ergebnisse, Teams, Statistiken, MVP-Daten und hochgeladenen Bilder
+            dauerhaft entfernt. Dein persönlicher strikr-Account bleibt bestehen.
+          </p>
+
+          <form
+            method="post"
+            action="/api/admin/club/delete"
+            className="mt-5 space-y-4"
+          >
+            <input type="hidden" name="redirect_to" value={redirectTo} />
+
+            <div>
+              <label
+                htmlFor="club_delete_confirmation"
+                className="block text-sm font-semibold text-slate-900"
+              >
+                Zur Bestätigung „CLUB LÖSCHEN“ eingeben
+              </label>
+              <input
+                id="club_delete_confirmation"
+                name="confirmation"
+                type="text"
+                autoComplete="off"
+                className="mt-2 w-full rounded-xl border border-rose-200 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition focus:border-rose-500"
+                placeholder="CLUB LÖSCHEN"
+              />
+            </div>
+
+            <label className="flex items-start gap-3 rounded-2xl border border-rose-100 bg-white px-4 py-3">
+              <input
+                type="checkbox"
+                name="acknowledgement"
+                value="1"
+                className="mt-1 h-4 w-4 rounded border-rose-300"
+              />
+              <span className="text-sm leading-6 text-rose-900">
+                Mir ist bewusst, dass sämtliche Clubdaten endgültig gelöscht
+                werden und nicht wiederhergestellt werden können.
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-rose-700"
+            >
+              Club dauerhaft löschen
+            </button>
+          </form>
+        </div>
       ) : null}
     </div>
   );
