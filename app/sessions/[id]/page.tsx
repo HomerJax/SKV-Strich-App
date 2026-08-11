@@ -71,6 +71,7 @@ type BalanceCategoryRow = {
   label: string;
   sort_order: number;
   is_active: boolean;
+  is_strong: boolean;
 };
 
 type PageProps = {
@@ -250,7 +251,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .order("name"),
     supabase
       .from("club_categories")
-      .select("key, label, sort_order, is_active")
+      .select("key, label, sort_order, is_active, is_strong")
       .eq("club_id", clubId)
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
@@ -443,10 +444,10 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   const balanceCategories = ((categoriesData ?? []) as BalanceCategoryRow[])
     .filter((category) => category.is_active)
-    .slice(0, 2)
     .map((category) => ({
       key: category.key,
       label: category.label,
+      isStrong: category.is_strong,
     }));
 
   const winnerPhotoUrl = winnerPhotoError
