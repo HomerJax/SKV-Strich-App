@@ -41,7 +41,9 @@ async function getAndroidRecipients() {
     .eq("enabled", true);
 
   if (error) {
-    throw new Error(`Android Push-Empfänger konnten nicht geladen werden: ${error.message}`);
+    throw new Error(
+      `Android Push-Empfänger konnten nicht geladen werden: ${error.message}`,
+    );
   }
 
   const rows = (data ?? []) as AndroidSubscriptionRow[];
@@ -77,22 +79,22 @@ async function sendAndroidTesterPush(formData: FormData) {
     redirect("/admin/push-testers?error=no-recipients");
   }
 
+  let result: Awaited<ReturnType<typeof sendPushToUsers>>;
+
   try {
-    const result = await sendPushToUsers({
+    result = await sendPushToUsers({
       userIds: recipients.userIds,
       title,
       body,
       url: "/home",
       platform: "android",
     });
-
-    redirect(
-      `/admin/push-testers?sent=${result.sent}&failed=${result.failed}`,
-    );
   } catch (error) {
     console.error("Android tester broadcast failed", error);
     redirect("/admin/push-testers?error=send-failed");
   }
+
+  redirect(`/admin/push-testers?sent=${result.sent}&failed=${result.failed}`);
 }
 
 function getErrorMessage(error: string | undefined) {
@@ -170,7 +172,10 @@ export default async function PushTestersPage({ searchParams }: PageProps) {
       <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
         <form action={sendAndroidTesterPush} className="space-y-4">
           <div>
-            <label htmlFor="title" className="text-sm font-semibold text-neutral-900">
+            <label
+              htmlFor="title"
+              className="text-sm font-semibold text-neutral-900"
+            >
               Titel
             </label>
             <input
@@ -183,7 +188,10 @@ export default async function PushTestersPage({ searchParams }: PageProps) {
           </div>
 
           <div>
-            <label htmlFor="body" className="text-sm font-semibold text-neutral-900">
+            <label
+              htmlFor="body"
+              className="text-sm font-semibold text-neutral-900"
+            >
               Nachricht
             </label>
             <textarea
