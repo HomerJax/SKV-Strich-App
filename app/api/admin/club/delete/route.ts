@@ -5,12 +5,29 @@ import { getAuthContext } from "@/lib/auth/context";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function redirectToClubSettings(
+function normalizeInternalRedirect(value: FormDataEntryValue | null) {
+  const target = String(value ?? "/admin/club").trim();
+
+  if (!target) return "/admin/club";
+  if (!target.startsWith("/")) return "/admin/club";
+  if (target.startsWith("//")) return "/admin/club";
+
+  return target;
+}
+
+function redirectToDeleteSource(
   request: NextRequest,
+  redirectTo: string,
   clubDeleteError: string
 ) {
-  const url = new URL("/admin/club", request.nextUrl.origin);
-  url.searchParams.set("club_delete_error", clubDeleteError);
+  const url = new URL(redirectTo, request.nextUrl.origin);
+
+  if (redirectTo.startsWith("/admin/settings")) {
+    url.searchParams.set("club_error", `delete_${clubDeleteError}`);
+  } else {
+    url.searchParams.set("club_delete_error", clubDeleteError);
+  }
+
   return NextResponse.redirect(url, { status: 303 });
 }
 
@@ -37,13 +54,17 @@ async function removeStorageFiles(bucket: string, paths: string[]) {
 }
 
 export async function POST(request: NextRequest) {
+  let redirectTo = "/admin/club";
+
   try {
     const formData = await request.formData();
+    redirectTo = normalizeInternalRedirect(formData.get("redirect_to"));
+
     const confirmation = String(formData.get("confirmation") ?? "").trim();
     const acknowledgement = formData.get("acknowledgement") === "1";
 
     if (confirmation !== "CLUB LÖSCHEN" || !acknowledgement) {
-      return redirectToClubSettings(request, "confirmation");
+      return redirectToDeleteSource(request, redirectTo, "confirmation");
     }
 
     const ctx = await getAuthContext();
@@ -69,7 +90,7 @@ export async function POST(request: NextRequest) {
       ) ?? null;
 
     if (membership?.role !== "admin") {
-      return redirectToClubSettings(request, "unauthorized");
+      return redirectToDeleteSource(request, redirectTo, "unauthorized");
     }
 
     const admin = createAdminClient();
@@ -101,7 +122,7 @@ export async function POST(request: NextRequest) {
         sessionsError,
         remainingMembershipsError,
       });
-      return redirectToClubSettings(request, "delete_failed");
+      return redirectToDeleteSource(request, redirectTo, "delete_failed");
     }
 
     const { error: notificationsError } = await admin
@@ -114,7 +135,7 @@ export async function POST(request: NextRequest) {
         "Club deletion: notifications could not be deleted",
         notificationsError
       );
-      return redirectToClubSettings(request, "delete_failed");
+      return redirectToDeleteSource(request, redirectTo, "delete_failed");
     }
 
     const { error: deleteClubError } = await admin
@@ -127,7 +148,7 @@ export async function POST(request: NextRequest) {
         "Club deletion: club could not be deleted",
         deleteClubError
       );
-      return redirectToClubSettings(request, "delete_failed");
+      return redirectToDeleteSource(request, redirectTo, "delete_failed");
     }
 
     await Promise.all([
@@ -156,6 +177,6 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("POST /api/admin/club/delete failed", error);
-    return redirectToClubSettings(request, "delete_failed");
+    return redirectToDeleteSource(request, redirectTo, "delete_failed");
   }
 }
