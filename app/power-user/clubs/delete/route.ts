@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthContext } from "@/lib/auth/context";
+import { scheduleClubDeletion } from "@/lib/clubs/deletion";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,11 +10,6 @@ type ClubRow = {
   id: string;
   display_name: string | null;
   name: string | null;
-  logo_path: string | null;
-};
-
-type SessionRow = {
-  winner_photo_path: string | null;
 };
 
 function getClubName(club: ClubRow) {
@@ -28,28 +24,6 @@ function redirectToCleanup(request: NextRequest, params: Record<string, string>)
   }
 
   return NextResponse.redirect(url, { status: 303 });
-}
-
-async function removeStorageFiles(bucket: string, paths: string[]) {
-  const cleanPaths = Array.from(
-    new Set(paths.map((path) => path.trim()).filter(Boolean))
-  );
-
-  if (cleanPaths.length === 0) return;
-
-  const admin = createAdminClient();
-
-  for (let index = 0; index < cleanPaths.length; index += 100) {
-    const batch = cleanPaths.slice(index, index + 100);
-    const { error } = await admin.storage.from(bucket).remove(batch);
-
-    if (error) {
-      console.warn(
-        `Power user club deletion: files in ${bucket} could not be fully removed`,
-        error
-      );
-    }
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -71,26 +45,13 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = createAdminClient();
+    const { data: club, error } = await admin
+      .from("clubs")
+      .select("id, display_name, name")
+      .eq("id", clubId)
+      .maybeSingle<ClubRow>();
 
-    const [{ data: club, error: clubError }, { data: sessions, error: sessionsError }] =
-      await Promise.all([
-        admin
-          .from("clubs")
-          .select("id, display_name, name, logo_path")
-          .eq("id", clubId)
-          .maybeSingle<ClubRow>(),
-        admin
-          .from("sessions")
-          .select("winner_photo_path")
-          .eq("club_id", clubId),
-      ]);
-
-    if (clubError || sessionsError || !club) {
-      console.error("Power user club deletion: preparation failed", {
-        clubError,
-        sessionsError,
-        clubId,
-      });
+    if (error || !club) {
       return redirectToCleanup(request, { delete_error: "not_found" });
     }
 
@@ -103,47 +64,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { error: notificationsError } = await admin
-      .from("user_notifications")
-      .delete()
-      .eq("club_id", clubId);
-
-    if (notificationsError) {
-      console.error(
-        "Power user club deletion: notifications could not be deleted",
-        notificationsError
-      );
-      return redirectToCleanup(request, { delete_error: "delete_failed" });
-    }
-
-    const { error: deleteClubError } = await admin
-      .from("clubs")
-      .delete()
-      .eq("id", clubId);
-
-    if (deleteClubError) {
-      console.error(
-        "Power user club deletion: club could not be deleted",
-        deleteClubError
-      );
-      return redirectToCleanup(request, { delete_error: "delete_failed" });
-    }
-
-    await Promise.all([
-      club.logo_path
-        ? removeStorageFiles("club-logos", [club.logo_path])
-        : Promise.resolve(),
-      removeStorageFiles(
-        "session-photos",
-        ((sessions ?? []) as SessionRow[])
-          .map((session) => session.winner_photo_path)
-          .filter((path): path is string => Boolean(path))
-      ),
-    ]);
+    const result = await scheduleClubDeletion({
+      clubId,
+      deletedBy: ctx.user.id,
+    });
 
     const response = redirectToCleanup(request, {
       deleted: "1",
-      deleted_name: clubName,
+      deleted_name: result.clubName,
     });
 
     if (ctx.activeClubId === clubId) {
