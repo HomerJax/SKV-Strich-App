@@ -1,340 +1,258 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
 
 type PlayerSettingsCardProps = {
   useStrength: boolean;
   strengthDefault: number | null;
   useCategories: boolean;
   categoryCount: number;
+  categoryLabels?: string[];
+  activePlayerCount?: number;
+  missingCategoryCount?: number;
+  missingPositionCount?: number;
+  defaultStrengthCount?: number;
+  balanceGroupCount?: number;
   className?: string;
 };
+
+function StatusCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 text-xl font-extrabold tracking-tight text-slate-950">
+        {value}
+      </div>
+      <div className="mt-1 text-xs leading-5 text-slate-600">{hint}</div>
+    </div>
+  );
+}
+
+function ReadinessRow({
+  label,
+  count,
+  okText,
+  warningText,
+}: {
+  label: string;
+  count: number;
+  okText: string;
+  warningText: string;
+}) {
+  const ok = count === 0;
+
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-sm ${
+        ok
+          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+          : "border-amber-200 bg-amber-50 text-amber-950"
+      }`}
+    >
+      <div>
+        <div className="font-semibold">{label}</div>
+        <div className="mt-0.5 text-xs opacity-80">
+          {ok ? okText : warningText}
+        </div>
+      </div>
+      <div className="shrink-0 text-base font-extrabold">{ok ? "✓" : count}</div>
+    </div>
+  );
+}
 
 export default function PlayerSettingsCard({
   useStrength,
   strengthDefault,
   useCategories,
   categoryCount,
+  categoryLabels = [],
+  activePlayerCount = 0,
+  missingCategoryCount = 0,
+  missingPositionCount = 0,
+  defaultStrengthCount = 0,
+  balanceGroupCount = 0,
   className = "",
 }: PlayerSettingsCardProps) {
-  const [open, setOpen] = useState(false);
+  const firstCategory = categoryLabels[0] ?? null;
+  const secondCategory = categoryLabels[1] ?? null;
 
   return (
     <section
       className={`rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6 ${className}`}
     >
-      <div>
-        <div className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
-          Spieler & Generator
-        </div>
-        <h2 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950">
-          Grundlagen und Logik
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Hier siehst du die wichtigsten Einstellungen für Spieler, Kategorien,
-          Stärke und den Teamgenerator.
-        </p>
-      </div>
-
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Kategorien
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-2xl">
+          <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600">
+            Teamgenerator zuerst
           </div>
-          <div className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
-            {useCategories ? "Aktiv" : "Aus"}
-          </div>
-          <div className="mt-2 text-sm text-slate-600">
-            {useCategories
-              ? `${categoryCount} aktive Kategorie${
-                  categoryCount === 1 ? "" : "n"
-                }`
-              : "Kategorien werden aktuell nicht genutzt"}
-          </div>
+          <h2 className="mt-1 text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
+            Sind die Grundlagen für faire Teams sauber?
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Der Generator nutzt nur anwesende Spieler und bewertet anschließend
+            Kategorie, Stärke, Position und optional Balance-Gruppen. Die
+            Teamgrößen unterscheiden sich dabei höchstens um einen Spieler.
+          </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Stärke
-          </div>
-          <div className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
-            {useStrength ? "Aktiv" : "Aus"}
-          </div>
-          <div className="mt-2 text-sm text-slate-600">
-            {useStrength
-              ? `Standardwert ${strengthDefault ?? 3}`
-              : "Spielerstärke wird aktuell nicht genutzt"}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Ziel
-          </div>
-          <div className="mt-2 text-sm leading-6 text-slate-700">
-            Der Generator sucht möglichst faire Teams mit ähnlicher Gesamtstärke
-            und sinnvoll verteilter Position.
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setOpen((prev) => !prev)}
-            className="mt-4 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            aria-expanded={open}
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/settings"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            {open ? "Erklärung ausblenden" : "Generator verstehen"}
-          </button>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Einstellungen
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link
-              href="/admin/club"
-              className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              Team-Einstellungen öffnen
-            </Link>
-          </div>
-          <div className="mt-2 text-sm text-slate-600">
-            Dort pflegst du die Generator-Grundlagen.
-          </div>
+            Generator-Regeln
+          </Link>
+          <Link
+            href="/admin/categories"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Kategorien ordnen
+          </Link>
         </div>
       </div>
 
-      {open ? (
-        <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-          <div className="space-y-5 text-sm leading-6 text-slate-700">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-950">
-                Wie funktioniert der Teamgenerator in Strikr?
-              </h3>
-              <p className="mt-2">
-                Der Teamgenerator in Strikr erstellt Teams nicht zufällig,
-                sondern nach einer festen und nachvollziehbaren Logik.
-              </p>
-              <p className="mt-2">
-                Ziel ist, zwei Teams zu bilden, die ähnlich stark und ähnlich
-                verteilt sind, damit für alle ein möglichst faires Training
-                entsteht.
-              </p>
-              <p className="mt-2">
-                Wichtig: Strikr versucht nicht, perfekte Teams im
-                mathematischen Sinn zu bauen, sondern eine faire und
-                praxistaugliche Aufteilung für den Trainingsalltag.
-              </p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <StatusCard
+          label="Generator-Spieler"
+          value={String(activePlayerCount)}
+          hint="Aktiv und als Spieler geführt; Staff landet nicht im Generator."
+        />
+        <StatusCard
+          label="Kategorien"
+          value={useCategories ? `${categoryCount} aktiv` : "Aus"}
+          hint={
+            useCategories
+              ? "Für die sportliche Team-Balance werden maximal zwei Kategorien verwendet."
+              : "Der Generator arbeitet ohne Kategoriegewichtung."
+          }
+        />
+        <StatusCard
+          label="Stärke"
+          value={useStrength ? "Aktiv" : "Aus"}
+          hint={
+            useStrength
+              ? `Spieler ohne Einzelwert nutzen den Standard ${strengthDefault ?? 3}.`
+              : "Die individuelle Spielstärke fließt nicht ein."
+          }
+        />
+      </div>
+
+      {useCategories ? (
+        <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <div className="text-sm font-bold text-blue-950">
+            Kategorie-Reihenfolge ist wichtig
+          </div>
+          <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+            <div className="rounded-xl bg-white/80 px-3 py-2 text-blue-950 ring-1 ring-blue-100">
+              <span className="font-bold">1. Kategorie:</span>{" "}
+              {firstCategory ?? "nicht gesetzt"} → stärkere Kategorie
             </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-slate-950">
-                Welche Werte nutzt der Generator?
-              </h3>
-
-              <div className="mt-3 space-y-3">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">
-                    1. Kategorie
-                  </div>
-                  <p className="mt-2">
-                    Spieler werden über ihre Kategorie eingeordnet.
-                  </p>
-                  <p className="mt-2">
-                    Kategorien werden bewusst getrennt behandelt und bilden das
-                    Grundniveau innerhalb des Generators.
-                  </p>
-                  <p className="mt-2 text-slate-600">
-                    Beispielhaft könnten das AH und Ü32 sein.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">2. Stärke</div>
-                  <p className="mt-2">
-                    Jeder Spieler bekommt innerhalb seiner Kategorie eine Stärke
-                    von 1 bis 5.
-                  </p>
-                  <p className="mt-2">
-                    Die Stärke wird innerhalb der Kategorie bewertet.
-                  </p>
-                  <p className="mt-2 text-slate-600">
-                    Beispiel: Ein Spieler in Kategorie 1 mit Stärke 5 ist nicht
-                    automatisch höher eingestuft als ein Spieler in Kategorie 2
-                    mit Stärke 1.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">3. Position</div>
-                  <p className="mt-2">
-                    Positionen wie Torwart, Hinten und Vorne werden genutzt, um
-                    die Teams sauber zu verteilen.
-                  </p>
-                  <p className="mt-2">
-                    Position ist dabei kein Bonus und kein Malus.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-slate-950">
-                Wie wird intern gerechnet?
-              </h3>
-
-              <p className="mt-2">
-                Strikr nutzt intern einen Generatorwert pro Spieler:
-              </p>
-
-              <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 font-semibold text-slate-900">
-                Kategorie-Basis + Stärke
-              </div>
-
-              <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="font-semibold text-slate-900">Beispiel</div>
-                <p className="mt-2 text-slate-700">
-                  Kategorie 1 + Stärke 5
-                  <br />
-                  Kategorie 2 + Stärke 1
-                </p>
-                <p className="mt-2">
-                  Kategorien liegen bewusst auf unterschiedlichen Niveaus. Die
-                  Stärke wird deshalb immer innerhalb der jeweiligen Kategorie
-                  gelesen und nicht global über alle Kategorien hinweg.
-                </p>
-                <p className="mt-2 text-slate-600">
-                  Beispielhaft könnte Kategorie 1 für AH und Kategorie 2 für Ü32
-                  stehen.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-slate-950">
-                Wie läuft die Generierung ab?
-              </h3>
-
-              <div className="mt-3 space-y-3">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">
-                    Schritt 1: Nur anwesende Spieler
-                  </div>
-                  <p className="mt-2">
-                    Der Generator berücksichtigt nur Spieler, die in der Session
-                    als anwesend markiert sind.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">
-                    Schritt 2: Teamgrößen festlegen
-                  </div>
-                  <p className="mt-2">
-                    Die Spieler werden möglichst gleichmäßig auf zwei Teams
-                    verteilt.
-                  </p>
-                  <p className="mt-2 text-slate-700">
-                    8 Spieler → 4 gegen 4
-                    <br />
-                    9 Spieler → 5 gegen 4
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">
-                    Schritt 3: Torhüter zuerst
-                  </div>
-                  <p className="mt-2">
-                    Falls Torhüter vorhanden sind, werden diese zuerst verteilt.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">
-                    Schritt 4: Feldspieler werden gemischt
-                  </div>
-                  <p className="mt-2">
-                    Die restlichen Spieler werden mehrfach neu verteilt.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">
-                    Schritt 5: 400 Varianten prüfen
-                  </div>
-                  <p className="mt-2">
-                    Der Generator testet 400 Varianten und nimmt die beste
-                    gefundene Kombination.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-slate-950">
-                Beispiel für eine faire Aufteilung
-              </h3>
-
-              <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">Team 1</div>
-                  <div className="mt-2 text-sm text-slate-700">
-                    Kategorie 1 · Stärke 3 · Hinten
-                    <br />
-                    Kategorie 1 · Stärke 3 · Hinten
-                    <br />
-                    Kategorie 2 · Stärke 2 · Hinten
-                    <br />
-                    Kategorie 2 · Stärke 4 · Vorne
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold text-slate-900">Team 2</div>
-                  <div className="mt-2 text-sm text-slate-700">
-                    Kategorie 1 · Stärke 1 · Hinten
-                    <br />
-                    Kategorie 1 · Stärke 2 · Hinten
-                    <br />
-                    Kategorie 2 · Stärke 5 · Hinten
-                    <br />
-                    Kategorie 2 · Stärke 5 · Vorne
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="font-semibold text-slate-900">Bewertung</div>
-                <p className="mt-2">
-                  Ziel ist nicht, dass beide Teams identisch wirken, sondern
-                  dass ihre Gesamtstärke und die Positionsverteilung möglichst
-                  nah beieinander liegen.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-slate-950">
-                Was der Generator bewusst nicht macht
-              </h3>
-
-              <ul className="mt-3 space-y-1 pl-5 text-slate-700">
-                <li>• persönliche Tagesform</li>
-                <li>• Motivation</li>
-                <li>• Verletzungen</li>
-                <li>• Sympathien oder Wunschpärchen</li>
-                <li>• eingespielte Kombinationen</li>
-              </ul>
-
-              <p className="mt-3">
-                Er arbeitet nur mit Kategorie, Stärke, Position und Anwesenheit.
-              </p>
+            <div className="rounded-xl bg-white/80 px-3 py-2 text-blue-950 ring-1 ring-blue-100">
+              <span className="font-bold">2. Kategorie:</span>{" "}
+              {secondCategory ?? "nicht gesetzt"} → normale Kategorie
             </div>
           </div>
+          <p className="mt-2 text-xs leading-5 text-blue-900">
+            Die individuelle Stärke 1–5 feinjustiert innerhalb dieser Einordnung.
+            Wenn eure Kategorien keine sportliche Stärke ausdrücken, Kategorien
+            im Generator besser deaktivieren und nur mit Stärke arbeiten.
+          </p>
+
+          {categoryCount > 2 ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-950">
+              Achtung: Es sind {categoryCount} Kategorien aktiv. Die eigentliche
+              sportliche Kategoriegewichtung ist bewusst auf die ersten zwei
+              Kategorien ausgelegt.
+            </div>
+          ) : null}
         </div>
       ) : null}
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {useCategories ? (
+          <ReadinessRow
+            label="Kategorie gepflegt"
+            count={missingCategoryCount}
+            okText="Alle aktiven Generator-Spieler sind zugeordnet."
+            warningText={`${missingCategoryCount} aktive Spieler haben noch keine Kategorie.`}
+          />
+        ) : null}
+
+        <ReadinessRow
+          label="Position gepflegt"
+          count={missingPositionCount}
+          okText="Alle aktiven Generator-Spieler haben eine Position."
+          warningText={`${missingPositionCount} aktive Spieler stehen noch auf „Offen“.`}
+        />
+
+        {useStrength ? (
+          <ReadinessRow
+            label="Individuelle Stärke"
+            count={defaultStrengthCount}
+            okText="Alle aktiven Generator-Spieler haben einen Einzelwert."
+            warningText={`${defaultStrengthCount} Spieler nutzen aktuell den Standardwert ${strengthDefault ?? 3}.`}
+          />
+        ) : null}
+
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2.5 text-sm text-violet-950">
+          <div>
+            <div className="font-semibold">Balance-Gruppen</div>
+            <div className="mt-0.5 text-xs opacity-80">
+              Sonderprofile möglichst gleichmäßig auf beide Teams verteilen.
+            </div>
+          </div>
+          <div className="shrink-0 text-base font-extrabold">{balanceGroupCount}</div>
+        </div>
+      </div>
+
+      <details className="group mt-5 rounded-2xl border border-slate-200 bg-slate-50">
+        <summary className="cursor-pointer list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-semibold text-slate-900">
+              So arbeitet der Generator
+            </div>
+            <div className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200 transition group-open:rotate-180">
+              ⌄
+            </div>
+          </div>
+        </summary>
+
+        <div className="border-t border-slate-200 px-4 py-4 text-sm leading-6 text-slate-600">
+          <ol className="space-y-2">
+            <li>
+              <strong className="text-slate-900">1.</strong> Nur anwesende
+              Spieler mit Rolle „Spieler“ kommen in die Auswahl.
+            </li>
+            <li>
+              <strong className="text-slate-900">2.</strong> Bei ungerader Zahl
+              entsteht automatisch z. B. 5 gegen 4 – nie ein größerer Unterschied.
+            </li>
+            <li>
+              <strong className="text-slate-900">3.</strong> Torhüter werden
+              zuerst verteilt. Danach bewertet strikr Kategorie, Stärke und
+              Positionsmix.
+            </li>
+            <li>
+              <strong className="text-slate-900">4.</strong> Gleiche
+              Balance-Gruppen werden möglichst auf beide Teams verteilt. Sie sind
+              kein zusätzlicher Stärkewert.
+            </li>
+            <li>
+              <strong className="text-slate-900">5.</strong> Pro Generierung
+              werden 400 Varianten ausprobiert und die beste gefundene
+              Kombination übernommen. Danach kannst du immer manuell korrigieren.
+            </li>
+          </ol>
+        </div>
+      </details>
     </section>
   );
 }
