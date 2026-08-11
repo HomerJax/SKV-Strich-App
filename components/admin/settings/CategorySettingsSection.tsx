@@ -9,7 +9,7 @@ type CategoryRow = {
   label: string;
   sort_order: number;
   is_active: boolean;
-  is_strong: boolean;
+  is_strong?: boolean;
 };
 
 type CategorySettingsSectionProps = {
@@ -31,7 +31,7 @@ export function CategorySettingsSection({
     .filter((category) => category.is_active)
     .sort((a, b) => a.sort_order - b.sort_order);
   const activeCount = activeCategories.length;
-  const strongCategory = activeCategories.find((category) => category.is_strong) ?? null;
+  const strongCategory = activeCategories.find((category) => category.is_strong === true) ?? null;
 
   return (
     <div className="space-y-4">
@@ -97,7 +97,7 @@ export function CategorySettingsSection({
               key={category.id}
               action={updateCategoryAction}
               className={`flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center ${
-                category.is_strong
+                category.is_strong === true
                   ? "border-amber-300 bg-amber-50"
                   : "border-black/10 bg-white"
               }`}
@@ -120,7 +120,7 @@ export function CategorySettingsSection({
                 </label>
 
                 {category.is_active ? (
-                  category.is_strong ? (
+                  category.is_strong === true ? (
                     <span className="inline-flex w-fit rounded-full bg-amber-200 px-2.5 py-1 text-xs font-bold text-amber-950">
                       ★ Stärkere Kategorie
                     </span>
