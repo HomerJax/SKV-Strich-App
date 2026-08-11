@@ -171,7 +171,6 @@ export async function updateCategoryAction(formData: FormData) {
 
   const id = Number(String(formData.get("id") ?? ""));
   const label = String(formData.get("label") ?? "").trim();
-  const keyInput = String(formData.get("key") ?? "").trim();
   const sortOrder = Number(String(formData.get("sort_order") ?? "0"));
   const isActive = formData.get("is_active") === "on";
 
@@ -179,16 +178,6 @@ export async function updateCategoryAction(formData: FormData) {
     redirect(
       buildRedirectUrlWithParams(redirectTo, {
         category_error: "Ungültige Kategorie",
-      })
-    );
-  }
-
-  const key = slugifyKey(keyInput || label);
-
-  if (!key) {
-    redirect(
-      buildRedirectUrlWithParams(redirectTo, {
-        category_error: "Ungültiger Schlüssel",
       })
     );
   }
@@ -227,7 +216,6 @@ export async function updateCategoryAction(formData: FormData) {
     .from("club_categories")
     .update({
       label,
-      key,
       sort_order: safeSortOrder,
       is_active: isActive,
     })
