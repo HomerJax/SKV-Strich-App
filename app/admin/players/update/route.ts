@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
     const email = emailRaw ? emailRaw.toLowerCase() : null;
     const preferredPosition = toNullableText(formData.get("preferred_position"));
     const categoryKey = toNullableText(formData.get("category_key"));
+    const balanceGroup = toNullableText(formData.get("balance_group"));
     const strengthRaw = toNullableText(formData.get("strength"));
     const rosterRoleRaw = toNullableText(formData.get("roster_role"));
     const rosterRole = rosterRoleRaw === "staff" ? "staff" : "player";
@@ -204,6 +205,7 @@ export async function POST(request: NextRequest) {
       email,
       preferred_position: preferredPosition,
       category_key: categoryKey,
+      balance_group: balanceGroup,
       roster_role: rosterRole,
       is_active: isActive,
       is_guest: isGuest,
