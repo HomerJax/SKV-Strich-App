@@ -4,7 +4,6 @@ import type { Metadata, Viewport } from "next";
 import AppHeader from "@/components/AppHeader";
 import AppBottomNav from "@/components/AppBottomNav";
 import { NotificationToastCenter } from "@/components/notifications/NotificationToastCenter";
-import WhatsNewModal from "@/components/WhatsNewModal";
 import { getAuthContext } from "@/lib/auth/context";
 import { isAdminRole } from "@/lib/auth/access";
 import NativePushRegistration from "@/components/native/NativePushRegistration";
@@ -45,7 +44,6 @@ export default async function RootLayout({
 
         {ctx.user ? (
           <>
-            <WhatsNewModal version="v1.0" />
             <NotificationToastCenter />
             <NativePushRegistration />
           </>
