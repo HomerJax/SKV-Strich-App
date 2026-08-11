@@ -50,6 +50,10 @@ type GeneratorScoreOptions = {
   balanceCategories?: BalanceCategory[];
 };
 
+function normalizeCategoryLabel(value: string | null | undefined) {
+  return String(value ?? "").trim().toLocaleLowerCase("de-DE");
+}
+
 function generatorCategoryClass(
   player: Player,
   balanceCategories: BalanceCategory[] = []
@@ -59,9 +63,23 @@ function generatorCategoryClass(
   if (key && balanceCategories[0]?.key === key) return "strong";
   if (key && balanceCategories[1]?.key === key) return "normal";
 
-  // Fallback für ältere Daten/Clubs, solange age_group noch existiert.
-  if (!key && player.age_group === "Ü32") return "strong";
-  if (!key && player.age_group === "AH") return "normal";
+  // Ältere Spieler können noch nur age_group statt category_key besitzen.
+  // Dann muss der Fallback dieselbe Reihenfolge wie die aktuellen Club-Kategorien
+  // verwenden, damit alte und neue Datensätze nicht gegensätzlich bewertet werden.
+  if (!key && player.age_group) {
+    const legacyLabel = normalizeCategoryLabel(player.age_group);
+    const firstLabel = normalizeCategoryLabel(balanceCategories[0]?.label);
+    const secondLabel = normalizeCategoryLabel(balanceCategories[1]?.label);
+
+    if (firstLabel && legacyLabel === firstLabel) return "strong";
+    if (secondLabel && legacyLabel === secondLabel) return "normal";
+
+    // Nur für Clubs ohne gepflegte Kategorien bleibt das historische Verhalten.
+    if (balanceCategories.length === 0) {
+      if (player.age_group === "Ü32") return "strong";
+      if (player.age_group === "AH") return "normal";
+    }
+  }
 
   return "other";
 }
