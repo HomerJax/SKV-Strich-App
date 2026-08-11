@@ -5,6 +5,7 @@ import type { Metadata, Viewport } from "next";
 import AppHeader from "@/components/AppHeader";
 import AppAuthChrome from "@/components/AppAuthChrome";
 import NativeDeepLinkHandler from "@/components/native/NativeDeepLinkHandler";
+import GlobalActionFeedback from "@/components/ui/GlobalActionFeedback";
 
 export const metadata: Metadata = {
   title: "strikr",
@@ -42,6 +43,7 @@ export default function RootLayout({
     <html lang="de">
       <body className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-neutral-100 text-slate-950 antialiased">
         <NativeDeepLinkHandler />
+        <GlobalActionFeedback />
 
         <Suspense fallback={<HeaderFallback />}>
           <AppHeader />
