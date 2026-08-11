@@ -317,48 +317,51 @@ async function computeStandings(
     return [];
   }
 
-  const { data: spData, error: spErr } = await supabase
-    .from("session_players")
-    .select("session_id, player_id")
-    .in("session_id", sessionIds);
+  const finalizedSessionIds = sessions
+    .filter((session) => session.mvp_voting_finalized_at !== null)
+    .map((session) => session.id);
+
+  const mvpVotesPromise =
+    finalizedSessionIds.length > 0
+      ? supabase
+          .from("session_mvp_votes")
+          .select("session_id, voted_player_id")
+          .eq("club_id", clubId)
+          .in("session_id", finalizedSessionIds)
+      : Promise.resolve({ data: [] as MvpVoteRow[], error: null });
+
+  const [
+    { data: spData, error: spErr },
+    { data: resultData, error: resultErr },
+    { data: mvpVotesData, error: mvpVotesError },
+  ] = await Promise.all([
+    supabase
+      .from("session_players")
+      .select("session_id, player_id")
+      .in("session_id", sessionIds),
+    supabase
+      .from("results")
+      .select("session_id, goals_team_a, goals_team_b, team_a_id, team_b_id")
+      .eq("club_id", clubId)
+      .in("session_id", sessionIds),
+    mvpVotesPromise,
+  ]);
 
   if (spErr) {
     throw new Error(spErr.message);
   }
 
-  const presentRows = (spData ?? []) as SessionPlayerRow[];
-  const playerIds = Array.from(new Set(presentRows.map((row) => row.player_id)));
-
-  const { data: playerData, error: playerErr } = await supabase
-    .from("players")
-    .select("id, name, first_name, last_name, nickname, is_guest")
-    .eq("club_id", clubId)
-    .in("id", playerIds.length > 0 ? playerIds : [-1]);
-
-  if (playerErr) {
-    throw new Error(playerErr.message);
-  }
-
-  const typedPlayers = (playerData ?? []) as PlayerStandingSourceRow[];
-
-  const nonGuestPlayerIds = new Set<number>(
-    typedPlayers
-      .filter((player) => player.is_guest !== true)
-      .map((player) => player.id)
-  );
-
-  const { data: resultData, error: resultErr } = await supabase
-    .from("results")
-    .select("session_id, goals_team_a, goals_team_b, team_a_id, team_b_id")
-    .eq("club_id", clubId)
-    .in("session_id", sessionIds);
-
   if (resultErr) {
     throw new Error(resultErr.message);
   }
 
-  const results = (resultData ?? []) as ResultSourceRow[];
+  if (mvpVotesError) {
+    throw new Error(mvpVotesError.message);
+  }
 
+  const presentRows = (spData ?? []) as SessionPlayerRow[];
+  const results = (resultData ?? []) as ResultSourceRow[];
+  const playerIds = Array.from(new Set(presentRows.map((row) => row.player_id)));
   const teamIds = Array.from(
     new Set(
       results
@@ -367,20 +370,41 @@ async function computeStandings(
     )
   );
 
-  let teamPlayers: TeamPlayerRow[] = [];
+  const teamPlayersPromise =
+    teamIds.length > 0
+      ? supabase
+          .from("team_players")
+          .select("team_id, player_id")
+          .in("team_id", teamIds)
+      : Promise.resolve({ data: [] as TeamPlayerRow[], error: null });
 
-  if (teamIds.length > 0) {
-    const { data: tpData, error: tpErr } = await supabase
-      .from("team_players")
-      .select("team_id, player_id")
-      .in("team_id", teamIds);
+  const [
+    { data: playerData, error: playerErr },
+    { data: tpData, error: tpErr },
+  ] = await Promise.all([
+    supabase
+      .from("players")
+      .select("id, name, first_name, last_name, nickname, is_guest")
+      .eq("club_id", clubId)
+      .in("id", playerIds.length > 0 ? playerIds : [-1]),
+    teamPlayersPromise,
+  ]);
 
-    if (tpErr) {
-      throw new Error(tpErr.message);
-    }
-
-    teamPlayers = (tpData ?? []) as TeamPlayerRow[];
+  if (playerErr) {
+    throw new Error(playerErr.message);
   }
+
+  if (tpErr) {
+    throw new Error(tpErr.message);
+  }
+
+  const typedPlayers = (playerData ?? []) as PlayerStandingSourceRow[];
+  const teamPlayers = (tpData ?? []) as TeamPlayerRow[];
+  const nonGuestPlayerIds = new Set<number>(
+    typedPlayers
+      .filter((player) => player.is_guest !== true)
+      .map((player) => player.id)
+  );
 
   const playersByTeam = new Map<number, number[]>();
 
@@ -470,25 +494,7 @@ async function computeStandings(
     nonGuestPlayerIds,
   });
 
-  const finalizedSessionIds = sessions
-    .filter((session) => session.mvp_voting_finalized_at !== null)
-    .map((session) => session.id);
-
-  let mvpWinsMap = new Map<number, number>();
-
-  if (finalizedSessionIds.length > 0) {
-    const { data: mvpVotesData, error: mvpVotesError } = await supabase
-      .from("session_mvp_votes")
-      .select("session_id, voted_player_id")
-      .eq("club_id", clubId)
-      .in("session_id", finalizedSessionIds);
-
-    if (mvpVotesError) {
-      throw new Error(mvpVotesError.message);
-    }
-
-    mvpWinsMap = buildMvpWinsMap((mvpVotesData ?? []) as MvpVoteRow[]);
-  }
+  const mvpWinsMap = buildMvpWinsMap((mvpVotesData ?? []) as MvpVoteRow[]);
 
   const allPlayers = Array.from(
     new Set([
@@ -547,39 +553,40 @@ export async function GET(request: NextRequest) {
     const { clubId } = await requireClub();
     const supabase = await createClient();
 
-    const { data: seasonData, error: seasonError } = await supabase
-      .from("seasons")
-      .select("id, name, start_date, end_date")
-      .eq("club_id", clubId)
-      .order("id", { ascending: false });
+    const [
+      { data: seasonData, error: seasonError },
+      billingAccess,
+      { data: settingsData, error: settingsError },
+    ] = await Promise.all([
+      supabase
+        .from("seasons")
+        .select("id, name, start_date, end_date")
+        .eq("club_id", clubId)
+        .order("id", { ascending: false }),
+      getClubBillingAccess(supabase, clubId),
+      supabase
+        .from("club_settings")
+        .select("awards_started_at")
+        .eq("club_id", clubId)
+        .maybeSingle<ClubSettings>(),
+    ]);
 
     if (seasonError) {
       return NextResponse.json({ error: seasonError.message }, { status: 500 });
     }
 
-    const seasons = (seasonData ?? []) as Season[];
-
-    const billingAccess = await getClubBillingAccess(supabase, clubId);
-    const requestedSeason = request.nextUrl.searchParams.get("season");
-    const latestSeasonId = seasons.length > 0 ? String(seasons[0].id) : "all";
-
-    const selected = billingAccess.isPro
-      ? requestedSeason ?? latestSeasonId
-      : latestSeasonId;
-
-    const { data: settingsData, error: settingsError } = await supabase
-      .from("club_settings")
-      .select("awards_started_at")
-      .eq("club_id", clubId)
-      .maybeSingle<ClubSettings>();
-
     if (settingsError) {
       return NextResponse.json({ error: settingsError.message }, { status: 500 });
     }
 
+    const seasons = (seasonData ?? []) as Season[];
+    const requestedSeason = request.nextUrl.searchParams.get("season");
+    const latestSeasonId = seasons.length > 0 ? String(seasons[0].id) : "all";
+    const selected = billingAccess.isPro
+      ? requestedSeason ?? latestSeasonId
+      : latestSeasonId;
     const awardsStartedAt = settingsData?.awards_started_at ?? null;
     const awardsOfficial = Boolean(awardsStartedAt);
-
     const sessions = await fetchSessions(clubId, selected, supabase);
 
     if (sessions.length === 0) {
@@ -595,16 +602,17 @@ export async function GET(request: NextRequest) {
     const previousSessions =
       sessions.length >= 2 ? sessions.slice(0, sessions.length - 1) : null;
 
-    const currentRows = addRanks(
-      await computeStandings(clubId, sessions, supabase, awardsStartedAt)
-    ) as RankRow[];
+    const [currentStandingRows, previousStandingRows] = await Promise.all([
+      computeStandings(clubId, sessions, supabase, awardsStartedAt),
+      previousSessions
+        ? computeStandings(clubId, previousSessions, supabase, awardsStartedAt)
+        : Promise.resolve(null),
+    ]);
 
-    const previousRows = previousSessions
-      ? (addRanks(
-          await computeStandings(clubId, previousSessions, supabase, awardsStartedAt)
-        ) as RankRow[])
+    const currentRows = addRanks(currentStandingRows) as RankRow[];
+    const previousRows = previousStandingRows
+      ? (addRanks(previousStandingRows) as RankRow[])
       : null;
-
     const rows = mergeWithPreviousRanks(currentRows, previousRows);
 
     return NextResponse.json({
