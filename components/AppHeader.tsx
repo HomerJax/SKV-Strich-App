@@ -3,7 +3,6 @@ import Link from "next/link";
 import Script from "next/script";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
-import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import MobileUserMenu from "@/components/MobileUserMenu";
 import ClubSwitcher, {
   type ClubSwitcherClub,
@@ -88,7 +87,6 @@ export default async function AppHeader() {
   let clubName: string | null = null;
   let logoSrc: string | null = null;
   let primaryColor = COLOR_MAP.black;
-  let showPlayerStatsLink = false;
   let switcherClubs: ClubSwitcherClub[] = [];
 
   if (ctx.user) {
@@ -106,34 +104,30 @@ export default async function AppHeader() {
           .maybeSingle<ClubRow>()
       : Promise.resolve({ data: null, error: null });
 
-    const flagsPromise = activeClubId
-      ? getFeatureFlagsForClub(activeClubId)
-      : Promise.resolve({ player_stats_overview: false });
-
     const visibleClubsPromise = ctx.isPowerUser
       ? supabase
           .from("clubs")
           .select("id, display_name, name, logo_path, primary_color")
+          .is("deleted_at", null)
           .order("display_name", { ascending: true })
           .returns<ClubRow[]>()
-      : membershipClubIds.length > 0
+      : membershipClubIds.length > 1
         ? supabase
             .from("clubs")
             .select("id, display_name, name, logo_path, primary_color")
             .in("id", membershipClubIds)
+            .is("deleted_at", null)
             .order("display_name", { ascending: true })
             .returns<ClubRow[]>()
         : Promise.resolve({ data: [], error: null });
 
-    const [{ data: club }, flags, { data: visibleClubs }] = await Promise.all([
+    const [{ data: club }, { data: visibleClubs }] = await Promise.all([
       activeClubPromise,
-      flagsPromise,
       visibleClubsPromise,
     ]);
 
     clubName = club ? getClubLabel(club) : null;
     primaryColor = COLOR_MAP[club?.primary_color ?? "black"] ?? COLOR_MAP.black;
-    showPlayerStatsLink = Boolean(flags.player_stats_overview);
 
     if (club?.logo_path) {
       const { data } = supabase.storage
@@ -218,7 +212,7 @@ export default async function AppHeader() {
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <MobileUserMenu
                 profileLabel={profileLabel}
-                showPlayerStatsLink={showPlayerStatsLink}
+                showPlayerStatsLink={true}
               />
 
               <ClubSwitcher
