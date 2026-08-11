@@ -7,6 +7,7 @@ import {
   MailCheck,
   MailOpen,
   Shield,
+  Trash2,
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -220,6 +221,14 @@ export default async function PowerUserPage() {
             value={String(clubsCount)}
             description="Alle Clubs prüfen, Support-Kontext sehen und Free, Supercup Trial, Pro oder Founder manuell setzen."
             icon={<CreditCard className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <KpiCard
+            href="/power-user/clubs/cleanup"
+            label="Club-Cleanup"
+            value="Aufräumen"
+            description="Testclubs erkennen, Papierkorb prüfen und Clubs wiederherstellen oder zur Löschung vormerken."
+            icon={<Trash2 className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
