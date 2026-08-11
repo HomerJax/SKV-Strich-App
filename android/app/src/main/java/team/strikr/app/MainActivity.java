@@ -1,6 +1,7 @@
 package team.strikr.app;
 
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.ViewGroup;
@@ -94,19 +95,22 @@ public class MainActivity extends BridgeActivity {
         );
 
         final long startedAt = System.currentTimeMillis();
+        final boolean launchTargetsJoin = isJoinLaunchIntent();
 
         final Runnable waitForWebApp = new Runnable() {
             @Override
             public void run() {
                 final String currentUrl = webView.getUrl();
-                final boolean strikrLoaded =
+                final boolean onStrikr =
                     currentUrl != null
                         && currentUrl.startsWith("https://www.strikr.team")
                         && webView.getProgress() >= 100;
+                final boolean correctLaunchTarget =
+                    !launchTargetsJoin || (currentUrl != null && currentUrl.contains("/join"));
                 final boolean timedOut =
                     System.currentTimeMillis() - startedAt >= STARTUP_OVERLAY_TIMEOUT_MS;
 
-                if (strikrLoaded || timedOut) {
+                if ((onStrikr && correctLaunchTarget) || timedOut) {
                     overlay.animate()
                         .alpha(0f)
                         .setDuration(160L)
@@ -124,6 +128,20 @@ public class MainActivity extends BridgeActivity {
         };
 
         overlay.post(waitForWebApp);
+    }
+
+    private boolean isJoinLaunchIntent() {
+        if (getIntent() == null || getIntent().getData() == null) {
+            return false;
+        }
+
+        final Uri uri = getIntent().getData();
+        final String host = uri.getHost();
+
+        return "https".equalsIgnoreCase(uri.getScheme())
+            && ("www.strikr.team".equalsIgnoreCase(host)
+                || "strikr.team".equalsIgnoreCase(host))
+            && "/join".equals(uri.getPath());
     }
 
     private int dp(int value) {
