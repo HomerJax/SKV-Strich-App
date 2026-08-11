@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CalendarDays, UserCheck, UserX } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, UserCheck, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type PresenceStatus = "in" | "out" | "open";
 type PendingAction = "in" | "out" | null;
+type DeadlineTone = "normal" | "soon" | "urgent" | "passed";
 
 type NextSessionAttendanceCardProps = {
   sessionId: number;
@@ -48,8 +49,11 @@ function getDeadline(
   return { start, deadline };
 }
 
-function formatTime(date: Date) {
-  return date.toLocaleTimeString("de-DE", {
+function formatDeadline(date: Date) {
+  return date.toLocaleString("de-DE", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -70,9 +74,34 @@ function getRemainingLabel(deadline: Date, now: Date) {
   return `noch ${minutes} Min`;
 }
 
+function getDeadlineTone(deadline: Date | null, now: Date | null): DeadlineTone {
+  if (!deadline || !now) return "normal";
+
+  const diffMs = deadline.getTime() - now.getTime();
+
+  if (diffMs <= 0) return "passed";
+  if (diffMs <= 2 * 60 * 60 * 1000) return "urgent";
+  if (diffMs <= 24 * 60 * 60 * 1000) return "soon";
+  return "normal";
+}
+
+function deadlineClasses(tone: DeadlineTone) {
+  if (tone === "passed") {
+    return "border-rose-200 bg-rose-50 text-rose-800";
+  }
+  if (tone === "urgent") {
+    return "border-amber-300 bg-amber-100 text-amber-950";
+  }
+  if (tone === "soon") {
+    return "border-amber-200 bg-amber-50 text-amber-900";
+  }
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
 export default function NextSessionAttendanceCard({
   sessionId,
   title,
+  text,
   href,
   initialStatus,
   initialPresentCount,
@@ -104,17 +133,10 @@ export default function NextSessionAttendanceCard({
     startTime,
     rsvpDeadlineMinutesBefore,
   );
-
-  const deadlinePrefix =
-    deadlineInfo &&
-    deadlineInfo.deadline.toDateString() !== deadlineInfo.start.toDateString()
-      ? "Zusage bis Vortag"
-      : "Zusage bis";
-
+  const deadlineTone = getDeadlineTone(deadlineInfo?.deadline ?? null, now);
   const deadlineText = deadlineInfo
-    ? `${deadlinePrefix} ${formatTime(deadlineInfo.deadline)} Uhr`
+    ? `Rückmeldung bis ${formatDeadline(deadlineInfo.deadline)} Uhr`
     : null;
-
   const remainingText =
     deadlineInfo && now ? getRemainingLabel(deadlineInfo.deadline, now) : null;
 
@@ -184,6 +206,15 @@ export default function NextSessionAttendanceCard({
   const outActive = status === "out";
   const isOpen = status === "open";
 
+  const reminderText =
+    deadlineTone === "passed"
+      ? "Deine Rückmeldung ist noch offen. Die angezeigte Frist ist bereits vorbei."
+      : deadlineTone === "urgent"
+        ? `Bitte jetzt kurz entscheiden${remainingText ? ` – ${remainingText}` : ""}.`
+        : deadlineTone === "soon"
+          ? `Bitte heute noch zu- oder absagen${remainingText ? ` – ${remainingText}` : ""}.`
+          : "Bitte kurz zu- oder absagen, damit euer Training planbar bleibt.";
+
   return (
     <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_20px_52px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5">
       <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-200/50 blur-3xl" />
@@ -195,13 +226,24 @@ export default function NextSessionAttendanceCard({
             Nächstes Training
           </div>
 
-          <h2 className="mt-2 whitespace-nowrap text-[18px] font-semibold leading-tight tracking-[-0.045em] text-slate-950 sm:text-[22px]">
+          <h2 className="mt-2 text-[18px] font-semibold leading-tight tracking-[-0.045em] text-slate-950 sm:text-[22px]">
             {title}
           </h2>
 
+          {text?.trim() ? (
+            <p className="mt-1.5 line-clamp-2 text-xs font-medium leading-5 text-slate-500">
+              {text.trim()}
+            </p>
+          ) : null}
+
           {deadlineText ? (
-            <div className="mt-3 inline-flex max-w-full items-center rounded-full bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
-              <span className="whitespace-nowrap">
+            <div
+              className={`mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${deadlineClasses(
+                deadlineTone,
+              )}`}
+            >
+              <Clock3 className="h-3.5 w-3.5 shrink-0" />
+              <span>
                 {deadlineText}
                 {remainingText ? ` · ${remainingText}` : ""}
               </span>
@@ -215,11 +257,30 @@ export default function NextSessionAttendanceCard({
       </div>
 
       {isOpen ? (
-        <div className="relative mt-4 flex items-center justify-between rounded-[22px] bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 ring-1 ring-amber-100">
-          <span>Noch nichts ausgewählt</span>
-          <span className="text-amber-600">Bitte wählen</span>
+        <div
+          className={`relative mt-4 rounded-[22px] border px-3 py-2.5 text-xs ${
+            deadlineTone === "passed"
+              ? "border-rose-200 bg-rose-50 text-rose-900"
+              : deadlineTone === "urgent" || deadlineTone === "soon"
+                ? "border-amber-200 bg-amber-50 text-amber-950"
+                : "border-blue-100 bg-blue-50 text-blue-900"
+          }`}
+        >
+          <div className="font-bold">Rückmeldung offen</div>
+          <div className="mt-0.5 leading-5 opacity-85">{reminderText}</div>
         </div>
-      ) : null}
+      ) : (
+        <div
+          className={`relative mt-4 flex items-center justify-between gap-3 rounded-[22px] border px-3 py-2.5 text-xs font-semibold ${
+            inActive
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              : "border-rose-200 bg-rose-50 text-rose-900"
+          }`}
+        >
+          <span>Deine Rückmeldung</span>
+          <span>{inActive ? "✓ Du bist dabei" : "Du bist raus"}</span>
+        </div>
+      )}
 
       {errorMessage ? (
         <div className="relative mt-4 rounded-[18px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">
@@ -258,8 +319,8 @@ export default function NextSessionAttendanceCard({
                   {pendingAction === "in"
                     ? "Speichert…"
                     : inActive
-                      ? "Zugesagt"
-                      : "Zusagen"}
+                      ? "Dabei ✓"
+                      : "Ich bin dabei"}
                 </span>
                 <span
                   className={[
@@ -302,8 +363,8 @@ export default function NextSessionAttendanceCard({
                   {pendingAction === "out"
                     ? "Speichert…"
                     : outActive
-                      ? "Abgesagt"
-                      : "Absagen"}
+                      ? "Abgesagt ✓"
+                      : "Ich bin raus"}
                 </span>
                 <span
                   className={[
