@@ -42,6 +42,7 @@ export const strengthScore = (s: number | null) => {
 export type BalanceCategory = {
   key: string;
   label: string;
+  isStrong?: boolean;
 };
 
 type GeneratorScoreOptions = {
@@ -60,19 +61,27 @@ function generatorCategoryClass(
 ) {
   const key = player.category_key ?? null;
 
-  if (key && balanceCategories[0]?.key === key) return "strong";
-  if (key && balanceCategories[1]?.key === key) return "normal";
+  if (key) {
+    const configuredCategory = balanceCategories.find(
+      (category) => category.key === key
+    );
+
+    if (configuredCategory) {
+      return configuredCategory.isStrong ? "strong" : "normal";
+    }
+  }
 
   // Ältere Spieler können noch nur age_group statt category_key besitzen.
-  // Dann muss der Fallback dieselbe Reihenfolge wie die aktuellen Club-Kategorien
-  // verwenden, damit alte und neue Datensätze nicht gegensätzlich bewertet werden.
+  // Auch sie werden nach derselben expliziten Club-Kategorie bewertet.
   if (!key && player.age_group) {
     const legacyLabel = normalizeCategoryLabel(player.age_group);
-    const firstLabel = normalizeCategoryLabel(balanceCategories[0]?.label);
-    const secondLabel = normalizeCategoryLabel(balanceCategories[1]?.label);
+    const configuredCategory = balanceCategories.find(
+      (category) => normalizeCategoryLabel(category.label) === legacyLabel
+    );
 
-    if (firstLabel && legacyLabel === firstLabel) return "strong";
-    if (secondLabel && legacyLabel === secondLabel) return "normal";
+    if (configuredCategory) {
+      return configuredCategory.isStrong ? "strong" : "normal";
+    }
 
     // Nur für Clubs ohne gepflegte Kategorien bleibt das historische Verhalten.
     if (balanceCategories.length === 0) {
