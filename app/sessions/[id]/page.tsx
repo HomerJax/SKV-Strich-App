@@ -354,6 +354,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     (player) => player.is_active !== false
   ) ?? []) as Player[]).map((player) => ({
     ...player,
+    strength: player.strength ?? clubSettings.strength_default ?? 3,
     roster_role: player.roster_role ?? "player",
     category_label:
       player.category_key && categoryLabelByKey.has(player.category_key)
