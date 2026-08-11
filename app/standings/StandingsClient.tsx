@@ -20,6 +20,9 @@ import type { TrainingAward } from "./standings-ui";
 
 const DEMO_STANDINGS_MOVEMENT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
 
+type SortKey = "rank" | "sessions" | "winRate";
+type SortDirection = "asc" | "desc";
+
 function PlayerBadge(_props: Record<string, unknown>) {
   return null;
 }
@@ -30,7 +33,6 @@ function getTrainingAwards(_row: unknown): TrainingAward[] {
 
 function getDemoMovementValue(rank: number, movement: number | null | undefined) {
   if (movement && movement !== 0) return movement;
-
   if (rank === 1) return 0;
   if (rank === 2) return 2;
   if (rank === 3) return -1;
@@ -42,13 +44,25 @@ function getDemoMovementValue(rank: number, movement: number | null | undefined)
   if (rank === 9) return -2;
   if (rank % 4 === 0) return 1;
   if (rank % 5 === 0) return -1;
-
   return 0;
 }
 
+function winRateValue(wins: number, sessions: number) {
+  if (sessions <= 0) return -1;
+  return wins / sessions;
+}
+
 function formatWinRate(wins: number, sessions: number) {
-  if (sessions <= 0) return "–";
-  return `${Math.round((wins / sessions) * 100)}%`;
+  const value = winRateValue(wins, sessions);
+  if (value < 0) return "–";
+  return `${Math.round(value * 100)}%`;
+}
+
+function rankBadgeClass(rank: number) {
+  if (rank === 1) return "bg-slate-950 text-white shadow-sm";
+  if (rank === 2) return "bg-slate-200 text-slate-950";
+  if (rank === 3) return "bg-stone-200 text-stone-950";
+  return "bg-slate-100 text-slate-700";
 }
 
 type RankingCard = {
@@ -70,7 +84,6 @@ function padShareNumber(value: number) {
 
 function buildShareStamp() {
   const now = new Date();
-
   return `${now.getFullYear()}-${padShareNumber(now.getMonth() + 1)}-${padShareNumber(
     now.getDate()
   )}_${padShareNumber(now.getHours())}-${padShareNumber(now.getMinutes())}`;
@@ -95,7 +108,6 @@ async function blobFromDataUrl(dataUrl: string) {
 
 function downloadBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
-
   try {
     const link = document.createElement("a");
     link.href = url;
@@ -111,10 +123,7 @@ function downloadBlob(blob: Blob, fileName: string) {
 
 async function createStandingsShareBlob(targetId: string) {
   const element = document.getElementById(targetId);
-
-  if (!element) {
-    throw new Error(`Share Card nicht gefunden: #${targetId}`);
-  }
+  if (!element) throw new Error(`Share Card nicht gefunden: #${targetId}`);
 
   const dataUrl = await htmlToImage.toPng(element, {
     cacheBust: true,
@@ -180,7 +189,6 @@ export default function StandingsClient({
   isPro = false,
   clubName = "dein Team",
 }: StandingsClientProps) {
-  void initialClubId;
   void clubName;
 
   const router = useRouter();
@@ -194,6 +202,8 @@ export default function StandingsClient({
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [sharingCardIndex, setSharingCardIndex] = useState<number | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("rank");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [, setAwardsStartedAt] = useState<string | null>(null);
   const [, setAwardsOfficial] = useState(false);
   const [activeAward, setActiveAward] = useState<{
@@ -203,22 +213,14 @@ export default function StandingsClient({
 
   const options = useMemo(() => {
     const sorted = [...seasons].sort((a, b) => b.id - a.id);
-
     const first = sorted[0]
       ? [{ value: String(sorted[0].id), label: sorted[0].name }]
       : [];
-
-    const rest = sorted
-      .slice(1)
-      .map((season) => ({
-        value: String(season.id),
-        label: season.name,
-      }));
-
-    if (!isPro) {
-      return first;
-    }
-
+    const rest = sorted.slice(1).map((season) => ({
+      value: String(season.id),
+      label: season.name,
+    }));
+    if (!isPro) return first;
     return [...first, { value: "all", label: "Ewige Tabelle" }, ...rest];
   }, [isPro, seasons]);
 
@@ -228,28 +230,33 @@ export default function StandingsClient({
       : options.find((option) => option.value === selected)?.label ?? "Saison";
   }, [options, selected]);
 
+  const sortedRows = useMemo(() => {
+    const nextRows = [...rows];
+    nextRows.sort((a, b) => {
+      let comparison = 0;
+      if (sortKey === "rank") comparison = a.rank - b.rank;
+      if (sortKey === "sessions") comparison = a.sessions - b.sessions;
+      if (sortKey === "winRate") {
+        comparison = winRateValue(a.wins, a.sessions) - winRateValue(b.wins, b.sessions);
+      }
+      if (comparison === 0) comparison = a.rank - b.rank;
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+    return nextRows;
+  }, [rows, sortDirection, sortKey]);
+
   const rankingCards = useMemo<RankingCard[]>(() => {
     const chunks = chunkRows(rows, 10);
-
     return chunks.map((chunk, index) => {
       const startRank = chunk[0]?.rank ?? index * 10 + 1;
       const endRank = chunk[chunk.length - 1]?.rank ?? startRank;
-
       const exportId = `export-standings-card-${index + 1}`;
-
       const fileBaseName = `strikr-tabelle-${selectedLabel
         .toLowerCase()
         .replace(/\s+/g, "-")
         .replace(/[^a-z0-9äöüß-]/gi, "")}-${index + 1}`;
 
-      return {
-        index,
-        rows: chunk,
-        startRank,
-        endRank,
-        exportId,
-        fileBaseName,
-      };
+      return { index, rows: chunk, startRank, endRank, exportId, fileBaseName };
     });
   }, [rows, selectedLabel]);
 
@@ -272,69 +279,61 @@ export default function StandingsClient({
           credentials: "same-origin",
           cache: "no-store",
         });
-
         const payload = (await response.json()) as StandingsApiResponse;
-
-        if (!response.ok) {
-          throw new Error(payload.error || "Fehler beim Laden der Tabelle.");
-        }
-
-        if (cancelled) {
-          return;
-        }
+        if (!response.ok) throw new Error(payload.error || "Fehler beim Laden der Tabelle.");
+        if (cancelled) return;
 
         setSeasons(payload.seasons ?? []);
         setSelected(payload.selected ?? "all");
         setRows(payload.rows ?? []);
         setAwardsStartedAt(payload.awardsStartedAt ?? null);
         setAwardsOfficial(payload.awardsOfficial === true);
+        setSortKey("rank");
+        setSortDirection("asc");
       } catch (error: unknown) {
-        if (cancelled) {
-          return;
-        }
-
-        setErr(getErrorMessage(error, "Fehler beim Laden der Tabelle."));
+        if (!cancelled) setErr(getErrorMessage(error, "Fehler beim Laden der Tabelle."));
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadStandings();
-
     return () => {
       cancelled = true;
     };
   }, [isPro, seasonParam]);
+
+  function handleSort(nextKey: SortKey) {
+    if (sortKey === nextKey) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortKey(nextKey);
+    setSortDirection(nextKey === "rank" ? "asc" : "desc");
+  }
+
+  function sortIndicator(key: SortKey) {
+    if (sortKey !== key) return "↕";
+    return sortDirection === "asc" ? "↑" : "↓";
+  }
 
   async function handleShareCard(card: RankingCard) {
     try {
       setSharingCardIndex(card.index);
       setErr(null);
       setMsg(null);
-
       const blob = await createStandingsShareBlob(card.exportId);
       const result = await shareOrDownloadStandingsBlob(blob, card.fileBaseName);
-
-      setMsg(
-        result === "shared"
-          ? "Tabellenkarte erfolgreich geteilt."
-          : "Tabellenkarte als PNG heruntergeladen."
-      );
+      setMsg(result === "shared" ? "Tabellenkarte erfolgreich geteilt." : "Tabellenkarte als PNG heruntergeladen.");
     } catch (error: unknown) {
-      const errorName =
-        error instanceof DOMException ? error.name : "";
-
+      const errorName = error instanceof DOMException ? error.name : "";
       if (errorName === "AbortError") {
         setErr(null);
         setMsg(null);
         return;
       }
-
-      setErr(
-        getErrorMessage(error, "Tabellenkarte konnte nicht geteilt werden.")
-      );
+      setErr(getErrorMessage(error, "Tabellenkarte konnte nicht geteilt werden."));
     } finally {
       setSharingCardIndex(null);
     }
@@ -347,38 +346,17 @@ export default function StandingsClient({
           <div className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-sm rounded-[22px] border border-slate-200 bg-white p-4 shadow-2xl sm:bottom-6">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
-                <div
-                  className={`flex h-10 min-w-10 items-center justify-center rounded-2xl border text-sm font-black shadow-sm ${awardClass(
-                    activeAward.award.tone
-                  )}`}
-                >
+                <div className={`flex h-10 min-w-10 items-center justify-center rounded-2xl border text-sm font-black shadow-sm ${awardClass(activeAward.award.tone)}`}>
                   {activeAward.award.mark}
                 </div>
-
                 <div className="min-w-0">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                    Award
-                  </div>
-                  <div className="mt-1 text-base font-black tracking-tight text-slate-950">
-                    {activeAward.award.shortLabel}
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-slate-600">
-                    {activeAward.playerName}
-                  </div>
-                  <div className="mt-2 text-sm leading-5 text-slate-500">
-                    {activeAward.award.label}
-                  </div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Award</div>
+                  <div className="mt-1 text-base font-black tracking-tight text-slate-950">{activeAward.award.shortLabel}</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-600">{activeAward.playerName}</div>
+                  <div className="mt-2 text-sm leading-5 text-slate-500">{activeAward.award.label}</div>
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveAward(null)}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-black text-slate-500"
-                aria-label="Award Erklärung schließen"
-              >
-                ×
-              </button>
+              <button type="button" onClick={() => setActiveAward(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-black text-slate-500" aria-label="Award Erklärung schließen">×</button>
             </div>
           </div>
         ) : null}
@@ -386,7 +364,7 @@ export default function StandingsClient({
         <PageHero
           eyebrow="Tabellen"
           title="Tabellenübersicht"
-          description="Saison auswählen, Tabelle prüfen und über die Share Cards unten sauber teilen oder exportieren."
+          description="Ranking prüfen, nach Platz, Teilnahmen oder Siegquote sortieren und die Top 10 als kompakte Share Card teilen."
           primaryColorKey={initialPrimaryColor}
           backLabel="Zurück"
           backHref="/"
@@ -394,82 +372,37 @@ export default function StandingsClient({
             isPro ? (
               <select
                 value={selected}
-                onChange={(e) => {
-                  const value = e.target.value;
-
+                onChange={(event) => {
+                  const value = event.target.value;
                   setSelected(value);
                   router.replace(`/standings?season=${value}`);
                 }}
                 className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none backdrop-blur transition hover:bg-white/15"
               >
                 {options.map((option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                    className="text-slate-900"
-                  >
-                    {option.label}
-                  </option>
+                  <option key={option.value} value={option.value} className="text-slate-900">{option.label}</option>
                 ))}
               </select>
             ) : (
-              <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white backdrop-blur">
-                Aktuelle Tabelle
-              </div>
+              <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white backdrop-blur">Aktuelle Tabelle</div>
             )
           }
           compact
         />
 
-        {msg ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-            {msg}
-          </div>
-        ) : null}
-
-        {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
-            Lade Tabelle…
-          </div>
-        ) : null}
-
-        {err ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {err}
-          </div>
-        ) : null}
+        {msg ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{msg}</div> : null}
+        {loading ? <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">Lade Tabelle…</div> : null}
+        {err ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{err}</div> : null}
 
         {!loading && !err && rows.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="max-w-lg">
-              <div className="text-sm font-semibold text-slate-500">
-                Noch keine Tabelle
-              </div>
-
-              <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">
-                In dieser Auswahl sind noch keine Ergebnisse vorhanden.
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Sobald ihr Trainings spielt und Ergebnisse speichert, baut sich
-                eure Tabelle hier automatisch auf. Starte am besten mit eurer
-                ersten Session.
-              </p>
-
+              <div className="text-sm font-semibold text-slate-500">Noch keine Tabelle</div>
+              <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">In dieser Auswahl sind noch keine Ergebnisse vorhanden.</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Sobald ihr Trainings spielt und Ergebnisse speichert, baut sich eure Tabelle hier automatisch auf. Starte am besten mit eurer ersten Session.</p>
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <Link
-                  href="/sessions/new"
-                  className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white"
-                >
-                  Erstes Training erstellen
-                </Link>
-
-                <Link
-                  href="/sessions"
-                  className="rounded-xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700"
-                >
-                  Zu den Trainings
-                </Link>
+                <Link href="/sessions/new" className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white">Erstes Training erstellen</Link>
+                <Link href="/sessions" className="rounded-xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700">Zu den Trainings</Link>
               </div>
             </div>
           </div>
@@ -477,129 +410,79 @@ export default function StandingsClient({
 
         {!loading && !err && rows.length > 0 ? (
           <>
-            <div
-              id="export-standings"
-              className="rounded-xl border border-slate-200 bg-white p-3"
-            >
+            <div id="export-standings" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-slate-800">
-                    {selectedLabel}
-                  </div>
-
-                  <div className="text-[11px] text-slate-500">
-                    Gesamttabelle dieser Auswahl
-                  </div>
+                  <div className="text-xs font-semibold text-slate-800">{selectedLabel}</div>
+                  <div className="text-[11px] text-slate-500">{rows.length} Spieler · Spalten antippen zum Sortieren</div>
                 </div>
-
-                <div className="text-[10px] text-slate-500">
-                  Stand: {new Date().toLocaleDateString("de-DE")}
-                </div>
+                <div className="text-[10px] text-slate-500">Stand: {new Date().toLocaleDateString("de-DE")}</div>
               </div>
 
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
                 <table className="w-full min-w-[430px] text-sm">
                   <thead className="bg-slate-50 text-[11px] text-slate-600">
                     <tr>
-                      <th className="w-11 px-2 py-2 text-left">Platz</th>
+                      <th className="w-14 px-2 py-2 text-left">
+                        <button type="button" onClick={() => handleSort("rank")} className="inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">Platz <span className="text-[10px] text-slate-400">{sortIndicator("rank")}</span></button>
+                      </th>
                       <th className="px-1.5 py-2 text-left">Spieler</th>
                       <th className="w-12 px-1 py-2 text-right">Siege</th>
-                      <th className="w-14 px-1 py-2 text-right">Teiln.</th>
-                      <th className="w-16 px-1.5 py-2 text-right">Siegquote</th>
+                      <th className="w-16 px-1 py-2 text-right">
+                        <button type="button" onClick={() => handleSort("sessions")} className="ml-auto inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">Teiln. <span className="text-[10px] text-slate-400">{sortIndicator("sessions")}</span></button>
+                      </th>
+                      <th className="w-20 px-1.5 py-2 text-right">
+                        <button type="button" onClick={() => handleSort("winRate")} className="ml-auto inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">Siegquote <span className="text-[10px] text-slate-400">{sortIndicator("winRate")}</span></button>
+                      </th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    {rows.map((row) => (
-                      <tr
-                        key={row.player_id}
-                        className="border-t border-slate-100"
-                      >
-                        <td className="px-2 py-2 align-top">
-                          <div className="font-semibold text-slate-900">
-                            {row.rank}.
-                          </div>
-
-                          <div
-                            className={`text-[11px] font-semibold ${movementClass(
-                              initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID
-                                ? getDemoMovementValue(row.rank, row.deltaRank)
-                                : row.deltaRank
-                            )}`}
-                          >
-                            {movementText(
-                              initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID
-                                ? getDemoMovementValue(row.rank, row.deltaRank)
-                                : row.deltaRank
-                            )}
+                    {sortedRows.map((row) => (
+                      <tr key={row.player_id} className="border-t border-slate-100 transition hover:bg-slate-50/70">
+                        <td className="px-2 py-2 align-middle">
+                          <div className="flex items-center gap-1.5">
+                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${rankBadgeClass(row.rank)}`}>{row.rank}</div>
+                            <div className={`text-[10px] font-semibold ${movementClass(initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID ? getDemoMovementValue(row.rank, row.deltaRank) : row.deltaRank)}`}>
+                              {movementText(initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID ? getDemoMovementValue(row.rank, row.deltaRank) : row.deltaRank)}
+                            </div>
                           </div>
                         </td>
 
                         <td className="min-w-0 px-1.5 py-2 align-middle">
                           <div className="flex min-w-0 items-center gap-1.5">
-                            <span className="min-w-0 truncate whitespace-nowrap text-[13px] font-semibold text-slate-950 sm:text-sm">
-                              {getPlayerDisplayName(row)}
-                            </span>
-
+                            <span className={`min-w-0 truncate whitespace-nowrap text-[13px] text-slate-950 sm:text-sm ${row.rank <= 3 ? "font-bold" : "font-semibold"}`}>{getPlayerDisplayName(row)}</span>
                             <div className="flex shrink-0 items-center gap-0.5">
-                              <PlayerBadge
-                                mvpCount={row.mvps}
-                                size="sm"
-                                hideIfNone
-                                iconOnly
-                              />
-
+                              <PlayerBadge mvpCount={row.mvps} size="sm" hideIfNone iconOnly />
                               {getTrainingAwards(row).length > 0 ? (
                                 <button
                                   type="button"
                                   onClick={() => {
                                     const awards = getTrainingAwards(row);
                                     const firstAward = awards[0];
-
                                     if (!firstAward) return;
-
                                     setActiveAward({
                                       playerName: getPlayerDisplayName(row),
                                       award: {
                                         ...firstAward,
-                                        shortLabel:
-                                          awards.length > 1
-                                            ? `${awards.length} Awards`
-                                            : firstAward.shortLabel,
-                                        label:
-                                          awards.length > 1
-                                            ? awards
-                                                .map((award) => `${award.shortLabel}: ${award.label}`)
-                                                .join(" · ")
-                                            : firstAward.label,
+                                        shortLabel: awards.length > 1 ? `${awards.length} Awards` : firstAward.shortLabel,
+                                        label: awards.length > 1 ? awards.map((award) => `${award.shortLabel}: ${award.label}`).join(" · ") : firstAward.label,
                                       },
                                     });
                                   }}
-                                  title={`${getTrainingAwards(row).length} Award${
-                                    getTrainingAwards(row).length === 1 ? "" : "s"
-                                  }`}
+                                  title={`${getTrainingAwards(row).length} Award${getTrainingAwards(row).length === 1 ? "" : "s"}`}
                                   className="inline-flex transition hover:scale-105"
                                 >
-                                  <AwardSummaryBadge
-                                    count={getTrainingAwards(row).length}
-                                  />
+                                  <AwardSummaryBadge count={getTrainingAwards(row).length} />
                                 </button>
                               ) : null}
                             </div>
                           </div>
                         </td>
 
-                        <td className="px-1 py-2 text-right font-semibold text-slate-900">
-                          {row.wins}
-                        </td>
-
-                        <td className="px-1 py-2 text-right text-slate-700">
-                          {row.sessions}
-                        </td>
-
-                        <td className="px-1.5 py-2 text-right font-semibold text-slate-700">
-                          {formatWinRate(row.wins, row.sessions)}
-                        </td>
+                        <td className="px-1 py-2 text-right font-semibold text-slate-900">{row.wins}</td>
+                        <td className="px-1 py-2 text-right text-slate-700">{row.sessions}</td>
+                        <td className="px-1.5 py-2 text-right font-bold text-slate-900">{formatWinRate(row.wins, row.sessions)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -607,79 +490,47 @@ export default function StandingsClient({
               </div>
 
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-[10px] text-slate-500">
-                  Siegquote = Siege ÷ Teilnahmen · Bewegung (↑/↓) = Vergleich
-                  zur Einheit davor in dieser Auswahl.
-                </div>
-
-                <div className="text-[10px] font-medium text-slate-500">
-                  made with strikr · #strikr
-                </div>
+                <div className="text-[10px] text-slate-500">Siegquote = Siege ÷ Teilnahmen · Sortieren verändert nur die Ansicht, nicht die offizielle Platzierung.</div>
+                <div className="text-[10px] font-medium text-slate-500">made with strikr · #strikr</div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-slate-800">
-                    Standings Share Cards
-                  </div>
-
-                  <div className="text-[11px] text-slate-500">
-                    Die Tabelle wird automatisch in Karten mit jeweils 10
-                    Plätzen aufgeteilt. Jede Karte kann separat exportiert oder
-                    als Text geteilt werden.
+                  <div className="text-sm font-bold text-slate-900">Tabelle teilen</div>
+                  <div className="mt-1 max-w-xl text-[11px] leading-5 text-slate-500">
+                    Die Top 10 sind die kompakte Hauptkarte für WhatsApp und Social Media. Bei größeren Kadern bleiben Plätze 11–20, 21–30 usw. als separate Fortsetzung verfügbar – die komplette Tabelle bleibt in strikr.
                   </div>
                 </div>
-
-                <div className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-                  {rankingCards.length} Karte
-                  {rankingCards.length === 1 ? "" : "n"}
-                </div>
+                <div className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{rows.length} Spieler</div>
               </div>
 
               <div className="space-y-3">
                 {rankingCards.map((card) => {
-                  const title =
-                    card.startRank === card.endRank
-                      ? `Platz ${card.startRank}`
-                      : `Plätze ${card.startRank}–${card.endRank}`;
+                  const title = card.startRank === card.endRank ? `Platz ${card.startRank}` : `Plätze ${card.startRank}–${card.endRank}`;
+                  const isTopCard = card.index === 0;
 
                   return (
-                    <div
-                      key={card.exportId}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-sm"
-                    >
+                    <div key={card.exportId} className={`rounded-2xl border p-3 shadow-sm ${isTopCard ? "border-slate-300 bg-slate-50" : "border-slate-200 bg-white"}`}>
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                          <div className="text-sm font-semibold text-slate-900">
-                            {title}
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-semibold text-slate-900">{isTopCard ? "Top 10" : title}</div>
+                            {isTopCard ? <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Empfohlen</span> : null}
                           </div>
-
-                          <div className="text-[11px] text-slate-500">
-                            {selectedLabel} · Share Card {card.index + 1}
-                          </div>
+                          <div className="mt-1 text-[11px] text-slate-500">{selectedLabel} · {isTopCard ? "Hauptkarte" : `Fortsetzung ${card.index + 1}`}</div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => handleShareCard(card)}
                             disabled={sharingCardIndex === card.index}
-                            className={`rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 ${
-                              sharingCardIndex === card.index
-                                ? "cursor-not-allowed opacity-60"
-                                : ""
-                            }`}
+                            className={`rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 ${sharingCardIndex === card.index ? "cursor-not-allowed opacity-60" : ""}`}
                           >
-                            {sharingCardIndex === card.index
-                              ? "Teile…"
-                              : "Bild teilen"}
+                            {sharingCardIndex === card.index ? "Teile…" : isTopCard ? "Top 10 teilen" : `${title} teilen`}
                           </button>
-
-                          <ExportButtons
-                            targetId={card.exportId}
-                            fileBaseName={card.fileBaseName}
-                          />
+                          <ExportButtons targetId={card.exportId} fileBaseName={card.fileBaseName} />
                         </div>
                       </div>
                     </div>
@@ -692,10 +543,7 @@ export default function StandingsClient({
       </div>
 
       {!loading && !err && rankingCards.length > 0 ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed -left-[99999px] top-0"
-        >
+        <div aria-hidden="true" className="pointer-events-none fixed -left-[99999px] top-0">
           {rankingCards.map((card) => (
             <StandingsShareCard
               key={card.exportId}
