@@ -160,6 +160,22 @@ export default async function AdminPlayersPage({
   const settings = (settingsData as ClubSettingsRow | null) ?? null;
   const categories = (categoriesData ?? []) as ClubCategoryRow[];
   const players = (playersData ?? []) as PlayerRow[];
+  const generatorPlayers = players.filter(
+    (player) =>
+      player.is_active !== false && (player.roster_role ?? "player") !== "staff"
+  );
+  const missingCategoryCount = generatorPlayers.filter(
+    (player) => !player.category_key
+  ).length;
+  const missingPositionCount = generatorPlayers.filter(
+    (player) => !player.preferred_position
+  ).length;
+  const defaultStrengthCount = generatorPlayers.filter(
+    (player) => player.strength == null
+  ).length;
+  const balanceGroupCount = generatorPlayers.filter((player) =>
+    Boolean(player.balance_group?.trim())
+  ).length;
   const flashError = resolvedSearchParams?.error ?? "";
   const flashMessage = resolvedSearchParams?.message ?? "";
 
@@ -174,55 +190,14 @@ export default async function AdminPlayersPage({
         </Link>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-5">
         <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">
-          Spieler & Team-Generator
+          Kader & Teamgenerator
         </h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          Bearbeite Namen, E-Mail, Rolle, Position, Kategorie, Stärke und Status deiner
-          Spieler und prüfe die Grundlagen für den Generator.
+        <p className="mt-2 text-sm leading-6 text-neutral-600">
+          Erst Generator-Grundlagen prüfen, danach einzelne Spieler pflegen. So
+          ist direkt sichtbar, welche Angaben für faire Teams noch fehlen.
         </p>
-      </div>
-
-      <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="text-sm font-semibold text-slate-900">
-          Hinweis für den Start
-        </div>
-        <div className="mt-2 text-sm leading-6 text-slate-600">
-          Lege zuerst eure wichtigsten Grundlagen fest. Besonders sinnvoll ist es,
-          früh eine oder mehrere Saisons anzulegen, damit Trainings und Tabelle
-          später sauber zugeordnet werden.
-        </div>
-
-
-        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600">
-          In den{" "}
-          <Link
-            href="/admin/seasons"
-            className="font-semibold text-slate-900 underline underline-offset-4"
-          >
-            Saison-Einstellungen
-          </Link>{" "}
-          stellst du ein, wie eine Saison heißt und wann sie beginnt und endet.
-          Trainings, deren Datum in diesen Zeitraum fällt, werden automatisch der
-          passenden Saison zugeordnet.
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            href="/admin/seasons"
-            className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-          >
-            Saisons öffnen
-          </Link>
-
-          <Link
-            href="/admin/club"
-            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Team-Einstellungen öffnen
-          </Link>
-        </div>
       </div>
 
       <PlayerSettingsCard
@@ -231,7 +206,29 @@ export default async function AdminPlayersPage({
         strengthDefault={settings?.strength_default ?? 3}
         useCategories={!!settings?.use_categories}
         categoryCount={categories.length}
+        categoryLabels={categories.map((category) => category.label)}
+        activePlayerCount={generatorPlayers.length}
+        missingCategoryCount={missingCategoryCount}
+        missingPositionCount={missingPositionCount}
+        defaultStrengthCount={defaultStrengthCount}
+        balanceGroupCount={balanceGroupCount}
       />
+
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">Saison & Tabelle</div>
+          <div className="mt-1 text-sm leading-6 text-slate-600">
+            Saisons sind für Trainingszuordnung und Tabelle wichtig, aber keine
+            Generator-Regel.
+          </div>
+        </div>
+        <Link
+          href="/admin/seasons"
+          className="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Saisons öffnen
+        </Link>
+      </div>
 
       {flashMessage ? (
         <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
@@ -247,8 +244,11 @@ export default async function AdminPlayersPage({
 
       {players.length > 0 ? (
         <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-          {players.length} Personen im Team hinterlegt. Tippe auf einen Eintrag,
-          um die Bearbeitungsfelder aufzuklappen. Trainer/Betreuer können als anwesend geführt werden, landen aber nicht im Teamgenerator.
+          <span className="font-semibold text-slate-900">Kader bearbeiten:</span>{" "}
+          {players.length} Personen sind hinterlegt. Tippe auf einen Namen, um
+          Position, Kategorie, Stärke, Balance-Gruppe oder Status zu ändern.
+          Trainer/Betreuer können als anwesend geführt werden, landen aber nicht
+          im Teamgenerator.
         </div>
       ) : null}
 
@@ -259,12 +259,12 @@ export default async function AdminPlayersPage({
       ) : (
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="divide-y divide-slate-100">
-            {players.map((player, index) => {
+            {players.map((player) => {
               const categoryLabel =
                 categories.find((category) => category.key === player.category_key)
                   ?.label ?? null;
 
-              const positionLabel =
+              const playerPositionLabel =
                 player.preferred_position === "attack"
                   ? settings?.attack_label || "Vorne"
                   : player.preferred_position === "defense"
@@ -288,7 +288,7 @@ export default async function AdminPlayersPage({
                       ) : null}
 
                       <span className="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
-                        {positionLabel}
+                        {playerPositionLabel}
                       </span>
 
                       {settings?.use_strength ? (
