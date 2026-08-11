@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { CalendarDays, Medal, Star, TrendingUp, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
-import { getAuthContext } from "@/lib/auth/context";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
@@ -61,7 +60,6 @@ type VoteRow = {
 
 type PlayerRow = {
   id: number;
-  email: string | null;
   first_name: string | null;
   last_name: string | null;
   user_id: string | null;
@@ -114,11 +112,11 @@ type HomeMvpHighlight = {
   notificationKey: string;
   sessionId: number;
   sessionHref: string;
-  sessionDateLabel: string;
   isWinner: boolean;
   winner: LeaderboardEntry;
   winners: LeaderboardEntry[];
   leaderboard: LeaderboardEntry[];
+  sessionDateLabel: string;
   badgeImageUrl: string;
 };
 
@@ -130,7 +128,6 @@ function fmtDateLong(iso: string) {
     year: "numeric",
   });
 }
-
 
 function fmtDateCompact(iso: string) {
   return new Date(iso)
@@ -501,7 +498,7 @@ function HighlightsCard({
   const streakMissing = Math.max(0, nextStreakTarget - currentStreak);
 
   const nextMvpTarget = getNextMvpTarget(mvpCount);
-  const mvpMissing = Math.max(0, nextMvpTarget - mvpCount);
+  const mvpMissing = Math.max(0, nextMvpTarget - currentMvpCount);
 
   return (
     <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
@@ -545,7 +542,6 @@ function HighlightsCard({
   );
 }
 
-
 function MiniStatCard({
   icon,
   value,
@@ -580,18 +576,32 @@ function MiniStatCard({
 }
 
 export default async function HomePage() {
-  const [clubAccess, ctx] = await Promise.all([requireClub(), getAuthContext()]);
-  const { clubId, membership, isPowerUser } = clubAccess;
+  const clubAccess = await requireClub();
+  const { clubId, membership, isPowerUser, user, player } = clubAccess;
   const supabase = await createClient();
 
   const today = new Date().toISOString().slice(0, 10);
-  const featureFlags = await getFeatureFlagsForClub(clubId);
-  const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
-  const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
   const isAdmin =
     isPowerUser || membership.role === "admin" || membership.role === "owner";
 
+  const currentPlayerPromise = player?.id
+    ? supabase
+        .from("players")
+        .select("id, first_name, last_name, user_id, mvp_count")
+        .eq("club_id", clubId)
+        .eq("id", player.id)
+        .maybeSingle<PlayerRow>()
+    : Promise.resolve({ data: null as PlayerRow | null, error: null });
+
+  const personalResultsPromise = player?.id
+    ? supabase
+        .from("results")
+        .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+        .eq("club_id", clubId)
+    : Promise.resolve({ data: [] as HomeResultRow[], error: null });
+
   const [
+    featureFlags,
     { data: clubData },
     { data: homeSettingsData },
     { count: invitesCount },
@@ -601,8 +611,10 @@ export default async function HomePage() {
     { data: nextSessionData },
     { data: recentSessionsData },
     { data: pastSessionsData },
-    authResult,
+    { data: currentPlayerData },
+    { data: personalResultsData },
   ] = await Promise.all([
+    getFeatureFlagsForClub(clubId),
     supabase
       .from("clubs")
       .select("id, display_name, logo_path, primary_color")
@@ -615,20 +627,20 @@ export default async function HomePage() {
       .maybeSingle<HomeClubSettingsRow>(),
     supabase
       .from("invites")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("club_id", clubId),
     supabase
       .from("sessions")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("club_id", clubId),
     supabase
       .from("sessions")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("club_id", clubId)
       .lte("date", today),
     supabase
       .from("seasons")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("club_id", clubId),
     supabase
       .from("sessions")
@@ -651,9 +663,12 @@ export default async function HomePage() {
       .lte("date", today)
       .order("date", { ascending: false })
       .limit(20),
-    supabase.auth.getUser(),
+    currentPlayerPromise,
+    personalResultsPromise,
   ]);
 
+  const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
+  const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
   const club = (clubData ?? null) as ClubRow | null;
   const homeSettings = (homeSettingsData ?? null) as HomeClubSettingsRow | null;
   const rsvpDeadlineMinutesBefore =
@@ -661,45 +676,14 @@ export default async function HomePage() {
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
   const pastSessions = (pastSessionsData ?? []) as SessionRow[];
-
+  const currentPlayer = (currentPlayerData ?? null) as PlayerRow | null;
   const clubName = club?.display_name?.trim() || "Dein Team";
-  const userId = authResult.data.user?.id ?? null;
-  const userEmail = authResult.data.user?.email?.trim().toLowerCase() ?? null;
-
-  let currentPlayer: PlayerRow | null = null;
-
-  if (userId) {
-    const { data } = await supabase
-      .from("players")
-      .select("id, email, first_name, last_name, user_id, mvp_count")
-      .eq("club_id", clubId)
-      .eq("user_id", userId)
-      .maybeSingle<PlayerRow>();
-
-    currentPlayer = data ?? null;
-  }
-
-  if (!currentPlayer && userEmail) {
-    const { data } = await supabase
-      .from("players")
-      .select("id, email, first_name, last_name, user_id, mvp_count")
-      .eq("club_id", clubId)
-      .eq("email", userEmail)
-      .maybeSingle<PlayerRow>();
-
-    currentPlayer = data ?? null;
-  }
+  const userId = user?.id ?? null;
 
   let personalSuccessRate: number | null = null;
 
   if (currentPlayer) {
-    const { data: resultRows } = await supabase
-      .from("results")
-      .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
-      .eq("club_id", clubId);
-
-    const results = (resultRows ?? []) as HomeResultRow[];
-
+    const results = (personalResultsData ?? []) as HomeResultRow[];
     const resultTeamIds = Array.from(
       new Set(
         results.flatMap((result) =>
@@ -760,7 +744,7 @@ export default async function HomePage() {
 
   const showGettingStarted =
     isAdmin &&
-    !ctx.isPowerUser &&
+    !isPowerUser &&
     ((sessionsCount ?? 0) === 0 ||
       (seasonsCount ?? 0) === 0 ||
       (invitesCount ?? 0) === 0);
@@ -871,14 +855,14 @@ export default async function HomePage() {
 
       const participants = ((mvpPlayersData ?? []) as MvpSessionPlayerRow[])
         .map((row) => {
-          const player = normalizePlayerRelation(row.players);
-          if (!player) return null;
+          const mvpPlayer = normalizePlayerRelation(row.players);
+          if (!mvpPlayer) return null;
 
           return {
             playerId: row.player_id,
-            name: getPlayerName(player),
-            userId: player.user_id,
-            current: safeMvpCount(player.mvp_count),
+            name: getPlayerName(mvpPlayer),
+            userId: mvpPlayer.user_id,
+            current: safeMvpCount(mvpPlayer.mvp_count),
           };
         })
         .filter(
@@ -959,34 +943,55 @@ export default async function HomePage() {
   let nextSessionParticipantNames: string[] = [];
 
   if (homeSessionRsvpEnabled && nextSession) {
+    const selfRsvpPromise = currentPlayer?.id
+      ? supabase
+          .from("session_rsvps")
+          .select("status")
+          .eq("session_id", nextSession.id)
+          .eq("player_id", currentPlayer.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null as { status: string } | null, error: null });
+
+    const selfPresencePromise = currentPlayer?.id
+      ? supabase
+          .from("session_players")
+          .select("player_id")
+          .eq("session_id", nextSession.id)
+          .eq("player_id", currentPlayer.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null as { player_id: number } | null, error: null });
+
     const [
       { count: nextSessionPresentCountValue },
       { count: nextSessionAbsentCountValue },
       { data: participantRows },
-    ] =
-      await Promise.all([
-        supabase
-          .from("session_players")
-          .select("*", { count: "exact", head: true })
-          .eq("session_id", nextSession.id),
-        supabase
-          .from("session_rsvps")
-          .select("*", { count: "exact", head: true })
-          .eq("session_id", nextSession.id)
-          .eq("status", "out"),
-        supabase
-          .from("session_players")
-          .select(
-            `
-            player_id,
-            players (
-              first_name,
-              last_name
-            )
+      { data: selfRsvp },
+      { data: selfPresence },
+    ] = await Promise.all([
+      supabase
+        .from("session_players")
+        .select("id", { count: "exact", head: true })
+        .eq("session_id", nextSession.id),
+      supabase
+        .from("session_rsvps")
+        .select("id", { count: "exact", head: true })
+        .eq("session_id", nextSession.id)
+        .eq("status", "out"),
+      supabase
+        .from("session_players")
+        .select(
           `
+          player_id,
+          players (
+            first_name,
+            last_name
           )
-          .eq("session_id", nextSession.id),
-      ]);
+        `
+        )
+        .eq("session_id", nextSession.id),
+      selfRsvpPromise,
+      selfPresencePromise,
+    ]);
 
     nextSessionPresentCount = nextSessionPresentCountValue ?? 0;
     nextSessionAbsentCount = nextSessionAbsentCountValue ?? 0;
@@ -996,29 +1001,12 @@ export default async function HomePage() {
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b, "de"));
 
-    if (currentPlayer?.id) {
-      const [{ data: selfRsvp }, { data: selfPresence }] = await Promise.all([
-        supabase
-          .from("session_rsvps")
-          .select("status")
-          .eq("session_id", nextSession.id)
-          .eq("player_id", currentPlayer.id)
-          .maybeSingle(),
-        supabase
-          .from("session_players")
-          .select("player_id")
-          .eq("session_id", nextSession.id)
-          .eq("player_id", currentPlayer.id)
-          .maybeSingle(),
-      ]);
-
-      if (selfRsvp?.status === "out") {
-        nextSessionPresenceStatus = "out";
-      } else if (selfRsvp?.status === "in" || selfPresence) {
-        nextSessionPresenceStatus = "in";
-      } else {
-        nextSessionPresenceStatus = "open";
-      }
+    if (selfRsvp?.status === "out") {
+      nextSessionPresenceStatus = "out";
+    } else if (selfRsvp?.status === "in" || selfPresence) {
+      nextSessionPresenceStatus = "in";
+    } else {
+      nextSessionPresenceStatus = "open";
     }
   }
 
@@ -1031,10 +1019,34 @@ export default async function HomePage() {
   const currentMvpCount = safeMvpCount(currentPlayer?.mvp_count);
 
   if (currentPlayer?.id) {
-    const { count: personalAttendanceCountValue } = await supabase
-      .from("session_players")
-      .select("*", { count: "exact", head: true })
-      .eq("player_id", currentPlayer.id);
+    const pastSessionIds = pastSessions.map((session) => session.id);
+    const recentPresencePromise =
+      pastSessionIds.length > 0
+        ? supabase
+            .from("session_players")
+            .select("session_id")
+            .eq("player_id", currentPlayer.id)
+            .in("session_id", pastSessionIds)
+        : Promise.resolve({
+            data: [] as { session_id: number }[],
+            error: null,
+          });
+
+    const [
+      { count: personalAttendanceCountValue },
+      { data: clubPlayersData },
+      { data: recentPresenceRows },
+    ] = await Promise.all([
+      supabase
+        .from("session_players")
+        .select("id", { count: "exact", head: true })
+        .eq("player_id", currentPlayer.id),
+      supabase
+        .from("players")
+        .select("id, first_name, last_name, mvp_count")
+        .eq("club_id", clubId),
+      recentPresencePromise,
+    ]);
 
     personalAttendanceCount = personalAttendanceCountValue ?? 0;
 
@@ -1042,16 +1054,11 @@ export default async function HomePage() {
     attendanceRate =
       pastCount > 0 ? Math.round((personalAttendanceCount / pastCount) * 100) : null;
 
-    const { data: clubPlayersData } = await supabase
-      .from("players")
-      .select("id, first_name, last_name, mvp_count")
-      .eq("club_id", clubId);
-
     const clubPlayers = (clubPlayersData ?? []) as ClubPlayerStatsRow[];
     clubPlayerCount = clubPlayers.length;
 
     const clubPlayerIds = clubPlayers
-      .map((player) => Number(player.id))
+      .map((clubPlayer) => Number(clubPlayer.id))
       .filter((id) => Number.isFinite(id));
 
     if (clubPlayerIds.length > 0) {
@@ -1070,39 +1077,29 @@ export default async function HomePage() {
       const currentAttendance = attendanceCounts.get(currentPlayer.id) ?? 0;
       attendanceRank =
         1 +
-        clubPlayers.filter((player) => {
-          const count = attendanceCounts.get(player.id) ?? 0;
+        clubPlayers.filter((clubPlayer) => {
+          const count = attendanceCounts.get(clubPlayer.id) ?? 0;
           return count > currentAttendance;
         }).length;
 
       mvpRank =
         1 +
         clubPlayers.filter(
-          (player) => safeMvpCount(player.mvp_count) > currentMvpCount
+          (clubPlayer) => safeMvpCount(clubPlayer.mvp_count) > currentMvpCount
         ).length;
     }
 
-    const pastSessionIds = pastSessions.map((session) => session.id);
+    const presentSessionIds = new Set(
+      ((recentPresenceRows ?? []) as { session_id: number }[]).map((row) =>
+        Number(row.session_id)
+      )
+    );
 
-    if (pastSessionIds.length > 0) {
-      const { data: recentPresenceRows } = await supabase
-        .from("session_players")
-        .select("session_id")
-        .eq("player_id", currentPlayer.id)
-        .in("session_id", pastSessionIds);
-
-      const presentSessionIds = new Set(
-        ((recentPresenceRows ?? []) as { session_id: number }[]).map((row) =>
-          Number(row.session_id)
-        )
-      );
-
-      for (const session of pastSessions) {
-        if (presentSessionIds.has(session.id)) {
-          currentStreak += 1;
-        } else {
-          break;
-        }
+    for (const session of pastSessions) {
+      if (presentSessionIds.has(session.id)) {
+        currentStreak += 1;
+      } else {
+        break;
       }
     }
   }
@@ -1148,7 +1145,7 @@ export default async function HomePage() {
               <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
                 Stats
               </div>
-              {ctx.isPowerUser ? (
+              {isPowerUser ? (
                 <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
                   Power User
                 </div>
