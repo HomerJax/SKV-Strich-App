@@ -85,3 +85,32 @@ button:disabled,
 [aria-disabled="true"] {
   cursor: not-allowed;
 }
+
+/* Globales Feedback für echte Formular-Aktionen.
+   Der erste Submit läuft normal weiter; weitere Submits werden bis zum
+   Seitenwechsel bzw. Timeout blockiert. */
+[data-strikr-submit-pending="true"] {
+  pointer-events: none;
+  cursor: wait;
+  opacity: 0.72;
+}
+
+[data-strikr-submit-pending="true"]::after {
+  content: "";
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-left: 0.5rem;
+  flex: 0 0 auto;
+  vertical-align: -0.12em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: strikr-action-spin 0.7s linear infinite;
+}
+
+@keyframes strikr-action-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
