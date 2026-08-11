@@ -3,11 +3,14 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getFirebaseMessaging } from "@/lib/push/firebase-admin";
 
+type PushPlatform = "android" | "ios" | "web" | "unknown";
+
 type SendPushOptions = {
   userIds: string[];
   title: string;
   body: string;
   url?: string;
+  platform?: PushPlatform;
 };
 
 type PushSubscriptionRow = {
@@ -19,6 +22,7 @@ export async function sendPushToUsers({
   title,
   body,
   url = "/home",
+  platform,
 }: SendPushOptions) {
   const uniqueUserIds = [...new Set(userIds)].filter(Boolean);
 
@@ -28,11 +32,17 @@ export async function sendPushToUsers({
 
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("push_subscriptions")
     .select("token")
     .in("user_id", uniqueUserIds)
     .eq("enabled", true);
+
+  if (platform) {
+    query = query.eq("platform", platform);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(
