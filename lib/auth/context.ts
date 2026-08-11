@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
@@ -51,7 +52,7 @@ export function isActiveClubAdmin(
   return isAdminLikeRole(activeMembership?.role ?? null);
 }
 
-export async function getAuthContext(): Promise<AuthContext> {
+const getAuthContextCached = cache(async (): Promise<AuthContext> => {
   const supabase = await createClient();
   const cookieStore = await cookies();
 
@@ -225,4 +226,8 @@ export async function getAuthContext(): Promise<AuthContext> {
     activeClubId,
     isPowerUser,
   };
+});
+
+export async function getAuthContext(): Promise<AuthContext> {
+  return getAuthContextCached();
 }
