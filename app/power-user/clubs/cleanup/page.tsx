@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   AlertTriangle,
   CalendarDays,
+  LogIn,
   RotateCcw,
   Trash2,
   UserRound,
@@ -53,6 +54,9 @@ type ClubCleanupView = {
   inviteCount: number;
   leadEmail: string | null;
   latestSessionDate: string | null;
+  latestInviteAcceptedAt: string | null;
+  latestMemberLoginAt: string | null;
+  latestMemberLoginEmail: string | null;
   lastActivityAt: string;
   daysSinceActivity: number;
   status: "test/leer" | "kaum genutzt" | "genutzt";
@@ -170,6 +174,7 @@ export default async function PowerUserClubCleanupPage({
     ? []
     : ((invitesResult.data ?? []) as InviteRow[]);
 
+  const authUserById = new Map(authUsers.map((user) => [user.id, user]));
   const emailByUserId = new Map(
     authUsers.map((user) => [user.id, user.email?.trim() || user.id])
   );
@@ -185,13 +190,36 @@ export default async function PowerUserClubCleanupPage({
         .sort((a, b) => a.created_at.localeCompare(b.created_at))
         .find((row) => row.role === "admin") ?? clubMemberships[0] ?? null;
 
+    const latestLoginUser = clubMemberships
+      .map((membership) => authUserById.get(membership.user_id) ?? null)
+      .filter(
+        (user): user is NonNullable<typeof user> =>
+          Boolean(user?.last_sign_in_at)
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.last_sign_in_at ?? 0).getTime() -
+          new Date(a.last_sign_in_at ?? 0).getTime()
+      )[0];
+
+    const latestMemberLoginAt = latestLoginUser?.last_sign_in_at ?? null;
+    const latestMemberLoginEmail = latestLoginUser?.email?.trim() || null;
+    const latestInviteAcceptedAt = clubInvites
+      .map((invite) => invite.accepted_at)
+      .filter((value): value is string => Boolean(value))
+      .sort(
+        (a, b) => new Date(b).getTime() - new Date(a).getTime()
+      )[0] ?? null;
+
     const lastActivityAt = newestIso(
       [
         club.created_at,
+        latestMemberLoginAt,
+        latestInviteAcceptedAt,
         ...clubMemberships.map((row) => row.created_at),
         ...clubPlayers.map((row) => row.created_at),
         ...clubSessions.map((row) => row.created_at),
-        ...clubInvites.flatMap((row) => [row.created_at, row.accepted_at]),
+        ...clubInvites.map((row) => row.created_at),
       ],
       club.created_at
     );
@@ -218,6 +246,9 @@ export default async function PowerUserClubCleanupPage({
       inviteCount,
       leadEmail: lead ? emailByUserId.get(lead.user_id) ?? lead.user_id : null,
       latestSessionDate: clubSessions[0]?.date ?? null,
+      latestInviteAcceptedAt,
+      latestMemberLoginAt,
+      latestMemberLoginEmail,
       lastActivityAt,
       daysSinceActivity: daysSince(lastActivityAt),
       status,
@@ -238,7 +269,9 @@ export default async function PowerUserClubCleanupPage({
   const trashViews = views
     .filter((view) => Boolean(view.club.deleted_at))
     .sort((a, b) =>
-      String(a.club.purge_after ?? "").localeCompare(String(b.club.purge_after ?? ""))
+      String(a.club.purge_after ?? "").localeCompare(
+        String(b.club.purge_after ?? "")
+      )
     );
 
   const likelyTestCount = activeViews.filter(
@@ -290,8 +323,8 @@ export default async function PowerUserClubCleanupPage({
                 Club-Cleanup
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Datenleichen stehen oben. Löschen bedeutet jetzt: 14 Tage
-                Papierkorb, in dieser Zeit vollständig wiederherstellbar.
+                Datenleichen stehen oben. Neben Trainings und Einladungen siehst
+                du jetzt auch, wann zuletzt ein Mitglied des Clubs eingeloggt war.
               </p>
             </div>
           </div>
@@ -440,6 +473,12 @@ export default async function PowerUserClubCleanupPage({
                       Angelegt {formatDateTime(view.club.created_at)} · letzte
                       Aktivität {formatDateTime(view.lastActivityAt)} ({view.daysSinceActivity} Tage)
                     </div>
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
+                      <LogIn className="h-3.5 w-3.5" />
+                      Letzter Login: {view.latestMemberLoginAt
+                        ? `${formatDateTime(view.latestMemberLoginAt)} · ${view.latestMemberLoginEmail ?? "User unbekannt"}`
+                        : "kein Login erfasst"}
+                    </div>
                     <div className="mt-1 text-xs text-slate-500">
                       Lead: {view.leadEmail ?? "–"}
                     </div>
@@ -481,12 +520,24 @@ export default async function PowerUserClubCleanupPage({
               <div className="border-t border-slate-100 p-5">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-                    <div>
-                      <strong>Club-ID:</strong> {view.club.id}
+                    <div className="font-bold text-slate-950">Aktivität</div>
+                    <div className="mt-3">
+                      <strong>Letzter User-Login:</strong>{" "}
+                      {formatDateTime(view.latestMemberLoginAt)}
                     </div>
-                    <div className="mt-1">
+                    <div className="mt-1 break-all text-xs text-slate-500">
+                      {view.latestMemberLoginEmail ?? "Kein Login erfasst"}
+                    </div>
+                    <div className="mt-3">
                       <strong>Letztes Training:</strong>{" "}
                       {formatDate(view.latestSessionDate)}
+                    </div>
+                    <div className="mt-3">
+                      <strong>Letzte Einladung angenommen:</strong>{" "}
+                      {formatDateTime(view.latestInviteAcceptedAt)}
+                    </div>
+                    <div className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">
+                      Club-ID: {view.club.id}
                     </div>
                   </div>
 
