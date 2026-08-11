@@ -6,6 +6,7 @@ export type PowerUserAuthUser = {
   id: string;
   email: string | null;
   created_at: string | null;
+  last_sign_in_at: string | null;
 };
 
 function getPowerUserAdminClient() {
@@ -47,6 +48,7 @@ export async function listAllAuthUsers(): Promise<PowerUserAuthUser[]> {
       id: user.id,
       email: user.email ?? null,
       created_at: user.created_at ?? null,
+      last_sign_in_at: user.last_sign_in_at ?? null,
     }));
 
     allUsers.push(...users);
