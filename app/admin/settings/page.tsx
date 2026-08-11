@@ -222,7 +222,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
       .maybeSingle(),
     supabase
       .from("club_categories")
-      .select("id, key, label, sort_order, is_active")
+      .select("id, key, label, sort_order, is_active, is_strong")
       .eq("club_id", clubId)
       .order("sort_order", { ascending: true }),
   ]);
@@ -244,8 +244,6 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6">
-        
-        {/* 🔙 BACK BUTTON */}
         <div className="flex items-center">
           <Link
             href="/admin"
@@ -260,8 +258,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
             Einstellungen
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Verwalte Club, Saisons und weitere Einstellungen zentral an einem
-            Ort.
+            Verwalte Club, Saisons und weitere Einstellungen zentral an einem Ort.
           </p>
 
           {isPowerUser ? (
@@ -271,44 +268,29 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
           ) : null}
         </div>
 
-        <SettingsShell
-          title="Club & Branding"
-          description="Name, Logo, Farbe und Anzeigeoptionen verwalten."
-        >
+        <SettingsShell title="Club & Branding" description="Name, Logo, Farbe und Anzeigeoptionen verwalten.">
           <ClubSettingsCard saved={clubSaved} error={clubError} />
         </SettingsShell>
 
-        <SettingsShell
-          title="Saisons"
-          description="Saisons anlegen, bearbeiten und Serientrainings erzeugen."
-        >
+        <SettingsShell title="Saisons" description="Saisons anlegen, bearbeiten und Serientrainings erzeugen.">
           <SeasonSettingsCard message={seasonMessage} error={seasonError} />
         </SettingsShell>
 
-        <SettingsShell
-          title="Kategorien"
-          description="Kategorien kompakt verwalten."
-        >
+        <SettingsShell title="Kategorien" description="Kategorien und stärkere Kategorie für den Generator festlegen.">
           <CategorySettingsSection
             categories={categories}
             useCategories={settings?.use_categories ?? false}
           />
         </SettingsShell>
 
-        <SettingsShell
-          title="Teamgenerator"
-          description="Regeln und Erklärung für automatische Teams."
-        >
+        <SettingsShell title="Teamgenerator" description="Regeln und Erklärung für automatische Teams.">
           <TeamGeneratorSettingsCard
             useStrength={settings?.use_strength ?? false}
             useCategories={settings?.use_categories ?? false}
           />
         </SettingsShell>
 
-        <SettingsShell
-          title="Zusagen"
-          description="Uhrzeit und Frist für Zu- und Absagen steuern."
-        >
+        <SettingsShell title="Zusagen" description="Uhrzeit und Frist für Zu- und Absagen steuern.">
           <RsvpSettingsCard
             value={settings?.rsvp_deadline_minutes_before ?? 30}
             saved={clubSaved}
@@ -316,10 +298,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
           />
         </SettingsShell>
 
-        <SettingsShell
-          title="Awards"
-          description="Offiziellen Start für Trainings-Awards festlegen."
-        >
+        <SettingsShell title="Awards" description="Offiziellen Start für Trainings-Awards festlegen.">
           <AwardsSettingsCard
             awardsStartedAt={settings?.awards_started_at ?? null}
             saved={clubSaved}
