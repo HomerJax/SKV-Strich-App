@@ -69,9 +69,56 @@ async function getActiveCategoryCount(
   return count ?? 0;
 }
 
+async function ensureStrongCategory(
+  supabase: ReturnType<typeof createAdminClient>,
+  clubId: string
+) {
+  const { data: strongCategory, error: strongError } = await supabase
+    .from("club_categories")
+    .select("id")
+    .eq("club_id", clubId)
+    .eq("is_active", true)
+    .eq("is_strong", true)
+    .limit(1)
+    .maybeSingle<{ id: number }>();
+
+  if (strongError) {
+    throw new Error(strongError.message);
+  }
+
+  if (strongCategory) return;
+
+  const { data: fallbackCategory, error: fallbackError } = await supabase
+    .from("club_categories")
+    .select("id")
+    .eq("club_id", clubId)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: number }>();
+
+  if (fallbackError) {
+    throw new Error(fallbackError.message);
+  }
+
+  if (!fallbackCategory) return;
+
+  const { error: updateError } = await supabase
+    .from("club_categories")
+    .update({ is_strong: true })
+    .eq("id", fallbackCategory.id)
+    .eq("club_id", clubId);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+}
+
 function revalidateSettingsPaths() {
   revalidatePath("/admin/settings");
   revalidatePath("/admin/categories");
+  revalidatePath("/admin/players");
   revalidatePath("/club-setup");
   revalidatePath("/onboarding");
 }
@@ -127,7 +174,9 @@ export async function addCategoryAction(formData: FormData) {
     redirect(
       buildRedirectUrlWithParams(redirectTo, {
         category_error:
-          error instanceof Error ? error.message : "Aktive Kategorien konnten nicht geprüft werden",
+          error instanceof Error
+            ? error.message
+            : "Aktive Kategorien konnten nicht geprüft werden",
       })
     );
   }
@@ -140,6 +189,7 @@ export async function addCategoryAction(formData: FormData) {
     label,
     sort_order: nextSortOrder,
     is_active: shouldActivateNewCategory,
+    is_strong: shouldActivateNewCategory && activeCount === 0,
   });
 
   if (error) {
@@ -173,11 +223,21 @@ export async function updateCategoryAction(formData: FormData) {
   const label = String(formData.get("label") ?? "").trim();
   const sortOrder = Number(String(formData.get("sort_order") ?? "0"));
   const isActive = formData.get("is_active") === "on";
+  const makeStrong = formData.get("make_strong") === "1";
 
   if (!Number.isFinite(id) || id <= 0 || !label) {
     redirect(
       buildRedirectUrlWithParams(redirectTo, {
         category_error: "Ungültige Kategorie",
+      })
+    );
+  }
+
+  if (makeStrong && !isActive) {
+    redirect(
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error:
+          "Nur eine aktive Kategorie kann als stärkere Kategorie markiert werden.",
       })
     );
   }
@@ -197,7 +257,9 @@ export async function updateCategoryAction(formData: FormData) {
       redirect(
         buildRedirectUrlWithParams(redirectTo, {
           category_error:
-            error instanceof Error ? error.message : "Aktive Kategorien konnten nicht geprüft werden",
+            error instanceof Error
+              ? error.message
+              : "Aktive Kategorien konnten nicht geprüft werden",
         })
       );
     }
@@ -212,13 +274,42 @@ export async function updateCategoryAction(formData: FormData) {
     }
   }
 
+  if (makeStrong) {
+    const { error: clearStrongError } = await supabase
+      .from("club_categories")
+      .update({ is_strong: false })
+      .eq("club_id", clubId)
+      .eq("is_strong", true);
+
+    if (clearStrongError) {
+      redirect(
+        buildRedirectUrlWithParams(redirectTo, {
+          category_error: clearStrongError.message,
+        })
+      );
+    }
+  }
+
+  const updatePayload: {
+    label: string;
+    sort_order: number;
+    is_active: boolean;
+    is_strong?: boolean;
+  } = {
+    label,
+    sort_order: safeSortOrder,
+    is_active: isActive,
+  };
+
+  if (makeStrong) {
+    updatePayload.is_strong = true;
+  } else if (!isActive) {
+    updatePayload.is_strong = false;
+  }
+
   const { error } = await supabase
     .from("club_categories")
-    .update({
-      label,
-      sort_order: safeSortOrder,
-      is_active: isActive,
-    })
+    .update(updatePayload)
     .eq("id", id)
     .eq("club_id", clubId);
 
@@ -226,6 +317,19 @@ export async function updateCategoryAction(formData: FormData) {
     redirect(
       buildRedirectUrlWithParams(redirectTo, {
         category_error: error.message,
+      })
+    );
+  }
+
+  try {
+    await ensureStrongCategory(supabase, clubId);
+  } catch (error) {
+    redirect(
+      buildRedirectUrlWithParams(redirectTo, {
+        category_error:
+          error instanceof Error
+            ? error.message
+            : "Stärkere Kategorie konnte nicht geprüft werden",
       })
     );
   }
