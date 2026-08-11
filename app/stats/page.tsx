@@ -261,19 +261,16 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const scope: StatsScope = requestedScope === "career" ? "career" : "season";
 
   const { clubId, player } = await requireClub();
-  const flags = await getFeatureFlagsForClub(clubId);
-
-  if (!flags.player_stats_overview) {
-    redirect("/");
-  }
-
   const supabase = await createClient();
 
   const [
+    flags,
     { data: clubSettingsData, error: clubSettingsError },
     { data: seasonsData, error: seasonsError },
     { data: clubData, error: clubError },
+    billingAccess,
   ] = await Promise.all([
+    getFeatureFlagsForClub(clubId),
     supabase
       .from("club_settings")
       .select("use_strength, strength_default")
@@ -289,7 +286,12 @@ export default async function StatsPage({ searchParams }: PageProps) {
       .select("id, display_name, primary_color")
       .eq("id", clubId)
       .maybeSingle<ClubRow>(),
+    getClubBillingAccess(supabase, clubId),
   ]);
+
+  if (!flags.player_stats_overview) {
+    redirect("/");
+  }
 
   if (clubSettingsError) {
     throw new Error(
@@ -318,7 +320,6 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const strengthDefault = clubSettings.strength_default ?? 3;
   const primaryColorKey = clubData?.primary_color ?? "black";
   const clubName = clubData?.display_name?.trim() || "dein Team";
-  const billingAccess = await getClubBillingAccess(supabase, clubId);
 
   if (!billingAccess.isPro) {
     return (
@@ -397,12 +398,26 @@ export default async function StatsPage({ searchParams }: PageProps) {
     );
   }
 
-  const { data: playerMetaData, error: playerMetaError } = await supabase
-    .from("players")
-    .select("id, mvp_count")
-    .eq("club_id", clubId)
-    .eq("id", player.id)
-    .maybeSingle<PlayerMetaRow>();
+  const [
+    { data: playerMetaData, error: playerMetaError },
+    { data: sessionPlayersData, error: sessionPlayersError },
+    { data: playerTeamRowsData, error: playerTeamRowsError },
+  ] = await Promise.all([
+    supabase
+      .from("players")
+      .select("id, mvp_count")
+      .eq("club_id", clubId)
+      .eq("id", player.id)
+      .maybeSingle<PlayerMetaRow>(),
+    supabase
+      .from("session_players")
+      .select("session_id")
+      .eq("player_id", player.id),
+    supabase
+      .from("team_players")
+      .select("team_id")
+      .eq("player_id", player.id),
+  ]);
 
   if (playerMetaError) {
     throw new Error(
@@ -410,23 +425,30 @@ export default async function StatsPage({ searchParams }: PageProps) {
     );
   }
 
-  const badgeMvpCount = playerMetaData?.mvp_count ?? 0;
-
-  const { data: sessionPlayersData, error: sessionPlayersError } = await supabase
-    .from("session_players")
-    .select("session_id")
-    .eq("player_id", player.id);
-
   if (sessionPlayersError) {
     throw new Error(
       `Session-Teilnahmen konnten nicht geladen werden: ${sessionPlayersError.message}`
     );
   }
 
+  if (playerTeamRowsError) {
+    throw new Error(
+      `Team-Zuordnungen konnten nicht geladen werden: ${playerTeamRowsError.message}`
+    );
+  }
+
+  const badgeMvpCount = playerMetaData?.mvp_count ?? 0;
   const playerSessionIds = Array.from(
     new Set(
       ((sessionPlayersData ?? []) as { session_id: number }[])
         .map((row) => row.session_id)
+        .filter((value) => Number.isFinite(value))
+    )
+  );
+  const allPlayerTeamIds = Array.from(
+    new Set(
+      ((playerTeamRowsData ?? []) as { team_id: number }[])
+        .map((row) => row.team_id)
         .filter((value) => Number.isFinite(value))
     )
   );
@@ -461,18 +483,35 @@ export default async function StatsPage({ searchParams }: PageProps) {
     );
   }
 
-  const { data: sessionRowsData, error: scopedSessionsError } = await supabase
-    .from("sessions")
-    .select("id, date, season_id")
-    .in("id", playerSessionIds)
-    .eq("club_id", clubId);
+  const teamsPromise =
+    allPlayerTeamIds.length > 0
+      ? supabase
+          .from("teams")
+          .select("id, session_id")
+          .in("id", allPlayerTeamIds)
+      : Promise.resolve({ data: [] as TeamRow[], error: null });
+
+  const [
+    { data: sessionRowsData, error: scopedSessionsError },
+    { data: teamsData, error: teamsError },
+  ] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select("id, date, season_id")
+      .in("id", playerSessionIds)
+      .eq("club_id", clubId),
+    teamsPromise,
+  ]);
 
   if (scopedSessionsError) {
     throw new Error(`Sessions konnten nicht geladen werden: ${scopedSessionsError.message}`);
   }
 
-  const allPlayerSessions = (sessionRowsData ?? []) as SessionRow[];
+  if (teamsError) {
+    throw new Error(`Teams konnten nicht geladen werden: ${teamsError.message}`);
+  }
 
+  const allPlayerSessions = (sessionRowsData ?? []) as SessionRow[];
   const scopedSessions =
     scope === "career"
       ? allPlayerSessions
@@ -518,25 +557,6 @@ export default async function StatsPage({ searchParams }: PageProps) {
     );
   }
 
-  const { data: playerTeamRowsData, error: playerTeamRowsError } = await supabase
-    .from("team_players")
-    .select("team_id")
-    .eq("player_id", player.id);
-
-  if (playerTeamRowsError) {
-    throw new Error(
-      `Team-Zuordnungen konnten nicht geladen werden: ${playerTeamRowsError.message}`
-    );
-  }
-
-  const allPlayerTeamIds = Array.from(
-    new Set(
-      ((playerTeamRowsData ?? []) as { team_id: number }[])
-        .map((row) => row.team_id)
-        .filter((value) => Number.isFinite(value))
-    )
-  );
-
   if (allPlayerTeamIds.length === 0) {
     return (
       <main className="min-h-screen bg-neutral-100">
@@ -567,18 +587,8 @@ export default async function StatsPage({ searchParams }: PageProps) {
     );
   }
 
-  const { data: teamsData, error: teamsError } = await supabase
-    .from("teams")
-    .select("id, session_id")
-    .in("id", allPlayerTeamIds);
-
-  if (teamsError) {
-    throw new Error(`Teams konnten nicht geladen werden: ${teamsError.message}`);
-  }
-
   const teams = (teamsData ?? []) as TeamRow[];
   const scopedSessionIdSet = new Set(scopedSessionIds);
-
   const myTeamIdsBySessionId = new Map<number, number[]>();
 
   for (const team of teams) {
@@ -632,7 +642,6 @@ export default async function StatsPage({ searchParams }: PageProps) {
   }
 
   const allResults = (resultsData ?? []) as ResultRow[];
-
   const myResults = allResults.filter((result) => {
     const myTeamIds = myTeamIdsBySessionId.get(result.session_id);
     if (!myTeamIds || myTeamIds.length === 0) return false;
@@ -652,42 +661,52 @@ export default async function StatsPage({ searchParams }: PageProps) {
     )
   );
 
+  const relevantResultSessionIds = Array.from(
+    new Set(
+      myResults
+        .map((result) => result.session_id)
+        .filter((value) => Number.isFinite(value))
+    )
+  );
+
+  const teamPlayersPromise =
+    relevantTeamIds.length > 0
+      ? supabase
+          .from("team_players")
+          .select("team_id, player_id")
+          .in("team_id", relevantTeamIds)
+      : Promise.resolve({ data: [] as TeamPlayerRow[], error: null });
+
+  const mvpVotesPromise =
+    flags.session_mvp_voting && relevantResultSessionIds.length > 0
+      ? supabase
+          .from("session_mvp_votes")
+          .select("session_id, voted_player_id")
+          .eq("club_id", clubId)
+          .in("session_id", relevantResultSessionIds)
+      : Promise.resolve({ data: [] as MvpVoteRow[], error: null });
+
+  const [
+    { data: teamPlayersData, error: teamPlayersError },
+    { data: mvpVotesData, error: mvpVotesError },
+  ] = await Promise.all([teamPlayersPromise, mvpVotesPromise]);
+
+  if (teamPlayersError) {
+    throw new Error(
+      `Team-Spieler konnten nicht geladen werden: ${teamPlayersError.message}`
+    );
+  }
+
+  if (mvpVotesError) {
+    throw new Error(
+      `MVP-Stimmen konnten nicht geladen werden: ${mvpVotesError.message}`
+    );
+  }
+
+  const teamPlayers = (teamPlayersData ?? []) as TeamPlayerRow[];
   const teamScoreById = new Map<number, number>();
 
   if (relevantTeamIds.length > 0) {
-    const { data: teamPlayersData, error: teamPlayersError } = await supabase
-      .from("team_players")
-      .select("team_id, player_id")
-      .in("team_id", relevantTeamIds);
-
-    if (teamPlayersError) {
-      throw new Error(
-        `Team-Spieler konnten nicht geladen werden: ${teamPlayersError.message}`
-      );
-    }
-
-    const teamPlayers = (teamPlayersData ?? []) as TeamPlayerRow[];
-
-    const playerIds = Array.from(
-      new Set(teamPlayers.map((row) => row.player_id).filter(Number.isFinite))
-    );
-
-    const { data: playersData, error: playersError } = await supabase
-      .from("players")
-      .select("id, strength")
-      .in("id", playerIds);
-
-    if (playersError) {
-      throw new Error(
-        `Spieler-Stärken konnten nicht geladen werden: ${playersError.message}`
-      );
-    }
-
-    const players = (playersData ?? []) as PlayerStrengthRow[];
-    const strengthByPlayerId = new Map<number, number>(
-      players.map((p) => [p.id, p.strength ?? strengthDefault])
-    );
-
     const teamBuckets = new Map<number, TeamPlayerRow[]>();
 
     for (const row of teamPlayers) {
@@ -696,17 +715,38 @@ export default async function StatsPage({ searchParams }: PageProps) {
       teamBuckets.set(row.team_id, current);
     }
 
-    for (const teamId of relevantTeamIds) {
-      const rows = teamBuckets.get(teamId) ?? [];
+    if (useStrength) {
+      const playerIds = Array.from(
+        new Set(teamPlayers.map((row) => row.player_id).filter(Number.isFinite))
+      );
 
-      if (useStrength) {
+      const { data: playersData, error: playersError } = await supabase
+        .from("players")
+        .select("id, strength")
+        .in("id", playerIds.length > 0 ? playerIds : [-1]);
+
+      if (playersError) {
+        throw new Error(
+          `Spieler-Stärken konnten nicht geladen werden: ${playersError.message}`
+        );
+      }
+
+      const players = (playersData ?? []) as PlayerStrengthRow[];
+      const strengthByPlayerId = new Map<number, number>(
+        players.map((p) => [p.id, p.strength ?? strengthDefault])
+      );
+
+      for (const teamId of relevantTeamIds) {
+        const rows = teamBuckets.get(teamId) ?? [];
         const score = rows.reduce((sum, row) => {
           return sum + (strengthByPlayerId.get(row.player_id) ?? strengthDefault);
         }, 0);
 
         teamScoreById.set(teamId, score);
-      } else {
-        teamScoreById.set(teamId, rows.length);
+      }
+    } else {
+      for (const teamId of relevantTeamIds) {
+        teamScoreById.set(teamId, (teamBuckets.get(teamId) ?? []).length);
       }
     }
   }
@@ -715,24 +755,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
   let mvpPerGame = 0;
 
   if (flags.session_mvp_voting && myResults.length > 0) {
-    const relevantResultSessionIds = new Set(
-      myResults
-        .map((result) => result.session_id)
-        .filter((value) => Number.isFinite(value))
-    );
-
-    const { data: mvpVotesData, error: mvpVotesError } = await supabase
-      .from("session_mvp_votes")
-      .select("session_id, voted_player_id")
-      .eq("club_id", clubId)
-      .in("session_id", Array.from(relevantResultSessionIds));
-
-    if (mvpVotesError) {
-      throw new Error(
-        `MVP-Stimmen konnten nicht geladen werden: ${mvpVotesError.message}`
-      );
-    }
-
+    const relevantResultSessionIdSet = new Set(relevantResultSessionIds);
     const revealedSessionIds = new Set<number>();
 
     for (const result of myResults) {
@@ -752,7 +775,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
       if (
         !Number.isFinite(voteSessionId) ||
         !Number.isFinite(votedPlayerId) ||
-        !relevantResultSessionIds.has(voteSessionId) ||
+        !relevantResultSessionIdSet.has(voteSessionId) ||
         !revealedSessionIds.has(voteSessionId)
       ) {
         continue;
