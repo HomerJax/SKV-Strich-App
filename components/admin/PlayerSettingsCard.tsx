@@ -6,6 +6,7 @@ type PlayerSettingsCardProps = {
   useCategories: boolean;
   categoryCount: number;
   categoryLabels?: string[];
+  strongCategoryLabel?: string | null;
   activePlayerCount?: number;
   missingCategoryCount?: number;
   missingPositionCount?: number;
@@ -74,6 +75,7 @@ export default function PlayerSettingsCard({
   useCategories,
   categoryCount,
   categoryLabels = [],
+  strongCategoryLabel = null,
   activePlayerCount = 0,
   missingCategoryCount = 0,
   missingPositionCount = 0,
@@ -81,8 +83,9 @@ export default function PlayerSettingsCard({
   balanceGroupCount = 0,
   className = "",
 }: PlayerSettingsCardProps) {
-  const firstCategory = categoryLabels[0] ?? null;
-  const secondCategory = categoryLabels[1] ?? null;
+  const normalCategories = categoryLabels.filter(
+    (label) => label !== strongCategoryLabel
+  );
 
   return (
     <section
@@ -111,10 +114,10 @@ export default function PlayerSettingsCard({
             Generator-Regeln
           </Link>
           <Link
-            href="/admin/categories"
+            href="/admin/settings"
             className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Kategorien ordnen
+            Kategorien einstellen
           </Link>
         </div>
       </div>
@@ -148,31 +151,21 @@ export default function PlayerSettingsCard({
       {useCategories ? (
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
           <div className="text-sm font-bold text-blue-950">
-            Kategorie-Reihenfolge ist wichtig
+            Kategoriegewichtung
           </div>
           <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
             <div className="rounded-xl bg-white/80 px-3 py-2 text-blue-950 ring-1 ring-blue-100">
-              <span className="font-bold">1. Kategorie:</span>{" "}
-              {firstCategory ?? "nicht gesetzt"} → stärkere Kategorie
+              <span className="font-bold">Stärkere Kategorie:</span>{" "}
+              {strongCategoryLabel ?? "noch nicht festgelegt"}
             </div>
             <div className="rounded-xl bg-white/80 px-3 py-2 text-blue-950 ring-1 ring-blue-100">
-              <span className="font-bold">2. Kategorie:</span>{" "}
-              {secondCategory ?? "nicht gesetzt"} → normale Kategorie
+              <span className="font-bold">Weitere Kategorie:</span>{" "}
+              {normalCategories.join(", ") || "keine"}
             </div>
           </div>
           <p className="mt-2 text-xs leading-5 text-blue-900">
-            Die individuelle Stärke 1–5 feinjustiert innerhalb dieser Einordnung.
-            Wenn eure Kategorien keine sportliche Stärke ausdrücken, Kategorien
-            im Generator besser deaktivieren und nur mit Stärke arbeiten.
+            Die Markierung entscheidet – nicht mehr die Reihenfolge. Die individuelle Stärke 1–5 feinjustiert innerhalb dieser Einordnung.
           </p>
-
-          {categoryCount > 2 ? (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-950">
-              Achtung: Es sind {categoryCount} Kategorien aktiv. Die eigentliche
-              sportliche Kategoriegewichtung ist bewusst auf die ersten zwei
-              Kategorien ausgelegt.
-            </div>
-          ) : null}
         </div>
       ) : null}
 
@@ -227,29 +220,11 @@ export default function PlayerSettingsCard({
 
         <div className="border-t border-slate-200 px-4 py-4 text-sm leading-6 text-slate-600">
           <ol className="space-y-2">
-            <li>
-              <strong className="text-slate-900">1.</strong> Nur anwesende
-              Spieler mit Rolle „Spieler“ kommen in die Auswahl.
-            </li>
-            <li>
-              <strong className="text-slate-900">2.</strong> Bei ungerader Zahl
-              entsteht automatisch z. B. 5 gegen 4 – nie ein größerer Unterschied.
-            </li>
-            <li>
-              <strong className="text-slate-900">3.</strong> Torhüter werden
-              zuerst verteilt. Danach bewertet strikr Kategorie, Stärke und
-              Positionsmix.
-            </li>
-            <li>
-              <strong className="text-slate-900">4.</strong> Gleiche
-              Balance-Gruppen werden möglichst auf beide Teams verteilt. Sie sind
-              kein zusätzlicher Stärkewert.
-            </li>
-            <li>
-              <strong className="text-slate-900">5.</strong> Pro Generierung
-              werden 400 Varianten ausprobiert und die beste gefundene
-              Kombination übernommen. Danach kannst du immer manuell korrigieren.
-            </li>
+            <li><strong className="text-slate-900">1.</strong> Nur anwesende Spieler mit Rolle „Spieler“ kommen in die Auswahl.</li>
+            <li><strong className="text-slate-900">2.</strong> Bei ungerader Zahl entsteht automatisch z. B. 5 gegen 4 – nie ein größerer Unterschied.</li>
+            <li><strong className="text-slate-900">3.</strong> Torhüter werden zuerst verteilt. Danach bewertet strikr Kategorie, Stärke und Positionsmix.</li>
+            <li><strong className="text-slate-900">4.</strong> Gleiche Balance-Gruppen werden möglichst auf beide Teams verteilt. Sie sind kein zusätzlicher Stärkewert.</li>
+            <li><strong className="text-slate-900">5.</strong> Pro Generierung werden 400 Varianten ausprobiert und die beste gefundene Kombination übernommen. Danach kannst du immer manuell korrigieren.</li>
           </ol>
         </div>
       </details>
