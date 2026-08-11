@@ -1,0 +1,133 @@
+/* Standings polish: keep the full table readable in-app, while the share cards stay compact. */
+#export-standings {
+  border-radius: 24px;
+  border-color: rgb(226 232 240);
+  padding: 16px;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.06);
+}
+
+#export-standings > div:nth-child(2) {
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+#export-standings table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+#export-standings thead {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+#export-standings thead th {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+#export-standings tbody tr {
+  background: #fff;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+#export-standings tbody tr:hover {
+  background: #f8fafc;
+}
+
+#export-standings tbody tr:nth-child(1) {
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.055), rgba(255, 255, 255, 0));
+}
+
+#export-standings tbody tr:nth-child(2) {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.09), rgba(255, 255, 255, 0));
+}
+
+#export-standings tbody tr:nth-child(3) {
+  background: linear-gradient(90deg, rgba(214, 211, 209, 0.12), rgba(255, 255, 255, 0));
+}
+
+#export-standings tbody td:first-child > div:first-child {
+  display: inline-flex;
+  min-width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 900;
+}
+
+#export-standings tbody tr:nth-child(1) td:first-child > div:first-child {
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18);
+}
+
+#export-standings tbody tr:nth-child(2) td:first-child > div:first-child {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+#export-standings tbody tr:nth-child(3) td:first-child > div:first-child {
+  background: #e7e5e4;
+  color: #1c1917;
+}
+
+#export-standings tbody td:last-child {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* The first share range is the default social card. Later ranges remain available, but quieter. */
+#export-standings + div {
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.045);
+}
+
+#export-standings + div > div:nth-child(2) > div {
+  position: relative;
+  border-radius: 18px;
+}
+
+#export-standings + div > div:nth-child(2) > div:first-child {
+  border-color: #cbd5e1;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 70%);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+#export-standings + div > div:nth-child(2) > div:first-child::before {
+  content: "EMPFOHLEN · TOP 10";
+  display: inline-flex;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: #0f172a;
+  padding: 5px 9px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+#export-standings + div > div:nth-child(2) > div:not(:first-child) {
+  background: #fff;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  #export-standings,
+  #export-standings + div {
+    border-radius: 20px;
+    padding: 12px;
+  }
+
+  #export-standings tbody td:first-child > div:first-child {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 9px;
+  }
+}

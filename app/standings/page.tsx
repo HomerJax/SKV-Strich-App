@@ -2,6 +2,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { createClient } from "@/lib/supabase/server";
 import StandingsClient from "./StandingsClient";
+import "./standings.css";
 
 type ClubRow = {
   id: string;

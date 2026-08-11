@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import PageHero from "@/components/ui/PageHero";
 import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
 
 type SessionType = "training" | "event";
@@ -64,6 +63,32 @@ function StatusPill({
   );
 }
 
+function Metric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-[18px] border border-white/10 bg-white/[0.07] px-3.5 py-3 backdrop-blur-sm">
+      <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/42">
+        {label}
+      </div>
+      <div className="mt-1 truncate text-lg font-extrabold tracking-tight text-white">
+        {value}
+      </div>
+      {hint ? (
+        <div className="mt-0.5 truncate text-[10px] font-medium text-white/48">
+          {hint}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function WinnerPhotoPreview({
   winnerPhotoUrl,
 }: {
@@ -103,12 +128,17 @@ export default function SessionHeaderCard({
   sessionId,
   date,
   notes,
+  presentCount,
+  teamACount,
+  teamBCount,
   hasResult,
+  nextStepLabel,
   isAdmin,
   deletingSession,
-  primaryColorKey,
   onDeleteSession,
   onBack,
+  onScrollToTeams,
+  onScrollToResult,
   onOpenResultModal,
   sessionType,
   sessionTypesEnabled,
@@ -119,10 +149,13 @@ export default function SessionHeaderCard({
   winnerPhotoUrl = null,
   mvpVotingEnabled = false,
 }: Props) {
+  const isEvent = sessionType === "event";
+  const hasTeams = teamACount > 0 || teamBCount > 0;
+
   if (hasResult) {
     return (
-      <section className="overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_30%),linear-gradient(135deg,_#020617_0%,_#0b1220_46%,_#273449_100%)] shadow-sm ring-1 ring-black/5">
-        <div className="p-4">
+      <section className="overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_30%),linear-gradient(135deg,_#020617_0%,_#0b1220_46%,_#273449_100%)] shadow-[0_18px_48px_rgba(15,23,42,0.14)] ring-1 ring-black/5">
+        <div className="p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
             <button
               type="button"
@@ -144,7 +177,7 @@ export default function SessionHeaderCard({
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/54">
-                {sessionType === "event" ? "Event" : "Training"}
+                {isEvent ? "Event" : "Training abgeschlossen"}
               </div>
 
               <div className="mt-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl">
@@ -168,6 +201,24 @@ export default function SessionHeaderCard({
 
             <WinnerPhotoPreview winnerPhotoUrl={winnerPhotoUrl} />
           </div>
+
+          {!isEvent ? (
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <Metric label="Dabei" value={presentCount} hint="Spieler" />
+              <Metric
+                label="Teams"
+                value={hasTeams ? `${teamACount}:${teamBCount}` : "–"}
+                hint="Spieler verteilt"
+              />
+              <div className="col-span-2 sm:col-span-1">
+                <Metric
+                  label="Status"
+                  value={mvpVotingEnabled ? "MVP läuft" : "Fertig"}
+                  hint={hasWinnerPhoto ? "Foto gespeichert" : "Session gespeichert"}
+                />
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <StatusPill tone="success">Ergebnis gespeichert</StatusPill>
@@ -193,15 +244,13 @@ export default function SessionHeaderCard({
               ) : null}
             </div>
 
-            <div className="shrink-0">
-              <button
-                type="button"
-                onClick={onOpenResultModal}
-                className="inline-flex items-center justify-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/12 backdrop-blur-sm transition hover:bg-white/14"
-              >
-                🔥 Ergebnis teilen
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onOpenResultModal}
+              className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-slate-100"
+            >
+              Ergebnis teilen ↗
+            </button>
           </div>
         </div>
       </section>
@@ -209,45 +258,88 @@ export default function SessionHeaderCard({
   }
 
   return (
-    <PageHero
-      primaryColorKey={primaryColorKey}
-      eyebrow={sessionType === "event" ? "Event" : "Training"}
-      title={fmtLongDate(date)}
-      description={notes ?? null}
-      backLabel="Zurück"
-      onBack={onBack}
-      topRightSlot={
-        isAdmin ? (
-          <SessionTypeSwitcher
-            sessionId={sessionId}
-            currentType={sessionType}
-            action={onSessionTypeChange}
-            disabled={!sessionTypesEnabled}
-            embedded
-          />
-        ) : null
-      }
-      actionsSlot={
-        <>
+    <section className="overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_84%_8%,_rgba(59,130,246,0.18),_transparent_26%),linear-gradient(145deg,_#020617_0%,_#0b1220_54%,_#172033_100%)] shadow-[0_18px_48px_rgba(15,23,42,0.14)] ring-1 ring-black/5">
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex min-h-8 items-center justify-center rounded-full bg-white/8 px-3 py-1 text-sm font-semibold text-white/92 ring-1 ring-white/10 transition hover:bg-white/12"
+          >
+            ← Zurück
+          </button>
+
           {isAdmin ? (
+            <SessionTypeSwitcher
+              sessionId={sessionId}
+              currentType={sessionType}
+              action={onSessionTypeChange}
+              disabled={!sessionTypesEnabled}
+              embedded
+            />
+          ) : null}
+        </div>
+
+        <div className="mt-5">
+          <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/44">
+            {isEvent ? "Event" : "Training läuft"}
+          </div>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-[-0.035em] text-white sm:text-3xl">
+            {fmtLongDate(date)}
+          </h1>
+          {notes ? (
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/62">{notes}</p>
+          ) : null}
+        </div>
+
+        <div className={`mt-5 grid gap-2 ${isEvent ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
+          <Metric label="Dabei" value={presentCount} hint={isEvent ? "Teilnehmer" : "Spieler"} />
+          {!isEvent ? (
+            <Metric
+              label="Teams"
+              value={hasTeams ? `${teamACount}:${teamBCount}` : "offen"}
+              hint={hasTeams ? "Spieler verteilt" : "noch nicht bestätigt"}
+            />
+          ) : null}
+          <div className={isEvent ? "" : "col-span-2 sm:col-span-1"}>
+            <Metric label="Als Nächstes" value={nextStepLabel} />
+          </div>
+        </div>
+
+        {!isEvent ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onScrollToTeams}
+              className="inline-flex min-h-9 items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-950 shadow-sm transition hover:bg-slate-100"
+            >
+              {hasTeams ? "Teams ansehen" : "Zu den Teams"}
+            </button>
+            {hasTeams ? (
+              <button
+                type="button"
+                onClick={onScrollToResult}
+                className="inline-flex min-h-9 items-center justify-center rounded-full bg-white/8 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/12"
+              >
+                Zum Ergebnis
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {isAdmin ? (
+          <div className="mt-4 border-t border-white/8 pt-3">
             <button
               type="button"
               onClick={onDeleteSession}
               disabled={deletingSession}
-              className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/8 px-2.5 py-1 text-[10px] font-semibold text-white/76 transition hover:bg-white/14 disabled:cursor-not-allowed disabled:opacity-60"
+              className="text-[11px] font-semibold text-white/45 transition hover:text-white/70 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {deletingSession ? "Löscht..." : "Löschen"}
+              {deletingSession ? "Session wird gelöscht..." : "Session löschen"}
             </button>
-          ) : null}
-
-          {hasResult ? (
-            <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/88">
-              Ergebnis gespeichert
-            </div>
-          ) : null}
-        </>
-      }
-      compact
-    />
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
