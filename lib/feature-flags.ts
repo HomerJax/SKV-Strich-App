@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
@@ -182,36 +183,42 @@ function getServiceRoleClient() {
   });
 }
 
+const getFeatureFlagsForClubCached = cache(
+  async (clubId: string): Promise<ClubFeatureFlagMap> => {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("club_feature_flags")
+      .select("feature_key, enabled")
+      .eq("club_id", clubId);
+
+    if (error) {
+      throw new Error(`Feature Flags konnten nicht geladen werden: ${error.message}`);
+    }
+
+    const flags = getDefaultFeatureFlagMap();
+
+    for (const row of (data ?? []) as Array<{
+      feature_key: FeatureFlagKey;
+      enabled: boolean;
+    }>) {
+      if (FEATURE_FLAG_KEYS.includes(row.feature_key)) {
+        flags[row.feature_key] = Boolean(row.enabled);
+      }
+    }
+
+    // Basis-Stats sind für jeden Club erreichbar. Nur die einzelnen Stats-Module
+    // werden weiterhin pro Club über ihre eigenen Feature Flags gesteuert.
+    flags.player_stats_overview = true;
+
+    return flags;
+  }
+);
+
 export async function getFeatureFlagsForClub(
   clubId: string
 ): Promise<ClubFeatureFlagMap> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("club_feature_flags")
-    .select("feature_key, enabled")
-    .eq("club_id", clubId);
-
-  if (error) {
-    throw new Error(`Feature Flags konnten nicht geladen werden: ${error.message}`);
-  }
-
-  const flags = getDefaultFeatureFlagMap();
-
-  for (const row of (data ?? []) as Array<{
-    feature_key: FeatureFlagKey;
-    enabled: boolean;
-  }>) {
-    if (FEATURE_FLAG_KEYS.includes(row.feature_key)) {
-      flags[row.feature_key] = Boolean(row.enabled);
-    }
-  }
-
-  // Basis-Stats sind für jeden Club erreichbar. Nur die einzelnen Stats-Module
-  // werden weiterhin pro Club über ihre eigenen Feature Flags gesteuert.
-  flags.player_stats_overview = true;
-
-  return flags;
+  return getFeatureFlagsForClubCached(clubId);
 }
 
 export async function isFeatureEnabledForClub(
