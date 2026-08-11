@@ -5,6 +5,7 @@ import { ArrowRight, CalendarDays, UserCheck, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type PresenceStatus = "in" | "out" | "open";
+type PendingAction = "in" | "out" | null;
 
 type NextSessionAttendanceCardProps = {
   sessionId: number;
@@ -84,6 +85,8 @@ export default function NextSessionAttendanceCard({
   const [presentCount, setPresentCount] = useState<number>(initialPresentCount);
   const [absentCount, setAbsentCount] = useState<number>(initialAbsentCount);
   const [busy, setBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [errorMessage, setErrorMessage] = useState("");
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -115,13 +118,18 @@ export default function NextSessionAttendanceCard({
   const remainingText =
     deadlineInfo && now ? getRemainingLabel(deadlineInfo.deadline, now) : null;
 
-  async function updateStatus(nextStatus: PresenceStatus) {
+  async function updateStatus(
+    nextStatus: PresenceStatus,
+    action: Exclude<PendingAction, null>,
+  ) {
     if (busy || status === nextStatus) return;
 
     const previousStatus = status;
 
     try {
       setBusy(true);
+      setPendingAction(action);
+      setErrorMessage("");
 
       const formData = new FormData();
       formData.set("intent", "set_self_presence");
@@ -161,8 +169,14 @@ export default function NextSessionAttendanceCard({
       }
     } catch (error) {
       console.error(error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Status konnte nicht gespeichert werden.",
+      );
     } finally {
       setBusy(false);
+      setPendingAction(null);
     }
   }
 
@@ -207,12 +221,19 @@ export default function NextSessionAttendanceCard({
         </div>
       ) : null}
 
+      {errorMessage ? (
+        <div className="relative mt-4 rounded-[18px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">
+          {errorMessage}
+        </div>
+      ) : null}
+
       <div className="relative mt-5 rounded-[28px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
         <div className="grid grid-cols-2 gap-1.5">
           <button
             type="button"
-            onClick={() => updateStatus(inActive ? "open" : "in")}
+            onClick={() => updateStatus(inActive ? "open" : "in", "in")}
             disabled={busy}
+            aria-busy={pendingAction === "in"}
             className={[
               "min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
               inActive
@@ -234,7 +255,7 @@ export default function NextSessionAttendanceCard({
 
               <span className="min-w-0">
                 <span className="block text-sm font-semibold tracking-[-0.03em]">
-                  {busy && inActive
+                  {pendingAction === "in"
                     ? "Speichert…"
                     : inActive
                       ? "Zugesagt"
@@ -254,8 +275,9 @@ export default function NextSessionAttendanceCard({
 
           <button
             type="button"
-            onClick={() => updateStatus(outActive ? "open" : "out")}
+            onClick={() => updateStatus(outActive ? "open" : "out", "out")}
             disabled={busy}
+            aria-busy={pendingAction === "out"}
             className={[
               "min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60",
               outActive
@@ -277,7 +299,7 @@ export default function NextSessionAttendanceCard({
 
               <span className="min-w-0">
                 <span className="block text-sm font-semibold tracking-[-0.03em]">
-                  {busy && outActive
+                  {pendingAction === "out"
                     ? "Speichert…"
                     : outActive
                       ? "Abgesagt"
