@@ -46,6 +46,10 @@ function getDemoMovementValue(rank: number, movement: number | null | undefined)
   return 0;
 }
 
+function formatWinRate(wins: number, sessions: number) {
+  if (sessions <= 0) return "–";
+  return `${Math.round((wins / sessions) * 100)}%`;
+}
 
 type RankingCard = {
   index: number;
@@ -55,7 +59,6 @@ type RankingCard = {
   exportId: string;
   fileBaseName: string;
 };
-
 
 type NavigatorWithFileShare = Navigator & {
   canShare?: (data: ShareData) => boolean;
@@ -145,7 +148,6 @@ async function shareOrDownloadStandingsBlob(blob: Blob, fileBaseName: string) {
   return "downloaded" as const;
 }
 
-
 type StandingsClientProps = {
   initialClubId: string;
   initialPrimaryColor?: string | null;
@@ -179,6 +181,7 @@ export default function StandingsClient({
   clubName = "dein Team",
 }: StandingsClientProps) {
   void initialClubId;
+  void clubName;
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -191,8 +194,8 @@ export default function StandingsClient({
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [sharingCardIndex, setSharingCardIndex] = useState<number | null>(null);
-  const [awardsStartedAt, setAwardsStartedAt] = useState<string | null>(null);
-  const [awardsOfficial, setAwardsOfficial] = useState(false);
+  const [, setAwardsStartedAt] = useState<string | null>(null);
+  const [, setAwardsOfficial] = useState(false);
   const [activeAward, setActiveAward] = useState<{
     playerName: string;
     award: TrainingAward;
@@ -283,6 +286,8 @@ export default function StandingsClient({
         setSeasons(payload.seasons ?? []);
         setSelected(payload.selected ?? "all");
         setRows(payload.rows ?? []);
+        setAwardsStartedAt(payload.awardsStartedAt ?? null);
+        setAwardsOfficial(payload.awardsOfficial === true);
       } catch (error: unknown) {
         if (cancelled) {
           return;
@@ -472,7 +477,6 @@ export default function StandingsClient({
 
         {!loading && !err && rows.length > 0 ? (
           <>
-
             <div
               id="export-standings"
               className="rounded-xl border border-slate-200 bg-white p-3"
@@ -493,27 +497,20 @@ export default function StandingsClient({
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-lg border border-slate-200">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full min-w-[430px] text-sm">
                   <thead className="bg-slate-50 text-[11px] text-slate-600">
                     <tr>
                       <th className="w-11 px-2 py-2 text-left">Platz</th>
                       <th className="px-1.5 py-2 text-left">Spieler</th>
                       <th className="w-12 px-1 py-2 text-right">Siege</th>
-                      <th className="w-14 px-1 py-2 text-right">
-                        Teiln.
-                      </th>
+                      <th className="w-14 px-1 py-2 text-right">Teiln.</th>
+                      <th className="w-16 px-1.5 py-2 text-right">Siegquote</th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    {rows.map((row) => {
-                      const tableDeltaRank =
-                        initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID
-                          ? getDemoMovementValue(row.rank, row.deltaRank)
-                          : row.deltaRank;
-
-                      return (
+                    {rows.map((row) => (
                       <tr
                         key={row.player_id}
                         className="border-t border-slate-100"
@@ -599,17 +596,20 @@ export default function StandingsClient({
                         <td className="px-1 py-2 text-right text-slate-700">
                           {row.sessions}
                         </td>
+
+                        <td className="px-1.5 py-2 text-right font-semibold text-slate-700">
+                          {formatWinRate(row.wins, row.sessions)}
+                        </td>
                       </tr>
-                      );
-                    })}
+                    ))}
                   </tbody>
                 </table>
               </div>
 
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-[10px] text-slate-500">
-                  Bewegung (↑/↓) = Vergleich zur Einheit davor in dieser
-                  Auswahl.
+                  Siegquote = Siege ÷ Teilnahmen · Bewegung (↑/↓) = Vergleich
+                  zur Einheit davor in dieser Auswahl.
                 </div>
 
                 <div className="text-[10px] font-medium text-slate-500">
