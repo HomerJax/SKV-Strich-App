@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/finalize-mvp-votings",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/purge-deleted-clubs",
+      "schedule": "15 3 * * *"
     }
   ]
 }
