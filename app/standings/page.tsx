@@ -13,15 +13,17 @@ export default async function StandingsPage() {
   const { clubId } = await requireClub();
   const supabase = await createClient();
 
-  const { data: clubData } = await supabase
-    .from("clubs")
-    .select("id, display_name, primary_color")
-    .eq("id", clubId)
-    .maybeSingle<ClubRow>();
+  const [{ data: clubData }, billingAccess] = await Promise.all([
+    supabase
+      .from("clubs")
+      .select("id, display_name, primary_color")
+      .eq("id", clubId)
+      .maybeSingle<ClubRow>(),
+    getClubBillingAccess(supabase, clubId),
+  ]);
 
   const primaryColorKey = clubData?.primary_color ?? "black";
   const clubName = clubData?.display_name?.trim() || "dein Team";
-  const billingAccess = await getClubBillingAccess(supabase, clubId);
 
   return (
     <StandingsClient
