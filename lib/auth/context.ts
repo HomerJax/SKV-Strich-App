@@ -103,10 +103,45 @@ export async function getAuthContext(): Promise<AuthContext> {
     throw new Error(`Failed to load user role: ${roleError.message}`);
   }
 
-  const normalizedPlayers = ((players ?? []) as AuthPlayer[]).filter(
+  const rawPlayers = ((players ?? []) as AuthPlayer[]).filter(
     (player) => !!player.club_id
   );
-  const normalizedMemberships = (memberships ?? []) as AuthMembership[];
+  const rawMemberships = (memberships ?? []) as AuthMembership[];
+  const referencedClubIds = [
+    ...new Set([
+      ...rawMemberships.map((membership) => membership.club_id),
+      ...rawPlayers
+        .map((player) => player.club_id)
+        .filter((clubId): clubId is string => Boolean(clubId)),
+    ]),
+  ];
+
+  let availableClubIds = new Set<string>();
+
+  if (referencedClubIds.length > 0) {
+    const { data: availableClubs, error: availableClubsError } = await supabase
+      .from("clubs")
+      .select("id")
+      .in("id", referencedClubIds)
+      .is("deleted_at", null);
+
+    if (availableClubsError) {
+      throw new Error(
+        `Failed to filter deleted clubs: ${availableClubsError.message}`
+      );
+    }
+
+    availableClubIds = new Set(
+      ((availableClubs ?? []) as { id: string }[]).map((club) => club.id)
+    );
+  }
+
+  const normalizedPlayers = rawPlayers.filter(
+    (player) => !!player.club_id && availableClubIds.has(player.club_id)
+  );
+  const normalizedMemberships = rawMemberships.filter((membership) =>
+    availableClubIds.has(membership.club_id)
+  );
   const cookieClubId = cookieStore.get("active_club_id")?.value ?? null;
   const isPowerUser = roleRow?.is_power_user === true;
 
@@ -119,6 +154,7 @@ export async function getAuthContext(): Promise<AuthContext> {
         .from("clubs")
         .select("id")
         .eq("id", cookieClubId)
+        .is("deleted_at", null)
         .maybeSingle<{ id: string }>();
 
       if (selectedClubError) {
