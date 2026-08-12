@@ -28,6 +28,50 @@ async function fileToBase64(file: File) {
   return btoa(binary);
 }
 
+function downloadFile(file: File) {
+  const url = URL.createObjectURL(file);
+
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name || "strikr-top-10.png";
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+}
+
+async function copyImageToClipboard(file: File) {
+  if (
+    typeof navigator === "undefined" ||
+    !navigator.clipboard ||
+    typeof navigator.clipboard.write !== "function" ||
+    typeof ClipboardItem === "undefined"
+  ) {
+    return false;
+  }
+
+  try {
+    const pngBlob =
+      file.type === "image/png"
+        ? file
+        : new Blob([await file.arrayBuffer()], { type: "image/png" });
+
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        "image/png": pngBlob,
+      }),
+    ]);
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function StandingsTop10Share() {
   const searchParams = useSearchParams();
   const season = searchParams.get("season");
@@ -130,17 +174,31 @@ export default function StandingsTop10Share() {
 
   async function shareWeb(file: File) {
     const nav = navigator as NavigatorWithFileShare;
-    const shareData: ShareData = { files: [file] };
+    const shareData: ShareData = {
+      files: [file],
+      title: "strikr Top 10",
+    };
 
-    if (typeof nav.share !== "function") {
-      throw new Error("Teilen wird auf diesem Gerät nicht unterstützt.");
+    if (typeof nav.share === "function") {
+      const canShareFiles = typeof nav.canShare !== "function" || nav.canShare(shareData);
+
+      if (canShareFiles) {
+        try {
+          await nav.share(shareData);
+          return "shared" as const;
+        } catch (error) {
+          if (!(error instanceof Error) || error.name !== "AbortError") {
+            throw error;
+          }
+        }
+      }
     }
 
-    if (typeof nav.canShare === "function" && !nav.canShare(shareData)) {
-      throw new Error("Bildfreigabe wird auf diesem Gerät nicht unterstützt.");
-    }
+    const copied = await copyImageToClipboard(file);
+    if (copied) return "copied" as const;
 
-    await nav.share(shareData);
+    downloadFile(file);
+    return "downloaded" as const;
   }
 
   async function handleShare() {
@@ -152,19 +210,21 @@ export default function StandingsTop10Share() {
     try {
       if (Capacitor.isNativePlatform()) {
         await shareNative(preparedFile);
+        setMessage("Top 10 erfolgreich geteilt.");
       } else {
-        await shareWeb(preparedFile);
-      }
+        const result = await shareWeb(preparedFile);
 
-      setMessage("Top 10 erfolgreich geteilt.");
+        if (result === "shared") {
+          setMessage("Top 10 erfolgreich geteilt.");
+        } else if (result === "copied") {
+          setMessage("Top 10 ist in der Zwischenablage – z. B. in WhatsApp mit Strg+V einfügen.");
+        } else {
+          setMessage("Top 10 wurde als Bild gespeichert.");
+        }
+      }
     } catch (error: unknown) {
       if (error instanceof Error && error.message === "NATIVE_SHARE_UPDATE_REQUIRED") {
         setMessage("Für das native Teilen ist ein App-Update erforderlich.");
-        return;
-      }
-
-      if (error instanceof Error && error.name === "AbortError") {
-        setMessage("Teilen wurde vom Gerät abgebrochen.");
         return;
       }
 
