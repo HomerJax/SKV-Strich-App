@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
+import { Capacitor } from "@capacitor/core";
+import { Directory, Filesystem } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { fetchImageAsFile } from "@/lib/share/utils";
 
 const TABLE_ID = "export-standings";
@@ -11,6 +14,19 @@ const PORTAL_ID = "standings-top10-share-portal";
 type NavigatorWithFileShare = Navigator & {
   canShare?: (data: ShareData) => boolean;
 };
+
+async function fileToBase64(file: File) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+
+  return btoa(binary);
+}
 
 export default function StandingsTop10Share() {
   const searchParams = useSearchParams();
@@ -91,6 +107,42 @@ export default function StandingsTop10Share() {
     };
   }, [season]);
 
+  async function shareNative(file: File) {
+    if (!Capacitor.isPluginAvailable("Share") || !Capacitor.isPluginAvailable("Filesystem")) {
+      throw new Error("NATIVE_SHARE_UPDATE_REQUIRED");
+    }
+
+    const data = await fileToBase64(file);
+    const path = `share/${Date.now()}-strikr-top-10.png`;
+    const written = await Filesystem.writeFile({
+      path,
+      data,
+      directory: Directory.Cache,
+      recursive: true,
+    });
+
+    await Share.share({
+      title: "strikr Top 10",
+      files: [written.uri],
+      dialogTitle: "Top 10 teilen",
+    });
+  }
+
+  async function shareWeb(file: File) {
+    const nav = navigator as NavigatorWithFileShare;
+    const shareData: ShareData = { files: [file] };
+
+    if (typeof nav.share !== "function") {
+      throw new Error("Teilen wird auf diesem Gerät nicht unterstützt.");
+    }
+
+    if (typeof nav.canShare === "function" && !nav.canShare(shareData)) {
+      throw new Error("Bildfreigabe wird auf diesem Gerät nicht unterstützt.");
+    }
+
+    await nav.share(shareData);
+  }
+
   async function handleShare() {
     if (!preparedFile || sharing) return;
 
@@ -98,26 +150,25 @@ export default function StandingsTop10Share() {
     setMessage(null);
 
     try {
-      const nav = navigator as NavigatorWithFileShare;
-      const shareData: ShareData = { files: [preparedFile] };
-
-      if (typeof nav.share !== "function") {
-        throw new Error("Teilen wird auf diesem Gerät nicht unterstützt.");
+      if (Capacitor.isNativePlatform()) {
+        await shareNative(preparedFile);
+      } else {
+        await shareWeb(preparedFile);
       }
 
-      if (typeof nav.canShare === "function" && !nav.canShare(shareData)) {
-        throw new Error("Bildfreigabe wird auf diesem Gerät nicht unterstützt.");
-      }
-
-      await nav.share(shareData);
       setMessage("Top 10 erfolgreich geteilt.");
     } catch (error: unknown) {
+      if (error instanceof Error && error.message === "NATIVE_SHARE_UPDATE_REQUIRED") {
+        setMessage("Für das native Teilen ist ein App-Update erforderlich.");
+        return;
+      }
+
       if (error instanceof Error && error.name === "AbortError") {
         setMessage("Teilen wurde vom Gerät abgebrochen.");
         return;
       }
 
-      const detail = error instanceof Error ? `${error.name}: ${error.message}` : "Unbekannter Fehler";
+      const detail = error instanceof Error ? error.message : "Unbekannter Fehler";
       setMessage(`Teilen nicht möglich (${detail}).`);
     } finally {
       setSharing(false);
