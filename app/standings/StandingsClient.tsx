@@ -58,13 +58,6 @@ function formatWinRate(wins: number, sessions: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-function rankBadgeClass(rank: number) {
-  if (rank === 1) return "bg-slate-950 text-white shadow-sm";
-  if (rank === 2) return "bg-slate-200 text-slate-950";
-  if (rank === 3) return "bg-stone-200 text-stone-950";
-  return "bg-slate-100 text-slate-700";
-}
-
 type RankingCard = {
   index: number;
   rows: RankRow[];
@@ -439,10 +432,10 @@ export default function StandingsClient({
 
                   <tbody>
                     {sortedRows.map((row) => (
-                      <tr key={row.player_id} className="border-t border-slate-100 transition hover:bg-slate-50/70">
+                      <tr key={row.player_id} data-rank={row.rank} className="border-t border-slate-100 transition hover:bg-slate-50/70">
                         <td className="px-2 py-2 align-middle">
                           <div className="flex items-center gap-1.5">
-                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${rankBadgeClass(row.rank)}`}>{row.rank}</div>
+                            <div className="shrink-0 text-sm font-black leading-none text-slate-700">{row.rank}</div>
                             <div className={`text-[10px] font-semibold ${movementClass(initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID ? getDemoMovementValue(row.rank, row.deltaRank) : row.deltaRank)}`}>
                               {movementText(initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID ? getDemoMovementValue(row.rank, row.deltaRank) : row.deltaRank)}
                             </div>
