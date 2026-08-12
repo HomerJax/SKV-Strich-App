@@ -59,6 +59,17 @@
   width: 21%;
 }
 
+/* Platz ist nur Anzeige, nicht sortierbar. */
+#export-standings thead th:first-child button {
+  pointer-events: none;
+  cursor: default;
+  color: #64748b;
+}
+
+#export-standings thead th:first-child button span {
+  display: none;
+}
+
 #export-standings thead th:nth-child(3) {
   cursor: pointer;
 }
@@ -75,13 +86,14 @@
   vertical-align: middle;
 }
 
-/* Platz + Bewegung: nur Text, komplett ohne Badge/Bubble. */
+/* Platz + Bewegung bewusst einzeilig und kompakt. */
 #export-standings tbody td:first-child > div:first-child {
   display: flex;
   min-width: 0;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 5px;
+  gap: 4px;
   height: auto;
   border-radius: 0;
   background: transparent;
@@ -93,6 +105,7 @@
   width: auto;
   min-width: 14px;
   height: auto;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: flex-start;
   padding: 0;
@@ -109,6 +122,7 @@
 #export-standings tbody td:first-child > div > div:nth-child(2) {
   position: static;
   margin: 0;
+  flex: 0 0 auto;
   white-space: nowrap;
   font-size: 9px;
   line-height: 1;
@@ -133,12 +147,21 @@
   padding-right: 4px;
 }
 
+/* Alle Kennzahlen zunächst neutral. Nur die aktive Sortierung bekommt Farbe. */
+#export-standings thead th:nth-child(3),
+#export-standings thead th:nth-child(4),
+#export-standings thead th:nth-child(5),
+#export-standings tbody td:nth-child(3),
+#export-standings tbody td:nth-child(4),
+#export-standings tbody td:nth-child(5) {
+  color: #334155 !important;
+}
+
 #export-standings tbody td:nth-child(3),
 #export-standings tbody td:nth-child(4),
 #export-standings tbody td:nth-child(5) {
   padding-left: 2px;
   padding-right: 2px;
-  color: #334155;
   font-weight: 650;
 }
 
@@ -147,26 +170,22 @@
   font-weight: 700;
 }
 
-/* Keine Spalte ist pauschal blau: nur die aktive Sortierung bekommt Fokus. */
 #export-standings[data-sort-accent="wins"] thead th:nth-child(3),
 #export-standings[data-sort-accent="wins"] tbody td:nth-child(3),
 #export-standings[data-sort-accent="sessions"] thead th:nth-child(4),
 #export-standings[data-sort-accent="sessions"] tbody td:nth-child(4),
 #export-standings[data-sort-accent="winRate"] thead th:nth-child(5),
-#export-standings[data-sort-accent="winRate"] tbody td:nth-child(5),
-#export-standings[data-sort-accent="rank"] thead th:nth-child(1),
-#export-standings[data-sort-accent="rank"] tbody td:nth-child(1) {
+#export-standings[data-sort-accent="winRate"] tbody td:nth-child(5) {
   color: #2563eb !important;
   font-weight: 900 !important;
 }
 
-#export-standings[data-sort-accent="rank"] thead th:nth-child(1) button,
 #export-standings[data-sort-accent="sessions"] thead th:nth-child(4) button,
 #export-standings[data-sort-accent="winRate"] thead th:nth-child(5) button {
   color: #2563eb !important;
 }
 
-/* Sieger-Spalte bekommt ihren eigenen Sortierindikator, weil sie im JSX kein Button ist. */
+/* Siege ist die Hauptsortierung. */
 #export-standings thead th:nth-child(3)::after {
   content: "↕";
   margin-left: 3px;
@@ -244,8 +263,8 @@
   }
 
   #export-standings tbody td {
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
 
   #export-standings tbody td:first-child {
