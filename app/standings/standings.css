@@ -204,40 +204,17 @@
   color: #2563eb;
 }
 
-/* Share-Bereich bleibt ruhig; Top 10 ist weiterhin der primäre Export. */
+/* Die alte Mehrkarten-/PNG-/PDF-Exportsektion wird durch den nativen Top-10-Share ersetzt. */
 #export-standings + div {
-  border-radius: 24px;
-  padding: 16px;
-  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.045);
+  display: none !important;
 }
 
-#export-standings + div > div:nth-child(2) > div {
-  position: relative;
-  border-radius: 18px;
-}
-
-#export-standings + div > div:nth-child(2) > div:first-child {
-  border-color: rgba(139, 92, 246, 0.18);
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.04), rgba(139, 92, 246, 0.035), #fff 76%);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
-}
-
-#export-standings + div > div:nth-child(2) > div:first-child::before {
-  content: "EMPFOHLEN · TOP 10";
-  display: inline-flex;
-  margin-bottom: 10px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #f97316 0%, #8b5cf6 100%);
-  padding: 5px 9px;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
+.standings-top10-share {
+  margin-top: 16px;
 }
 
 @media (max-width: 640px) {
-  #export-standings,
-  #export-standings + div {
+  #export-standings {
     border-radius: 20px;
     padding: 12px;
   }
@@ -280,5 +257,11 @@
   #export-standings tbody td:nth-child(4),
   #export-standings tbody td:nth-child(5) {
     font-size: 12px;
+  }
+
+  .standings-top10-share {
+    margin-top: 12px;
+    border-radius: 20px;
+    padding: 12px;
   }
 }
