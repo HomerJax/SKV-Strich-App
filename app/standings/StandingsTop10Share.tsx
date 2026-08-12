@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import * as htmlToImage from "html-to-image";
+import { useSearchParams } from "next/navigation";
+import { fetchImageAsFile } from "@/lib/share/utils";
 
-const TARGET_ID = "export-standings-card-1";
 const TABLE_ID = "export-standings";
 const PORTAL_ID = "standings-top10-share-portal";
 
@@ -12,39 +12,9 @@ type NavigatorWithFileShare = Navigator & {
   canShare?: (data: ShareData) => boolean;
 };
 
-function pad(value: number) {
-  return String(value).padStart(2, "0");
-}
-
-function buildFileName() {
-  const now = new Date();
-  return `strikr-top-10-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-    now.getDate()
-  )}_${pad(now.getHours())}-${pad(now.getMinutes())}.png`;
-}
-
-async function dataUrlToFile(dataUrl: string) {
-  const response = await fetch(dataUrl);
-  const blob = await response.blob();
-  return new File([blob], buildFileName(), { type: "image/png" });
-}
-
-function downloadFile(file: File) {
-  const url = URL.createObjectURL(file);
-  try {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = file.name;
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } finally {
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-}
-
 export default function StandingsTop10Share() {
+  const searchParams = useSearchParams();
+  const season = searchParams.get("season");
   const [preparedFile, setPreparedFile] = useState<File | null>(null);
   const [preparing, setPreparing] = useState(true);
   const [sharing, setSharing] = useState(false);
@@ -88,39 +58,19 @@ export default function StandingsTop10Share() {
 
   useEffect(() => {
     let cancelled = false;
-    let preparingNow = false;
-    let observer: MutationObserver | null = null;
 
     async function prepare() {
-      if (preparingNow || cancelled) return;
-
-      const element = document.getElementById(TARGET_ID);
-      if (!element) return;
-
-      preparingNow = true;
-      setPreparing(true);
-      setPreparedFile(null);
-      setMessage(null);
-
       try {
-        await new Promise<void>((resolve) => {
-          window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
-        });
-
-        const dataUrl = await htmlToImage.toPng(element, {
-          cacheBust: true,
-          pixelRatio: Math.max(2, Math.min(3, window.devicePixelRatio || 2)),
-          backgroundColor: "#020617",
-          skipFonts: false,
-        });
-
-        const file = await dataUrlToFile(dataUrl);
-        if (cancelled) return;
-
-        setPreparedFile(file);
+        setPreparing(true);
+        setPreparedFile(null);
         setMessage(null);
-        observer?.disconnect();
-        observer = null;
+
+        const query = season ? `?season=${encodeURIComponent(season)}` : "";
+        const imageUrl = `/api/share/standings/image${query}${query ? "&" : "?"}ts=${Date.now()}`;
+        const file = await fetchImageAsFile(imageUrl, "strikr-top-10.png");
+
+        if (cancelled) return;
+        setPreparedFile(file);
       } catch (error) {
         if (cancelled) return;
         setPreparedFile(null);
@@ -131,24 +81,15 @@ export default function StandingsTop10Share() {
         );
       } finally {
         if (!cancelled) setPreparing(false);
-        preparingNow = false;
       }
     }
 
     void prepare();
 
-    if (!document.getElementById(TARGET_ID)) {
-      observer = new MutationObserver(() => {
-        if (document.getElementById(TARGET_ID)) void prepare();
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-
     return () => {
       cancelled = true;
-      observer?.disconnect();
     };
-  }, []);
+  }, [season]);
 
   async function handleShare() {
     if (!preparedFile || sharing) return;
@@ -160,21 +101,19 @@ export default function StandingsTop10Share() {
       const nav = navigator as NavigatorWithFileShare;
       const shareData: ShareData = { files: [preparedFile] };
 
-      if (typeof nav.share === "function") {
-        if (typeof nav.canShare === "function" && !nav.canShare(shareData)) {
-          throw new Error("Bildfreigabe wird auf diesem Gerät nicht unterstützt.");
-        }
-
-        await nav.share(shareData);
-        setMessage("Top 10 erfolgreich geteilt.");
-        return;
+      if (typeof nav.share !== "function") {
+        throw new Error("Teilen wird auf diesem Gerät nicht unterstützt.");
       }
 
-      downloadFile(preparedFile);
-      setMessage("Top 10 als Bild gespeichert.");
+      if (typeof nav.canShare === "function" && !nav.canShare(shareData)) {
+        throw new Error("Bildfreigabe wird auf diesem Gerät nicht unterstützt.");
+      }
+
+      await nav.share(shareData);
+      setMessage("Top 10 erfolgreich geteilt.");
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") {
-        setMessage(null);
+        setMessage("Teilen wurde vom Gerät abgebrochen.");
         return;
       }
 
