@@ -72,6 +72,11 @@ async function copyImageToClipboard(file: File) {
   }
 }
 
+function isMobileWeb() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
+}
+
 export default function StandingsTop10Share() {
   const searchParams = useSearchParams();
   const season = searchParams.get("season");
@@ -173,6 +178,14 @@ export default function StandingsTop10Share() {
   }
 
   async function shareWeb(file: File) {
+    if (!isMobileWeb()) {
+      const copied = await copyImageToClipboard(file);
+      if (copied) return "copied" as const;
+
+      downloadFile(file);
+      return "downloaded" as const;
+    }
+
     const nav = navigator as NavigatorWithFileShare;
     const shareData: ShareData = {
       files: [file],
