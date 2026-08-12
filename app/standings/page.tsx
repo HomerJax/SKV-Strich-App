@@ -3,6 +3,7 @@ import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { createClient } from "@/lib/supabase/server";
 import StandingsClient from "./StandingsClient";
 import StandingsSortAccent from "./StandingsSortAccent";
+import StandingsTop10Share from "./StandingsTop10Share";
 import "./standings.css";
 
 type ClubRow = {
@@ -35,6 +36,7 @@ export default async function StandingsPage() {
         isPro={billingAccess.isPro}
         clubName={clubName}
       />
+      <StandingsTop10Share />
       <StandingsSortAccent />
     </>
   );
