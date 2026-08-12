@@ -11,7 +11,11 @@ const config: CapacitorConfig = {
     cleartext: false,
   },
   ios: {
-    includePlugins: ["@capacitor-firebase/messaging"],
+    includePlugins: [
+      "@capacitor-firebase/messaging",
+      "@capacitor/filesystem",
+      "@capacitor/share",
+    ],
   },
   plugins: {
     FirebaseMessaging: {
