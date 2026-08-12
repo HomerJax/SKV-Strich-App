@@ -75,7 +75,7 @@
   vertical-align: middle;
 }
 
-/* Platz + Bewegung auf genau einer Linie, komplett ohne Badge/Bubble. */
+/* Platz + Bewegung: nur Text, komplett ohne Badge/Bubble. */
 #export-standings tbody td:first-child > div:first-child {
   display: flex;
   min-width: 0;
@@ -99,7 +99,7 @@
   border-radius: 0;
   background: transparent !important;
   box-shadow: none !important;
-  color: #334155;
+  color: #334155 !important;
   font-size: 15px;
   line-height: 1;
   font-weight: 900;
@@ -114,20 +114,17 @@
   font-weight: 800;
 }
 
-/* Top 3 nur über die Platznummer akzentuieren – keine bunten Zeilenflächen. */
-#export-standings tbody tr:has(td:first-child .bg-slate-950) td:first-child > div > div:first-child {
-  color: #f97316 !important;
-  font-size: 17px;
+/* Podium: nur dezente Home-Farben im Zeilenhintergrund. Keine Rahmen oder farbigen Rang-Badges. */
+#export-standings tbody tr:has(td:first-child .bg-slate-950) {
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.11) 0%, rgba(249, 115, 22, 0.035) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
-#export-standings tbody tr:has(td:first-child .bg-slate-200) td:first-child > div > div:first-child {
-  color: #7c3aed !important;
-  font-size: 16px;
+#export-standings tbody tr:has(td:first-child .bg-slate-200) {
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.09) 0%, rgba(124, 58, 237, 0.025) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
-#export-standings tbody tr:has(td:first-child .bg-stone-200) td:first-child > div > div:first-child {
-  color: #0891b2 !important;
-  font-size: 16px;
+#export-standings tbody tr:has(td:first-child .bg-stone-200) {
+  background: linear-gradient(90deg, rgba(8, 145, 178, 0.09) 0%, rgba(8, 145, 178, 0.025) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
 #export-standings tbody td:nth-child(2) {
