@@ -6,11 +6,11 @@
   box-shadow: 0 10px 32px rgba(15, 23, 42, 0.06);
 }
 
-/* Important: the table itself must never be clipped on mobile. */
+/* Keep the table fully visible on mobile. */
 #export-standings > div:nth-child(2) {
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
-  border-radius: 18px;
+  border-radius: 14px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -33,10 +33,11 @@
   font-weight: 800;
   letter-spacing: -0.01em;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
+  color: #475569;
 }
 
-/* Fixed mobile-friendly proportions: rank | player | wins | sessions | win rate. */
+/* Mobile-friendly proportions: rank | player | wins | sessions | win rate. */
 #export-standings th:nth-child(1),
 #export-standings td:nth-child(1) {
   width: 11%;
@@ -44,17 +45,17 @@
 
 #export-standings th:nth-child(2),
 #export-standings td:nth-child(2) {
-  width: 43%;
+  width: 41%;
 }
 
 #export-standings th:nth-child(3),
 #export-standings td:nth-child(3) {
-  width: 12%;
+  width: 13%;
 }
 
 #export-standings th:nth-child(4),
 #export-standings td:nth-child(4) {
-  width: 14%;
+  width: 15%;
 }
 
 #export-standings th:nth-child(5),
@@ -71,75 +72,81 @@
   background: #f8fafc;
 }
 
-/* Remove the old combined bubble around rank + movement. */
+#export-standings tbody td {
+  vertical-align: middle;
+}
+
+/* Rank + movement: no bubble, no frame. The movement is positioned below
+   without changing the vertical alignment of the rank number itself. */
 #export-standings tbody td:first-child > div:first-child {
+  position: relative;
   display: flex;
   min-width: 0;
-  height: auto;
-  align-items: flex-start;
+  height: 34px;
+  align-items: center;
   justify-content: flex-start;
-  gap: 2px;
+  gap: 0;
   border-radius: 0;
   background: transparent;
   color: inherit;
   box-shadow: none;
 }
 
-/* Rank number: no box, just a strong number. */
 #export-standings tbody td:first-child > div > div:first-child {
-  display: block;
+  display: flex;
   width: auto;
   min-width: 22px;
   height: auto;
+  align-items: center;
+  justify-content: flex-start;
   padding: 0;
   border-radius: 0;
   background: transparent !important;
   box-shadow: none !important;
   color: #334155;
   font-size: 15px;
-  line-height: 1.05;
+  line-height: 1;
   font-weight: 900;
   text-align: left;
 }
 
-/* Movement stays tiny and unframed. */
 #export-standings tbody td:first-child > div > div:nth-child(2) {
-  margin-top: 17px;
-  margin-left: -22px;
+  position: absolute;
+  left: 0;
+  top: 25px;
+  margin: 0;
   white-space: nowrap;
   font-size: 9px;
   line-height: 1;
   font-weight: 800;
 }
 
-/* Home-inspired neon accents: orange + violet, with navy as the base. */
+/* Home-inspired top-three accents: warm orange, violet and cyan on navy/slate. */
 #export-standings tbody tr:has(td:first-child .bg-slate-950) {
-  background: linear-gradient(90deg, rgba(249, 115, 22, 0.09) 0%, rgba(139, 92, 246, 0.075) 44%, rgba(255, 255, 255, 0) 82%);
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.09) 0%, rgba(139, 92, 246, 0.07) 46%, rgba(255, 255, 255, 0) 84%);
 }
 
 #export-standings tbody tr:has(td:first-child .bg-slate-950) td:first-child > div > div:first-child {
-  background: linear-gradient(135deg, #f97316 5%, #8b5cf6 92%) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  color: transparent !important;
+  color: #f97316 !important;
   font-size: 19px;
-  text-shadow: 0 0 16px rgba(139, 92, 246, 0.18);
 }
 
 #export-standings tbody tr:has(td:first-child .bg-slate-200) {
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.045), rgba(255, 255, 255, 0) 70%);
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.055), rgba(255, 255, 255, 0) 72%);
 }
 
 #export-standings tbody tr:has(td:first-child .bg-slate-200) td:first-child > div > div:first-child {
   color: #7c3aed !important;
+  font-size: 17px;
 }
 
 #export-standings tbody tr:has(td:first-child .bg-stone-200) {
-  background: linear-gradient(90deg, rgba(249, 115, 22, 0.045), rgba(255, 255, 255, 0) 70%);
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.055), rgba(255, 255, 255, 0) 72%);
 }
 
 #export-standings tbody tr:has(td:first-child .bg-stone-200) td:first-child > div > div:first-child {
-  color: #ea580c !important;
+  color: #0891b2 !important;
+  font-size: 17px;
 }
 
 #export-standings tbody td:nth-child(2) {
@@ -152,11 +159,33 @@
 #export-standings tbody td:nth-child(5) {
   padding-left: 2px;
   padding-right: 2px;
+  color: #334155;
+  font-weight: 600;
 }
 
 #export-standings tbody td:last-child {
-  font-weight: 900;
-  color: #7c3aed;
+  color: #334155;
+  font-weight: 700;
+  padding-right: 6px;
+}
+
+/* Active sort accent. In the official ranking view, wins are the emphasized
+   performance value; switching to sessions or win rate moves the accent. */
+#export-standings[data-sort-accent="rank"] thead th:nth-child(1),
+#export-standings[data-sort-accent="rank"] thead th:nth-child(3),
+#export-standings[data-sort-accent="rank"] tbody td:nth-child(3),
+#export-standings[data-sort-accent="sessions"] thead th:nth-child(4),
+#export-standings[data-sort-accent="sessions"] tbody td:nth-child(4),
+#export-standings[data-sort-accent="winRate"] thead th:nth-child(5),
+#export-standings[data-sort-accent="winRate"] tbody td:nth-child(5) {
+  color: #2563eb !important;
+  font-weight: 900 !important;
+}
+
+#export-standings[data-sort-accent="rank"] thead th:nth-child(1) button,
+#export-standings[data-sort-accent="sessions"] thead th:nth-child(4) button,
+#export-standings[data-sort-accent="winRate"] thead th:nth-child(5) button {
+  color: #2563eb !important;
 }
 
 /* The first share range is the default social card. Later ranges remain available, but quieter. */
@@ -214,7 +243,9 @@
   }
 
   #export-standings thead th:last-child {
-    padding-right: 0;
+    padding-left: 1px;
+    padding-right: 7px;
+    font-size: 9.5px;
   }
 
   #export-standings tbody td {
