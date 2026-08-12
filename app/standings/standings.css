@@ -1,4 +1,4 @@
-/* Standings polish: keep the full table readable in-app, while the share cards stay compact. */
+/* Standings polish: compact, mobile-first and aligned with the Home visual language. */
 #export-standings {
   border-radius: 24px;
   border-color: rgb(226 232 240);
@@ -6,12 +6,18 @@
   box-shadow: 0 10px 32px rgba(15, 23, 42, 0.06);
 }
 
+/* Important: the table itself must never be clipped on mobile. */
 #export-standings > div:nth-child(2) {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-radius: 18px;
+  -webkit-overflow-scrolling: touch;
 }
 
 #export-standings table {
+  width: 100%;
+  min-width: 0 !important;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
   font-variant-numeric: tabular-nums;
@@ -25,61 +31,132 @@
   padding-top: 10px;
   padding-bottom: 10px;
   font-weight: 800;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Fixed mobile-friendly proportions: rank | player | wins | sessions | win rate. */
+#export-standings th:nth-child(1),
+#export-standings td:nth-child(1) {
+  width: 11%;
+}
+
+#export-standings th:nth-child(2),
+#export-standings td:nth-child(2) {
+  width: 43%;
+}
+
+#export-standings th:nth-child(3),
+#export-standings td:nth-child(3) {
+  width: 12%;
+}
+
+#export-standings th:nth-child(4),
+#export-standings td:nth-child(4) {
+  width: 14%;
+}
+
+#export-standings th:nth-child(5),
+#export-standings td:nth-child(5) {
+  width: 20%;
 }
 
 #export-standings tbody tr {
   background: #fff;
-  transition: background-color 160ms ease, transform 160ms ease;
+  transition: background-color 160ms ease;
 }
 
 #export-standings tbody tr:hover {
   background: #f8fafc;
 }
 
-#export-standings tbody tr:nth-child(1) {
-  background: linear-gradient(90deg, rgba(15, 23, 42, 0.055), rgba(255, 255, 255, 0));
-}
-
-#export-standings tbody tr:nth-child(2) {
-  background: linear-gradient(90deg, rgba(148, 163, 184, 0.09), rgba(255, 255, 255, 0));
-}
-
-#export-standings tbody tr:nth-child(3) {
-  background: linear-gradient(90deg, rgba(214, 211, 209, 0.12), rgba(255, 255, 255, 0));
-}
-
+/* Remove the old combined bubble around rank + movement. */
 #export-standings tbody td:first-child > div:first-child {
-  display: inline-flex;
-  min-width: 30px;
-  height: 30px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: #f1f5f9;
+  display: flex;
+  min-width: 0;
+  height: auto;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
+/* Rank number: no box, just a strong number. */
+#export-standings tbody td:first-child > div > div:first-child {
+  display: block;
+  width: auto;
+  min-width: 22px;
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
   color: #334155;
+  font-size: 15px;
+  line-height: 1.05;
   font-weight: 900;
+  text-align: left;
 }
 
-#export-standings tbody tr:nth-child(1) td:first-child > div:first-child {
-  background: #0f172a;
-  color: #fff;
-  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18);
+/* Movement stays tiny and unframed. */
+#export-standings tbody td:first-child > div > div:nth-child(2) {
+  margin-top: 17px;
+  margin-left: -22px;
+  white-space: nowrap;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 800;
 }
 
-#export-standings tbody tr:nth-child(2) td:first-child > div:first-child {
-  background: #cbd5e1;
-  color: #0f172a;
+/* Home-inspired neon accents: orange + violet, with navy as the base. */
+#export-standings tbody tr:has(td:first-child .bg-slate-950) {
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.09) 0%, rgba(139, 92, 246, 0.075) 44%, rgba(255, 255, 255, 0) 82%);
 }
 
-#export-standings tbody tr:nth-child(3) td:first-child > div:first-child {
-  background: #e7e5e4;
-  color: #1c1917;
+#export-standings tbody tr:has(td:first-child .bg-slate-950) td:first-child > div > div:first-child {
+  background: linear-gradient(135deg, #f97316 5%, #8b5cf6 92%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  font-size: 19px;
+  text-shadow: 0 0 16px rgba(139, 92, 246, 0.18);
+}
+
+#export-standings tbody tr:has(td:first-child .bg-slate-200) {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.045), rgba(255, 255, 255, 0) 70%);
+}
+
+#export-standings tbody tr:has(td:first-child .bg-slate-200) td:first-child > div > div:first-child {
+  color: #7c3aed !important;
+}
+
+#export-standings tbody tr:has(td:first-child .bg-stone-200) {
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.045), rgba(255, 255, 255, 0) 70%);
+}
+
+#export-standings tbody tr:has(td:first-child .bg-stone-200) td:first-child > div > div:first-child {
+  color: #ea580c !important;
+}
+
+#export-standings tbody td:nth-child(2) {
+  padding-left: 2px;
+  padding-right: 3px;
+}
+
+#export-standings tbody td:nth-child(3),
+#export-standings tbody td:nth-child(4),
+#export-standings tbody td:nth-child(5) {
+  padding-left: 2px;
+  padding-right: 2px;
 }
 
 #export-standings tbody td:last-child {
-  font-weight: 800;
-  color: #0f172a;
+  font-weight: 900;
+  color: #7c3aed;
 }
 
 /* The first share range is the default social card. Later ranges remain available, but quieter. */
@@ -95,8 +172,8 @@
 }
 
 #export-standings + div > div:nth-child(2) > div:first-child {
-  border-color: #cbd5e1;
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 70%);
+  border-color: rgba(139, 92, 246, 0.25);
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.055) 0%, rgba(139, 92, 246, 0.045) 42%, #ffffff 78%);
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
 }
 
@@ -105,12 +182,13 @@
   display: inline-flex;
   margin-bottom: 10px;
   border-radius: 999px;
-  background: #0f172a;
+  background: linear-gradient(135deg, #f97316 0%, #8b5cf6 100%);
   padding: 5px 9px;
   color: #fff;
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.12em;
+  box-shadow: 0 5px 16px rgba(139, 92, 246, 0.16);
 }
 
 #export-standings + div > div:nth-child(2) > div:not(:first-child) {
@@ -125,9 +203,37 @@
     padding: 12px;
   }
 
-  #export-standings tbody td:first-child > div:first-child {
-    min-width: 28px;
-    height: 28px;
-    border-radius: 9px;
+  #export-standings thead th {
+    font-size: 10px;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  #export-standings thead th:first-child {
+    padding-left: 0;
+  }
+
+  #export-standings thead th:last-child {
+    padding-right: 0;
+  }
+
+  #export-standings tbody td {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  #export-standings tbody td:first-child {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  #export-standings tbody td:nth-child(2) span {
+    font-size: 12px;
+  }
+
+  #export-standings tbody td:nth-child(3),
+  #export-standings tbody td:nth-child(4),
+  #export-standings tbody td:nth-child(5) {
+    font-size: 12px;
   }
 }
