@@ -96,6 +96,7 @@
   align-items: center;
   justify-content: flex-start;
   padding: 0;
+  border: 0;
   border-radius: 0;
   background: transparent !important;
   box-shadow: none !important;
@@ -114,16 +115,16 @@
   font-weight: 800;
 }
 
-/* Podium: nur dezente Home-Farben im Zeilenhintergrund. Keine Rahmen oder farbigen Rang-Badges. */
-#export-standings tbody tr:has(td:first-child .bg-slate-950) {
+/* Podium: nur dezente Home-Farben im Zeilenhintergrund. */
+#export-standings tbody tr[data-rank="1"] {
   background: linear-gradient(90deg, rgba(249, 115, 22, 0.11) 0%, rgba(249, 115, 22, 0.035) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
-#export-standings tbody tr:has(td:first-child .bg-slate-200) {
+#export-standings tbody tr[data-rank="2"] {
   background: linear-gradient(90deg, rgba(124, 58, 237, 0.09) 0%, rgba(124, 58, 237, 0.025) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
-#export-standings tbody tr:has(td:first-child .bg-stone-200) {
+#export-standings tbody tr[data-rank="3"] {
   background: linear-gradient(90deg, rgba(8, 145, 178, 0.09) 0%, rgba(8, 145, 178, 0.025) 58%, rgba(255, 255, 255, 0) 100%);
 }
 
