@@ -114,3 +114,119 @@ button:disabled,
     transform: rotate(360deg);
   }
 }
+
+/* Mobile standings: alles Wichtige ohne horizontales Scrollen sichtbar.
+   Die Rang-Badges greifen das Blau/Slate-Spektrum der Home-Navigation auf. */
+@media (max-width: 640px) {
+  #export-standings {
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+
+  #export-standings > div:nth-of-type(2) {
+    overflow-x: hidden !important;
+  }
+
+  #export-standings table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed;
+  }
+
+  #export-standings th,
+  #export-standings td {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+
+  #export-standings th:nth-child(1),
+  #export-standings td:nth-child(1) {
+    width: 44px !important;
+  }
+
+  #export-standings th:nth-child(2),
+  #export-standings td:nth-child(2) {
+    width: auto !important;
+  }
+
+  #export-standings th:nth-child(3),
+  #export-standings td:nth-child(3) {
+    width: 42px !important;
+  }
+
+  #export-standings th:nth-child(4),
+  #export-standings td:nth-child(4) {
+    width: 48px !important;
+  }
+
+  #export-standings th:nth-child(5),
+  #export-standings td:nth-child(5) {
+    width: 58px !important;
+  }
+
+  #export-standings th {
+    font-size: 10px !important;
+  }
+
+  #export-standings th button {
+    gap: 2px !important;
+    font-size: 10px !important;
+    white-space: normal;
+    line-height: 1.05;
+  }
+
+  #export-standings tbody td:first-child > div {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px !important;
+  }
+
+  #export-standings tbody td:first-child > div > div:first-child {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 10px !important;
+    background: #eff6ff !important;
+    color: #334155 !important;
+    box-shadow: none !important;
+  }
+
+  #export-standings tbody td:first-child > div > div:first-child.bg-slate-950 {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    box-shadow: 0 5px 14px rgba(37, 99, 235, 0.22) !important;
+  }
+
+  #export-standings tbody td:first-child > div > div:first-child.bg-slate-200 {
+    background: #dbeafe !important;
+    color: #1e3a5f !important;
+  }
+
+  #export-standings tbody td:first-child > div > div:first-child.bg-stone-200 {
+    background: #e8eef8 !important;
+    color: #334155 !important;
+  }
+
+  #export-standings tbody td:first-child > div > div:nth-child(2) {
+    min-height: 12px;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    white-space: nowrap;
+  }
+
+  #export-standings tbody td:nth-child(2) span:first-child {
+    max-width: 100%;
+    font-size: 12px !important;
+  }
+
+  #export-standings tbody td:nth-child(3),
+  #export-standings tbody td:nth-child(4),
+  #export-standings tbody td:nth-child(5) {
+    font-size: 12px !important;
+  }
+
+  #export-standings tbody td:nth-child(5) {
+    color: #1d4ed8 !important;
+    font-weight: 800 !important;
+  }
+}
