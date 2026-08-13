@@ -5,130 +5,23 @@ import { getPlayerDisplayName } from "@/lib/player-display";
 import type { Player, TeamSide } from "./session-types";
 import { ageBadgeColor, badgeColor, positionLabel } from "./session-ui";
 
-type TeamMeta = {
-  gk: number;
-  def: number;
-  att: number;
-  ah: number;
-  u32: number;
-};
-
-type SessionTeamsCardProps = {
-  teamA: Player[];
-  teamB: Player[];
-  unassigned: Player[];
-  metaA: TeamMeta;
-  metaB: TeamMeta;
-  hasResult: boolean;
-  saving: boolean;
-  teamsComplete: boolean;
-  teamsConfirmed: boolean;
-  canShareLineup: boolean;
-  sharingLineup: boolean;
-  collapsed: boolean;
-  attendanceDirty: boolean;
-  enableFieldView?: boolean;
-  onToggleCollapsed: () => void;
-  onGenerateTeams: () => void;
-  onConfirmTeams: () => void;
-  onShareLineup: () => void;
-  onSetSide: (playerId: number, side: TeamSide | null) => void;
-};
-
-type SlotRow = "gk" | "def" | "mid" | "att";
-type ViewMode = "list" | "field";
-type TeamLayoutMode = "compare" | "stacked";
-
-type PositionedPlayer = {
-  player: Player;
-  row: SlotRow;
-  slotIndex: number;
-};
-
-function getDisplayName(player: Player) {
-  return player.name?.trim() || getPlayerDisplayName(player);
-}
-
-function SummaryPill({ children, tone = "default" }: { children: React.ReactNode; tone?: "default" | "success" | "muted" | "warning" }) {
-  const className = tone === "success" ? "bg-emerald-100 text-emerald-800" : tone === "warning" ? "bg-amber-100 text-amber-800" : tone === "muted" ? "bg-slate-100 text-slate-600" : "bg-white text-slate-700 ring-1 ring-slate-200";
-  return <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${className}`}>{children}</div>;
-}
-
-function CompactTag({ children, className }: { children: React.ReactNode; className: string }) {
-  return <span className={`inline-flex items-center rounded-full px-1.5 py-px text-[6px] font-semibold leading-none ${className}`}>{children}</span>;
-}
-
-function ControlButton({ children, onClick, disabled = false, tone = "default" }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; tone?: "default" | "primary" | "success" }) {
-  const className = tone === "primary" ? "border border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-800" : tone === "success" ? "border border-emerald-500 bg-emerald-500 text-white shadow-sm hover:bg-emerald-600" : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100";
-  return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2.5 text-xs font-bold transition ${className} disabled:cursor-not-allowed disabled:opacity-50`}>{children}</button>;
-}
-
-function TeamMetaLine({ meta }: { meta: TeamMeta }) {
-  return <div className="flex flex-wrap gap-1 text-[9px] font-semibold text-slate-500"><span>TW {meta.gk}</span><span>·</span><span>DEF {meta.def}</span><span>·</span><span>ANG {meta.att}</span><span>·</span><span>AH {meta.ah}</span><span>·</span><span>Ü32 {meta.u32}</span></div>;
-}
-
-function TeamPlayerRow({ player, hasResult, currentSide, onSetSide }: { player: Player; hasResult: boolean; currentSide: TeamSide; onSetSide: (playerId: number, side: TeamSide | null) => void }) {
-  return <div className="flex min-w-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 shadow-sm"><div className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-900">{getDisplayName(player)}</div><CompactTag className={badgeColor(player.preferred_position)}>{positionLabel(player.preferred_position).slice(0, 2)}</CompactTag><CompactTag className={ageBadgeColor(player.age_group)}>{player.category_label ?? "?"}</CompactTag>{!hasResult ? <button type="button" onClick={() => onSetSide(player.id, currentSide === "A" ? "B" : "A")} className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-600">↔</button> : null}</div>;
-}
-
-function sortForList(players: Player[]) {
-  return [...players].sort((a, b) => getDisplayName(a).localeCompare(getDisplayName(b), "de"));
-}
-
-function getSlotRow(player: Player): SlotRow {
-  if (player.preferred_position === "goalkeeper") return "gk";
-  if (player.preferred_position === "defense") return "def";
-  if (player.preferred_position === "attack") return "att";
-  return "mid";
-}
-
-function placePlayersOnFormation(players: Player[]): PositionedPlayer[] {
-  const buckets: Record<SlotRow, Player[]> = { gk: [], def: [], mid: [], att: [] };
-  players.forEach((player) => buckets[getSlotRow(player)].push(player));
-  return [...buckets.gk.map((player, index) => ({ player, row: "gk" as const, slotIndex: index })), ...buckets.def.map((player, index) => ({ player, row: "def" as const, slotIndex: index })), ...buckets.mid.map((player, index) => ({ player, row: "mid" as const, slotIndex: index })), ...buckets.att.map((player, index) => ({ player, row: "att" as const, slotIndex: index }))];
-}
-
-function getHorizontalPercent(row: SlotRow, slotIndex: number, count: number) {
-  if (row === "gk" || count <= 1) return 50;
-  if (count === 2) return [42, 58][slotIndex] ?? 50;
-  if (count === 3) return [34, 50, 66][slotIndex] ?? 50;
-  if (count === 4) return [23, 41, 59, 77][slotIndex] ?? 50;
-  return [18, 34, 50, 66, 82][slotIndex] ?? 50;
-}
-
-function getVerticalPercent(row: SlotRow, team: "A" | "B") {
-  if (team === "A") return row === "gk" ? 11 : row === "def" ? 24 : row === "mid" ? 37 : 46;
-  return row === "gk" ? 89 : row === "def" ? 76 : row === "mid" ? 63 : 54;
-}
-
-function FieldPlayerChip({ player, top, left, hasResult, onRemove }: { player: Player; top: number; left: number; hasResult: boolean; onRemove: () => void }) {
-  return <div className="absolute w-[54px] -translate-x-1/2 -translate-y-1/2" style={{ top: `${top}%`, left: `${left}%` }}><div className="rounded-lg border border-white/70 bg-white/92 px-1 py-1 text-center shadow-sm backdrop-blur-sm"><div className="truncate text-[7px] font-bold leading-tight text-slate-900" title={getDisplayName(player)}>{getDisplayName(player)}</div><div className="mt-0.5 flex items-center justify-center gap-1"><CompactTag className={badgeColor(player.preferred_position)}>{positionLabel(player.preferred_position).slice(0, 2)}</CompactTag><CompactTag className={ageBadgeColor(player.age_group)}>{player.category_label ?? "?"}</CompactTag>{!hasResult ? <button type="button" onClick={onRemove} className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-slate-300 bg-white text-[8px] font-bold text-slate-700">×</button> : null}</div></div></div>;
-}
-
-function CombinedTeamField({ teamA, teamB, hasResult, onSetSide }: { teamA: Player[]; teamB: Player[]; hasResult: boolean; onSetSide: (playerId: number, side: TeamSide | null) => void }) {
-  const positionedA = placePlayersOnFormation(teamA); const positionedB = placePlayersOnFormation(teamB);
-  const count = (items: PositionedPlayer[]) => items.reduce<Record<SlotRow, number>>((acc, item) => { acc[item.row] += 1; return acc; }, { gk: 0, def: 0, mid: 0, att: 0 });
-  const countA = count(positionedA); const countB = count(positionedB);
-  return <div className="rounded-3xl border border-slate-200 bg-[rgba(15,23,42,0.02)] p-2 shadow-sm"><div className="relative h-[560px] overflow-hidden rounded-[28px] border border-emerald-200/70 bg-[linear-gradient(180deg,rgba(134,239,172,0.18)_0%,rgba(74,222,128,0.14)_50%,rgba(134,239,172,0.18)_100%)]"><div className="absolute left-0 right-0 top-1/2 h-px bg-white/65"/><div className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/65"/>{positionedA.map(({ player, row, slotIndex }) => <FieldPlayerChip key={`a-${player.id}`} player={player} top={getVerticalPercent(row,"A")} left={getHorizontalPercent(row,slotIndex,countA[row])} hasResult={hasResult} onRemove={() => onSetSide(player.id,null)}/>)}{positionedB.map(({ player, row, slotIndex }) => <FieldPlayerChip key={`b-${player.id}`} player={player} top={getVerticalPercent(row,"B")} left={getHorizontalPercent(row,slotIndex,countB[row])} hasResult={hasResult} onRemove={() => onSetSide(player.id,null)}/>)}</div></div>;
-}
-
-function TeamColumn({ title, players, meta, hasResult, side, onSetSide }: { title: string; players: Player[]; meta: TeamMeta; hasResult: boolean; side: TeamSide; onSetSide: (playerId: number, side: TeamSide | null) => void }) {
-  const sortedPlayers = sortForList(players);
-  return <div className="min-w-0 rounded-3xl border border-slate-200 bg-slate-50/70 p-3"><div className="flex items-center justify-between gap-2"><div className="text-sm font-bold text-slate-950">{title}</div><div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-700 ring-1 ring-slate-200">{players.length}</div></div><div className="mt-1.5"><TeamMetaLine meta={meta}/></div>{sortedPlayers.length === 0 ? <div className="mt-3 flex min-h-16 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/80 px-3 py-3 text-[11px] text-slate-400">Keine Spieler</div> : <div className="mt-3 space-y-1.5">{sortedPlayers.map((player) => <TeamPlayerRow key={`${side}-${player.id}`} player={player} hasResult={hasResult} currentSide={side} onSetSide={onSetSide}/>)}</div>}</div>;
-}
-
-function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (next: ViewMode) => void }) {
-  return <div className="grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-100 p-1"><button type="button" onClick={() => onChange("list")} className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold ${value === "list" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Liste</button><button type="button" onClick={() => onChange("field")} className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold ${value === "field" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Spielfeld</button></div>;
-}
-
-function TeamLayoutToggle({ value, onChange }: { value: TeamLayoutMode; onChange: (next: TeamLayoutMode) => void }) {
-  return <div className="grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-100 p-1"><button type="button" onClick={() => onChange("compare")} className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold ${value === "compare" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Vergleich</button><button type="button" onClick={() => onChange("stacked")} className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold ${value === "stacked" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Untereinander</button></div>;
-}
-
-export default function SessionTeamsCard({ teamA, teamB, unassigned, metaA, metaB, hasResult, saving, teamsComplete, teamsConfirmed, canShareLineup, sharingLineup, collapsed, attendanceDirty, enableFieldView = false, onToggleCollapsed, onGenerateTeams, onConfirmTeams, onShareLineup, onSetSide }: SessionTeamsCardProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("list"); const [layoutMode, setLayoutMode] = useState<TeamLayoutMode>("compare");
-  const effectiveViewMode: ViewMode = enableFieldView && viewMode === "field" ? "field" : "list";
-  const done = teamsComplete && teamsConfirmed; const assignedCount = teamA.length + teamB.length; const openCount = unassigned.length;
-  if (collapsed) return <section className="rounded-[22px] border border-slate-200 bg-white shadow-sm"><button type="button" onClick={onToggleCollapsed} className={`flex w-full items-center justify-between gap-4 rounded-[22px] px-4 py-3.5 text-left ${done ? "bg-emerald-50" : ""}`}><div className="flex min-w-0 items-center gap-3"><span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${done ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500"}`}>{done ? "✓" : "2"}</span><div><div className={`text-sm font-bold ${done ? "text-emerald-950" : "text-slate-950"}`}>{done ? "Teams bestätigt" : "Teams"}</div><div className="mt-1 flex flex-wrap gap-2"><SummaryPill tone={done ? "success" : "default"}>{assignedCount} verteilt</SummaryPill>{!done && teamsComplete ? <SummaryPill tone="warning">Bestätigung offen</SummaryPill> : null}{openCount > 0 ? <SummaryPill tone="muted">{openCount} offen</SummaryPill> : null}</div></div></div><div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">Bearbeiten</div></button></section>;
-  return <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-100 px-4 py-4"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">2</div><div><div className="text-base font-bold text-slate-950">Teams</div><div className="mt-1.5">{teamsComplete ? <SummaryPill tone={teamsConfirmed ? "success" : "warning"}>{teamsConfirmed ? "Bestätigt" : "Bitte prüfen"}</SummaryPill> : <SummaryPill tone="muted">Noch unvollständig</SummaryPill>}</div></div></div><button type="button" onClick={onToggleCollapsed} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">Kompakt</button></div>{!hasResult ? <div className="mt-4 grid grid-cols-2 gap-2.5"><ControlButton onClick={onGenerateTeams} disabled={attendanceDirty || saving} tone="primary">Teams generieren</ControlButton><ControlButton onClick={onConfirmTeams} disabled={!teamsComplete || teamsConfirmed || saving} tone="success">{teamsConfirmed ? "Teams bestätigt" : "Teams bestätigen"}</ControlButton></div> : null}<div className="mt-3 flex flex-col gap-2">{!hasResult ? <ControlButton onClick={onShareLineup} disabled={!canShareLineup || sharingLineup}>{sharingLineup ? "Teilt..." : "Aufstellung teilen"}</ControlButton> : null}<TeamLayoutToggle value={layoutMode} onChange={setLayoutMode}/>{enableFieldView ? <ViewToggle value={effectiveViewMode} onChange={setViewMode}/> : null}</div></div><div className="space-y-4 p-4">{enableFieldView && effectiveViewMode === "field" ? <CombinedTeamField teamA={teamA} teamB={teamB} hasResult={hasResult} onSetSide={onSetSide}/> : <div className={layoutMode === "compare" ? "grid grid-cols-2 gap-2.5" : "space-y-3"}><TeamColumn title="Team A" players={teamA} meta={metaA} hasResult={hasResult} side="A" onSetSide={onSetSide}/><TeamColumn title="Team B" players={teamB} meta={metaB} hasResult={hasResult} side="B" onSetSide={onSetSide}/></div>}{unassigned.length > 0 ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3"><div className="text-xs font-bold text-amber-900">Noch nicht verteilt</div><div className="mt-2 flex flex-wrap gap-2">{unassigned.map((player) => <button key={player.id} type="button" disabled={hasResult} onClick={() => onSetSide(player.id, teamA.length <= teamB.length ? "A" : "B")} className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-amber-900">{getDisplayName(player)}</button>)}</div></div> : null}</div></section>;
-}
+type TeamMeta={gk:number;def:number;att:number;ah:number;u32:number};
+type SessionTeamsCardProps={teamA:Player[];teamB:Player[];unassigned:Player[];metaA:TeamMeta;metaB:TeamMeta;hasResult:boolean;saving:boolean;teamsComplete:boolean;teamsConfirmed:boolean;canShareLineup:boolean;sharingLineup:boolean;collapsed:boolean;attendanceDirty:boolean;enableFieldView?:boolean;onToggleCollapsed:()=>void;onGenerateTeams:()=>void;onConfirmTeams:()=>void;onShareLineup:()=>void;onSetSide:(playerId:number,side:TeamSide|null)=>void};
+type SlotRow="gk"|"def"|"mid"|"att";type ViewMode="list"|"field";type TeamLayoutMode="compare"|"stacked";type PositionedPlayer={player:Player;row:SlotRow;slotIndex:number};
+function getDisplayName(player:Player){return player.name?.trim()||getPlayerDisplayName(player)}
+function SummaryPill({children,tone="default"}:{children:React.ReactNode;tone?:"default"|"success"|"muted"|"warning"}){const c=tone==="success"?"bg-emerald-100 text-emerald-800":tone==="warning"?"bg-amber-100 text-amber-800":tone==="muted"?"bg-slate-100 text-slate-600":"bg-white text-slate-700 ring-1 ring-slate-200";return <div className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${c}`}>{children}</div>}
+function CompactTag({children,className}:{children:React.ReactNode;className:string}){return <span className={`inline-flex items-center rounded-full px-1.5 py-px text-[6px] font-semibold leading-none ${className}`}>{children}</span>}
+function ControlButton({children,onClick,disabled=false,tone="default"}:{children:React.ReactNode;onClick:()=>void;disabled?:boolean;tone?:"default"|"primary"|"success"}){const c=tone==="primary"?"border border-slate-950 bg-slate-950 text-white hover:bg-slate-800":tone==="success"?"border border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600":"border border-slate-200 bg-white text-slate-600 hover:bg-slate-50";return <button type="button" onClick={onClick} disabled={disabled} className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 py-2.5 text-xs font-semibold transition sm:w-auto ${c} disabled:cursor-not-allowed disabled:opacity-50`}>{children}</button>}
+function TeamMetaLine({meta}:{meta:TeamMeta}){return <div className="flex flex-wrap gap-1 text-[9px] font-semibold text-slate-500"><span>TW {meta.gk}</span><span>·</span><span>DEF {meta.def}</span><span>·</span><span>ANG {meta.att}</span><span>·</span><span>AH {meta.ah}</span><span>·</span><span>Ü32 {meta.u32}</span></div>}
+function TeamPlayerRow({player,hasResult,currentSide,onSetSide}:{player:Player;hasResult:boolean;currentSide:TeamSide;onSetSide:(playerId:number,side:TeamSide|null)=>void}){return <div className="flex min-w-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 shadow-sm"><div className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-900">{getDisplayName(player)}</div><CompactTag className={badgeColor(player.preferred_position)}>{positionLabel(player.preferred_position).slice(0,2)}</CompactTag><CompactTag className={ageBadgeColor(player.age_group)}>{player.category_label??"?"}</CompactTag>{!hasResult?<button type="button" onClick={()=>onSetSide(player.id,currentSide==="A"?"B":"A")} className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-600">↔</button>:null}</div>}
+function sortForList(players:Player[]){return [...players].sort((a,b)=>getDisplayName(a).localeCompare(getDisplayName(b),"de"))}
+function getSlotRow(player:Player):SlotRow{if(player.preferred_position==="goalkeeper")return"gk";if(player.preferred_position==="defense")return"def";if(player.preferred_position==="attack")return"att";return"mid"}
+function placePlayersOnFormation(players:Player[]):PositionedPlayer[]{const buckets:Record<SlotRow,Player[]>={gk:[],def:[],mid:[],att:[]};players.forEach(p=>buckets[getSlotRow(p)].push(p));return[...buckets.gk.map((player,index)=>({player,row:"gk" as const,slotIndex:index})),...buckets.def.map((player,index)=>({player,row:"def" as const,slotIndex:index})),...buckets.mid.map((player,index)=>({player,row:"mid" as const,slotIndex:index})),...buckets.att.map((player,index)=>({player,row:"att" as const,slotIndex:index}))]}
+function getHorizontalPercent(row:SlotRow,slotIndex:number,count:number){if(row==="gk"||count<=1)return 50;if(count===2)return[42,58][slotIndex]??50;if(count===3)return[34,50,66][slotIndex]??50;if(count===4)return[23,41,59,77][slotIndex]??50;return[18,34,50,66,82][slotIndex]??50}
+function getVerticalPercent(row:SlotRow,team:"A"|"B"){if(team==="A")return row==="gk"?11:row==="def"?24:row==="mid"?37:46;return row==="gk"?89:row==="def"?76:row==="mid"?63:54}
+function FieldPlayerChip({player,top,left,hasResult,onRemove}:{player:Player;top:number;left:number;hasResult:boolean;onRemove:()=>void}){return <div className="absolute w-[54px] -translate-x-1/2 -translate-y-1/2" style={{top:`${top}%`,left:`${left}%`}}><div className="rounded-lg border border-white/70 bg-white/92 px-1 py-1 text-center shadow-sm backdrop-blur-sm"><div className="truncate text-[7px] font-bold leading-tight text-slate-900">{getDisplayName(player)}</div><div className="mt-0.5 flex items-center justify-center gap-1"><CompactTag className={badgeColor(player.preferred_position)}>{positionLabel(player.preferred_position).slice(0,2)}</CompactTag><CompactTag className={ageBadgeColor(player.age_group)}>{player.category_label??"?"}</CompactTag>{!hasResult?<button type="button" onClick={onRemove} className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-slate-300 bg-white text-[8px] font-bold text-slate-700">×</button>:null}</div></div></div>}
+function CombinedTeamField({teamA,teamB,hasResult,onSetSide}:{teamA:Player[];teamB:Player[];hasResult:boolean;onSetSide:(playerId:number,side:TeamSide|null)=>void}){const a=placePlayersOnFormation(teamA),b=placePlayersOnFormation(teamB);const count=(items:PositionedPlayer[])=>items.reduce<Record<SlotRow,number>>((acc,item)=>{acc[item.row]+=1;return acc},{gk:0,def:0,mid:0,att:0});const ca=count(a),cb=count(b);return <div className="rounded-3xl border border-slate-200 bg-[rgba(15,23,42,0.02)] p-2 shadow-sm"><div className="relative h-[560px] overflow-hidden rounded-[28px] border border-emerald-200/70 bg-[linear-gradient(180deg,rgba(134,239,172,0.18)_0%,rgba(74,222,128,0.14)_50%,rgba(134,239,172,0.18)_100%)]"><div className="absolute left-0 right-0 top-1/2 h-px bg-white/65"/><div className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/65"/>{a.map(({player,row,slotIndex})=><FieldPlayerChip key={`a-${player.id}`} player={player} top={getVerticalPercent(row,"A")} left={getHorizontalPercent(row,slotIndex,ca[row])} hasResult={hasResult} onRemove={()=>onSetSide(player.id,null)}/>)}{b.map(({player,row,slotIndex})=><FieldPlayerChip key={`b-${player.id}`} player={player} top={getVerticalPercent(row,"B")} left={getHorizontalPercent(row,slotIndex,cb[row])} hasResult={hasResult} onRemove={()=>onSetSide(player.id,null)}/>)}</div></div>}
+function TeamColumn({title,players,meta,hasResult,side,onSetSide}:{title:string;players:Player[];meta:TeamMeta;hasResult:boolean;side:TeamSide;onSetSide:(playerId:number,side:TeamSide|null)=>void}){const sorted=sortForList(players);return <div className="min-w-0 rounded-3xl border border-slate-200 bg-slate-50/70 p-3"><div className="flex items-center justify-between gap-2"><div className="text-sm font-bold text-slate-950">{title}</div><div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-700 ring-1 ring-slate-200">{players.length}</div></div><div className="mt-1.5"><TeamMetaLine meta={meta}/></div>{sorted.length===0?<div className="mt-3 flex min-h-16 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/80 px-3 py-3 text-[11px] text-slate-400">Keine Spieler</div>:<div className="mt-3 space-y-1.5">{sorted.map(player=><TeamPlayerRow key={`${side}-${player.id}`} player={player} hasResult={hasResult} currentSide={side} onSetSide={onSetSide}/>)}</div>}</div>}
+function ViewToggle({value,onChange}:{value:ViewMode;onChange:(next:ViewMode)=>void}){return <div className="grid w-full grid-cols-2 rounded-xl bg-slate-100 p-1 sm:min-w-[180px]"><button type="button" onClick={()=>onChange("list")} className={`rounded-lg px-3 py-2 text-[11px] font-semibold transition ${value==="list"?"bg-white text-slate-900 shadow-sm":"text-slate-500"}`}>Liste</button><button type="button" onClick={()=>onChange("field")} className={`rounded-lg px-3 py-2 text-[11px] font-semibold transition ${value==="field"?"bg-white text-slate-900 shadow-sm":"text-slate-500"}`}>Spielfeld</button></div>}
+function TeamLayoutToggle({value,onChange}:{value:TeamLayoutMode;onChange:(next:TeamLayoutMode)=>void}){return <div className="grid w-full grid-cols-2 rounded-xl bg-slate-100 p-1 sm:min-w-[220px]"><button type="button" onClick={()=>onChange("compare")} className={`rounded-lg px-3 py-2 text-[11px] font-semibold transition ${value==="compare"?"bg-white text-slate-900 shadow-sm":"text-slate-500"}`}>Vergleich</button><button type="button" onClick={()=>onChange("stacked")} className={`rounded-lg px-3 py-2 text-[11px] font-semibold transition ${value==="stacked"?"bg-white text-slate-900 shadow-sm":"text-slate-500"}`}>Untereinander</button></div>}
+export default function SessionTeamsCard({teamA,teamB,unassigned,metaA,metaB,hasResult,saving,teamsComplete,teamsConfirmed,canShareLineup,sharingLineup,collapsed,attendanceDirty,enableFieldView=false,onToggleCollapsed,onGenerateTeams,onConfirmTeams,onShareLineup,onSetSide}:SessionTeamsCardProps){const[viewMode,setViewMode]=useState<ViewMode>("list"),[layoutMode,setLayoutMode]=useState<TeamLayoutMode>("compare");const effectiveViewMode:ViewMode=enableFieldView&&viewMode==="field"?"field":"list";const done=teamsComplete&&teamsConfirmed,assignedCount=teamA.length+teamB.length,openCount=unassigned.length;if(collapsed)return <section className="rounded-[22px] border border-slate-200 bg-white shadow-sm"><button type="button" onClick={onToggleCollapsed} className={`flex w-full items-center justify-between gap-4 rounded-[22px] px-4 py-3.5 text-left ${done?"bg-emerald-50":""}`}><div className="flex min-w-0 items-center gap-3"><span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${done?"bg-emerald-600 text-white":"bg-slate-100 text-slate-500"}`}>{done?"✓":"2"}</span><div><div className={`text-sm font-bold ${done?"text-emerald-950":"text-slate-950"}`}>{done?"Teams bestätigt":"Teams"}</div><div className="mt-1 flex flex-wrap gap-2"><SummaryPill tone={done?"success":"default"}>{assignedCount} verteilt</SummaryPill>{!done&&teamsComplete?<SummaryPill tone="warning">Bestätigung offen</SummaryPill>:null}{openCount>0?<SummaryPill tone="muted">{openCount} offen</SummaryPill>:null}</div></div></div><div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">Bearbeiten</div></button></section>;return <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-100 px-4 py-4"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">2</div><div><div className="text-base font-bold text-slate-950">Teams</div><div className="mt-1.5">{teamsComplete?<SummaryPill tone={teamsConfirmed?"success":"warning"}>{teamsConfirmed?"Bestätigt":"Bitte prüfen"}</SummaryPill>:<SummaryPill tone="muted">Noch unvollständig</SummaryPill>}</div></div></div><button type="button" onClick={onToggleCollapsed} className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-700">Kompakt</button></div>{!hasResult?<div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2"><ControlButton onClick={onGenerateTeams} disabled={attendanceDirty||saving} tone="primary">Teams generieren</ControlButton><ControlButton onClick={onConfirmTeams} disabled={!teamsComplete||teamsConfirmed||saving} tone="success">{teamsConfirmed?"Teams bestätigt":"Teams bestätigen"}</ControlButton></div>:null}<div className="mt-4 space-y-3">{!hasResult?<ControlButton onClick={onShareLineup} disabled={!canShareLineup||sharingLineup}>{sharingLineup?"Teilt...":"Aufstellung teilen"}</ControlButton>:null}<div className="rounded-2xl bg-slate-50 p-3"><div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Ansicht</div><div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"><TeamLayoutToggle value={layoutMode} onChange={setLayoutMode}/>{enableFieldView?<ViewToggle value={effectiveViewMode} onChange={setViewMode}/>:null}</div></div></div></div><div className="space-y-4 p-4">{enableFieldView&&effectiveViewMode==="field"?<CombinedTeamField teamA={teamA} teamB={teamB} hasResult={hasResult} onSetSide={onSetSide}/>:<div className={layoutMode==="compare"?"grid grid-cols-2 gap-2.5":"space-y-3"}><TeamColumn title="Team A" players={teamA} meta={metaA} hasResult={hasResult} side="A" onSetSide={onSetSide}/><TeamColumn title="Team B" players={teamB} meta={metaB} hasResult={hasResult} side="B" onSetSide={onSetSide}/></div>}{unassigned.length>0?<div className="rounded-2xl border border-amber-200 bg-amber-50 p-3"><div className="text-xs font-bold text-amber-900">Noch nicht verteilt</div><div className="mt-2 flex flex-wrap gap-2">{unassigned.map(player=><button key={player.id} type="button" disabled={hasResult} onClick={()=>onSetSide(player.id,teamA.length<=teamB.length?"A":"B")} className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-amber-900">{getDisplayName(player)}</button>)}</div></div>:null}</div></section>}
