@@ -166,13 +166,17 @@ export default function StandingsTop10Share() {
       }
 
       if (error instanceof Error && error.name === "AbortError") {
-        setMessage("Top 10 ist bereit.");
+        const sizeKb = Math.max(1, Math.round(preparedFile.size / 1024));
+        const detail = error.message?.trim() || "ohne weitere Meldung";
+        setMessage(
+          `Share abgebrochen: ${error.name}: ${detail} · ${preparedFile.type || "kein MIME-Type"} · ${sizeKb} KB`
+        );
         return;
       }
 
       setMessage(
         error instanceof Error
-          ? error.message
+          ? `${error.name}: ${error.message}`
           : "Top 10 konnte nicht geteilt werden."
       );
     } finally {
