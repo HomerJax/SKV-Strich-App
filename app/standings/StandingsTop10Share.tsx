@@ -11,10 +11,6 @@ import { fetchImageAsFile } from "@/lib/share/utils";
 const TABLE_ID = "export-standings";
 const PORTAL_ID = "standings-top10-share-portal";
 
-type NavigatorWithFileShare = Navigator & {
-  canShare?: (data: ShareData) => boolean;
-};
-
 async function fileToBase64(file: File) {
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -173,33 +169,31 @@ export default function StandingsTop10Share() {
   }
 
   async function shareWeb(file: File) {
-    const nav = navigator as NavigatorWithFileShare;
-    const shareData: ShareData = {
-      files: [file],
-      title: "strikr Top 10",
-    };
+    if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+      const copied = await copyImageToClipboard(file);
+      if (copied) return "copied" as const;
 
-    if (typeof nav.share === "function") {
-      const canShareFiles = typeof nav.canShare !== "function" || nav.canShare(shareData);
+      downloadFile(file);
+      return "downloaded" as const;
+    }
 
-      if (canShareFiles) {
-        try {
-          await nav.share(shareData);
-          return "shared" as const;
-        } catch (error) {
-          if (error instanceof Error && error.name === "AbortError") {
-            return "cancelled" as const;
-          }
-          throw error;
-        }
+    if (typeof navigator.canShare === "function") {
+      const canShareFiles = navigator.canShare({ files: [file] });
+
+      if (!canShareFiles) {
+        const copied = await copyImageToClipboard(file);
+        if (copied) return "copied" as const;
+
+        downloadFile(file);
+        return "downloaded" as const;
       }
     }
 
-    const copied = await copyImageToClipboard(file);
-    if (copied) return "copied" as const;
+    await navigator.share({
+      files: [file],
+    });
 
-    downloadFile(file);
-    return "downloaded" as const;
+    return "shared" as const;
   }
 
   async function handleShare() {
@@ -217,8 +211,6 @@ export default function StandingsTop10Share() {
 
         if (result === "shared") {
           setMessage("Top 10 erfolgreich geteilt.");
-        } else if (result === "cancelled") {
-          setMessage("Top 10 ist bereit.");
         } else if (result === "copied") {
           setMessage("Direktes Teilen wird von diesem Browser nicht unterstützt. Top 10 wurde in die Zwischenablage kopiert.");
         } else {
@@ -228,6 +220,11 @@ export default function StandingsTop10Share() {
     } catch (error: unknown) {
       if (error instanceof Error && error.message === "NATIVE_SHARE_UPDATE_REQUIRED") {
         setMessage("Für das native Teilen ist ein App-Update erforderlich.");
+        return;
+      }
+
+      if (error instanceof Error && error.name === "AbortError") {
+        setMessage("Top 10 ist bereit.");
         return;
       }
 
