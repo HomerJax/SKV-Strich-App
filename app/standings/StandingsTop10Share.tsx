@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
@@ -30,7 +30,6 @@ export default function StandingsTop10Share() {
   const [preparedFile, setPreparedFile] = useState<File | null>(null);
   const [preparing, setPreparing] = useState(true);
   const [sharing, setSharing] = useState(false);
-  const sharingRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
@@ -126,13 +125,13 @@ export default function StandingsTop10Share() {
   }
 
   async function handleShare() {
-    if (!preparedFile || sharingRef.current) return;
-    sharingRef.current = true;
+    if (!preparedFile || sharing) return;
+
+    setSharing(true);
+    setMessage(null);
 
     try {
       if (Capacitor.isNativePlatform()) {
-        setSharing(true);
-        setMessage(null);
         await shareNative(preparedFile);
         setMessage("Top 10 erfolgreich geteilt.");
         return;
@@ -155,8 +154,6 @@ export default function StandingsTop10Share() {
         }
       }
 
-      // Wichtig: Auf Web vor navigator.share() keinen React-State setzen.
-      // So bleibt die direkte User-Aktivierung des Klicks erhalten.
       await navigator.share({
         files: [preparedFile],
       });
@@ -179,7 +176,6 @@ export default function StandingsTop10Share() {
           : "Top 10 konnte nicht geteilt werden."
       );
     } finally {
-      sharingRef.current = false;
       setSharing(false);
     }
   }
