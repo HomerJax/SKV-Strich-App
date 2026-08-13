@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 type RankRow = { player_id:number; name:string; first_name?:string|null; last_name?:string|null; nickname?:string|null; wins:number; sessions:number; rank:number; deltaRank?:number|null };
 type StandingsPayload = { selected?:string; seasons?:Array<{id:number;name:string}>; rows?:RankRow[]; error?:string };
 
-function displayName(row:RankRow){const n=row.nickname?.trim();if(n)return n;const f=row.first_name?.trim(),l=row.last_name?.trim();return f&&l?`${f} ${l}`:f||l||row.name?.trim()||"Unbekannt"}
+function displayName(row:RankRow){const f=row.first_name?.trim(),l=row.last_name?.trim();if(f&&l)return`${f} ${l}`;if(f)return f;if(l)return l;const n=row.nickname?.trim();return n||row.name?.trim()||"Unbekannt"}
 function winRate(row:RankRow){return row.sessions>0?`${Math.round(row.wins/row.sessions*100)}%`:"–"}
 function movement(row:RankRow){const d=row.deltaRank??0;return d>0?`↑ ${d}`:d<0?`↓ ${Math.abs(d)}`:"→ 0"}
 function movementColor(row:RankRow){const d=row.deltaRank??0;return d>0?"#4ade80":d<0?"#fb7185":"rgba(255,255,255,.55)"}
