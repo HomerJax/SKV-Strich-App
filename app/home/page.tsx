@@ -28,6 +28,17 @@ type SessionRow = {
   notes: string | null;
 };
 
+type SeasonRow = {
+  id: number;
+  start_date: string | null;
+  end_date: string | null;
+};
+
+type SeasonSessionRow = {
+  id: number;
+  date: string;
+};
+
 type HomeClubSettingsRow = {
   rsvp_deadline_minutes_before: number | null;
 };
@@ -144,6 +155,17 @@ function formatSessionTitle(iso: string, startTime: string | null) {
   const timeLabel = startTime?.slice(0, 5);
 
   return timeLabel ? `${dateLabel} · ${timeLabel} Uhr` : dateLabel;
+}
+
+function isDateWithinSeason(dateIso: string, season: SeasonRow) {
+  if (!season.start_date || !season.end_date) return false;
+  return dateIso >= season.start_date && dateIso <= season.end_date;
+}
+
+function getCurrentSeason(seasons: SeasonRow[], today: string) {
+  const current = seasons.find((season) => isDateWithinSeason(today, season));
+  if (current) return current;
+  return seasons[0] ?? null;
 }
 
 function getPartsInBerlin(date: Date) {
@@ -680,10 +702,38 @@ export default async function HomePage() {
   const clubName = club?.display_name?.trim() || "Dein Team";
   const userId = user?.id ?? null;
 
+  const { data: seasonsData } = await supabase
+    .from("seasons")
+    .select("id, start_date, end_date")
+    .eq("club_id", clubId)
+    .order("start_date", { ascending: false });
+
+  const seasons = (seasonsData ?? []) as SeasonRow[];
+  const currentSeason = getCurrentSeason(seasons, today);
+  const currentSeasonSessionsPromise = currentSeason
+    ? supabase
+        .from("sessions")
+        .select("id, date")
+        .eq("club_id", clubId)
+        .eq("season_id", currentSeason.id)
+        .lte("date", today)
+        .order("date", { ascending: false })
+    : Promise.resolve({
+        data: [] as SeasonSessionRow[],
+        error: null,
+      });
+
+  const { data: currentSeasonSessionsData } = await currentSeasonSessionsPromise;
+  const currentSeasonSessions = (currentSeasonSessionsData ?? []) as SeasonSessionRow[];
+  const currentSeasonSessionIds = currentSeasonSessions.map((session) => session.id);
+  const currentSeasonSessionIdSet = new Set(currentSeasonSessionIds);
+
   let personalSuccessRate: number | null = null;
 
   if (currentPlayer) {
-    const results = (personalResultsData ?? []) as HomeResultRow[];
+    const results = ((personalResultsData ?? []) as HomeResultRow[]).filter(
+      (result) => currentSeasonSessionIdSet.has(Number(result.session_id))
+    );
     const resultTeamIds = Array.from(
       new Set(
         results.flatMap((result) =>
@@ -1032,15 +1082,25 @@ export default async function HomePage() {
             error: null,
           });
 
+    const seasonAttendancePromise =
+      currentSeasonSessionIds.length > 0
+        ? supabase
+            .from("session_players")
+            .select("id", { count: "exact", head: true })
+            .eq("player_id", currentPlayer.id)
+            .in("session_id", currentSeasonSessionIds)
+        : Promise.resolve({
+            count: 0,
+            data: null,
+            error: null,
+          });
+
     const [
       { count: personalAttendanceCountValue },
       { data: clubPlayersData },
       { data: recentPresenceRows },
     ] = await Promise.all([
-      supabase
-        .from("session_players")
-        .select("id", { count: "exact", head: true })
-        .eq("player_id", currentPlayer.id),
+      seasonAttendancePromise,
       supabase
         .from("players")
         .select("id, first_name, last_name, mvp_count")
@@ -1050,9 +1110,11 @@ export default async function HomePage() {
 
     personalAttendanceCount = personalAttendanceCountValue ?? 0;
 
-    const pastCount = pastSessionsCount ?? 0;
+    const seasonPastCount = currentSeasonSessionIds.length;
     attendanceRate =
-      pastCount > 0 ? Math.round((personalAttendanceCount / pastCount) * 100) : null;
+      seasonPastCount > 0
+        ? Math.round((personalAttendanceCount / seasonPastCount) * 100)
+        : null;
 
     const clubPlayers = (clubPlayersData ?? []) as ClubPlayerStatsRow[];
     clubPlayerCount = clubPlayers.length;
@@ -1061,11 +1123,12 @@ export default async function HomePage() {
       .map((clubPlayer) => Number(clubPlayer.id))
       .filter((id) => Number.isFinite(id));
 
-    if (clubPlayerIds.length > 0) {
+    if (clubPlayerIds.length > 0 && currentSeasonSessionIds.length > 0) {
       const { data: allAttendanceRows } = await supabase
         .from("session_players")
         .select("player_id")
-        .in("player_id", clubPlayerIds);
+        .in("player_id", clubPlayerIds)
+        .in("session_id", currentSeasonSessionIds);
 
       const attendanceCounts = new Map<number, number>();
 
