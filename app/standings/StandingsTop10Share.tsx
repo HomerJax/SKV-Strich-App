@@ -72,11 +72,6 @@ async function copyImageToClipboard(file: File) {
   }
 }
 
-function isMobileWeb() {
-  if (typeof navigator === "undefined") return false;
-  return /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
-}
-
 export default function StandingsTop10Share() {
   const searchParams = useSearchParams();
   const season = searchParams.get("season");
@@ -178,14 +173,6 @@ export default function StandingsTop10Share() {
   }
 
   async function shareWeb(file: File) {
-    if (!isMobileWeb()) {
-      const copied = await copyImageToClipboard(file);
-      if (copied) return "copied" as const;
-
-      downloadFile(file);
-      return "downloaded" as const;
-    }
-
     const nav = navigator as NavigatorWithFileShare;
     const shareData: ShareData = {
       files: [file],
@@ -200,9 +187,10 @@ export default function StandingsTop10Share() {
           await nav.share(shareData);
           return "shared" as const;
         } catch (error) {
-          if (!(error instanceof Error) || error.name !== "AbortError") {
-            throw error;
+          if (error instanceof Error && error.name === "AbortError") {
+            return "cancelled" as const;
           }
+          throw error;
         }
       }
     }
@@ -229,10 +217,12 @@ export default function StandingsTop10Share() {
 
         if (result === "shared") {
           setMessage("Top 10 erfolgreich geteilt.");
+        } else if (result === "cancelled") {
+          setMessage("Top 10 ist bereit.");
         } else if (result === "copied") {
-          setMessage("Top 10 ist in der Zwischenablage – z. B. in WhatsApp mit Strg+V einfügen.");
+          setMessage("Direktes Teilen wird von diesem Browser nicht unterstützt. Top 10 wurde in die Zwischenablage kopiert.");
         } else {
-          setMessage("Top 10 wurde als Bild gespeichert.");
+          setMessage("Direktes Teilen wird von diesem Browser nicht unterstützt. Top 10 wurde als Bild gespeichert.");
         }
       }
     } catch (error: unknown) {
