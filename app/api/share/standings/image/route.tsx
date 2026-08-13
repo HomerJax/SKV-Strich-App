@@ -48,9 +48,9 @@ function movement(row: RankRow) {
 
 function movementColor(row: RankRow) {
   const delta = row.deltaRank ?? 0;
-  if (delta > 0) return "#34d399";
-  if (delta < 0) return "#fda4af";
-  return "rgba(255,255,255,0.38)";
+  if (delta > 0) return "#4ade80";
+  if (delta < 0) return "#fb7185";
+  return "rgba(255,255,255,0.55)";
 }
 
 function seasonLabel(payload: StandingsPayload) {
@@ -59,29 +59,20 @@ function seasonLabel(payload: StandingsPayload) {
   return payload.seasons?.find((season) => season.id === id)?.name ?? "Aktuelle Saison";
 }
 
-function renderSeasonBadge(label: string) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        minWidth: 210,
-        height: 112,
-        padding: "16px 20px",
-        borderRadius: 22,
-        background: "rgba(2,6,12,0.48)",
-        border: "1px solid rgba(255,255,255,0.10)",
-      }}
-    >
-      <div style={{ display: "flex", fontSize: 17, fontWeight: 900, letterSpacing: 1.8, color: "rgba(255,255,255,0.62)", textTransform: "uppercase" }}>
-        Tabelle
-      </div>
-      <div style={{ display: "flex", marginTop: 8, fontSize: 28, fontWeight: 950, lineHeight: 1, letterSpacing: -1, color: "#fff" }}>
-        {label}
-      </div>
-    </div>
-  );
+function podiumAccent(index: number) {
+  if (index === 0) return "#f472b6";
+  if (index === 1) return "#a78bfa";
+  return "#e879f9";
+}
+
+function podiumBackground(index: number) {
+  if (index === 0) {
+    return "linear-gradient(100deg, rgba(236,72,153,0.82) 0%, rgba(190,24,93,0.74) 48%, rgba(120,35,93,0.56) 100%)";
+  }
+  if (index === 1) {
+    return "linear-gradient(100deg, rgba(79,70,229,0.52) 0%, rgba(67,56,202,0.34) 50%, rgba(30,64,175,0.28) 100%)";
+  }
+  return "linear-gradient(100deg, rgba(168,85,247,0.46) 0%, rgba(126,34,206,0.30) 50%, rgba(49,46,129,0.28) 100%)";
 }
 
 function renderStrikrBadge() {
@@ -90,27 +81,43 @@ function renderStrikrBadge() {
       style={{
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        width: 212,
-        height: 112,
-        padding: "14px 14px 12px",
-        borderRadius: 22,
-        background: "rgba(2,6,12,0.48)",
-        border: "1px solid rgba(255,255,255,0.10)",
+        width: 238,
+        height: 132,
+        padding: "18px 22px",
+        borderRadius: 26,
+        background: "rgba(15,23,42,0.72)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        boxShadow: "0 20px 50px rgba(15,23,42,0.20)",
       }}
     >
-      <div style={{ display: "flex", fontSize: 30, fontWeight: 950, lineHeight: 1, letterSpacing: -1.2, color: "#fff" }}>
-        strikr
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            width: 50,
+            height: 50,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 14,
+            background: "#020617",
+            color: "#fff",
+            fontSize: 28,
+            fontWeight: 950,
+          }}
+        >
+          /////
+        </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", fontSize: 29, fontWeight: 950, lineHeight: 1, letterSpacing: -1.2, color: "#fff" }}>strikr</div>
+          <div style={{ display: "flex", marginTop: 5, fontSize: 8, fontWeight: 800, letterSpacing: 1.05, color: "rgba(255,255,255,0.62)", textTransform: "uppercase" }}>
+            TEAM TRAINING. REDEFINED.
+          </div>
+        </div>
       </div>
-      <div style={{ display: "flex", fontSize: 8, fontWeight: 800, lineHeight: 1, letterSpacing: 1.05, textTransform: "uppercase", color: "rgba(255,255,255,0.70)" }}>
-        TEAM TRAINING. REDEFINED.
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.10)" }}>
-        <div style={{ display: "flex", fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.78)" }}>@getstrikr</div>
-        <div style={{ display: "flex", width: 1, height: 11, background: "rgba(255,255,255,0.16)" }} />
-        <div style={{ display: "flex", fontSize: 11, fontWeight: 800, color: "#34d399" }}>strikr.team</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 11, marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.10)" }}>
+        <div style={{ display: "flex", fontSize: 10, fontWeight: 800, color: "#f9a8d4" }}>@getstrikr</div>
+        <div style={{ display: "flex", width: 1, height: 12, background: "rgba(255,255,255,0.18)" }} />
+        <div style={{ display: "flex", fontSize: 11, fontWeight: 900, color: "#f9a8d4" }}>strikr.team</div>
       </div>
     </div>
   );
@@ -138,8 +145,8 @@ export async function GET(request: NextRequest) {
     const rows = (payload.rows ?? []).slice(0, 10);
     if (rows.length === 0) throw new Error("Keine Tabellendaten vorhanden.");
 
-    const leader = rows[0];
-    const rest = rows.slice(1);
+    const podium = rows.slice(0, 3);
+    const rest = rows.slice(3);
     const label = seasonLabel(payload);
     const today = new Date().toLocaleDateString("de-DE");
 
@@ -149,8 +156,8 @@ export async function GET(request: NextRequest) {
           display: "flex",
           width: "100%",
           height: "100%",
-          padding: 20,
-          background: "radial-gradient(circle at 50% -8%, rgba(255,255,255,0.12), transparent 30%), #020617",
+          padding: 18,
+          background: "linear-gradient(145deg,#172554 0%,#312e81 44%,#831843 100%)",
           color: "#fff",
         }}
       >
@@ -162,106 +169,178 @@ export async function GET(request: NextRequest) {
             position: "relative",
             overflow: "hidden",
             borderRadius: 42,
-            background: "#020617",
-            border: "1px solid rgba(255,255,255,0.10)",
-            boxShadow: "0 40px 120px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.08)",
+            background: "linear-gradient(180deg,#1e3a8a 0%,#172554 32%,#0f2554 70%,#0b1b3f 100%)",
+            border: "2px solid rgba(249,168,212,0.86)",
+            boxShadow: "0 34px 90px rgba(15,23,42,0.38), inset 0 1px 0 rgba(255,255,255,0.12)",
           }}
         >
           <div
             style={{
               display: "flex",
               position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 330,
-              background: "radial-gradient(circle at 82% 4%, rgba(249,115,22,0.38), transparent 26%), radial-gradient(circle at 58% -4%, rgba(139,92,246,0.34), transparent 36%), linear-gradient(135deg,#111827 0%,#0b1120 55%,#020617 100%)",
-              boxShadow: "0 42px 96px rgba(249,115,22,0.12)",
-              zIndex: 1,
+              inset: 0,
+              background: "radial-gradient(circle at 86% 0%, rgba(244,114,182,0.78), transparent 28%), radial-gradient(circle at 46% 0%, rgba(129,140,248,0.52), transparent 34%), radial-gradient(circle at 12% 18%, rgba(59,130,246,0.34), transparent 32%)",
             }}
           />
 
-          <div style={{ display: "flex", position: "absolute", top: 34, left: 34, right: 34, justifyContent: "space-between", alignItems: "flex-start", gap: 24, zIndex: 10 }}>
-            {renderSeasonBadge(label)}
-            {renderStrikrBadge()}
-          </div>
-
-          <div style={{ display: "flex", position: "absolute", left: 54, right: 54, top: 148, height: 170, alignItems: "flex-end", justifyContent: "space-between", zIndex: 8, overflow: "hidden" }}>
-            <div style={{ display: "flex", fontSize: 116, fontWeight: 950, lineHeight: 0.9, letterSpacing: -5, textShadow: "0 18px 46px rgba(0,0,0,0.32)", color: "#fff", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              TOP 10.
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", paddingBottom: 8 }}>
-              <div style={{ display: "flex", fontSize: 14, fontWeight: 900, letterSpacing: 2, color: "rgba(255,255,255,0.38)", textTransform: "uppercase" }}>Stand</div>
-              <div style={{ display: "flex", marginTop: 5, fontSize: 20, fontWeight: 900, color: "rgba(255,255,255,0.76)" }}>{today}</div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", position: "absolute", left: 0, right: 0, top: 330, bottom: 100, flexDirection: "column", padding: "30px 38px 28px", background: "radial-gradient(circle at 50% 18%, rgba(30,41,59,0.86), #0f172a 72%)", zIndex: 2 }}>
-            <div
-              style={{
-                display: "flex",
-                height: 226,
-                padding: "28px 30px",
-                borderRadius: 30,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "radial-gradient(circle at 84% 18%, rgba(249,115,22,0.20), transparent 28%), linear-gradient(135deg,rgba(255,255,255,0.10),rgba(139,92,246,0.10) 58%,rgba(255,255,255,0.045))",
-                justifyContent: "space-between",
-                alignItems: "center",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-              }}
-            >
-              <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-                <div style={{ display: "flex", fontSize: 18, fontWeight: 900, letterSpacing: 2.2, color: "rgba(255,255,255,0.42)", textTransform: "uppercase" }}>Platz 1</div>
-                <div style={{ display: "flex", marginTop: 12, fontSize: 52, lineHeight: 0.96, fontWeight: 950, letterSpacing: -2.2 }}>{displayName(leader)}</div>
-                <div style={{ display: "flex", marginTop: 20, fontSize: 20, fontWeight: 800, color: "rgba(255,255,255,0.58)" }}>
-                  {leader.sessions} Teilnahmen · {winRate(leader)} Siegquote
+          <div style={{ display: "flex", position: "absolute", top: 36, left: 44, right: 44, justifyContent: "space-between", alignItems: "flex-start", zIndex: 5 }}>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    height: 48,
+                    padding: "0 20px",
+                    alignItems: "center",
+                    borderRadius: 24,
+                    border: "2px solid #f472b6",
+                    fontSize: 18,
+                    fontWeight: 950,
+                    letterSpacing: 2.2,
+                    color: "#f9a8d4",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Tabelle
                 </div>
+                <div style={{ display: "flex", fontSize: 29, fontWeight: 950, color: "#f9a8d4" }}>{label}</div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", marginLeft: 28 }}>
-                <div style={{ display: "flex", fontSize: 112, lineHeight: 0.82, fontWeight: 950, letterSpacing: -5, color: "#fb923c", textShadow: "0 0 34px rgba(249,115,22,0.24)" }}>{leader.wins}</div>
-                <div style={{ display: "flex", marginTop: 10, fontSize: 18, fontWeight: 900, letterSpacing: 2, color: "rgba(255,255,255,0.44)", textTransform: "uppercase" }}>Siege</div>
-                <div style={{ display: "flex", marginTop: 9, fontSize: 16, fontWeight: 900, color: movementColor(leader) }}>{movement(leader)}</div>
+              <div style={{ display: "flex", marginTop: 24, fontSize: 112, fontWeight: 950, lineHeight: 0.88, letterSpacing: -5.5, color: "#fff", textShadow: "0 16px 42px rgba(15,23,42,0.18)" }}>
+                TOP 10<span style={{ color: "#f472b6" }}>.</span>
               </div>
             </div>
 
-            <div style={{ display: "flex", marginTop: 18, marginBottom: 10, padding: "0 18px", fontSize: 13, fontWeight: 900, letterSpacing: 1.6, color: "rgba(255,255,255,0.30)", textTransform: "uppercase" }}>
-              Plätze 2–10
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 15 }}>
+              {renderStrikrBadge()}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", paddingRight: 4 }}>
+                <div style={{ display: "flex", fontSize: 14, fontWeight: 900, letterSpacing: 2.1, color: "rgba(255,255,255,0.72)", textTransform: "uppercase" }}>Stand</div>
+                <div style={{ display: "flex", marginTop: 4, fontSize: 22, fontWeight: 900, color: "#fff" }}>{today}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", position: "absolute", left: 28, right: 28, top: 310, bottom: 74, flexDirection: "column", zIndex: 4 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {podium.map((row, index) => {
+                const heights = [174, 132, 122];
+                const nameSizes = [45, 37, 34];
+                const winSizes = [66, 52, 48];
+                const rankSizes = [45, 38, 35];
+                const accent = podiumAccent(index);
+
+                return (
+                  <div
+                    key={row.player_id}
+                    style={{
+                      display: "flex",
+                      height: heights[index],
+                      padding: index === 0 ? "22px 28px" : "18px 24px",
+                      alignItems: "center",
+                      borderRadius: 28,
+                      background: podiumBackground(index),
+                      border: `1px solid ${index === 0 ? "rgba(251,207,232,0.64)" : "rgba(255,255,255,0.12)"}`,
+                      boxShadow: index === 0 ? "0 18px 48px rgba(190,24,93,0.20)" : "0 12px 28px rgba(15,23,42,0.12)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        width: index === 0 ? 92 : 76,
+                        height: index === 0 ? 92 : 76,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        borderRadius: 22,
+                        background: "rgba(255,255,255,0.10)",
+                        border: `1px solid ${accent}`,
+                        color: "#fff",
+                        fontSize: rankSizes[index],
+                        fontWeight: 950,
+                      }}
+                    >
+                      {row.rank}
+                    </div>
+
+                    <div style={{ display: "flex", flex: 1, minWidth: 0, flexDirection: "column", marginLeft: 28 }}>
+                      <div style={{ display: "flex", fontSize: nameSizes[index], fontWeight: 950, letterSpacing: -1.5, lineHeight: 1, color: "#fff" }}>
+                        {displayName(row)}
+                      </div>
+                      <div style={{ display: "flex", marginTop: index === 0 ? 18 : 12, alignItems: "center", gap: index === 0 ? 16 : 12, color: "rgba(255,255,255,0.86)" }}>
+                        <div style={{ display: "flex", fontSize: index === 0 ? 22 : 18, fontWeight: 950, color: accent }}>{row.wins}</div>
+                        <div style={{ display: "flex", fontSize: index === 0 ? 17 : 15, fontWeight: 800 }}>Siege</div>
+                        <div style={{ display: "flex", width: 1, height: 22, background: "rgba(255,255,255,0.22)" }} />
+                        <div style={{ display: "flex", fontSize: index === 0 ? 22 : 18, fontWeight: 950 }}>{row.sessions}</div>
+                        <div style={{ display: "flex", fontSize: index === 0 ? 17 : 15, fontWeight: 800 }}>Teilnahmen</div>
+                        <div style={{ display: "flex", width: 1, height: 22, background: "rgba(255,255,255,0.22)" }} />
+                        <div style={{ display: "flex", fontSize: index === 0 ? 22 : 18, fontWeight: 950, color: accent }}>{winRate(row)}</div>
+                        <div style={{ display: "flex", fontSize: index === 0 ? 17 : 15, fontWeight: 800 }}>Siegquote</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", minWidth: index === 0 ? 170 : 145, flexDirection: "column", alignItems: "flex-end", marginLeft: 20 }}>
+                      <div style={{ display: "flex", alignItems: "flex-end", gap: 18 }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                          <div style={{ display: "flex", fontSize: winSizes[index], fontWeight: 950, lineHeight: 0.9, letterSpacing: -2.5, color: accent }}>{row.wins}</div>
+                          <div style={{ display: "flex", marginTop: 8, fontSize: 13, fontWeight: 900, letterSpacing: 1.8, color: "rgba(255,255,255,0.72)", textTransform: "uppercase" }}>Siege</div>
+                        </div>
+                        <div style={{ display: "flex", paddingBottom: 14, fontSize: 17, fontWeight: 950, color: movementColor(row) }}>{movement(row)}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 16 }}>
               {rest.map((row) => (
                 <div
                   key={row.player_id}
                   style={{
                     display: "flex",
-                    height: 70,
+                    height: 66,
                     padding: "0 20px",
                     alignItems: "center",
-                    borderRadius: 20,
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    background: "rgba(255,255,255,0.045)",
+                    borderRadius: 18,
+                    background: "rgba(15,39,84,0.78)",
+                    border: "1px solid rgba(255,255,255,0.09)",
                   }}
                 >
-                  <div style={{ display: "flex", width: 54, fontSize: 25, fontWeight: 950, color: "rgba(255,255,255,0.66)" }}>{row.rank}</div>
-                  <div style={{ display: "flex", flex: 1, minWidth: 0, flexDirection: "column" }}>
-                    <div style={{ display: "flex", fontSize: 25, fontWeight: 900, letterSpacing: -0.4 }}>{displayName(row)}</div>
-                    <div style={{ display: "flex", marginTop: 3, fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.40)" }}>{row.wins} Siege · {row.sessions} Teiln. · {winRate(row)}</div>
+                  <div
+                    style={{
+                      display: "flex",
+                      width: 52,
+                      height: 44,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 13,
+                      background: "rgba(96,165,250,0.18)",
+                      color: "#fff",
+                      fontSize: 22,
+                      fontWeight: 950,
+                    }}
+                  >
+                    {row.rank}
                   </div>
-                  <div style={{ display: "flex", fontSize: 17, fontWeight: 900, color: movementColor(row) }}>{movement(row)}</div>
+                  <div style={{ display: "flex", flex: 1, minWidth: 0, marginLeft: 20, fontSize: 23, fontWeight: 900, color: "#fff" }}>{displayName(row)}</div>
+                  <div style={{ display: "flex", width: 118, alignItems: "baseline", gap: 7 }}>
+                    <div style={{ display: "flex", fontSize: 25, fontWeight: 950, color: "#c4b5fd" }}>{row.wins}</div>
+                    <div style={{ display: "flex", fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.66)" }}>Siege</div>
+                  </div>
+                  <div style={{ display: "flex", width: 148, alignItems: "baseline", gap: 7 }}>
+                    <div style={{ display: "flex", fontSize: 19, fontWeight: 900, color: "rgba(255,255,255,0.86)" }}>{row.sessions}</div>
+                    <div style={{ display: "flex", fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.58)" }}>Teiln.</div>
+                  </div>
+                  <div style={{ display: "flex", width: 88, fontSize: 22, fontWeight: 950, color: "#c4b5fd" }}>{winRate(row)}</div>
+                  <div style={{ display: "flex", width: 66, justifyContent: "flex-end", fontSize: 16, fontWeight: 950, color: movementColor(row) }}>{movement(row)}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={{ display: "flex", position: "absolute", left: 0, right: 0, bottom: 0, height: 100, background: "linear-gradient(180deg, rgba(2,6,23,0.90) 0%, rgba(2,6,23,0.98) 32%, #020617 100%)", zIndex: 5 }} />
-
-          <div style={{ display: "flex", position: "absolute", left: 42, right: 42, bottom: 28, justifyContent: "space-between", alignItems: "flex-end", gap: 28, zIndex: 20 }}>
-            <div style={{ display: "flex", maxWidth: 560, fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.34)" }}>
-              Die komplette Tabelle findest du direkt in strikr.
-            </div>
-            <div style={{ display: "flex", fontSize: 16, fontWeight: 900, color: "rgba(255,255,255,0.58)" }}>
-              @getstrikr · strikr.team
-            </div>
+          <div style={{ display: "flex", position: "absolute", left: 0, right: 0, bottom: 0, height: 64, alignItems: "center", justifyContent: "center", gap: 16, background: "rgba(7,20,49,0.72)", zIndex: 6 }}>
+            <div style={{ display: "flex", fontSize: 15, fontWeight: 800, color: "rgba(255,255,255,0.70)" }}>@getstrikr</div>
+            <div style={{ display: "flex", color: "#f472b6", fontSize: 15 }}>·</div>
+            <div style={{ display: "flex", fontSize: 15, fontWeight: 900, color: "#f9a8d4" }}>strikr.team</div>
           </div>
         </div>
       </div>,
