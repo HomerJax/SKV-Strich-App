@@ -67,7 +67,7 @@ function SummaryPill({
 
   return (
     <div
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${className}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${className}`}
     >
       {children}
     </div>
@@ -103,17 +103,17 @@ function ControlButton({
 }) {
   const className =
     tone === "primary"
-      ? "bg-slate-950 text-white hover:bg-slate-800"
+      ? "border border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-800"
       : tone === "success"
-        ? "bg-emerald-600 text-white hover:bg-emerald-700"
-        : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
+        ? "border border-emerald-500 bg-emerald-500 text-white shadow-sm hover:bg-emerald-600"
+        : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100";
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition ${className} disabled:cursor-not-allowed disabled:opacity-60`}
+      className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2.5 text-xs font-bold transition ${className} disabled:cursor-not-allowed disabled:opacity-50`}
     >
       {children}
     </button>
@@ -131,7 +131,7 @@ function MiniActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[9px] font-semibold leading-none text-slate-700 transition hover:bg-slate-50"
+      className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[9px] font-bold leading-none text-slate-700 transition hover:bg-slate-100"
     >
       {children}
     </button>
@@ -141,16 +141,14 @@ function MiniActionButton({
 function TeamMetaLine({ meta }: { meta: TeamMeta }) {
   return (
     <div className="text-[9px] leading-tight text-slate-500">
-      TW {meta.gk} · DE {meta.def} · AT {meta.att} · AH {meta.ah}
-      <br />
-      Ü32 {meta.u32}
+      TW {meta.gk} · DE {meta.def} · AT {meta.att} · AH {meta.ah} · Ü32 {meta.u32}
     </div>
   );
 }
 
 function PlayerInlineMeta({ player }: { player: Player }) {
   return (
-    <span className="flex items-center gap-1 shrink-0">
+    <span className="flex shrink-0 items-center gap-1">
       <CompactTag className={ageBadgeColor(player.age_group)}>
         {player.category_label ?? "?"}
       </CompactTag>
@@ -173,9 +171,9 @@ function TeamPlayerRow({
   onSetSide: (playerId: number, side: TeamSide | null) => void;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm">
+    <div className="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
       <div className="flex items-center justify-between gap-1.5">
-        <div className="min-w-0 flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <div
             className="truncate text-[9px] font-semibold leading-tight text-slate-900"
             title={getDisplayName(player)}
@@ -210,26 +208,26 @@ function UnassignedPlayerRow({
   onSetSide: (playerId: number, side: TeamSide | null) => void;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 shadow-sm">
-      <div className="flex items-center justify-between gap-1.5">
-        <div className="min-w-0 flex flex-1 flex-col">
+    <div className="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-[0_2px_10px_rgba(15,23,42,0.045)]">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-1 flex-col">
           <div
-            className="truncate text-[9px] font-semibold leading-tight text-slate-900"
+            className="truncate text-[10px] font-bold leading-tight text-slate-900"
             title={getDisplayName(player)}
           >
             {getDisplayName(player)}
           </div>
 
-          <div className="mt-1 flex items-center justify-between gap-1.5">
+          <div className="mt-1.5 flex items-center justify-between gap-2">
             <PlayerInlineMeta player={player} />
 
             {!hasResult ? (
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <MiniActionButton onClick={() => onSetSide(player.id, "A")}>
-                  →1
+                  → 1
                 </MiniActionButton>
                 <MiniActionButton onClick={() => onSetSide(player.id, "B")}>
-                  →2
+                  → 2
                 </MiniActionButton>
               </div>
             ) : null}
@@ -579,24 +577,24 @@ function TeamColumn({
   const sortedPlayers = sortForList(players);
 
   return (
-    <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50/80 p-2">
+    <div className="min-w-0 rounded-3xl border border-slate-200 bg-slate-50/70 p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-bold text-slate-950">{title}</div>
-        <div className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-700 ring-1 ring-slate-200">
+        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-700 ring-1 ring-slate-200">
           {players.length}
         </div>
       </div>
 
-      <div className="mt-1">
+      <div className="mt-1.5">
         <TeamMetaLine meta={meta} />
       </div>
 
       {sortedPlayers.length === 0 ? (
-        <div className="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-2 py-2 text-[11px] text-slate-500">
+        <div className="mt-3 flex min-h-16 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/80 px-3 py-3 text-center text-[11px] font-medium text-slate-400">
           Keine Spieler
         </div>
       ) : (
-        <div className="mt-2 space-y-1">
+        <div className="mt-3 space-y-1.5">
           {sortedPlayers.map((player) => (
             <TeamPlayerRow
               key={`${side}-${player.id}`}
@@ -620,14 +618,14 @@ function ViewToggle({
   onChange: (next: ViewMode) => void;
 }) {
   return (
-    <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1">
+    <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
       <button
         type="button"
         onClick={() => onChange("list")}
-        className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+        className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
           value === "list"
             ? "bg-white text-slate-900 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
+            : "text-slate-500 hover:text-slate-900"
         }`}
       >
         Liste
@@ -635,10 +633,10 @@ function ViewToggle({
       <button
         type="button"
         onClick={() => onChange("field")}
-        className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+        className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
           value === "field"
             ? "bg-white text-slate-900 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
+            : "text-slate-500 hover:text-slate-900"
         }`}
       >
         Spielfeld
@@ -655,14 +653,14 @@ function TeamLayoutToggle({
   onChange: (next: TeamLayoutMode) => void;
 }) {
   return (
-    <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1">
+    <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
       <button
         type="button"
         onClick={() => onChange("compare")}
-        className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+        className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
           value === "compare"
             ? "bg-white text-slate-900 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
+            : "text-slate-500 hover:text-slate-900"
         }`}
       >
         Vergleich
@@ -670,10 +668,10 @@ function TeamLayoutToggle({
       <button
         type="button"
         onClick={() => onChange("stacked")}
-        className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+        className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
           value === "stacked"
             ? "bg-white text-slate-900 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
+            : "text-slate-500 hover:text-slate-900"
         }`}
       >
         Untereinander
@@ -715,11 +713,11 @@ export default function SessionTeamsCard({
 
   if (collapsed) {
     return (
-      <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
+      <section className="rounded-[22px] border border-slate-200 bg-white shadow-sm">
         <button
           type="button"
           onClick={onToggleCollapsed}
-          className={`flex w-full items-center justify-between gap-4 rounded-[20px] px-4 py-3.5 text-left transition ${
+          className={`flex w-full items-center justify-between gap-4 rounded-[22px] px-4 py-3.5 text-left transition ${
             done ? "bg-emerald-50" : "hover:bg-slate-50/70"
           }`}
         >
@@ -765,7 +763,7 @@ export default function SessionTeamsCard({
             </div>
           </div>
 
-          <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
             Bearbeiten
           </div>
         </button>
@@ -774,20 +772,18 @@ export default function SessionTeamsCard({
   }
 
   return (
-    <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-100 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
+            <div className="flex items-center gap-2.5">
+              <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
                 2
               </div>
 
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-slate-900">
-                  Teams
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
+                <div className="text-base font-bold text-slate-950">Teams</div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   {teamsComplete ? (
                     teamsConfirmed ? (
                       <SummaryPill tone="success">Bestätigt</SummaryPill>
@@ -805,38 +801,40 @@ export default function SessionTeamsCard({
           <button
             type="button"
             onClick={onToggleCollapsed}
-            className="shrink-0 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
           >
-            Kompakt anzeigen
+            Kompakt
           </button>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        {!hasResult ? (
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <ControlButton
+              onClick={onGenerateTeams}
+              disabled={attendanceDirty || saving}
+              tone="primary"
+            >
+              Teams generieren
+            </ControlButton>
+
+            <ControlButton
+              onClick={onConfirmTeams}
+              disabled={!teamsComplete || teamsConfirmed || saving}
+              tone="success"
+            >
+              {teamsConfirmed ? "Teams bestätigt" : "Teams bestätigen"}
+            </ControlButton>
+          </div>
+        ) : null}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {!hasResult ? (
-            <>
-              <ControlButton
-                onClick={onGenerateTeams}
-                disabled={attendanceDirty || saving}
-                tone="primary"
-              >
-                Teams generieren
-              </ControlButton>
-
-              <ControlButton
-                onClick={onConfirmTeams}
-                disabled={!teamsComplete || teamsConfirmed || saving}
-                tone="success"
-              >
-                {teamsConfirmed ? "Teams bestätigt" : "Teams bestätigen"}
-              </ControlButton>
-
-              <ControlButton
-                onClick={onShareLineup}
-                disabled={!canShareLineup || sharingLineup}
-              >
-                {sharingLineup ? "Teilt..." : "Aufstellung teilen"}
-              </ControlButton>
-            </>
+            <ControlButton
+              onClick={onShareLineup}
+              disabled={!canShareLineup || sharingLineup}
+            >
+              {sharingLineup ? "Teilt..." : "Aufstellung teilen"}
+            </ControlButton>
           ) : null}
 
           <TeamLayoutToggle value={layoutMode} onChange={setLayoutMode} />
@@ -859,8 +857,8 @@ export default function SessionTeamsCard({
           <div
             className={
               layoutMode === "compare"
-                ? "grid grid-cols-2 gap-2"
-                : "grid grid-cols-1 gap-2"
+                ? "grid grid-cols-2 gap-2.5"
+                : "grid grid-cols-1 gap-2.5"
             }
           >
             <TeamColumn
@@ -883,24 +881,22 @@ export default function SessionTeamsCard({
           </div>
         )}
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-3.5">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-semibold text-slate-900">
-              Noch nicht zugewiesen
-            </div>
+            <div className="text-sm font-bold text-slate-950">Noch nicht zugewiesen</div>
             <SummaryPill tone={openCount > 0 ? "muted" : "success"}>
               {openCount}
             </SummaryPill>
           </div>
 
           {unassigned.length === 0 ? (
-            <div className="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500">
+            <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-500">
               {teamsComplete
                 ? "Alle anwesenden Spieler sind einem Team zugewiesen."
                 : "Aktuell keine offenen Spieler."}
             </div>
           ) : (
-            <div className="mt-3 grid gap-1.5">
+            <div className="mt-3 grid gap-2">
               {unassigned.map((player) => (
                 <UnassignedPlayerRow
                   key={`unassigned-${player.id}`}
