@@ -24,50 +24,6 @@ async function fileToBase64(file: File) {
   return btoa(binary);
 }
 
-function downloadFile(file: File) {
-  const url = URL.createObjectURL(file);
-
-  try {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = file.name || "strikr-top-10.png";
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } finally {
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-}
-
-async function copyImageToClipboard(file: File) {
-  if (
-    typeof navigator === "undefined" ||
-    !navigator.clipboard ||
-    typeof navigator.clipboard.write !== "function" ||
-    typeof ClipboardItem === "undefined"
-  ) {
-    return false;
-  }
-
-  try {
-    const pngBlob =
-      file.type === "image/png"
-        ? file
-        : new Blob([await file.arrayBuffer()], { type: "image/png" });
-
-    await navigator.clipboard.write([
-      new ClipboardItem({
-        "image/png": pngBlob,
-      }),
-    ]);
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export default function StandingsTop10Share() {
   const searchParams = useSearchParams();
   const season = searchParams.get("season");
@@ -168,34 +124,6 @@ export default function StandingsTop10Share() {
     });
   }
 
-  async function shareWeb(file: File) {
-    if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-      const copied = await copyImageToClipboard(file);
-      if (copied) return "copied" as const;
-
-      downloadFile(file);
-      return "downloaded" as const;
-    }
-
-    if (typeof navigator.canShare === "function") {
-      const canShareFiles = navigator.canShare({ files: [file] });
-
-      if (!canShareFiles) {
-        const copied = await copyImageToClipboard(file);
-        if (copied) return "copied" as const;
-
-        downloadFile(file);
-        return "downloaded" as const;
-      }
-    }
-
-    await navigator.share({
-      files: [file],
-    });
-
-    return "shared" as const;
-  }
-
   async function handleShare() {
     if (!preparedFile || sharing) return;
 
@@ -206,17 +134,31 @@ export default function StandingsTop10Share() {
       if (Capacitor.isNativePlatform()) {
         await shareNative(preparedFile);
         setMessage("Top 10 erfolgreich geteilt.");
-      } else {
-        const result = await shareWeb(preparedFile);
+        return;
+      }
 
-        if (result === "shared") {
-          setMessage("Top 10 erfolgreich geteilt.");
-        } else if (result === "copied") {
-          setMessage("Direktes Teilen wird von diesem Browser nicht unterstützt. Top 10 wurde in die Zwischenablage kopiert.");
-        } else {
-          setMessage("Direktes Teilen wird von diesem Browser nicht unterstützt. Top 10 wurde als Bild gespeichert.");
+      if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+        setMessage("Dieser Browser unterstützt das direkte Teilen der Top 10 nicht.");
+        return;
+      }
+
+      if (typeof navigator.canShare === "function") {
+        const canShareFiles = navigator.canShare({
+          files: [preparedFile],
+        });
+
+        if (!canShareFiles) {
+          throw new Error(
+            "Dieser Browser unterstützt das direkte Teilen der Top 10 nicht."
+          );
         }
       }
+
+      await navigator.share({
+        files: [preparedFile],
+      });
+
+      setMessage("Top 10 erfolgreich geteilt.");
     } catch (error: unknown) {
       if (error instanceof Error && error.message === "NATIVE_SHARE_UPDATE_REQUIRED") {
         setMessage("Für das native Teilen ist ein App-Update erforderlich.");
@@ -228,8 +170,11 @@ export default function StandingsTop10Share() {
         return;
       }
 
-      const detail = error instanceof Error ? error.message : "Unbekannter Fehler";
-      setMessage(`Teilen nicht möglich (${detail}).`);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Top 10 konnte nicht geteilt werden."
+      );
     } finally {
       setSharing(false);
     }
