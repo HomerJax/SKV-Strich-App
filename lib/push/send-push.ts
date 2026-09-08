@@ -5,17 +5,67 @@ import { getFirebaseMessaging } from "@/lib/push/firebase-admin";
 
 type PushPlatform = "android" | "ios" | "web" | "unknown";
 
+export type PushPreferenceKey =
+  | "training_reminders"
+  | "rsvp_updates"
+  | "results"
+  | "badges"
+  | "announcements";
+
 type SendPushOptions = {
   userIds: string[];
   title: string;
   body: string;
   url?: string;
   platform?: PushPlatform;
+  preference?: PushPreferenceKey;
 };
 
 type PushSubscriptionRow = {
   token: string;
 };
+
+type PushPreferenceRow = {
+  user_id: string;
+  training_reminders: boolean;
+  rsvp_updates: boolean;
+  results: boolean;
+  badges: boolean;
+  announcements: boolean;
+};
+
+async function filterUsersByPreference(
+  userIds: string[],
+  preference?: PushPreferenceKey,
+) {
+  if (!preference || userIds.length === 0) {
+    return userIds;
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("push_preferences")
+    .select(
+      "user_id, training_reminders, rsvp_updates, results, badges, announcements",
+    )
+    .in("user_id", userIds);
+
+  if (error) {
+    throw new Error(
+      `Push-Einstellungen konnten nicht geladen werden: ${error.message}`,
+    );
+  }
+
+  const preferencesByUser = new Map(
+    ((data ?? []) as PushPreferenceRow[]).map((row) => [row.user_id, row]),
+  );
+
+  // Keine gespeicherte Zeile bedeutet weiterhin: Standard = eingeschaltet.
+  return userIds.filter((userId) => {
+    const preferences = preferencesByUser.get(userId);
+    return preferences ? preferences[preference] !== false : true;
+  });
+}
 
 export async function sendPushToUsers({
   userIds,
@@ -23,11 +73,36 @@ export async function sendPushToUsers({
   body,
   url = "/home",
   platform,
+  preference,
 }: SendPushOptions) {
   const uniqueUserIds = [...new Set(userIds)].filter(Boolean);
 
   if (!uniqueUserIds.length) {
-    return { sent: 0, failed: 0, skipped: true, errors: [] as string[] };
+    return {
+      sent: 0,
+      failed: 0,
+      disabled: 0,
+      filtered: 0,
+      skipped: true,
+      errors: [] as string[],
+    };
+  }
+
+  const allowedUserIds = await filterUsersByPreference(
+    uniqueUserIds,
+    preference,
+  );
+  const filtered = uniqueUserIds.length - allowedUserIds.length;
+
+  if (!allowedUserIds.length) {
+    return {
+      sent: 0,
+      failed: 0,
+      disabled: 0,
+      filtered,
+      skipped: true,
+      errors: [] as string[],
+    };
   }
 
   const supabase = createAdminClient();
@@ -35,7 +110,7 @@ export async function sendPushToUsers({
   let query = supabase
     .from("push_subscriptions")
     .select("token")
-    .in("user_id", uniqueUserIds)
+    .in("user_id", allowedUserIds)
     .eq("enabled", true);
 
   if (platform) {
@@ -55,7 +130,14 @@ export async function sendPushToUsers({
   ];
 
   if (!tokens.length) {
-    return { sent: 0, failed: 0, skipped: true, errors: [] as string[] };
+    return {
+      sent: 0,
+      failed: 0,
+      disabled: 0,
+      filtered,
+      skipped: true,
+      errors: [] as string[],
+    };
   }
 
   const messaging = getFirebaseMessaging();
@@ -120,6 +202,7 @@ export async function sendPushToUsers({
     sent: response.successCount,
     failed: response.failureCount,
     disabled: invalidTokens.length,
+    filtered,
     skipped: false,
     errors: [...new Set(errors)],
   };
