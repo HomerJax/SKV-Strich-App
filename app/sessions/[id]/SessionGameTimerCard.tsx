@@ -7,7 +7,18 @@ import {
   type GameTimerMode,
   type GameTimerSettings,
 } from "@/lib/game-timer";
-import { playTimerAlarm, primeTimerAudio } from "@/lib/game-timer-audio";
+import {
+  playTimerAlarm,
+  primeTimerAudio,
+  startRepeatingTimerAlarm,
+  stopRepeatingTimerAlarm,
+} from "@/lib/game-timer-audio";
+import {
+  cancelNativeGameTimerAlarm,
+  requestNativeGameTimerAlarmAuthorization,
+  scheduleNativeGameTimerAlarm,
+  supportsNativeGameTimerAlarm,
+} from "@/lib/native-game-timer-alarm";
 
 type TimerPhase = "idle" | "running" | "halftime" | "finished";
 type TimerSegment = "continuous" | "first" | "second";
@@ -18,6 +29,7 @@ type PersistedTimerRuntime = {
   targetAt: number | null;
   endAt: number | null;
   settings: GameTimerSettings;
+  nativeCurrentAlarmScheduled?: boolean;
   savedAt: number;
 };
 
@@ -75,6 +87,7 @@ function getInitialRuntime(settings: GameTimerSettings): PersistedTimerRuntime {
     targetAt: null,
     endAt: null,
     settings,
+    nativeCurrentAlarmScheduled: false,
     savedAt: Date.now(),
   };
 }
@@ -101,10 +114,12 @@ export default function SessionGameTimerCard({
   const [remainingMs, setRemainingMs] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const handledTargetRef = useRef<number | null>(null);
-  const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
 
   const isRunning = runtime.phase === "running";
   const canEdit = runtime.phase === "idle" || runtime.phase === "finished";
+  const nativeAlarmSupported = hydrated && supportsNativeGameTimerAlarm();
+  const halftimeAlarmKey = `strikr-game-${sessionId}-halftime`;
+  const finalAlarmKey = `strikr-game-${sessionId}-final`;
 
   const persistRuntime = useCallback(
     (nextRuntime: PersistedTimerRuntime) => {
@@ -121,6 +136,7 @@ export default function SessionGameTimerCard({
 
   const resetRuntime = useCallback(
     (nextSettings: GameTimerSettings = settings) => {
+      stopRepeatingTimerAlarm();
       const nextRuntime = getInitialRuntime(nextSettings);
       persistRuntime(nextRuntime);
       setRemainingMs(0);
@@ -128,6 +144,13 @@ export default function SessionGameTimerCard({
     },
     [persistRuntime, settings],
   );
+
+  const cancelAllNativeAlarms = useCallback(async () => {
+    await Promise.all([
+      cancelNativeGameTimerAlarm(halftimeAlarmKey),
+      cancelNativeGameTimerAlarm(finalAlarmKey),
+    ]);
+  }, [finalAlarmKey, halftimeAlarmKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -174,61 +197,6 @@ export default function SessionGameTimerCard({
     return () => window.clearInterval(intervalId);
   }, [hydrated, isRunning, runtime.targetAt]);
 
-  const releaseWakeLock = useCallback(async () => {
-    const current = wakeLockRef.current;
-    wakeLockRef.current = null;
-    if (!current) return;
-
-    try {
-      await current.release();
-    } catch {
-      // Wake Lock ist optional. Timer läuft trotzdem über Zeitstempel weiter.
-    }
-  }, []);
-
-  const requestWakeLock = useCallback(async () => {
-    if (typeof navigator === "undefined") return;
-
-    const wakeLockApi = (
-      navigator as Navigator & {
-        wakeLock?: {
-          request: (type: "screen") => Promise<{ release: () => Promise<void> }>;
-        };
-      }
-    ).wakeLock;
-
-    if (!wakeLockApi || wakeLockRef.current) return;
-
-    try {
-      wakeLockRef.current = await wakeLockApi.request("screen");
-    } catch {
-      // Nicht auf jedem Browser/WebView verfügbar.
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isRunning) {
-      void requestWakeLock();
-    } else {
-      void releaseWakeLock();
-    }
-
-    return () => {
-      void releaseWakeLock();
-    };
-  }, [isRunning, releaseWakeLock, requestWakeLock]);
-
-  useEffect(() => {
-    function handleVisibilityChange() {
-      if (document.visibilityState === "visible" && isRunning) {
-        void requestWakeLock();
-      }
-    }
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [isRunning, requestWakeLock]);
-
   useEffect(() => {
     if (
       runtime.phase !== "running" ||
@@ -240,17 +208,21 @@ export default function SessionGameTimerCard({
     }
 
     handledTargetRef.current = runtime.targetAt;
-    void playTimerAlarm(runtime.settings.alarmSound);
+
+    if (!runtime.nativeCurrentAlarmScheduled) {
+      void startRepeatingTimerAlarm(runtime.settings.alarmSound);
+    }
 
     if (runtime.settings.halftimeEnabled && runtime.segment === "first") {
       persistRuntime({
         ...runtime,
         phase: "halftime",
         targetAt: null,
+        nativeCurrentAlarmScheduled: false,
         savedAt: Date.now(),
       });
       setRemainingMs(0);
-      setMessage("Halbzeit. Alarm ausgelöst.");
+      setMessage("Halbzeit. Alarm läuft bis du ihn stoppst.");
       return;
     }
 
@@ -258,10 +230,11 @@ export default function SessionGameTimerCard({
       ...runtime,
       phase: "finished",
       targetAt: null,
+      nativeCurrentAlarmScheduled: false,
       savedAt: Date.now(),
     });
     setRemainingMs(0);
-    setMessage("Abpfiff. Spielzeit beendet.");
+    setMessage("Abpfiff. Alarm läuft bis du ihn stoppst.");
   }, [persistRuntime, runtime, remainingMs]);
 
   const displayTime = useMemo(() => {
@@ -297,10 +270,34 @@ export default function SessionGameTimerCard({
     return `${target} · ${halftime} · ${getAlarmLabel(settings.alarmSound)}`;
   }, [settings]);
 
+  async function ensureNativeAlarmReady() {
+    if (!nativeAlarmSupported) {
+      return { useNative: false } as const;
+    }
+
+    const authorization = await requestNativeGameTimerAlarmAuthorization();
+    if (authorization.granted) {
+      return { useNative: true } as const;
+    }
+
+    if (authorization.needsSettings) {
+      setError(
+        "Bitte erlaube strikr unter „Alarme & Erinnerungen“ exakte Alarme und tippe danach erneut auf Spiel starten.",
+      );
+    } else {
+      setError(
+        "Für einen zuverlässigen Alarm bei gesperrtem Bildschirm braucht strikr die Alarm-/Benachrichtigungs-Berechtigung.",
+      );
+    }
+
+    return { useNative: false, blocked: true } as const;
+  }
+
   async function startTimer() {
     setError(null);
     setMessage(null);
     handledTargetRef.current = null;
+    stopRepeatingTimerAlarm();
     await primeTimerAudio();
 
     const now = Date.now();
@@ -313,11 +310,49 @@ export default function SessionGameTimerCard({
     } else {
       endAt = getFutureEndTimestamp(settings.endTime);
       if (!endAt) {
-        setError("Die gewählte Endzeit liegt bereits zurück. Bitte die Endzeit für dieses Training anpassen.");
+        setError(
+          "Die gewählte Endzeit liegt bereits zurück. Bitte die Endzeit für dieses Training anpassen.",
+        );
         return;
       }
 
       targetAt = settings.halftimeEnabled ? now + (endAt - now) / 2 : endAt;
+    }
+
+    const nativeReady = await ensureNativeAlarmReady();
+    if ("blocked" in nativeReady && nativeReady.blocked) return;
+
+    let nativeCurrentAlarmScheduled = false;
+
+    if (nativeReady.useNative) {
+      const currentKind = settings.halftimeEnabled ? "halftime" : "final";
+      const currentKey = settings.halftimeEnabled ? halftimeAlarmKey : finalAlarmKey;
+      nativeCurrentAlarmScheduled = await scheduleNativeGameTimerAlarm({
+        key: currentKey,
+        atEpochMs: targetAt,
+        kind: currentKind,
+        sound: settings.alarmSound,
+      });
+
+      if (!nativeCurrentAlarmScheduled) {
+        setError("Der lokale Alarm konnte nicht geplant werden. Spieluhr wurde nicht gestartet.");
+        return;
+      }
+
+      if (settings.mode === "end_time" && settings.halftimeEnabled && endAt) {
+        const finalScheduled = await scheduleNativeGameTimerAlarm({
+          key: finalAlarmKey,
+          atEpochMs: endAt,
+          kind: "final",
+          sound: settings.alarmSound,
+        });
+
+        if (!finalScheduled) {
+          await cancelNativeGameTimerAlarm(halftimeAlarmKey);
+          setError("Der Abpfiff-Alarm konnte nicht geplant werden. Spieluhr wurde nicht gestartet.");
+          return;
+        }
+      }
     }
 
     persistRuntime({
@@ -326,15 +361,23 @@ export default function SessionGameTimerCard({
       targetAt,
       endAt,
       settings,
+      nativeCurrentAlarmScheduled,
       savedAt: Date.now(),
     });
     setRemainingMs(Math.max(0, targetAt - now));
+    setMessage(
+      nativeReady.useNative
+        ? "Spieluhr läuft. Du kannst den Bildschirm sperren."
+        : "Spieluhr läuft. Für diesen App-Build die App geöffnet lassen.",
+    );
   }
 
   async function startSecondHalf() {
     setError(null);
     setMessage(null);
     handledTargetRef.current = null;
+    stopRepeatingTimerAlarm();
+    await cancelNativeGameTimerAlarm(halftimeAlarmKey);
     await primeTimerAudio();
 
     const activeSettings = runtime.settings;
@@ -351,6 +394,7 @@ export default function SessionGameTimerCard({
           phase: "finished",
           segment: "second",
           targetAt: null,
+          nativeCurrentAlarmScheduled: false,
           savedAt: Date.now(),
         });
         setError("Die feste Endzeit ist bereits erreicht.");
@@ -359,20 +403,57 @@ export default function SessionGameTimerCard({
       targetAt = endAt;
     }
 
+    let nativeCurrentAlarmScheduled = false;
+    if (nativeAlarmSupported) {
+      nativeCurrentAlarmScheduled = await scheduleNativeGameTimerAlarm({
+        key: finalAlarmKey,
+        atEpochMs: targetAt,
+        kind: "final",
+        sound: activeSettings.alarmSound,
+      });
+
+      if (!nativeCurrentAlarmScheduled) {
+        setError("Der Abpfiff-Alarm konnte nicht geplant werden.");
+        return;
+      }
+    }
+
     persistRuntime({
       ...runtime,
       phase: "running",
       segment: "second",
       targetAt,
+      nativeCurrentAlarmScheduled,
       savedAt: Date.now(),
     });
     setRemainingMs(Math.max(0, targetAt - now));
   }
 
-  function stopTimer() {
+  async function dismissCurrentAlarm() {
+    stopRepeatingTimerAlarm();
+
+    if (runtime.phase === "halftime") {
+      await cancelNativeGameTimerAlarm(halftimeAlarmKey);
+      setMessage("Halbzeit-Alarm gestoppt.");
+      return;
+    }
+
+    await cancelNativeGameTimerAlarm(finalAlarmKey);
+    setMessage("Abpfiff-Alarm gestoppt.");
+  }
+
+  async function stopTimer() {
+    stopRepeatingTimerAlarm();
+    await cancelAllNativeAlarms();
     setMessage("Spieluhr gestoppt.");
     setError(null);
     resetRuntime(settings);
+  }
+
+  async function resetFinishedTimer() {
+    await dismissCurrentAlarm();
+    resetRuntime(settings);
+    setMessage("Spieluhr zurückgesetzt.");
   }
 
   async function testSound() {
@@ -518,7 +599,7 @@ export default function SessionGameTimerCard({
           {runtime.phase === "running" ? (
             <button
               type="button"
-              onClick={stopTimer}
+              onClick={() => void stopTimer()}
               className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 transition hover:bg-red-100"
             >
               Spieluhr stoppen
@@ -529,6 +610,13 @@ export default function SessionGameTimerCard({
             <>
               <button
                 type="button"
+                onClick={() => void dismissCurrentAlarm()}
+                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 transition hover:bg-red-100"
+              >
+                Alarm stoppen
+              </button>
+              <button
+                type="button"
                 onClick={() => void startSecondHalf()}
                 className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800"
               >
@@ -536,7 +624,7 @@ export default function SessionGameTimerCard({
               </button>
               <button
                 type="button"
-                onClick={stopTimer}
+                onClick={() => void stopTimer()}
                 className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
               >
                 Beenden
@@ -545,13 +633,22 @@ export default function SessionGameTimerCard({
           ) : null}
 
           {runtime.phase === "finished" ? (
-            <button
-              type="button"
-              onClick={() => resetRuntime(settings)}
-              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800"
-            >
-              Spieluhr zurücksetzen
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => void dismissCurrentAlarm()}
+                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 transition hover:bg-red-100"
+              >
+                Alarm stoppen
+              </button>
+              <button
+                type="button"
+                onClick={() => void resetFinishedTimer()}
+                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800"
+              >
+                Spieluhr zurücksetzen
+              </button>
+            </>
           ) : null}
         </div>
 
@@ -707,7 +804,9 @@ export default function SessionGameTimerCard({
         ) : null}
 
         <p className="mt-4 text-[11px] leading-5 text-slate-400">
-          strikr hält den Bildschirm während der laufenden Uhr nach Möglichkeit wach. Für den Alarm Gerätelautstärke einschalten und die App geöffnet lassen.
+          {nativeAlarmSupported
+            ? "Der Alarm wird nur auf diesem Gerät geplant. Der Bildschirm darf gesperrt werden; gekoppelte Watches können die Systemmeldung übernehmen. Der Alarm läuft bis er gestoppt wird."
+            : "Dieser installierte App-Build unterstützt den Sperrbildschirm-Alarm noch nicht. Bis zum nächsten nativen App-Update die App während der Spieluhr geöffnet lassen."}
         </p>
       </div>
     </section>
