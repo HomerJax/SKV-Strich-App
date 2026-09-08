@@ -3,7 +3,9 @@
 import { useState } from "react";
 import {
   GAME_TIMER_ALARM_OPTIONS,
+  GAME_TIMER_HALFTIME_BEHAVIOR_OPTIONS,
   type GameTimerAlarmSound,
+  type GameTimerHalftimeBehavior,
   type GameTimerMode,
 } from "@/lib/game-timer";
 import { playTimerAlarm, primeTimerAudio } from "@/lib/game-timer-audio";
@@ -14,6 +16,7 @@ type GameTimerSettingsCardProps = {
   initialDurationMinutes: number;
   initialEndTime: string | null;
   initialHalftimeEnabled: boolean;
+  initialHalftimeBehavior: GameTimerHalftimeBehavior;
   initialAlarmSound: GameTimerAlarmSound;
 };
 
@@ -23,6 +26,7 @@ export default function GameTimerSettingsCard({
   initialDurationMinutes,
   initialEndTime,
   initialHalftimeEnabled,
+  initialHalftimeBehavior,
   initialAlarmSound,
 }: GameTimerSettingsCardProps) {
   const [enabled, setEnabled] = useState(initialEnabled);
@@ -30,6 +34,8 @@ export default function GameTimerSettingsCard({
   const [durationMinutes, setDurationMinutes] = useState(initialDurationMinutes);
   const [endTime, setEndTime] = useState(initialEndTime ?? "20:30");
   const [halftimeEnabled, setHalftimeEnabled] = useState(initialHalftimeEnabled);
+  const [halftimeBehavior, setHalftimeBehavior] =
+    useState<GameTimerHalftimeBehavior>(initialHalftimeBehavior);
   const [alarmSound, setAlarmSound] =
     useState<GameTimerAlarmSound>(initialAlarmSound);
   const [saving, setSaving] = useState(false);
@@ -62,6 +68,7 @@ export default function GameTimerSettingsCard({
           durationMinutes,
           endTime: endTime || null,
           halftimeEnabled,
+          halftimeBehavior,
           alarmSound,
         }),
       });
@@ -127,7 +134,7 @@ export default function GameTimerSettingsCard({
               Standard-Spielzeit
             </span>
             <span className="mt-1 block text-xs leading-5 text-slate-500">
-              Gesamtspielzeit ohne Halbzeitpause.
+              Gesamtspielzeit. Bei echter Halbzeitpause zählt die Pause nicht mit.
             </span>
             <div className="mt-3 flex items-center gap-2">
               <input
@@ -162,26 +169,55 @@ export default function GameTimerSettingsCard({
         )}
       </div>
 
-      <label className="flex items-start justify-between gap-4 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-slate-950">Mit Halbzeit</span>
-          <span className="mt-1 block text-sm leading-6 text-slate-600">
-            Bei Spielzeit in Minuten stoppt die Uhr nach Hälfte 1 und wartet auf „2. Halbzeit starten“.
-            Bei fester Endzeit bleibt die gewählte Schlusszeit bestehen.
+      <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+        <label className="flex items-start justify-between gap-4">
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-slate-950">Mit Halbzeit</span>
+            <span className="mt-1 block text-sm leading-6 text-slate-600">
+              Aus = komplett durchspielen. An = zur Spielhälfte gibt es einen Alarm.
+            </span>
           </span>
-        </span>
-        <input
-          type="checkbox"
-          checked={halftimeEnabled}
-          onChange={(event) => setHalftimeEnabled(event.target.checked)}
-          className="mt-1 h-5 w-5 shrink-0 rounded border-slate-300 text-slate-950 focus:ring-slate-500"
-        />
-      </label>
+          <input
+            type="checkbox"
+            checked={halftimeEnabled}
+            onChange={(event) => setHalftimeEnabled(event.target.checked)}
+            className="mt-1 h-5 w-5 shrink-0 rounded border-slate-300 text-slate-950 focus:ring-slate-500"
+          />
+        </label>
+
+        {halftimeEnabled ? (
+          <div className="mt-4 border-t border-slate-200 pt-4">
+            <div className="text-sm font-semibold text-slate-950">Was soll zur Halbzeit passieren?</div>
+            <div className="mt-3 grid gap-2">
+              {GAME_TIMER_HALFTIME_BEHAVIOR_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3"
+                >
+                  <input
+                    type="radio"
+                    name="halftimeBehavior"
+                    value={option.value}
+                    checked={halftimeBehavior === option.value}
+                    onChange={() => setHalftimeBehavior(option.value)}
+                    className="mt-1 h-4 w-4 border-slate-300 text-slate-950 focus:ring-slate-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-bold text-slate-900">{option.label}</span>
+                    <span className="mt-0.5 block text-xs leading-5 text-slate-500">{option.description}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       <label className="block rounded-[20px] border border-black/10 bg-neutral-50 p-4">
         <span className="block text-sm font-semibold text-slate-950">Alarmton</span>
         <span className="mt-1 block text-sm leading-6 text-slate-600">
-          Der Ton ertönt zur Halbzeit und beim Spielende. Die Lautstärke hängt von der Gerätelautstärke ab.
+          Pfeife, Hupe oder Buzzer. Beim Abpfiff läuft der Alarm bis er gestoppt wird.
+          Beim reinen Halbzeit-Signal klingelt er nur etwa 10 Sekunden.
         </span>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <select
@@ -208,7 +244,8 @@ export default function GameTimerSettingsCard({
       </label>
 
       <div className="rounded-[20px] border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">
-        Während die Spieluhr läuft, versucht strikr den Bildschirm wach zu halten. Für einen zuverlässig klingelnden Alarm bei komplett gesperrtem Bildschirm brauchen wir später noch eine native Erweiterung.
+        Der Timer bleibt lokal auf dem Gerät, das ihn startet. In den nativen Apps werden Halbzeit und Abpfiff so geplant,
+        dass der Bildschirm gesperrt werden kann; gekoppelte Smartwatches können die Systemmeldung übernehmen.
       </div>
 
       {error ? (
