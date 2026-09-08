@@ -53,6 +53,9 @@ type AchievementRow = {
 
 type BadgeDefinition = (typeof BADGE_DEFINITIONS)[number];
 
+const CAREER_APPEARANCE_PREFIX = "career_appearances_";
+const CAREER_WIN_PREFIX = "career_wins_";
+
 function parsePlayerId(value?: string) {
   if (!value) return null;
   const parsed = Number(value);
@@ -83,6 +86,28 @@ function getOpenDefinitions(rows: AchievementRow[]) {
 
 function countByScope(definitions: readonly BadgeDefinition[], scope: "season" | "career") {
   return definitions.filter((badge) => badge.scope === scope).length;
+}
+
+function getHighestMilestone(
+  definitions: readonly BadgeDefinition[],
+  prefix: string,
+) {
+  let highest = 0;
+
+  for (const badge of definitions) {
+    if (!badge.key.startsWith(prefix)) continue;
+    const parsed = Number(badge.key.slice(prefix.length));
+    if (Number.isFinite(parsed)) highest = Math.max(highest, parsed);
+  }
+
+  return highest;
+}
+
+function isCareerMilestone(badge: BadgeDefinition) {
+  return (
+    badge.key.startsWith(CAREER_APPEARANCE_PREFIX) ||
+    badge.key.startsWith(CAREER_WIN_PREFIX)
+  );
 }
 
 function TrophyCard({
@@ -173,7 +198,7 @@ function ComparisonBadgeList({
   emptyLabel: string;
 }) {
   return (
-    <div className="rounded-[22px] border border-slate-200 bg-white p-4">
+    <div className="rounded-[22px] border border-slate-200 bg-slate-50/70 p-4">
       <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
         {title}
       </div>
@@ -182,7 +207,7 @@ function ComparisonBadgeList({
           {badges.map((badge) => (
             <span
               key={badge.key}
-              className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm"
             >
               {badge.title}
             </span>
@@ -191,6 +216,39 @@ function ComparisonBadgeList({
       ) : (
         <p className="mt-3 text-sm text-slate-500">{emptyLabel}</p>
       )}
+    </div>
+  );
+}
+
+function ComparisonMetricRow({
+  label,
+  leftValue,
+  rightValue,
+  hint,
+}: {
+  label: string;
+  leftValue: string;
+  rightValue: string;
+  hint?: string;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 py-3 sm:px-4">
+      <div className="text-left text-xl font-black tracking-tight text-white">
+        {leftValue}
+      </div>
+      <div className="min-w-[118px] text-center">
+        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
+          {label}
+        </div>
+        {hint ? (
+          <div className="mt-0.5 text-[10px] font-semibold text-white/30">
+            {hint}
+          </div>
+        ) : null}
+      </div>
+      <div className="text-right text-xl font-black tracking-tight text-white">
+        {rightValue}
+      </div>
     </div>
   );
 }
@@ -383,6 +441,24 @@ export default async function BadgesPage({ searchParams }: PageProps) {
   const onlyMine = earnedBadges.filter((badge) => !compareKeys.has(badge.key));
   const onlyTheirs = compareEarnedBadges.filter((badge) => !ownKeys.has(badge.key));
 
+  const sharedSpecialBadges = sharedBadges.filter((badge) => !isCareerMilestone(badge));
+  const onlyMineSpecialBadges = onlyMine.filter((badge) => !isCareerMilestone(badge));
+  const onlyTheirsSpecialBadges = onlyTheirs.filter((badge) => !isCareerMilestone(badge));
+
+  const ownAppearanceMilestone = getHighestMilestone(
+    earnedBadges,
+    CAREER_APPEARANCE_PREFIX,
+  );
+  const compareAppearanceMilestone = getHighestMilestone(
+    compareEarnedBadges,
+    CAREER_APPEARANCE_PREFIX,
+  );
+  const ownWinMilestone = getHighestMilestone(earnedBadges, CAREER_WIN_PREFIX);
+  const compareWinMilestone = getHighestMilestone(
+    compareEarnedBadges,
+    CAREER_WIN_PREFIX,
+  );
+
   const comparisonOptions = players
     .filter((candidate) => candidate.id !== ownPlayer.id)
     .sort((a, b) =>
@@ -551,37 +627,73 @@ export default async function BadgesPage({ searchParams }: PageProps) {
 
             {comparePlayer && compareName ? (
               <div className="mt-6 space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[24px] bg-slate-950 p-5 text-white">
-                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Du</div>
-                    <div className="mt-1 text-lg font-black">{ownName}</div>
-                    <div className="mt-3 text-3xl font-black">{earnedBadges.length}</div>
-                    <div className="text-xs font-semibold text-white/50">Badge-Typen erreicht</div>
+                <section className="overflow-hidden rounded-[28px] bg-slate-950 p-4 text-white shadow-[0_22px_52px_rgba(15,23,42,0.2)] sm:p-5">
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3 px-1">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
+                        Du
+                      </div>
+                      <div className="mt-1 truncate text-base font-black sm:text-lg">
+                        {ownName}
+                      </div>
+                    </div>
+
+                    <div className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+                      vs
+                    </div>
+
+                    <div className="min-w-0 text-right">
+                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
+                        Vergleich
+                      </div>
+                      <div className="mt-1 truncate text-base font-black sm:text-lg">
+                        {compareName}
+                      </div>
+                    </div>
                   </div>
-                  <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Vergleich</div>
-                    <div className="mt-1 text-lg font-black text-slate-950">{compareName}</div>
-                    <div className="mt-3 text-3xl font-black text-slate-950">{compareEarnedBadges.length}</div>
-                    <div className="text-xs font-semibold text-slate-500">Badge-Typen erreicht</div>
+
+                  <div className="mt-4 divide-y divide-white/10 overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.05]">
+                    <ComparisonMetricRow
+                      label="Badge-Stufen"
+                      leftValue={String(earnedBadges.length)}
+                      rightValue={String(compareEarnedBadges.length)}
+                      hint="freigeschaltet"
+                    />
+                    <ComparisonMetricRow
+                      label="Einsätze"
+                      leftValue={ownAppearanceMilestone > 0 ? `${ownAppearanceMilestone}+` : "–"}
+                      rightValue={compareAppearanceMilestone > 0 ? `${compareAppearanceMilestone}+` : "–"}
+                      hint="höchster Meilenstein"
+                    />
+                    <ComparisonMetricRow
+                      label="Siege"
+                      leftValue={ownWinMilestone > 0 ? `${ownWinMilestone}+` : "–"}
+                      rightValue={compareWinMilestone > 0 ? `${compareWinMilestone}+` : "–"}
+                      hint="höchster Meilenstein"
+                    />
                   </div>
-                </div>
+
+                  <p className="mt-3 px-1 text-[11px] font-medium leading-5 text-white/45">
+                    Beispiel: 25+ Einsätze bedeutet, dass der 25er-Meilenstein bereits freigeschaltet ist. Die kleineren Stufen werden hier nicht doppelt aufgelistet.
+                  </p>
+                </section>
 
                 <ComparisonBadgeList
-                  title={`Gemeinsam · ${sharedBadges.length}`}
-                  badges={sharedBadges}
-                  emptyLabel="Noch keine gemeinsamen Badges."
+                  title={`Gemeinsame Specials · ${sharedSpecialBadges.length}`}
+                  badges={sharedSpecialBadges}
+                  emptyLabel="Neben den Karriere-Meilensteinen habt ihr aktuell noch keine gemeinsamen Specials."
                 />
 
                 <div className="grid gap-3 lg:grid-cols-2">
                   <ComparisonBadgeList
-                    title={`Nur du · ${onlyMine.length}`}
-                    badges={onlyMine}
-                    emptyLabel="Keine exklusiven Badges auf deiner Seite."
+                    title={`Nur du · ${onlyMineSpecialBadges.length}`}
+                    badges={onlyMineSpecialBadges}
+                    emptyLabel="Aktuell keine zusätzlichen Specials nur auf deiner Seite."
                   />
                   <ComparisonBadgeList
-                    title={`Nur ${compareName} · ${onlyTheirs.length}`}
-                    badges={onlyTheirs}
-                    emptyLabel="Keine exklusiven Badges auf dieser Seite."
+                    title={`Nur ${compareName} · ${onlyTheirsSpecialBadges.length}`}
+                    badges={onlyTheirsSpecialBadges}
+                    emptyLabel="Aktuell keine zusätzlichen Specials nur auf dieser Seite."
                   />
                 </div>
               </div>
