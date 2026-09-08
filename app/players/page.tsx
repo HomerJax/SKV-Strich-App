@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireClub } from "@/lib/auth/guards";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
 import { PublicPlayer } from "@/lib/types/player";
 import { getPlayerDisplayName } from "@/lib/player-display";
@@ -24,10 +25,13 @@ function sortPlayersByDisplayName(players: PlayerListItem[]) {
 }
 
 export default async function PlayersPage() {
-  await requireClub();
+  const { clubId } = await requireClub();
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("get_players_public");
+  const [{ data, error }, flags] = await Promise.all([
+    supabase.rpc("get_players_public"),
+    getFeatureFlagsForClub(clubId),
+  ]);
 
   const players = sortPlayersByDisplayName(
     ((data ?? []) as PlayerListItem[]).filter((p) => p.is_active !== false)
@@ -80,9 +84,18 @@ export default async function PlayersPage() {
               className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
             >
               <div>
-                <div className="font-medium text-slate-900">
-                  {getPlayerDisplayName(player)}
-                </div>
+                {flags.hall_of_fame_badges ? (
+                  <Link
+                    href={`/badges?player=${player.id}`}
+                    className="font-medium text-slate-900 underline decoration-slate-200 underline-offset-4 transition hover:decoration-slate-500"
+                  >
+                    {getPlayerDisplayName(player)}
+                  </Link>
+                ) : (
+                  <div className="font-medium text-slate-900">
+                    {getPlayerDisplayName(player)}
+                  </div>
+                )}
                 <div className="text-[11px] text-slate-500">
                   {player.age_group ?? "?"} ·{" "}
                   {positionLabel(player.preferred_position)}
