@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { syncClubAchievements } from "@/lib/badges/engine";
 import { fail, ok } from "@/lib/session-detail/response";
 import { sendClubPush } from "@/lib/push/club-events";
 import { persistSessionTeams } from "./persist-teams";
@@ -97,6 +98,12 @@ export async function handleSaveResult({
       } catch (error) {
         console.error("Result push failed", error);
       }
+    }
+
+    try {
+      await syncClubAchievements(clubId);
+    } catch (error) {
+      console.error("Badge sync after result failed", error);
     }
 
     return ok({

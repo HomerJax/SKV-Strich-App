@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import ProfileForm from "./ProfileForm";
 import ProfilePasswordForm from "./ProfilePasswordForm";
 import PushPreferencesForm from "./PushPreferencesForm";
@@ -69,6 +71,9 @@ export default async function ProfilePage({
   const accountDeleteError = getAccountDeleteErrorMessage(
     resolvedSearchParams?.account_delete_error
   );
+  const badgeFeatureEnabled = ctx.activeClubId
+    ? (await getFeatureFlagsForClub(ctx.activeClubId)).hall_of_fame_badges
+    : false;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6">
@@ -117,6 +122,27 @@ export default async function ProfilePage({
           </div>
         </div>
       </section>
+
+      {badgeFeatureEnabled ? (
+        <Link
+          href="/badges"
+          className="group rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-white/55">
+            Badges
+          </div>
+          <div className="mt-2 text-xl font-extrabold tracking-tight">
+            Hall of Fame öffnen
+          </div>
+          <p className="mt-2 text-sm leading-6 text-white/70">
+            Deine erreichten und noch offenen Badges ansehen und mit anderen
+            Spielern aus dem Club vergleichen.
+          </p>
+          <div className="mt-4 text-sm font-bold">
+            Zur Hall of Fame <span className="ml-1 transition group-hover:ml-2">→</span>
+          </div>
+        </Link>
+      ) : null}
 
       <PushPreferencesForm />
 

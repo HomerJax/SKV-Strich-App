@@ -16,6 +16,7 @@ export const FEATURE_FLAG_KEYS = [
   "experimental_generator",
   "founder_tools",
   "session_mvp_voting",
+  "hall_of_fame_badges",
   "use_nicknames",
   "use_field_view",
   "home_session_rsvp",
@@ -108,6 +109,13 @@ export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
     title: "MVP Voting nach Training",
     description:
       "Ermöglicht nach abgeschlossenen Trainingssessions ein MVP-Voting unter den anwesenden Teilnehmern. Ideal für Pilotclubs und gestaffelte Rollouts.",
+    audience: "players",
+  },
+  {
+    key: "hall_of_fame_badges",
+    title: "Hall of Fame & Badges",
+    description:
+      "Aktiviert automatische Saison-, Serien- und Karriere-Badges sowie die Hall of Fame mit Vergleich zwischen Spielern. MVPs sind nicht Teil dieser Badge-Logik.",
     audience: "players",
   },
   {
