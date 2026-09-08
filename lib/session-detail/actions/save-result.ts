@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { fail, ok } from "@/lib/session-detail/response";
+import { sendClubPush } from "@/lib/push/club-events";
 import { persistSessionTeams } from "./persist-teams";
 
 type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
@@ -18,6 +19,7 @@ type SaveResultInput = {
   goalsA: string;
   goalsB: string;
   manualTeamsRaw: string;
+  actorUserId: string;
 };
 
 export async function handleSaveResult({
@@ -27,6 +29,7 @@ export async function handleSaveResult({
   goalsA,
   goalsB,
   manualTeamsRaw,
+  actorUserId,
 }: SaveResultInput) {
   try {
     const cleanA = normalizeGoalValue(goalsA);
@@ -77,6 +80,22 @@ export async function handleSaveResult({
 
       if (error) {
         return fail(error.message, 500);
+      }
+
+      try {
+        const hasScore = cleanA !== "" && cleanB !== "";
+        await sendClubPush({
+          clubId,
+          title: "Ergebnis verfügbar ⚽",
+          body: hasScore
+            ? `Das Ergebnis ist da: ${cleanA}:${cleanB}.`
+            : "Das Ergebnis des Trainings ist jetzt verfügbar.",
+          url: `/sessions/${sessionId}`,
+          preference: "results",
+          excludeUserIds: [actorUserId],
+        });
+      } catch (error) {
+        console.error("Result push failed", error);
       }
     }
 
