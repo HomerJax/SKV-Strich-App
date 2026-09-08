@@ -1,3 +1,5 @@
+import type { GameTimerAlarmSound, GameTimerMode } from "@/lib/game-timer";
+
 export type SessionType = "training" | "event";
 
 export type Player = {
@@ -24,6 +26,12 @@ export type SessionRow = {
   notes: string | null;
   type?: SessionType | null;
   winner_photo_path?: string | null;
+  start_time?: string | null;
+  timer_mode?: GameTimerMode | null;
+  timer_duration_minutes?: number | null;
+  timer_end_time?: string | null;
+  timer_halftime_enabled?: boolean | null;
+  timer_alarm_sound?: GameTimerAlarmSound | null;
 };
 
 export type TeamSide = "A" | "B";
