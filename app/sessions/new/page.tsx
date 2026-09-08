@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import { sendClubPush } from "@/lib/push/club-events";
 import NewSessionForm from "./NewSessionForm";
 
 type NewSessionPageProps = {
@@ -45,6 +46,11 @@ function parseIsoDate(value: string) {
   if (Number.isNaN(date.getTime())) return null;
 
   return date;
+}
+
+function formatDateForPush(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}.${match[2]}.` : value;
 }
 
 function normalizeSessionType(
@@ -192,7 +198,7 @@ export default async function NewSessionPage({
   async function createSessionAction(formData: FormData) {
     "use server";
 
-    const { clubId: actionClubId } = await requireClub();
+    const { clubId: actionClubId, user: actionUser } = await requireClub();
     const actionSupabase = await createClient();
     const actionFlags = await getFeatureFlagsForClub(actionClubId);
 
@@ -257,6 +263,20 @@ export default async function NewSessionPage({
               insertError.message || "Fehler beim Speichern."
             )}`
           );
+        }
+
+        try {
+          const label = getSessionTypeLabel(sessionType);
+          await sendClubPush({
+            clubId: actionClubId,
+            title: `Neues ${label.toLowerCase() === "training" ? "Training" : "Termin"}`,
+            body: `${label} am ${formatDateForPush(date)} um ${startTime} Uhr wurde eingetragen.`,
+            url: `/sessions/${created.id}`,
+            preference: "training_reminders",
+            excludeUserIds: [actionUser.id],
+          });
+        } catch (error) {
+          console.error("New session push failed", error);
         }
 
         redirect(`/sessions/${created.id}`);
@@ -382,6 +402,20 @@ export default async function NewSessionPage({
             insertError.message || "Fehler beim Erstellen der Serientermine."
           )}`
         );
+      }
+
+      try {
+        const label = getSessionTypeLabel(sessionType);
+        await sendClubPush({
+          clubId: actionClubId,
+          title: `${rowsToInsert.length} neue ${label === "Training" ? "Trainings" : "Termine"}`,
+          body: `Neue ${label === "Training" ? "Trainings" : "Termine"} wurden für die Saison eingetragen.`,
+          url: "/sessions",
+          preference: "training_reminders",
+          excludeUserIds: [actionUser.id],
+        });
+      } catch (error) {
+        console.error("New session series push failed", error);
       }
 
       redirect(
