@@ -1,14 +1,21 @@
-import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Award, CheckCircle2, LockKeyhole, Star, Trophy } from "lucide-react";
+import {
+  Award,
+  ChevronDown,
+  LockKeyhole,
+  Medal,
+  Scale,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Trophy,
+} from "lucide-react";
 import PageHero from "@/components/ui/PageHero";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import {
   BADGE_DEFINITIONS,
-  CAREER_BADGES,
-  SEASON_BADGES,
   getBadgeDefinition,
 } from "@/lib/badges/catalog";
 import { syncClubAchievements } from "@/lib/badges/engine";
@@ -17,7 +24,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 type PageProps = {
   searchParams?: Promise<{
-    player?: string;
+    compare?: string;
   }>;
 };
 
@@ -44,143 +51,146 @@ type AchievementRow = {
   earned_at: string;
 };
 
+type BadgeDefinition = (typeof BADGE_DEFINITIONS)[number];
+
 function parsePlayerId(value?: string) {
   if (!value) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-function countUniqueBadges(rows: AchievementRow[]) {
-  return new Set(rows.map((row) => row.badge_key)).size;
-}
+function getAchievementMap(rows: AchievementRow[]) {
+  const map = new Map<string, AchievementRow[]>();
 
-function BadgeGrid({
-  definitions,
-  achievements,
-  selectedBadgeKey,
-  canSelect,
-}: {
-  definitions: readonly {
-    key: string;
-    title: string;
-    description: string;
-    scope: "season" | "career";
-    category: string;
-  }[];
-  achievements: AchievementRow[];
-  selectedBadgeKey: string | null;
-  canSelect: boolean;
-}) {
-  const earnedByKey = new Map<string, AchievementRow[]>();
-
-  for (const achievement of achievements) {
-    const rows = earnedByKey.get(achievement.badge_key) ?? [];
-    rows.push(achievement);
-    earnedByKey.set(achievement.badge_key, rows);
+  for (const row of rows) {
+    const list = map.get(row.badge_key) ?? [];
+    list.push(row);
+    map.set(row.badge_key, list);
   }
 
+  return map;
+}
+
+function getEarnedDefinitions(rows: AchievementRow[]) {
+  const keys = new Set(rows.map((row) => row.badge_key));
+  return BADGE_DEFINITIONS.filter((badge) => keys.has(badge.key));
+}
+
+function getOpenDefinitions(rows: AchievementRow[]) {
+  const keys = new Set(rows.map((row) => row.badge_key));
+  return BADGE_DEFINITIONS.filter((badge) => !keys.has(badge.key));
+}
+
+function countByScope(definitions: readonly BadgeDefinition[], scope: "season" | "career") {
+  return definitions.filter((badge) => badge.scope === scope).length;
+}
+
+function TrophyCard({
+  badge,
+  achievementRows,
+  selected,
+}: {
+  badge: BadgeDefinition;
+  achievementRows: AchievementRow[];
+  selected: boolean;
+}) {
+  const repeatCount = achievementRows.length;
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {definitions.map((badge) => {
-        const earnedRows = earnedByKey.get(badge.key) ?? [];
-        const earned = earnedRows.length > 0;
-        const selected = selectedBadgeKey === badge.key;
+    <article className="group relative overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.07] p-4 text-white shadow-[0_16px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm">
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
 
-        return (
-          <div
-            key={badge.key}
-            className={[
-              "relative overflow-hidden rounded-[24px] border p-4 transition",
-              earned
-                ? "border-slate-200 bg-white shadow-sm"
-                : "border-slate-200 bg-slate-100/70 text-slate-400 grayscale",
-            ].join(" ")}
-          >
-            <div className="flex items-start gap-3">
-              <div
-                className={[
-                  "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border",
-                  earned
-                    ? "border-slate-200 bg-slate-950 text-white"
-                    : "border-slate-200 bg-slate-200 text-slate-500",
-                ].join(" ")}
-              >
-                {earned ? (
-                  <Award className="h-6 w-6" strokeWidth={2.2} />
-                ) : (
-                  <LockKeyhole className="h-5 w-5" strokeWidth={2.1} />
-                )}
-              </div>
+      <div className="relative flex items-start gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-inner">
+          {badge.scope === "career" ? (
+            <Trophy className="h-7 w-7" strokeWidth={1.8} />
+          ) : (
+            <Medal className="h-7 w-7" strokeWidth={1.8} />
+          )}
+        </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3
-                    className={[
-                      "text-sm font-extrabold tracking-tight",
-                      earned ? "text-slate-950" : "text-slate-500",
-                    ].join(" ")}
-                  >
-                    {badge.title}
-                  </h3>
-
-                  {selected ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                      <Star className="h-3 w-3 fill-current" />
-                      Ausgewählt
-                    </span>
-                  ) : null}
-                </div>
-
-                <p className="mt-1 text-xs leading-5 text-slate-600">
-                  {badge.description}
-                </p>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span
-                    className={[
-                      "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold",
-                      earned
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-slate-200 text-slate-500",
-                    ].join(" ")}
-                  >
-                    {earned ? (
-                      <CheckCircle2 className="h-3 w-3" />
-                    ) : (
-                      <LockKeyhole className="h-3 w-3" />
-                    )}
-                    {earned ? "Erreicht" : "Noch offen"}
-                  </span>
-
-                  {earnedRows.length > 1 ? (
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
-                      {earnedRows.length}× erreicht
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-
-            {earned && canSelect ? (
-              <form action={setFeaturedBadgeAction} className="mt-4">
-                <input type="hidden" name="badge_key" value={badge.key} />
-                <button
-                  type="submit"
-                  disabled={selected}
-                  className={[
-                    "inline-flex w-full items-center justify-center rounded-xl px-3 py-2 text-xs font-bold transition",
-                    selected
-                      ? "cursor-default bg-slate-100 text-slate-400"
-                      : "bg-slate-950 text-white hover:bg-slate-800",
-                  ].join(" ")}
-                >
-                  {selected ? "Dieses Badge ist ausgewählt" : "Als mein Badge wählen"}
-                </button>
-              </form>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-black tracking-tight">{badge.title}</h3>
+            {selected ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-slate-950">
+                <Star className="h-3 w-3 fill-current" />
+                Mein Titel
+              </span>
             ) : null}
           </div>
-        );
-      })}
+
+          <p className="mt-1 text-xs font-medium leading-5 text-white/65">
+            {badge.description}
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/50">
+            <span>{badge.scope === "career" ? "Karriere" : "Saison"}</span>
+            {repeatCount > 1 ? <span>· {repeatCount}× erreicht</span> : null}
+          </div>
+        </div>
+      </div>
+
+      {!selected ? (
+        <form action={setFeaturedBadgeAction} className="relative mt-4">
+          <input type="hidden" name="badge_key" value={badge.key} />
+          <button
+            type="submit"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white/80 transition hover:bg-white hover:text-slate-950"
+          >
+            <Star className="h-3.5 w-3.5" />
+            Als Titel wählen
+          </button>
+        </form>
+      ) : null}
+    </article>
+  );
+}
+
+function LockedBadgeCard({ badge }: { badge: BadgeDefinition }) {
+  return (
+    <article className="rounded-[20px] border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-500">
+          <LockKeyhole className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-extrabold text-slate-700">{badge.title}</h3>
+          <p className="mt-1 text-xs leading-5 text-slate-500">{badge.description}</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ComparisonBadgeList({
+  title,
+  badges,
+  emptyLabel,
+}: {
+  title: string;
+  badges: readonly BadgeDefinition[];
+  emptyLabel: string;
+}) {
+  return (
+    <div className="rounded-[22px] border border-slate-200 bg-white p-4">
+      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+        {title}
+      </div>
+      {badges.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {badges.map((badge) => (
+            <span
+              key={badge.key}
+              className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700"
+            >
+              {badge.title}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-slate-500">{emptyLabel}</p>
+      )}
     </div>
   );
 }
@@ -229,6 +239,28 @@ async function setFeaturedBadgeAction(formData: FormData) {
   revalidatePath("/stats");
 }
 
+async function clearFeaturedBadgeAction() {
+  "use server";
+
+  const { clubId, player } = await requireClub();
+  if (!player) redirect("/badges");
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("players")
+    .update({ selected_badge_key: null })
+    .eq("club_id", clubId)
+    .eq("id", player.id);
+
+  if (error) {
+    throw new Error(`Badge-Auswahl konnte nicht entfernt werden: ${error.message}`);
+  }
+
+  revalidatePath("/badges");
+  revalidatePath("/profile");
+  revalidatePath("/stats");
+}
+
 export default async function BadgesPage({ searchParams }: PageProps) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const { clubId, player } = await requireClub();
@@ -246,17 +278,12 @@ export default async function BadgesPage({ searchParams }: PageProps) {
             backHref="/stats"
             compact
           />
-
-          <div className="rounded-[28px] border border-slate-200 bg-white p-6 text-sm leading-6 text-slate-600 shadow-sm">
-            Die Badge-Logik ist vorbereitet, aber für diesen Club per Feature Flag
-            deaktiviert.
-          </div>
         </section>
       </main>
     );
   }
 
-  const syncResult = await syncClubAchievements(clubId);
+  await syncClubAchievements(clubId);
   const supabase = createAdminClient();
 
   const [
@@ -286,11 +313,9 @@ export default async function BadgesPage({ searchParams }: PageProps) {
   if (clubError) {
     throw new Error(`Club konnte für die Hall of Fame nicht geladen werden: ${clubError.message}`);
   }
-
   if (playersError) {
     throw new Error(`Spieler konnten für die Hall of Fame nicht geladen werden: ${playersError.message}`);
   }
-
   if (achievementsError) {
     throw new Error(`Badges konnten nicht geladen werden: ${achievementsError.message}`);
   }
@@ -299,24 +324,18 @@ export default async function BadgesPage({ searchParams }: PageProps) {
     (item) => item.is_guest !== true,
   );
   const achievements = (achievementsData ?? []) as AchievementRow[];
-  const requestedPlayerId = parsePlayerId(resolvedSearchParams.player);
-  const defaultPlayerId = player?.id ?? players[0]?.id ?? null;
-  const selectedPlayer =
-    players.find((item) => item.id === requestedPlayerId) ??
-    players.find((item) => item.id === defaultPlayerId) ??
-    players[0] ??
-    null;
+  const ownPlayer = players.find((item) => item.id === player?.id) ?? null;
 
-  if (!selectedPlayer) {
+  if (!ownPlayer) {
     return (
       <main className="min-h-screen bg-neutral-100">
         <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6">
           <PageHero
             eyebrow="Badges"
             title="Hall of Fame"
-            description="Noch keine Spieler vorhanden."
+            description="Dein Account ist noch keinem Spielerprofil zugeordnet."
             primaryColorKey={clubData?.primary_color}
-            backLabel="Zurück"
+            backLabel="Zurück zu Stats"
             backHref="/stats"
             compact
           />
@@ -334,198 +353,242 @@ export default async function BadgesPage({ searchParams }: PageProps) {
     achievementsByPlayer.set(achievement.player_id, rows);
   }
 
-  const ranking = players
-    .map((item) => ({
-      player: item,
-      count: countUniqueBadges(achievementsByPlayer.get(item.id) ?? []),
-    }))
-    .sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      return getPlayerDisplayName(a.player, { useNicknames }).localeCompare(
-        getPlayerDisplayName(b.player, { useNicknames }),
-        "de",
-      );
-    });
-
-  const selectedAchievements = achievementsByPlayer.get(selectedPlayer.id) ?? [];
-  const selectedCount = countUniqueBadges(selectedAchievements);
-  const selectedName = getPlayerDisplayName(selectedPlayer, { useNicknames });
-  const ownPlayer = player?.id === selectedPlayer.id;
-  const selectedBadge = selectedPlayer.selected_badge_key
-    ? getBadgeDefinition(selectedPlayer.selected_badge_key)
+  const ownAchievements = achievementsByPlayer.get(ownPlayer.id) ?? [];
+  const ownAchievementMap = getAchievementMap(ownAchievements);
+  const earnedBadges = getEarnedDefinitions(ownAchievements);
+  const openBadges = getOpenDefinitions(ownAchievements);
+  const ownName = getPlayerDisplayName(ownPlayer, { useNicknames });
+  const selectedBadge = ownPlayer.selected_badge_key
+    ? getBadgeDefinition(ownPlayer.selected_badge_key)
     : null;
+
+  const comparePlayerId = parsePlayerId(resolvedSearchParams.compare);
+  const comparePlayer =
+    players.find(
+      (candidate) => candidate.id === comparePlayerId && candidate.id !== ownPlayer.id,
+    ) ?? null;
+  const compareAchievements = comparePlayer
+    ? achievementsByPlayer.get(comparePlayer.id) ?? []
+    : [];
+  const compareEarnedBadges = comparePlayer
+    ? getEarnedDefinitions(compareAchievements)
+    : [];
+  const compareName = comparePlayer
+    ? getPlayerDisplayName(comparePlayer, { useNicknames })
+    : null;
+
+  const ownKeys = new Set(earnedBadges.map((badge) => badge.key));
+  const compareKeys = new Set(compareEarnedBadges.map((badge) => badge.key));
+  const sharedBadges = earnedBadges.filter((badge) => compareKeys.has(badge.key));
+  const onlyMine = earnedBadges.filter((badge) => !compareKeys.has(badge.key));
+  const onlyTheirs = compareEarnedBadges.filter((badge) => !ownKeys.has(badge.key));
+
+  const comparisonOptions = players
+    .filter((candidate) => candidate.id !== ownPlayer.id)
+    .sort((a, b) =>
+      getPlayerDisplayName(a, { useNicknames }).localeCompare(
+        getPlayerDisplayName(b, { useNicknames }),
+        "de",
+      ),
+    );
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
         <PageHero
           eyebrow="Badges"
-          title="Hall of Fame"
-          description="Automatische Erfolge für Teilnahme, Serien, Siege und Karriere. Erreichte Badges bleiben sichtbar – offene siehst du ausgegraut."
+          title="Meine Hall of Fame"
+          description="Deine Erfolge auf einen Blick – wie ein persönlicher Trophäenschrank."
           primaryColorKey={clubData?.primary_color}
           backLabel="Zurück zu Stats"
           backHref="/stats"
           topRightSlot={
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold text-white/90">
-              {BADGE_DEFINITIONS.length} Badges
+              {earnedBadges.length}/{BADGE_DEFINITIONS.length}
             </span>
           }
           compact
         />
 
-        <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <section className="relative overflow-hidden rounded-[32px] bg-slate-950 p-5 text-white shadow-[0_28px_70px_rgba(15,23,42,0.22)] sm:p-6">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-1/4 h-28 w-1/2 bg-white/[0.04] blur-3xl" />
+
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                Hall of Fame
+              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/45">
+                <ShieldCheck className="h-4 w-4" />
+                {ownName}
               </div>
-              <h2 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950">
-                Spieler vergleichen
+              <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] sm:text-3xl">
+                Mein Trophäenschrank
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Badge-Typen pro Spieler. Mehrfach erreichte Saison-Badges zählen
-                hier einmal.
+              <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-white/60">
+                {earnedBadges.length} Badges freigeschaltet · {countByScope(earnedBadges, "career")} Karriere · {countByScope(earnedBadges, "season")} Saison/Serie
               </p>
             </div>
 
-            {syncResult.badgesStartedAt ? (
-              <div className="text-xs font-semibold text-slate-500">
-                Saison-/Serien-Badges seit {syncResult.badgesStartedAt}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3">
+              <div className="text-[10px] font-black uppercase tracking-[0.15em] text-white/40">
+                Aktueller Titel
+              </div>
+              <div className="mt-1 flex items-center gap-2 text-sm font-extrabold">
+                <Star className="h-4 w-4" />
+                {selectedBadge?.title ?? "Noch keiner gewählt"}
+              </div>
+              {selectedBadge ? (
+                <form action={clearFeaturedBadgeAction} className="mt-2">
+                  <button type="submit" className="text-[11px] font-bold text-white/45 underline underline-offset-4 hover:text-white">
+                    Titel entfernen
+                  </button>
+                </form>
+              ) : null}
+            </div>
+          </div>
+
+          {earnedBadges.length > 0 ? (
+            <div className="relative mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {earnedBadges.map((badge) => (
+                <TrophyCard
+                  key={badge.key}
+                  badge={badge}
+                  achievementRows={ownAchievementMap.get(badge.key) ?? []}
+                  selected={ownPlayer.selected_badge_key === badge.key}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="relative mt-6 rounded-[24px] border border-dashed border-white/15 bg-white/[0.04] p-6 text-center">
+              <Sparkles className="mx-auto h-7 w-7 text-white/40" />
+              <div className="mt-3 text-sm font-extrabold">Der Schrank ist noch leer.</div>
+              <p className="mt-1 text-xs leading-5 text-white/50">
+                Deine ersten Badges landen hier automatisch.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                Nächste Ziele
+              </div>
+              <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
+                Was geht noch?
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Diese Badges fehlen dir aktuell noch.
+              </p>
+            </div>
+            <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+              {openBadges.length} offen
+            </div>
+          </div>
+
+          {openBadges.length > 0 ? (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {openBadges.map((badge) => (
+                <LockedBadgeCard key={badge.key} badge={badge} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+              Alles eingesammelt. Stark. 🏆
+            </div>
+          )}
+        </section>
+
+        <details
+          className="group rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          open={Boolean(comparePlayer)}
+        >
+          <summary className="cursor-pointer list-none">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                  <Scale className="h-4 w-4" />
+                  Vergleich
+                </div>
+                <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
+                  Mit einem Spieler vergleichen
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Erst wenn du vergleichen willst, erscheint die Spielerauswahl.
+                </p>
+              </div>
+              <ChevronDown className="h-5 w-5 text-slate-400 transition group-open:rotate-180" />
+            </div>
+          </summary>
+
+          <div className="mt-5 border-t border-slate-100 pt-5">
+            <form method="get" action="/badges" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="min-w-0 flex-1">
+                <span className="mb-2 block text-xs font-bold text-slate-600">
+                  Spieler auswählen
+                </span>
+                <select
+                  name="compare"
+                  defaultValue={comparePlayer?.id ?? ""}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-slate-400"
+                >
+                  <option value="">Bitte auswählen …</option>
+                  {comparisonOptions.map((candidate) => (
+                    <option key={candidate.id} value={candidate.id}>
+                      {getPlayerDisplayName(candidate, { useNicknames })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                type="submit"
+                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+              >
+                Vergleichen
+              </button>
+            </form>
+
+            {comparePlayer && compareName ? (
+              <div className="mt-6 space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[24px] bg-slate-950 p-5 text-white">
+                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">Du</div>
+                    <div className="mt-1 text-lg font-black">{ownName}</div>
+                    <div className="mt-3 text-3xl font-black">{earnedBadges.length}</div>
+                    <div className="text-xs font-semibold text-white/50">Badge-Typen erreicht</div>
+                  </div>
+                  <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Vergleich</div>
+                    <div className="mt-1 text-lg font-black text-slate-950">{compareName}</div>
+                    <div className="mt-3 text-3xl font-black text-slate-950">{compareEarnedBadges.length}</div>
+                    <div className="text-xs font-semibold text-slate-500">Badge-Typen erreicht</div>
+                  </div>
+                </div>
+
+                <ComparisonBadgeList
+                  title={`Gemeinsam · ${sharedBadges.length}`}
+                  badges={sharedBadges}
+                  emptyLabel="Noch keine gemeinsamen Badges."
+                />
+
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <ComparisonBadgeList
+                    title={`Nur du · ${onlyMine.length}`}
+                    badges={onlyMine}
+                    emptyLabel="Keine exklusiven Badges auf deiner Seite."
+                  />
+                  <ComparisonBadgeList
+                    title={`Nur ${compareName} · ${onlyTheirs.length}`}
+                    badges={onlyTheirs}
+                    emptyLabel="Keine exklusiven Badges auf dieser Seite."
+                  />
+                </div>
               </div>
             ) : null}
           </div>
-
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {ranking.map((entry, index) => {
-              const active = entry.player.id === selectedPlayer.id;
-
-              return (
-                <Link
-                  key={entry.player.id}
-                  href={`/badges?player=${entry.player.id}`}
-                  className={[
-                    "flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition",
-                    active
-                      ? "border-slate-950 bg-slate-950 text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-800 hover:bg-white",
-                  ].join(" ")}
-                >
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-black uppercase tracking-[0.16em] opacity-60">
-                      #{index + 1}
-                    </div>
-                    <div className="truncate text-sm font-extrabold">
-                      {getPlayerDisplayName(entry.player, { useNicknames })}
-                    </div>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-1.5 text-sm font-black">
-                    <Trophy className="h-4 w-4" />
-                    {entry.count}/{BADGE_DEFINITIONS.length}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                {ownPlayer ? "Meine Hall of Fame" : "Spieler"}
-              </div>
-              <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
-                {selectedName}
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                {selectedCount} von {BADGE_DEFINITIONS.length} Badge-Typen erreicht.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                Angezeigtes Badge
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-sm font-extrabold text-slate-900">
-                <Star className="h-4 w-4" />
-                {selectedBadge?.title ?? "Noch keins gewählt"}
-              </div>
-            </div>
-          </div>
-
-          {ownPlayer && selectedBadge ? (
-            <form action={clearFeaturedBadgeAction} className="mt-4">
-              <button
-                type="submit"
-                className="text-xs font-bold text-slate-500 underline decoration-slate-300 underline-offset-4 hover:text-slate-900"
-              >
-                Ausgewähltes Badge entfernen
-              </button>
-            </form>
-          ) : null}
-        </section>
-
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-lg font-extrabold tracking-tight text-slate-950">
-              Saison & Serien
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Diese Badges werden pro Saison erreicht und können in mehreren
-              Saisons erneut gesammelt werden.
-            </p>
-          </div>
-
-          <BadgeGrid
-            definitions={SEASON_BADGES}
-            achievements={selectedAchievements}
-            selectedBadgeKey={selectedPlayer.selected_badge_key}
-            canSelect={ownPlayer}
-          />
-        </section>
-
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-lg font-extrabold tracking-tight text-slate-950">
-              Karriere
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Karriere-Meilensteine nutzen die bereits gespeicherte Historie des
-              Clubs. Dafür wird nichts an bestehenden Stats zurückgesetzt.
-            </p>
-          </div>
-
-          <BadgeGrid
-            definitions={CAREER_BADGES}
-            achievements={selectedAchievements}
-            selectedBadgeKey={selectedPlayer.selected_badge_key}
-            canSelect={ownPlayer}
-          />
-        </section>
+        </details>
       </section>
     </main>
   );
-}
-
-async function clearFeaturedBadgeAction() {
-  "use server";
-
-  const { clubId, player } = await requireClub();
-  if (!player) redirect("/badges");
-
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("players")
-    .update({ selected_badge_key: null })
-    .eq("club_id", clubId)
-    .eq("id", player.id);
-
-  if (error) {
-    throw new Error(`Badge-Auswahl konnte nicht entfernt werden: ${error.message}`);
-  }
-
-  revalidatePath("/badges");
-  revalidatePath("/profile");
-  revalidatePath("/stats");
 }
