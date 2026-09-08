@@ -11,6 +11,7 @@ import { handleDeleteWinnerPhoto } from "@/lib/session-detail/actions/delete-win
 import { persistSessionTeams } from "@/lib/session-detail/actions/persist-teams";
 import { canManageClub } from "@/lib/auth/access";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import { sendClubPush } from "@/lib/push/club-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,66 @@ const MAX_OUTPUT_WIDTH = 1800;
 const MAX_OUTPUT_HEIGHT = 1800;
 
 type SessionType = "training" | "event";
+
+type RsvpStatus = "in" | "out" | "open";
+
+type PlayerNameRow = {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+};
+
+function getPlayerDisplayName(player: PlayerNameRow) {
+  const nickname = player.nickname?.trim();
+  if (nickname) return nickname;
+
+  const fullName = [player.first_name?.trim(), player.last_name?.trim()]
+    .filter(Boolean)
+    .join(" ");
+
+  return fullName || "Ein Mitspieler";
+}
+
+function formatSessionDate(date: string) {
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return date;
+  return `${match[3]}.${match[2]}.`;
+}
+
+async function sendRsvpUpdatePush(params: {
+  clubId: string;
+  sessionId: number;
+  sessionDate: string;
+  sessionType: SessionType;
+  currentUserId: string;
+  playerName: string;
+  status: "in" | "out";
+  previousStatus: string | null;
+}) {
+  if (params.previousStatus === params.status) return;
+
+  const sessionLabel = params.sessionType === "event" ? "Termin" : "Training";
+  const dateLabel = formatSessionDate(params.sessionDate);
+  const isIn = params.status === "in";
+
+  try {
+    await sendClubPush({
+      clubId: params.clubId,
+      title: isIn
+        ? `${params.playerName} ist dabei ✅`
+        : `${params.playerName} hat abgesagt`,
+      body: isIn
+        ? `${params.playerName} hat für ${sessionLabel.toLowerCase()} am ${dateLabel} zugesagt.`
+        : `${params.playerName} hat für ${sessionLabel.toLowerCase()} am ${dateLabel} abgesagt.`,
+      url: `/sessions/${params.sessionId}`,
+      preference: "rsvp_updates",
+      excludeUserIds: [params.currentUserId],
+    });
+  } catch (error) {
+    console.error("RSVP push failed", error);
+  }
+}
 
 async function normalizeWinnerPhoto(file: File): Promise<{
   buffer: Buffer;
@@ -87,6 +148,7 @@ export async function POST(
     membership,
     session,
     isPowerUser,
+    currentUserId,
     currentUserEmail,
   } = access;
 
@@ -134,7 +196,7 @@ export async function POST(
         );
       }
 
-      const status = String(formData.get("status") ?? "").trim();
+      const status = String(formData.get("status") ?? "").trim() as RsvpStatus;
 
       if (status !== "in" && status !== "out" && status !== "open") {
         return fail("Ungültiger Status.", 400);
@@ -148,10 +210,10 @@ export async function POST(
 
       const { data: playerData, error: playerError } = await adminSupabase
         .from("players")
-        .select("id")
+        .select("id, first_name, last_name, nickname")
         .eq("club_id", clubId)
         .eq("email", userEmail)
-        .maybeSingle();
+        .maybeSingle<PlayerNameRow>();
 
       if (playerError) {
         return fail(
@@ -162,12 +224,29 @@ export async function POST(
 
       const playerId = Number(playerData?.id);
 
-      if (!Number.isFinite(playerId)) {
+      if (!Number.isFinite(playerId) || !playerData) {
         return fail(
           "Dein Spielerprofil konnte nicht gefunden werden. Bitte wende dich an einen Admin.",
           404
         );
       }
+
+      const { data: existingRsvp, error: existingRsvpError } = await adminSupabase
+        .from("session_rsvps")
+        .select("status")
+        .eq("session_id", sessionId)
+        .eq("player_id", playerId)
+        .maybeSingle<{ status: string }>();
+
+      if (existingRsvpError) {
+        return fail(
+          `Rückmeldung konnte nicht geprüft werden: ${existingRsvpError.message}`,
+          500,
+        );
+      }
+
+      const previousStatus = existingRsvp?.status ?? null;
+      const playerName = getPlayerDisplayName(playerData);
 
       if (status === "in") {
         const { error: insertError } = await adminSupabase
@@ -210,6 +289,17 @@ export async function POST(
             500
           );
         }
+
+        await sendRsvpUpdatePush({
+          clubId,
+          sessionId,
+          sessionDate: session.date,
+          sessionType,
+          currentUserId,
+          playerName,
+          status: "in",
+          previousStatus,
+        });
 
         return ok({
           message:
@@ -274,6 +364,17 @@ export async function POST(
           500
         );
       }
+
+      await sendRsvpUpdatePush({
+        clubId,
+        sessionId,
+        sessionDate: session.date,
+        sessionType,
+        currentUserId,
+        playerName,
+        status: "out",
+        previousStatus,
+      });
 
       return ok({
         message: "Deine Rückmeldung wurde aktualisiert.",
@@ -394,7 +495,7 @@ export async function POST(
 
       if (sessionPlayerDeleteError) {
         return fail(
-          `Anwesenheit des Gastspielers konnte nicht gelöscht werden: ${sessionPlayerDeleteError.message}`,
+          `Anwesenheit des Gastspielers konnten nicht gelöscht werden: ${sessionPlayerDeleteError.message}`,
           500
         );
       }
@@ -470,6 +571,7 @@ export async function POST(
         goalsA,
         goalsB,
         manualTeamsRaw,
+        actorUserId: currentUserId,
       });
     }
 
@@ -608,6 +710,20 @@ export async function POST(
           `Session konnte nicht gelöscht werden: ${sessionDeleteError.message}`,
           500
         );
+      }
+
+      try {
+        const sessionLabel = sessionType === "event" ? "Termin" : "Training";
+        await sendClubPush({
+          clubId,
+          title: `${sessionLabel} abgesagt`,
+          body: `${sessionLabel} am ${formatSessionDate(session.date)} wurde abgesagt.`,
+          url: "/sessions",
+          preference: "training_reminders",
+          excludeUserIds: [currentUserId],
+        });
+      } catch (error) {
+        console.error("Session deletion push failed", error);
       }
 
       return ok({
