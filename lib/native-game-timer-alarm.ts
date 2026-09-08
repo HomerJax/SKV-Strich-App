@@ -22,6 +22,7 @@ type GameTimerAlarmNativePlugin = {
     atEpochMs: number;
     kind: NativeAlarmKind;
     sound: GameTimerAlarmSound;
+    persistent?: boolean;
   }): Promise<{ ok: boolean }>;
   cancel(options: { key: string }): Promise<{ ok: boolean }>;
 };
@@ -69,6 +70,7 @@ export async function scheduleNativeGameTimerAlarm(options: {
   atEpochMs: number;
   kind: NativeAlarmKind;
   sound: GameTimerAlarmSound;
+  persistent?: boolean;
 }) {
   if (!supportsNativeGameTimerAlarm()) return false;
 
