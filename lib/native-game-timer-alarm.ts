@@ -11,6 +11,10 @@ type AuthorizationResult = {
   needsSettings?: boolean;
 };
 
+type NativeAlarmAuthorizationState = AuthorizationResult & {
+  unavailable: boolean;
+};
+
 type GameTimerAlarmNativePlugin = {
   requestAuthorization(): Promise<AuthorizationResult>;
   schedule(options: {
@@ -33,17 +37,30 @@ export function supportsNativeGameTimerAlarm() {
   );
 }
 
-export async function requestNativeGameTimerAlarmAuthorization() {
+export async function requestNativeGameTimerAlarmAuthorization(): Promise<NativeAlarmAuthorizationState> {
   if (!supportsNativeGameTimerAlarm()) {
-    return { granted: false, unavailable: true } as const;
+    return {
+      granted: false,
+      needsSettings: false,
+      unavailable: true,
+    };
   }
 
   try {
     const result = await NativeGameTimerAlarm.requestAuthorization();
-    return { ...result, unavailable: false } as const;
+    return {
+      granted: result.granted,
+      mode: result.mode,
+      needsSettings: result.needsSettings ?? false,
+      unavailable: false,
+    };
   } catch (error) {
     console.warn("Native game timer alarm authorization failed", error);
-    return { granted: false, unavailable: false } as const;
+    return {
+      granted: false,
+      needsSettings: false,
+      unavailable: false,
+    };
   }
 }
 
