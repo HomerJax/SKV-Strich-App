@@ -6,6 +6,7 @@ import {
   Settings,
   Shield,
   ToggleLeft,
+  Megaphone,
 } from "lucide-react";
 import ProFeatureLock from "@/components/billing/ProFeatureLock";
 import PageHero from "@/components/ui/PageHero";
@@ -228,6 +229,14 @@ export default async function AdminPage() {
             title="Kader & Teamgenerator"
             description="Lege fest, wie strikr faire Teams bildet – und pflege danach Spieler, Kategorien, Positionen und Stärken."
             icon={<UserRound className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <AdminCard
+            href="/admin/announcements"
+            eyebrow="Kommunikation"
+            title="Club-Ankündigung"
+            description="Sende eine wichtige Mitteilung direkt als Push an die Mitglieder deines Clubs."
+            icon={<Megaphone className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <AdminCard
