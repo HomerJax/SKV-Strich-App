@@ -7,6 +7,7 @@ import {
   Shield,
   ToggleLeft,
   Megaphone,
+  Timer,
 } from "lucide-react";
 import ProFeatureLock from "@/components/billing/ProFeatureLock";
 import PageHero from "@/components/ui/PageHero";
@@ -229,6 +230,14 @@ export default async function AdminPage() {
             title="Kader & Teamgenerator"
             description="Lege fest, wie strikr faire Teams bildet – und pflege danach Spieler, Kategorien, Positionen und Stärken."
             icon={<UserRound className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <AdminCard
+            href="/admin/game-timer"
+            eyebrow="Training"
+            title="Spieluhr & Alarm"
+            description="Aktiviere die Spieluhr clubweit und lege Standard-Spielzeit, Halbzeit und Alarmton fest."
+            icon={<Timer className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <AdminCard
