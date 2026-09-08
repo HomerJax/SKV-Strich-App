@@ -23,6 +23,10 @@ public class GameTimerAlarmReceiver extends BroadcastReceiver {
             GameTimerAlarmService.EXTRA_SOUND,
             intent.getStringExtra(GameTimerAlarmService.EXTRA_SOUND)
         );
+        serviceIntent.putExtra(
+            GameTimerAlarmService.EXTRA_PERSISTENT,
+            intent.getBooleanExtra(GameTimerAlarmService.EXTRA_PERSISTENT, true)
+        );
         ContextCompat.startForegroundService(context, serviceIntent);
     }
 }
