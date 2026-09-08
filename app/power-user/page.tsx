@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Award,
   BarChart3,
   Building2,
   CalendarDays,
@@ -10,6 +11,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
+import { BADGE_DEFINITIONS } from "@/lib/badges/catalog";
 import { createClient } from "@/lib/supabase/server";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
@@ -237,6 +239,14 @@ export default async function PowerUserPage() {
             value="Live"
             description="Besuche, Quellen, Kampagnen, Geräte und letzte Landingpage-Aufrufe ansehen."
             icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <KpiCard
+            href="/power-user/badges"
+            label="Badge-Katalog"
+            value={String(BADGE_DEFINITIONS.length)}
+            description="Alle Hall-of-Fame-Badges mit Kategorie, Regel, Stufe und finalem 3D-Look prüfen."
+            icon={<Award className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
