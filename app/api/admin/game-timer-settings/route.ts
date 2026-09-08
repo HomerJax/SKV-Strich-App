@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 
 const TIMER_MODES = new Set(["duration", "end_time"]);
 const ALARM_SOUNDS = new Set(["whistle", "horn", "buzzer"]);
+const HALFTIME_BEHAVIORS = new Set(["pause", "signal"]);
 
 type TimerSettingsPayload = {
   enabled?: unknown;
@@ -14,6 +15,7 @@ type TimerSettingsPayload = {
   durationMinutes?: unknown;
   endTime?: unknown;
   halftimeEnabled?: unknown;
+  halftimeBehavior?: unknown;
   alarmSound?: unknown;
 };
 
@@ -59,6 +61,8 @@ export async function POST(request: Request) {
   const durationMinutes = Number(payload.durationMinutes);
   const endTime = normalizeEndTime(payload.endTime);
   const halftimeEnabled = payload.halftimeEnabled === true;
+  const halftimeBehavior =
+    typeof payload.halftimeBehavior === "string" ? payload.halftimeBehavior : "pause";
   const alarmSound =
     typeof payload.alarmSound === "string" ? payload.alarmSound : "";
 
@@ -84,6 +88,10 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!HALFTIME_BEHAVIORS.has(halftimeBehavior)) {
+    return NextResponse.json({ error: "Ungültiger Halbzeit-Modus." }, { status: 400 });
+  }
+
   if (!ALARM_SOUNDS.has(alarmSound)) {
     return NextResponse.json({ error: "Ungültiger Alarmton." }, { status: 400 });
   }
@@ -97,6 +105,7 @@ export async function POST(request: Request) {
       game_timer_default_minutes: durationMinutes,
       game_timer_default_end_time: endTime,
       game_timer_halftime_enabled: halftimeEnabled,
+      game_timer_halftime_behavior: halftimeBehavior,
       game_timer_alarm_sound: alarmSound,
       updated_at: new Date().toISOString(),
     },
@@ -119,6 +128,7 @@ export async function POST(request: Request) {
       durationMinutes,
       endTime,
       halftimeEnabled,
+      halftimeBehavior,
       alarmSound,
     },
   });
