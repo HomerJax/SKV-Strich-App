@@ -1,65 +1,231 @@
-/* Hall-of-Fame comparison: keep both players visually side by side on mobile. */
-@media (max-width: 1023px) {
+/* Hall of Fame polish: clearer scope, compact trophy comparison, no repeated "gemeinsam" pills. */
+
+/* Explain what the selected title is for without adding more UI chrome. */
+main section[class*="bg-slate-950"] > div[class*="sm:flex-row"] > div:last-child {
+  flex-wrap: wrap;
+}
+
+main section[class*="bg-slate-950"] > div[class*="sm:flex-row"] > div:last-child::after {
+  content: "Profil-Titel · sichtbar in deiner Hall of Fame";
+  flex-basis: 100%;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.58rem;
+  line-height: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Trophy cards: make season vs career obvious at a glance. */
+main section[class*="bg-slate-950"] article,
+main section[class*="bg-white"] article {
+  position: relative;
+}
+
+main section article:has([title^="career_"]) {
+  border-left-width: 3px;
+  border-left-color: rgba(148, 163, 184, 0.75);
+}
+
+main section article:has([title^="season_"]),
+main section article:has([title^="attendance_streak_"]),
+main section article:has([title^="win_streak_"]),
+main section article:has([title^="loss_streak_"]),
+main section article:has([title="curse_broken"]),
+main section article:has([title="resilient"]),
+main section article:has([title="lucky_charm"]),
+main section article:has([title="comeback"]) {
+  border-left-width: 3px;
+  border-left-color: rgba(56, 189, 248, 0.72);
+}
+
+/* Comparison becomes a true two-column matrix on all screen sizes. */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  column-gap: 0.625rem !important;
+  row-gap: 0.55rem !important;
+  align-items: stretch !important;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section {
+  display: contents;
+}
+
+/* Player headers */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child {
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.8rem;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 1rem;
+  background: rgb(255 255 255);
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section:first-child > div:first-child {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section:last-child > div:first-child {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child > div:first-child {
+  min-width: 0;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child a {
+  font-size: 0.72rem;
+  line-height: 0.95rem;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child > div:last-child {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.62rem;
+}
+
+/* Flatten both badge lists into the same parent grid. */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 {
+  display: contents;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section:first-child > div.mt-4 > div {
+  grid-column: 1;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section:last-child > div.mt-4 > div {
+  grid-column: 2;
+}
+
+/* Group labels span both players. */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"]::before,
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"]::after {
+  grid-column: 1 / -1;
+  align-self: end;
+  padding: 0.35rem 0.2rem 0.05rem;
+  border-bottom: 1px solid rgb(226 232 240);
+  font-size: 0.62rem;
+  line-height: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(148 163 184);
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"]::before {
+  content: "Karriere";
+  grid-row: 2;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"]::after {
+  content: "Aktuelle Saison";
+  grid-row: 15;
+  color: rgb(14 116 144);
+  border-bottom-color: rgb(186 230 253);
+}
+
+/* Career rows */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_appearances_10"]) { grid-row: 3; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_appearances_25"]) { grid-row: 4; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_appearances_50"]) { grid-row: 5; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_appearances_100"]) { grid-row: 6; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_appearances_250"]) { grid-row: 7; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_appearances_500"]) { grid-row: 8; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_wins_1"]) { grid-row: 9; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_wins_10"]) { grid-row: 10; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_wins_25"]) { grid-row: 11; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_wins_50"]) { grid-row: 12; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_wins_100"]) { grid-row: 13; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="career_wins_250"]) { grid-row: 14; }
+
+/* Current-season rows */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="season_kickoff"]) { grid-row: 16; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="attendance_streak_3"]) { grid-row: 17; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="attendance_streak_5"]) { grid-row: 18; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="attendance_streak_10"]) { grid-row: 19; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="attendance_streak_15"]) { grid-row: 20; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="attendance_streak_20"]) { grid-row: 21; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="win_streak_1"]) { grid-row: 22; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="win_streak_3"]) { grid-row: 23; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="win_streak_5"]) { grid-row: 24; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="win_streak_7"]) { grid-row: 25; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="win_streak_10"]) { grid-row: 26; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="loss_streak_3"]) { grid-row: 27; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="loss_streak_5"]) { grid-row: 28; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="loss_streak_7"]) { grid-row: 29; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="curse_broken"]) { grid-row: 30; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="resilient"]) { grid-row: 31; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="lucky_charm"]) { grid-row: 32; }
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] div:has(> [title="comeback"]) { grid-row: 33; }
+
+/* Compact matrix cards. */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div {
+  position: relative;
+  min-width: 0;
+  min-height: 4.2rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  padding-bottom: 1.35rem;
+  border-radius: 0.9rem;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > span {
+  width: 30px !important;
+  height: 30px !important;
+  flex: 0 0 30px;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div {
+  min-width: 0;
+}
+
+/* No repeated green "gemeinsam" pills. Same row on both sides already shows it. */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] [class*="bg-emerald-100"] {
+  display: none !important;
+}
+
+/* Keep comparison to icon + title; scope is shown once as a section header. */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:last-child {
+  display: none;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:first-child {
+  gap: 0.2rem;
+}
+
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:first-child > div:first-child {
+  font-size: 0.7rem;
+  line-height: 0.9rem;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+/* Tiny repeat count remains useful, but never drives wrapping. */
+main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:first-child > span:not([class*="bg-emerald-100"]) {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.35rem;
+  font-size: 0.55rem;
+}
+
+@media (min-width: 640px) {
   main details [class~="lg:grid-cols-2"][class~="lg:items-start"] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-    gap: 0.625rem;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section {
-    min-width: 0;
-    padding: 0.75rem;
-    border-radius: 1.125rem;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child {
-    align-items: flex-start;
-    gap: 0.375rem;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child > div:first-child {
-    min-width: 0;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child a {
-    font-size: 0.75rem;
-    line-height: 1rem;
-    overflow-wrap: anywhere;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child > div:last-child {
-    padding-left: 0.45rem;
-    padding-right: 0.45rem;
-    font-size: 0.65rem;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div {
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.625rem;
-    border-radius: 0.875rem;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > span {
-    margin-top: 0.1rem;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div {
-    min-width: 0;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:first-child {
-    gap: 0.25rem;
+    column-gap: 1rem !important;
   }
 
   main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:first-child > div:first-child {
-    font-size: 0.72rem;
-    line-height: 0.95rem;
-    overflow-wrap: anywhere;
-  }
-
-  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:last-child {
-    font-size: 0.66rem;
-    line-height: 0.95rem;
+    font-size: 0.78rem;
+    line-height: 1rem;
   }
 }
