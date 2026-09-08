@@ -1,5 +1,6 @@
 import { requireClub } from "@/lib/auth/guards";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
 import StandingsClient from "./StandingsClient";
 import StandingsSortAccent from "./StandingsSortAccent";
@@ -16,13 +17,14 @@ export default async function StandingsPage() {
   const { clubId } = await requireClub();
   const supabase = await createClient();
 
-  const [{ data: clubData }, billingAccess] = await Promise.all([
+  const [{ data: clubData }, billingAccess, featureFlags] = await Promise.all([
     supabase
       .from("clubs")
       .select("id, display_name, primary_color")
       .eq("id", clubId)
       .maybeSingle<ClubRow>(),
     getClubBillingAccess(supabase, clubId),
+    getFeatureFlagsForClub(clubId),
   ]);
 
   const primaryColorKey = clubData?.primary_color ?? "black";
@@ -35,6 +37,7 @@ export default async function StandingsPage() {
         initialPrimaryColor={primaryColorKey}
         isPro={billingAccess.isPro}
         clubName={clubName}
+        hallOfFameEnabled={featureFlags.hall_of_fame_badges}
       />
       <StandingsTop10Share />
       <StandingsSortAccent />
