@@ -1,7 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  Award,
   ChevronDown,
   LockKeyhole,
   Medal,
@@ -51,6 +50,32 @@ type AchievementRow = {
   earned_at: string;
 };
 
+type TeamPlayerRow = {
+  team_id: number;
+  player_id: number;
+};
+
+type TeamRow = {
+  id: number;
+  session_id: number;
+};
+
+type ResultRow = {
+  session_id: number;
+  team_a_id: number | null;
+  team_b_id: number | null;
+  goals_team_a: number | null;
+  goals_team_b: number | null;
+};
+
+type CareerStats = {
+  appearances: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: number;
+};
+
 type BadgeDefinition = (typeof BADGE_DEFINITIONS)[number];
 
 const CAREER_APPEARANCE_PREFIX = "career_appearances_";
@@ -84,23 +109,11 @@ function getOpenDefinitions(rows: AchievementRow[]) {
   return BADGE_DEFINITIONS.filter((badge) => !keys.has(badge.key));
 }
 
-function countByScope(definitions: readonly BadgeDefinition[], scope: "season" | "career") {
-  return definitions.filter((badge) => badge.scope === scope).length;
-}
-
-function getHighestMilestone(
+function countByScope(
   definitions: readonly BadgeDefinition[],
-  prefix: string,
+  scope: "season" | "career",
 ) {
-  let highest = 0;
-
-  for (const badge of definitions) {
-    if (!badge.key.startsWith(prefix)) continue;
-    const parsed = Number(badge.key.slice(prefix.length));
-    if (Number.isFinite(parsed)) highest = Math.max(highest, parsed);
-  }
-
-  return highest;
+  return definitions.filter((badge) => badge.scope === scope).length;
 }
 
 function isCareerMilestone(badge: BadgeDefinition) {
@@ -108,6 +121,132 @@ function isCareerMilestone(badge: BadgeDefinition) {
     badge.key.startsWith(CAREER_APPEARANCE_PREFIX) ||
     badge.key.startsWith(CAREER_WIN_PREFIX)
   );
+}
+
+function formatPercent(value: number) {
+  if (!Number.isFinite(value)) return "0,0%";
+  return `${value.toFixed(1).replace(".", ",")}%`;
+}
+
+function emptyCareerStats(): CareerStats {
+  return {
+    appearances: 0,
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    winRate: 0,
+  };
+}
+
+async function loadCareerStatsForPlayers(
+  clubId: string,
+  playerIds: number[],
+) {
+  const supabase = createAdminClient();
+  const stats = new Map<number, CareerStats>(
+    playerIds.map((playerId) => [playerId, emptyCareerStats()]),
+  );
+
+  if (playerIds.length === 0) return stats;
+
+  const { data: teamPlayerData, error: teamPlayerError } = await supabase
+    .from("team_players")
+    .select("team_id, player_id")
+    .in("player_id", playerIds);
+
+  if (teamPlayerError) {
+    throw new Error(
+      `Vergleichs-Teams konnten nicht geladen werden: ${teamPlayerError.message}`,
+    );
+  }
+
+  const teamPlayerRows = (teamPlayerData ?? []) as TeamPlayerRow[];
+  const teamIds = Array.from(
+    new Set(teamPlayerRows.map((row) => row.team_id).filter(Number.isFinite)),
+  );
+
+  if (teamIds.length === 0) return stats;
+
+  const { data: teamData, error: teamError } = await supabase
+    .from("teams")
+    .select("id, session_id")
+    .in("id", teamIds);
+
+  if (teamError) {
+    throw new Error(
+      `Vergleichs-Sessions konnten nicht geladen werden: ${teamError.message}`,
+    );
+  }
+
+  const teams = (teamData ?? []) as TeamRow[];
+  const sessionIds = Array.from(
+    new Set(teams.map((team) => team.session_id).filter(Number.isFinite)),
+  );
+
+  if (sessionIds.length === 0) return stats;
+
+  const { data: resultData, error: resultError } = await supabase
+    .from("results")
+    .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+    .eq("club_id", clubId)
+    .in("session_id", sessionIds);
+
+  if (resultError) {
+    throw new Error(
+      `Vergleichs-Ergebnisse konnten nicht geladen werden: ${resultError.message}`,
+    );
+  }
+
+  const results = (resultData ?? []) as ResultRow[];
+  const teamIdsByPlayer = new Map<number, Set<number>>();
+
+  for (const playerId of playerIds) {
+    teamIdsByPlayer.set(playerId, new Set<number>());
+  }
+
+  for (const row of teamPlayerRows) {
+    teamIdsByPlayer.get(row.player_id)?.add(row.team_id);
+  }
+
+  for (const playerId of playerIds) {
+    const ownTeamIds = teamIdsByPlayer.get(playerId) ?? new Set<number>();
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+    let appearances = 0;
+
+    for (const result of results) {
+      const teamA = result.team_a_id;
+      const teamB = result.team_b_id;
+      const isTeamA = teamA !== null && ownTeamIds.has(teamA);
+      const isTeamB = teamB !== null && ownTeamIds.has(teamB);
+
+      if (!isTeamA && !isTeamB) continue;
+
+      appearances += 1;
+      const goalsA = result.goals_team_a ?? 0;
+      const goalsB = result.goals_team_b ?? 0;
+
+      if (goalsA === goalsB) {
+        draws += 1;
+      } else if ((isTeamA && goalsA > goalsB) || (isTeamB && goalsB > goalsA)) {
+        wins += 1;
+      } else {
+        losses += 1;
+      }
+    }
+
+    const completedResults = wins + losses + draws;
+    stats.set(playerId, {
+      appearances,
+      wins,
+      losses,
+      draws,
+      winRate: completedResults > 0 ? (wins / completedResults) * 100 : 0,
+    });
+  }
+
+  return stats;
 }
 
 function TrophyCard({
@@ -232,21 +371,21 @@ function ComparisonMetricRow({
   hint?: string;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 py-3 sm:px-4">
-      <div className="text-left text-xl font-black tracking-tight text-white">
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4">
+      <div className="text-left text-lg font-black tracking-tight text-white sm:text-xl">
         {leftValue}
       </div>
-      <div className="min-w-[118px] text-center">
-        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
+      <div className="min-w-[104px] text-center sm:min-w-[118px]">
+        <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/45 sm:text-[10px]">
           {label}
         </div>
         {hint ? (
-          <div className="mt-0.5 text-[10px] font-semibold text-white/30">
+          <div className="mt-0.5 text-[9px] font-semibold text-white/30 sm:text-[10px]">
             {hint}
           </div>
         ) : null}
       </div>
-      <div className="text-right text-xl font-black tracking-tight text-white">
+      <div className="text-right text-lg font-black tracking-tight text-white sm:text-xl">
         {rightValue}
       </div>
     </div>
@@ -369,10 +508,14 @@ export default async function BadgesPage({ searchParams }: PageProps) {
   ]);
 
   if (clubError) {
-    throw new Error(`Club konnte für die Hall of Fame nicht geladen werden: ${clubError.message}`);
+    throw new Error(
+      `Club konnte für die Hall of Fame nicht geladen werden: ${clubError.message}`,
+    );
   }
   if (playersError) {
-    throw new Error(`Spieler konnten für die Hall of Fame nicht geladen werden: ${playersError.message}`);
+    throw new Error(
+      `Spieler konnten für die Hall of Fame nicht geladen werden: ${playersError.message}`,
+    );
   }
   if (achievementsError) {
     throw new Error(`Badges konnten nicht geladen werden: ${achievementsError.message}`);
@@ -440,24 +583,9 @@ export default async function BadgesPage({ searchParams }: PageProps) {
   const sharedBadges = earnedBadges.filter((badge) => compareKeys.has(badge.key));
   const onlyMine = earnedBadges.filter((badge) => !compareKeys.has(badge.key));
   const onlyTheirs = compareEarnedBadges.filter((badge) => !ownKeys.has(badge.key));
-
   const sharedSpecialBadges = sharedBadges.filter((badge) => !isCareerMilestone(badge));
   const onlyMineSpecialBadges = onlyMine.filter((badge) => !isCareerMilestone(badge));
   const onlyTheirsSpecialBadges = onlyTheirs.filter((badge) => !isCareerMilestone(badge));
-
-  const ownAppearanceMilestone = getHighestMilestone(
-    earnedBadges,
-    CAREER_APPEARANCE_PREFIX,
-  );
-  const compareAppearanceMilestone = getHighestMilestone(
-    compareEarnedBadges,
-    CAREER_APPEARANCE_PREFIX,
-  );
-  const ownWinMilestone = getHighestMilestone(earnedBadges, CAREER_WIN_PREFIX);
-  const compareWinMilestone = getHighestMilestone(
-    compareEarnedBadges,
-    CAREER_WIN_PREFIX,
-  );
 
   const comparisonOptions = players
     .filter((candidate) => candidate.id !== ownPlayer.id)
@@ -467,6 +595,14 @@ export default async function BadgesPage({ searchParams }: PageProps) {
         "de",
       ),
     );
+
+  const careerStats = comparePlayer
+    ? await loadCareerStatsForPlayers(clubId, [ownPlayer.id, comparePlayer.id])
+    : new Map<number, CareerStats>();
+  const ownCareerStats = careerStats.get(ownPlayer.id) ?? emptyCareerStats();
+  const compareCareerStats = comparePlayer
+    ? careerStats.get(comparePlayer.id) ?? emptyCareerStats()
+    : emptyCareerStats();
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
@@ -514,7 +650,10 @@ export default async function BadgesPage({ searchParams }: PageProps) {
               </div>
               {selectedBadge ? (
                 <form action={clearFeaturedBadgeAction} className="mt-2">
-                  <button type="submit" className="text-[11px] font-bold text-white/45 underline underline-offset-4 hover:text-white">
+                  <button
+                    type="submit"
+                    className="text-[11px] font-bold text-white/45 underline underline-offset-4 hover:text-white"
+                  >
                     Titel entfernen
                   </button>
                 </form>
@@ -598,7 +737,11 @@ export default async function BadgesPage({ searchParams }: PageProps) {
           </summary>
 
           <div className="mt-5 border-t border-slate-100 pt-5">
-            <form method="get" action="/badges" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <form
+              method="get"
+              action="/badges"
+              className="flex flex-col gap-3 sm:flex-row sm:items-end"
+            >
               <label className="min-w-0 flex-1">
                 <span className="mb-2 block text-xs font-bold text-slate-600">
                   Spieler auswählen
@@ -628,25 +771,25 @@ export default async function BadgesPage({ searchParams }: PageProps) {
             {comparePlayer && compareName ? (
               <div className="mt-6 space-y-4">
                 <section className="overflow-hidden rounded-[28px] bg-slate-950 p-4 text-white shadow-[0_22px_52px_rgba(15,23,42,0.2)] sm:p-5">
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3 px-1">
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 px-1 sm:gap-3">
                     <div className="min-w-0">
-                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
+                      <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/40 sm:text-[10px]">
                         Du
                       </div>
-                      <div className="mt-1 truncate text-base font-black sm:text-lg">
+                      <div className="mt-1 break-words text-xs font-black leading-snug sm:text-sm">
                         {ownName}
                       </div>
                     </div>
 
-                    <div className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+                    <div className="mt-1 rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/45 sm:px-3 sm:text-[10px]">
                       vs
                     </div>
 
                     <div className="min-w-0 text-right">
-                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
+                      <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/40 sm:text-[10px]">
                         Vergleich
                       </div>
-                      <div className="mt-1 truncate text-base font-black sm:text-lg">
+                      <div className="mt-1 break-words text-xs font-black leading-snug sm:text-sm">
                         {compareName}
                       </div>
                     </div>
@@ -654,28 +797,29 @@ export default async function BadgesPage({ searchParams }: PageProps) {
 
                   <div className="mt-4 divide-y divide-white/10 overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.05]">
                     <ComparisonMetricRow
-                      label="Badge-Stufen"
+                      label="Badges"
                       leftValue={String(earnedBadges.length)}
                       rightValue={String(compareEarnedBadges.length)}
                       hint="freigeschaltet"
                     />
                     <ComparisonMetricRow
-                      label="Einsätze"
-                      leftValue={ownAppearanceMilestone > 0 ? `${ownAppearanceMilestone}+` : "–"}
-                      rightValue={compareAppearanceMilestone > 0 ? `${compareAppearanceMilestone}+` : "–"}
-                      hint="höchster Meilenstein"
+                      label="Teilnahmen"
+                      leftValue={String(ownCareerStats.appearances)}
+                      rightValue={String(compareCareerStats.appearances)}
+                      hint="mit Ergebnis"
                     />
                     <ComparisonMetricRow
                       label="Siege"
-                      leftValue={ownWinMilestone > 0 ? `${ownWinMilestone}+` : "–"}
-                      rightValue={compareWinMilestone > 0 ? `${compareWinMilestone}+` : "–"}
-                      hint="höchster Meilenstein"
+                      leftValue={String(ownCareerStats.wins)}
+                      rightValue={String(compareCareerStats.wins)}
+                    />
+                    <ComparisonMetricRow
+                      label="Siegquote"
+                      leftValue={formatPercent(ownCareerStats.winRate)}
+                      rightValue={formatPercent(compareCareerStats.winRate)}
+                      hint="Siege / Ergebnisse"
                     />
                   </div>
-
-                  <p className="mt-3 px-1 text-[11px] font-medium leading-5 text-white/45">
-                    Beispiel: 25+ Einsätze bedeutet, dass der 25er-Meilenstein bereits freigeschaltet ist. Die kleineren Stufen werden hier nicht doppelt aufgelistet.
-                  </p>
                 </section>
 
                 <ComparisonBadgeList
