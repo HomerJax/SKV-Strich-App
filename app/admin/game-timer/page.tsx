@@ -6,6 +6,7 @@ import { canManageClub } from "@/lib/auth/access";
 import GameTimerSettingsCard from "@/components/admin/settings/GameTimerSettingsCard";
 import {
   DEFAULT_GAME_TIMER_SETTINGS,
+  normalizeHalftimeBehavior,
   normalizeTimerEndTime,
   type GameTimerAlarmSound,
   type GameTimerMode,
@@ -17,6 +18,7 @@ type TimerSettingsRow = {
   game_timer_default_minutes: number | null;
   game_timer_default_end_time: string | null;
   game_timer_halftime_enabled: boolean | null;
+  game_timer_halftime_behavior: string | null;
   game_timer_alarm_sound: string | null;
 };
 
@@ -43,7 +45,7 @@ export default async function AdminGameTimerPage() {
   const { data, error } = await supabase
     .from("club_settings")
     .select(
-      "game_timer_enabled, game_timer_default_mode, game_timer_default_minutes, game_timer_default_end_time, game_timer_halftime_enabled, game_timer_alarm_sound",
+      "game_timer_enabled, game_timer_default_mode, game_timer_default_minutes, game_timer_default_end_time, game_timer_halftime_enabled, game_timer_halftime_behavior, game_timer_alarm_sound",
     )
     .eq("club_id", clubId)
     .maybeSingle<TimerSettingsRow>();
@@ -90,6 +92,10 @@ export default async function AdminGameTimerPage() {
               data?.game_timer_halftime_enabled ??
               DEFAULT_GAME_TIMER_SETTINGS.halftimeEnabled
             }
+            initialHalftimeBehavior={normalizeHalftimeBehavior(
+              data?.game_timer_halftime_behavior ??
+                DEFAULT_GAME_TIMER_SETTINGS.halftimeBehavior,
+            )}
             initialAlarmSound={normalizeAlarm(data?.game_timer_alarm_sound ?? null)}
           />
         </div>
