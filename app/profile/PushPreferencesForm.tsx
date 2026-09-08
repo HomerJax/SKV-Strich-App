@@ -31,8 +31,9 @@ const OPTIONS: Array<{
   },
   {
     key: "rsvpUpdates",
-    label: "Zusagen",
-    description: "Mitteilung, wenn ein Teilnehmer zum Training zusagt.",
+    label: "Zu- & Absagen im Team",
+    description:
+      "Mitteilung, wenn jemand aus deinem Team zu- oder absagt. Kann bei vielen Rückmeldungen jederzeit deaktiviert werden.",
   },
   {
     key: "results",
