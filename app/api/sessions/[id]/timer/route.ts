@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSessionAccess } from "@/lib/session-detail/access";
 import {
   DEFAULT_GAME_TIMER_SETTINGS,
+  normalizeHalftimeBehavior,
   normalizeTimerEndTime,
   type GameTimerAlarmSound,
   type GameTimerMode,
@@ -12,6 +13,7 @@ export const runtime = "nodejs";
 
 const TIMER_MODES = new Set(["duration", "end_time"]);
 const ALARM_SOUNDS = new Set(["whistle", "horn", "buzzer"]);
+const HALFTIME_BEHAVIORS = new Set(["pause", "signal"]);
 
 type TimerPayload = {
   reset?: unknown;
@@ -19,6 +21,7 @@ type TimerPayload = {
   durationMinutes?: unknown;
   endTime?: unknown;
   halftimeEnabled?: unknown;
+  halftimeBehavior?: unknown;
   alarmSound?: unknown;
 };
 
@@ -28,6 +31,7 @@ type ClubTimerSettingsRow = {
   game_timer_default_minutes: number | null;
   game_timer_default_end_time: string | null;
   game_timer_halftime_enabled: boolean | null;
+  game_timer_halftime_behavior: string | null;
   game_timer_alarm_sound: string | null;
 };
 
@@ -36,6 +40,7 @@ type SessionTimerSettingsRow = {
   timer_duration_minutes: number | null;
   timer_end_time: string | null;
   timer_halftime_enabled: boolean | null;
+  timer_halftime_behavior: string | null;
   timer_alarm_sound: string | null;
 };
 
@@ -61,6 +66,9 @@ function clubDefaultSettings(row: ClubTimerSettingsRow | null): GameTimerSetting
     endTime: normalizeTimerEndTime(row?.game_timer_default_end_time ?? null),
     halftimeEnabled:
       row?.game_timer_halftime_enabled ?? DEFAULT_GAME_TIMER_SETTINGS.halftimeEnabled,
+    halftimeBehavior: normalizeHalftimeBehavior(
+      row?.game_timer_halftime_behavior ?? DEFAULT_GAME_TIMER_SETTINGS.halftimeBehavior,
+    ),
     alarmSound: normalizeAlarm(row?.game_timer_alarm_sound ?? null),
   };
 }
@@ -93,14 +101,14 @@ export async function GET(
     access.adminSupabase
       .from("club_settings")
       .select(
-        "game_timer_enabled, game_timer_default_mode, game_timer_default_minutes, game_timer_default_end_time, game_timer_halftime_enabled, game_timer_alarm_sound",
+        "game_timer_enabled, game_timer_default_mode, game_timer_default_minutes, game_timer_default_end_time, game_timer_halftime_enabled, game_timer_halftime_behavior, game_timer_alarm_sound",
       )
       .eq("club_id", access.clubId)
       .maybeSingle<ClubTimerSettingsRow>(),
     access.adminSupabase
       .from("sessions")
       .select(
-        "timer_mode, timer_duration_minutes, timer_end_time, timer_halftime_enabled, timer_alarm_sound",
+        "timer_mode, timer_duration_minutes, timer_end_time, timer_halftime_enabled, timer_halftime_behavior, timer_alarm_sound",
       )
       .eq("id", sessionId)
       .eq("club_id", access.clubId)
@@ -129,6 +137,7 @@ export async function GET(
         sessionSettings.timer_duration_minutes !== null ||
         sessionSettings.timer_end_time !== null ||
         sessionSettings.timer_halftime_enabled !== null ||
+        sessionSettings.timer_halftime_behavior !== null ||
         sessionSettings.timer_alarm_sound !== null),
   );
 
@@ -142,6 +151,9 @@ export async function GET(
           defaults.endTime,
         halftimeEnabled:
           sessionSettings?.timer_halftime_enabled ?? defaults.halftimeEnabled,
+        halftimeBehavior: normalizeHalftimeBehavior(
+          sessionSettings?.timer_halftime_behavior ?? defaults.halftimeBehavior,
+        ),
         alarmSound: normalizeAlarm(
           sessionSettings?.timer_alarm_sound ?? defaults.alarmSound,
         ),
@@ -200,6 +212,7 @@ export async function POST(
         timer_duration_minutes: null,
         timer_end_time: null,
         timer_halftime_enabled: null,
+        timer_halftime_behavior: null,
         timer_alarm_sound: null,
       })
       .eq("id", sessionId)
@@ -219,6 +232,8 @@ export async function POST(
   const durationMinutes = Number(payload.durationMinutes);
   const endTime = normalizeEndTime(payload.endTime);
   const halftimeEnabled = payload.halftimeEnabled === true;
+  const halftimeBehavior =
+    typeof payload.halftimeBehavior === "string" ? payload.halftimeBehavior : "pause";
   const alarmSound =
     typeof payload.alarmSound === "string" ? payload.alarmSound : "";
 
@@ -241,6 +256,10 @@ export async function POST(
     return NextResponse.json({ error: "Bitte eine Endzeit wählen." }, { status: 400 });
   }
 
+  if (!HALFTIME_BEHAVIORS.has(halftimeBehavior)) {
+    return NextResponse.json({ error: "Ungültiger Halbzeit-Modus." }, { status: 400 });
+  }
+
   if (!ALARM_SOUNDS.has(alarmSound)) {
     return NextResponse.json({ error: "Ungültiger Alarmton." }, { status: 400 });
   }
@@ -252,6 +271,7 @@ export async function POST(
       timer_duration_minutes: durationMinutes,
       timer_end_time: endTime,
       timer_halftime_enabled: halftimeEnabled,
+      timer_halftime_behavior: halftimeBehavior,
       timer_alarm_sound: alarmSound,
     })
     .eq("id", sessionId)
@@ -272,6 +292,7 @@ export async function POST(
       durationMinutes,
       endTime,
       halftimeEnabled,
+      halftimeBehavior,
       alarmSound,
     },
   });
