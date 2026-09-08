@@ -155,6 +155,7 @@ type StandingsClientProps = {
   initialPrimaryColor?: string | null;
   isPro?: boolean;
   clubName?: string;
+  hallOfFameEnabled?: boolean;
 };
 
 type StandingsApiResponse = {
@@ -181,6 +182,7 @@ export default function StandingsClient({
   initialPrimaryColor,
   isPro = false,
   clubName = "dein Team",
+  hallOfFameEnabled = false,
 }: StandingsClientProps) {
   void clubName;
 
@@ -444,7 +446,19 @@ export default function StandingsClient({
 
                         <td className="min-w-0 px-1.5 py-2 align-middle">
                           <div className="flex min-w-0 items-center gap-1.5">
-                            <span className={`min-w-0 truncate whitespace-nowrap text-[13px] text-slate-950 sm:text-sm ${row.rank <= 3 ? "font-bold" : "font-semibold"}`}>{getPlayerDisplayName(row)}</span>
+                            {hallOfFameEnabled ? (
+                              <Link
+                                href={`/badges?player=${row.player_id}`}
+                                className={`min-w-0 truncate whitespace-nowrap text-[13px] text-slate-950 underline decoration-slate-200 underline-offset-4 transition hover:decoration-slate-500 sm:text-sm ${row.rank <= 3 ? "font-bold" : "font-semibold"}`}
+                                title="Hall of Fame ansehen"
+                              >
+                                {getPlayerDisplayName(row)}
+                              </Link>
+                            ) : (
+                              <span className={`min-w-0 truncate whitespace-nowrap text-[13px] text-slate-950 sm:text-sm ${row.rank <= 3 ? "font-bold" : "font-semibold"}`}>
+                                {getPlayerDisplayName(row)}
+                              </span>
+                            )}
                             <div className="flex shrink-0 items-center gap-0.5">
                               <PlayerBadge mvpCount={row.mvps} size="sm" hideIfNone iconOnly />
                               {getTrainingAwards(row).length > 0 ? (
