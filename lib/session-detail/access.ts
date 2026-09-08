@@ -105,6 +105,7 @@ export async function requireSessionAccess(sessionId: number) {
     isPowerUser: ctx.isPowerUser,
     session: sessionData as SessionRow,
     currentPlayerId,
+    currentUserId: ctx.user.id,
     currentUserEmail,
   };
 }
