@@ -101,6 +101,7 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
 
         let kind = call.getString("kind") == "halftime" ? "halftime" : "final"
         let sound = normalizedSound(call.getString("sound"))
+        let persistent = call.getBool("persistent") ?? true
         let date = Date(timeIntervalSince1970: atEpochMs / 1000.0)
 
         guard date.timeIntervalSinceNow > 0.5 else {
@@ -109,10 +110,10 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         do {
-            let soundFile = try ensureSoundFile(for: sound)
+            let soundFile = try ensureSoundFile(for: sound, persistent: persistent)
 
             #if canImport(AlarmKit)
-            if #available(iOS 26.0, *) {
+            if #available(iOS 26.0, *), persistent {
                 Task {
                     do {
                         try await scheduleAlarmKit(
@@ -135,6 +136,7 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
                 date: date,
                 kind: kind,
                 soundFile: soundFile,
+                persistent: persistent,
                 call: call
             )
         } catch {
@@ -180,8 +182,11 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
         kind == "halftime" ? "HALBZEIT" : "ABPFIFF"
     }
 
-    private func body(for kind: String) -> String {
-        kind == "halftime"
+    private func body(for kind: String, persistent: Bool) -> String {
+        if kind == "halftime" && !persistent {
+            return "Halbzeit-Signal. Die Spieluhr läuft weiter."
+        }
+        return kind == "halftime"
             ? "Die erste Halbzeit ist vorbei."
             : "Die Spielzeit ist beendet."
     }
@@ -253,11 +258,12 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
         date: Date,
         kind: String,
         soundFile: String,
+        persistent: Bool,
         call: CAPPluginCall
     ) {
         let content = UNMutableNotificationContent()
         content.title = title(for: kind)
-        content.body = body(for: kind)
+        content.body = body(for: kind, persistent: persistent)
         content.sound = UNNotificationSound(
             named: UNNotificationSoundName(rawValue: soundFile)
         )
@@ -279,8 +285,9 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    private func ensureSoundFile(for sound: String) throws -> String {
-        let fileName = "strikr_\(sound).wav"
+    private func ensureSoundFile(for sound: String, persistent: Bool) throws -> String {
+        let suffix = persistent ? "alarm" : "signal"
+        let fileName = "strikr_\(suffix)_\(sound).wav"
         let fileManager = FileManager.default
         let library = try fileManager.url(
             for: .libraryDirectory,
@@ -297,16 +304,16 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
         let target = soundsDirectory.appendingPathComponent(fileName)
 
         if !fileManager.fileExists(atPath: target.path) {
-            let wave = makeAlarmWave(sound: sound)
+            let duration = persistent ? 26.0 : 10.0
+            let wave = makeAlarmWave(sound: sound, durationSeconds: duration)
             try wave.write(to: target, options: .atomic)
         }
 
         return fileName
     }
 
-    private func makeAlarmWave(sound: String) -> Data {
+    private func makeAlarmWave(sound: String, durationSeconds: Double) -> Data {
         let sampleRate = 22_050
-        let durationSeconds = 26.0
         let sampleCount = Int(Double(sampleRate) * durationSeconds)
         var pcm = Data(capacity: sampleCount * 2)
 
