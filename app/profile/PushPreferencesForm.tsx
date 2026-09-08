@@ -133,7 +133,10 @@ export default function PushPreferencesForm() {
   }
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section
+      id="push-notifications"
+      className="scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+    >
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
         Benachrichtigungen
       </h2>
