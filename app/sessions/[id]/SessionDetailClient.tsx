@@ -6,6 +6,7 @@ import SessionTeamsCard from "./SessionTeamsCard";
 import SessionWinnerPhotoCard from "./SessionWinnerPhotoCard";
 import SessionScoreCard from "./SessionScoreCard";
 import SessionMvpCard from "./SessionMvpCard";
+import SessionGameTimerLoader from "./SessionGameTimerLoader";
 import SessionEndModal from "@/components/SessionEndModal";
 import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionRow, TeamMap } from "./session-types";
@@ -419,6 +420,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
         {renderWorkflowSection("attendance", renderAttendance())}
         {allowTeams ? renderWorkflowSection("teams", renderTeams()) : null}
+
+        {isTrainingSession && !hasResult ? (
+          <SessionGameTimerLoader sessionId={props.sessionId} />
+        ) : null}
+
         {allowWinnerPhoto
           ? renderWorkflowSection("photo", renderWinnerPhoto())
           : null}
