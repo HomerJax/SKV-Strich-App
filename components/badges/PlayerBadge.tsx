@@ -74,6 +74,14 @@ const TIER_STYLE: Record<
   },
 };
 
+const HERO_ASSET_BY_KEY: Record<Exclude<BadgeKey, "none">, string> = {
+  copper: "blech.webp",
+  bronze: "bronze.webp",
+  silver: "silber.webp",
+  gold: "gold.webp",
+  goat: "goat.webp",
+};
+
 const FALLBACK_COUNT_BY_KEY: Record<BadgeKey, number> = {
   none: 0,
   copper: 1,
@@ -158,7 +166,7 @@ export default function PlayerBadge({
         aria-label={title ?? badge.label}
       >
         <Image
-          src={`/badges/hero/${badge.key}.webp`}
+          src={`/badges/hero/${HERO_ASSET_BY_KEY[badge.key]}`}
           alt=""
           fill
           sizes={`${px}px`}

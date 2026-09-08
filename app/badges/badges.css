@@ -1,0 +1,65 @@
+/* Hall-of-Fame comparison: keep both players visually side by side on mobile. */
+@media (max-width: 1023px) {
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 0.625rem;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section {
+    min-width: 0;
+    padding: 0.75rem;
+    border-radius: 1.125rem;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child {
+    align-items: flex-start;
+    gap: 0.375rem;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child > div:first-child {
+    min-width: 0;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child a {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div:first-child > div:last-child {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+    font-size: 0.65rem;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div {
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.625rem;
+    border-radius: 0.875rem;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > span {
+    margin-top: 0.1rem;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div {
+    min-width: 0;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:first-child {
+    gap: 0.25rem;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:first-child > div:first-child {
+    font-size: 0.72rem;
+    line-height: 0.95rem;
+    overflow-wrap: anywhere;
+  }
+
+  main details [class~="lg:grid-cols-2"][class~="lg:items-start"] > section > div.mt-4 > div > div > div:last-child {
+    font-size: 0.66rem;
+    line-height: 0.95rem;
+  }
+}
