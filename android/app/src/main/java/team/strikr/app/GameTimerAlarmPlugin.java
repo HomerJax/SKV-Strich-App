@@ -3,7 +3,6 @@ package team.strikr.app;
 import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -60,7 +59,7 @@ public class GameTimerAlarmPlugin extends Plugin {
             return;
         }
 
-        AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+        AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(android.content.Context.ALARM_SERVICE);
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             alarmManager != null &&
@@ -97,6 +96,8 @@ public class GameTimerAlarmPlugin extends Plugin {
         Double atEpochMs = call.getDouble("atEpochMs");
         String kind = "halftime".equals(call.getString("kind")) ? "halftime" : "final";
         String sound = normalizeSound(call.getString("sound"));
+        Boolean persistentValue = call.getBoolean("persistent", true);
+        boolean persistent = persistentValue == null || persistentValue;
 
         if (key.isEmpty() || atEpochMs == null) {
             call.reject("Alarm-Daten fehlen.");
@@ -109,7 +110,7 @@ public class GameTimerAlarmPlugin extends Plugin {
             return;
         }
 
-        AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+        AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(android.content.Context.ALARM_SERVICE);
         if (alarmManager == null) {
             call.reject("AlarmManager ist nicht verfügbar.");
             return;
@@ -120,7 +121,7 @@ public class GameTimerAlarmPlugin extends Plugin {
             return;
         }
 
-        PendingIntent pendingIntent = alarmPendingIntent(key, kind, sound);
+        PendingIntent pendingIntent = alarmPendingIntent(key, kind, sound, persistent);
         alarmManager.cancel(pendingIntent);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -142,9 +143,9 @@ public class GameTimerAlarmPlugin extends Plugin {
             return;
         }
 
-        AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+        AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(android.content.Context.ALARM_SERVICE);
         if (alarmManager != null) {
-            alarmManager.cancel(alarmPendingIntent(key, "final", "whistle"));
+            alarmManager.cancel(alarmPendingIntent(key, "final", "whistle", true));
         }
 
         Intent stopIntent = new Intent(getContext(), GameTimerAlarmService.class);
@@ -161,12 +162,13 @@ public class GameTimerAlarmPlugin extends Plugin {
         call.resolve(result);
     }
 
-    private PendingIntent alarmPendingIntent(String key, String kind, String sound) {
+    private PendingIntent alarmPendingIntent(String key, String kind, String sound, boolean persistent) {
         Intent intent = new Intent(getContext(), GameTimerAlarmReceiver.class);
         intent.setAction("team.strikr.app.GAME_TIMER_ALARM");
         intent.putExtra(GameTimerAlarmService.EXTRA_ALARM_KEY, key);
         intent.putExtra(GameTimerAlarmService.EXTRA_KIND, kind);
         intent.putExtra(GameTimerAlarmService.EXTRA_SOUND, sound);
+        intent.putExtra(GameTimerAlarmService.EXTRA_PERSISTENT, persistent);
 
         return PendingIntent.getBroadcast(
             getContext(),
