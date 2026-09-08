@@ -21,6 +21,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(GameTimerAlarmPlugin.class);
         super.onCreate(savedInstanceState);
         installStartupOverlay();
     }
