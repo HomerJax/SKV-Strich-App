@@ -25,9 +25,9 @@ const OPTIONS: Array<{
 }> = [
   {
     key: "trainingReminders",
-    label: "Trainingserinnerungen",
+    label: "Training & Erinnerungen",
     description:
-      "Erinnert dich am Vorabend, wenn deine Zu- oder Absage noch fehlt.",
+      "Erinnert dich am Vorabend bei fehlender Rückmeldung und informiert über wichtige Änderungen oder Absagen.",
   },
   {
     key: "rsvpUpdates",
@@ -42,13 +42,13 @@ const OPTIONS: Array<{
   },
   {
     key: "badges",
-    label: "Badges",
-    description: "Mitteilung, wenn jemand aus deinem Club einen Badge erhält.",
+    label: "MVP, Badges & Trophäen",
+    description: "Vorbereitet für MVP-, Badge- und Trophäen-Updates. Die genaue Logik bauen wir noch aus.",
   },
   {
     key: "announcements",
-    label: "strikr-Ankündigungen",
-    description: "Wichtige Hinweise und Neuigkeiten rund um strikr.",
+    label: "Club-Ankündigungen",
+    description: "Wichtige Mitteilungen, die ein Admin an den Club schickt.",
   },
 ];
 
