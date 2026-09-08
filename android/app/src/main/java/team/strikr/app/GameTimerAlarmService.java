@@ -27,15 +27,19 @@ public class GameTimerAlarmService extends Service {
     public static final String EXTRA_ALARM_KEY = "alarm_key";
     public static final String EXTRA_KIND = "alarm_kind";
     public static final String EXTRA_SOUND = "alarm_sound";
+    public static final String EXTRA_PERSISTENT = "alarm_persistent";
 
     private static final String CHANNEL_ID = "strikr_game_timer_alarm";
     private static final int NOTIFICATION_ID = 0x537452;
     private static final int SAMPLE_RATE = 22_050;
+    private static final long SIGNAL_DURATION_MS = 10_000L;
 
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private AudioTrack audioTrack;
     private Vibrator vibrator;
     private PowerManager.WakeLock wakeLock;
     private String activeKey;
+    private Runnable autoStopRunnable;
 
     @Override
     public void onCreate() {
@@ -56,6 +60,7 @@ public class GameTimerAlarmService extends Service {
         String key = intent != null ? intent.getStringExtra(EXTRA_ALARM_KEY) : null;
         String kind = intent != null ? intent.getStringExtra(EXTRA_KIND) : null;
         String sound = intent != null ? intent.getStringExtra(EXTRA_SOUND) : null;
+        boolean persistent = intent == null || intent.getBooleanExtra(EXTRA_PERSISTENT, true);
 
         if (key == null || key.trim().isEmpty()) {
             stopSelf();
@@ -63,20 +68,31 @@ public class GameTimerAlarmService extends Service {
         }
 
         activeKey = key;
+        cancelAutoStop();
         stopAlarmOutput();
         acquireWakeLock();
-        startForeground(NOTIFICATION_ID, buildNotification(key, kind));
+        startForeground(NOTIFICATION_ID, buildNotification(key, kind, persistent));
         startVibration();
         startAudio(sound);
+
+        if (!persistent) {
+            autoStopRunnable = this::stopAlarmAndSelf;
+            handler.postDelayed(autoStopRunnable, SIGNAL_DURATION_MS);
+        }
 
         return START_NOT_STICKY;
     }
 
-    private Notification buildNotification(String key, String kind) {
+    private Notification buildNotification(String key, String kind, boolean persistent) {
         String title = "halftime".equals(kind) ? "HALBZEIT" : "ABPFIFF";
-        String body = "halftime".equals(kind)
-            ? "Die erste Halbzeit ist vorbei. Alarm stoppen."
-            : "Die Spielzeit ist beendet. Alarm stoppen.";
+        String body;
+        if ("halftime".equals(kind) && !persistent) {
+            body = "Halbzeit-Signal. Die Spieluhr läuft weiter.";
+        } else if ("halftime".equals(kind)) {
+            body = "Die erste Halbzeit ist vorbei. Alarm stoppen und 2. Halbzeit starten.";
+        } else {
+            body = "Die Spielzeit ist beendet. Alarm stoppen.";
+        }
 
         Intent stopIntent = new Intent(this, GameTimerAlarmService.class);
         stopIntent.setAction(ACTION_STOP);
@@ -105,8 +121,8 @@ public class GameTimerAlarmService extends Service {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setOngoing(true)
-            .setAutoCancel(false)
+            .setOngoing(persistent)
+            .setAutoCancel(!persistent)
             .addAction(0, "Alarm stoppen", stopPendingIntent)
             .build();
     }
@@ -239,6 +255,13 @@ public class GameTimerAlarmService extends Service {
         return "whistle";
     }
 
+    private void cancelAutoStop() {
+        if (autoStopRunnable != null) {
+            handler.removeCallbacks(autoStopRunnable);
+            autoStopRunnable = null;
+        }
+    }
+
     private void stopAlarmOutput() {
         if (audioTrack != null) {
             try {
@@ -255,6 +278,7 @@ public class GameTimerAlarmService extends Service {
     }
 
     private void stopAlarmAndSelf() {
+        cancelAutoStop();
         stopAlarmOutput();
         releaseWakeLock();
         activeKey = null;
@@ -268,6 +292,7 @@ public class GameTimerAlarmService extends Service {
 
     @Override
     public void onDestroy() {
+        cancelAutoStop();
         stopAlarmOutput();
         releaseWakeLock();
         activeKey = null;
