@@ -26,7 +26,8 @@ const OPTIONS: Array<{
   {
     key: "trainingReminders",
     label: "Trainingserinnerungen",
-    description: "Erinnerungen vor einem anstehenden Training.",
+    description:
+      "Erinnert dich am Vorabend, wenn deine Zu- oder Absage noch fehlt.",
   },
   {
     key: "rsvpUpdates",
