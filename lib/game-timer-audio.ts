@@ -3,6 +3,8 @@
 import type { GameTimerAlarmSound } from "@/lib/game-timer";
 
 let audioContext: AudioContext | null = null;
+let repeatingAlarmInterval: number | null = null;
+let repeatingAlarmSound: GameTimerAlarmSound | null = null;
 
 function getAudioContext() {
   if (typeof window === "undefined") return null;
@@ -75,7 +77,7 @@ function scheduleTone(
   oscillator.stop(end + 0.02);
 }
 
-export async function playTimerAlarm(
+async function playAlarmPattern(
   sound: GameTimerAlarmSound,
   options?: { preview?: boolean },
 ) {
@@ -142,5 +144,41 @@ export async function playTimerAlarm(
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function playTimerAlarm(
+  sound: GameTimerAlarmSound,
+  options?: { preview?: boolean },
+) {
+  return playAlarmPattern(sound, options);
+}
+
+export async function startRepeatingTimerAlarm(sound: GameTimerAlarmSound) {
+  stopRepeatingTimerAlarm();
+
+  const started = await playAlarmPattern(sound);
+  if (!started || typeof window === "undefined") return false;
+
+  repeatingAlarmSound = sound;
+  repeatingAlarmInterval = window.setInterval(() => {
+    if (repeatingAlarmSound) {
+      void playAlarmPattern(repeatingAlarmSound);
+    }
+  }, 1650);
+
+  return true;
+}
+
+export function stopRepeatingTimerAlarm() {
+  if (typeof window !== "undefined" && repeatingAlarmInterval !== null) {
+    window.clearInterval(repeatingAlarmInterval);
+  }
+
+  repeatingAlarmInterval = null;
+  repeatingAlarmSound = null;
+
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    navigator.vibrate?.(0);
   }
 }
