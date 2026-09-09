@@ -47,7 +47,7 @@ export default function TeamGeneratorSettingsCard({
       <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
         <div className="mb-2 text-sm font-semibold text-slate-500">Kurz erklärt</div>
         <p className="text-sm leading-6 text-slate-700">
-          Der Teamgenerator teilt anwesende Spieler automatisch in möglichst faire Teams auf. Kategorien, Stärke, Positionen und Balance-Gruppen helfen strikr dabei.
+          Der Teamgenerator sucht aus den anwesenden Spielern eine möglichst faire Aufteilung. Teamgröße und Torhüter werden zuerst abgesichert. Danach optimiert strikr Gesamtstärke, Balance-Gruppen sowie Kategorie- und Positionsmix und verbessert die beste Variante anschließend noch durch direkte Spieler-Tausche.
         </p>
 
         <details className="group mt-4 rounded-2xl border border-black/10 bg-white">
@@ -60,22 +60,36 @@ export default function TeamGeneratorSettingsCard({
 
           <div className="border-t border-black/10 px-4 py-4">
             <div className="space-y-3 text-sm leading-6 text-slate-600">
-              <p><span className="font-semibold text-slate-900">Was passiert?</span>{" "}Wenn du in einer Session auf „Teams generieren“ gehst, probiert strikr 400 mögliche Varianten aus und übernimmt die beste gefundene Aufteilung.</p>
+              <p><span className="font-semibold text-slate-900">Was passiert?</span>{" "}Wenn du in einer Session auf „Teams generieren“ gehst, prüft strikr je nach Teilnehmerzahl mehrere tausend vollständige Aufteilungen. Die beste gefundene Variante wird danach zusätzlich durch direkte Spieler-Tausche weiter verbessert.</p>
 
-              <p><span className="font-semibold text-slate-900">Kategorien:</span>{" "}Wenn Kategorien sportlich unterschiedliche Niveaus darstellen, kannst du eine aktive Kategorie ausdrücklich als <strong>stärkere Kategorie</strong> markieren. Die Reihenfolge der Kategorien spielt dafür keine Rolle mehr.</p>
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-950">
+                <div className="text-sm font-bold">Priorität der Team-Balance</div>
+                <ol className="mt-2 space-y-1 pl-5">
+                  <li>1. Teamgrößen möglichst gleich</li>
+                  <li>2. Torhüter möglichst gleich verteilen</li>
+                  <li>3. Gesamtstärke beider Teams angleichen</li>
+                  <li>4. Balance-Gruppen möglichst aufteilen</li>
+                  <li>5. Kategorie- und Positionsmix ausgleichen</li>
+                  <li>6. Positionen insgesamt möglichst sauber verteilen</li>
+                </ol>
+              </div>
+
+              <p><span className="font-semibold text-slate-900">Kategorien:</span>{" "}Wenn Kategorien sportlich unterschiedliche Niveaus darstellen, kann eine aktive Kategorie ausdrücklich als <strong>stärkere Kategorie</strong> markiert werden. Alle anderen aktiven Kategorien werden für die Stärke auf demselben normalen Grundniveau behandelt. Die Reihenfolge der Kategorien spielt keine Rolle.</p>
 
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
-                <div className="text-sm font-bold">So bewertet strikr Kategorien</div>
-                <p className="mt-2">Spieler aus der markierten stärkeren Kategorie bekommen einen deutlichen Kategoriebonus. Die individuelle Stärke 1–5 dient danach zur Feinabstimmung innerhalb der Kategorie.</p>
-                <p className="mt-2">Zusätzlich betrachtet strikr Kategorie und Position gemeinsam, damit zum Beispiel nicht alle stärkeren Offensivspieler in einem Team landen.</p>
+                <div className="text-sm font-bold">So bewertet strikr Kategorien und Stärke</div>
+                <p className="mt-2">Die markierte stärkere Kategorie bekommt einen festen Kategoriebonus. Dazu kommt – wenn aktiviert – die individuelle Stärke 1–5.</p>
+                <p className="mt-2">Dadurch liegt ein Spieler aus der stärkeren Kategorie mit Stärke 1 knapp über einem Spieler der normalen Kategorie mit Stärke 5. Die individuelle Stärke bleibt trotzdem wichtig für die Feinabstimmung.</p>
                 <p className="mt-2">Wenn eure Kategorien keine sportliche Stärke ausdrücken, schaltet Kategorien für den Generator aus und arbeitet nur mit individueller Stärke.</p>
               </div>
 
               <p><span className="font-semibold text-slate-900">Stärke:</span>{" "}Wenn Stärke aktiv ist, gleicht strikr die hinterlegten Werte 1–5 aus. Spieler ohne Einzelwert verwenden den eingestellten Club-Standardwert.</p>
 
-              <p><span className="font-semibold text-slate-900">Position:</span>{" "}Torhüter werden zuerst verteilt. Danach achtet strikr auf einen möglichst ausgeglichenen Mix aus Torwart, Hinten und Vorne.</p>
+              <p><span className="font-semibold text-slate-900">Torhüter & Positionen:</span>{" "}Torhüter werden gesondert und mit hoher Priorität verteilt. Bei den Feldspielern achtet strikr anschließend auf einen möglichst ausgeglichenen Mix aus Hinten und Vorne.</p>
 
-              <p><span className="font-semibold text-slate-900">Balance-Gruppen:</span>{" "}Sie sind für Sonderprofile gedacht, die möglichst auf beide Teams verteilt werden sollen. Eine Balance-Gruppe ist kein zusätzlicher Stärkewert.</p>
+              <p><span className="font-semibold text-slate-900">Balance-Gruppen:</span>{" "}Sie sind eine weiche Zusatzregel für Sonderprofile, die möglichst auf beide Teams verteilt werden sollen. Eine Balance-Gruppe ist kein zusätzlicher Stärkewert und darf eine deutlich bessere Gesamtbalance nicht überstimmen.</p>
+
+              <p><span className="font-semibold text-slate-900">Feinschliff:</span>{" "}Nach der besten kompletten Aufteilung testet strikr direkte Spieler-Tausche zwischen Team A und Team B. Ein Tausch wird nur übernommen, wenn die Gesamtbewertung dadurch besser wird.</p>
 
               <p><span className="font-semibold text-slate-900">Teamgrößen:</span>{" "}Bei ungerader Spielerzahl unterscheiden sich die Teams maximal um einen Spieler, zum Beispiel 5 gegen 4.</p>
             </div>
@@ -94,7 +108,7 @@ export default function TeamGeneratorSettingsCard({
               <input type="checkbox" name="use_categories" value="1" defaultChecked={useCategories} className="mt-1 h-4 w-4 rounded border-neutral-300" />
               <div>
                 <div className="text-sm font-semibold text-slate-950">Kategorien nutzen</div>
-                <div className="text-sm text-slate-600">Berücksichtigt die markierte stärkere Kategorie und verteilt Kategorien möglichst ausgewogen.</div>
+                <div className="text-sm text-slate-600">Berücksichtigt die markierte stärkere Kategorie als Grundniveau und nutzt Kategorien zusätzlich für eine ausgewogene Verteilung.</div>
               </div>
             </label>
 
