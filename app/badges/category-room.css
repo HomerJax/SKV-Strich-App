@@ -1,0 +1,166 @@
+/* Category shelving for Hall of Fame. Scoped by the wrapper from page.tsx. */
+.hall-of-fame-vitrine .hof-categorized-root {
+  display: block !important;
+}
+
+.hall-of-fame-vitrine .hof-category-block {
+  position: relative;
+  margin-top: 1.15rem;
+}
+
+.hall-of-fame-vitrine .hof-category-block:first-child {
+  margin-top: 0;
+}
+
+.hall-of-fame-vitrine .hof-category-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.15rem 0.65rem;
+}
+
+.hall-of-fame-vitrine .hof-category-title {
+  font-size: 0.76rem;
+  line-height: 1rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hall-of-fame-vitrine .hof-category-subtitle {
+  max-width: 32rem;
+  text-align: right;
+  font-size: 0.67rem;
+  line-height: 1rem;
+  font-weight: 650;
+}
+
+.hall-of-fame-vitrine .hof-category-header[data-tone="earned"] .hof-category-title {
+  color: rgba(253, 230, 138, 0.92);
+}
+
+.hall-of-fame-vitrine .hof-category-header[data-tone="earned"] .hof-category-subtitle {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.hall-of-fame-vitrine .hof-category-header[data-tone="open"] .hof-category-title {
+  color: rgb(51 65 85);
+}
+
+.hall-of-fame-vitrine .hof-category-header[data-tone="open"] .hof-category-subtitle {
+  color: rgb(148 163 184);
+}
+
+.hall-of-fame-vitrine .hof-category-shelf {
+  position: relative;
+  border-radius: 1.45rem;
+}
+
+.hall-of-fame-vitrine .hof-category-shelf::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  left: 2.5%;
+  right: 2.5%;
+  bottom: -0.55rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  transform: perspective(150px) rotateX(52deg);
+}
+
+.hall-of-fame-vitrine .hof-category-block[data-tone="earned"] .hof-category-shelf {
+  padding: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    linear-gradient(105deg, rgba(255,255,255,0.05), transparent 25% 73%, rgba(255,255,255,0.025)),
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.07),
+    inset 0 -28px 45px rgba(0,0,0,0.12),
+    0 15px 28px rgba(0,0,0,0.13);
+}
+
+.hall-of-fame-vitrine .hof-category-block[data-tone="earned"] .hof-category-shelf::after {
+  background: linear-gradient(90deg, transparent, rgba(148,163,184,0.28), rgba(255,255,255,0.18), rgba(148,163,184,0.28), transparent);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.36);
+}
+
+.hall-of-fame-vitrine .hof-category-block[data-tone="open"] .hof-category-shelf {
+  padding: 0.75rem;
+  border: 1px solid rgba(203, 213, 225, 0.76);
+  background: linear-gradient(180deg, rgba(248,250,252,0.82), rgba(241,245,249,0.56));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.92),
+    0 10px 22px rgba(15,23,42,0.04);
+}
+
+.hall-of-fame-vitrine .hof-category-block[data-tone="open"] .hof-category-shelf::after {
+  background: linear-gradient(90deg, transparent, rgba(100,116,139,0.18), rgba(148,163,184,0.24), rgba(100,116,139,0.18), transparent);
+}
+
+.hall-of-fame-vitrine .hof-category-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.hall-of-fame-vitrine .hof-category-block[data-tone="earned"] .hof-category-grid > article {
+  min-height: 116px;
+}
+
+/* Make genuinely rare achievements feel like the centerpiece of the cabinet. */
+.hall-of-fame-vitrine .hof-category-grid > article:has([title="career_appearances_500"]),
+.hall-of-fame-vitrine .hof-category-grid > article:has([title="career_wins_250"]),
+.hall-of-fame-vitrine .hof-category-grid > article:has([title="win_streak_10"]),
+.hall-of-fame-vitrine .hof-category-grid > article:has([title="lucky_charm"]) {
+  transform: translateZ(0);
+}
+
+.hall-of-fame-vitrine .hof-category-block[data-tone="earned"] .hof-category-grid > article:has([title="career_appearances_500"]),
+.hall-of-fame-vitrine .hof-category-block[data-tone="earned"] .hof-category-grid > article:has([title="career_wins_250"]),
+.hall-of-fame-vitrine .hof-category-block[data-tone="earned"] .hof-category-grid > article:has([title="win_streak_10"]),
+.hall-of-fame-vitrine .hof-category-block[data-tone="earned"] .hof-category-grid > article:has([title="lucky_charm"]) {
+  border-color: rgba(250, 204, 21, 0.38) !important;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(250,204,21,0.11), transparent 38%),
+    linear-gradient(145deg, rgba(255,255,255,0.11), rgba(255,255,255,0.03) 55%, rgba(245,158,11,0.075)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    inset 0 -18px 32px rgba(0,0,0,0.13),
+    0 16px 40px rgba(245,158,11,0.12),
+    0 0 32px rgba(250,204,21,0.07) !important;
+}
+
+@media (min-width: 640px) {
+  .hall-of-fame-vitrine .hof-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .hall-of-fame-vitrine .hof-category-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .hall-of-fame-vitrine .hof-category-header {
+    display: block;
+  }
+
+  .hall-of-fame-vitrine .hof-category-subtitle {
+    margin-top: 0.2rem;
+    max-width: none;
+    text-align: left;
+  }
+
+  .hall-of-fame-vitrine .hof-category-block {
+    margin-top: 1.45rem;
+  }
+
+  .hall-of-fame-vitrine .hof-category-block[data-tone="earned"] .hof-category-shelf,
+  .hall-of-fame-vitrine .hof-category-block[data-tone="open"] .hof-category-shelf {
+    padding: 0.65rem;
+  }
+}
