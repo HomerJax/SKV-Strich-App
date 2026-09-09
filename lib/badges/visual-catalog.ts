@@ -2,11 +2,33 @@ import type { BadgeKey as PlayerBadgeTier } from "@/lib/badges/helpers";
 
 export type BadgeHistoryMode = "A" | "B" | "C";
 
+export type BadgeVisualFamily =
+  | "career"
+  | "attendance"
+  | "wins"
+  | "losses"
+  | "special";
+
+export type BadgeVisualMotif =
+  | "career-appearances"
+  | "career-wins"
+  | "kickoff"
+  | "attendance"
+  | "win-streak"
+  | "loss-streak"
+  | "curse-broken"
+  | "resilient"
+  | "lucky"
+  | "comeback";
+
 export type BadgeVisualMeta = {
   tier: PlayerBadgeTier;
   tierLabel: string;
-  family: "career" | "attendance" | "wins" | "losses" | "special";
+  family: BadgeVisualFamily;
   familyLabel: string;
+  motif: BadgeVisualMotif;
+  motifLabel: string;
+  stage: number;
   asset: string | null;
   visualLabel: string;
   historyMode: BadgeHistoryMode;
@@ -22,21 +44,13 @@ const SECRET_BADGES = new Set([
   "comeback",
 ]);
 
+// Die Spezialassets bleiben bewusst Highlights der jeweiligen Familie.
+// Die normalen Stufen werden aus dem originalen 3D-strikr-Badge + Motiv gebaut,
+// damit Materialstufe UND Kategorie gleichzeitig sichtbar bleiben.
 const CUSTOM_ASSET_BY_BADGE_KEY: Record<string, string> = {
-  attendance_streak_3: "/badges/achievements/discipline.webp",
-  attendance_streak_5: "/badges/achievements/discipline.webp",
-  attendance_streak_10: "/badges/achievements/discipline.webp",
-  attendance_streak_15: "/badges/achievements/discipline.webp",
   attendance_streak_20: "/badges/achievements/discipline.webp",
-  win_streak_3: "/badges/achievements/win-streak.webp",
-  win_streak_5: "/badges/achievements/win-streak.webp",
-  win_streak_7: "/badges/achievements/win-streak.webp",
   win_streak_10: "/badges/achievements/win-streak.webp",
-  loss_streak_3: "/badges/achievements/unlucky.webp",
-  loss_streak_5: "/badges/achievements/unlucky.webp",
   loss_streak_7: "/badges/achievements/unlucky.webp",
-  curse_broken: "/badges/achievements/comeback.webp",
-  resilient: "/badges/achievements/unlucky.webp",
   lucky_charm: "/badges/achievements/lucky.webp",
   comeback: "/badges/achievements/comeback.webp",
 };
@@ -45,6 +59,46 @@ function parseSuffix(key: string, prefix: string) {
   if (!key.startsWith(prefix)) return null;
   const value = Number(key.slice(prefix.length));
   return Number.isFinite(value) ? value : null;
+}
+
+function getAppearanceStage(value: number) {
+  if (value >= 500) return 6;
+  if (value >= 250) return 5;
+  if (value >= 100) return 4;
+  if (value >= 50) return 3;
+  if (value >= 25) return 2;
+  return 1;
+}
+
+function getCareerWinStage(value: number) {
+  if (value >= 250) return 6;
+  if (value >= 100) return 5;
+  if (value >= 50) return 4;
+  if (value >= 25) return 3;
+  if (value >= 10) return 2;
+  return 1;
+}
+
+function getAttendanceStage(value: number) {
+  if (value >= 20) return 5;
+  if (value >= 15) return 4;
+  if (value >= 10) return 3;
+  if (value >= 5) return 2;
+  return 1;
+}
+
+function getWinStreakStage(value: number) {
+  if (value >= 10) return 5;
+  if (value >= 7) return 4;
+  if (value >= 5) return 3;
+  if (value >= 3) return 2;
+  return 1;
+}
+
+function getLossStreakStage(value: number) {
+  if (value >= 7) return 3;
+  if (value >= 5) return 2;
+  return 1;
 }
 
 export function getAchievementVisualTier(badgeKey: string): PlayerBadgeTier {
@@ -125,6 +179,124 @@ function getFamily(badgeKey: string): Pick<BadgeVisualMeta, "family" | "familyLa
   return { family: "special", familyLabel: "Special / Secret" };
 }
 
+function getMotif(badgeKey: string): Pick<BadgeVisualMeta, "motif" | "motifLabel" | "stage"> {
+  const appearances = parseSuffix(badgeKey, "career_appearances_");
+  if (appearances !== null) {
+    return {
+      motif: "career-appearances",
+      motifLabel:
+        appearances >= 500
+          ? "Club-Legende · Krone + Schild + Sparkles"
+          : appearances >= 250
+            ? "Karriere-Elite · Schild + Stern-Aura"
+            : "Karriere-Einsätze · Schild / Beständigkeit",
+      stage: getAppearanceStage(appearances),
+    };
+  }
+
+  const careerWins = parseSuffix(badgeKey, "career_wins_");
+  if (careerWins !== null) {
+    return {
+      motif: "career-wins",
+      motifLabel:
+        careerWins >= 250
+          ? "Sieges-Legende · Krone + Pokal"
+          : careerWins >= 100
+            ? "Sieges-Elite · Pokal + Stern-Aura"
+            : "Karrieresiege · Pokal / Stern",
+      stage: getCareerWinStage(careerWins),
+    };
+  }
+
+  if (badgeKey === "season_kickoff") {
+    return {
+      motif: "kickoff",
+      motifLabel: "Saisonstart · Start-Stern",
+      stage: 1,
+    };
+  }
+
+  const attendance = parseSuffix(badgeKey, "attendance_streak_");
+  if (attendance !== null) {
+    return {
+      motif: "attendance",
+      motifLabel:
+        attendance >= 20
+          ? "Immer da · Läufer + Legendär-Aura"
+          : attendance >= 15
+            ? "Inventar · Läufer + stabiler Ring"
+            : attendance >= 10
+              ? "Unkaputtbar · Puls + Läufer"
+              : attendance >= 5
+                ? "Dauerläufer · Läufer + Motion"
+                : "Warmgelaufen · Läufer",
+      stage: getAttendanceStage(attendance),
+    };
+  }
+
+  const winStreak = parseSuffix(badgeKey, "win_streak_");
+  if (winStreak !== null) {
+    return {
+      motif: "win-streak",
+      motifLabel:
+        winStreak >= 10
+          ? "Seriensieger · Feuer + Legendär-Aura"
+          : winStreak >= 7
+            ? "Nicht zu stoppen · Flamme + Krone"
+            : winStreak >= 5
+              ? "Auf einer Mission · Flamme + Blitz"
+              : winStreak >= 3
+                ? "Lauf · Blitz / Momentum"
+                : "Erster Dreier · Sieg-Stern",
+      stage: getWinStreakStage(winStreak),
+    };
+  }
+
+  const lossStreak = parseSuffix(badgeKey, "loss_streak_");
+  if (lossStreak !== null) {
+    return {
+      motif: "loss-streak",
+      motifLabel:
+        lossStreak >= 7
+          ? "Schwarze Serie · Sturm + dunkle Aura"
+          : lossStreak >= 5
+            ? "Unglücksrabe · Sturm + Feder"
+            : "Pechvogel · Regenwolke",
+      stage: getLossStreakStage(lossStreak),
+    };
+  }
+
+  if (badgeKey === "curse_broken") {
+    return {
+      motif: "curse-broken",
+      motifLabel: "Fluch gebrochen · gesprengte Kette + Funken",
+      stage: 4,
+    };
+  }
+
+  if (badgeKey === "resilient") {
+    return {
+      motif: "resilient",
+      motifLabel: "Leidensfähig · Schild + Sturm",
+      stage: 2,
+    };
+  }
+
+  if (badgeKey === "lucky_charm") {
+    return {
+      motif: "lucky",
+      motifLabel: "Glücksbringer · Klee-Look + Sparkles",
+      stage: 5,
+    };
+  }
+
+  return {
+    motif: "comeback",
+    motifLabel: "Comeback · Rückkehrbogen + Energie",
+    stage: 3,
+  };
+}
+
 function getHistory(badgeKey: string): Pick<BadgeVisualMeta, "historyMode" | "historyLabel" | "implementationNote"> {
   if (badgeKey.startsWith("career_")) {
     return {
@@ -147,28 +319,31 @@ function getHistory(badgeKey: string): Pick<BadgeVisualMeta, "historyMode" | "hi
   };
 }
 
-function getVisualLabel(badgeKey: string, asset: string | null) {
-  if (!asset) return "3D-Tier-Badge";
-  if (asset.includes("discipline")) return "3D-Badge + Läufer / Motion";
-  if (asset.includes("win-streak")) return "3D-Badge + Feuer / Siegesserie";
-  if (asset.includes("unlucky")) return "3D-Badge + Sturm / Pech";
-  if (asset.includes("lucky")) return "3D-Badge + Glücksklee / Sparkles";
-  if (asset.includes("comeback")) return "3D-Badge + Kettenbruch / Comeback";
-  return "3D-Spezialbadge";
+function getVisualLabel(
+  tier: PlayerBadgeTier,
+  motifLabel: string,
+  asset: string | null,
+) {
+  const material = getAchievementTierLabel(tier);
+  return asset
+    ? `${material} · Spezialasset · ${motifLabel}`
+    : `${material} · 3D-strikr-Badge · ${motifLabel}`;
 }
 
 export function getBadgeVisualMeta(badgeKey: string): BadgeVisualMeta {
   const tier = getAchievementVisualTier(badgeKey);
   const asset = CUSTOM_ASSET_BY_BADGE_KEY[badgeKey] ?? null;
   const family = getFamily(badgeKey);
+  const motif = getMotif(badgeKey);
   const history = getHistory(badgeKey);
 
   return {
     tier,
     tierLabel: getAchievementTierLabel(tier),
     ...family,
+    ...motif,
     asset,
-    visualLabel: getVisualLabel(badgeKey, asset),
+    visualLabel: getVisualLabel(tier, motif.motifLabel, asset),
     ...history,
     secret: SECRET_BADGES.has(badgeKey),
   };
