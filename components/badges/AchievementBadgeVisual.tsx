@@ -1,4 +1,3 @@
-import Image from "next/image";
 import {
   Activity,
   CloudRain,
@@ -297,22 +296,21 @@ export default function AchievementBadgeVisual({
   if (customAsset) {
     return (
       <span
-        className={`relative inline-flex shrink-0 ${
+        className={`relative inline-flex shrink-0 overflow-hidden rounded-[22%] ${
           grayscale ? "grayscale opacity-45" : ""
         } ${className}`}
         style={{ width: px, height: px }}
         title={badgeKey}
         aria-label={badgeKey}
       >
-        <Image
+        <img
           src={customAsset}
           alt=""
-          fill
-          sizes={`${px}px`}
-          className="object-contain"
+          width={px}
+          height={px}
+          className="h-full w-full object-cover"
           draggable={false}
         />
-        <BadgeDecoration visual={visual} px={px} />
       </span>
     );
   }
