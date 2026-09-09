@@ -1,1 +1,2 @@
 Badge visual assets updated from generated Strikr Hall-of-Fame artwork on 2026-09-09.
+Final badge mapping deploy trigger after Vercel build-rate limit.
