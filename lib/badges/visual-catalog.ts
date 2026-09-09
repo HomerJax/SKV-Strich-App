@@ -51,21 +51,22 @@ const CUSTOM_ASSET_BY_BADGE_KEY: Record<string, string> = {
   career_appearances_250: "/badges/achievements/career-appearances-250.svg",
   career_appearances_500: "/badges/achievements/career-appearances-500.svg",
 
-  // Karriere · Siege: eigener Pokal-/Sieger-Look, bewusst getrennt von Einsätzen
+  // Karriere · Siege: Jubel-Crowd als eigene visuelle Familie
+  career_wins_1: "/badges/achievements/career-wins-1.svg",
   career_wins_10: "/badges/achievements/career-wins-10.svg",
-  career_wins_25: "/badges/achievements/career-wins-10.svg",
   career_wins_50: "/badges/achievements/career-wins-50.svg",
   career_wins_100: "/badges/achievements/career-wins-50.svg",
   career_wins_250: "/badges/achievements/career-wins-250.svg",
 
-  // Teilnahme & Disziplin
-  attendance_streak_5: "/badges/achievements/attendance-runner.svg",
+  // Teilnahme & Disziplin: Läufer / Motion / Puls / Halo
+  attendance_streak_5: "/badges/achievements/attendance-dauerlaeufer.svg",
   attendance_streak_20: "/badges/achievements/attendance-immer-da.svg",
 
   // Saisonserien / Pech / Specials
   win_streak_10: "/badges/achievements/win-streak.webp",
-  loss_streak_7: "/badges/achievements/unlucky.webp",
-  lucky_charm: "/badges/achievements/lucky.webp",
+  loss_streak_7: "/badges/achievements/losses-dark-fun.svg",
+  curse_broken: "/badges/achievements/special-curse-broken.svg",
+  lucky_charm: "/badges/achievements/special-lucky-charm.svg",
   comeback: "/badges/achievements/comeback.webp",
 };
 
@@ -177,6 +178,11 @@ export function getAchievementTierLabel(tier: PlayerBadgeTier) {
   return "–";
 }
 
+function getBadgeTierLabel(badgeKey: string, tier: PlayerBadgeTier) {
+  if (badgeKey === "career_appearances_500") return "GOAT";
+  return getAchievementTierLabel(tier);
+}
+
 function getFamily(
   badgeKey: string,
 ): Pick<BadgeVisualMeta, "family" | "familyLabel"> {
@@ -204,7 +210,7 @@ function getMotif(
       motif: "career-appearances",
       motifLabel:
         appearances >= 500
-          ? "MYTHIC · Club-Legende · Krone + Schild + volle Aura"
+          ? "GOAT · Club-Legende · Rainbow-Krone + Schild + volle Aura"
           : appearances >= 250
             ? "Legendär · Karriere-Elite · Schild + Lorbeer"
             : "Karriere-Einsätze · Schild / Beständigkeit",
@@ -218,12 +224,14 @@ function getMotif(
       motif: "career-wins",
       motifLabel:
         careerWins >= 250
-          ? "MYTHIC · Sieges-Legende · Krone + Pokal + Starburst"
+          ? "Sieges-Legende · große Jubel-Crowd + Sieger-Aura"
           : careerWins >= 100
-            ? "Sieges-Elite · Pokal + Stern-Aura"
+            ? "Sieges-Elite · große Jubel-Crowd + Sieger-Aura"
             : careerWins >= 50
-              ? "Karrieresiege · großer Pokal + Lorbeer"
-              : "Karrieresiege · Pokal / Stern",
+              ? "Karrieresiege · Jubel-Crowd + Siegerlicht"
+              : careerWins >= 10
+                ? "Karrieresiege · Jubel-Crowd + Siegerstern"
+                : "1. Karrieresieg · Blech + erste Jubel-Crowd",
       stage: getCareerWinStage(careerWins),
     };
   }
@@ -242,13 +250,13 @@ function getMotif(
       motif: "attendance",
       motifLabel:
         attendance >= 20
-          ? "Immer da · Läufer + Legendär-Aura"
+          ? "Immer da · Läufer + Halo + Legendär-Aura"
           : attendance >= 15
             ? "Inventar · Läufer + stabiler Ring"
             : attendance >= 10
               ? "Unkaputtbar · Puls + Läufer"
               : attendance >= 5
-                ? "Dauerläufer · Läufer + Motion"
+                ? "Dauerläufer · Läufer + Motion + Puls"
                 : "Warmgelaufen · Läufer",
       stage: getAttendanceStage(attendance),
     };
@@ -278,7 +286,7 @@ function getMotif(
       motif: "loss-streak",
       motifLabel:
         lossStreak >= 7
-          ? "Schwarze Serie · Sturm + dunkle Aura"
+          ? "Schwarze Serie · Sturm + Esel-Fun + dunkle Aura"
           : lossStreak >= 5
             ? "Unglücksrabe · Sturm + Feder"
             : "Pechvogel · Regenwolke",
@@ -289,7 +297,7 @@ function getMotif(
   if (badgeKey === "curse_broken") {
     return {
       motif: "curse-broken",
-      motifLabel: "Fluch gebrochen · gesprengte Kette + Funken",
+      motifLabel: "Fluch gebrochen · gesprengte Kette + Explosions-Aura",
       stage: 4,
     };
   }
@@ -305,7 +313,7 @@ function getMotif(
   if (badgeKey === "lucky_charm") {
     return {
       motif: "lucky",
-      motifLabel: "Glücksbringer · Klee-Look + Sparkles",
+      motifLabel: "Glücksbringer · Smaragd-Klee + Gold-Sparkles",
       stage: 5,
     };
   }
@@ -346,18 +354,18 @@ function getHistory(
 }
 
 function getVisualLabel(
-  tier: PlayerBadgeTier,
+  tierLabel: string,
   motifLabel: string,
   asset: string | null,
 ) {
-  const material = getAchievementTierLabel(tier);
   return asset
-    ? `${material} · Spezialasset · ${motifLabel}`
-    : `${material} · 3D-strikr-Badge · ${motifLabel}`;
+    ? `${tierLabel} · Spezialasset · ${motifLabel}`
+    : `${tierLabel} · 3D-strikr-Badge · ${motifLabel}`;
 }
 
 export function getBadgeVisualMeta(badgeKey: string): BadgeVisualMeta {
   const tier = getAchievementVisualTier(badgeKey);
+  const tierLabel = getBadgeTierLabel(badgeKey, tier);
   const asset = CUSTOM_ASSET_BY_BADGE_KEY[badgeKey] ?? null;
   const family = getFamily(badgeKey);
   const motif = getMotif(badgeKey);
@@ -365,11 +373,11 @@ export function getBadgeVisualMeta(badgeKey: string): BadgeVisualMeta {
 
   return {
     tier,
-    tierLabel: getAchievementTierLabel(tier),
+    tierLabel,
     ...family,
     ...motif,
     asset,
-    visualLabel: getVisualLabel(tier, motif.motifLabel, asset),
+    visualLabel: getVisualLabel(tierLabel, motif.motifLabel, asset),
     ...history,
     secret: SECRET_BADGES.has(badgeKey),
   };
