@@ -7,6 +7,7 @@ import AppAuthChrome from "@/components/AppAuthChrome";
 import HomeAchievementTeaser from "@/components/home/HomeAchievementTeaser";
 import NativeDeepLinkHandler from "@/components/native/NativeDeepLinkHandler";
 import GlobalActionFeedback from "@/components/ui/GlobalActionFeedback";
+import PublicDemoLauncher from "@/components/demo/PublicDemoLauncher";
 
 export const metadata: Metadata = {
   title: "strikr",
@@ -45,6 +46,7 @@ export default function RootLayout({
       <body className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-neutral-100 text-slate-950 antialiased">
         <NativeDeepLinkHandler />
         <GlobalActionFeedback />
+        <PublicDemoLauncher />
 
         <Suspense fallback={<HeaderFallback />}>
           <AppHeader />
