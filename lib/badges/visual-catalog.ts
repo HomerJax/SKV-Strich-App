@@ -44,11 +44,25 @@ const SECRET_BADGES = new Set([
   "comeback",
 ]);
 
-// Die Spezialassets bleiben bewusst Highlights der jeweiligen Familie.
-// Die normalen Stufen werden aus dem originalen 3D-strikr-Badge + Motiv gebaut,
-// damit Materialstufe UND Kategorie gleichzeitig sichtbar bleiben.
+// Zentrales Prinzip: das quadratische 3D-strikr-Badge bleibt immer der Kern.
+// Je schwerer ein Badge ist, desto stärker eskaliert das Motiv außen herum.
 const CUSTOM_ASSET_BY_BADGE_KEY: Record<string, string> = {
-  attendance_streak_20: "/badges/achievements/discipline.webp",
+  // Karriere · Einsätze: Schild / Beständigkeit / Club-Legende
+  career_appearances_250: "/badges/achievements/career-appearances-250.svg",
+  career_appearances_500: "/badges/achievements/career-appearances-500.svg",
+
+  // Karriere · Siege: eigener Pokal-/Sieger-Look, bewusst getrennt von Einsätzen
+  career_wins_10: "/badges/achievements/career-wins-10.svg",
+  career_wins_25: "/badges/achievements/career-wins-10.svg",
+  career_wins_50: "/badges/achievements/career-wins-50.svg",
+  career_wins_100: "/badges/achievements/career-wins-50.svg",
+  career_wins_250: "/badges/achievements/career-wins-250.svg",
+
+  // Teilnahme & Disziplin
+  attendance_streak_5: "/badges/achievements/attendance-runner.svg",
+  attendance_streak_20: "/badges/achievements/attendance-immer-da.svg",
+
+  // Saisonserien / Pech / Specials
   win_streak_10: "/badges/achievements/win-streak.webp",
   loss_streak_7: "/badges/achievements/unlucky.webp",
   lucky_charm: "/badges/achievements/lucky.webp",
@@ -163,7 +177,9 @@ export function getAchievementTierLabel(tier: PlayerBadgeTier) {
   return "–";
 }
 
-function getFamily(badgeKey: string): Pick<BadgeVisualMeta, "family" | "familyLabel"> {
+function getFamily(
+  badgeKey: string,
+): Pick<BadgeVisualMeta, "family" | "familyLabel"> {
   if (badgeKey.startsWith("career_")) {
     return { family: "career", familyLabel: "Karriere" };
   }
@@ -179,16 +195,18 @@ function getFamily(badgeKey: string): Pick<BadgeVisualMeta, "family" | "familyLa
   return { family: "special", familyLabel: "Special / Secret" };
 }
 
-function getMotif(badgeKey: string): Pick<BadgeVisualMeta, "motif" | "motifLabel" | "stage"> {
+function getMotif(
+  badgeKey: string,
+): Pick<BadgeVisualMeta, "motif" | "motifLabel" | "stage"> {
   const appearances = parseSuffix(badgeKey, "career_appearances_");
   if (appearances !== null) {
     return {
       motif: "career-appearances",
       motifLabel:
         appearances >= 500
-          ? "Club-Legende · Krone + Schild + Sparkles"
+          ? "MYTHIC · Club-Legende · Krone + Schild + volle Aura"
           : appearances >= 250
-            ? "Karriere-Elite · Schild + Stern-Aura"
+            ? "Legendär · Karriere-Elite · Schild + Lorbeer"
             : "Karriere-Einsätze · Schild / Beständigkeit",
       stage: getAppearanceStage(appearances),
     };
@@ -200,10 +218,12 @@ function getMotif(badgeKey: string): Pick<BadgeVisualMeta, "motif" | "motifLabel
       motif: "career-wins",
       motifLabel:
         careerWins >= 250
-          ? "Sieges-Legende · Krone + Pokal"
+          ? "MYTHIC · Sieges-Legende · Krone + Pokal + Starburst"
           : careerWins >= 100
             ? "Sieges-Elite · Pokal + Stern-Aura"
-            : "Karrieresiege · Pokal / Stern",
+            : careerWins >= 50
+              ? "Karrieresiege · großer Pokal + Lorbeer"
+              : "Karrieresiege · Pokal / Stern",
       stage: getCareerWinStage(careerWins),
     };
   }
@@ -297,7 +317,12 @@ function getMotif(badgeKey: string): Pick<BadgeVisualMeta, "motif" | "motifLabel
   };
 }
 
-function getHistory(badgeKey: string): Pick<BadgeVisualMeta, "historyMode" | "historyLabel" | "implementationNote"> {
+function getHistory(
+  badgeKey: string,
+): Pick<
+  BadgeVisualMeta,
+  "historyMode" | "historyLabel" | "implementationNote"
+> {
   if (badgeKey.startsWith("career_")) {
     return {
       historyMode: "A",
@@ -309,7 +334,8 @@ function getHistory(badgeKey: string): Pick<BadgeVisualMeta, "historyMode" | "hi
     return {
       historyMode: "B",
       historyLabel: "Startet mit der nächsten Badge-Saison.",
-      implementationNote: "Soll-Regel B; die Engine nutzt aktuell noch badges_started_at als Aktivierungsgrenze.",
+      implementationNote:
+        "Soll-Regel B; die Engine nutzt aktuell noch badges_started_at als Aktivierungsgrenze.",
     };
   }
 
