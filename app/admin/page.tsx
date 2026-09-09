@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  Award,
   Users,
   UserRound,
   Settings,
@@ -264,6 +265,14 @@ export default async function AdminPage() {
                 title="Power User Dashboard"
                 description="Globale KPIs über Clubs, User, Registrierungen und Trainings. Zentrale Sicht auf die Entwicklung von strikr."
                 icon={<Shield className="h-6 w-6" strokeWidth={2.1} />}
+              />
+
+              <AdminCard
+                href="/power-user/badges"
+                eyebrow="Power User"
+                title="Badge-Katalog"
+                description="Alle Hall-of-Fame-Badges mit Kategorie, Freischaltregel, Stufe und 3D-Look an einem Ort prüfen."
+                icon={<Award className="h-6 w-6" strokeWidth={2.1} />}
               />
 
               <AdminCard
