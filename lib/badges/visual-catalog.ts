@@ -119,7 +119,8 @@ function getLossStreakStage(value: number) {
 export function getAchievementVisualTier(badgeKey: string): PlayerBadgeTier {
   const appearances = parseSuffix(badgeKey, "career_appearances_");
   if (appearances !== null) {
-    if (appearances >= 250) return "goat";
+    if (appearances >= 500) return "goat";
+    if (appearances >= 250) return "gold";
     if (appearances >= 100) return "gold";
     if (appearances >= 50) return "silver";
     if (appearances >= 25) return "bronze";
@@ -180,6 +181,7 @@ export function getAchievementTierLabel(tier: PlayerBadgeTier) {
 
 function getBadgeTierLabel(badgeKey: string, tier: PlayerBadgeTier) {
   if (badgeKey === "career_appearances_500") return "GOAT";
+  if (badgeKey === "career_appearances_250") return "Legendär";
   return getAchievementTierLabel(tier);
 }
 
@@ -212,7 +214,7 @@ function getMotif(
         appearances >= 500
           ? "GOAT · Club-Legende · Rainbow-Krone + Schild + volle Aura"
           : appearances >= 250
-            ? "Legendär · Karriere-Elite · Schild + Lorbeer"
+            ? "Legendär · Gold+ · Karriere-Elite · Schild + Glow"
             : "Karriere-Einsätze · Schild / Beständigkeit",
       stage: getAppearanceStage(appearances),
     };
