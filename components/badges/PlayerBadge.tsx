@@ -42,10 +42,10 @@ const TIER_STYLE: Record<
 > = {
   copper: {
     mark: "text-zinc-100",
-    glow: "rgba(170,170,170,0.34)",
+    glow: "rgba(120,120,120,0.26)",
     surface:
-      "linear-gradient(135deg, #f4f4f5 0%, #71717a 35%, #27272a 62%, #a1a1aa 100%)",
-    border: "rgba(255,255,255,0.34)",
+      "linear-gradient(135deg, #b5b5b1 0%, #666660 35%, #333330 62%, #8a8a84 100%)",
+    border: "rgba(230,230,220,0.28)",
   },
   bronze: {
     mark: "text-orange-200",
@@ -156,6 +156,9 @@ export default function PlayerBadge({
   const style = TIER_STYLE[badge.key];
 
   if (mode === "hero") {
+    const isBlech = badge.key === "copper";
+    const showBlechWear = isBlech && (size === "lg" || size === "xl");
+
     return (
       <span
         className={`relative inline-flex shrink-0 ${
@@ -170,9 +173,34 @@ export default function PlayerBadge({
           alt=""
           fill
           sizes={`${px}px`}
-          className="object-contain"
+          className={`object-contain ${
+            isBlech
+              ? "brightness-[0.70] contrast-[1.22] saturate-[0.28] sepia-[0.08]"
+              : ""
+          }`}
           draggable={false}
         />
+
+        {showBlechWear ? (
+          <>
+            <span
+              className="pointer-events-none absolute inset-[17%] rounded-[30%] opacity-55 mix-blend-overlay"
+              style={{
+                background:
+                  "radial-gradient(circle at 28% 33%, rgba(0,0,0,.58) 0 3%, transparent 8%), radial-gradient(circle at 72% 62%, rgba(255,255,255,.52) 0 2%, rgba(0,0,0,.32) 4%, transparent 10%), radial-gradient(circle at 45% 78%, rgba(0,0,0,.44) 0 2.5%, transparent 8%), linear-gradient(118deg, transparent 24%, rgba(255,255,255,.22) 25%, transparent 27%, transparent 62%, rgba(0,0,0,.32) 63%, transparent 65%)",
+              }}
+              aria-hidden="true"
+            />
+            <span
+              className="pointer-events-none absolute left-[28%] top-[37%] h-px w-[32%] rotate-[-18deg] bg-black/35"
+              aria-hidden="true"
+            />
+            <span
+              className="pointer-events-none absolute bottom-[32%] right-[25%] h-px w-[24%] rotate-[24deg] bg-white/28"
+              aria-hidden="true"
+            />
+          </>
+        ) : null}
       </span>
     );
   }
