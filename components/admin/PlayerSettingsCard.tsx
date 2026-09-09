@@ -100,9 +100,10 @@ export default function PlayerSettingsCard({
             Sind die Grundlagen für faire Teams sauber?
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Der Generator nutzt nur anwesende Spieler und bewertet anschließend
-            Kategorie, Stärke, Position und optional Balance-Gruppen. Die
-            Teamgrößen unterscheiden sich dabei höchstens um einen Spieler.
+            Der Generator nutzt nur anwesende Spieler. Teamgröße und Torhüter
+            werden zuerst abgesichert; danach optimiert strikr Gesamtstärke,
+            Balance-Gruppen sowie Kategorie- und Positionsmix. Die Teamgrößen
+            unterscheiden sich dabei höchstens um einen Spieler.
           </p>
         </div>
 
@@ -133,7 +134,7 @@ export default function PlayerSettingsCard({
           value={useCategories ? `${categoryCount} aktiv` : "Aus"}
           hint={
             useCategories
-              ? "Für die sportliche Team-Balance werden maximal zwei Kategorien verwendet."
+              ? "Eine Kategorie kann als stärkeres Grundniveau markiert werden; alle anderen bleiben auf normalem Grundniveau."
               : "Der Generator arbeitet ohne Kategoriegewichtung."
           }
         />
@@ -159,12 +160,14 @@ export default function PlayerSettingsCard({
               {strongCategoryLabel ?? "noch nicht festgelegt"}
             </div>
             <div className="rounded-xl bg-white/80 px-3 py-2 text-blue-950 ring-1 ring-blue-100">
-              <span className="font-bold">Weitere Kategorie:</span>{" "}
+              <span className="font-bold">Normales Grundniveau:</span>{" "}
               {normalCategories.join(", ") || "keine"}
             </div>
           </div>
           <p className="mt-2 text-xs leading-5 text-blue-900">
-            Die Markierung entscheidet – nicht mehr die Reihenfolge. Die individuelle Stärke 1–5 feinjustiert innerhalb dieser Einordnung.
+            Die Markierung entscheidet – nicht die Reihenfolge. Die stärkere
+            Kategorie erhält einen festen Grundbonus; die individuelle Stärke
+            1–5 kommt zusätzlich dazu.
           </p>
         </div>
       ) : null}
@@ -199,7 +202,7 @@ export default function PlayerSettingsCard({
           <div>
             <div className="font-semibold">Balance-Gruppen</div>
             <div className="mt-0.5 text-xs opacity-80">
-              Sonderprofile möglichst gleichmäßig auf beide Teams verteilen.
+              Weiche Zusatzregel: gleiche Sonderprofile möglichst auf beide Teams verteilen.
             </div>
           </div>
           <div className="shrink-0 text-base font-extrabold">{balanceGroupCount}</div>
@@ -222,9 +225,10 @@ export default function PlayerSettingsCard({
           <ol className="space-y-2">
             <li><strong className="text-slate-900">1.</strong> Nur anwesende Spieler mit Rolle „Spieler“ kommen in die Auswahl.</li>
             <li><strong className="text-slate-900">2.</strong> Bei ungerader Zahl entsteht automatisch z. B. 5 gegen 4 – nie ein größerer Unterschied.</li>
-            <li><strong className="text-slate-900">3.</strong> Torhüter werden zuerst verteilt. Danach bewertet strikr Kategorie, Stärke und Positionsmix.</li>
-            <li><strong className="text-slate-900">4.</strong> Gleiche Balance-Gruppen werden möglichst auf beide Teams verteilt. Sie sind kein zusätzlicher Stärkewert.</li>
-            <li><strong className="text-slate-900">5.</strong> Pro Generierung werden 400 Varianten ausprobiert und die beste gefundene Kombination übernommen. Danach kannst du immer manuell korrigieren.</li>
+            <li><strong className="text-slate-900">3.</strong> Torhüter werden möglichst gleich verteilt und haben vor dem weiteren Feinschliff hohe Priorität.</li>
+            <li><strong className="text-slate-900">4.</strong> Danach gleicht strikr vor allem die Gesamtstärke aus Kategorie und individueller Stärke aus.</li>
+            <li><strong className="text-slate-900">5.</strong> Balance-Gruppen sowie Kategorie-/Positionsmix und Positionen dienen als zusätzliche, weichere Regeln.</li>
+            <li><strong className="text-slate-900">6.</strong> Je nach Teilnehmerzahl werden mehrere tausend vollständige Aufteilungen geprüft. Anschließend testet strikr direkte Spieler-Tausche und übernimmt sie nur, wenn die Aufteilung dadurch besser wird.</li>
           </ol>
         </div>
       </details>
