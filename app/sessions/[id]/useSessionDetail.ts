@@ -686,14 +686,7 @@ export function useSessionDetail({
       const sessionUrl = `${window.location.origin}/sessions/${sessionId}`;
       const teamLine = `${autoTeamNames.a} vs ${autoTeamNames.b}`;
 
-      const shareTextValue = `🔥 ${scoreAValue}:${scoreBValue}
-
-${teamLine}
-${highlight}
-${story}
-
-Schau dir das Ergebnis an, prüf deine Stats und teile die SiegerCard weiter 👀
-${sessionUrl}`;
+      const shareTextValue = `🔥 ${scoreAValue}:${scoreBValue}\n\n${teamLine}\n${highlight}\n${story}\n\nSchau dir das Ergebnis an, prüf deine Stats und teile die SiegerCard weiter 👀\n${sessionUrl}`;
 
       const result = await shareText(
         shareTextValue,
@@ -1132,15 +1125,20 @@ ${sessionUrl}`;
 
     const keepers = present.filter((p) => p.preferred_position === "goalkeeper");
     const field = present.filter((p) => p.preferred_position !== "goalkeeper");
+    const useStrength = clubSettings?.use_strength ?? true;
+    const useCategories = clubSettings?.use_categories ?? true;
+    const shouldUseScore = useStrength || useCategories;
+    const balanceCategories = initialBalanceCategories ?? [];
 
-    function evaluate(A: Player[], B: Player[]) {
-      const useStrength = clubSettings?.use_strength ?? true;
-      const useCategories = clubSettings?.use_categories ?? true;
+    type BalanceQuality = {
+      goalkeeperDiff: number;
+      scoreDiff: number;
+      groupPenalty: number;
+      categoryPositionPenalty: number;
+      positionPenalty: number;
+    };
 
-      const shouldUseScore = useStrength || useCategories;
-
-      const balanceCategories = initialBalanceCategories ?? [];
-
+    function evaluate(A: Player[], B: Player[]): BalanceQuality {
       const scoreDiff = shouldUseScore
         ? Math.abs(
             sumTeamScore(A, { useStrength, useCategories, balanceCategories }) -
@@ -1148,83 +1146,142 @@ ${sessionUrl}`;
           )
         : 0;
 
-      const posPenalty = positionBalancePenalty(A, B);
-      const categoryPositionPenalty = useCategories
-        ? categoryPositionBalancePenalty(A, B, balanceCategories)
-        : 0;
-      const groupPenalty = balanceGroupPenalty(A, B);
-
-      return (
-        scoreDiff * 10 +
-        posPenalty * 3 +
-        categoryPositionPenalty * 8 +
-        groupPenalty * 20
+      const goalkeeperDiff = Math.abs(
+        A.filter((player) => player.preferred_position === "goalkeeper").length -
+          B.filter((player) => player.preferred_position === "goalkeeper").length
       );
+
+      return {
+        goalkeeperDiff,
+        scoreDiff,
+        groupPenalty: balanceGroupPenalty(A, B),
+        categoryPositionPenalty: useCategories
+          ? categoryPositionBalancePenalty(A, B, balanceCategories)
+          : 0,
+        positionPenalty: positionBalancePenalty(A, B),
+      };
+    }
+
+    function compareQuality(left: BalanceQuality, right: BalanceQuality) {
+      const priorities: (keyof BalanceQuality)[] = [
+        "goalkeeperDiff",
+        "scoreDiff",
+        "groupPenalty",
+        "categoryPositionPenalty",
+        "positionPenalty",
+      ];
+
+      for (const key of priorities) {
+        if (left[key] !== right[key]) {
+          return left[key] - right[key];
+        }
+      }
+
+      return 0;
     }
 
     let bestA: Player[] = [];
     let bestB: Player[] = [];
-    let bestScore = Infinity;
+    let bestQuality: BalanceQuality | null = null;
 
-    for (let k = 0; k < 400; k += 1) {
+    const attempts = Math.max(1200, Math.min(6000, present.length * 250));
+
+    for (let k = 0; k < attempts; k += 1) {
       const A: Player[] = [];
       const B: Player[] = [];
+      let keeperCountA = 0;
+      let keeperCountB = 0;
 
-      const shuffledKeepers = shuffle(keepers);
-
-      for (const gk of shuffledKeepers) {
-        if (
-          A.length < targetA &&
-          (A.length <= B.length || B.length >= targetB)
-        ) {
-          A.push(gk);
-        } else if (B.length < targetB) {
-          B.push(gk);
-        } else if (A.length < targetA) {
-          A.push(gk);
-        }
-      }
-
-      const shuffledField = shuffle(field);
-
-      for (const p of shuffledField) {
+      for (const goalkeeper of shuffle(keepers)) {
         if (A.length >= targetA) {
-          if (B.length < targetB) B.push(p);
+          B.push(goalkeeper);
+          keeperCountB += 1;
           continue;
         }
 
         if (B.length >= targetB) {
-          if (A.length < targetA) A.push(p);
+          A.push(goalkeeper);
+          keeperCountA += 1;
           continue;
         }
 
-        const scoreIfA = evaluate([...A, p], B);
-        const scoreIfB = evaluate(A, [...B, p]);
-
-        if (scoreIfA < scoreIfB) {
-          A.push(p);
-        } else if (scoreIfB < scoreIfA) {
-          B.push(p);
+        if (keeperCountA < keeperCountB) {
+          A.push(goalkeeper);
+          keeperCountA += 1;
+        } else if (keeperCountB < keeperCountA) {
+          B.push(goalkeeper);
+          keeperCountB += 1;
+        } else if (Math.random() < 0.5) {
+          A.push(goalkeeper);
+          keeperCountA += 1;
         } else {
-          (A.length <= B.length ? A : B).push(p);
+          B.push(goalkeeper);
+          keeperCountB += 1;
         }
       }
 
-      if (!(A.length === targetA && B.length === targetB)) continue;
+      const shuffledField = shuffle(field);
+      const remainingA = targetA - A.length;
+      const remainingB = targetB - B.length;
 
-      const score = evaluate(A, B);
+      A.push(...shuffledField.slice(0, remainingA));
+      B.push(...shuffledField.slice(remainingA, remainingA + remainingB));
 
-      if (score < bestScore) {
-        bestScore = score;
+      if (!(A.length === targetA && B.length === targetB)) {
+        continue;
+      }
+
+      const quality = evaluate(A, B);
+
+      if (!bestQuality || compareQuality(quality, bestQuality) < 0) {
+        bestQuality = quality;
         bestA = A;
         bestB = B;
       }
     }
 
-    if (bestA.length === 0 && bestB.length === 0) {
+    if (!bestQuality || bestA.length === 0 || bestB.length === 0) {
       setErr("Konnte keine gültige Aufteilung finden (unerwartet).");
       restoreScroll();
       return;
+    }
+
+    const maxSwapRounds = Math.min(40, present.length * 2);
+
+    for (let round = 0; round < maxSwapRounds; round += 1) {
+      let roundBestA = bestA;
+      let roundBestB = bestB;
+      let roundBestQuality = bestQuality;
+      let improved = false;
+
+      for (let aIndex = 0; aIndex < bestA.length; aIndex += 1) {
+        for (let bIndex = 0; bIndex < bestB.length; bIndex += 1) {
+          const candidateA = [...bestA];
+          const candidateB = [...bestB];
+
+          const playerA = candidateA[aIndex];
+          const playerB = candidateB[bIndex];
+          candidateA[aIndex] = playerB;
+          candidateB[bIndex] = playerA;
+
+          const candidateQuality = evaluate(candidateA, candidateB);
+
+          if (compareQuality(candidateQuality, roundBestQuality) < 0) {
+            roundBestA = candidateA;
+            roundBestB = candidateB;
+            roundBestQuality = candidateQuality;
+            improved = true;
+          }
+        }
+      }
+
+      if (!improved) {
+        break;
+      }
+
+      bestA = roundBestA;
+      bestB = roundBestB;
+      bestQuality = roundBestQuality;
     }
 
     const next: TeamMap = {};
@@ -1239,8 +1296,6 @@ ${sessionUrl}`;
     setTeamsConfirmed(false);
     await persistTeamsNow(next);
 
-    const useStrength = clubSettings?.use_strength ?? true;
-    const useCategories = clubSettings?.use_categories ?? true;
     const usesBalanceGroups = present.some((player) =>
       Boolean(player.balance_group?.trim())
     );
@@ -1251,19 +1306,19 @@ ${sessionUrl}`;
 
     if (useStrength && useCategories) {
       setMsg(
-        `Teams automatisch verteilt. Kategorie, Stärke, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
+        `Teams automatisch optimiert. Kategorie, Stärke, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
       );
     } else if (useStrength && !useCategories) {
       setMsg(
-        `Teams automatisch verteilt. Stärke, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
+        `Teams automatisch optimiert. Stärke, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
       );
     } else if (!useStrength && useCategories) {
       setMsg(
-        `Teams automatisch verteilt. Kategorien, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
+        `Teams automatisch optimiert. Kategorien, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
       );
     } else {
       setMsg(
-        `Teams automatisch verteilt. Positionsverteilung${balanceGroupText} wurde berücksichtigt.`
+        `Teams automatisch optimiert. Positionsverteilung${balanceGroupText} wurde berücksichtigt.`
       );
     }
 
