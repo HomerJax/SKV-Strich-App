@@ -12,7 +12,7 @@ const CATEGORIES: CategoryMeta[] = [
   {
     key: "career-appearances",
     title: "Karriere · Einsätze",
-    subtitle: "Von den ersten Einsätzen bis zur Club-Legende.",
+    subtitle: "250 als Gold+ · 500 als GOAT – bis zur Club-Legende.",
   },
   {
     key: "career-wins",
