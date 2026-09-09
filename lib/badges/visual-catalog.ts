@@ -102,7 +102,6 @@ export function getAchievementVisualTier(badgeKey: string): PlayerBadgeTier {
 
   const careerWins = parseSuffix(badgeKey, "career_wins_");
   if (careerWins !== null) {
-    if (careerWins >= 250) return "goat";
     if (careerWins >= 100) return "gold";
     if (careerWins >= 50) return "gold";
     if (careerWins >= 25) return "silver";
@@ -187,16 +186,16 @@ function getMotif(
       motif: "career-appearances",
       motifLabel:
         appearances >= 500
-          ? "GOAT · Rainbow-Kern + große Krone + volle Aura"
+          ? "GOAT · Rainbow-Kern + große Krone + stärkste Prestige-Aura"
           : appearances >= 250
-            ? "Legendär · Gold+ · Gold-Kern + Krone + Prestige-Glow"
+            ? "Legendär · Gold+ · große Krone + warmer Prestige-Glow"
             : appearances >= 100
-              ? "Karriere-Elite · Gold + verstärkter Schild"
+              ? "Karriere-Elite · Gold + Krone + Prestige-Rahmen"
               : appearances >= 50
-                ? "Stammspieler · Silber + Schildflügel"
+                ? "Stammspieler · Silber + klarer Prestige-Rahmen"
                 : appearances >= 25
-                  ? "Dauerstarter · Bronze + Schildflügel"
-                  : "Karriere-Einsätze · Schild / Beständigkeit",
+                  ? "Dauerstarter · Bronze + erster Prestige-Rahmen"
+                  : "Karriere-Einstieg · dunkles Metall + dezenter Schild",
       stage: getAppearanceStage(appearances),
     };
   }
@@ -207,16 +206,16 @@ function getMotif(
       motif: "career-wins",
       motifLabel:
         careerWins >= 250
-          ? "Siegeslegende · Krone + große Crowd + volle Sieger-Aura"
+          ? "Siegeslegende · Gold+ + große Krone + iridescent Sieger-Aura"
           : careerWins >= 100
-            ? "Siegesikone · Krone + Crowd + Stadionlicht"
+            ? "Siegesikone · Gold+ + Krone + starker Victory-Glow"
             : careerWins >= 50
-              ? "Matchwinner · Sterne + große Crowd + Pokal"
+              ? "Matchwinner · Gold + Pokal + Siegerstrahlen"
               : careerWins >= 25
-                ? "Seriensieger · Pokal + Crowd + Siegerbänder"
+                ? "Seriensieger · Silber + Pokal + Victory-Light"
                 : careerWins >= 10
-                  ? "Jubelmaschine · Pokal + Crowd + Goldlicht"
-                  : "1. Karrieresieg · erste Crowd + Pokal",
+                  ? "Jubelmaschine · Bronze + Pokal + warmer Sieger-Glow"
+                  : "1. Karrieresieg · erster Pokal-Akzent + Winner-Light",
       stage: getCareerWinStage(careerWins),
     };
   }
@@ -224,7 +223,7 @@ function getMotif(
   if (badgeKey === "season_kickoff") {
     return {
       motif: "kickoff",
-      motifLabel: "Saisonauftakt · Startlinie + erste Bewegung",
+      motifLabel: "Saisonauftakt · Startlinie + erster Cyan-Puls",
       stage: 1,
     };
   }
@@ -235,14 +234,14 @@ function getMotif(
       motif: "attendance",
       motifLabel:
         attendance >= 20
-          ? "Immer da · Läufer + Motion + Puls + volle Cyan-Aura"
+          ? "Immer da · Electric-Puls + Energy-Ring + volle Cyan-Aura"
           : attendance >= 15
-            ? "Inventar · Läufer + Speed-Ring + stabiler Puls"
+            ? "Inventar · doppelter Puls + stabiler Energy-Ring"
             : attendance >= 10
-              ? "Unkaputtbar · Läufer + Puls + Beschleunigung"
+              ? "Unkaputtbar · Motion + Puls + stärkerer Cyan-Glow"
               : attendance >= 5
-                ? "Dauerläufer · Läufer + Motion + Puls"
-                : "Warmgelaufen · erste Motion-Lines + Läufer",
+                ? "Dauerläufer · Motion-Lines + klarer Puls"
+                : "Warmgelaufen · erste Motion-Lines + Cyan-Puls",
       stage: getAttendanceStage(attendance),
     };
   }
@@ -253,14 +252,14 @@ function getMotif(
       motif: "win-streak",
       motifLabel:
         winStreak >= 10
-          ? "Seriensieger · Feuer + Krone + volle Momentum-Aura"
+          ? "Seriensieger · große Flamme + Krone + volle Momentum-Aura"
           : winStreak >= 7
-            ? "Nicht zu stoppen · große Flamme + Krone"
+            ? "Nicht zu stoppen · Flamme + Krone + starker Glow"
             : winStreak >= 5
-              ? "Auf einer Mission · Flamme + Blitz + Ring"
+              ? "Auf einer Mission · Flamme + Ring + Momentum"
               : winStreak >= 3
-                ? "Lauf · Momentum-Glow + Blitz"
-                : "Erster Dreier · erster Blitz + Siegerfunke",
+                ? "Lauf · Flamme + erster Blitz"
+                : "Erster Dreier · erster Momentum-Funke",
       stage: getWinStreakStage(winStreak),
     };
   }
@@ -271,10 +270,10 @@ function getMotif(
       motif: "loss-streak",
       motifLabel:
         lossStreak >= 7
-          ? "Schwarze Serie · Sturm + schiefe Krone + dunkle Comedy-Aura"
+          ? "Schwarze Serie · dunkler Sturm + Risse + schiefe Krone"
           : lossStreak >= 5
-            ? "Unglücksrabe · Sturm + Feder + Schrammen"
-            : "Pechvogel · Regenwolke + erste Schrammen",
+            ? "Unglücksrabe · dunkle Aura + Feder + Schrammen"
+            : "Pechvogel · Regenwolke + erste Macken",
       stage: getLossStreakStage(lossStreak),
     };
   }
@@ -282,7 +281,7 @@ function getMotif(
   if (badgeKey === "curse_broken") {
     return {
       motif: "curse-broken",
-      motifLabel: "Fluch gebrochen · gesprengte Kette + Explosions-Aura",
+      motifLabel: "Fluch gebrochen · gesprengte Kette + warmer Ausbruch",
       stage: 4,
     };
   }
@@ -290,7 +289,7 @@ function getMotif(
   if (badgeKey === "resilient") {
     return {
       motif: "resilient",
-      motifLabel: "Leidensfähig · massiver Schild + Sturm + Energie",
+      motifLabel: "Leidensfähig · massiver Schild + robuste Energie",
       stage: 2,
     };
   }
@@ -298,14 +297,14 @@ function getMotif(
   if (badgeKey === "lucky_charm") {
     return {
       motif: "lucky",
-      motifLabel: "Glücksbringer · Smaragd-Klee + Gold-Sparkles + Premium-Glow",
+      motifLabel: "Glücksbringer · Smaragd-Klee + Goldfunke + Premium-Glow",
       stage: 5,
     };
   }
 
   return {
     motif: "comeback",
-    motifLabel: "Comeback · Rückkehrbogen + Flügel + violette Energie",
+    motifLabel: "Comeback · Reboot-Ring + violette Rückkehr-Energie",
     stage: 3,
   };
 }
