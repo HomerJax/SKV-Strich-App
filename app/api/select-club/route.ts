@@ -59,15 +59,9 @@ async function handleSelectClub(request: Request) {
   if (ctx.isPowerUser) {
     allowed = await powerUserCanAccessClub(clubId);
   } else {
-    if (!ctx.player) {
-      return NextResponse.redirect(
-        buildRedirect(request, AUTH_ROUTES.onboarding),
-        {
-          status: 303,
-        }
-      );
-    }
-
+    // Multi-club users intentionally have no active player until a club is chosen.
+    // Authorize the selection via membership; after the cookie is set,
+    // getAuthContext resolves the player belonging to the selected club.
     allowed = ctx.memberships.some((membership) => membership.club_id === clubId);
   }
 
