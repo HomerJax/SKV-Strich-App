@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
 
 type ProgressItem = {
@@ -40,9 +41,58 @@ function missingLabel(item: ProgressItem) {
   return `Noch ${item.remaining} ${unit}`;
 }
 
+function findQuickInfoSection() {
+  const sections = Array.from(document.querySelectorAll("section"));
+
+  return (
+    sections.find((section) => {
+      const labels = Array.from(section.querySelectorAll("div"));
+      return labels.some(
+        (label) => label.textContent?.trim() === "Meine Kurzinfo",
+      );
+    }) ?? null
+  );
+}
+
 export default function HomeAchievementTeaser() {
   const pathname = usePathname();
   const [data, setData] = useState<ProgressResponse | null>(null);
+  const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (pathname !== "/home") return;
+
+    let cancelled = false;
+    let host: HTMLDivElement | null = null;
+    let tries = 0;
+
+    const mountIntoQuickInfo = () => {
+      if (cancelled) return;
+
+      const section = findQuickInfoSection();
+      if (section) {
+        host = document.createElement("div");
+        host.dataset.homeAchievementSlot = "true";
+        host.className = "mt-3";
+        section.appendChild(host);
+        setPortalHost(host);
+        return;
+      }
+
+      tries += 1;
+      if (tries < 20) {
+        window.setTimeout(mountIntoQuickInfo, 50);
+      }
+    };
+
+    mountIntoQuickInfo();
+
+    return () => {
+      cancelled = true;
+      setPortalHost(null);
+      host?.remove();
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (pathname !== "/home") return;
@@ -62,68 +112,69 @@ export default function HomeAchievementTeaser() {
     return () => controller.abort();
   }, [pathname]);
 
-  if (pathname !== "/home" || !data?.enabled || !data.items?.length) {
+  if (
+    pathname !== "/home" ||
+    !portalHost ||
+    !data?.enabled ||
+    !data.items?.length
+  ) {
     return null;
   }
 
   const primary = data.items[0];
   const secondary = data.items[1] ?? null;
 
-  return (
-    <div className="mx-auto w-full max-w-5xl px-4 pt-3 sm:px-6 lg:px-8">
-      <Link
-        href="/badges"
-        className="group relative block overflow-hidden rounded-[26px] border border-slate-800/70 bg-[linear-gradient(135deg,#111827_0%,#0f172a_50%,#111827_100%)] p-3.5 text-white shadow-[0_16px_42px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(15,23,42,0.24)] sm:p-4"
-      >
-        <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-amber-300/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 left-1/3 h-32 w-44 rounded-full bg-sky-300/10 blur-3xl" />
+  return createPortal(
+    <Link
+      href="/badges"
+      className="group block overflow-hidden rounded-[24px] border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-3 shadow-[0_10px_26px_rgba(245,158,11,0.08)] transition hover:border-amber-200 hover:shadow-[0_14px_30px_rgba(245,158,11,0.12)]"
+    >
+      <div className="flex items-center gap-3">
+        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] border border-amber-100 bg-white shadow-sm">
+          <AchievementBadgeVisual badgeKey={primary.badgeKey} size="lg" />
+        </div>
 
-        <div className="relative flex items-center gap-3">
-          <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-white/[0.055] shadow-inner">
-            <AchievementBadgeVisual badgeKey={primary.badgeKey} size="lg" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-600">
+            <Sparkles className="h-3 w-3" />
+            Nächstes Achievement
           </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-300/90">
-              <Sparkles className="h-3 w-3" />
-              Nächstes Achievement
+          <div className="mt-1 flex min-w-0 items-baseline gap-2">
+            <div className="truncate text-sm font-black tracking-tight text-slate-950">
+              {primary.title}
             </div>
-
-            <div className="mt-1 flex min-w-0 items-baseline gap-2">
-              <h2 className="truncate text-sm font-black tracking-tight sm:text-base">
-                {primary.title}
-              </h2>
-              <span className="shrink-0 text-[10px] font-bold text-white/45">
-                {primary.current}/{primary.target}
-              </span>
-            </div>
-
-            <div className="mt-1 text-xs font-semibold text-white/60">
-              {missingLabel(primary)} bis zum Badge
-            </div>
-
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 transition-all"
-                style={{ width: `${Math.max(5, primary.progressPercent)}%` }}
-              />
-            </div>
+            <span className="shrink-0 text-[10px] font-bold text-slate-400">
+              {primary.current}/{primary.target}
+            </span>
           </div>
 
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition group-hover:bg-white group-hover:text-slate-950">
-            <ArrowRight className="h-4 w-4" />
+          <div className="mt-0.5 text-[11px] font-semibold text-slate-500">
+            {missingLabel(primary)} bis zum Badge
+          </div>
+
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200/80">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 transition-all"
+              style={{ width: `${Math.max(5, primary.progressPercent)}%` }}
+            />
           </div>
         </div>
 
-        {secondary ? (
-          <div className="relative mt-3 flex items-center justify-between gap-3 border-t border-white/10 pt-2.5 text-[10px] font-semibold text-white/45">
-            <span className="truncate">
-              Danach im Blick: <span className="font-black text-white/70">{secondary.title}</span>
-            </span>
-            <span className="shrink-0">{missingLabel(secondary)}</span>
-          </div>
-        ) : null}
-      </Link>
-    </div>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white transition group-hover:bg-amber-500">
+          <ArrowRight className="h-3.5 w-3.5" />
+        </div>
+      </div>
+
+      {secondary ? (
+        <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-slate-200/70 pt-2 text-[10px] font-semibold text-slate-400">
+          <span className="truncate">
+            Danach: <span className="font-black text-slate-600">{secondary.title}</span>
+          </span>
+          <span className="shrink-0">{missingLabel(secondary)}</span>
+        </div>
+      ) : null}
+    </Link>,
+    portalHost,
   );
 }
