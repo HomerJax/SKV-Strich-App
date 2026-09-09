@@ -8,10 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function DemoPage() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  const logoUrl = supabaseUrl
-    ? `${supabaseUrl}/storage/v1/object/public/club-logos/${DEMO_CLUB.logoPath}`
-    : "/icon-dark.png";
-
-  return <DemoApp logoUrl={logoUrl} />;
+  return <DemoApp logoUrl={DEMO_CLUB.logoUrl} />;
 }

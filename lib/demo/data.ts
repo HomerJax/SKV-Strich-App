@@ -20,8 +20,8 @@ export type DemoStanding = {
 
 export const DEMO_CLUB = {
   name: "1. FC Strikr 2026",
-  logoPath:
-    "club-logos/12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60/1777287993589-strikr-logo.svg",
+  logoUrl:
+    "https://wshliehidtxtpdkxoujy.supabase.co/storage/v1/object/public/club-logos/12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60/1783411098777-1_fc_strikr_2026_wappen_freigestellt_cropped.png",
   primaryColor: "black",
 } as const;
 
