@@ -686,7 +686,14 @@ export function useSessionDetail({
       const sessionUrl = `${window.location.origin}/sessions/${sessionId}`;
       const teamLine = `${autoTeamNames.a} vs ${autoTeamNames.b}`;
 
-      const shareTextValue = `🔥 ${scoreAValue}:${scoreBValue}\n\n${teamLine}\n${highlight}\n${story}\n\nSchau dir das Ergebnis an, prüf deine Stats und teile die SiegerCard weiter 👀\n${sessionUrl}`;
+      const shareTextValue = `🔥 ${scoreAValue}:${scoreBValue}
+
+${teamLine}
+${highlight}
+${story}
+
+Schau dir das Ergebnis an, prüf deine Stats und teile die SiegerCard weiter 👀
+${sessionUrl}`;
 
       const result = await shareText(
         shareTextValue,
@@ -1251,7 +1258,7 @@ export function useSessionDetail({
     for (let round = 0; round < maxSwapRounds; round += 1) {
       let roundBestA = bestA;
       let roundBestB = bestB;
-      let roundBestQuality = bestQuality;
+      let roundBestQuality: BalanceQuality = bestQuality;
       let improved = false;
 
       for (let aIndex = 0; aIndex < bestA.length; aIndex += 1) {
