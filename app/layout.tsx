@@ -4,6 +4,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import AppHeader from "@/components/AppHeader";
 import AppAuthChrome from "@/components/AppAuthChrome";
+import HomeAchievementTeaser from "@/components/home/HomeAchievementTeaser";
 import NativeDeepLinkHandler from "@/components/native/NativeDeepLinkHandler";
 import GlobalActionFeedback from "@/components/ui/GlobalActionFeedback";
 
@@ -50,6 +51,7 @@ export default function RootLayout({
         </Suspense>
 
         <div className="min-h-[100dvh] w-full min-w-0 overflow-x-hidden pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top)+3px)] sm:pt-[calc(4.5rem+env(safe-area-inset-top)+3px)]">
+          <HomeAchievementTeaser />
           {children}
         </div>
 
