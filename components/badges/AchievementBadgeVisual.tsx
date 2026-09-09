@@ -54,14 +54,14 @@ function AppearanceDecoration({
           isGoat
             ? "inset-[-24%] blur-[12px] opacity-75"
             : isLegendary
-              ? "inset-[-18%] blur-[10px] opacity-55"
+              ? "inset-[-18%] blur-[10px] opacity-58"
               : "inset-[-10%] blur-[8px] opacity-30"
         }`}
         style={{
           background: isGoat
             ? "conic-gradient(from 15deg, rgba(34,211,238,.8), rgba(168,85,247,.9), rgba(244,114,182,.9), rgba(250,204,21,.8), rgba(34,211,238,.8))"
             : isLegendary
-              ? "radial-gradient(circle, rgba(167,139,250,.72), rgba(79,70,229,.24) 58%, transparent 72%)"
+              ? "radial-gradient(circle, rgba(250,204,21,.66), rgba(161,98,7,.24) 58%, transparent 72%)"
               : "radial-gradient(circle, rgba(148,163,184,.42), transparent 68%)",
         }}
         aria-hidden="true"
@@ -72,7 +72,7 @@ function AppearanceDecoration({
           className={`pointer-events-none absolute inset-[-14%] rounded-[30%] border ${
             isGoat
               ? "border-fuchsia-200/75 shadow-[0_0_18px_rgba(34,211,238,.38),0_0_28px_rgba(217,70,239,.28)]"
-              : "border-violet-200/60 shadow-[0_0_18px_rgba(139,92,246,.25)]"
+              : "border-amber-200/70 shadow-[0_0_18px_rgba(250,204,21,.30)]"
           }`}
           aria-hidden="true"
         />
@@ -84,7 +84,7 @@ function AppearanceDecoration({
             isGoat
               ? "text-cyan-100/34"
               : isLegendary
-                ? "text-violet-200/32"
+                ? "text-amber-200/34"
                 : visual.stage >= 4
                   ? "text-amber-200/28"
                   : "text-slate-200/22"
@@ -98,14 +98,27 @@ function AppearanceDecoration({
       {isLegendary && !isTiny ? (
         <>
           <span
-            className="pointer-events-none absolute -left-[17%] top-[3%] z-0 h-[94%] w-[42%] rounded-l-full border-l-2 border-t border-b border-white/24 opacity-70"
+            className={`pointer-events-none absolute -left-[17%] top-[3%] z-0 h-[94%] w-[42%] rounded-l-full border-l-2 border-t border-b ${
+              isGoat ? "border-fuchsia-100/28" : "border-amber-200/38"
+            } opacity-70`}
             aria-hidden="true"
           />
           <span
-            className="pointer-events-none absolute -right-[17%] top-[3%] z-0 h-[94%] w-[42%] rounded-r-full border-r-2 border-t border-b border-white/24 opacity-70"
+            className={`pointer-events-none absolute -right-[17%] top-[3%] z-0 h-[94%] w-[42%] rounded-r-full border-r-2 border-t border-b ${
+              isGoat ? "border-cyan-100/28" : "border-amber-200/38"
+            } opacity-70`}
             aria-hidden="true"
           />
         </>
+      ) : null}
+
+      {isLegendary && !isGoat && !isTiny ? (
+        <Crown
+          className="pointer-events-none absolute -top-[24%] left-1/2 z-0 -translate-x-1/2 text-amber-100/84 drop-shadow-[0_0_7px_rgba(250,204,21,.62)]"
+          size={Math.round(px * 0.46)}
+          strokeWidth={1.7}
+          aria-hidden="true"
+        />
       ) : null}
 
       {isGoat && !isTiny ? (
