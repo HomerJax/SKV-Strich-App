@@ -1,0 +1,148 @@
+/* Hall of Fame V4: moderner Trophy-Room / Glasvitrinen-Look.
+   Absichtlich nur über .hall-of-fame-vitrine gescoped. */
+
+.hall-of-fame-vitrine {
+  min-height: 100%;
+  background: #090d14;
+}
+
+.hall-of-fame-vitrine main {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(56, 189, 248, 0.09), transparent 24rem),
+    radial-gradient(circle at 88% 18%, rgba(245, 158, 11, 0.08), transparent 25rem),
+    linear-gradient(180deg, #0b1018 0%, #101620 36%, #edf0f4 36%, #f4f5f7 100%) !important;
+}
+
+.hall-of-fame-vitrine main > section {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Earned trophies: dark glass cabinet instead of a normal card. */
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.075), transparent 24%, transparent 73%, rgba(255, 255, 255, 0.035)),
+    linear-gradient(180deg, rgba(13, 20, 31, 0.98), rgba(5, 10, 18, 0.985)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    0 30px 70px rgba(2, 6, 23, 0.34) !important;
+  backdrop-filter: blur(18px) saturate(115%);
+  -webkit-backdrop-filter: blur(18px) saturate(115%);
+}
+
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"]::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(105deg, transparent 0 14%, rgba(255,255,255,0.045) 14.5% 15.5%, transparent 16% 74%, rgba(255,255,255,0.025) 75% 76%, transparent 77%),
+    linear-gradient(180deg, rgba(255,255,255,0.025), transparent 22%);
+  mix-blend-mode: screen;
+}
+
+/* Every earned badge gets its own softly lit display compartment. */
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] article {
+  isolation: isolate;
+  min-height: 116px;
+  border-color: rgba(255, 255, 255, 0.115) !important;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.095), rgba(255,255,255,0.028) 48%, rgba(255,255,255,0.055)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.11),
+    inset 0 -18px 28px rgba(0,0,0,0.13),
+    0 12px 28px rgba(0,0,0,0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] article::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(110deg, rgba(255,255,255,0.055), transparent 33% 78%, rgba(255,255,255,0.025));
+}
+
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] article::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 7px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+  box-shadow: 0 7px 15px rgba(0,0,0,0.28);
+}
+
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] article:has([title="career_appearances_500"]),
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] article:has([title="career_wins_250"]),
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] article:has([title="win_streak_10"]),
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] article:has([title="lucky_charm"]) {
+  border-color: rgba(251, 191, 36, 0.33) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -20px 34px rgba(0,0,0,0.15),
+    0 18px 46px rgba(245, 158, 11, 0.1),
+    0 0 26px rgba(250, 204, 21, 0.055);
+}
+
+/* Current-title plate should look like the little name plaque on a cabinet. */
+.hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] > div[class*="sm:flex-row"] > div:last-child {
+  border-color: rgba(245, 214, 130, 0.18) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,0.085), rgba(255,255,255,0.035)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);
+}
+
+/* Locked collection + compare area: frosted glass, still light and readable. */
+.hall-of-fame-vitrine main > section > section[class*="bg-white"],
+.hall-of-fame-vitrine main > section > details[class*="bg-white"] {
+  border-color: rgba(203, 213, 225, 0.72) !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    0 18px 44px rgba(15,23,42,0.09) !important;
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+
+.hall-of-fame-vitrine main > section > section[class*="bg-white"] article {
+  border-color: rgba(203, 213, 225, 0.75) !important;
+  background: linear-gradient(145deg, rgba(248,250,252,0.86), rgba(241,245,249,0.65)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    0 7px 18px rgba(15,23,42,0.035);
+}
+
+/* Small cabinet shelf under each locked item. */
+.hall-of-fame-vitrine main > section > section[class*="bg-white"] article::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: 12%;
+  right: 12%;
+  bottom: 5px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(100,116,139,0.18), transparent);
+}
+
+/* Mobile: keep the cabinet spacious without making the page huge. */
+@media (max-width: 639px) {
+  .hall-of-fame-vitrine main {
+    background:
+      radial-gradient(circle at 20% 4%, rgba(56, 189, 248, 0.075), transparent 17rem),
+      linear-gradient(180deg, #0b1018 0%, #101620 30%, #eef1f5 30%, #f5f6f8 100%) !important;
+  }
+
+  .hall-of-fame-vitrine main > section > section[class*="bg-slate-950"] article {
+    min-height: 104px;
+  }
+}
