@@ -10,12 +10,12 @@ type Ring = { rx: number; ry: number; rotate: number; width: number; opacity: nu
 type ArtConfig = { value: number; tier: string; hero: string; glow: string; colors: string[]; rings: Ring[]; badgeSize: number; artwork?: string };
 
 const CONFIG: Record<string, ArtConfig> = {
-  career_appearances_10: { value: 10, tier: "Blech", hero: "/badges/hero/blech.webp", glow: "#94a3b8", colors: ["#f8fafc", "#a1a1aa", "#3f3f46", "#09090b", "#d4d4d8"], rings: [{ rx: 176, ry: 82, rotate: -9, width: 22, opacity: .94 }], badgeSize: 272 },
-  career_appearances_25: { value: 25, tier: "Bronze", hero: "/badges/hero/bronze.webp", glow: "#f97316", colors: ["#ffedd5", "#fb923c", "#9a3412", "#431407", "#fdba74"], rings: [{ rx: 176, ry: 82, rotate: -9, width: 22, opacity: 1 }], badgeSize: 276 },
-  career_appearances_50: { value: 50, tier: "Silber", hero: "/badges/hero/silber.webp", glow: "#bfdbfe", colors: ["#fff", "#e2e8f0", "#94a3b8", "#475569", "#f8fafc"], rings: [{ rx: 178, ry: 83, rotate: -9, width: 22, opacity: 1 }], badgeSize: 280 },
+  career_appearances_10: { value: 10, tier: "Blech", hero: "/badges/hero/blech.webp", glow: "#94a3b8", colors: ["#f8fafc", "#a1a1aa", "#3f3f46", "#09090b", "#d4d4d8"], rings: [], badgeSize: 272, artwork: "/badges/career-appearances-10-blech.png" },
+  career_appearances_25: { value: 25, tier: "Bronze", hero: "/badges/hero/bronze.webp", glow: "#f97316", colors: ["#ffedd5", "#fb923c", "#9a3412", "#431407", "#fdba74"], rings: [], badgeSize: 276, artwork: "/badges/career-appearances-25-bronze.png" },
+  career_appearances_50: { value: 50, tier: "Silber", hero: "/badges/hero/silber.webp", glow: "#bfdbfe", colors: ["#fff", "#e2e8f0", "#94a3b8", "#475569", "#f8fafc"], rings: [], badgeSize: 280, artwork: "/badges/career-appearances-50-silver.png" },
   career_appearances_100: { value: 100, tier: "Gold", hero: "/badges/hero/gold.webp", glow: "#facc15", colors: ["#fff7c2", "#fde047", "#ca8a04", "#713f12", "#fef08a"], rings: [], badgeSize: 288, artwork: "/badges/career-appearances-100-gold.png" },
-  career_appearances_250: { value: 250, tier: "Legendär", hero: "/badges/hero/goat.webp", glow: "#a855f7", colors: ["#67e8f9", "#60a5fa", "#8b5cf6", "#ec4899", "#fb7185", "#facc15"], rings: [{ rx:184, ry:82, rotate:-10, width:21, opacity:1 }, { rx:169, ry:101, rotate:15, width:17, opacity:.86 }], badgeSize:304 },
-  career_appearances_500: { value: 500, tier: "GOAT", hero: "/badges/hero/goat.webp", glow: "#22d3ee", colors: ["#22d3ee", "#2563eb", "#7c3aed", "#ec4899", "#fb7185", "#facc15", "#2dd4bf"], rings: [{ rx:190, ry:84, rotate:-10, width:22, opacity:1 }, { rx:175, ry:105, rotate:15, width:18, opacity:.92 }, { rx:160, ry:121, rotate:-22, width:15, opacity:.78 }], badgeSize:322 },
+  career_appearances_250: { value: 250, tier: "Legendär", hero: "/badges/hero/goat.webp", glow: "#a855f7", colors: ["#67e8f9", "#60a5fa", "#8b5cf6", "#ec4899", "#fb7185", "#facc15"], rings: [], badgeSize: 304, artwork: "/badges/career-appearances-250-legend.png" },
+  career_appearances_500: { value: 500, tier: "GOAT", hero: "/badges/hero/goat.webp", glow: "#22d3ee", colors: ["#22d3ee", "#2563eb", "#7c3aed", "#ec4899", "#fb7185", "#facc15", "#2dd4bf"], rings: [], badgeSize: 322, artwork: "/badges/career-appearances-500-goat.png" },
 };
 
 function CareerArtwork({ badgeKey, className = "" }: { badgeKey: string; className?: string }) {
