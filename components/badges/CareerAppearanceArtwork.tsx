@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { getBadgeDefinition } from "@/lib/badges/catalog";
 import { getBadgeVisualMeta } from "@/lib/badges/visual-catalog";
@@ -43,6 +44,10 @@ export default function CareerAppearanceArtwork({ badgeKey, px, grayscale=false,
   useEffect(()=>{ if(!open)return; const prev=document.body.style.overflow; document.body.style.overflow="hidden"; const key=(e:KeyboardEvent)=>{if(e.key==="Escape")setOpen(false)}; window.addEventListener("keydown",key); return()=>{document.body.style.overflow=prev;window.removeEventListener("keydown",key)} },[open]);
   if(!c)return null;
   const renderedPreview = Boolean(c.artwork);
+  const modal = open ? <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-0 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label={definition?.title??badgeKey} onMouseDown={e=>{if(e.currentTarget===e.target)setOpen(false)}}>
+      <button type="button" onClick={()=>setOpen(false)} className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur" aria-label="Vollbild schließen"><X className="h-5 w-5"/></button>
+      {c.artwork?<img src={c.artwork} alt={`${c.value} Einsätze · ${c.tier}`} className="max-h-[100dvh] max-w-full object-contain"/>:<div className="flex max-h-[92dvh] w-full max-w-3xl flex-col items-center overflow-y-auto rounded-[32px] border border-white/10 bg-slate-950 px-5 pb-7 pt-8 text-center"><div className="text-[10px] font-black uppercase tracking-[.32em] text-white/40">Hall of Fame · Karriere · Einsätze</div><div className="mt-1 text-sm font-black uppercase tracking-[.18em] text-white/65">{c.tier}</div><div className="mt-2 aspect-square w-full max-w-[560px]"><CareerArtwork badgeKey={badgeKey} className="h-full w-full"/></div><div className="-mt-5 text-5xl font-black text-white">{c.value}</div><div className="mt-1 text-xs font-black uppercase tracking-[.34em] text-white/60">Einsätze</div>{definition?.description?<p className="mt-4 text-sm text-white/55">{definition.description}</p>:null}<p className="mt-2 text-xs text-white/35">{visual.motifLabel}</p></div>}
+    </div> : null;
   return <>
     <button type="button" onClick={()=>!grayscale&&setOpen(true)} className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border-0 bg-transparent p-0 ${grayscale?"cursor-default":"cursor-zoom-in"} ${className}`} style={{width:px,height:px}} aria-label={`${definition?.title??badgeKey} groß anzeigen`}>
       {renderedPreview ? (
@@ -58,9 +63,6 @@ export default function CareerAppearanceArtwork({ badgeKey, px, grayscale=false,
         <span className={`pointer-events-none block ${grayscale?"grayscale opacity-45":""}`} style={{width:px*1.72,height:px*1.72}}><CareerArtwork badgeKey={badgeKey} className="h-full w-full"/></span>
       )}
     </button>
-    {open?<div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/95 p-0 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label={definition?.title??badgeKey} onMouseDown={e=>{if(e.currentTarget===e.target)setOpen(false)}}>
-      <button type="button" onClick={()=>setOpen(false)} className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur" aria-label="Vollbild schließen"><X className="h-5 w-5"/></button>
-      {c.artwork?<img src={c.artwork} alt={`${c.value} Einsätze · ${c.tier}`} className="max-h-[100dvh] max-w-full object-contain"/>:<div className="flex max-h-[92dvh] w-full max-w-3xl flex-col items-center overflow-y-auto rounded-[32px] border border-white/10 bg-slate-950 px-5 pb-7 pt-8 text-center"><div className="text-[10px] font-black uppercase tracking-[.32em] text-white/40">Hall of Fame · Karriere · Einsätze</div><div className="mt-1 text-sm font-black uppercase tracking-[.18em] text-white/65">{c.tier}</div><div className="mt-2 aspect-square w-full max-w-[560px]"><CareerArtwork badgeKey={badgeKey} className="h-full w-full"/></div><div className="-mt-5 text-5xl font-black text-white">{c.value}</div><div className="mt-1 text-xs font-black uppercase tracking-[.34em] text-white/60">Einsätze</div>{definition?.description?<p className="mt-4 text-sm text-white/55">{definition.description}</p>:null}<p className="mt-2 text-xs text-white/35">{visual.motifLabel}</p></div>}
-    </div>:null}
+    {modal && typeof document !== "undefined" ? createPortal(modal, document.body) : null}
   </>;
 }
