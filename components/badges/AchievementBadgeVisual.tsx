@@ -1,4 +1,5 @@
 import CareerAppearanceArtwork from "@/components/badges/CareerAppearanceArtwork";
+import CareerWinArtwork from "@/components/badges/CareerWinArtwork";
 import PlayerBadge from "@/components/badges/PlayerBadge";
 import { getBadgeVisualMeta } from "@/lib/badges/visual-catalog";
 
@@ -17,11 +18,6 @@ const SIZE = {
 } as const;
 
 const PREMIUM_ASSET_BY_BADGE_KEY: Record<string, string> = {
-  career_wins_1: "/badges/achievements/career-wins-1.svg",
-  career_wins_10: "/badges/achievements/career-wins-10.svg",
-  career_wins_50: "/badges/achievements/career-wins-50.svg",
-  career_wins_100: "/badges/achievements/career-wins-50.svg",
-  career_wins_250: "/badges/achievements/career-wins-250.svg",
   attendance_streak_5: "/badges/achievements/attendance-dauerlaeufer.svg",
   attendance_streak_20: "/badges/achievements/attendance-immer-da.svg",
   win_streak_10: "/badges/achievements/win-streak.webp",
@@ -42,10 +38,22 @@ export default function AchievementBadgeVisual({
   const px = SIZE[size];
   const visual = getBadgeVisualMeta(badgeKey);
   const isCareerAppearance = badgeKey.startsWith("career_appearances_");
+  const isCareerWin = badgeKey.startsWith("career_wins_");
 
   if (isCareerAppearance && px >= SIZE.lg) {
     return (
       <CareerAppearanceArtwork
+        badgeKey={badgeKey}
+        px={px}
+        grayscale={grayscale}
+        className={className}
+      />
+    );
+  }
+
+  if (isCareerWin && px >= SIZE.lg) {
+    return (
+      <CareerWinArtwork
         badgeKey={badgeKey}
         px={px}
         grayscale={grayscale}
