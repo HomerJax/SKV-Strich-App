@@ -42,9 +42,19 @@ export default function CareerAppearanceArtwork({ badgeKey, px, grayscale=false,
   const definition=useMemo(()=>getBadgeDefinition(badgeKey),[badgeKey]); const visual=useMemo(()=>getBadgeVisualMeta(badgeKey),[badgeKey]);
   useEffect(()=>{ if(!open)return; const prev=document.body.style.overflow; document.body.style.overflow="hidden"; const key=(e:KeyboardEvent)=>{if(e.key==="Escape")setOpen(false)}; window.addEventListener("keydown",key); return()=>{document.body.style.overflow=prev;window.removeEventListener("keydown",key)} },[open]);
   if(!c)return null;
+  const renderedPreview = Boolean(c.artwork);
   return <>
     <button type="button" onClick={()=>!grayscale&&setOpen(true)} className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border-0 bg-transparent p-0 ${grayscale?"cursor-default":"cursor-zoom-in"} ${className}`} style={{width:px,height:px}} aria-label={`${definition?.title??badgeKey} groß anzeigen`}>
-      <span className={`pointer-events-none block ${grayscale?"grayscale opacity-45":""}`} style={{width:c.artwork?px*1.18:px*1.72,height:c.artwork?px*1.18:px*1.72}}><CareerArtwork badgeKey={badgeKey} className="h-full w-full"/></span>
+      {renderedPreview ? (
+        <img
+          src={c.artwork}
+          alt={`${c.value} Einsätze · ${c.tier}`}
+          className={`pointer-events-none h-full w-full object-cover ${grayscale?"grayscale opacity-45":""}`}
+          style={{ transform: "scale(2.05)", transformOrigin: "50% 34%" }}
+        />
+      ) : (
+        <span className={`pointer-events-none block ${grayscale?"grayscale opacity-45":""}`} style={{width:px*1.72,height:px*1.72}}><CareerArtwork badgeKey={badgeKey} className="h-full w-full"/></span>
+      )}
     </button>
     {open?<div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/95 p-0 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label={definition?.title??badgeKey} onMouseDown={e=>{if(e.currentTarget===e.target)setOpen(false)}}>
       <button type="button" onClick={()=>setOpen(false)} className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur" aria-label="Vollbild schließen"><X className="h-5 w-5"/></button>
