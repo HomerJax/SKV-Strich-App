@@ -176,6 +176,35 @@ export default async function AppHeader() {
         {`document.documentElement.style.setProperty('--club-primary', '${primaryColor}');`}
       </Script>
 
+      {ctx.isPowerUser ? (
+        <Script id="strikr-power-user-unlinked-notices" strategy="afterInteractive">
+          {`
+            const hidePowerUserPlayerLinkNotices = () => {
+              const phrases = [
+                'Dein Profil ist noch nicht mit einem Spieler verknüpft.',
+                'Dein Benutzer ist noch nicht eindeutig mit einem Spielerprofil verknüpft.',
+                'Highlights erscheinen, sobald dein Spielerprofil verknüpft ist.'
+              ];
+
+              document.querySelectorAll('div, p').forEach((node) => {
+                const text = node.textContent?.trim();
+                if (!text || !phrases.some((phrase) => text.includes(phrase))) return;
+
+                const section = node.closest('section');
+                if (section) {
+                  section.style.display = 'none';
+                } else {
+                  node.style.display = 'none';
+                }
+              });
+            };
+
+            hidePowerUserPlayerLinkNotices();
+            requestAnimationFrame(hidePowerUserPlayerLinkNotices);
+          `}
+        </Script>
+      ) : null}
+
       <header
         style={{ borderTop: `3px solid ${primaryColor}` }}
         className="fixed inset-x-0 top-0 z-[350] w-full border-b border-slate-200 bg-white pt-[env(safe-area-inset-top)] shadow-sm"
