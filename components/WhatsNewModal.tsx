@@ -7,6 +7,7 @@ type Props = {
 };
 
 const CHANGE_EVENT = "strikr-whats-new-change";
+const STORAGE_KEY = "strikr-whats-new-big-update-2026-09";
 
 function subscribe(callback: () => void) {
   if (typeof window === "undefined") {
@@ -29,8 +30,7 @@ export default function WhatsNewModal({ version }: Props) {
     subscribe,
     () => {
       if (typeof window === "undefined") return false;
-      const storageKey = `strikr-whats-new-${version}`;
-      return window.localStorage.getItem(storageKey) !== "seen";
+      return window.localStorage.getItem(STORAGE_KEY) !== "seen";
     },
     () => false
   );
@@ -38,12 +38,19 @@ export default function WhatsNewModal({ version }: Props) {
   function handleClose() {
     if (typeof window === "undefined") return;
 
-    const storageKey = `strikr-whats-new-${version}`;
-    window.localStorage.setItem(storageKey, "seen");
+    window.localStorage.setItem(STORAGE_KEY, "seen");
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }
 
   if (!open) return null;
+
+  const updates = [
+    ["📱 strikr jetzt als App", "Für iPhone und Android."],
+    ["🏆 Neue Karriere-Badges", "Für Einsätze und Siege. Badge antippen = Fullscreen."],
+    ["👑 Hall of Fame", "Auf Home und in deinen persönlichen Stats."],
+    ["👥 Spieler ansehen & vergleichen", "Spieler in der Tabelle antippen, Hall of Fame öffnen und Vergleich starten."],
+    ["🔔 Push- & In-App-Notifications", "strikr informiert dich jetzt direkt über wichtige Neuigkeiten."],
+  ];
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm">
@@ -58,7 +65,7 @@ export default function WhatsNewModal({ version }: Props) {
         </button>
 
         <div className="pr-10 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-          Release Update
+          Großes Update
         </div>
 
         <h2 className="mt-1 pr-10 text-2xl font-black tracking-tight text-slate-950">
@@ -66,34 +73,21 @@ export default function WhatsNewModal({ version }: Props) {
         </h2>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Mehr MVP, mehr Sharing, mehr Emotion nach dem Training.
+          App. Badges. Hall of Fame. Spieler-Vergleich. Notifications.
         </p>
 
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
-          <div className="text-sm font-bold text-slate-950">
-            Neu in diesem Update
-          </div>
-
-          <div className="mt-3 space-y-2">
-            {[
-              "Neue Premium MVP Share Cards",
-              "Eigene MVP Notifications",
-              "Besseres Teilen per WhatsApp & Social Media",
-              "Home, Toasts und MVP Flow weiter poliert",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl bg-white px-3.5 py-2.5 text-[13px] font-medium leading-5 text-slate-700 shadow-sm"
-              >
-                {item}
+        <div className="mt-4 space-y-2.5">
+          {updates.map(([title, text]) => (
+            <div
+              key={title}
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+            >
+              <div className="text-sm font-black text-slate-950">{title}</div>
+              <div className="mt-1 text-[13px] font-medium leading-5 text-slate-600">
+                {text}
               </div>
-            ))}
-          </div>
-
-          <p className="mt-3 text-[13px] leading-5 text-slate-500">
-            Ziel: weniger Verwaltungs-App, mehr Emotion und Erinnerungen rund
-            ums Training.
-          </p>
+            </div>
+          ))}
         </div>
 
         <button
