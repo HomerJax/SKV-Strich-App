@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  BIG_UPDATE_SEEN_EVENT,
+  BIG_UPDATE_STORAGE_KEY,
+} from "@/components/notifications/BigUpdateLaunchModal";
 
 const BADGES: Record<string, { title: string; artwork: string }> = {
   career_appearances_10: { title: "10 Einsätze", artwork: "/badges/career-appearances-10-blech.png" },
@@ -24,11 +28,26 @@ type LaunchData = {
 
 export default function CareerBadgeLaunchModal() {
   const [launch, setLaunch] = useState<LaunchData | null>(null);
+  const [readyForCareerLaunch, setReadyForCareerLaunch] = useState(false);
   const [slide, setSlide] = useState(0);
   const [busy, setBusy] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
+    function checkReady() {
+      setReadyForCareerLaunch(
+        window.localStorage.getItem(BIG_UPDATE_STORAGE_KEY) === "seen",
+      );
+    }
+
+    checkReady();
+    window.addEventListener(BIG_UPDATE_SEEN_EVENT, checkReady);
+    return () => window.removeEventListener(BIG_UPDATE_SEEN_EVENT, checkReady);
+  }, []);
+
+  useEffect(() => {
+    if (!readyForCareerLaunch) return;
+
     let cancelled = false;
     void fetch("/api/badges/career-launch", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
@@ -39,7 +58,7 @@ export default function CareerBadgeLaunchModal() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [readyForCareerLaunch]);
 
   useEffect(() => {
     if (!launch) return;
@@ -71,6 +90,7 @@ export default function CareerBadgeLaunchModal() {
       });
       if (!response.ok) return;
       setLaunch(null);
+      window.dispatchEvent(new Event("strikr-career-badge-launch-finished"));
     } finally {
       setBusy(false);
     }
