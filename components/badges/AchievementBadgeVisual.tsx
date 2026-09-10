@@ -15,12 +15,9 @@ const SIZE = {
   xl: 72,
 } as const;
 
-// Diese fertigen Artworks stammen aus der früheren, deutlich hochwertigeren
-// 3D-Badge-Runde. Sie erweitern den strikr-Kern als EIN Motiv statt mit
-// aufgesetzten CSS-Ringen, Linien oder Lucide-Deko.
+// Nur fertige, zusammenhängende Premium-Artworks. Keine aufgesetzten CSS-Rahmen.
 const PREMIUM_ASSET_BY_BADGE_KEY: Record<string, string> = {
   career_appearances_250: "/badges/achievements/career-appearances-250.svg",
-  career_appearances_500: "/badges/achievements/career-appearances-500.svg",
   career_wins_1: "/badges/achievements/career-wins-1.svg",
   career_wins_10: "/badges/achievements/career-wins-10.svg",
   career_wins_50: "/badges/achievements/career-wins-50.svg",
@@ -35,6 +32,12 @@ const PREMIUM_ASSET_BY_BADGE_KEY: Record<string, string> = {
   comeback: "/badges/achievements/comeback.webp",
 };
 
+const PREMIUM_SCALE_BY_BADGE_KEY: Record<string, number> = {
+  // Das Gold-Legenden-Artwork hat viel transparente Außenfläche und wirkte
+  // dadurch kleiner als das normale Gold-Badge. Im Katalog bewusst größer.
+  career_appearances_250: 1.72,
+};
+
 export { getAchievementVisualTier } from "@/lib/badges/visual-catalog";
 
 export default function AchievementBadgeVisual({
@@ -47,6 +50,8 @@ export default function AchievementBadgeVisual({
   const visual = getBadgeVisualMeta(badgeKey);
   const premiumAsset = PREMIUM_ASSET_BY_BADGE_KEY[badgeKey] ?? null;
   const usePremiumArtwork = Boolean(premiumAsset) && px >= SIZE.lg;
+  const premiumScale = PREMIUM_SCALE_BY_BADGE_KEY[badgeKey] ?? 1.34;
+  const coreScale = badgeKey === "career_appearances_500" && px >= SIZE.lg ? 1.2 : 1;
 
   return (
     <span
@@ -64,18 +69,23 @@ export default function AchievementBadgeVisual({
           aria-hidden="true"
           draggable={false}
           className="pointer-events-none block max-w-none select-none object-contain"
-          style={{ width: px * 1.34, height: px * 1.34 }}
+          style={{ width: px * premiumScale, height: px * premiumScale }}
         />
       ) : (
-        <PlayerBadge
-          badgeKey={visual.tier}
-          mode="hero"
-          size={size}
-          grayscale={grayscale}
-          hideIfNone={false}
-          className="h-full w-full"
-          title={badgeKey}
-        />
+        <span
+          className="relative inline-flex h-full w-full items-center justify-center"
+          style={{ transform: `scale(${coreScale})` }}
+        >
+          <PlayerBadge
+            badgeKey={visual.tier}
+            mode="hero"
+            size={size}
+            grayscale={grayscale}
+            hideIfNone={false}
+            className="h-full w-full"
+            title={badgeKey}
+          />
+        </span>
       )}
     </span>
   );
