@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, UserRound } from "lucide-react";
+import { LogOut, PlayCircle, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import LogoutButton from "@/components/LogoutButton";
 
@@ -59,7 +59,7 @@ export default function MobileUserMenu({
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-14 z-[300] min-w-[210px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+        <div className="absolute right-0 top-14 z-[300] min-w-[225px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
           <Link
             href="/profile"
             onClick={() => setOpen(false)}
@@ -72,6 +72,22 @@ export default function MobileUserMenu({
               <div className="truncate">{profileLabel}</div>
               <div className="text-[11px] font-medium text-slate-500">
                 Profil
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            href="/demo"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-amber-50"
+          >
+            <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+              <PlayCircle className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate">strikr Demo ansehen</div>
+              <div className="text-[11px] font-medium text-slate-500">
+                Alle Funktionen ausprobieren
               </div>
             </div>
           </Link>

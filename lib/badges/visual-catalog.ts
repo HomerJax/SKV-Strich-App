@@ -94,7 +94,7 @@ function getLossStreakStage(value: number) {
 export function getAchievementVisualTier(badgeKey: string): PlayerBadgeTier {
   const appearances = parseSuffix(badgeKey, "career_appearances_");
   if (appearances !== null) {
-    if (appearances >= 500) return "goat";
+    if (appearances >= 250) return "goat";
     if (appearances >= 100) return "gold";
     if (appearances >= 50) return "silver";
     if (appearances >= 25) return "bronze";
@@ -188,16 +188,16 @@ function getMotif(
       motif: "career-appearances",
       motifLabel:
         appearances >= 500
-          ? "GOAT · iridescenter Kern + große Prestige-Krone"
+          ? "GOAT · Rainbow-Kern + dreifacher Ausdauer-Orbit"
           : appearances >= 250
-            ? "Legendär · massives Gold+ + große Krone"
+            ? "Legendär · Rainbow-Kern + doppelter Ausdauer-Orbit"
             : appearances >= 100
-              ? "Karriere-Elite · Gold + klare Prestige-Krone"
+              ? "Karriere-Elite · Gold + verlässlicher Dauerlauf-Orbit"
               : appearances >= 50
-                ? "Stammspieler · Silber + massiver Rahmen"
+                ? "Stammspieler · Silber + Dauerlauf-Orbit"
                 : appearances >= 25
-                  ? "Dauerstarter · Bronze + Prestige-Rahmen"
-                  : "Karriere-Einstieg · dunkles Metall",
+                  ? "Dauerstarter · Bronze + Dauerlauf-Orbit"
+                  : "Karriere-Einstieg · dunkles Metall + erster Orbit",
       stage: getAppearanceStage(appearances),
     };
   }
