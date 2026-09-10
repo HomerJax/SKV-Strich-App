@@ -76,20 +76,6 @@ function getBadgeSectionKey(badgeKey: string): BadgeSectionKey {
   return "special";
 }
 
-function ScopePill({ scope }: { scope: "season" | "career" }) {
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
-        scope === "career"
-          ? "bg-slate-950 text-white"
-          : "bg-blue-50 text-blue-700"
-      }`}
-    >
-      {scope === "career" ? "Karriere" : "Aktuelle Saison"}
-    </span>
-  );
-}
-
 export default async function PowerUserBadgesPage() {
   await requirePowerUser();
 
@@ -122,7 +108,6 @@ export default async function PowerUserBadgesPage() {
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
                 Visuelle Abnahme nach denselben sechs Bereichen wie in der Hall of Fame.
-                So kannst du jede Badge-Familie direkt von leicht bis exklusiv durchprüfen.
               </p>
             </div>
 
@@ -160,7 +145,7 @@ export default async function PowerUserBadgesPage() {
               <Layers3 className="h-4 w-4" /> Motiv = Kategorie
             </div>
             <p className="mt-2 text-sm leading-5 text-slate-600">
-              Einsätze, Siege, Disziplin, Serien, Pech und Specials müssen schon auf den ersten Blick unterscheidbar sein.
+              Einsätze, Siege, Disziplin, Serien, Pech und Specials müssen auf den ersten Blick unterscheidbar sein.
             </p>
           </div>
 
@@ -169,7 +154,7 @@ export default async function PowerUserBadgesPage() {
               <Sparkles className="h-4 w-4" /> Zentrum bleibt strikr
             </div>
             <p className="mt-2 text-sm leading-5 text-slate-600">
-              Das quadratische 3D-strikr-Badge bleibt immer das Zentrum. Kategorie und Seltenheit passieren außen herum.
+              Das quadratische 3D-strikr-Badge bleibt immer das Zentrum.
             </p>
           </div>
 
@@ -178,7 +163,7 @@ export default async function PowerUserBadgesPage() {
               <EyeOff className="h-4 w-4" /> Secret
             </div>
             <p className="mt-2 text-sm leading-5 text-amber-800">
-              Secret-Badges sind intern vollständig sichtbar, im Nutzer-Trophäenschrank vor Freischaltung aber verborgen.
+              Secret-Badges sind intern vollständig sichtbar, beim Nutzer vor Freischaltung verborgen.
             </p>
           </div>
         </section>
@@ -199,9 +184,7 @@ export default async function PowerUserBadgesPage() {
         </nav>
 
         {SECTION_ORDER.map((section) => {
-          const sectionBadges = badges.filter(
-            (badge) => badge.sectionKey === section.key,
-          );
+          const sectionBadges = badges.filter((badge) => badge.sectionKey === section.key);
 
           return (
             <section
@@ -215,9 +198,7 @@ export default async function PowerUserBadgesPage() {
                     <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
                       {section.eyebrow}
                     </div>
-                    <h2 className="mt-1 text-2xl font-black tracking-tight">
-                      {section.title}
-                    </h2>
+                    <h2 className="mt-1 text-2xl font-black tracking-tight">{section.title}</h2>
                     <p className="mt-1 max-w-3xl text-sm leading-5 text-white/60">
                       {section.description}
                     </p>
@@ -228,87 +209,39 @@ export default async function PowerUserBadgesPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 p-4 lg:grid-cols-2 sm:p-5">
-                {sectionBadges.map((badge, index) => (
+              <div className="grid gap-3 bg-slate-950 p-4 md:grid-cols-2 sm:p-5">
+                {sectionBadges.map((badge) => (
                   <article
                     key={badge.key}
-                    className="overflow-hidden rounded-[24px] border border-slate-200 bg-slate-50/70"
+                    className="relative overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.055] p-4 text-white"
                   >
-                    <div className="flex items-stretch">
-                      <div className="relative flex w-[116px] shrink-0 items-center justify-center border-r border-slate-800 bg-[radial-gradient(circle_at_50%_42%,#273244_0%,#111827_50%,#020617_100%)] p-3 sm:w-[138px]">
-                        <div className="absolute left-3 top-3 rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/45">
-                          {index + 1}/{sectionBadges.length}
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center">
+                        <div className="absolute inset-1 rounded-[24px] bg-white/[0.04] blur-lg" />
                         <AchievementBadgeVisual badgeKey={badge.key} size="xl" />
                       </div>
 
-                      <div className="min-w-0 flex-1 p-4">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <ScopePill scope={badge.scope} />
-                          <span className="rounded-full bg-slate-200 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-700">
-                            {badge.visual.tierLabel}
-                          </span>
+                          <h3 className="text-sm font-black tracking-tight sm:text-base">
+                            {badge.title}
+                          </h3>
                           {badge.visual.secret ? (
-                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-800">
+                            <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-950">
                               Secret
                             </span>
                           ) : null}
                         </div>
 
-                        <h3 className="mt-2 text-xl font-black leading-tight text-slate-950">
-                          {badge.title}
-                        </h3>
-                        <p className="mt-1 text-sm leading-5 text-slate-600">
+                        <p className="mt-1 text-xs font-medium leading-5 text-white/60">
                           {badge.description}
                         </p>
 
-                        <div className="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <div className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
-                            Visual
-                          </div>
-                          <div className="mt-1 text-sm font-semibold text-slate-800">
-                            {badge.visual.visualLabel}
-                          </div>
-                        </div>
-
-                        <code className="mt-2 block break-all text-[10px] text-slate-400">
-                          {badge.key}
-                        </code>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-px border-t border-slate-200 bg-slate-200 sm:grid-cols-3">
-                      <div className="bg-white px-3 py-2.5">
-                        <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                          Daten-Regel
-                        </div>
-                        <div className="mt-1 text-xs font-semibold text-slate-700">
-                          {badge.visual.historyMode} · {badge.visual.historyLabel}
-                        </div>
-                      </div>
-                      <div className="bg-white px-3 py-2.5">
-                        <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                          Familie
-                        </div>
-                        <div className="mt-1 text-xs font-semibold text-slate-700">
-                          {badge.visual.familyLabel}
-                        </div>
-                      </div>
-                      <div className="bg-white px-3 py-2.5">
-                        <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                          Status
-                        </div>
-                        <div className="mt-1 text-xs font-semibold text-emerald-700">
-                          Aktiv im Katalog
+                        <div className="mt-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
+                          {badge.scope === "career" ? "Karriere" : "Saison / Serie"}
                         </div>
                       </div>
                     </div>
-
-                    {badge.visual.implementationNote ? (
-                      <div className="border-t border-orange-200 bg-orange-50 px-4 py-2.5 text-xs leading-5 text-orange-800">
-                        Entwickler-Hinweis: {badge.visual.implementationNote}
-                      </div>
-                    ) : null}
                   </article>
                 ))}
               </div>
