@@ -1,4 +1,5 @@
 import AppBottomNav from "@/components/AppBottomNav";
+import BigUpdateLaunchModal from "@/components/notifications/BigUpdateLaunchModal";
 import CareerBadgeLaunchModal from "@/components/notifications/CareerBadgeLaunchModal";
 import { NotificationToastCenter } from "@/components/notifications/NotificationToastCenter";
 import NativePushRegistration from "@/components/native/NativePushRegistration";
@@ -23,6 +24,7 @@ export default async function AppAuthChrome() {
 
   return (
     <>
+      <BigUpdateLaunchModal />
       <CareerBadgeLaunchModal />
       <NotificationToastCenter />
       <NativePushRegistration />
