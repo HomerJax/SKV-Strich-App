@@ -46,12 +46,14 @@ export default function CareerAppearanceArtwork({ badgeKey, px, grayscale=false,
   return <>
     <button type="button" onClick={()=>!grayscale&&setOpen(true)} className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border-0 bg-transparent p-0 ${grayscale?"cursor-default":"cursor-zoom-in"} ${className}`} style={{width:px,height:px}} aria-label={`${definition?.title??badgeKey} groß anzeigen`}>
       {renderedPreview ? (
-        <img
-          src={c.artwork}
-          alt={`${c.value} Einsätze · ${c.tier}`}
-          className={`pointer-events-none h-full w-full object-cover ${grayscale?"grayscale opacity-45":""}`}
-          style={{ transform: "scale(2.05)", transformOrigin: "50% 34%" }}
-        />
+        <div className={`pointer-events-none absolute inset-0 overflow-hidden rounded-[22%] ${grayscale?"grayscale opacity-45":""}`}>
+          <img
+            src={c.artwork}
+            alt={`${c.value} Einsätze · ${c.tier}`}
+            className="absolute left-1/2 top-1/2 block max-w-none"
+            style={{ width: "166%", height: "auto", transform: "translate(-50%, -43%)" }}
+          />
+        </div>
       ) : (
         <span className={`pointer-events-none block ${grayscale?"grayscale opacity-45":""}`} style={{width:px*1.72,height:px*1.72}}><CareerArtwork badgeKey={badgeKey} className="h-full w-full"/></span>
       )}
