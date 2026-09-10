@@ -27,6 +27,7 @@ export async function GET() {
       seen_at
     `)
     .eq("user_id", user.id)
+    .neq("type", "career_badges_launch")
     .is("seen_at", null)
     .order("created_at", { ascending: true })
     .limit(10);
