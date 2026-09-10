@@ -1,4 +1,5 @@
 import AppBottomNav from "@/components/AppBottomNav";
+import CareerBadgeLaunchModal from "@/components/notifications/CareerBadgeLaunchModal";
 import { NotificationToastCenter } from "@/components/notifications/NotificationToastCenter";
 import NativePushRegistration from "@/components/native/NativePushRegistration";
 import { getAuthContext } from "@/lib/auth/context";
@@ -22,6 +23,7 @@ export default async function AppAuthChrome() {
 
   return (
     <>
+      <CareerBadgeLaunchModal />
       <NotificationToastCenter />
       <NativePushRegistration />
       <AppBottomNav isAdmin={isAdmin} />
