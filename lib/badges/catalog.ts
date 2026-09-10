@@ -53,7 +53,7 @@ export type BadgeKey = (typeof ALL_BADGE_DEFINITIONS)[number]["key"];
 
 // Vorerst sind nur die beiden Karriere-Familien live. Die übrigen Definitionen
 // bleiben im Code und können später ohne Datenverlust wieder aktiviert werden.
-export const BADGE_DEFINITIONS = ALL_BADGE_DEFINITIONS.filter(
+export const BADGE_DEFINITIONS: readonly BadgeDefinition[] = ALL_BADGE_DEFINITIONS.filter(
   (badge) => badge.scope === "career",
 );
 
@@ -65,10 +65,5 @@ export function getBadgeDefinition(key: string) {
   return BADGE_DEFINITION_BY_KEY.get(key) ?? null;
 }
 
-export const SEASON_BADGES = BADGE_DEFINITIONS.filter(
-  (badge) => badge.scope === "season",
-);
-
-export const CAREER_BADGES = BADGE_DEFINITIONS.filter(
-  (badge) => badge.scope === "career",
-);
+export const SEASON_BADGES: readonly BadgeDefinition[] = [];
+export const CAREER_BADGES = BADGE_DEFINITIONS;
