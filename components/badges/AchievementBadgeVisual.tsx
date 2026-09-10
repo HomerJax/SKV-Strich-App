@@ -43,45 +43,45 @@ type TorusMaterial = {
 const APPEARANCE_TORUS_MATERIAL: Record<number, TorusMaterial> = {
   1: {
     surface:
-      "linear-gradient(145deg, #d4d4cf 0%, #777770 24%, #2f2f2c 51%, #111113 70%, #96968f 100%)",
+      "linear-gradient(145deg,#f4f4ef 0%,#8b8b84 18%,#363633 43%,#111113 66%,#74746f 82%,#deded8 100%)",
     glow: "rgba(148,163,184,.34)",
-    highlight: "rgba(255,255,255,.52)",
-    shadow: "rgba(9,9,11,.76)",
+    highlight: "rgba(255,255,255,.62)",
+    shadow: "rgba(3,7,18,.88)",
   },
   2: {
     surface:
-      "linear-gradient(145deg, #ffd0a8 0%, #c66b2e 22%, #6d3518 48%, #2d160b 70%, #df8b4c 100%)",
-    glow: "rgba(205,127,50,.46)",
-    highlight: "rgba(255,226,199,.68)",
-    shadow: "rgba(59,29,13,.76)",
+      "linear-gradient(145deg,#ffd4ae 0%,#e9853d 18%,#8b421d 43%,#32170a 66%,#b85b26 82%,#ffc28a 100%)",
+    glow: "rgba(249,115,22,.46)",
+    highlight: "rgba(255,229,204,.76)",
+    shadow: "rgba(67,30,10,.84)",
   },
   3: {
     surface:
-      "linear-gradient(145deg, #ffffff 0%, #dbe4ee 22%, #8796aa 47%, #445166 69%, #f8fafc 100%)",
-    glow: "rgba(203,213,225,.52)",
-    highlight: "rgba(255,255,255,.82)",
-    shadow: "rgba(51,65,85,.72)",
+      "linear-gradient(145deg,#ffffff 0%,#e7eef7 18%,#94a3b8 43%,#475569 66%,#cbd5e1 82%,#ffffff 100%)",
+    glow: "rgba(191,219,254,.52)",
+    highlight: "rgba(255,255,255,.9)",
+    shadow: "rgba(30,41,59,.8)",
   },
   4: {
     surface:
-      "linear-gradient(145deg, #fff7c7 0%, #ffd95e 22%, #d49a12 47%, #794604 70%, #f7c63a 100%)",
-    glow: "rgba(250,204,21,.56)",
-    highlight: "rgba(255,249,196,.86)",
-    shadow: "rgba(113,63,18,.72)",
+      "linear-gradient(145deg,#fff7c7 0%,#ffd85a 18%,#d69b13 43%,#7a4705 66%,#e7ad1a 82%,#fff0a6 100%)",
+    glow: "rgba(250,204,21,.58)",
+    highlight: "rgba(255,249,196,.92)",
+    shadow: "rgba(92,51,8,.82)",
   },
   5: {
     surface:
-      "linear-gradient(135deg, #f8fafc 0%, #67e8f9 16%, #60a5fa 31%, #c084fc 48%, #f472b6 65%, #facc15 82%, #ffffff 100%)",
-    glow: "rgba(168,85,247,.66)",
-    highlight: "rgba(255,255,255,.9)",
-    shadow: "rgba(76,29,149,.68)",
+      "linear-gradient(135deg,#ffffff 0%,#67e8f9 13%,#60a5fa 27%,#8b5cf6 42%,#ec4899 58%,#fb7185 70%,#facc15 84%,#ffffff 100%)",
+    glow: "rgba(168,85,247,.7)",
+    highlight: "rgba(255,255,255,.96)",
+    shadow: "rgba(76,29,149,.76)",
   },
   6: {
     surface:
-      "linear-gradient(132deg, #ffffff 0%, #22d3ee 12%, #3b82f6 27%, #8b5cf6 42%, #ec4899 58%, #fb7185 70%, #facc15 84%, #67e8f9 100%)",
-    glow: "rgba(34,211,238,.78)",
-    highlight: "rgba(255,255,255,.96)",
-    shadow: "rgba(88,28,135,.74)",
+      "linear-gradient(132deg,#ffffff 0%,#22d3ee 10%,#2563eb 24%,#7c3aed 39%,#ec4899 55%,#fb7185 68%,#facc15 81%,#2dd4bf 92%,#ffffff 100%)",
+    glow: "rgba(34,211,238,.8)",
+    highlight: "rgba(255,255,255,1)",
+    shadow: "rgba(88,28,135,.8)",
   },
 };
 
@@ -91,8 +91,8 @@ function TorusRing({
   widthScale,
   heightScale,
   angle,
-  thickness = 57,
   opacity = 1,
+  front = false,
   glowScale = 1,
 }: {
   px: number;
@@ -100,11 +100,12 @@ function TorusRing({
   widthScale: number;
   heightScale: number;
   angle: number;
-  thickness?: number;
   opacity?: number;
+  front?: boolean;
   glowScale?: number;
 }) {
-  const mask = `radial-gradient(ellipse at center, transparent 0 ${thickness - 3}%, #000 ${thickness}% 100%)`;
+  const mask =
+    "radial-gradient(ellipse at center, transparent 0 67%, #000 71% 100%)";
 
   return (
     <span
@@ -118,12 +119,13 @@ function TorusRing({
         background: material.surface,
         WebkitMaskImage: mask,
         maskImage: mask,
-        filter: `drop-shadow(0 ${Math.max(1, px * 0.045)}px ${Math.max(
+        clipPath: front ? "inset(49% -20% -24% -20%)" : undefined,
+        filter: `drop-shadow(0 ${Math.max(1, px * 0.04)}px ${Math.max(
           2,
-          px * 0.08 * glowScale,
+          px * 0.06 * glowScale,
         )}px ${material.shadow}) drop-shadow(0 0 ${Math.max(
           2,
-          px * 0.075 * glowScale,
+          px * 0.055 * glowScale,
         )}px ${material.glow})`,
       }}
       aria-hidden="true"
@@ -131,17 +133,17 @@ function TorusRing({
       <span
         className="absolute inset-0 rounded-[50%]"
         style={{
-          background: `linear-gradient(180deg, ${material.highlight} 0%, rgba(255,255,255,.18) 24%, transparent 43%, transparent 56%, rgba(0,0,0,.5) 78%, ${material.shadow} 100%)`,
+          background: `linear-gradient(180deg,${material.highlight} 0%,rgba(255,255,255,.22) 23%,transparent 43%,transparent 57%,rgba(0,0,0,.42) 78%,${material.shadow} 100%)`,
           WebkitMaskImage: mask,
           maskImage: mask,
           mixBlendMode: "soft-light",
         }}
       />
       <span
-        className="absolute inset-[3%] rounded-[50%]"
+        className="absolute inset-[2%] rounded-[50%]"
         style={{
           border: `1px solid ${material.highlight}`,
-          opacity: 0.34,
+          opacity: 0.36,
           WebkitMaskImage: mask,
           maskImage: mask,
         }}
@@ -150,64 +152,69 @@ function TorusRing({
   );
 }
 
-function AppearanceTorus({ stage, px }: { stage: number; px: number }) {
+function AppearanceOrbit({ stage, px }: { stage: number; px: number }) {
   if (px < SIZE.lg) return null;
 
   const material = APPEARANCE_TORUS_MATERIAL[Math.min(6, Math.max(1, stage))];
   const premium = stage >= 5;
   const goat = stage >= 6;
 
+  const rings = goat
+    ? [
+        { width: 1.58, height: 0.82, angle: -9, opacity: 1 },
+        { width: 1.46, height: 1.02, angle: 15, opacity: 0.88 },
+        { width: 1.38, height: 1.16, angle: -22, opacity: 0.7 },
+      ]
+    : premium
+      ? [
+          { width: 1.52, height: 0.8, angle: -9, opacity: 1 },
+          { width: 1.42, height: 0.98, angle: 14, opacity: 0.78 },
+        ]
+      : [{ width: 1.46, height: 0.76, angle: -9, opacity: 1 }];
+
   return (
-    <span className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
-      {premium ? (
+    <>
+      <span className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
         <span
-          className="absolute left-1/2 top-1/2 rounded-full blur-xl"
+          className="absolute left-1/2 top-1/2 rounded-full blur-lg"
           style={{
-            width: px * (goat ? 1.48 : 1.28),
-            height: px * (goat ? 0.72 : 0.62),
+            width: px * (goat ? 1.22 : premium ? 1.12 : 0.98),
+            height: px * (goat ? 0.64 : premium ? 0.58 : 0.5),
             transform: "translate(-50%, -50%)",
             background: material.glow,
-            opacity: goat ? 0.24 : 0.17,
+            opacity: goat ? 0.25 : premium ? 0.2 : 0.12,
           }}
         />
-      ) : null}
+        {rings.map((ring, index) => (
+          <TorusRing
+            key={`back-${index}`}
+            px={px}
+            material={material}
+            widthScale={ring.width}
+            heightScale={ring.height}
+            angle={ring.angle}
+            opacity={ring.opacity}
+            glowScale={goat ? 1.12 : premium ? 1.04 : 0.82}
+          />
+        ))}
+      </span>
 
-      <TorusRing
-        px={px}
-        material={material}
-        widthScale={goat ? 1.86 : premium ? 1.7 : 1.54}
-        heightScale={goat ? 0.98 : premium ? 0.94 : 0.9}
-        angle={-10}
-        thickness={goat ? 52 : premium ? 54 : 58}
-        glowScale={goat ? 1.2 : premium ? 1.08 : 0.85}
-      />
-
-      {premium ? (
-        <TorusRing
-          px={px}
-          material={material}
-          widthScale={goat ? 1.72 : 1.58}
-          heightScale={goat ? 1.18 : 1.1}
-          angle={14}
-          thickness={goat ? 55 : 58}
-          opacity={goat ? 0.9 : 0.78}
-          glowScale={goat ? 1.1 : 0.92}
-        />
-      ) : null}
-
-      {goat ? (
-        <TorusRing
-          px={px}
-          material={material}
-          widthScale={1.62}
-          heightScale={1.38}
-          angle={-22}
-          thickness={60}
-          opacity={0.72}
-          glowScale={0.9}
-        />
-      ) : null}
-    </span>
+      <span className="pointer-events-none absolute inset-0 z-20" aria-hidden="true">
+        {rings.map((ring, index) => (
+          <TorusRing
+            key={`front-${index}`}
+            px={px}
+            material={material}
+            widthScale={ring.width}
+            heightScale={ring.height}
+            angle={ring.angle}
+            opacity={ring.opacity}
+            front
+            glowScale={goat ? 1.08 : premium ? 1 : 0.78}
+          />
+        ))}
+      </span>
+    </>
   );
 }
 
@@ -224,12 +231,17 @@ export default function AchievementBadgeVisual({
     ? null
     : PREMIUM_ASSET_BY_BADGE_KEY[badgeKey] ?? null;
   const usePremiumArtwork = Boolean(premiumAsset) && px >= SIZE.lg;
+
   const coreScale =
-    badgeKey === "career_appearances_500" && px >= SIZE.lg
-      ? 1.28
-      : badgeKey === "career_appearances_250" && px >= SIZE.lg
-        ? 1.16
-        : 1;
+    !isCareerAppearance || px < SIZE.lg
+      ? 1
+      : badgeKey === "career_appearances_500"
+        ? 1.25
+        : badgeKey === "career_appearances_250"
+          ? 1.19
+          : badgeKey === "career_appearances_100"
+            ? 1.13
+            : 1.1;
 
   return (
     <span
@@ -240,9 +252,7 @@ export default function AchievementBadgeVisual({
       title={badgeKey}
       aria-label={badgeKey}
     >
-      {isCareerAppearance ? (
-        <AppearanceTorus stage={visual.stage} px={px} />
-      ) : null}
+      {isCareerAppearance ? <AppearanceOrbit stage={visual.stage} px={px} /> : null}
 
       {usePremiumArtwork && premiumAsset ? (
         <img
