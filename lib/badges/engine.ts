@@ -29,6 +29,10 @@ type PlayerRow = {
   is_guest: boolean | null;
 };
 
+type ClubMembershipRow = {
+  user_id: string | null;
+};
+
 type SessionPlayerRow = {
   session_id: number | null;
   player_id: number | null;
@@ -178,6 +182,112 @@ async function ensureBadgeActivation(clubId: string) {
     activationSeasonId,
     seasons,
   };
+}
+
+async function ensureBadgeLaunchNotifications(clubId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("club_memberships")
+    .select("user_id")
+    .eq("club_id", clubId);
+
+  if (error) {
+    throw new Error(`Club-Mitglieder für Badge-Start konnten nicht geladen werden: ${error.message}`);
+  }
+
+  const userIds = [
+    ...new Set(
+      ((data ?? []) as ClubMembershipRow[])
+        .map((row) => row.user_id)
+        .filter((userId): userId is string => Boolean(userId)),
+    ),
+  ];
+
+  if (userIds.length === 0) return;
+
+  const createdAt = new Date().toISOString();
+  const rows = userIds.map((userId) => ({
+    user_id: userId,
+    club_id: clubId,
+    type: "badge_launch",
+    title: "Neue Badges sind da",
+    body: "Ab jetzt sammelst du Badges für Einsätze, Serien, Disziplin und besondere Momente.",
+    cta_href: "/badges",
+    cta_label: "Badges ansehen",
+    secondary_cta_href: null,
+    secondary_cta_label: null,
+    payload: {
+      feature: BADGE_FEATURE_KEY,
+      clubId,
+    },
+    dedupe_key: `badge_launch:${clubId}:${userId}`,
+    created_at: createdAt,
+  }));
+
+  const { error: insertError } = await supabase
+    .from("user_notifications")
+    .upsert(rows, {
+      onConflict: "dedupe_key",
+      ignoreDuplicates: true,
+    });
+
+  if (insertError) {
+    throw new Error(`Badge-Start-Notifications konnten nicht angelegt werden: ${insertError.message}`);
+  }
+}
+
+async function createBadgeUnlockNotifications(
+  clubId: string,
+  players: PlayerRow[],
+  insertedRows: ExistingAchievementRow[],
+) {
+  const supabase = createAdminClient();
+  const userIdByPlayerId = new Map(
+    players
+      .filter((player) => Boolean(player.user_id))
+      .map((player) => [player.id, player.user_id as string]),
+  );
+  const baseTime = Date.now() + 25;
+
+  const rows = insertedRows.flatMap((row, index) => {
+    const userId = userIdByPlayerId.get(row.player_id);
+    const badge = getBadgeDefinition(row.badge_key);
+    if (!userId || !badge) return [];
+
+    return [
+      {
+        user_id: userId,
+        club_id: clubId,
+        type: "badge_unlocked",
+        title: badge.title,
+        body: badge.description,
+        cta_href: `/badges?player=${row.player_id}`,
+        cta_label: "Badges ansehen",
+        secondary_cta_href: null,
+        secondary_cta_label: null,
+        payload: {
+          badgeKey: row.badge_key,
+          playerId: row.player_id,
+          seasonRef: row.season_ref,
+          scope: badge.scope,
+          category: badge.category,
+        },
+        dedupe_key: `badge_unlocked:${clubId}:${row.player_id}:${row.badge_key}:${row.season_ref}`,
+        created_at: new Date(baseTime + index).toISOString(),
+      },
+    ];
+  });
+
+  if (rows.length === 0) return;
+
+  const { error } = await supabase.from("user_notifications").upsert(rows, {
+    onConflict: "dedupe_key",
+    ignoreDuplicates: true,
+  });
+
+  if (error) {
+    throw new Error(`Badge-Freischalt-Notifications konnten nicht angelegt werden: ${error.message}`);
+  }
 }
 
 function buildPresentPlayersBySession(rows: SessionPlayerRow[]) {
@@ -342,8 +452,8 @@ function computeOutcomeMetrics(
 
     if (!present) {
       if (hasAppeared) missedSinceAppearance += 1;
-      currentWins = 0;
-      currentLosses = 0;
+      // Ergebnisserien gehören dem Spieler: ein verpasstes Training pausiert die
+      // Serie, beendet sie aber nicht.
       continue;
     }
 
@@ -357,6 +467,10 @@ function computeOutcomeMetrics(
     missedSinceAppearance = 0;
 
     if (!outcome) {
+      // Ein noch offenes Ergebnis darf keine Serie vorzeitig verbinden. Sobald
+      // das Ergebnis gespeichert wird, wird die komplette Serie neu berechnet.
+      currentWins = 0;
+      currentLosses = 0;
       continue;
     }
 
@@ -386,12 +500,49 @@ function computeOutcomeMetrics(
     wins,
     losses,
     draws,
-    decided: wins + losses,
+    gamesWithResult: wins + losses + draws,
     maxWinStreak,
     maxLossStreak,
     curseBroken,
     comeback,
   };
+}
+
+function hasAttendanceWinCombo(
+  playerId: number,
+  sessions: SessionRow[],
+  presentBySession: Map<number, Set<number>>,
+  outcomesBySession: Map<number, Map<number, Outcome>>,
+  requiredAttendance = 7,
+  requiredWinStreak = 5,
+) {
+  if (sessions.length < requiredAttendance) return false;
+
+  for (let start = 0; start <= sessions.length - requiredAttendance; start += 1) {
+    const window = sessions.slice(start, start + requiredAttendance);
+    const attendedAll = window.every(
+      (session) => presentBySession.get(session.id)?.has(playerId) === true,
+    );
+
+    if (!attendedAll) continue;
+
+    let currentWins = 0;
+    let maxWins = 0;
+
+    for (const session of window) {
+      const outcome = outcomesBySession.get(session.id)?.get(playerId) ?? null;
+      if (outcome === "win") {
+        currentWins += 1;
+        maxWins = Math.max(maxWins, currentWins);
+      } else {
+        currentWins = 0;
+      }
+    }
+
+    if (maxWins >= requiredWinStreak) return true;
+  }
+
+  return false;
 }
 
 export async function syncClubAchievements(
@@ -409,6 +560,12 @@ export async function syncClubAchievements(
 
   const { badgesStartedAt, seasons } = await ensureBadgeActivation(clubId);
   const supabase = createAdminClient();
+
+  try {
+    await ensureBadgeLaunchNotifications(clubId);
+  } catch (error) {
+    console.error("Badge launch notification sync failed", error);
+  }
 
   const [
     { data: playersData, error: playersError },
@@ -587,6 +744,12 @@ export async function syncClubAchievements(
         presentBySession,
         outcomesBySession,
       );
+      const fullThrottle = hasAttendanceWinCombo(
+        player.id,
+        seasonSessions,
+        presentBySession,
+        outcomesBySession,
+      );
 
       addCandidate(candidates, {
         club_id: clubId,
@@ -681,9 +844,12 @@ export async function syncClubAchievements(
         });
       }
 
-      const winRate = outcomes.decided > 0 ? outcomes.wins / outcomes.decided : 0;
+      const winRate =
+        outcomes.gamesWithResult > 0
+          ? outcomes.wins / outcomes.gamesWithResult
+          : 0;
 
-      if (outcomes.decided >= 10 && winRate >= 0.7) {
+      if (outcomes.gamesWithResult >= 10 && winRate >= 0.7) {
         addCandidate(candidates, {
           club_id: clubId,
           player_id: player.id,
@@ -692,8 +858,9 @@ export async function syncClubAchievements(
           season_ref: seasonRef,
           grant_reason: {
             metric: "win_rate",
-            decided: outcomes.decided,
+            games_with_result: outcomes.gamesWithResult,
             wins: outcomes.wins,
+            draws: outcomes.draws,
             win_rate: Number(winRate.toFixed(4)),
             season: season.name,
           },
@@ -710,6 +877,22 @@ export async function syncClubAchievements(
           grant_reason: {
             metric: "comeback_after_absence",
             missed_sessions: 3,
+            season: season.name,
+          },
+        });
+      }
+
+      if (fullThrottle) {
+        addCandidate(candidates, {
+          club_id: clubId,
+          player_id: player.id,
+          badge_key: "attendance_win_combo_7_5",
+          season_id: season.id,
+          season_ref: seasonRef,
+          grant_reason: {
+            metric: "attendance_win_combo",
+            consecutive_attendances: 7,
+            consecutive_wins_within_run: 5,
             season: season.name,
           },
         });
@@ -746,7 +929,15 @@ export async function syncClubAchievements(
     throw new Error(`Neue Badges konnten nicht gespeichert werden: ${insertError.message}`);
   }
 
-  const inserted = ((insertedData ?? []) as ExistingAchievementRow[])
+  const rawInsertedRows = (insertedData ?? []) as ExistingAchievementRow[];
+
+  try {
+    await createBadgeUnlockNotifications(clubId, players, rawInsertedRows);
+  } catch (error) {
+    console.error("Badge unlock notification sync failed", error);
+  }
+
+  const inserted = rawInsertedRows
     .map((row) => {
       const badge = getBadgeDefinition(row.badge_key);
       if (!badge) return null;

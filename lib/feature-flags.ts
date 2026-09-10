@@ -191,6 +191,28 @@ function getServiceRoleClient() {
   });
 }
 
+async function syncBadgesAfterEnable(clubIds: string[]) {
+  if (clubIds.length === 0) return;
+
+  const { syncClubAchievements } = await import("@/lib/badges/engine");
+
+  for (let index = 0; index < clubIds.length; index += 4) {
+    const batch = clubIds.slice(index, index + 4);
+    const results = await Promise.allSettled(
+      batch.map((clubId) => syncClubAchievements(clubId)),
+    );
+
+    results.forEach((result, resultIndex) => {
+      if (result.status === "rejected") {
+        console.error(
+          `Badge sync after feature activation failed for ${batch[resultIndex]}`,
+          result.reason,
+        );
+      }
+    });
+  }
+}
+
 const getFeatureFlagsForClubCached = cache(
   async (clubId: string): Promise<ClubFeatureFlagMap> => {
     const supabase = await createClient();
@@ -262,6 +284,10 @@ export async function setFeatureFlagForClub(
   if (error) {
     throw new Error(`Feature Flag konnte nicht gespeichert werden: ${error.message}`);
   }
+
+  if (featureKey === "hall_of_fame_badges" && enabled) {
+    await syncBadgesAfterEnable([clubId]);
+  }
 }
 
 export async function setFeatureFlagForAllClubs(
@@ -304,6 +330,10 @@ export async function setFeatureFlagForAllClubs(
     throw new Error(
       `Feature Flag für alle Clubs konnte nicht gespeichert werden: ${error.message}`
     );
+  }
+
+  if (featureKey === "hall_of_fame_badges" && enabled) {
+    await syncBadgesAfterEnable(clubIds);
   }
 }
 

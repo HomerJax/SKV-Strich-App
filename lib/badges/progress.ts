@@ -326,10 +326,14 @@ export async function getPlayerBadgeProgress(
   for (let index = eligibleSeasonSessions.length - 1; index >= 0; index -= 1) {
     const session = eligibleSeasonSessions[index];
     const present = presentSessionIds.has(session.id);
-    if (!present) break;
+
+    // Siegesserien zählen nur die eigenen Einsätze. Ein verpasstes Training
+    // pausiert die Serie und wird beim Rückwärtszählen übersprungen.
+    if (!present) continue;
 
     const outcome = outcomesBySession.get(session.id) ?? null;
-    if (!outcome) continue;
+    // Ein noch nicht eingetragenes Ergebnis darf keine Serie überbrücken.
+    if (!outcome) break;
     if (outcome !== "win") break;
     winStreak += 1;
   }

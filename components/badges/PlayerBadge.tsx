@@ -8,7 +8,7 @@ import {
   type BadgeMeta,
 } from "@/lib/badges/helpers";
 
-type BadgeMode = "compact" | "hero";
+type BadgeMode = "compact" | "hero" | "emblem";
 type BadgeSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 type PlayerBadgeProps = {
@@ -74,6 +74,27 @@ const TIER_STYLE: Record<
   },
 };
 
+const EMBLEM_SURFACE: Record<Exclude<BadgeKey, "none">, string> = {
+  copper:
+    "linear-gradient(145deg, #d4d4cf 0%, #777770 31%, #343431 67%, #8e8e87 100%)",
+  bronze:
+    "linear-gradient(145deg, #f0a56d 0%, #9a4f1d 29%, #40200f 66%, #c66b2e 100%)",
+  silver:
+    "linear-gradient(145deg, #ffffff 0%, #cbd5e1 29%, #64748b 63%, #eef2f7 100%)",
+  gold:
+    "linear-gradient(145deg, #fff3b0 0%, #f6c443 27%, #9a5b05 63%, #f4b51f 100%)",
+  goat:
+    "linear-gradient(140deg, #0b1020 0%, #243b72 22%, #087f8c 43%, #7041a5 64%, #9b4d83 79%, #9a6508 100%)",
+};
+
+const EMBLEM_MARK: Record<Exclude<BadgeKey, "none">, string> = {
+  copper: "text-zinc-50",
+  bronze: "text-orange-50",
+  silver: "text-white",
+  gold: "text-yellow-50",
+  goat: "text-white",
+};
+
 const HERO_ASSET_BY_KEY: Record<Exclude<BadgeKey, "none">, string> = {
   copper: "blech.webp",
   bronze: "bronze.webp",
@@ -136,17 +157,11 @@ export default function PlayerBadge({
       >
         <span
           className="relative inline-flex items-center justify-center rounded-[32%] border border-slate-200 bg-slate-100 text-slate-300"
-          style={{
-            width: px,
-            height: px,
-          }}
+          style={{ width: px, height: px }}
         >
           <StrikrBadgeMark
             className="text-slate-300"
-            style={{
-              width: px * 0.62,
-              height: px * 0.62,
-            }}
+            style={{ width: px * 0.62, height: px * 0.62 }}
           />
         </span>
       </span>
@@ -205,6 +220,56 @@ export default function PlayerBadge({
     );
   }
 
+  if (mode === "emblem") {
+    const isGoat = badge.key === "goat";
+
+    return (
+      <span
+        className={`relative inline-flex shrink-0 items-center justify-center ${
+          grayscale ? "grayscale" : ""
+        } ${className}`}
+        style={{ width: px, height: px }}
+        title={title ?? badge.label}
+        aria-label={title ?? badge.label}
+      >
+        <span
+          className="pointer-events-none absolute inset-[-7%] rounded-[34%] blur-[7px]"
+          style={{
+            background: style.glow,
+            opacity: grayscale ? 0.12 : isGoat ? 0.48 : 0.34,
+          }}
+          aria-hidden="true"
+        />
+        <span
+          className="relative inline-flex h-full w-full items-center justify-center overflow-hidden rounded-[28%]"
+          style={{
+            background: EMBLEM_SURFACE[badge.key],
+            border: `1px solid ${style.border}`,
+            boxShadow:
+              "inset 0 2px 2px rgba(255,255,255,.48), inset 0 -7px 9px rgba(0,0,0,.32), inset 2px 0 4px rgba(255,255,255,.12), 0 7px 13px rgba(2,6,23,.34)",
+          }}
+        >
+          <span
+            className="pointer-events-none absolute inset-[5%] rounded-[24%] border border-white/15"
+            aria-hidden="true"
+          />
+          <span
+            className="pointer-events-none absolute left-[10%] right-[10%] top-[8%] h-[28%] rounded-[50%] bg-white/20 blur-[6px]"
+            aria-hidden="true"
+          />
+          <span
+            className="pointer-events-none absolute bottom-[7%] left-[18%] right-[18%] h-[12%] rounded-full bg-black/24 blur-[4px]"
+            aria-hidden="true"
+          />
+          <StrikrBadgeMark
+            className={`${EMBLEM_MARK[badge.key]} relative z-10 drop-shadow-[0_2px_2px_rgba(0,0,0,.5)]`}
+            style={{ width: px * 0.62, height: px * 0.62 }}
+          />
+        </span>
+      </span>
+    );
+  }
+
   return (
     <span
       className={`relative inline-flex shrink-0 items-center justify-center ${
@@ -235,10 +300,7 @@ export default function PlayerBadge({
       >
         <StrikrBadgeMark
           className={style.mark}
-          style={{
-            width: px * 0.62,
-            height: px * 0.62,
-          }}
+          style={{ width: px * 0.62, height: px * 0.62 }}
         />
       </span>
     </span>
