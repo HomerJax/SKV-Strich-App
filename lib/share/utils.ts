@@ -130,11 +130,48 @@ async function tryNativeShare(file: File, title: string) {
   }
 }
 
+export async function shareImageFile(
+  file: File,
+  title = "SiegerCard",
+  text = "SiegerCard aus strikr"
+) {
+  if (typeof window === "undefined") {
+    throw new Error("Teilen ist hier nicht verfügbar.");
+  }
+
+  // Native apps first: Android WebView can expose navigator.share while file
+  // sharing through the Web Share API still fails. Capacitor is the reliable path.
+  if (await tryNativeShare(file, title)) {
+    return { mode: "shared_file" as const };
+  }
+
+  if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+    throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+  }
+
+  if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [file] })) {
+    throw new Error("Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht.");
+  }
+
+  try {
+    await navigator.share({ files: [file], title, text });
+    return { mode: "shared_file" as const };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return { mode: "cancelled" as const };
+    }
+
+    throw new Error(
+      error instanceof Error ? error.message : "SiegerCard konnte nicht geteilt werden."
+    );
+  }
+}
+
 export async function shareImageFromUrl({
   imageUrl,
   fileName = "strikr-share.png",
   title = "SiegerCard",
-  text = "SiegerCard aus Strikr",
+  text = "SiegerCard aus strikr",
 }: ShareImageFromUrlParams) {
   if (typeof window === "undefined") {
     throw new Error("Teilen ist hier nicht verfügbar.");
@@ -142,56 +179,5 @@ export async function shareImageFromUrl({
 
   const absoluteUrl = new URL(imageUrl, window.location.origin).toString();
   const file = await fetchImageAsFile(absoluteUrl, fileName);
-
-  if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-    if (await tryNativeShare(file, title)) {
-      return { mode: "shared_file" as const };
-    }
-
-    throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
-  }
-
-  if (typeof navigator.canShare === "function") {
-    const canShareFiles = navigator.canShare({ files: [file] });
-
-    if (!canShareFiles) {
-      if (await tryNativeShare(file, title)) {
-        return { mode: "shared_file" as const };
-      }
-
-      throw new Error(
-        "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
-      );
-    }
-  }
-
-  try {
-    await navigator.share({
-      files: [file],
-      title,
-      text,
-    });
-
-    return {
-      mode: "shared_file" as const,
-    };
-  } catch (error) {
-    const errorName = error instanceof Error ? error.name : "";
-
-    if (errorName === "AbortError") {
-      return {
-        mode: "cancelled" as const,
-      };
-    }
-
-    if (await tryNativeShare(file, title)) {
-      return { mode: "shared_file" as const };
-    }
-
-    throw new Error(
-      error instanceof Error
-        ? error.message
-        : "SiegerCard konnte nicht geteilt werden."
-    );
-  }
+  return shareImageFile(file, title, text);
 }
