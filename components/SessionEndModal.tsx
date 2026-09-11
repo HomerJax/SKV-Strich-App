@@ -313,7 +313,7 @@ export default function SessionEndModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100]">
+    <div className="fixed inset-0 z-[1000]">
       <button
         type="button"
         aria-label="Modal schließen"
@@ -321,10 +321,10 @@ export default function SessionEndModal({
         onClick={showMvpFollowup ? handleCloseAll : handleCloseMain}
       />
 
-      <div className="absolute inset-x-0 bottom-0 top-auto flex max-h-[92dvh] justify-center p-3 sm:inset-0 sm:items-center sm:p-4">
+      <div className="absolute inset-0 flex items-end justify-center overflow-y-auto p-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:items-center sm:p-4">
         {!showMvpFollowup ? (
-          <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl">
-            <div className="bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_42%),linear-gradient(135deg,#020617_0%,#0f172a_55%,#334155_100%)] px-4 py-4 text-white sm:px-5">
+          <div className="flex max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl sm:max-h-[92dvh]">
+            <div className="shrink-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_42%),linear-gradient(135deg,#020617_0%,#0f172a_55%,#334155_100%)] px-4 py-4 text-white sm:px-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
@@ -369,7 +369,7 @@ export default function SessionEndModal({
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
               <div className="rounded-[22px] border border-slate-200 bg-slate-50 p-4">
                 <div className="text-sm font-semibold text-slate-900">
                   Jetzt teilen
@@ -406,7 +406,7 @@ export default function SessionEndModal({
               ) : null}
             </div>
 
-            <div className="border-t border-slate-200 p-3">
+            <div className="shrink-0 border-t border-slate-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
               <Button tone="secondary" onClick={handleCloseMain}>
                 Schließen
               </Button>
