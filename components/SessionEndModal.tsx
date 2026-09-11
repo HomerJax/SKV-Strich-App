@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchImageAsFile } from "@/lib/share/utils";
+import { fetchImageAsFile, shareImageFile } from "@/lib/share/utils";
 
 type SessionEndModalProps = {
   open: boolean;
@@ -210,35 +210,18 @@ export default function SessionEndModal({
 
     try {
       setWinnerShareMessage(null);
+      const result = await shareImageFile(
+        preparedWinnerShareFile,
+        "strikr SiegerCard",
+        "SiegerCard aus strikr"
+      );
 
-      if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-        onShareSocial();
-        return;
-      }
-
-      if (typeof navigator.canShare === "function") {
-        const canShareFiles = navigator.canShare({
-          files: [preparedWinnerShareFile],
-        });
-
-        if (!canShareFiles) {
-          throw new Error(
-            "Dieser Browser unterstützt das direkte Teilen der SiegerCard nicht."
-          );
-        }
-      }
-
-      await navigator.share({
-        files: [preparedWinnerShareFile],
-      });
-
-      setWinnerShareMessage("SiegerCard erfolgreich geteilt.");
+      setWinnerShareMessage(
+        result.mode === "cancelled"
+          ? "SiegerCard ist bereit."
+          : "SiegerCard erfolgreich geteilt."
+      );
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        setWinnerShareMessage("SiegerCard ist bereit.");
-        return;
-      }
-
       setWinnerShareMessage(
         error instanceof Error
           ? error.message
