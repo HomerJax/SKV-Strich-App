@@ -13,7 +13,7 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          npm ci
+          npm install
 
       - name: Restore Firebase Android config
         script: |
@@ -92,7 +92,7 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          npm ci
+          npm install
 
       - name: Restore Firebase Android config
         script: |
