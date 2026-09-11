@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export const BIG_UPDATE_STORAGE_KEY = "strikr-big-update-fullscreen-2026-09-10-v1";
+export const BIG_UPDATE_STORAGE_KEY = "strikr-big-update-fullscreen-2026-09-11-v2";
 export const BIG_UPDATE_SEEN_EVENT = "strikr-big-update-seen";
 
 const updates = [
