@@ -82,6 +82,54 @@ export async function fetchImageAsFile(url: string, fileName: string) {
   });
 }
 
+async function fileToBase64(file: File) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+
+  return btoa(binary);
+}
+
+async function tryNativeShare(file: File, title: string) {
+  try {
+    const [{ Capacitor }, { Directory, Filesystem }, { Share }] = await Promise.all([
+      import("@capacitor/core"),
+      import("@capacitor/filesystem"),
+      import("@capacitor/share"),
+    ]);
+
+    if (!Capacitor.isNativePlatform()) return false;
+    if (!Capacitor.isPluginAvailable("Share") || !Capacitor.isPluginAvailable("Filesystem")) {
+      return false;
+    }
+
+    const data = await fileToBase64(file);
+    const extension = file.type === "image/jpeg" ? "jpg" : "png";
+    const path = `share/${Date.now()}-strikr-share.${extension}`;
+    const written = await Filesystem.writeFile({
+      path,
+      data,
+      directory: Directory.Cache,
+      recursive: true,
+    });
+
+    await Share.share({
+      title,
+      files: [written.uri],
+      dialogTitle: title,
+    });
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function shareImageFromUrl({
   imageUrl,
   fileName = "strikr-share.png",
@@ -92,19 +140,25 @@ export async function shareImageFromUrl({
     throw new Error("Teilen ist hier nicht verfügbar.");
   }
 
-  if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-    throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
-  }
-
   const absoluteUrl = new URL(imageUrl, window.location.origin).toString();
   const file = await fetchImageAsFile(absoluteUrl, fileName);
 
+  if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+    if (await tryNativeShare(file, title)) {
+      return { mode: "shared_file" as const };
+    }
+
+    throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+  }
+
   if (typeof navigator.canShare === "function") {
-    const canShareFiles = navigator.canShare({
-      files: [file],
-    });
+    const canShareFiles = navigator.canShare({ files: [file] });
 
     if (!canShareFiles) {
+      if (await tryNativeShare(file, title)) {
+        return { mode: "shared_file" as const };
+      }
+
       throw new Error(
         "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
       );
@@ -128,6 +182,10 @@ export async function shareImageFromUrl({
       return {
         mode: "cancelled" as const,
       };
+    }
+
+    if (await tryNativeShare(file, title)) {
+      return { mode: "shared_file" as const };
     }
 
     throw new Error(
