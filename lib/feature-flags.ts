@@ -4,6 +4,13 @@ import { cache } from "react";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
+/**
+ * Compatibility keys.
+ *
+ * Former rollout flags stay in the type/map for now so old DB rows and existing
+ * call sites keep working while the product is cleaned up. Only
+ * FEATURE_FLAG_DEFINITIONS below are real rollout flags shown to power users.
+ */
 export const FEATURE_FLAG_KEYS = [
   "player_stats_overview",
   "player_trends",
@@ -33,124 +40,23 @@ export type FeatureFlagDefinition = {
   audience: "players" | "internal" | "mixed";
 };
 
+/**
+ * Only features that are genuinely still rolled out club-by-club belong here.
+ * Premium access stays separate in lib/billing.
+ */
 export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
   {
-    key: "player_stats_overview",
-    title: "Player Stats Overview",
-    description:
-      "Grundstats für Spieler: Einsätze, Siege, Niederlagen, Unentschieden und Siegquote.",
-    audience: "players",
-  },
-  {
-    key: "player_trends",
-    title: "Player Trends",
-    description:
-      "Trend, in welche Richtung sich ein Spieler entwickelt und wie stark der Ausschlag ist.",
-    audience: "players",
-  },
-  {
-    key: "team_impact",
-    title: "Team Impact",
-    description:
-      "Zeigt, wie Teams mit diesem Spieler performen. Emotional stark, aber sensibel formulieren.",
-    audience: "players",
-  },
-  {
-    key: "best_month",
-    title: "Bester Monat",
-    description:
-      "Hebt hervor, in welchem Monat ein Spieler besonders stark oder erfolgreich war.",
-    audience: "players",
-  },
-  {
-    key: "most_teammates",
-    title: "Häufigste Mitspieler",
-    description:
-      "Zeigt, mit welchen Mitspielern man am häufigsten zusammen in einem Team war.",
-    audience: "players",
-  },
-  {
-    key: "favorite_winning_team",
-    title: "Häufigstes Siegerteam",
-    description:
-      "Zeigt, mit welchen Konstellationen ein Spieler am häufigsten gewonnen hat.",
-    audience: "players",
-  },
-  {
-    key: "best_phase",
-    title: "Stärkste Phase",
-    description:
-      "Hebt die beste Phase eines Spielers hervor, z. B. eine starke Serie über mehrere Trainings.",
-    audience: "players",
-  },
-  {
-    key: "new_share_cards",
-    title: "New Share Cards",
-    description:
-      "Neue und schönere Share-Bilder für Ergebnisse, Aufstellungen und spätere Social-Posts.",
-    audience: "mixed",
-  },
-  {
-    key: "experimental_generator",
-    title: "Experimental Generator",
-    description:
-      "Schaltet neue oder alternative Teamgenerator-Logik für ausgewählte Clubs frei.",
-    audience: "internal",
-  },
-  {
-    key: "founder_tools",
-    title: "Power User Tools",
-    description:
-      "Interne Power-User-Funktionen, Debug-Hilfen und erweiterte Kontrollmöglichkeiten.",
-    audience: "internal",
-  },
-  {
-    key: "session_mvp_voting",
-    title: "MVP Voting nach Training",
-    description:
-      "Ermöglicht nach abgeschlossenen Trainingssessions ein MVP-Voting unter den anwesenden Teilnehmern. Ideal für Pilotclubs und gestaffelte Rollouts.",
-    audience: "players",
-  },
-  {
     key: "hall_of_fame_badges",
-    title: "Hall of Fame & Badges",
+    title: "Hall of Fame & Trophäen",
     description:
-      "Aktiviert automatische Saison-, Serien- und Karriere-Badges sowie die Hall of Fame mit Vergleich zwischen Spielern. MVPs sind nicht Teil dieser Badge-Logik.",
-    audience: "players",
-  },
-  {
-    key: "use_nicknames",
-    title: "Spitznamen anzeigen",
-    description:
-      "Steuert, ob im Club Spitznamen statt Vor- und Nachname angezeigt werden.",
-    audience: "players",
-  },
-  {
-    key: "use_field_view",
-    title: "Spielfeldansicht",
-    description:
-      "Zeigt die Teamaufstellung in Trainingssessions als kompakte Spielfeldansicht statt als klassische Teamliste.",
-    audience: "internal",
-  },
-  {
-    key: "home_session_rsvp",
-    title: "Zu-/Absage auf Homescreen",
-    description:
-      "Zeigt auf dem Homescreen die nächste Session mit eigenem Status und den Aktionen 'Ich bin dabei' oder 'Diesmal nicht'.",
-    audience: "players",
-  },
-  {
-    key: "session_types",
-    title: "Session Types",
-    description:
-      "Erlaubt neben Trainings auch Spiele und reine Orga-Termine als Session-Typen. So lassen sich Zusagen und Planung ohne Trainings-Stats in STRIKR abbilden.",
+      "Kontrollierter Rollout der Hall of Fame und automatischen Karriere-Trophäen. Sobald stabil, wird auch das zum Standard.",
     audience: "players",
   },
   {
     key: "penalties",
     title: "Strafen",
     description:
-      "Aktiviert den Strafenkatalog für Kisten, Geldstrafen und andere offene Team-Schulden. Ideal für Hobby- und Amateurteams mit Teamkultur.",
+      "Aktiviert den noch im Ausbau befindlichen Strafenkatalog für Kisten, Geldstrafen und offene Team-Schulden.",
     audience: "players",
   },
 ];
@@ -168,9 +74,33 @@ export type ClubFeatureFlagMap = Record<FeatureFlagKey, boolean>;
 
 export function getDefaultFeatureFlagMap(): ClubFeatureFlagMap {
   return FEATURE_FLAG_KEYS.reduce((acc, key) => {
-    acc[key] = key === "player_stats_overview";
+    acc[key] = false;
     return acc;
   }, {} as ClubFeatureFlagMap);
+}
+
+function applyCoreProductDefaults(flags: ClubFeatureFlagMap) {
+  // Fester strikr-Standard. Diese Funktionen dürfen nicht mehr clubweise
+  // versehentlich abgeschaltet werden.
+  flags.player_stats_overview = true;
+  flags.player_trends = true;
+  flags.team_impact = true;
+  flags.use_field_view = true;
+  flags.home_session_rsvp = true;
+  flags.session_types = true;
+
+  // Das alte MVP-pro-Training-Modell wird bewusst nicht mehr ausgerollt.
+  // Ein späteres Halbserien-/Saison-Voting bekommt ein neues Konzept.
+  flags.session_mvp_voting = false;
+
+  // Alte/tote Rollout-Schalter bleiben aus, bis ihre Kompatibilitäts-Keys ganz
+  // entfernt werden können.
+  flags.best_phase = false;
+  flags.new_share_cards = false;
+  flags.experimental_generator = false;
+  flags.founder_tools = false;
+
+  return flags;
 }
 
 function getServiceRoleClient() {
@@ -237,11 +167,7 @@ const getFeatureFlagsForClubCached = cache(
       }
     }
 
-    // Basis-Stats sind für jeden Club erreichbar. Nur die einzelnen Stats-Module
-    // werden weiterhin pro Club über ihre eigenen Feature Flags gesteuert.
-    flags.player_stats_overview = true;
-
-    return flags;
+    return applyCoreProductDefaults(flags);
   }
 );
 
@@ -357,13 +283,15 @@ export async function ensureFeatureFlagRowsForClub(clubId: string) {
     )
   );
 
-  const missingPayload = FEATURE_FLAG_KEYS.filter(
-    (featureKey) => !existingKeys.has(featureKey)
-  ).map((featureKey) => ({
-    club_id: clubId,
-    feature_key: featureKey,
-    enabled: featureKey === "player_stats_overview",
-  }));
+  // Neue Clubs bekommen nur noch Zeilen für echte Rollout-Flags.
+  const managedKeys = FEATURE_FLAG_DEFINITIONS.map((definition) => definition.key);
+  const missingPayload = managedKeys
+    .filter((featureKey) => !existingKeys.has(featureKey))
+    .map((featureKey) => ({
+      club_id: clubId,
+      feature_key: featureKey,
+      enabled: false,
+    }));
 
   if (missingPayload.length === 0) {
     return;
