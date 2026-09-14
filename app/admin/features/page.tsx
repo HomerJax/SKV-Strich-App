@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { CheckCircle2 } from "lucide-react";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { canManageClub } from "@/lib/auth/access";
-import {
-  getFeatureFlagsForClub,
-  setFeatureFlagForClub,
-  type FeatureFlagKey,
-} from "@/lib/feature-flags";
+
+const standardFeatures = [
+  "Persönliche Stats & Form",
+  "Team Impact",
+  "Spielfeldansicht",
+  "Zu-/Absage auf dem Homescreen",
+  "Training, Spiel & Orga-Termin als Session-Typen",
+];
 
 export default async function AdminFeaturesPage() {
-  const { clubId, membership, isPowerUser } = await requireClub();
+  const { membership, isPowerUser } = await requireClub();
 
   const hasAdminAccess = canManageClub({
     isPowerUser,
@@ -20,66 +23,6 @@ export default async function AdminFeaturesPage() {
 
   if (!hasAdminAccess) {
     redirect(AUTH_ROUTES.dashboard);
-  }
-
-  const flags = await getFeatureFlagsForClub(clubId);
-  const useNicknames = flags.use_nicknames;
-  const useFieldView = Boolean(
-    (flags as Record<string, boolean | undefined>).use_field_view
-  );
-
-  async function toggleNicknameFlag(formData: FormData) {
-    "use server";
-
-    const { clubId, membership, isPowerUser } = await requireClub();
-
-    const hasAdminAccess = canManageClub({
-      isPowerUser,
-      role: membership.role,
-    });
-
-    if (!hasAdminAccess) {
-      redirect(AUTH_ROUTES.dashboard);
-    }
-
-    const nextEnabled = formData.get("enabled") === "1";
-
-    await setFeatureFlagForClub(
-      clubId,
-      "use_nicknames" as FeatureFlagKey,
-      nextEnabled
-    );
-
-    revalidatePath("/admin/features");
-    revalidatePath("/admin/players");
-    revalidatePath("/stats");
-    revalidatePath("/sessions");
-  }
-
-  async function toggleFieldViewFlag(formData: FormData) {
-    "use server";
-
-    const { clubId, membership, isPowerUser } = await requireClub();
-
-    const hasAdminAccess = canManageClub({
-      isPowerUser,
-      role: membership.role,
-    });
-
-    if (!hasAdminAccess) {
-      redirect(AUTH_ROUTES.dashboard);
-    }
-
-    const nextEnabled = formData.get("enabled") === "1";
-
-    await setFeatureFlagForClub(
-      clubId,
-      "use_field_view" as FeatureFlagKey,
-      nextEnabled
-    );
-
-    revalidatePath("/admin/features");
-    revalidatePath("/sessions");
   }
 
   return (
@@ -98,111 +41,30 @@ export default async function AdminFeaturesPage() {
           Admin
         </div>
         <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-          Anzeige & Feature Flags
+          Features
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Hier steuerst du clubweit, wie Spielernamen angezeigt werden und welche
-          neuen Ansichten zum Testen aktiv sind.
+          Die wichtigsten strikr-Funktionen sind inzwischen Produktstandard und
+          müssen nicht mehr pro Club aktiviert werden.
         </p>
 
-        {isPowerUser ? (
-          <div className="mt-4 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900">
-            Power User Modus: Du prüfst diesen Verein ohne echte Mitgliedschaft.
-          </div>
-        ) : null}
-
-        <div className="mt-6 space-y-4">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-base font-semibold text-slate-950">
-                  Spitznamen anzeigen
-                </div>
-                <p className="mt-1 text-sm text-slate-600">
-                  Wenn aktiv, werden im Club bevorzugt Spitznamen angezeigt. Wenn
-                  deaktiviert, werden Vor- und Nachname verwendet.
-                </p>
-              </div>
-
-              <span
-                className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                  useNicknames
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-slate-200 text-slate-700"
-                }`}
-              >
-                {useNicknames ? "Aktiv" : "Aus"}
-              </span>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {standardFeatures.map((feature) => (
+            <div
+              key={feature}
+              className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-950"
+            >
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
+              <span>{feature}</span>
             </div>
+          ))}
+        </div>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              <form action={toggleNicknameFlag}>
-                <input type="hidden" name="enabled" value="1" />
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Spitznamen aktivieren
-                </button>
-              </form>
-
-              <form action={toggleNicknameFlag}>
-                <input type="hidden" name="enabled" value="0" />
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Spitznamen deaktivieren
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-base font-semibold text-slate-950">
-                  Spielfeldansicht testen
-                </div>
-                <p className="mt-1 text-sm text-slate-600">
-                  Wenn aktiv, wird in der Trainingssession statt der klassischen
-                  Teamliste eine kompakte Spielfeldansicht angezeigt.
-                </p>
-              </div>
-
-              <span
-                className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                  useFieldView
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-slate-200 text-slate-700"
-                }`}
-              >
-                {useFieldView ? "Aktiv" : "Aus"}
-              </span>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <form action={toggleFieldViewFlag}>
-                <input type="hidden" name="enabled" value="1" />
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Spielfeldansicht aktivieren
-                </button>
-              </form>
-
-              <form action={toggleFieldViewFlag}>
-                <input type="hidden" name="enabled" value="0" />
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Spielfeldansicht deaktivieren
-                </button>
-              </form>
-            </div>
-          </div>
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+          Noch nicht allgemein fertige Module wie <strong>Strafen</strong> sowie
+          der aktuelle Rollout der <strong>Hall of Fame</strong> bleiben intern
+          steuerbar. Das alte MVP-pro-Training-Voting ist deaktiviert und wird
+          später als Halbserien-/Saison-Voting neu gedacht.
         </div>
       </section>
     </main>
