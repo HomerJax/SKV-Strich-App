@@ -10,6 +10,14 @@ const config: CapacitorConfig = {
     url: "https://www.strikr.team",
     cleartext: false,
   },
+  android: {
+    includePlugins: [
+      "@capacitor-firebase/messaging",
+      "@capacitor/app",
+      "@capacitor/filesystem",
+      "@capacitor/share",
+    ],
+  },
   ios: {
     includePlugins: [
       "@capacitor-firebase/messaging",
