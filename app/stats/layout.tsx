@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Award, Trophy } from "lucide-react";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import ExtendedPersonalStats from "@/components/stats/ExtendedPersonalStats";
 
 export default async function StatsLayout({
   children,
@@ -14,6 +15,7 @@ export default async function StatsLayout({
   return (
     <>
       {children}
+      <ExtendedPersonalStats />
 
       {flags.hall_of_fame_badges ? (
         <Link
