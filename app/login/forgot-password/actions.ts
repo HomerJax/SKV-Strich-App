@@ -46,10 +46,9 @@ export async function requestPasswordResetAction(
 
   const supabase = await createClient();
   const baseUrl = await getBaseUrl();
-  const resetPage = next
-    ? `/login/reset-password?next=${encodeURIComponent(next)}`
-    : "/login/reset-password";
-  const redirectTo = `${baseUrl}/auth/callback?next=${encodeURIComponent(resetPage)}`;
+  const redirectTo = next
+    ? `${baseUrl}/login/reset-password?next=${encodeURIComponent(next)}`
+    : `${baseUrl}/login/reset-password`;
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo,
