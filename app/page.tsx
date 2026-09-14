@@ -83,12 +83,13 @@ function StoreButtons() {
         rel="noreferrer"
         data-analytics-event="landing_app_store_click"
         aria-label="strikr im App Store laden"
-        className="inline-flex transition hover:opacity-85"
+        className="flex h-14 w-[168px] items-center justify-center transition hover:opacity-85"
       >
         <img
           src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/de-de?size=250x83"
           alt="Im App Store laden"
-          className="h-[48px] w-auto"
+          className="max-h-12 max-w-[160px] object-contain"
+          style={{ width: "160px", height: "48px" }}
         />
       </a>
       <a
@@ -97,12 +98,13 @@ function StoreButtons() {
         rel="noreferrer"
         data-analytics-event="landing_play_store_click"
         aria-label="strikr bei Google Play laden"
-        className="inline-flex transition hover:opacity-85"
+        className="flex h-14 w-[168px] items-center justify-center overflow-hidden transition hover:opacity-85"
       >
         <img
           src="https://play.google.com/intl/en_us/badges/static/images/badges/de_badge_web_generic.png"
           alt="Jetzt bei Google Play"
-          className="h-[58px] w-auto"
+          className="object-contain"
+          style={{ width: "168px", height: "56px", objectFit: "contain" }}
         />
       </a>
     </div>
