@@ -117,7 +117,7 @@ export default function HeaderAuthControls({
 
           <div className="mt-3 flex items-center justify-between text-xs">
             <Link
-              href="/forgot-password"
+              href={`/login/forgot-password?next=${encodeURIComponent(next)}`}
               className="text-neutral-600 underline hover:text-neutral-900"
             >
               Passwort vergessen?
