@@ -3,11 +3,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import {
-  ensureFeatureFlagRowsForClub,
   FEATURE_FLAG_DEFINITIONS,
-  FEATURE_FLAG_KEYS,
-  FeatureFlagKey,
-  getFeatureFlagsForClub,
+  type FeatureFlagKey,
   setFeatureFlagForAllClubs,
   setFeatureFlagForClub,
 } from "@/lib/feature-flags";
@@ -19,11 +16,10 @@ type ClubRow = {
   created_at: string | null;
 };
 
-type PageProps = {
-  searchParams?: Promise<{
-    club?: string;
-    saved?: string;
-  }>;
+type FlagRow = {
+  club_id: string;
+  feature_key: string;
+  enabled: boolean;
 };
 
 function getClubLabel(club: ClubRow) {
@@ -34,45 +30,40 @@ function getClubLabel(club: ClubRow) {
   );
 }
 
-function audienceLabel(audience: "players" | "internal" | "mixed") {
-  if (audience === "players") return "Spieler";
-  if (audience === "internal") return "Intern";
-  return "Gemischt";
-}
-
-export default async function PowerUserFlagsPage({ searchParams }: PageProps) {
+export default async function PowerUserFlagsPage() {
   await requirePowerUser();
 
-  const resolvedSearchParams = (await searchParams) ?? {};
-  const selectedClubId = resolvedSearchParams.club ?? "";
-  const saved = resolvedSearchParams.saved === "1";
-
   const supabase = await createClient();
+  const managedKeys = FEATURE_FLAG_DEFINITIONS.map((flag) => flag.key);
 
-  const { data: clubsData, error: clubsError } = await supabase
-    .from("clubs")
-    .select("id, name, display_name, created_at")
-    .order("created_at", { ascending: true });
+  const [clubsResult, flagsResult] = await Promise.all([
+    supabase
+      .from("clubs")
+      .select("id, name, display_name, created_at")
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("club_feature_flags")
+      .select("club_id, feature_key, enabled")
+      .in("feature_key", managedKeys),
+  ]);
 
-  if (clubsError) {
-    throw new Error(`Clubs konnten nicht geladen werden: ${clubsError.message}`);
+  if (clubsResult.error) {
+    throw new Error(`Clubs konnten nicht geladen werden: ${clubsResult.error.message}`);
   }
 
-  const clubs = (clubsData ?? []) as ClubRow[];
+  if (flagsResult.error) {
+    throw new Error(`Feature Flags konnten nicht geladen werden: ${flagsResult.error.message}`);
+  }
 
-  const effectiveClubId =
-    selectedClubId && clubs.some((club) => club.id === selectedClubId)
-      ? selectedClubId
-      : clubs[0]?.id ?? "";
+  const clubs = (clubsResult.data ?? []) as ClubRow[];
+  const rows = (flagsResult.data ?? []) as FlagRow[];
 
-  let flags = FEATURE_FLAG_KEYS.reduce((acc, key) => {
-    acc[key] = false;
-    return acc;
-  }, {} as Record<FeatureFlagKey, boolean>);
-
-  if (effectiveClubId) {
-    await ensureFeatureFlagRowsForClub(effectiveClubId);
-    flags = await getFeatureFlagsForClub(effectiveClubId);
+  const enabledByClub = new Map<string, Set<string>>();
+  for (const row of rows) {
+    if (!row.enabled) continue;
+    const current = enabledByClub.get(row.club_id) ?? new Set<string>();
+    current.add(row.feature_key);
+    enabledByClub.set(row.club_id, current);
   }
 
   async function toggleFlagAction(formData: FormData) {
@@ -81,23 +72,14 @@ export default async function PowerUserFlagsPage({ searchParams }: PageProps) {
     await requirePowerUser();
 
     const clubId = String(formData.get("club_id") ?? "").trim();
-    const featureKeyRaw = String(formData.get("feature_key") ?? "").trim();
-    const nextEnabled = formData.get("enabled") === "1";
+    const featureKey = String(formData.get("feature_key") ?? "").trim() as FeatureFlagKey;
+    const enabled = formData.get("enabled") === "1";
 
-    if (!clubId) {
-      throw new Error("Kein Club ausgewählt.");
+    if (!clubId || !managedKeys.includes(featureKey)) {
+      throw new Error("Ungültiger Feature-Flag-Aufruf.");
     }
 
-    if (!FEATURE_FLAG_KEYS.includes(featureKeyRaw as FeatureFlagKey)) {
-      throw new Error("Ungültiger Feature-Key.");
-    }
-
-    await setFeatureFlagForClub(
-      clubId,
-      featureKeyRaw as FeatureFlagKey,
-      nextEnabled
-    );
-
+    await setFeatureFlagForClub(clubId, featureKey, enabled);
     revalidatePath("/power-user/flags");
     revalidatePath("/power-user");
   }
@@ -107,193 +89,176 @@ export default async function PowerUserFlagsPage({ searchParams }: PageProps) {
 
     await requirePowerUser();
 
-    const featureKeyRaw = String(formData.get("feature_key") ?? "").trim();
-    const nextEnabled = formData.get("enabled") === "1";
+    const featureKey = String(formData.get("feature_key") ?? "").trim() as FeatureFlagKey;
+    const enabled = formData.get("enabled") === "1";
 
-    if (!FEATURE_FLAG_KEYS.includes(featureKeyRaw as FeatureFlagKey)) {
+    if (!managedKeys.includes(featureKey)) {
       throw new Error("Ungültiger Feature-Key.");
     }
 
-    await setFeatureFlagForAllClubs(
-      featureKeyRaw as FeatureFlagKey,
-      nextEnabled
-    );
-
+    await setFeatureFlagForAllClubs(featureKey, enabled);
     revalidatePath("/power-user/flags");
     revalidatePath("/power-user");
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-20">
+    <main className="mx-auto w-full max-w-6xl px-4 py-5 pb-20">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Link
           href="/power-user"
-          className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          className="inline-flex items-center rounded-xl border border-black/10 bg-white px-3.5 py-2 text-sm font-semibold text-slate-900"
         >
-          ← Zurück zum Power User Dashboard
+          ← Power User
         </Link>
-
         <Link
           href="/admin"
-          className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
+          className="inline-flex items-center rounded-xl border border-black/10 bg-white px-3.5 py-2 text-sm font-semibold text-slate-900"
         >
-          Zum Adminbereich
+          Admin
         </Link>
       </div>
 
-      <div className="mb-6 rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
-        <div className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
-          Power User
-        </div>
-        <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-          Feature Flags pro Club
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Hier steuerst du zentral, welche neuen Features in welchem Club sichtbar
-          sind. Club-Admins bekommen diese Schalter nicht zu sehen.
-        </p>
-
-        {saved ? (
-          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            Änderung gespeichert.
+      <section className="mb-4 rounded-3xl border border-black/10 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Power User
+            </div>
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+              Feature Flags
+            </h1>
           </div>
-        ) : null}
+          <p className="text-sm text-slate-500">
+            {clubs.length} Clubs · {FEATURE_FLAG_DEFINITIONS.length} aktive Rollout-Flags
+          </p>
+        </div>
+      </section>
+
+      <div className="mb-4 grid gap-3 md:grid-cols-2">
+        {FEATURE_FLAG_DEFINITIONS.map((flag) => {
+          const activeClubs = clubs.filter((club) =>
+            enabledByClub.get(club.id)?.has(flag.key)
+          );
+
+          return (
+            <section
+              key={flag.key}
+              className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="font-extrabold text-slate-950">{flag.title}</h2>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {flag.description}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-slate-950 px-2.5 py-1 text-xs font-bold text-white">
+                  {activeClubs.length}/{clubs.length}
+                </span>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {activeClubs.length > 0 ? (
+                  activeClubs.map((club) => (
+                    <span
+                      key={club.id}
+                      className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200"
+                    >
+                      {getClubLabel(club)}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-slate-400">Bei keinem Club aktiv</span>
+                )}
+              </div>
+
+              <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
+                <form action={toggleFlagForAllAction}>
+                  <input type="hidden" name="feature_key" value={flag.key} />
+                  <input type="hidden" name="enabled" value="1" />
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white"
+                  >
+                    Alle an
+                  </button>
+                </form>
+                <form action={toggleFlagForAllAction}>
+                  <input type="hidden" name="feature_key" value={flag.key} />
+                  <input type="hidden" name="enabled" value="0" />
+                  <button
+                    type="submit"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"
+                  >
+                    Alle aus
+                  </button>
+                </form>
+              </div>
+            </section>
+          );
+        })}
       </div>
 
-      <div className="mb-6 rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-3 text-sm font-semibold text-slate-900">Club wählen</div>
+      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-4 py-3">
+          <h2 className="font-extrabold text-slate-950">Alle Clubs auf einen Blick</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Grün = aktiv. Tippen schaltet den jeweiligen Club direkt um.
+          </p>
+        </div>
 
         {clubs.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            Noch keine Clubs vorhanden.
-          </div>
+          <div className="p-4 text-sm text-slate-500">Noch keine Clubs vorhanden.</div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {clubs.map((club) => {
-              const active = club.id === effectiveClubId;
-
-              return (
-                <Link
-                  key={club.id}
-                  href={`/power-user/flags?club=${encodeURIComponent(club.id)}`}
-                  className={[
-                    "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition",
-                    active
-                      ? "bg-slate-950 text-white"
-                      : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
-                  ].join(" ")}
-                >
-                  {getClubLabel(club)}
-                </Link>
-              );
-            })}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] border-collapse text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3">Club</th>
+                  {FEATURE_FLAG_DEFINITIONS.map((flag) => (
+                    <th key={flag.key} className="px-3 py-3 text-center">
+                      {flag.title}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {clubs.map((club) => (
+                  <tr key={club.id} className="border-t border-slate-100">
+                    <td className="px-4 py-3 font-semibold text-slate-900">
+                      {getClubLabel(club)}
+                    </td>
+                    {FEATURE_FLAG_DEFINITIONS.map((flag) => {
+                      const enabled = enabledByClub.get(club.id)?.has(flag.key) ?? false;
+                      return (
+                        <td key={flag.key} className="px-3 py-2 text-center">
+                          <form action={toggleFlagAction} className="inline-flex">
+                            <input type="hidden" name="club_id" value={club.id} />
+                            <input type="hidden" name="feature_key" value={flag.key} />
+                            <input type="hidden" name="enabled" value={enabled ? "0" : "1"} />
+                            <button
+                              type="submit"
+                              aria-label={`${flag.title} für ${getClubLabel(club)} ${enabled ? "deaktivieren" : "aktivieren"}`}
+                              className={[
+                                "inline-flex min-w-20 items-center justify-center rounded-full px-3 py-1.5 text-xs font-extrabold transition",
+                                enabled
+                                  ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200"
+                                  : "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
+                              ].join(" ")}
+                            >
+                              {enabled ? "AN" : "AUS"}
+                            </button>
+                          </form>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-      </div>
-
-      {effectiveClubId ? (
-        <div className="space-y-4">
-          {FEATURE_FLAG_DEFINITIONS.map((flag) => {
-            const enabled = flags[flag.key];
-
-            return (
-              <section
-                key={flag.key}
-                className="rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6"
-              >
-                <div className="flex flex-col gap-5">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-bold tracking-tight text-slate-950">
-                          {flag.title}
-                        </h2>
-
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-                          {flag.key}
-                        </span>
-
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-                          {audienceLabel(flag.audience)}
-                        </span>
-
-                        <span
-                          className={[
-                            "rounded-full px-2.5 py-1 text-[11px] font-semibold",
-                            enabled
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-slate-100 text-slate-700",
-                          ].join(" ")}
-                        >
-                          {enabled
-                            ? "Im gewählten Club aktiv"
-                            : "Im gewählten Club inaktiv"}
-                        </span>
-                      </div>
-
-                      <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-                        {flag.description}
-                      </p>
-                    </div>
-
-                    <form action={toggleFlagAction} className="shrink-0">
-                      <input type="hidden" name="club_id" value={effectiveClubId} />
-                      <input type="hidden" name="feature_key" value={flag.key} />
-                      <input
-                        type="hidden"
-                        name="enabled"
-                        value={enabled ? "0" : "1"}
-                      />
-
-                      <button
-                        type="submit"
-                        className={[
-                          "inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition",
-                          enabled
-                            ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                            : "bg-slate-950 text-white hover:bg-slate-800",
-                        ].join(" ")}
-                      >
-                        {enabled
-                          ? "Für diesen Club deaktivieren"
-                          : "Für diesen Club aktivieren"}
-                      </button>
-                    </form>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                    <form action={toggleFlagForAllAction}>
-                      <input type="hidden" name="feature_key" value={flag.key} />
-                      <input type="hidden" name="enabled" value="1" />
-                      <button
-                        type="submit"
-                        className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                      >
-                        Für alle Clubs aktivieren
-                      </button>
-                    </form>
-
-                    <form action={toggleFlagForAllAction}>
-                      <input type="hidden" name="feature_key" value={flag.key} />
-                      <input type="hidden" name="enabled" value="0" />
-                      <button
-                        type="submit"
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                      >
-                        Für alle Clubs deaktivieren
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-          Bitte zuerst einen Club anlegen.
-        </div>
-      )}
+      </section>
     </main>
   );
 }
