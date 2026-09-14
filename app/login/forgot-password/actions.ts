@@ -20,18 +20,14 @@ function normalizeNext(value: FormDataEntryValue | null) {
 
 async function getBaseUrl() {
   const headerStore = await headers();
-  const forwardedProto = headerStore.get("x-forwarded-proto");
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "";
 
-  if (forwardedProto && host) {
-    return `${forwardedProto}://${host}`;
+  if (host.includes("localhost")) {
+    const proto = headerStore.get("x-forwarded-proto") ?? "http";
+    return `${proto}://${host}`;
   }
 
-  if (host) {
-    return `https://${host}`;
-  }
-
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return "https://www.strikr.team";
 }
 
 export async function requestPasswordResetAction(
@@ -50,10 +46,10 @@ export async function requestPasswordResetAction(
 
   const supabase = await createClient();
   const baseUrl = await getBaseUrl();
-
-  const redirectTo = next
-    ? `${baseUrl}/login/reset-password?next=${encodeURIComponent(next)}`
-    : `${baseUrl}/login/reset-password`;
+  const resetPage = next
+    ? `/login/reset-password?next=${encodeURIComponent(next)}`
+    : "/login/reset-password";
+  const redirectTo = `${baseUrl}/auth/callback?next=${encodeURIComponent(resetPage)}`;
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo,
