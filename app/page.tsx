@@ -17,7 +17,7 @@ import {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const APP_STORE_URL = "https://apps.apple.com/app/strikr/id6789918875";
+const APP_STORE_URL = "https://apps.apple.com/at/app/strikr/id6789918875";
 const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=team.strikr.app";
 
