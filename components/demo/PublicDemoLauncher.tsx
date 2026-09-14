@@ -3,9 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Play, Sparkles } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 
 export default function PublicDemoLauncher() {
   const pathname = usePathname();
+
+  // The public demo CTA belongs to the web entry/login experience only.
+  // In the native shell it briefly flashed before the authenticated route was
+  // restored, which made an already logged-in app look logged out on startup.
+  if (Capacitor.isNativePlatform()) {
+    return null;
+  }
 
   if (pathname !== "/" && pathname !== "/login") {
     return null;
