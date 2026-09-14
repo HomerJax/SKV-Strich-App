@@ -9,8 +9,15 @@ function getSafeNext(next: string | null) {
   return next;
 }
 
+function getRedirectOrigin(requestOrigin: string) {
+  return requestOrigin.includes("localhost")
+    ? requestOrigin
+    : "https://www.strikr.team";
+}
+
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams, origin: requestOrigin } = new URL(request.url);
+  const origin = getRedirectOrigin(requestOrigin);
 
   const code = searchParams.get("code");
   const nextParam = searchParams.get("next");
@@ -40,8 +47,8 @@ export async function GET(request: Request) {
 
     if (error) {
       return NextResponse.redirect(
-        `${origin}/login?error=${encodeURIComponent(
-          "Login konnte nicht abgeschlossen werden."
+        `${origin}/login/forgot-password?error=${encodeURIComponent(
+          "Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an."
         )}`
       );
     }
@@ -53,14 +60,14 @@ export async function GET(request: Request) {
 
   if (!user) {
     return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(
-        "Dein Link ist ungültig oder abgelaufen."
+      `${origin}/login/forgot-password?error=${encodeURIComponent(
+        "Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an."
       )}`
     );
   }
 
-  if (next === "/reset-password") {
-    return NextResponse.redirect(new URL("/reset-password", origin));
+  if (next === "/reset-password" || next.startsWith("/login/reset-password")) {
+    return NextResponse.redirect(new URL(next, origin));
   }
 
   const { data: player } = await supabase
