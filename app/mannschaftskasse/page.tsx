@@ -1,2 +1,108 @@
-import Link from "next/link";import {redirect} from "next/navigation";import {requireClub} from "@/lib/auth/guards";import {createClient} from "@/lib/supabase/server";import {getFeatureFlagsForClub} from "@/lib/feature-flags";import {reportPenaltyAction} from "./actions";type Props={searchParams?:Promise<{saved?:string;error?:string}>};type P={id:number;name:string|null;first_name:string|null;last_name:string|null;nickname:string|null};type E={id:number;player_id:number;reason:string|null;value:string|null;created_at:string;resolved_at:string|null};function pn(p:P){return p.nickname?.trim()||[p.first_name,p.last_name].filter(Boolean).join(" ")||p.name||`Spieler ${p.id}`;}
-export default async function Page({searchParams}:Props){const q=await searchParams;const{clubId,player}=await requireClub();const flags=await getFeatureFlagsForClub(clubId);if(!(flags.penalties??false))redirect("/home");const s=await createClient();const[{data:ps},{data:es},{data:settings}]=await Promise.all([s.from("players").select("id,name,first_name,last_name,nickname").eq("club_id",clubId).eq("is_guest",false).eq("is_active",true).order("first_name"),s.from("penalties").select("id,player_id,reason,value,created_at,resolved_at").eq("club_id",clubId).order("created_at",{ascending:false}),s.from("club_settings").select("beerkasse_enabled,beerkasse_paypal_url").eq("club_id",clubId).maybeSingle()]);const players=(ps??[]) as P[];const entries=(es??[]) as E[];const names=new Map(players.map(p=>[p.id,pn(p)]));const open=entries.filter(e=>!e.resolved_at);const mine=player?open.filter(e=>e.player_id===player.id):[];const pay=settings?.beerkasse_enabled&&settings?.beerkasse_paypal_url?settings.beerkasse_paypal_url:null;return <main className="min-h-screen bg-neutral-100"><section className="mx-auto max-w-3xl space-y-4 px-4 py-5"><Link href="/home" className="text-sm font-semibold text-slate-600">← Home</Link><div className="rounded-[28px] bg-slate-950 p-5 text-white"><div className="text-[11px] font-bold uppercase tracking-[.2em] text-white/50">Teamleben</div><h1 className="mt-1 text-2xl font-black">💰 Mannschaftskasse</h1><div className="mt-4 flex gap-2"><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{open.length} offen</span><span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{mine.length} bei dir</span></div></div>{pay?<a href={pay} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between rounded-[22px] border border-amber-200 bg-amber-50 p-4"><div><div className="text-xs font-black uppercase tracking-wide text-amber-700">🍺 Beerkasse</div><div className="mt-0.5 font-black">Bier zahlen</div><p className="text-xs text-slate-600">Den Euro direkt per PayPal in die Beerkasse werfen.</p></div><span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black">PayPal →</span></a>:null}{q?.saved?<div className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Posten eingetragen. 😄</div>:null}<div className="rounded-[24px] border bg-white p-5"><h2 className="text-lg font-black">Posten melden</h2><form action={reportPenaltyAction} className="mt-4 space-y-3"><select name="player_id" required className="w-full rounded-xl border px-3 py-2.5 text-sm"><option value="">Wen hat's erwischt?</option>{players.map(p=><option key={p.id} value={p.id}>{pn(p)}</option>)}</select><select name="preset" className="w-full rounded-xl border px-3 py-2.5 text-sm"><option value="">Eigener Posten</option><option value="missed_penalty">⚽ Elfer verschossen · 1 Kiste Bier</option><option value="birthday">🎂 Geburtstag · 1 Kiste Bier</option><option value="no_show">👻 Zugesagt, nicht gekommen · 1 Kiste Bier</option><option value="late">⏰ Zu spät · 0,50 €</option><option value="walk_in">🥷 Nicht zugesagt, trotzdem gekommen · 0,50 €</option></select><div className="grid gap-2 sm:grid-cols-3"><input name="reason" placeholder="Eigener Grund" className="rounded-xl border px-3 py-2.5 text-sm"/><select name="type" className="rounded-xl border px-3 py-2.5 text-sm"><option value="beer">Sachposten</option><option value="money">Geld</option><option value="custom">Sonstiges</option></select><input name="value" placeholder="z. B. Kuchen / 2 €" className="rounded-xl border px-3 py-2.5 text-sm"/></div><button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">Posten eintragen</button></form></div><div className="rounded-[24px] border bg-white p-5"><h2 className="text-lg font-black">Offene Posten</h2><div className="mt-3 space-y-2">{open.length?open.map(e=><div key={e.id} className="rounded-xl border p-3"><b>{names.get(e.player_id)??e.player_id}</b><div className="text-sm text-slate-600">{e.reason} · <b>{e.value}</b></div></div>):<p className="text-sm text-slate-500">Kasse leer. Alle brav. Noch. 😄</p>}</div><p className="mt-3 text-xs text-slate-500">Begleichen, korrigieren und löschen kann nur der Admin.</p></div></section></main>}
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { requireClub } from "@/lib/auth/guards";
+import { createClient } from "@/lib/supabase/server";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import { reportPenaltyAction } from "./actions";
+
+type Props = { searchParams?: Promise<{ saved?: string; error?: string }> };
+type P = { id: number; name: string | null; first_name: string | null; last_name: string | null; nickname: string | null };
+type E = { id: number; player_id: number; reason: string | null; value: string | null; created_at: string; due_date: string | null; resolved_at: string | null; escalation_value: string | null };
+type Rule = { rule_key: string; label: string; value: string; enabled: boolean };
+
+function pn(p: P) {
+  return p.nickname?.trim() || [p.first_name, p.last_name].filter(Boolean).join(" ") || p.name || `Spieler ${p.id}`;
+}
+
+export default async function Page({ searchParams }: Props) {
+  const q = await searchParams;
+  const { clubId, player } = await requireClub();
+  const flags = await getFeatureFlagsForClub(clubId);
+  if (!(flags.penalties ?? false)) redirect("/home");
+
+  const s = await createClient();
+  const [{ data: ps }, { data: es }, { data: settings }, { data: rulesData }] = await Promise.all([
+    s.from("players").select("id,name,first_name,last_name,nickname").eq("club_id", clubId).eq("is_guest", false).eq("is_active", true).order("first_name"),
+    s.from("penalties").select("id,player_id,reason,value,created_at,due_date,resolved_at,escalation_value").eq("club_id", clubId).order("created_at", { ascending: false }),
+    s.from("club_settings").select("beerkasse_enabled,beerkasse_paypal_url").eq("club_id", clubId).maybeSingle(),
+    s.from("penalty_rules").select("rule_key,label,value,enabled").eq("club_id", clubId).eq("enabled", true).order("sort_order"),
+  ]);
+
+  const players = (ps ?? []) as P[];
+  const entries = (es ?? []) as E[];
+  const rules = (rulesData ?? []) as Rule[];
+  const names = new Map(players.map((p) => [p.id, pn(p)]));
+  const open = entries.filter((e) => !e.resolved_at);
+  const mine = player ? open.filter((e) => e.player_id === player.id) : [];
+  const pay = settings?.beerkasse_enabled && settings?.beerkasse_paypal_url ? settings.beerkasse_paypal_url : null;
+  const today = new Date().toISOString().slice(0, 10);
+
+  return (
+    <main className="min-h-screen bg-neutral-100">
+      <section className="mx-auto max-w-3xl space-y-4 px-4 py-5 pb-24">
+        <Link href="/home" className="text-sm font-semibold text-slate-600">← Home</Link>
+
+        <div className="rounded-[28px] bg-slate-950 p-5 text-white">
+          <div className="text-[11px] font-bold uppercase tracking-[.2em] text-white/50">Teamleben</div>
+          <h1 className="mt-1 text-2xl font-black">💰 Mannschaftskasse</h1>
+          <div className="mt-4 flex gap-2">
+            <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{open.length} offen</span>
+            <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{mine.length} bei dir</span>
+          </div>
+        </div>
+
+        {pay ? (
+          <a href={pay} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between rounded-[22px] border border-amber-200 bg-amber-50 p-4">
+            <div>
+              <div className="text-xs font-black uppercase tracking-wide text-amber-700">🍺 Bierkasse</div>
+              <div className="mt-0.5 font-black">Bier zahlen</div>
+              <p className="text-xs text-slate-600">Den Betrag direkt per PayPal in die Bierkasse werfen.</p>
+            </div>
+            <span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black">PayPal →</span>
+          </a>
+        ) : null}
+
+        {q?.saved ? <div className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Posten eingetragen. 😄</div> : null}
+        {q?.error ? <div className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800">{q.error}</div> : null}
+
+        <div className="rounded-[24px] border bg-white p-5">
+          <h2 className="text-lg font-black">Posten melden</h2>
+          <p className="mt-1 text-xs text-slate-500">Jeder im Team darf einen Posten melden. Erledigen oder löschen kann nur der Admin.</p>
+          <form action={reportPenaltyAction} className="mt-4 space-y-3">
+            <select name="player_id" required className="w-full rounded-xl border px-3 py-2.5 text-sm">
+              <option value="">Wen hat&apos;s erwischt?</option>
+              {players.map((p) => <option key={p.id} value={p.id}>{pn(p)}</option>)}
+            </select>
+            <select name="preset" className="w-full rounded-xl border px-3 py-2.5 text-sm">
+              <option value="">Eigener Posten</option>
+              {rules.map((rule) => <option key={rule.rule_key} value={rule.rule_key}>{rule.label} · {rule.value}</option>)}
+            </select>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <input name="reason" placeholder="Eigener Grund" className="rounded-xl border px-3 py-2.5 text-sm" />
+              <select name="type" className="rounded-xl border px-3 py-2.5 text-sm">
+                <option value="beer">Sachposten</option><option value="money">Geld</option><option value="custom">Sonstiges</option>
+              </select>
+              <input name="value" placeholder="z. B. Kuchen / 2 €" className="rounded-xl border px-3 py-2.5 text-sm" />
+            </div>
+            <input name="notes" placeholder="Notiz (optional)" className="w-full rounded-xl border px-3 py-2.5 text-sm" />
+            <button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">Posten eintragen</button>
+          </form>
+        </div>
+
+        <div className="rounded-[24px] border bg-white p-5">
+          <h2 className="text-lg font-black">Offene Posten</h2>
+          <div className="mt-3 space-y-2">
+            {open.length ? open.map((e) => {
+              const escalated = Boolean(e.due_date && e.due_date <= today && e.escalation_value);
+              return <div key={e.id} className="rounded-xl border p-3">
+                <b>{names.get(e.player_id) ?? e.player_id}</b>
+                <div className="text-sm text-slate-600">{e.reason} · <b>{e.value}</b></div>
+                {escalated ? <div className="mt-1 text-xs font-black text-amber-700">⏰ Überfällig: {e.escalation_value}</div> : e.due_date && e.escalation_value ? <div className="mt-1 text-xs text-slate-500">Bis {new Date(`${e.due_date}T12:00:00`).toLocaleDateString("de-DE")} · danach {e.escalation_value}</div> : null}
+              </div>;
+            }) : <p className="text-sm text-slate-500">Kasse leer. Alle brav. Noch. 😄</p>}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
