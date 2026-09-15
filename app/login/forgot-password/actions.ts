@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export type ForgotPasswordState = { error: string; success: string; };
 
@@ -26,17 +26,31 @@ export async function requestPasswordResetAction(_prevState: ForgotPasswordState
   const next = normalizeNext(formData.get("next"));
   if (!email) return { error: "missing-email", success: "" };
 
-  const supabase = await createClient();
   const baseUrl = await getBaseUrl();
-  const resetTarget = next
-    ? `/login/reset-password?next=${encodeURIComponent(next)}`
-    : "/login/reset-password";
-  // Recovery always returns through our callback. This is important for native
-  // App Links as well as PKCE: the callback exchanges the code, stores the
-  // session cookie and only then forwards to the password form.
-  const redirectTo = `${baseUrl}/auth/callback?next=${encodeURIComponent(resetTarget)}`;
+  const recoveryUrl = new URL("/auth/recovery", baseUrl);
+  if (next) recoveryUrl.searchParams.set("next", next);
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  // Password-reset links are commonly opened from Gmail/Safari or another
+  // browser than the one that requested them. PKCE stores a verifier in the
+  // requesting browser, so that flow breaks in exactly that situation. Use
+  // Supabase's implicit recovery flow here: the email link carries the recovery
+  // session itself and /auth/recovery persists it before showing the form.
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        flowType: "implicit",
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    }
+  );
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: recoveryUrl.toString(),
+  });
   if (error) return { error: error.message || "reset-failed", success: "" };
   return { error: "", success: "reset-sent" };
 }
