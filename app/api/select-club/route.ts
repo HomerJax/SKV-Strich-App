@@ -8,6 +8,16 @@ function buildRedirect(request: Request, path: string) {
   return new URL(path, request.url);
 }
 
+function normalizeNextPath(value: string | null) {
+  const nextPath = (value ?? "").trim();
+
+  if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
+    return AUTH_ROUTES.dashboard;
+  }
+
+  return nextPath;
+}
+
 async function powerUserCanAccessClub(clubId: string) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,19 +37,25 @@ async function powerUserCanAccessClub(clubId: string) {
   return Boolean(data);
 }
 
-async function resolveClubIdFromRequest(request: Request) {
+async function resolveSelectionFromRequest(request: Request) {
   const url = new URL(request.url);
 
   if (request.method === "GET") {
-    return (url.searchParams.get("clubId") ?? "").trim();
+    return {
+      clubId: (url.searchParams.get("clubId") ?? "").trim(),
+      nextPath: normalizeNextPath(url.searchParams.get("next")),
+    };
   }
 
   const formData = await request.formData();
-  return String(formData.get("club_id") ?? "").trim();
+  return {
+    clubId: String(formData.get("club_id") ?? "").trim(),
+    nextPath: normalizeNextPath(String(formData.get("next") ?? "")),
+  };
 }
 
 async function handleSelectClub(request: Request) {
-  const clubId = await resolveClubIdFromRequest(request);
+  const { clubId, nextPath } = await resolveSelectionFromRequest(request);
   const ctx = await getAuthContext();
 
   if (!ctx.user) {
@@ -80,7 +96,7 @@ async function handleSelectClub(request: Request) {
     secure: process.env.NODE_ENV === "production",
   });
 
-  return NextResponse.redirect(buildRedirect(request, AUTH_ROUTES.dashboard), {
+  return NextResponse.redirect(buildRedirect(request, nextPath), {
     status: 303,
   });
 }
