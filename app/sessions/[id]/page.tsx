@@ -1,12 +1,15 @@
-import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { isAdminRole } from "@/lib/auth/access";
-import { getResultShareData } from "@/lib/share/result-share";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import SessionDetailClient from "./SessionDetailClient";
 import type { Player, SessionRow } from "./session-types";
+
+export const metadata = {
+  title: "Session in strikr",
+  description: "Training, Teams und Ergebnis in strikr ansehen.",
+};
 
 type ClubSettings = {
   use_strength: boolean;
@@ -34,166 +37,14 @@ const DEFAULT_CLUB_SETTINGS: ClubSettings = {
   use_field_view: false,
 };
 
-type ClubRow = {
-  id: string;
-  primary_color: string | null;
-};
-
-type ResultRow = {
-  id: number;
-  team_a_id: number | null;
-  team_b_id: number | null;
-  goals_team_a: number | null;
-  goals_team_b: number | null;
-};
-
-type TeamRow = {
-  id: number;
-  name: string;
-};
-
-type TeamPlayerRow = {
-  team_id: number;
-  player_id: number;
-};
-
-type SessionPlayerRow = {
-  player_id: number;
-};
-
-type SessionRsvpRow = {
-  player_id: number;
-  status: "in" | "out";
-};
-
-type BalanceCategoryRow = {
-  key: string;
-  label: string;
-  sort_order: number;
-  is_active: boolean;
-  is_strong: boolean;
-};
-
-type PageProps = {
-  params: Promise<{ id: string }>;
-};
-
-function getBaseUrl() {
-  const envUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.SITE_URL ||
-    "";
-
-  if (envUrl) {
-    return envUrl.replace(/\/$/, "");
-  }
-
-  return "http://localhost:3000";
-}
-
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
-  const resolvedParams = await params;
-  const sessionId = resolvedParams.id;
-  const baseUrl = getBaseUrl();
-  const sessionUrl = `${baseUrl}/sessions/${sessionId}`;
-  const shareImageUrl = `${baseUrl}/api/share/result/${sessionId}/image`;
-
-  try {
-    const data = await getResultShareData(sessionId);
-
-    const clubName =
-      typeof data.branding?.clubName === "string" && data.branding.clubName.trim()
-        ? data.branding.clubName.trim()
-        : "Strikr Club";
-
-    const goalsA = Number(data.goalsA ?? 0);
-    const goalsB = Number(data.goalsB ?? 0);
-    const winnerLabel =
-      typeof data.winnerLabel === "string" && data.winnerLabel.trim()
-        ? data.winnerLabel.trim()
-        : "Ergebnis in Strikr";
-
-    const diff = Math.abs(goalsA - goalsB);
-
-    let highlight = "⚡ Klar entschieden";
-    let story = "Schau dir das Ergebnis in Strikr an.";
-
-    if (goalsA === goalsB) {
-      highlight = "🤝 Alles offen";
-      story = "Zwei Teams auf Augenhöhe. Schau dir das Ergebnis in Strikr an.";
-    } else if (diff >= 3) {
-      highlight = "💪 Dominanter Sieg";
-      story = "Klare Sache heute. Schau dir das Ergebnis in Strikr an.";
-    } else if (diff === 1) {
-      highlight = "😮 Knappe Kiste";
-      story = "Bis zum Schluss spannend. Schau dir das Ergebnis in Strikr an.";
-    }
-
-    const title = `${winnerLabel} • ${goalsA}:${goalsB}`;
-    const description = `${highlight} · ${story}`;
-
-    return {
-      title,
-      description,
-      alternates: {
-        canonical: sessionUrl,
-      },
-      openGraph: {
-        title,
-        description,
-        url: sessionUrl,
-        siteName: clubName,
-        type: "article",
-        images: [
-          {
-            url: shareImageUrl,
-            width: 1080,
-            height: 1350,
-            alt: `${clubName} – Ergebnis ${goalsA}:${goalsB}`,
-          },
-        ],
-      },
-      twitter: {
-        card: "summary_large_image",
-        title,
-        description,
-        images: [shareImageUrl],
-      },
-    };
-  } catch {
-    return {
-      title: "Session in Strikr",
-      description: "Ergebnis, Teams und Stats in Strikr ansehen.",
-      alternates: {
-        canonical: sessionUrl,
-      },
-      openGraph: {
-        title: "Session in Strikr",
-        description: "Ergebnis, Teams und Stats in Strikr ansehen.",
-        url: sessionUrl,
-        siteName: "Strikr",
-        type: "article",
-        images: [
-          {
-            url: shareImageUrl,
-            width: 1080,
-            height: 1350,
-            alt: "Strikr Session",
-          },
-        ],
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: "Session in Strikr",
-        description: "Ergebnis, Teams und Stats in Strikr ansehen.",
-        images: [shareImageUrl],
-      },
-    };
-  }
-}
+type ClubRow = { id: string; primary_color: string | null };
+type ResultRow = { id: number; team_a_id: number | null; team_b_id: number | null; goals_team_a: number | null; goals_team_b: number | null };
+type TeamRow = { id: number; name: string };
+type TeamPlayerRow = { team_id: number; player_id: number };
+type SessionPlayerRow = { player_id: number };
+type SessionRsvpRow = { player_id: number; status: "in" | "out" };
+type BalanceCategoryRow = { key: string; label: string; sort_order: number; is_active: boolean; is_strong: boolean };
+type PageProps = { params: Promise<{ id: string }> };
 
 export default async function SessionDetailPage({ params }: PageProps) {
   const resolvedParams = await params;
@@ -201,18 +52,10 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const { clubId, membership, isPowerUser } = await requireClub();
   const supabase = await createClient();
 
-  if (!Number.isFinite(sessionId)) {
-    redirect("/sessions");
-  }
-
-  const featureFlags = await getFeatureFlagsForClub(clubId);
-  const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
-  const useNicknames = featureFlags.use_nicknames === true;
-  const useFieldView = featureFlags.use_field_view === true;
-  const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
-  const sessionTypesEnabled = featureFlags.session_types === true;
+  if (!Number.isFinite(sessionId)) redirect("/sessions");
 
   const [
+    featureFlags,
     { data: clubData, error: clubError },
     { data: settingsData, error: settingsError },
     { data: sessionData, error: sessionError },
@@ -223,16 +66,11 @@ export default async function SessionDetailPage({ params }: PageProps) {
     { data: resultData, error: resultError },
     { data: teamsData, error: teamsError },
   ] = await Promise.all([
-    supabase
-      .from("clubs")
-      .select("id, primary_color")
-      .eq("id", clubId)
-      .maybeSingle<ClubRow>(),
+    getFeatureFlagsForClub(clubId),
+    supabase.from("clubs").select("id, primary_color").eq("id", clubId).maybeSingle<ClubRow>(),
     supabase
       .from("club_settings")
-      .select(
-        "use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label"
-      )
+      .select("use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label")
       .eq("club_id", clubId)
       .limit(1)
       .maybeSingle(),
@@ -244,9 +82,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .single(),
     supabase
       .from("players")
-      .select(
-        "id, name, first_name, last_name, nickname, is_active, age_group, category_key, balance_group, roster_role, preferred_position, strength, is_guest, mvp_count"
-      )
+      .select("id, name, first_name, last_name, nickname, is_active, age_group, category_key, balance_group, roster_role, preferred_position, strength, is_guest")
       .eq("club_id", clubId)
       .order("name"),
     supabase
@@ -255,79 +91,27 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .eq("club_id", clubId)
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
-    supabase
-      .from("session_players")
-      .select("player_id")
-      .eq("session_id", sessionId),
-    supabase
-      .from("session_rsvps")
-      .select("player_id, status")
-      .eq("session_id", sessionId)
-      .eq("club_id", clubId),
-    supabase
-      .from("results")
-      .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
-      .eq("session_id", sessionId)
-      .maybeSingle(),
-    supabase
-      .from("teams")
-      .select("id, name")
-      .eq("session_id", sessionId)
-      .eq("club_id", clubId),
+    supabase.from("session_players").select("player_id").eq("session_id", sessionId),
+    supabase.from("session_rsvps").select("player_id, status").eq("session_id", sessionId).eq("club_id", clubId),
+    supabase.from("results").select("id, team_a_id, team_b_id, goals_team_a, goals_team_b").eq("session_id", sessionId).maybeSingle(),
+    supabase.from("teams").select("id, name").eq("session_id", sessionId).eq("club_id", clubId),
   ]);
 
-  if (clubError) {
-    throw new Error(`Club konnte nicht geladen werden: ${clubError.message}`);
-  }
+  if (clubError) throw new Error(`Club konnte nicht geladen werden: ${clubError.message}`);
+  if (settingsError) throw new Error(`Club-Settings konnten nicht geladen werden: ${settingsError.message}`);
+  if (sessionError || !sessionData) redirect("/sessions");
+  if (playersError) throw new Error(`Spieler konnten nicht geladen werden: ${playersError.message}`);
+  if (categoriesError) throw new Error(`Kategorien konnten nicht geladen werden: ${categoriesError.message}`);
+  if (sessionPlayersError) throw new Error(`Session-Spieler konnten nicht geladen werden: ${sessionPlayersError.message}`);
+  if (sessionRsvpsError) throw new Error(`Rückmeldungen konnten nicht geladen werden: ${sessionRsvpsError.message}`);
+  if (resultError) throw new Error(`Ergebnis konnte nicht geladen werden: ${resultError.message}`);
+  if (teamsError) throw new Error(`Teams konnten nicht geladen werden: ${teamsError.message}`);
 
-  if (settingsError) {
-    throw new Error(
-      `Club-Settings konnten nicht geladen werden: ${settingsError.message}`
-    );
-  }
-
-  if (sessionError) {
-    redirect("/sessions");
-  }
-
-  if (playersError) {
-    throw new Error(
-      `Spieler konnten nicht geladen werden: ${playersError.message}`
-    );
-  }
-
-  if (categoriesError) {
-    throw new Error(
-      `Kategorien konnten nicht geladen werden: ${categoriesError.message}`
-    );
-  }
-
-  if (sessionPlayersError) {
-    throw new Error(
-      `Session-Spieler konnten nicht geladen werden: ${sessionPlayersError.message}`
-    );
-  }
-
-  if (sessionRsvpsError) {
-    throw new Error(
-      `Rückmeldungen konnten nicht geladen werden: ${sessionRsvpsError.message}`
-    );
-  }
-
-  if (resultError) {
-    throw new Error(
-      `Ergebnis konnte nicht geladen werden: ${resultError.message}`
-    );
-  }
-
-  if (teamsError) {
-    throw new Error(`Teams konnten nicht geladen werden: ${teamsError.message}`);
-  }
-
-  if (!sessionData) {
-    redirect("/sessions");
-  }
-
+  const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
+  const useNicknames = featureFlags.use_nicknames === true;
+  const useFieldView = featureFlags.use_field_view === true;
+  const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
+  const sessionTypesEnabled = featureFlags.session_types === true;
   const session = sessionData as SessionRow;
 
   const clubSettings: ClubSettings = {
@@ -338,102 +122,54 @@ export default async function SessionDetailPage({ params }: PageProps) {
   };
 
   const categoryLabelByKey = new Map(
-    ((categoriesData ?? []) as BalanceCategoryRow[]).map((category) => [
-      category.key,
-      category.label,
-    ])
+    ((categoriesData ?? []) as BalanceCategoryRow[]).map((category) => [category.key, category.label])
   );
-
   const rsvpStatusByPlayerId = new Map(
-    ((sessionRsvpsData ?? []) as SessionRsvpRow[]).map((row) => [
-      row.player_id,
-      row.status,
-    ])
+    ((sessionRsvpsData ?? []) as SessionRsvpRow[]).map((row) => [row.player_id, row.status])
   );
 
-  const players = (((playersData ?? []).filter(
-    (player) => player.is_active !== false
-  ) ?? []) as Player[]).map((player) => ({
+  const players = (((playersData ?? []).filter((player) => player.is_active !== false) ?? []) as Player[]).map((player) => ({
     ...player,
     strength: player.strength ?? clubSettings.strength_default ?? 3,
     roster_role: player.roster_role ?? "player",
-    category_label:
-      player.category_key && categoryLabelByKey.has(player.category_key)
-        ? categoryLabelByKey.get(player.category_key) ?? null
-        : null,
+    category_label: player.category_key && categoryLabelByKey.has(player.category_key)
+      ? categoryLabelByKey.get(player.category_key) ?? null
+      : null,
     rsvp_status: rsvpStatusByPlayerId.get(player.id) ?? null,
   }));
 
-  const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[]).map(
-    (row) => row.player_id
-  );
-
+  const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[]).map((row) => row.player_id);
   const result = (resultData ?? null) as ResultRow | null;
   const teams = (teamsData ?? []) as TeamRow[];
-
   const manualTeams: Record<number, "A" | "B" | null> = {};
-  presentIds.forEach((playerId) => {
-    manualTeams[playerId] = null;
-  });
+  presentIds.forEach((playerId) => { manualTeams[playerId] = null; });
 
   let goalsA = "";
   let goalsB = "";
   let hasResult = false;
 
-  const savedTeamAId =
-    result?.team_a_id ??
-    teams.find((team) => team.name === "Team 1")?.id ??
-    null;
+  const savedTeamAId = result?.team_a_id ?? teams.find((team) => team.name === "Team 1")?.id ?? null;
+  const savedTeamBId = result?.team_b_id ?? teams.find((team) => team.name === "Team 2")?.id ?? null;
+  const teamIds = [savedTeamAId, savedTeamBId].filter((teamId): teamId is number => Number.isFinite(teamId));
 
-  const savedTeamBId =
-    result?.team_b_id ??
-    teams.find((team) => team.name === "Team 2")?.id ??
-    null;
-
-  const teamIds = [savedTeamAId, savedTeamBId].filter(
-    (teamId): teamId is number => Number.isFinite(teamId)
-  );
-
-  const teamPlayersPromise =
-    teamIds.length > 0
-      ? supabase
-          .from("team_players")
-          .select("team_id, player_id")
-          .in("team_id", teamIds)
-      : Promise.resolve({ data: [] as TeamPlayerRow[], error: null });
-
+  const teamPlayersPromise = teamIds.length > 0
+    ? supabase.from("team_players").select("team_id, player_id").in("team_id", teamIds)
+    : Promise.resolve({ data: [] as TeamPlayerRow[], error: null });
   const winnerPhotoPromise = session.winner_photo_path
-    ? supabase.storage
-        .from("session-photos")
-        .createSignedUrl(session.winner_photo_path, 60 * 60)
-    : Promise.resolve({
-        data: null as { signedUrl: string } | null,
-        error: null,
-      });
+    ? supabase.storage.from("session-photos").createSignedUrl(session.winner_photo_path, 60 * 60)
+    : Promise.resolve({ data: null as { signedUrl: string } | null, error: null });
 
   const [
     { data: teamPlayersData, error: teamPlayersError },
     { data: winnerPhotoData, error: winnerPhotoError },
   ] = await Promise.all([teamPlayersPromise, winnerPhotoPromise]);
 
-  if (teamPlayersError) {
-    throw new Error(
-      `Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`
-    );
-  }
+  if (teamPlayersError) throw new Error(`Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`);
 
   for (const teamPlayer of (teamPlayersData ?? []) as TeamPlayerRow[]) {
-    if (!(teamPlayer.player_id in manualTeams)) {
-      continue;
-    }
-
-    if (teamPlayer.team_id === savedTeamAId) {
-      manualTeams[teamPlayer.player_id] = "A";
-    }
-
-    if (teamPlayer.team_id === savedTeamBId) {
-      manualTeams[teamPlayer.player_id] = "B";
-    }
+    if (!(teamPlayer.player_id in manualTeams)) continue;
+    if (teamPlayer.team_id === savedTeamAId) manualTeams[teamPlayer.player_id] = "A";
+    if (teamPlayer.team_id === savedTeamBId) manualTeams[teamPlayer.player_id] = "B";
   }
 
   if (result) {
@@ -444,15 +180,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   const balanceCategories = ((categoriesData ?? []) as BalanceCategoryRow[])
     .filter((category) => category.is_active)
-    .map((category) => ({
-      key: category.key,
-      label: category.label,
-      isStrong: category.is_strong,
-    }));
-
-  const winnerPhotoUrl = winnerPhotoError
-    ? null
-    : winnerPhotoData?.signedUrl ?? null;
+    .map((category) => ({ key: category.key, label: category.label, isStrong: category.is_strong }));
+  const winnerPhotoUrl = winnerPhotoError ? null : winnerPhotoData?.signedUrl ?? null;
 
   return (
     <SessionDetailClient

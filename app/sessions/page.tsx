@@ -61,19 +61,24 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
 }
 
 export default async function SessionsPage({ searchParams }: SessionsPageProps) {
-  const { clubId } = await requireClub();
+  const { clubId, player } = await requireClub();
   const supabase = await createClient();
   const resolvedSearchParams = await searchParams;
   const successMessage = resolvedSearchParams?.success ?? "";
 
-  const [{ data: clubData }, { data: seasonsData, error: seasonsError }, { data: sessionsData, error: sessionsError }, { data: authData }] = await Promise.all([
+  const [
+    { data: clubData },
+    { data: seasonsData, error: seasonsError },
+    { data: sessionsData, error: sessionsError },
+  ] = await Promise.all([
     supabase.from("clubs").select("id, display_name, primary_color").eq("id", clubId).maybeSingle<ClubRow>(),
     supabase.from("seasons").select("id, name, start_date, end_date").eq("club_id", clubId).order("start_date", { ascending: false }),
     supabase.from("sessions").select("id, date, notes, season_id, type").eq("club_id", clubId).order("date", { ascending: false }),
-    supabase.auth.getUser(),
   ]);
 
-  if (seasonsError || sessionsError) throw new Error(seasonsError?.message ?? sessionsError?.message ?? "Daten konnten nicht geladen werden.");
+  if (seasonsError || sessionsError) {
+    throw new Error(seasonsError?.message ?? sessionsError?.message ?? "Daten konnten nicht geladen werden.");
+  }
 
   const club = (clubData ?? null) as ClubRow | null;
   const seasons = (seasonsData as Season[] | null) ?? [];
@@ -91,22 +96,25 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   const totalSessions = sessions.length;
   const totalTrainings = sessions.filter((session) => session.type !== "event").length;
   const totalEvents = sessions.filter((session) => session.type === "event").length;
-
-  let playerId: number | null = null;
-  const userId = authData.user?.id;
-  if (userId) {
-    const { data: player } = await supabase.from("players").select("id").eq("club_id", clubId).eq("user_id", userId).maybeSingle<{ id: number }>();
-    playerId = player?.id ?? null;
-  }
+  const playerId = player?.id ?? null;
 
   const rsvpBySession = new Map<number, PresenceStatus>();
   if (playerId && futureCurrentSeasonSessions.length > 0) {
     const ids = futureCurrentSeasonSessions.map((session) => session.id);
-    const { data: rsvps } = await supabase.from("session_rsvps").select("session_id, status").eq("club_id", clubId).eq("player_id", playerId).in("session_id", ids);
+    const { data: rsvps } = await supabase
+      .from("session_rsvps")
+      .select("session_id, status")
+      .eq("club_id", clubId)
+      .eq("player_id", playerId)
+      .in("session_id", ids);
+
     for (const row of rsvps ?? []) {
-      if (row.status === "in" || row.status === "out" || row.status === "open") rsvpBySession.set(row.session_id, row.status);
+      if (row.status === "in" || row.status === "out" || row.status === "open") {
+        rsvpBySession.set(row.session_id, row.status);
+      }
     }
   }
+
   const statusFor = (sessionId: number): PresenceStatus => rsvpBySession.get(sessionId) ?? "open";
 
   return (
