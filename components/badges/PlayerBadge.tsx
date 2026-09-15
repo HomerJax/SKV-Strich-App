@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import StrikrBadgeMark from "@/components/brand/StrikrBadgeMark";
 import {
   getBadgeMetaFromMvpCount,
@@ -142,6 +143,10 @@ export default function PlayerBadge({
   hideIfNone = true,
   grayscale = false,
 }: PlayerBadgeProps) {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/sessions/")) return null;
+
   const badge = resolveBadgeMeta({ badgeKey, mvpCount });
   const px = SIZE[size];
 
