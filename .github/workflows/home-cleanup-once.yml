@@ -1,0 +1,77 @@
+name: One-time Home cleanup
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/home-cleanup-once.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Move Bierkasse into Home page
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/home/page.tsx')
+          s = p.read_text()
+          s = s.replace('type HomeClubSettingsRow = {\n  rsvp_deadline_minutes_before: number | null;\n};', '''type HomeClubSettingsRow = {
+  rsvp_deadline_minutes_before: number | null;
+  beerkasse_enabled: boolean | null;
+  beerkasse_home_enabled: boolean | null;
+  beerkasse_paypal_url: string | null;
+};''')
+          s = s.replace('.select("rsvp_deadline_minutes_before")\n      .eq("club_id", clubId)\n      .maybeSingle<HomeClubSettingsRow>()', '.select("rsvp_deadline_minutes_before, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url")\n      .eq("club_id", clubId)\n      .maybeSingle<HomeClubSettingsRow>()')
+          s = s.replace('  const rsvpDeadlineMinutesBefore =\n    homeSettings?.rsvp_deadline_minutes_before ?? 30;', '''  const rsvpDeadlineMinutesBefore =
+    homeSettings?.rsvp_deadline_minutes_before ?? 30;
+  const bierkassePaypalUrl =
+    homeSettings?.beerkasse_enabled &&
+    homeSettings?.beerkasse_home_enabled &&
+    homeSettings?.beerkasse_paypal_url?.trim()
+      ? homeSettings.beerkasse_paypal_url.trim()
+      : null;''')
+          marker = '''        <Link
+          href="/about"
+          className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >'''
+          insert = '''        {bierkassePaypalUrl ? (
+          <a
+            href={bierkassePaypalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm"
+          >
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[.16em] text-amber-700">
+                🍺 Bierkasse
+              </div>
+              <div className="text-sm font-black text-slate-950">Bier zahlen</div>
+            </div>
+            <span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black text-slate-950">
+              PayPal →
+            </span>
+          </a>
+        ) : null}
+
+''' + marker
+          if marker not in s:
+              raise SystemExit('About marker not found')
+          s = s.replace(marker, insert, 1)
+          s = s.replace('Vom Bierdeckel zur Web-App 🍻⚽', 'Vom Bierdeckel zur App 🍻⚽')
+          p.write_text(s)
+          Path('app/home/layout.tsx').write_text('''import type { ReactNode } from "react";\n\nexport default function HomeLayout({ children }: { children: ReactNode }) {\n  return children;\n}\n''')
+          PY
+      - name: Commit cleanup
+        run: |
+          git config user.name "HomerJax"
+          git config user.email "marcus.bofinger@gmail.com"
+          git add app/home/page.tsx app/home/layout.tsx
+          git commit -m "Clean up Home Bierkasse layout"
+          git push origin main
