@@ -17,7 +17,6 @@ export type Player = {
   strength: number | null;
   is_active: boolean | null;
   is_guest?: boolean;
-  mvp_count?: number | null;
 };
 
 export type SessionRow = {
