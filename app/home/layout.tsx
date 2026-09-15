@@ -22,9 +22,13 @@ export default async function HomeLayout({ children }: { children: ReactNode }) 
   return (
     <>
       <div className="home-page-content">{children}</div>
-      <style>{`.home-page-content a[href="/about"]{display:none}`}</style>
+      <style>{`
+        .home-page-content main { padding-bottom: 0 !important; }
+        .home-page-content > main > section { padding-bottom: 0 !important; }
+        .home-page-content a[href="/about"] { display: none; }
+      `}</style>
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 pb-24 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 pt-3 pb-24 sm:px-6 lg:px-8">
         {paypalUrl ? (
           <a
             href={paypalUrl}
