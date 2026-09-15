@@ -41,6 +41,9 @@ type SeasonSessionRow = {
 
 type HomeClubSettingsRow = {
   rsvp_deadline_minutes_before: number | null;
+  beerkasse_enabled: boolean | null;
+  beerkasse_home_enabled: boolean | null;
+  beerkasse_paypal_url: string | null;
 };
 
 type ResultSessionRow = {
@@ -69,19 +72,8 @@ type VoteRow = {
   voted_player_id?: number;
 };
 
-type PlayerRow = {
-  id: number;
-  first_name: string | null;
-  last_name: string | null;
-  user_id: string | null;
-  mvp_count: number | null;
-};
-
 type ClubPlayerStatsRow = {
   id: number;
-  first_name: string | null;
-  last_name: string | null;
-  mvp_count: number | null;
 };
 
 type AttendanceRow = {
@@ -311,21 +303,6 @@ function formatRank(value: number | null) {
   return `#${value}`;
 }
 
-function getNextStreakTarget(currentStreak: number) {
-  if (currentStreak < 5) return 5;
-  if (currentStreak < 10) return 10;
-  if (currentStreak < 15) return 15;
-  return Math.ceil((currentStreak + 1) / 5) * 5;
-}
-
-function getNextMvpTarget(currentMvpCount: number) {
-  if (currentMvpCount < 3) return 3;
-  if (currentMvpCount < 5) return 5;
-  if (currentMvpCount < 7) return 7;
-  if (currentMvpCount < 10) return 10;
-  return Math.ceil((currentMvpCount + 1) / 5) * 5;
-}
-
 function QuickActionCard({
   title,
   text,
@@ -383,187 +360,6 @@ function MainActionCard({
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-      <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
-        {label}
-      </div>
-      <div className="mt-1 text-2xl font-black tracking-[-0.04em] text-slate-950">
-        {value}
-      </div>
-      <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-        {hint}
-      </div>
-    </div>
-  );
-}
-
-function SeasonSummaryCard({
-  attendanceCount,
-  attendanceRate,
-  currentStreak,
-  mvpCount,
-  hasLinkedPlayer,
-}: {
-  attendanceCount: number;
-  attendanceRate: number | null;
-  currentStreak: number;
-  mvpCount: number;
-  hasLinkedPlayer: boolean;
-}) {
-  return (
-    <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-            Meine Saison
-          </div>
-          <h2 className="mt-1 text-xl font-black tracking-[-0.04em] text-slate-950">
-            Dein aktueller Stand
-          </h2>
-        </div>
-
-        <Link
-          href="/stats"
-          className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-700"
-        >
-          Stats
-        </Link>
-      </div>
-
-      {hasLinkedPlayer ? (
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <MetricCard
-            label="Teilnahmen"
-            value={String(attendanceCount)}
-            hint="bisher dabei"
-          />
-          <MetricCard
-            label="Erfolgsquote"
-            value={formatPercent(attendanceRate)}
-            hint="Anwesenheit"
-          />
-          <MetricCard
-            label="Serie"
-            value={String(currentStreak)}
-            hint="Trainings in Folge"
-          />
-          <MetricCard
-            label="Awards"
-            value={String(mvpCount)}
-            hint="Badges & Votes"
-          />
-        </div>
-      ) : (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">
-          Dein Benutzer ist noch nicht eindeutig mit einem Spielerprofil
-          verknüpft. Danach werden hier deine persönlichen Stats angezeigt.
-        </div>
-      )}
-    </section>
-  );
-}
-
-function RankingSummaryCard({
-  attendanceRank,
-  mvpRank,
-  playerCount,
-}: {
-  attendanceRank: number | null;
-  mvpRank: number | null;
-  playerCount: number;
-}) {
-  return (
-    <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-        Mein Ranking
-      </div>
-      <h2 className="mt-1 text-xl font-black tracking-[-0.04em] text-slate-950">
-        Wo stehe ich?
-      </h2>
-
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <MetricCard
-          label="Teilnahmen"
-          value={formatRank(attendanceRank)}
-          hint={playerCount > 0 ? `von ${playerCount} Spielern` : "noch offen"}
-        />
-        <MetricCard
-          label="Awards"
-          value={formatRank(mvpRank)}
-          hint={playerCount > 0 ? `von ${playerCount} Spielern` : "noch offen"}
-        />
-      </div>
-    </section>
-  );
-}
-
-function HighlightsCard({
-  currentStreak,
-  mvpCount,
-  hasLinkedPlayer,
-}: {
-  currentStreak: number;
-  mvpCount: number;
-  hasLinkedPlayer: boolean;
-}) {
-  const nextStreakTarget = getNextStreakTarget(currentStreak);
-  const streakMissing = Math.max(0, nextStreakTarget - currentStreak);
-
-  const nextMvpTarget = getNextMvpTarget(mvpCount);
-  const mvpMissing = Math.max(0, nextMvpTarget - mvpCount);
-
-  return (
-    <section className="rounded-[28px] border border-black/10 bg-white p-4 shadow-sm">
-      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-        Nächste Highlights
-      </div>
-      <h2 className="mt-1 text-xl font-black tracking-[-0.04em] text-slate-950">
-        Was kommt als nächstes?
-      </h2>
-
-      {hasLinkedPlayer ? (
-        <div className="mt-4 space-y-2">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="text-sm font-black text-slate-950">
-              {streakMissing === 0
-                ? `Serie ${nextStreakTarget} erreicht`
-                : `Noch ${streakMissing} bis zur ${nextStreakTarget}er-Serie`}
-            </div>
-            <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-              Aktuelle Serie: {currentStreak} Trainings in Folge.
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="text-sm font-black text-slate-950">
-              {mvpMissing === 0
-                ? `MVP-Ziel ${nextMvpTarget} erreicht`
-                : `Noch ${mvpMissing} MVP bis zum nächsten Badge-Ziel`}
-            </div>
-            <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-              Aktuell: {mvpCount} MVP-Auszeichnungen.
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-500">
-          Highlights erscheinen, sobald dein Spielerprofil verknüpft ist.
-        </div>
-      )}
-    </section>
-  );
-}
-
 function MiniStatCard({
   icon,
   value,
@@ -605,22 +401,7 @@ export default async function HomePage() {
   const today = new Date().toISOString().slice(0, 10);
   const isAdmin =
     isPowerUser || membership.role === "admin" || membership.role === "owner";
-
-  const currentPlayerPromise = player?.id
-    ? supabase
-        .from("players")
-        .select("id, first_name, last_name, user_id, mvp_count")
-        .eq("club_id", clubId)
-        .eq("id", player.id)
-        .maybeSingle<PlayerRow>()
-    : Promise.resolve({ data: null as PlayerRow | null, error: null });
-
-  const personalResultsPromise = player?.id
-    ? supabase
-        .from("results")
-        .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
-        .eq("club_id", clubId)
-    : Promise.resolve({ data: [] as HomeResultRow[], error: null });
+  const currentPlayerId = player?.id ?? null;
 
   const [
     featureFlags,
@@ -628,13 +409,9 @@ export default async function HomePage() {
     { data: homeSettingsData },
     { count: invitesCount },
     { count: sessionsCount },
-    { count: pastSessionsCount },
-    { count: seasonsCount },
+    { data: seasonsData },
     { data: nextSessionData },
     { data: recentSessionsData },
-    { data: pastSessionsData },
-    { data: currentPlayerData },
-    { data: personalResultsData },
   ] = await Promise.all([
     getFeatureFlagsForClub(clubId),
     supabase
@@ -644,7 +421,9 @@ export default async function HomePage() {
       .maybeSingle<ClubRow>(),
     supabase
       .from("club_settings")
-      .select("rsvp_deadline_minutes_before")
+      .select(
+        "rsvp_deadline_minutes_before, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url"
+      )
       .eq("club_id", clubId)
       .maybeSingle<HomeClubSettingsRow>(),
     supabase
@@ -656,14 +435,10 @@ export default async function HomePage() {
       .select("id", { count: "exact", head: true })
       .eq("club_id", clubId),
     supabase
-      .from("sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("club_id", clubId)
-      .lte("date", today),
-    supabase
       .from("seasons")
-      .select("id", { count: "exact", head: true })
-      .eq("club_id", clubId),
+      .select("id, start_date, end_date")
+      .eq("club_id", clubId)
+      .order("start_date", { ascending: false }),
     supabase
       .from("sessions")
       .select("id, date, start_time, notes")
@@ -678,15 +453,6 @@ export default async function HomePage() {
       .eq("club_id", clubId)
       .order("date", { ascending: false })
       .limit(12),
-    supabase
-      .from("sessions")
-      .select("id, date, start_time, notes")
-      .eq("club_id", clubId)
-      .lte("date", today)
-      .order("date", { ascending: false })
-      .limit(20),
-    currentPlayerPromise,
-    personalResultsPromise,
   ]);
 
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
@@ -695,20 +461,18 @@ export default async function HomePage() {
   const homeSettings = (homeSettingsData ?? null) as HomeClubSettingsRow | null;
   const rsvpDeadlineMinutesBefore =
     homeSettings?.rsvp_deadline_minutes_before ?? 30;
+  const bierkassePaypalUrl =
+    homeSettings?.beerkasse_enabled &&
+    homeSettings?.beerkasse_home_enabled &&
+    homeSettings?.beerkasse_paypal_url?.trim()
+      ? homeSettings.beerkasse_paypal_url.trim()
+      : null;
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
-  const pastSessions = (pastSessionsData ?? []) as SessionRow[];
-  const currentPlayer = (currentPlayerData ?? null) as PlayerRow | null;
+  const seasons = (seasonsData ?? []) as SeasonRow[];
   const clubName = club?.display_name?.trim() || "Dein Team";
   const userId = user?.id ?? null;
 
-  const { data: seasonsData } = await supabase
-    .from("seasons")
-    .select("id, start_date, end_date")
-    .eq("club_id", clubId)
-    .order("start_date", { ascending: false });
-
-  const seasons = (seasonsData ?? []) as SeasonRow[];
   const currentSeason = getCurrentSeason(seasons, today);
   const currentSeasonSessionsPromise = currentSeason
     ? supabase
@@ -726,14 +490,17 @@ export default async function HomePage() {
   const { data: currentSeasonSessionsData } = await currentSeasonSessionsPromise;
   const currentSeasonSessions = (currentSeasonSessionsData ?? []) as SeasonSessionRow[];
   const currentSeasonSessionIds = currentSeasonSessions.map((session) => session.id);
-  const currentSeasonSessionIdSet = new Set(currentSeasonSessionIds);
 
   let personalSuccessRate: number | null = null;
 
-  if (currentPlayer) {
-    const results = ((personalResultsData ?? []) as HomeResultRow[]).filter(
-      (result) => currentSeasonSessionIdSet.has(Number(result.session_id))
-    );
+  if (currentPlayerId && currentSeasonSessionIds.length > 0) {
+    const { data: personalResultsData } = await supabase
+      .from("results")
+      .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+      .eq("club_id", clubId)
+      .in("session_id", currentSeasonSessionIds);
+
+    const results = (personalResultsData ?? []) as HomeResultRow[];
     const resultTeamIds = Array.from(
       new Set(
         results.flatMap((result) =>
@@ -749,7 +516,7 @@ export default async function HomePage() {
       const { data: myTeamRows } = await supabase
         .from("team_players")
         .select("team_id, player_id")
-        .eq("player_id", currentPlayer.id)
+        .eq("player_id", currentPlayerId)
         .in("team_id", resultTeamIds);
 
       const myTeamIds = new Set(
@@ -796,7 +563,7 @@ export default async function HomePage() {
     isAdmin &&
     !isPowerUser &&
     ((sessionsCount ?? 0) === 0 ||
-      (seasonsCount ?? 0) === 0 ||
+      seasons.length === 0 ||
       (invitesCount ?? 0) === 0);
 
   let clubLogoUrl: string | null = null;
@@ -993,35 +760,20 @@ export default async function HomePage() {
   let nextSessionParticipantNames: string[] = [];
 
   if (homeSessionRsvpEnabled && nextSession) {
-    const selfRsvpPromise = currentPlayer?.id
+    const selfRsvpPromise = currentPlayerId
       ? supabase
           .from("session_rsvps")
           .select("status")
           .eq("session_id", nextSession.id)
-          .eq("player_id", currentPlayer.id)
+          .eq("player_id", currentPlayerId)
           .maybeSingle()
       : Promise.resolve({ data: null as { status: string } | null, error: null });
 
-    const selfPresencePromise = currentPlayer?.id
-      ? supabase
-          .from("session_players")
-          .select("player_id")
-          .eq("session_id", nextSession.id)
-          .eq("player_id", currentPlayer.id)
-          .maybeSingle()
-      : Promise.resolve({ data: null as { player_id: number } | null, error: null });
-
     const [
-      { count: nextSessionPresentCountValue },
       { count: nextSessionAbsentCountValue },
       { data: participantRows },
       { data: selfRsvp },
-      { data: selfPresence },
     ] = await Promise.all([
-      supabase
-        .from("session_players")
-        .select("id", { count: "exact", head: true })
-        .eq("session_id", nextSession.id),
       supabase
         .from("session_rsvps")
         .select("id", { count: "exact", head: true })
@@ -1040,16 +792,20 @@ export default async function HomePage() {
         )
         .eq("session_id", nextSession.id),
       selfRsvpPromise,
-      selfPresencePromise,
     ]);
 
-    nextSessionPresentCount = nextSessionPresentCountValue ?? 0;
+    const participants = (participantRows ?? []) as NextSessionParticipantRow[];
+    nextSessionPresentCount = participants.length;
     nextSessionAbsentCount = nextSessionAbsentCountValue ?? 0;
 
-    nextSessionParticipantNames = ((participantRows ?? []) as NextSessionParticipantRow[])
+    nextSessionParticipantNames = participants
       .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players)))
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b, "de"));
+
+    const selfPresence = currentPlayerId
+      ? participants.some((row) => row.player_id === currentPlayerId)
+      : false;
 
     if (selfRsvp?.status === "out") {
       nextSessionPresenceStatus = "out";
@@ -1061,64 +817,15 @@ export default async function HomePage() {
   }
 
   let personalAttendanceCount = 0;
-  let attendanceRate: number | null = null;
-  let currentStreak = 0;
   let attendanceRank: number | null = null;
-  let mvpRank: number | null = null;
-  let clubPlayerCount = 0;
-  const currentMvpCount = safeMvpCount(currentPlayer?.mvp_count);
 
-  if (currentPlayer?.id) {
-    const pastSessionIds = pastSessions.map((session) => session.id);
-    const recentPresencePromise =
-      pastSessionIds.length > 0
-        ? supabase
-            .from("session_players")
-            .select("session_id")
-            .eq("player_id", currentPlayer.id)
-            .in("session_id", pastSessionIds)
-        : Promise.resolve({
-            data: [] as { session_id: number }[],
-            error: null,
-          });
-
-    const seasonAttendancePromise =
-      currentSeasonSessionIds.length > 0
-        ? supabase
-            .from("session_players")
-            .select("id", { count: "exact", head: true })
-            .eq("player_id", currentPlayer.id)
-            .in("session_id", currentSeasonSessionIds)
-        : Promise.resolve({
-            count: 0,
-            data: null,
-            error: null,
-          });
-
-    const [
-      { count: personalAttendanceCountValue },
-      { data: clubPlayersData },
-      { data: recentPresenceRows },
-    ] = await Promise.all([
-      seasonAttendancePromise,
-      supabase
-        .from("players")
-        .select("id, first_name, last_name, mvp_count")
-        .eq("club_id", clubId),
-      recentPresencePromise,
-    ]);
-
-    personalAttendanceCount = personalAttendanceCountValue ?? 0;
-
-    const seasonPastCount = currentSeasonSessionIds.length;
-    attendanceRate =
-      seasonPastCount > 0
-        ? Math.round((personalAttendanceCount / seasonPastCount) * 100)
-        : null;
+  if (currentPlayerId) {
+    const { data: clubPlayersData } = await supabase
+      .from("players")
+      .select("id")
+      .eq("club_id", clubId);
 
     const clubPlayers = (clubPlayersData ?? []) as ClubPlayerStatsRow[];
-    clubPlayerCount = clubPlayers.length;
-
     const clubPlayerIds = clubPlayers
       .map((clubPlayer) => Number(clubPlayer.id))
       .filter((id) => Number.isFinite(id));
@@ -1137,33 +844,13 @@ export default async function HomePage() {
         attendanceCounts.set(playerId, (attendanceCounts.get(playerId) ?? 0) + 1);
       }
 
-      const currentAttendance = attendanceCounts.get(currentPlayer.id) ?? 0;
+      personalAttendanceCount = attendanceCounts.get(currentPlayerId) ?? 0;
       attendanceRank =
         1 +
         clubPlayers.filter((clubPlayer) => {
           const count = attendanceCounts.get(clubPlayer.id) ?? 0;
-          return count > currentAttendance;
+          return count > personalAttendanceCount;
         }).length;
-
-      mvpRank =
-        1 +
-        clubPlayers.filter(
-          (clubPlayer) => safeMvpCount(clubPlayer.mvp_count) > currentMvpCount
-        ).length;
-    }
-
-    const presentSessionIds = new Set(
-      ((recentPresenceRows ?? []) as { session_id: number }[]).map((row) =>
-        Number(row.session_id)
-      )
-    );
-
-    for (const session of pastSessions) {
-      if (presentSessionIds.has(session.id)) {
-        currentStreak += 1;
-      } else {
-        break;
-      }
     }
   }
 
@@ -1269,7 +956,7 @@ export default async function HomePage() {
             Meine Kurzinfo
           </div>
 
-          {currentPlayer ? (
+          {currentPlayerId ? (
             <>
               <div className="mt-4 grid grid-cols-4 gap-2.5">
                 <MiniStatCard
@@ -1445,6 +1132,25 @@ export default async function HomePage() {
           </section>
         ) : null}
 
+        {bierkassePaypalUrl ? (
+          <a
+            href={bierkassePaypalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm"
+          >
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[.16em] text-amber-700">
+                🍺 Bierkasse
+              </div>
+              <div className="text-sm font-black text-slate-950">Bier zahlen</div>
+            </div>
+            <span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black text-slate-950">
+              PayPal →
+            </span>
+          </a>
+        ) : null}
+
         <Link
           href="/about"
           className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -1452,7 +1158,7 @@ export default async function HomePage() {
           <div className="text-sm font-black text-slate-500">Über strikr</div>
 
           <h2 className="mt-1 text-lg font-black text-slate-950">
-            Vom Bierdeckel zur Web-App 🍻⚽
+            Vom Bierdeckel zur App 🍻⚽
           </h2>
 
           <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
