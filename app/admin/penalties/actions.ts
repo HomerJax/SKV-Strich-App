@@ -19,7 +19,8 @@ export async function addPenaltyAction(formData:FormData){
   const {supabase,clubId}=await ctx(); const playerId=Number(String(formData.get("player_id")??"")); if(!Number.isFinite(playerId)) redirect(url({error:"Bitte einen Spieler auswählen."}));
   const preset=PRESETS[String(formData.get("preset")??"")];
   const reason=(preset?.reason ?? String(formData.get("reason")??"").trim()) || null;
-  const typeRaw=preset?.type ?? String(formData.get("type")??"beer"); const type:typeRaw extends never?never:any = typeRaw==="money"||typeRaw==="custom"?typeRaw:"beer";
+  const typeRaw=preset?.type ?? String(formData.get("type")??"beer");
+  const type: "beer"|"money"|"custom" = typeRaw==="money"||typeRaw==="custom"?typeRaw:"beer";
   const value=(preset?.value ?? String(formData.get("value")??"").trim()) || null;
   const dueRaw=String(formData.get("due_date")??"").trim(); const notes=String(formData.get("notes")??"").trim()||null;
   const escalation=preset?.escalation ?? (type==="beer"?"+ 1 Sechserträger":null);
