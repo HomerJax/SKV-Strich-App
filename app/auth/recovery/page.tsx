@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import ResetPasswordForm from "@/app/login/reset-password/ResetPasswordForm";
 
 const ERROR_URL =
   "/login/forgot-password?error=" +
@@ -15,19 +16,21 @@ function safeNext(value: string | null) {
 }
 
 export default function RecoveryPage() {
-  const [message, setMessage] = useState("Reset-Link wird geprüft …");
+  const [ready, setReady] = useState(false);
+  const [next, setNext] = useState("");
 
   useEffect(() => {
     const run = async () => {
       const query = new URLSearchParams(window.location.search);
-      const next = safeNext(query.get("next"));
+      const safeNextValue = safeNext(query.get("next"));
       const hash = new URLSearchParams(
         window.location.hash.startsWith("#")
           ? window.location.hash.slice(1)
           : window.location.hash
       );
 
-      const errorDescription = hash.get("error_description") || query.get("error_description");
+      const errorDescription =
+        hash.get("error_description") || query.get("error_description");
       if (errorDescription) {
         window.location.replace(ERROR_URL);
         return;
@@ -53,22 +56,29 @@ export default function RecoveryPage() {
         return;
       }
 
-      setMessage("Link bestätigt. Passwort-Seite wird geöffnet …");
-      const target = next
-        ? `/login/reset-password?next=${encodeURIComponent(next)}`
-        : "/login/reset-password";
-      window.history.replaceState(null, "", target);
-      window.location.replace(target);
+      // Recovery is intentionally completed on this public route. Do not
+      // navigate to another page after setSession: native/browser entry logic
+      // may treat the temporary recovery session as a normal login and send the
+      // user to /home before a new password was chosen.
+      window.history.replaceState(null, "", "/auth/recovery");
+      setNext(safeNextValue);
+      setReady(true);
     };
 
     void run();
   }, []);
 
+  if (ready) {
+    return <ResetPasswordForm initialNext={next} />;
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 text-black">
       <div className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-8 text-center shadow-sm">
         <div className="text-2xl font-black">strikr</div>
-        <p className="mt-4 text-sm font-semibold text-zinc-600">{message}</p>
+        <p className="mt-4 text-sm font-semibold text-zinc-600">
+          Reset-Link wird geprüft …
+        </p>
       </div>
     </main>
   );
