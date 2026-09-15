@@ -34,6 +34,14 @@ type PushPreferenceRow = {
   announcements: boolean;
 };
 
+type SessionPushContextRow = {
+  club_id: string;
+};
+
+type ClubPushContextRow = {
+  name: string | null;
+};
+
 async function filterUsersByPreference(
   userIds: string[],
   preference?: PushPreferenceKey,
@@ -65,6 +73,41 @@ async function filterUsersByPreference(
     const preferences = preferencesByUser.get(userId);
     return preferences ? preferences[preference] !== false : true;
   });
+}
+
+async function resolvePushContext(url: string) {
+  const sessionMatch = url.match(/^\/sessions\/(\d+)(?:[/?#]|$)/);
+
+  if (!sessionMatch) {
+    return { clubId: null, clubName: null };
+  }
+
+  const sessionId = Number(sessionMatch[1]);
+  if (!Number.isFinite(sessionId)) {
+    return { clubId: null, clubName: null };
+  }
+
+  const supabase = createAdminClient();
+  const { data: session, error: sessionError } = await supabase
+    .from("sessions")
+    .select("club_id")
+    .eq("id", sessionId)
+    .maybeSingle<SessionPushContextRow>();
+
+  if (sessionError || !session?.club_id) {
+    return { clubId: null, clubName: null };
+  }
+
+  const { data: club } = await supabase
+    .from("clubs")
+    .select("name")
+    .eq("id", session.club_id)
+    .maybeSingle<ClubPushContextRow>();
+
+  return {
+    clubId: session.club_id,
+    clubName: club?.name?.trim() || null,
+  };
 }
 
 export async function sendPushToUsers({
@@ -140,16 +183,23 @@ export async function sendPushToUsers({
     };
   }
 
+  const pushContext = await resolvePushContext(url);
+  const displayBody =
+    preference === "training_reminders" && pushContext.clubName
+      ? `${pushContext.clubName} · ${body}`
+      : body;
+
   const messaging = getFirebaseMessaging();
 
   const response = await messaging.sendEachForMulticast({
     tokens,
     notification: {
       title,
-      body,
+      body: displayBody,
     },
     data: {
       url,
+      ...(pushContext.clubId ? { clubId: pushContext.clubId } : {}),
     },
     android: {
       notification: {

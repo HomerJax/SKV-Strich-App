@@ -7,6 +7,7 @@ import { useEffect } from "react";
 
 type NotificationData = {
   url?: unknown;
+  clubId?: unknown;
 };
 
 async function registerToken(token: string, platform: string) {
@@ -79,8 +80,19 @@ export default function NativePushRegistration() {
               | NotificationData
               | undefined;
             const url = data?.url;
+            const clubId = data?.clubId;
 
             if (typeof url === "string" && url.startsWith("/")) {
+              if (typeof clubId === "string" && clubId.trim()) {
+                const params = new URLSearchParams({
+                  clubId: clubId.trim(),
+                  next: url,
+                });
+
+                window.location.href = `/api/select-club?${params.toString()}`;
+                return;
+              }
+
               router.push(url);
               router.refresh();
             }
