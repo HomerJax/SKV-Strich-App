@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
+import SessionNoteEditor from "./SessionNoteEditor";
 
 type SessionType = "training" | "event";
 
@@ -184,11 +185,7 @@ export default function SessionHeaderCard({
                 {fmtLongDate(date)}
               </div>
 
-              {notes ? (
-                <div className="mt-1.5 max-w-2xl text-sm leading-5 text-white/70">
-                  {notes}
-                </div>
-              ) : null}
+              <SessionNoteEditor sessionId={sessionId} notes={notes} isAdmin={isAdmin} />
 
               <div className="mt-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/48">
                 Ergebnis
@@ -287,9 +284,7 @@ export default function SessionHeaderCard({
           <h1 className="mt-2 text-2xl font-extrabold tracking-[-0.035em] text-white sm:text-3xl">
             {fmtLongDate(date)}
           </h1>
-          {notes ? (
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/62">{notes}</p>
-          ) : null}
+          <SessionNoteEditor sessionId={sessionId} notes={notes} isAdmin={isAdmin} />
         </div>
 
         <div className={`mt-5 grid gap-2 ${isEvent ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
