@@ -16,12 +16,11 @@ export const SHARE_THEME = {
 
 const APP_NAME = "strikr";
 const APP_TAGLINE = "made with strikr";
-const APP_LOGO_PUBLIC_PATH = "public/icon-dark.png";
 
 let cachedAppLogoDataUri: string | null | undefined;
 
-async function loadLocalPngAsDataUri(relativePublicPath: string) {
-  const absolutePath = path.join(process.cwd(), relativePublicPath);
+async function loadAppLogoAsDataUri() {
+  const absolutePath = path.join(process.cwd(), "public", "icon-dark.png");
 
   try {
     const file = await fs.readFile(absolutePath);
@@ -38,7 +37,7 @@ async function getAppLogoDataUri() {
     return cachedAppLogoDataUri;
   }
 
-  cachedAppLogoDataUri = await loadLocalPngAsDataUri(APP_LOGO_PUBLIC_PATH);
+  cachedAppLogoDataUri = await loadAppLogoAsDataUri();
   return cachedAppLogoDataUri;
 }
 
