@@ -1,0 +1,75 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createBrowserClient } from "@supabase/ssr";
+
+const ERROR_URL =
+  "/login/forgot-password?error=" +
+  encodeURIComponent(
+    "Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an."
+  );
+
+function safeNext(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "";
+  return value;
+}
+
+export default function RecoveryPage() {
+  const [message, setMessage] = useState("Reset-Link wird geprüft …");
+
+  useEffect(() => {
+    const run = async () => {
+      const query = new URLSearchParams(window.location.search);
+      const next = safeNext(query.get("next"));
+      const hash = new URLSearchParams(
+        window.location.hash.startsWith("#")
+          ? window.location.hash.slice(1)
+          : window.location.hash
+      );
+
+      const errorDescription = hash.get("error_description") || query.get("error_description");
+      if (errorDescription) {
+        window.location.replace(ERROR_URL);
+        return;
+      }
+
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+      if (!accessToken || !refreshToken || hash.get("type") !== "recovery") {
+        window.location.replace(ERROR_URL);
+        return;
+      }
+
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+      if (error) {
+        window.location.replace(ERROR_URL);
+        return;
+      }
+
+      setMessage("Link bestätigt. Passwort-Seite wird geöffnet …");
+      const target = next
+        ? `/login/reset-password?next=${encodeURIComponent(next)}`
+        : "/login/reset-password";
+      window.history.replaceState(null, "", target);
+      window.location.replace(target);
+    };
+
+    void run();
+  }, []);
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 text-black">
+      <div className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-8 text-center shadow-sm">
+        <div className="text-2xl font-black">strikr</div>
+        <p className="mt-4 text-sm font-semibold text-zinc-600">{message}</p>
+      </div>
+    </main>
+  );
+}
