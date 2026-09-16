@@ -18,13 +18,9 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.strikr.team"),
   title: marketingTitle,
   description: marketingDescription,
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     type: "website",
     locale: "de_DE",
-    url: "/",
     siteName: "strikr",
     title: marketingTitle,
     description: marketingDescription,
