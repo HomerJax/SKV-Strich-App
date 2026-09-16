@@ -2,6 +2,7 @@
 
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
+import SessionAdminRsvpCard from "./SessionAdminRsvpCard";
 import SessionTeamsCard from "./SessionTeamsCard";
 import SessionWinnerPhotoCard from "./SessionWinnerPhotoCard";
 import SessionScoreCard from "./SessionScoreCard";
@@ -219,7 +220,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   function renderAttendance() {
     return (
-      <div ref={attendanceRef}>
+      <div ref={attendanceRef} className="space-y-3">
+        <SessionAdminRsvpCard
+          sessionId={props.sessionId}
+          players={displayPlayers}
+          hasResult={hasResult}
+          isAdmin={isAdmin}
+        />
+
         <SessionAttendanceCard
           players={displayPlayers}
           presentIds={draftPresentIds}
