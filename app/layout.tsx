@@ -4,14 +4,36 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import AppHeader from "@/components/AppHeader";
 import AppAuthChrome from "@/components/AppAuthChrome";
+import RouteAwareAppShell from "@/components/RouteAwareAppShell";
 import HomeAchievementTeaser from "@/components/home/HomeAchievementTeaser";
 import NativeDeepLinkHandler from "@/components/native/NativeDeepLinkHandler";
 import GlobalActionFeedback from "@/components/ui/GlobalActionFeedback";
 import PublicDemoLauncher from "@/components/demo/PublicDemoLauncher";
 
+const marketingTitle = "strikr – Jedes Training zählt. | Training redefined.";
+const marketingDescription =
+  "Macht aus euren Trainingsspielen eine Saison: faire Teams, Ergebnisse, Tabelle, persönliche Stats, Vergleiche und Trophäen – automatisch mit strikr.";
+
 export const metadata: Metadata = {
-  title: "strikr",
-  description: "Trainings, Teams und Ergebnisse an einem Ort.",
+  metadataBase: new URL("https://www.strikr.team"),
+  title: marketingTitle,
+  description: marketingDescription,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "de_DE",
+    url: "/",
+    siteName: "strikr",
+    title: marketingTitle,
+    description: marketingDescription,
+  },
+  twitter: {
+    card: "summary",
+    title: marketingTitle,
+    description: marketingDescription,
+  },
 };
 
 export const viewport: Viewport = {
@@ -48,18 +70,21 @@ export default function RootLayout({
         <GlobalActionFeedback />
         <PublicDemoLauncher />
 
-        <Suspense fallback={<HeaderFallback />}>
-          <AppHeader />
-        </Suspense>
-
-        <div className="min-h-[100dvh] w-full min-w-0 overflow-x-hidden pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top)+3px)] sm:pt-[calc(4.5rem+env(safe-area-inset-top)+3px)]">
-          <HomeAchievementTeaser />
+        <RouteAwareAppShell
+          header={
+            <Suspense fallback={<HeaderFallback />}>
+              <AppHeader />
+            </Suspense>
+          }
+          achievementTeaser={<HomeAchievementTeaser />}
+          authChrome={
+            <Suspense fallback={null}>
+              <AppAuthChrome />
+            </Suspense>
+          }
+        >
           {children}
-        </div>
-
-        <Suspense fallback={null}>
-          <AppAuthChrome />
-        </Suspense>
+        </RouteAwareAppShell>
 
         <Analytics />
       </body>
