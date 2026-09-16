@@ -143,8 +143,8 @@ function StoreButtons() {
 function ProductStage() {
   return (
     <div className="relative mx-auto mt-12 max-w-5xl">
-      <div className="pointer-events-none absolute -left-16 top-12 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl strikr-glow" />
-      <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-violet-500/25 blur-3xl strikr-glow strikr-delay" />
+      <div className="pointer-events-none absolute -left-16 top-12 h-64 w-64 rounded-full bg-cyan-400/25 blur-3xl strikr-glow" />
+      <div className="pointer-events-none absolute -right-16 bottom-0 h-72 w-72 rounded-full bg-violet-500/30 blur-3xl strikr-glow strikr-delay" />
 
       <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.055] p-3 shadow-[0_35px_120px_rgba(0,0,0,0.48)] backdrop-blur-xl sm:p-5">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/80 to-transparent" />
@@ -199,7 +199,7 @@ function ProductStage() {
 
           <div className="grid gap-3">
             <div className="relative overflow-hidden rounded-[27px] border border-white/10 bg-gradient-to-br from-[#0b111c] to-[#111827] p-5 text-left">
-              <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-cyan-400/20 blur-2xl" />
+              <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-cyan-400/25 blur-2xl" />
               <div className="relative text-[10px] font-black uppercase tracking-[0.18em] text-white/40">
                 Ergebnis gespeichert
               </div>
@@ -280,23 +280,29 @@ export default async function LandingPage({
       <style>{`
         @keyframes strikrGlow {
           0%, 100% { opacity: .55; transform: scale(1); }
-          50% { opacity: .95; transform: scale(1.08); }
+          50% { opacity: 1; transform: scale(1.1); }
         }
         @keyframes strikrFloat {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-6px); }
         }
+        @keyframes strikrLogoPulse {
+          0%, 100% { filter: drop-shadow(0 0 12px rgba(103,232,249,.12)); }
+          50% { filter: drop-shadow(0 0 30px rgba(103,232,249,.28)); }
+        }
         .strikr-glow { animation: strikrGlow 5.5s ease-in-out infinite; }
         .strikr-delay { animation-delay: -2.2s; }
         .strikr-float { animation: strikrFloat 4.8s ease-in-out infinite; }
+        .strikr-logo-pulse { animation: strikrLogoPulse 4.8s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .strikr-glow, .strikr-float { animation: none; }
+          .strikr-glow, .strikr-float, .strikr-logo-pulse { animation: none; }
         }
       `}</style>
 
       <section className="relative border-b border-white/8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(124,58,237,0.16),transparent_30%),radial-gradient(circle_at_62%_62%,rgba(59,130,246,0.09),transparent_34%)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[linear-gradient(to_bottom,rgba(255,255,255,0.025),transparent)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(34,211,238,0.16),transparent_23%),radial-gradient(circle_at_13%_24%,rgba(34,211,238,0.16),transparent_30%),radial-gradient(circle_at_86%_11%,rgba(124,58,237,0.24),transparent_32%),radial-gradient(circle_at_66%_64%,rgba(59,130,246,0.13),transparent_36%)]" />
+        <div className="pointer-events-none absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-400/10 blur-[90px] strikr-glow" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[460px] bg-[linear-gradient(to_bottom,rgba(255,255,255,0.035),transparent)]" />
 
         <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
           <header className="flex items-center justify-between gap-3">
@@ -335,15 +341,29 @@ export default async function LandingPage({
             </div>
           </header>
 
-          <div className="mx-auto mt-16 max-w-4xl text-center sm:mt-20 lg:mt-24">
-            <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/[0.07] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200 shadow-[0_0_32px_rgba(34,211,238,0.08)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,0.9)]" />
+          <div className="mx-auto mt-12 max-w-4xl text-center sm:mt-16 lg:mt-20">
+            <div className="relative mx-auto mb-6 flex h-28 w-28 items-center justify-center sm:h-32 sm:w-32 lg:h-36 lg:w-36">
+              <div className="pointer-events-none absolute inset-[-34px] rounded-full bg-cyan-400/25 blur-3xl strikr-glow" />
+              <div className="pointer-events-none absolute inset-[-18px] rounded-full bg-violet-500/20 blur-2xl strikr-glow strikr-delay" />
+              <div className="pointer-events-none absolute inset-0 rounded-[34px] border border-cyan-200/15 bg-gradient-to-br from-cyan-300/10 via-white/[0.035] to-violet-400/10 shadow-[0_0_70px_rgba(34,211,238,0.16)]" />
+              <Image
+                src="/icon-light.png"
+                alt="strikr Logo"
+                width={150}
+                height={150}
+                className="strikr-logo-pulse relative h-24 w-24 rounded-[25px] object-contain sm:h-28 sm:w-28 lg:h-32 lg:w-32"
+                priority
+              />
+            </div>
+
+            <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-gradient-to-r from-cyan-300/[0.09] to-violet-400/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 shadow-[0_0_38px_rgba(34,211,238,0.13)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_16px_rgba(103,232,249,1)]" />
               Training redefined.
             </div>
 
             <h1 className="mt-7 text-[3.25rem] font-black leading-[0.94] tracking-[-0.065em] text-white sm:text-7xl lg:text-[5.6rem]">
               Jedes Training
-              <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(103,232,249,0.12)]">
                 zählt.
               </span>
             </h1>
@@ -358,7 +378,7 @@ export default async function LandingPage({
               <Link
                 href="/demo"
                 data-analytics-event="landing_demo_click"
-                className="group inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-black text-slate-950 shadow-[0_0_38px_rgba(255,255,255,0.12)] transition hover:-translate-y-0.5 hover:bg-cyan-50"
+                className="group inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-black text-slate-950 shadow-[0_0_42px_rgba(103,232,249,0.15)] transition hover:-translate-y-0.5 hover:bg-cyan-50"
               >
                 strikr ausprobieren
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
@@ -366,7 +386,7 @@ export default async function LandingPage({
               <Link
                 href="/signup?next=%2Fclub-setup"
                 data-analytics-event="landing_signup_cta_click"
-                className="inline-flex min-h-13 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.055] px-7 py-4 text-sm font-black text-white backdrop-blur-md transition hover:bg-white/10"
+                className="inline-flex min-h-13 items-center justify-center rounded-2xl border border-violet-300/20 bg-gradient-to-r from-white/[0.065] to-violet-400/[0.07] px-7 py-4 text-sm font-black text-white backdrop-blur-md transition hover:bg-white/10"
               >
                 Team kostenlos starten
               </Link>
@@ -382,7 +402,9 @@ export default async function LandingPage({
       </section>
 
       <section className="relative bg-[#070b12] py-16 sm:py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="pointer-events-none absolute left-[8%] top-12 h-48 w-48 rounded-full bg-cyan-500/8 blur-3xl" />
+        <div className="pointer-events-none absolute right-[6%] bottom-10 h-52 w-52 rounded-full bg-violet-500/9 blur-3xl" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
               Vom Kick zur Saison
@@ -419,8 +441,8 @@ export default async function LandingPage({
       </section>
 
       <section className="relative overflow-hidden bg-[#f5f7fa] py-16 text-slate-950 sm:py-24">
-        <div className="pointer-events-none absolute -left-24 top-0 h-80 w-80 rounded-full bg-cyan-300/25 blur-3xl" />
-        <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-violet-300/30 blur-3xl" />
+        <div className="pointer-events-none absolute -left-24 top-0 h-80 w-80 rounded-full bg-cyan-300/30 blur-3xl" />
+        <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-violet-300/35 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
             <div>
@@ -446,7 +468,7 @@ export default async function LandingPage({
                   index === 1 ? "lg:-translate-y-4" : ""
                 }`}
               >
-                <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-gradient-to-br from-cyan-200/50 to-violet-200/40 blur-2xl" />
+                <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-gradient-to-br from-cyan-200/55 to-violet-200/45 blur-2xl" />
                 <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-lg">
                   <Icon className="h-5 w-5" />
                 </div>
@@ -482,7 +504,7 @@ export default async function LandingPage({
                 key={title}
                 className="rounded-[25px] border border-white/9 bg-white/[0.045] p-5"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-400 text-slate-950 shadow-[0_0_25px_rgba(34,211,238,0.12)]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 via-blue-300 to-violet-400 text-slate-950 shadow-[0_0_30px_rgba(34,211,238,0.16)]">
                   <Icon className="h-4.5 w-4.5" />
                 </div>
                 <h3 className="mt-4 text-lg font-black">{title}</h3>
@@ -494,7 +516,7 @@ export default async function LandingPage({
       </section>
 
       <section className="relative overflow-hidden border-y border-white/8 bg-[#0a0f19] py-16 sm:py-20">
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[460px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/12 blur-3xl" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[460px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/16 blur-3xl" />
         <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
           <div className="mx-auto inline-flex rounded-full border border-white/10 bg-white/6 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/55">
             Keine Erklärung nötig
