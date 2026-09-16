@@ -8,14 +8,13 @@ import { Capacitor } from "@capacitor/core";
 export default function PublicDemoLauncher() {
   const pathname = usePathname();
 
-  // The public demo CTA belongs to the web entry/login experience only.
-  // In the native shell it briefly flashed before the authenticated route was
-  // restored, which made an already logged-in app look logged out on startup.
+  // The marketing landing has its own demo CTAs. Keep this compact launcher
+  // only on login, where it remains useful as a low-friction way to explore.
   if (Capacitor.isNativePlatform()) {
     return null;
   }
 
-  if (pathname !== "/" && pathname !== "/login") {
+  if (pathname !== "/login") {
     return null;
   }
 
