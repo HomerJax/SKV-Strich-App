@@ -17,6 +17,7 @@ export type Player = {
   strength: number | null;
   is_active: boolean | null;
   is_guest?: boolean;
+  rsvp_status?: "in" | "out" | null;
 };
 
 export type SessionRow = {
