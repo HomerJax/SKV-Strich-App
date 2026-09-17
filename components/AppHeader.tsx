@@ -3,6 +3,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import MobileUserMenu from "@/components/MobileUserMenu";
 import ClubSwitcher, {
   type ClubSwitcherClub,
@@ -91,28 +92,30 @@ export default async function AppHeader() {
 
   if (ctx.user) {
     const supabase = await createClient();
+    const clubReader = ctx.isPowerUser ? createAdminClient() : supabase;
 
     const membershipClubIds = Array.from(
       new Set(ctx.memberships.map((membership) => membership.club_id))
     );
 
     const activeClubPromise = activeClubId
-      ? supabase
+      ? clubReader
           .from("clubs")
           .select("id, display_name, name, logo_path, primary_color")
           .eq("id", activeClubId)
+          .is("deleted_at", null)
           .maybeSingle<ClubRow>()
       : Promise.resolve({ data: null, error: null });
 
     const visibleClubsPromise = ctx.isPowerUser
-      ? supabase
+      ? clubReader
           .from("clubs")
           .select("id, display_name, name, logo_path, primary_color")
           .is("deleted_at", null)
           .order("display_name", { ascending: true })
           .returns<ClubRow[]>()
       : membershipClubIds.length > 1
-        ? supabase
+        ? clubReader
             .from("clubs")
             .select("id, display_name, name, logo_path, primary_color")
             .in("id", membershipClubIds)
