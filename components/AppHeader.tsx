@@ -18,6 +18,10 @@ type ClubRow = {
   primary_color: string | null;
 };
 
+type PlayerPhotoRow = {
+  photo_path: string | null;
+};
+
 const COLOR_MAP: Record<string, string> = {
   black: "#020617",
   blue: "#1d4ed8",
@@ -88,6 +92,7 @@ export default async function AppHeader() {
 
   let clubName: string | null = null;
   let logoSrc: string | null = null;
+  let profilePhotoSrc: string | null = null;
   let primaryColor = COLOR_MAP.black;
   let switcherClubs: ClubSwitcherClub[] = [];
 
@@ -125,9 +130,22 @@ export default async function AppHeader() {
             .returns<ClubRow[]>()
         : Promise.resolve({ data: [], error: null });
 
-    const [{ data: club }, { data: visibleClubs }] = await Promise.all([
+    const playerPhotoPromise = ctx.player?.id
+      ? supabase
+          .from("players")
+          .select("photo_path")
+          .eq("id", ctx.player.id)
+          .maybeSingle<PlayerPhotoRow>()
+      : Promise.resolve({ data: null, error: null });
+
+    const [
+      { data: club },
+      { data: visibleClubs },
+      { data: playerPhoto },
+    ] = await Promise.all([
       activeClubPromise,
       visibleClubsPromise,
+      playerPhotoPromise,
     ]);
 
     clubName = club ? getClubLabel(club) : null;
@@ -139,6 +157,14 @@ export default async function AppHeader() {
         .getPublicUrl(club.logo_path);
 
       logoSrc = data?.publicUrl ?? null;
+    }
+
+    if (playerPhoto?.photo_path) {
+      const { data } = supabase.storage
+        .from("player-photos")
+        .getPublicUrl(playerPhoto.photo_path);
+
+      profilePhotoSrc = data?.publicUrl ?? null;
     }
 
     if (visibleClubs?.length) {
@@ -247,6 +273,7 @@ export default async function AppHeader() {
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <MobileUserMenu
                 profileLabel={profileLabel}
+                profilePhotoSrc={profilePhotoSrc}
                 showPlayerStatsLink={true}
               />
 
