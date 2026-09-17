@@ -317,7 +317,7 @@ export default function PlayerPhotoUpload({
           )}
         </div>
 
-        <div className="mt-1.5 flex justify-center">
+        <div className="mt-1.5 flex flex-col items-center gap-0.5">
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
@@ -328,6 +328,7 @@ export default function PlayerPhotoUpload({
           >
             {busy ? <span className="text-xs font-black">…</span> : <Camera className="h-3.5 w-3.5" aria-hidden="true" />}
           </button>
+          {photoUrl || previewUrl ? <div className="text-center text-[8px] leading-tight text-slate-400">Auf Bild klicken zum Ausrichten</div> : null}
         </div>
 
         <input
@@ -390,8 +391,10 @@ export default function PlayerPhotoUpload({
               </div>
               <div>
                 <div className="mb-1 text-center text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Profil</div>
-                <div className="mx-auto h-[76px] w-[76px] overflow-hidden rounded-full border-4 border-white bg-slate-200 shadow-md">
-                  <img src={previewUrl} alt="Vorschau Profilbild" draggable={false} className="h-full w-full object-cover" style={imageStyle} />
+                <div className="relative mx-auto h-[76px] w-[76px] overflow-hidden rounded-full border-4 border-white bg-slate-200 shadow-md">
+                  <div className="absolute left-0 top-1/2 aspect-[4/5] w-full -translate-y-1/2 overflow-hidden">
+                    <img src={previewUrl} alt="Vorschau Profilbild" draggable={false} className="h-full w-full object-cover" style={imageStyle} />
+                  </div>
                 </div>
                 <div className="mt-2 text-center text-[9px] leading-tight text-slate-400">So wirkt es oben im Header</div>
               </div>
