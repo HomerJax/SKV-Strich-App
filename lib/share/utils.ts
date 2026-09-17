@@ -12,6 +12,14 @@ type ShareNameLike = {
   nickname?: string | null;
 };
 
+type NativeCapacitorBridge = {
+  isNativePlatform?: () => boolean;
+};
+
+type WindowWithCapacitor = Window & {
+  Capacitor?: NativeCapacitorBridge;
+};
+
 export function trimName(value: string, maxLength = 18) {
   const clean = value.trim();
 
@@ -129,6 +137,71 @@ async function tryNativeShare(file: File, title: string) {
     return false;
   }
 }
+
+function isNativeCapacitorRuntime() {
+  if (typeof window === "undefined") return false;
+
+  try {
+    return Boolean((window as WindowWithCapacitor).Capacitor?.isNativePlatform?.());
+  } catch {
+    return false;
+  }
+}
+
+function installNativeFileShareGuard() {
+  if (typeof navigator === "undefined" || !isNativeCapacitorRuntime()) return;
+
+  const nav = navigator as Navigator & {
+    share?: (data?: ShareData) => Promise<void>;
+    canShare?: (data?: ShareData) => boolean;
+    __strikrNativeShareGuard?: boolean;
+  };
+
+  if (nav.__strikrNativeShareGuard) return;
+  nav.__strikrNativeShareGuard = true;
+
+  const originalShare = typeof nav.share === "function" ? nav.share.bind(nav) : null;
+  const originalCanShare =
+    typeof nav.canShare === "function" ? nav.canShare.bind(nav) : null;
+
+  if (originalCanShare) {
+    try {
+      Object.defineProperty(nav, "canShare", {
+        configurable: true,
+        value: (data?: ShareData) => {
+          if (data?.files?.length) return true;
+          return originalCanShare(data);
+        },
+      });
+    } catch {
+      // Some WebViews expose navigator methods as non-configurable.
+    }
+  }
+
+  try {
+    Object.defineProperty(nav, "share", {
+      configurable: true,
+      value: async (data?: ShareData) => {
+        const firstFile = data?.files?.[0];
+
+        if (firstFile instanceof File && (await tryNativeShare(firstFile, data?.title ?? "SiegerCard"))) {
+          return;
+        }
+
+        if (originalShare) {
+          await originalShare(data);
+          return;
+        }
+
+        throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+      },
+    });
+  } catch {
+    // shareImageFile below still prefers the native Capacitor path directly.
+  }
+}
+
+installNativeFileShareGuard();
 
 export async function shareImageFile(
   file: File,
