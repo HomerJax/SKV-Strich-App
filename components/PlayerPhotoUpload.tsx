@@ -391,9 +391,11 @@ export default function PlayerPhotoUpload({
               </div>
               <div>
                 <div className="mb-1 text-center text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Profil</div>
-                <div className="relative mx-auto h-[76px] w-[76px] overflow-hidden rounded-full border-4 border-white bg-slate-200 shadow-md">
-                  <div className="absolute left-0 top-1/2 aspect-[4/5] w-full -translate-y-1/2 overflow-hidden">
-                    <img src={previewUrl} alt="Vorschau Profilbild" draggable={false} className="h-full w-full object-cover" style={imageStyle} />
+                <div className="mx-auto h-[76px] w-[76px] rounded-full border-4 border-white bg-slate-200 shadow-md">
+                  <div className="relative h-full w-full overflow-hidden rounded-full bg-slate-200">
+                    <div className="pointer-events-none absolute inset-x-0 -top-[12.5%] h-[125%] overflow-hidden">
+                      <img src={previewUrl} alt="Vorschau Profilbild" draggable={false} className="block h-full w-full object-cover" style={imageStyle} />
+                    </div>
                   </div>
                 </div>
                 <div className="mt-2 text-center text-[9px] leading-tight text-slate-400">So wirkt es oben im Header</div>
