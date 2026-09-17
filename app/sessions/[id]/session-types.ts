@@ -8,6 +8,8 @@ export type Player = {
   first_name?: string | null;
   last_name?: string | null;
   nickname?: string | null;
+  photo_path?: string | null;
+  photo_url?: string | null;
   age_group: "AH" | "Ü32" | null;
   category_key?: string | null;
   category_label?: string | null;
