@@ -17,10 +17,18 @@ export async function GET(
   const access = await requireSessionAccess(sessionId);
   if ("error" in access) return fail(access.error ?? "Unbekannter Fehler.", access.status);
 
-  const { adminSupabase, clubId, session } = access;
-  if (session.type !== "event") return ok({ isEvent: false, players: [] });
+  const { adminSupabase, clubId, session, currentUserEmail } = access;
+  if (session.type !== "event") return ok({ isEvent: false, players: [], currentPlayerNominated: true });
 
-  const [{ data: players, error: playersError }, { data: exclusions, error: exclusionsError }] = await Promise.all([
+  const selfPlayerPromise = currentUserEmail
+    ? adminSupabase.from("players").select("id").eq("club_id", clubId).eq("email", currentUserEmail).maybeSingle()
+    : Promise.resolve({ data: null as { id: number } | null, error: null });
+
+  const [
+    { data: players, error: playersError },
+    { data: exclusions, error: exclusionsError },
+    { data: selfPlayer, error: selfPlayerError },
+  ] = await Promise.all([
     adminSupabase
       .from("players")
       .select("id, first_name, last_name, nickname")
@@ -33,15 +41,19 @@ export async function GET(
       .select("player_id")
       .eq("club_id", clubId)
       .eq("session_id", sessionId),
+    selfPlayerPromise,
   ]);
 
-  if (playersError || exclusionsError) {
-    return fail(`Event-Kader konnte nicht geladen werden: ${playersError?.message ?? exclusionsError?.message}`, 500);
+  if (playersError || exclusionsError || selfPlayerError) {
+    return fail(`Event-Kader konnte nicht geladen werden: ${playersError?.message ?? exclusionsError?.message ?? selfPlayerError?.message}`, 500);
   }
 
   const excluded = new Set((exclusions ?? []).map((row) => Number(row.player_id)));
+  const selfPlayerId = selfPlayer?.id ? Number(selfPlayer.id) : null;
+
   return ok({
     isEvent: true,
+    currentPlayerNominated: selfPlayerId ? !excluded.has(selfPlayerId) : true,
     players: (players ?? []).map((player) => ({ ...player, nominated: !excluded.has(Number(player.id)) })),
   });
 }
