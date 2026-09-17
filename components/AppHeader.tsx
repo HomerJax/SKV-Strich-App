@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import MobileUserMenu from "@/components/MobileUserMenu";
+import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 import ClubSwitcher, {
   type ClubSwitcherClub,
 } from "@/components/PowerClubSwitcher";
@@ -175,6 +176,8 @@ export default async function AppHeader() {
 
   return (
     <>
+      {ctx.user ? <PresenceHeartbeat /> : null}
+
       <Script id="strikr-club-primary-color" strategy="afterInteractive">
         {`document.documentElement.style.setProperty('--club-primary', '${primaryColor}');`}
       </Script>
