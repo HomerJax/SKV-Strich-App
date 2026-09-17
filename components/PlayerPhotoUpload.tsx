@@ -8,6 +8,7 @@ import type {
 } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Camera } from "lucide-react";
 import { compressImageFile } from "@/lib/client-images/compress-image";
 
 type Props = {
@@ -114,6 +115,16 @@ export default function PlayerPhotoUpload({
       setPositionY(savedPositionY);
       setZoom(savedZoom);
     }
+  }
+
+  function openAlignmentEditor() {
+    if (!photoUrl && !previewUrl) return;
+    setPendingFile(null);
+    setPreviewUrl(photoUrl ?? previewUrl);
+    setPositionX(savedPositionX);
+    setPositionY(savedPositionY);
+    setZoom(savedZoom);
+    setEditorOpen(true);
   }
 
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
@@ -288,45 +299,45 @@ export default function PlayerPhotoUpload({
 
   return (
     <>
-      <div className={className}>
-        <div className="group relative h-full w-full">
-          {children}
-          <div className="absolute inset-x-1 bottom-1 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+      <div>
+        <div className={className}>
+          {photoUrl || previewUrl ? (
             <button
               type="button"
-              onClick={() => inputRef.current?.click()}
+              onClick={openAlignmentEditor}
               disabled={busy}
-              className="flex-1 rounded-lg bg-black/60 px-1.5 py-1.5 text-[9px] font-black text-white backdrop-blur-sm"
+              className="block h-full w-full cursor-pointer text-left disabled:cursor-default"
+              title="Foto ausrichten"
+              aria-label="Foto ausrichten"
             >
-              {busy ? "…" : "Foto ändern"}
+              {children}
             </button>
-            {photoUrl || previewUrl ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setPendingFile(null);
-                  setPreviewUrl(photoUrl ?? previewUrl);
-                  setPositionX(savedPositionX);
-                  setPositionY(savedPositionY);
-                  setZoom(savedZoom);
-                  setEditorOpen(true);
-                }}
-                disabled={busy}
-                className="flex-1 rounded-lg bg-black/60 px-1.5 py-1.5 text-[9px] font-black text-white backdrop-blur-sm"
-              >
-                Ausrichten
-              </button>
-            ) : null}
-          </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="sr-only"
-            disabled={busy}
-            onChange={handlePhotoChange}
-          />
+          ) : (
+            <div className="h-full w-full">{children}</div>
+          )}
         </div>
+
+        <div className="mt-1.5 flex justify-center">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            title="Foto ändern"
+            aria-label="Foto ändern"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-800 disabled:opacity-50"
+          >
+            {busy ? <span className="text-xs font-black">…</span> : <Camera className="h-3.5 w-3.5" aria-hidden="true" />}
+          </button>
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="sr-only"
+          disabled={busy}
+          onChange={handlePhotoChange}
+        />
         {error ? <div className="mt-1 text-[10px] font-bold text-rose-700">{error}</div> : null}
       </div>
 
