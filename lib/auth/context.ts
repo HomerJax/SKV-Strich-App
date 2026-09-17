@@ -2,6 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AuthPlayer = {
   id: number;
@@ -151,7 +152,8 @@ const getAuthContextCached = cache(async (): Promise<AuthContext> => {
 
   if (isPowerUser) {
     if (cookieClubId) {
-      const { data: selectedClub, error: selectedClubError } = await supabase
+      const admin = createAdminClient();
+      const { data: selectedClub, error: selectedClubError } = await admin
         .from("clubs")
         .select("id")
         .eq("id", cookieClubId)
