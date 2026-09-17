@@ -170,7 +170,9 @@ export function withDisplayName(player: Player, useNicknames: boolean): Player {
 }
 
 export function withDisplayNames(players: Player[], useNicknames: boolean): Player[] {
-  return players.map((player) => withDisplayName(player, useNicknames));
+  return players
+    .filter((player) => player.event_nominated !== false)
+    .map((player) => withDisplayName(player, useNicknames));
 }
 
 export function teamMeta(team: Player[]) {
