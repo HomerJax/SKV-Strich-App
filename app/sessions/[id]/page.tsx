@@ -42,7 +42,8 @@ type ResultRow = { id: number; team_a_id: number | null; team_b_id: number | nul
 type TeamRow = { id: number; name: string };
 type TeamPlayerRow = { team_id: number; player_id: number };
 type SessionPlayerRow = { player_id: number };
-type SessionRsvpRow = { player_id: number; status: "in" | "out" };
+type SessionRsvpRow = { player_id: number; status: "in" | "out"; reason: string | null };
+type EventExclusionRow = { player_id: number };
 type BalanceCategoryRow = { key: string; label: string; sort_order: number; is_active: boolean; is_strong: boolean };
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -63,6 +64,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     { data: categoriesData, error: categoriesError },
     { data: sessionPlayersData, error: sessionPlayersError },
     { data: sessionRsvpsData, error: sessionRsvpsError },
+    { data: eventExclusionsData, error: eventExclusionsError },
     { data: resultData, error: resultError },
     { data: teamsData, error: teamsError },
   ] = await Promise.all([
@@ -92,7 +94,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
     supabase.from("session_players").select("player_id").eq("session_id", sessionId),
-    supabase.from("session_rsvps").select("player_id, status").eq("session_id", sessionId).eq("club_id", clubId),
+    supabase.from("session_rsvps").select("player_id, status, reason").eq("session_id", sessionId).eq("club_id", clubId),
+    supabase.from("session_event_exclusions").select("player_id").eq("session_id", sessionId).eq("club_id", clubId),
     supabase.from("results").select("id, team_a_id, team_b_id, goals_team_a, goals_team_b").eq("session_id", sessionId).maybeSingle(),
     supabase.from("teams").select("id, name").eq("session_id", sessionId).eq("club_id", clubId),
   ]);
@@ -104,6 +107,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   if (categoriesError) throw new Error(`Kategorien konnten nicht geladen werden: ${categoriesError.message}`);
   if (sessionPlayersError) throw new Error(`Session-Spieler konnten nicht geladen werden: ${sessionPlayersError.message}`);
   if (sessionRsvpsError) throw new Error(`Rückmeldungen konnten nicht geladen werden: ${sessionRsvpsError.message}`);
+  if (eventExclusionsError) throw new Error(`Event-Kader konnte nicht geladen werden: ${eventExclusionsError.message}`);
   if (resultError) throw new Error(`Ergebnis konnte nicht geladen werden: ${resultError.message}`);
   if (teamsError) throw new Error(`Teams konnten nicht geladen werden: ${teamsError.message}`);
 
@@ -124,24 +128,35 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const categoryLabelByKey = new Map(
     ((categoriesData ?? []) as BalanceCategoryRow[]).map((category) => [category.key, category.label])
   );
-  const rsvpStatusByPlayerId = new Map(
-    ((sessionRsvpsData ?? []) as SessionRsvpRow[]).map((row) => [row.player_id, row.status])
+  const rsvpByPlayerId = new Map(
+    ((sessionRsvpsData ?? []) as SessionRsvpRow[]).map((row) => [row.player_id, row])
   );
+  const eventExcludedPlayerIds = new Set(
+    ((eventExclusionsData ?? []) as EventExclusionRow[]).map((row) => row.player_id)
+  );
+  const isEvent = session.type === "event";
 
-  const players = (((playersData ?? []).filter((player) => player.is_active !== false) ?? []) as Player[]).map((player) => ({
-    ...player,
-    photo_url: player.photo_path
-      ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
-      : null,
-    strength: player.strength ?? clubSettings.strength_default ?? 3,
-    roster_role: player.roster_role ?? "player",
-    category_label: player.category_key && categoryLabelByKey.has(player.category_key)
-      ? categoryLabelByKey.get(player.category_key) ?? null
-      : null,
-    rsvp_status: rsvpStatusByPlayerId.get(player.id) ?? null,
-  }));
+  const players = (((playersData ?? []).filter((player) => player.is_active !== false) ?? []) as Player[]).map((player) => {
+    const rsvp = rsvpByPlayerId.get(player.id);
+    return {
+      ...player,
+      photo_url: player.photo_path
+        ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
+        : null,
+      strength: player.strength ?? clubSettings.strength_default ?? 3,
+      roster_role: player.roster_role ?? "player",
+      category_label: player.category_key && categoryLabelByKey.has(player.category_key)
+        ? categoryLabelByKey.get(player.category_key) ?? null
+        : null,
+      rsvp_status: rsvp?.status ?? null,
+      rsvp_reason: rsvp?.reason?.trim() || null,
+      event_nominated: !isEvent || !eventExcludedPlayerIds.has(player.id),
+    };
+  });
 
-  const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[]).map((row) => row.player_id);
+  const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[])
+    .map((row) => row.player_id)
+    .filter((playerId) => !isEvent || !eventExcludedPlayerIds.has(playerId));
   const result = (resultData ?? null) as ResultRow | null;
   const teams = (teamsData ?? []) as TeamRow[];
   const manualTeams: Record<number, "A" | "B" | null> = {};
