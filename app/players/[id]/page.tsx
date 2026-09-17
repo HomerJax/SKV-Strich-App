@@ -12,7 +12,9 @@ type PlayerPass = {
   id: number; club_id: string; user_id: string | null; name: string | null;
   first_name: string | null; last_name: string | null; nickname: string | null;
   preferred_position: "attack" | "defense" | "goalkeeper" | null;
-  birth_date: string | null; jersey_number: string | null; photo_path: string | null; created_at: string | null;
+  birth_date: string | null; jersey_number: string | null; photo_path: string | null;
+  photo_position_x: number | null; photo_position_y: number | null; photo_zoom: number | null;
+  created_at: string | null;
 };
 
 function positionLabel(value: PlayerPass["preferred_position"]) {
@@ -31,7 +33,7 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
   const { clubId, player: ownPlayer, membership, isPowerUser } = await requireClub();
   const supabase = await createClient();
   const [{ data }, { data: club }] = await Promise.all([
-    supabase.from("players").select("id, club_id, user_id, name, first_name, last_name, nickname, preferred_position, birth_date, jersey_number, photo_path, created_at").eq("club_id", clubId).eq("id", playerId).maybeSingle(),
+    supabase.from("players").select("id, club_id, user_id, name, first_name, last_name, nickname, preferred_position, birth_date, jersey_number, photo_path, photo_position_x, photo_position_y, photo_zoom, created_at").eq("club_id", clubId).eq("id", playerId).maybeSingle(),
     supabase.from("clubs").select("display_name").eq("id", clubId).maybeSingle(),
   ]);
   const pass = data as PlayerPass | null;
@@ -39,7 +41,8 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
   const canEdit = ownPlayer?.id === pass.id || canManageClub({ isPowerUser, role: membership.role });
   const displayName = getPlayerDisplayName(pass);
   const photoUrl = pass.photo_path ? supabase.storage.from("player-photos").getPublicUrl(pass.photo_path).data.publicUrl : null;
-  const photo = photoUrl ? <Image src={photoUrl} alt={displayName} width={300} height={375} unoptimized className="h-full w-full object-cover"/> : <div className="flex h-full items-center justify-center text-5xl font-black text-slate-400">{displayName.slice(0,1).toUpperCase()}</div>;
+  const photoStyle = { objectPosition:`${pass.photo_position_x ?? 50}% ${pass.photo_position_y ?? 50}%`, transform:`scale(${Number(pass.photo_zoom ?? 1)})`, transformOrigin:`${pass.photo_position_x ?? 50}% ${pass.photo_position_y ?? 50}%` };
+  const photo = photoUrl ? <Image src={photoUrl} alt={displayName} width={300} height={375} unoptimized className="h-full w-full object-cover" style={photoStyle}/> : <div className="flex h-full items-center justify-center text-5xl font-black text-slate-400">{displayName.slice(0,1).toUpperCase()}</div>;
 
   return <main className="min-h-screen bg-neutral-100 px-4 py-5">
     <section className="mx-auto max-w-2xl space-y-4">
@@ -66,7 +69,7 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
             <div className="pt-4 text-[10px] uppercase tracking-[0.18em] text-slate-400">Digitaler Spielerpass · strikr</div>
           </div>
           <div className="order-1 sm:order-2">
-            {canEdit ? <PlayerPhotoUpload playerId={pass.id} birthDate={pass.birth_date} jerseyNumber={pass.jersey_number} className="aspect-[4/5] overflow-hidden border-2 border-white bg-slate-200 shadow-md">{photo}</PlayerPhotoUpload> : <div className="aspect-[4/5] overflow-hidden border-2 border-white bg-slate-200 shadow-md">{photo}</div>}
+            {canEdit ? <PlayerPhotoUpload playerId={pass.id} birthDate={pass.birth_date} jerseyNumber={pass.jersey_number} photoUrl={photoUrl} initialPositionX={pass.photo_position_x} initialPositionY={pass.photo_position_y} initialZoom={pass.photo_zoom} className="aspect-[4/5] overflow-hidden border-2 border-white bg-slate-200 shadow-md">{photo}</PlayerPhotoUpload> : <div className="aspect-[4/5] overflow-hidden border-2 border-white bg-slate-200 shadow-md">{photo}</div>}
           </div>
         </div>
       </div>
@@ -76,11 +79,14 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
         <p className="mt-1 text-xs text-slate-500">Geburtstag wird später auch für eure Mannschaftskasse genutzt. Stärke und Statistiken gehören bewusst nicht in den Spielerpass.</p>
         <form action="/api/player-pass" method="post" encType="multipart/form-data" className="mt-4 space-y-4">
           <input type="hidden" name="player_id" value={pass.id}/>
+          <input type="hidden" name="photo_position_x" value={pass.photo_position_x ?? 50}/>
+          <input type="hidden" name="photo_position_y" value={pass.photo_position_y ?? 50}/>
+          <input type="hidden" name="photo_zoom" value={pass.photo_zoom ?? 1}/>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium">Geburtsdatum<input type="date" name="birth_date" defaultValue={pass.birth_date ?? ""} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"/></label>
             <label className="text-sm font-medium">Rückennummer<input name="jersey_number" maxLength={8} defaultValue={pass.jersey_number ?? ""} placeholder="z. B. 8" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"/></label>
           </div>
-          <label className="block text-sm font-medium">Spielerfoto<input type="file" name="photo" accept="image/png,image/jpeg,image/webp" className="mt-1 block w-full text-sm"/></label>
+          <p className="text-xs text-slate-500">Foto direkt oben im Spielerpass ändern und anschließend ausrichten.</p>
           <button className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white">Spielerpass speichern</button>
         </form>
       </div> : null}
