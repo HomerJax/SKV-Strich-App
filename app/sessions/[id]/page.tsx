@@ -82,7 +82,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .single(),
     supabase
       .from("players")
-      .select("id, name, first_name, last_name, nickname, is_active, age_group, category_key, balance_group, roster_role, preferred_position, strength, is_guest")
+      .select("id, name, first_name, last_name, nickname, photo_path, is_active, age_group, category_key, balance_group, roster_role, preferred_position, strength, is_guest")
       .eq("club_id", clubId)
       .order("name"),
     supabase
@@ -130,6 +130,9 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   const players = (((playersData ?? []).filter((player) => player.is_active !== false) ?? []) as Player[]).map((player) => ({
     ...player,
+    photo_url: player.photo_path
+      ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
+      : null,
     strength: player.strength ?? clubSettings.strength_default ?? 3,
     roster_role: player.roster_role ?? "player",
     category_label: player.category_key && categoryLabelByKey.has(player.category_key)
