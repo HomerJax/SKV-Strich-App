@@ -1,18 +1,23 @@
 import Link from "next/link";
 import {
+  Activity,
   BarChart3,
   Globe2,
-  Laptop,
   LogIn,
   MousePointerClick,
+  Radio,
   Smartphone,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+type RangeKey = "today" | "7d" | "30d" | "90d" | "all";
 
 type LandingVisitRow = {
   id: number;
@@ -25,7 +30,6 @@ type LandingVisitRow = {
   country_code: string | null;
   device_type: string | null;
   user_agent_family: string | null;
-  app_env: string | null;
 };
 
 type LandingEventRow = {
@@ -40,51 +44,60 @@ type LandingEventRow = {
   country_code: string | null;
   device_type: string | null;
   user_agent_family: string | null;
-  app_env: string | null;
 };
 
-type StatCardProps = {
-  label: string;
-  value: string;
-  description: string;
-  icon: React.ReactNode;
+type PresenceRow = {
+  user_id: string;
+  club_id: string | null;
+  path: string | null;
+  last_seen_at: string;
 };
 
-function StatCard({ label, value, description, icon }: StatCardProps) {
-  return (
-    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-            {label}
-          </div>
-          <div className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">
-            {value}
-          </div>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
-        </div>
+type PlayerRow = {
+  id: number;
+  user_id: string | null;
+  club_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  nickname: string | null;
+};
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
+type ClubRow = {
+  id: string;
+  display_name: string | null;
+  name: string | null;
+};
 
 function formatDateTime(value: string | null | undefined) {
   if (!value) return "–";
   return new Date(value).toLocaleString("de-DE");
 }
 
-function formatSource(value: string | null | undefined) {
-  if (!value) return "direct";
-  return value;
+function getRange(value: string | undefined): RangeKey {
+  if (value === "today" || value === "7d" || value === "90d" || value === "all") {
+    return value;
+  }
+  return "30d";
 }
 
-function countSince<T extends { created_at: string }>(rows: T[], date: Date) {
-  const minTime = date.getTime();
-  return rows.filter((row) => new Date(row.created_at).getTime() >= minTime).length;
+function getRangeStart(range: RangeKey) {
+  const now = new Date();
+  if (range === "all") return null;
+  if (range === "today") {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }
+  const days = range === "7d" ? 7 : range === "90d" ? 90 : 30;
+  return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+}
+
+function rangeLabel(range: RangeKey) {
+  if (range === "today") return "Heute";
+  if (range === "7d") return "7 Tage";
+  if (range === "90d") return "90 Tage";
+  if (range === "all") return "Gesamt";
+  return "30 Tage";
 }
 
 function countEvent(rows: LandingEventRow[], eventName: string) {
@@ -103,376 +116,194 @@ function getTopCounts<T>(
   limit = 8
 ) {
   const counts = new Map<string, number>();
-
   for (const row of rows) {
-    const rawKey = getKey(row);
-    const key = rawKey?.trim() || fallback;
+    const key = getKey(row)?.trim() || fallback;
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
-
   return [...counts.entries()]
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "de"))
     .slice(0, limit);
 }
 
-function PercentBar({ count, max }: { count: number; max: number }) {
-  const width = max > 0 ? Math.max(6, Math.round((count / max) * 100)) : 0;
-
-  return (
-    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-      <div
-        className="h-full rounded-full bg-slate-900"
-        style={{ width: `${width}%` }}
-      />
-    </div>
-  );
+function getDailyCounts(rows: LandingVisitRow[], limit = 30) {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const key = new Date(row.created_at).toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return [...counts.entries()].slice(0, limit).reverse().map(([label, count]) => ({ label, count }));
 }
 
-function BreakdownCard({
-  title,
-  items,
-}: {
-  title: string;
-  items: { label: string; count: number }[];
-}) {
-  const max = Math.max(...items.map((item) => item.count), 0);
-
+function MetricCard({ label, value, hint, icon }: { label: string; value: string; hint: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-extrabold tracking-tight text-slate-950">
-        {title}
-      </h2>
-
-      <div className="mt-4 space-y-4">
-        {items.length === 0 ? (
-          <p className="text-sm text-slate-500">Noch keine Daten.</p>
-        ) : (
-          items.map((item) => (
-            <div key={item.label}>
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="truncate font-bold text-slate-800">
-                  {item.label}
-                </span>
-                <span className="font-extrabold text-slate-950">
-                  {item.count}
-                </span>
-              </div>
-              <PercentBar count={item.count} max={max} />
-            </div>
-          ))
-        )}
+    <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{label}</div>
+          <div className="mt-2 text-3xl font-black text-slate-950">{value}</div>
+          <div className="mt-1 text-xs leading-5 text-slate-500">{hint}</div>
+        </div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">{icon}</div>
       </div>
     </div>
   );
 }
 
-export default async function LandingStatsPage() {
-  await requirePowerUser();
+function BreakdownCard({ title, items }: { title: string; items: { label: string; count: number }[] }) {
+  const max = Math.max(...items.map((item) => item.count), 0);
+  return (
+    <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="font-black text-slate-950">{title}</h2>
+      <div className="mt-4 space-y-3">
+        {items.length === 0 ? <div className="text-sm text-slate-500">Noch keine Daten.</div> : items.map((item) => (
+          <div key={item.label}>
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="truncate font-semibold text-slate-700">{item.label}</span>
+              <b>{item.count}</b>
+            </div>
+            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-slate-900" style={{ width: `${max ? Math.max(5, Math.round((item.count / max) * 100)) : 0}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
+export default async function LandingStatsPage({ searchParams }: { searchParams?: Promise<{ range?: string }> }) {
+  await requirePowerUser();
+  const params = (await searchParams) ?? {};
+  const range = getRange(params.range);
+  const rangeStart = getRangeStart(range);
   const admin = createAdminClient();
   const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
+  const onlineSince = new Date(now.getTime() - 2 * 60 * 1000).toISOString();
+  const active24hSince = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  let visitsQuery = admin
+    .from("landing_page_visits")
+    .select("id, created_at, path, referrer_host, utm_source, utm_medium, utm_campaign, country_code, device_type, user_agent_family")
+    .order("created_at", { ascending: false })
+    .limit(5000);
 
-  const [visitsResult, eventsResult] = await Promise.all([
-    admin
-      .from("landing_page_visits")
-      .select(
-        "id, created_at, path, referrer_host, utm_source, utm_medium, utm_campaign, country_code, device_type, user_agent_family, app_env"
-      )
-      .order("created_at", { ascending: false })
-      .limit(500),
+  let eventsQuery = admin
+    .from("landing_page_events")
+    .select("id, created_at, event_name, path, referrer_host, utm_source, utm_medium, utm_campaign, country_code, device_type, user_agent_family")
+    .order("created_at", { ascending: false })
+    .limit(5000);
 
-    admin
-      .from("landing_page_events")
-      .select(
-        "id, created_at, event_name, path, referrer_host, utm_source, utm_medium, utm_campaign, country_code, device_type, user_agent_family, app_env"
-      )
-      .order("created_at", { ascending: false })
-      .limit(500),
+  if (rangeStart) {
+    visitsQuery = visitsQuery.gte("created_at", rangeStart.toISOString());
+    eventsQuery = eventsQuery.gte("created_at", rangeStart.toISOString());
+  }
+
+  const [visitsResult, eventsResult, onlineResult, active24hResult, clubsResult, authUsers] = await Promise.all([
+    visitsQuery,
+    eventsQuery,
+    admin.from("app_user_presence").select("user_id, club_id, path, last_seen_at").gte("last_seen_at", onlineSince).order("last_seen_at", { ascending: false }),
+    admin.from("app_user_presence").select("user_id", { count: "exact", head: true }).gte("last_seen_at", active24hSince),
+    admin.from("clubs").select("id, display_name, name").is("deleted_at", null),
+    listAllAuthUsers().catch(() => []),
   ]);
 
-  const visits = visitsResult.error ? [] : ((visitsResult.data ?? []) as LandingVisitRow[]);
-  const events = eventsResult.error ? [] : ((eventsResult.data ?? []) as LandingEventRow[]);
+  const visits = visitsResult.error ? [] : (visitsResult.data ?? []) as LandingVisitRow[];
+  const events = eventsResult.error ? [] : (eventsResult.data ?? []) as LandingEventRow[];
+  const online = onlineResult.error ? [] : (onlineResult.data ?? []) as PresenceRow[];
+  const clubs = clubsResult.error ? [] : (clubsResult.data ?? []) as ClubRow[];
+  const clubNameById = new Map(clubs.map((club) => [club.id, club.display_name?.trim() || club.name?.trim() || "Unbenannter Club"]));
+  const emailByUserId = new Map(authUsers.map((user) => [user.id, user.email?.trim() || user.id]));
+  const onlineIds = online.map((row) => row.user_id);
 
-  const visitsToday = countSince(visits, todayStart);
-  const visits7d = countSince(visits, sevenDaysAgo);
-  const visits30d = countSince(visits, thirtyDaysAgo);
+  const playersResult = onlineIds.length > 0
+    ? await admin.from("players").select("id, user_id, club_id, first_name, last_name, nickname").in("user_id", onlineIds).eq("is_guest", false)
+    : { data: [], error: null };
+  const players = playersResult.error ? [] : (playersResult.data ?? []) as PlayerRow[];
 
-  const events30d = events.filter(
-    (event) => new Date(event.created_at).getTime() >= thirtyDaysAgo.getTime()
-  );
+  function onlineName(row: PresenceRow) {
+    const player = players.find((entry) => entry.user_id === row.user_id && (!row.club_id || entry.club_id === row.club_id))
+      ?? players.find((entry) => entry.user_id === row.user_id);
+    if (player) {
+      const name = player.nickname?.trim() || [player.first_name, player.last_name].filter(Boolean).join(" ").trim();
+      if (name) return name;
+    }
+    return emailByUserId.get(row.user_id) ?? row.user_id;
+  }
 
   const signupClicks = countEvent(events, "landing_signup_cta_click");
   const loginClicks = countEvent(events, "landing_login_click");
-  const signupClicks30d = countEvent(events30d, "landing_signup_cta_click");
-  const conversionRate30d =
-    visits30d > 0 ? (signupClicks30d / visits30d) * 100 : 0;
-
-  const sourceItems = getTopCounts(visits, (row) => formatSource(row.utm_source));
+  const signupRate = visits.length > 0 ? (signupClicks / visits.length) * 100 : 0;
+  const mobileVisits = visits.filter((row) => row.device_type === "mobile").length;
+  const sourceItems = getTopCounts(visits, (row) => row.utm_source, "direct");
   const campaignItems = getTopCounts(visits, (row) => row.utm_campaign, "ohne Kampagne");
-  const eventItems = getTopCounts(events, (row) => row.event_name, "unbekannt");
   const deviceItems = getTopCounts(visits, (row) => row.device_type, "unbekannt");
-  const countryItems = getTopCounts(visits, (row) => row.country_code, "unbekannt");
-  const browserItems = getTopCounts(visits, (row) => row.user_agent_family, "unbekannt");
   const referrerItems = getTopCounts(visits, (row) => row.referrer_host, "direct");
+  const eventItems = getTopCounts(events, (row) => row.event_name, "unbekannt");
+  const dailyItems = getDailyCounts(visits, 30);
 
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/power-user"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
-          >
-            ← Zurück zum Power Dashboard
-          </Link>
-        </div>
+        <div><Link href="/power-user" className="inline-flex rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold">← Power User Dashboard</Link></div>
 
         <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Landing Analytics
-              </div>
-
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-                Wer schaut auf strikr?
-              </h1>
-
-              <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-                Übersicht über Landingpage-Besuche, Quellen, Kampagnen,
-                CTA-Klicks und erste Conversion-Signale. Ohne IP-Adressen oder
-                personenbezogene Besucherprofile.
-              </p>
+            <div>
+              <div className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">Traffic & Live</div>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Was passiert gerade in strikr?</h1>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Landingpage-Traffic, Kampagnen, CTA-Klicks und echte Online-Aktivität der eingeloggten Nutzer.</p>
             </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-slate-950">
-              <div className="text-sm font-medium">Datensätze</div>
-              <div className="mt-1 text-2xl font-bold">
-                {visits.length} Visits · {events.length} Events
-              </div>
+            <div className="flex flex-wrap gap-2">
+              {(["today", "7d", "30d", "90d", "all"] as RangeKey[]).map((item) => (
+                <Link key={item} href={`/power-user/landing-stats?range=${item}`} className={`rounded-full px-3 py-2 text-xs font-bold ${range === item ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>{rangeLabel(item)}</Link>
+              ))}
             </div>
           </div>
         </div>
 
-        {visitsResult.error ? (
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-800">
-            Landing-Visits konnten nicht geladen werden: {visitsResult.error.message}
-          </div>
-        ) : null}
-
-        {eventsResult.error ? (
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-800">
-            Landing-Events konnten nicht geladen werden: {eventsResult.error.message}
-          </div>
-        ) : null}
-
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Heute"
-            value={String(visitsToday)}
-            description="Besuche seit Tagesbeginn."
-            icon={<MousePointerClick className="h-6 w-6" strokeWidth={2.1} />}
-          />
-
-          <StatCard
-            label="Letzte 7 Tage"
-            value={String(visits7d)}
-            description="Kurzfristige Kampagnenwirkung."
-            icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
-          />
-
-          <StatCard
-            label="Letzte 30 Tage"
-            value={String(visits30d)}
-            description="Gesamter Marketing-Traffic der letzten Wochen."
-            icon={<Globe2 className="h-6 w-6" strokeWidth={2.1} />}
-          />
-
-          <StatCard
-            label="Mobile"
-            value={String(visits.filter((row) => row.device_type === "mobile").length)}
-            description="Besuche von Smartphones."
-            icon={<Smartphone className="h-6 w-6" strokeWidth={2.1} />}
-          />
+          <MetricCard label={`Visits · ${rangeLabel(range)}`} value={String(visits.length)} hint="Erfasste Landingpage-Aufrufe im gewählten Zeitraum." icon={<MousePointerClick className="h-5 w-5" />} />
+          <MetricCard label="Online jetzt" value={String(online.length)} hint="Heartbeat innerhalb der letzten 2 Minuten." icon={<Radio className="h-5 w-5" />} />
+          <MetricCard label="Aktiv letzte 24h" value={String(active24hResult.count ?? 0)} hint="Eingeloggte Nutzer mit App-Aktivität." icon={<Activity className="h-5 w-5" />} />
+          <MetricCard label="Signup-Rate" value={formatPercent(signupRate)} hint={`${signupClicks} Signup-Klicks bei ${visits.length} Visits.`} icon={<UserPlus className="h-5 w-5" />} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Signup-Klicks"
-            value={String(signupClicks)}
-            description="Klicks auf Team kostenlos starten."
-            icon={<UserPlus className="h-6 w-6" strokeWidth={2.1} />}
-          />
-
-          <StatCard
-            label="Login-Klicks"
-            value={String(loginClicks)}
-            description="Klicks auf Login von der Landingpage."
-            icon={<LogIn className="h-6 w-6" strokeWidth={2.1} />}
-          />
-
-          <StatCard
-            label="Signup-Rate 30T"
-            value={formatPercent(conversionRate30d)}
-            description="Signup-Klicks geteilt durch Besuche der letzten 30 Tage."
-            icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
-          />
-
-          <StatCard
-            label="Events gesamt"
-            value={String(events.length)}
-            description="Alle erfassten Landingpage-CTA-Events."
-            icon={<Laptop className="h-6 w-6" strokeWidth={2.1} />}
-          />
+          <MetricCard label="Signup-Klicks" value={String(signupClicks)} hint="Klicks auf Team starten / Registrierung." icon={<UserPlus className="h-5 w-5" />} />
+          <MetricCard label="Login-Klicks" value={String(loginClicks)} hint="Klicks auf Login von der Landingpage." icon={<LogIn className="h-5 w-5" />} />
+          <MetricCard label="Mobile Visits" value={String(mobileVisits)} hint="Landingpage-Aufrufe von Smartphones." icon={<Smartphone className="h-5 w-5" />} />
+          <MetricCard label="Events" value={String(events.length)} hint="Erfasste CTA- und Landingpage-Events." icon={<BarChart3 className="h-5 w-5" />} />
         </div>
+
+        <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4"><div><div className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">Live</div><h2 className="mt-1 text-xl font-black">Gerade in strikr online</h2></div><Users className="h-6 w-6 text-slate-400" /></div>
+          <div className="mt-4 overflow-x-auto">
+            {online.length === 0 ? <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Aktuell niemand erkannt. Die Anzeige füllt sich ab jetzt mit dem neuen Heartbeat.</div> : (
+              <table className="min-w-full text-left text-sm">
+                <thead className="text-[11px] uppercase tracking-wide text-slate-400"><tr><th className="py-2 pr-4">Wer</th><th className="py-2 pr-4">Club</th><th className="py-2 pr-4">Seite</th><th className="py-2">Zuletzt</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">{online.map((row) => <tr key={row.user_id}><td className="py-3 pr-4 font-bold">{onlineName(row)}<div className="text-[11px] font-normal text-slate-400">{emailByUserId.get(row.user_id) ?? ""}</div></td><td className="py-3 pr-4">{row.club_id ? clubNameById.get(row.club_id) ?? row.club_id : "–"}</td><td className="py-3 pr-4 font-mono text-xs text-slate-500">{row.path ?? "–"}</td><td className="py-3 whitespace-nowrap">{formatDateTime(row.last_seen_at)}</td></tr>)}</tbody>
+              </table>
+            )}
+          </div>
+        </section>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <BreakdownCard title="Quellen" items={sourceItems} />
           <BreakdownCard title="Kampagnen" items={campaignItems} />
-          <BreakdownCard title="CTA Events" items={eventItems} />
           <BreakdownCard title="Geräte" items={deviceItems} />
-          <BreakdownCard title="Länder" items={countryItems} />
-          <BreakdownCard title="Browser / App" items={browserItems} />
           <BreakdownCard title="Referrer" items={referrerItems} />
+          <BreakdownCard title="CTA Events" items={eventItems} />
+          <BreakdownCard title="Visits pro Tag" items={dailyItems} />
         </div>
 
-        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 p-5">
-            <h2 className="text-lg font-extrabold tracking-tight text-slate-950">
-              Letzte CTA Events
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Klicks auf Landingpage-Aktionen wie Signup oder Login.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.16em] text-slate-400">
-                <tr>
-                  <th className="px-5 py-3 font-bold">Zeit</th>
-                  <th className="px-5 py-3 font-bold">Event</th>
-                  <th className="px-5 py-3 font-bold">Quelle</th>
-                  <th className="px-5 py-3 font-bold">Medium</th>
-                  <th className="px-5 py-3 font-bold">Kampagne</th>
-                  <th className="px-5 py-3 font-bold">Gerät</th>
-                  <th className="px-5 py-3 font-bold">Browser/App</th>
-                  <th className="px-5 py-3 font-bold">Land</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {events.slice(0, 30).map((event) => (
-                  <tr key={event.id} className="align-top">
-                    <td className="whitespace-nowrap px-5 py-3 font-semibold text-slate-700">
-                      {formatDateTime(event.created_at)}
-                    </td>
-                    <td className="px-5 py-3 font-bold text-slate-950">
-                      {event.event_name}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {formatSource(event.utm_source)}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {event.utm_medium ?? "–"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {event.utm_campaign ?? "–"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {event.device_type ?? "–"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {event.user_agent_family ?? "–"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {event.country_code ?? "–"}
-                    </td>
-                  </tr>
-                ))}
-
-                {events.length === 0 ? (
-                  <tr>
-                    <td className="px-5 py-5 text-sm text-slate-500" colSpan={8}>
-                      Noch keine CTA Events erfasst.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 p-5">
-            <h2 className="text-lg font-extrabold tracking-tight text-slate-950">
-              Letzte Besuche
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Die letzten 50 erfassten Landingpage-Aufrufe.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.16em] text-slate-400">
-                <tr>
-                  <th className="px-5 py-3 font-bold">Zeit</th>
-                  <th className="px-5 py-3 font-bold">Quelle</th>
-                  <th className="px-5 py-3 font-bold">Medium</th>
-                  <th className="px-5 py-3 font-bold">Kampagne</th>
-                  <th className="px-5 py-3 font-bold">Gerät</th>
-                  <th className="px-5 py-3 font-bold">Browser/App</th>
-                  <th className="px-5 py-3 font-bold">Land</th>
-                  <th className="px-5 py-3 font-bold">Pfad</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {visits.slice(0, 50).map((row) => (
-                  <tr key={row.id} className="align-top">
-                    <td className="whitespace-nowrap px-5 py-3 font-semibold text-slate-700">
-                      {formatDateTime(row.created_at)}
-                    </td>
-                    <td className="px-5 py-3 font-bold text-slate-950">
-                      {formatSource(row.utm_source)}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {row.utm_medium ?? "–"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {row.utm_campaign ?? "–"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {row.device_type ?? "–"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {row.user_agent_family ?? "–"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {row.country_code ?? "–"}
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">
-                      {row.path}
-                    </td>
-                  </tr>
-                ))}
-
-                {visits.length === 0 ? (
-                  <tr>
-                    <td className="px-5 py-5 text-sm text-slate-500" colSpan={8}>
-                      Noch keine Landingpage-Besuche erfasst.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 p-5"><div className="flex items-center gap-2"><Globe2 className="h-5 w-5 text-slate-400" /><h2 className="text-lg font-black">Letzte Landingpage-Besuche</h2></div></div>
+          <div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-400"><tr><th className="px-5 py-3">Zeit</th><th className="px-5 py-3">Quelle</th><th className="px-5 py-3">Kampagne</th><th className="px-5 py-3">Referrer</th><th className="px-5 py-3">Gerät</th><th className="px-5 py-3">Land</th></tr></thead><tbody className="divide-y divide-slate-100">{visits.slice(0, 40).map((visit) => <tr key={visit.id}><td className="whitespace-nowrap px-5 py-3 font-semibold">{formatDateTime(visit.created_at)}</td><td className="px-5 py-3">{visit.utm_source || "direct"}</td><td className="px-5 py-3">{visit.utm_campaign || "–"}</td><td className="px-5 py-3">{visit.referrer_host || "direct"}</td><td className="px-5 py-3">{visit.device_type || "–"}</td><td className="px-5 py-3">{visit.country_code || "–"}</td></tr>)}</tbody></table></div>
+        </section>
       </section>
     </main>
   );
