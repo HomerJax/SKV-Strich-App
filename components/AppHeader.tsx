@@ -20,6 +20,9 @@ type ClubRow = {
 
 type PlayerPhotoRow = {
   photo_path: string | null;
+  photo_position_x: number | null;
+  photo_position_y: number | null;
+  photo_zoom: number | null;
 };
 
 const COLOR_MAP: Record<string, string> = {
@@ -93,6 +96,9 @@ export default async function AppHeader() {
   let clubName: string | null = null;
   let logoSrc: string | null = null;
   let profilePhotoSrc: string | null = null;
+  let profilePhotoPositionX = 50;
+  let profilePhotoPositionY = 50;
+  let profilePhotoZoom = 1;
   let primaryColor = COLOR_MAP.black;
   let switcherClubs: ClubSwitcherClub[] = [];
 
@@ -133,7 +139,7 @@ export default async function AppHeader() {
     const playerPhotoPromise = ctx.player?.id
       ? supabase
           .from("players")
-          .select("photo_path")
+          .select("photo_path, photo_position_x, photo_position_y, photo_zoom")
           .eq("id", ctx.player.id)
           .maybeSingle<PlayerPhotoRow>()
       : Promise.resolve({ data: null, error: null });
@@ -165,6 +171,9 @@ export default async function AppHeader() {
         .getPublicUrl(playerPhoto.photo_path);
 
       profilePhotoSrc = data?.publicUrl ?? null;
+      profilePhotoPositionX = Number(playerPhoto.photo_position_x ?? 50);
+      profilePhotoPositionY = Number(playerPhoto.photo_position_y ?? 50);
+      profilePhotoZoom = Number(playerPhoto.photo_zoom ?? 1);
     }
 
     if (visibleClubs?.length) {
@@ -199,6 +208,7 @@ export default async function AppHeader() {
   const firstName = ctx.player?.first_name?.trim() || null;
   const profileLabel = nickname ?? firstName ?? "Spieler";
   const profileInitial = getInitial(profileLabel);
+  void profileInitial;
 
   return (
     <>
@@ -274,6 +284,9 @@ export default async function AppHeader() {
               <MobileUserMenu
                 profileLabel={profileLabel}
                 profilePhotoSrc={profilePhotoSrc}
+                profilePhotoPositionX={profilePhotoPositionX}
+                profilePhotoPositionY={profilePhotoPositionY}
+                profilePhotoZoom={profilePhotoZoom}
                 showPlayerStatsLink={true}
               />
 
