@@ -23,6 +23,8 @@ export type Player = {
   is_active: boolean | null;
   is_guest?: boolean;
   rsvp_status?: "in" | "out" | null;
+  rsvp_reason?: string | null;
+  event_nominated?: boolean;
 };
 
 export type SessionRow = {
