@@ -10,6 +10,9 @@ export type Player = {
   nickname?: string | null;
   photo_path?: string | null;
   photo_url?: string | null;
+  photo_position_x?: number | null;
+  photo_position_y?: number | null;
+  photo_zoom?: number | null;
   age_group: "AH" | "Ü32" | null;
   category_key?: string | null;
   category_label?: string | null;
