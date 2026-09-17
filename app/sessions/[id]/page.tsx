@@ -82,7 +82,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .single(),
     supabase
       .from("players")
-      .select("id, name, first_name, last_name, nickname, photo_path, is_active, age_group, category_key, balance_group, roster_role, preferred_position, strength, is_guest")
+      .select("id, name, first_name, last_name, nickname, photo_path, photo_position_x, photo_position_y, photo_zoom, is_active, age_group, category_key, balance_group, roster_role, preferred_position, strength, is_guest")
       .eq("club_id", clubId)
       .order("name"),
     supabase
