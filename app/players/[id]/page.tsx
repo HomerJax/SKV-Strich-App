@@ -5,6 +5,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayerDisplayName } from "@/lib/player-display";
+import PlayerPhotoUpload from "@/components/PlayerPhotoUpload";
 
 type Props = { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string; error?: string }> };
 type PlayerPass = {
@@ -38,6 +39,7 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
   const canEdit = ownPlayer?.id === pass.id || canManageClub({ isPowerUser, role: membership.role });
   const displayName = getPlayerDisplayName(pass);
   const photoUrl = pass.photo_path ? supabase.storage.from("player-photos").getPublicUrl(pass.photo_path).data.publicUrl : null;
+  const photo = photoUrl ? <Image src={photoUrl} alt={displayName} width={300} height={375} unoptimized className="h-full w-full object-cover"/> : <div className="flex h-full items-center justify-center text-5xl font-black text-slate-400">{displayName.slice(0,1).toUpperCase()}</div>;
 
   return <main className="min-h-screen bg-neutral-100 px-4 py-5">
     <section className="mx-auto max-w-2xl space-y-4">
@@ -45,7 +47,7 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
       {query?.saved === "1" ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Spielerpass gespeichert.</div> : null}
       {query?.error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Spielerpass konnte nicht gespeichert werden.</div> : null}
 
-      <div className="overflow-hidden rounded-[26px] border border-slate-300 bg-[#f4f2e9] shadow-sm">
+      <div className="overflow-hidden rounded-[26px] border border-slate-300 bg-[#f6f0d8] shadow-sm">
         <div className="border-b border-slate-300 bg-white/60 px-5 py-3">
           <div className="flex items-center justify-between gap-4">
             <div><div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">strikr</div><h1 className="text-xl font-black tracking-tight text-slate-950">Spielerpass</h1></div>
@@ -64,9 +66,7 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
             <div className="pt-4 text-[10px] uppercase tracking-[0.18em] text-slate-400">Digitaler Spielerpass · strikr</div>
           </div>
           <div className="order-1 sm:order-2">
-            <div className="aspect-[4/5] overflow-hidden border-2 border-white bg-slate-200 shadow-md">
-              {photoUrl ? <Image src={photoUrl} alt={displayName} width={300} height={375} unoptimized className="h-full w-full object-cover"/> : <div className="flex h-full items-center justify-center text-5xl font-black text-slate-400">{displayName.slice(0,1).toUpperCase()}</div>}
-            </div>
+            {canEdit ? <PlayerPhotoUpload playerId={pass.id} birthDate={pass.birth_date} jerseyNumber={pass.jersey_number} className="aspect-[4/5] overflow-hidden border-2 border-white bg-slate-200 shadow-md">{photo}</PlayerPhotoUpload> : <div className="aspect-[4/5] overflow-hidden border-2 border-white bg-slate-200 shadow-md">{photo}</div>}
           </div>
         </div>
       </div>
