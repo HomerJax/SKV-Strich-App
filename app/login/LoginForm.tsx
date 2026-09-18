@@ -237,5 +237,5 @@ export default function LoginForm({
         </div>
       </section>
     </main>
-  );}
+  );
 }
