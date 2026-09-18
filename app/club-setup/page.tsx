@@ -543,13 +543,14 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     saved={clubSaved}
                     error={clubError}
                     redirectTo={buildWizardUrl("team")}
-                    submitLabel="Weiter"
+                    submitLabel="Weiter zu fairen Teams"
                     removeLogoRedirectTo={buildWizardUrl("club")}
                     initialDisplayName={club?.display_name ?? ""}
                     initialPrimaryColor={club?.primary_color ?? "black"}
                     initialSportType={club?.sport_type ?? "football"}
                     initialLogoUrl={currentLogoUrl}
                     useNicknames={useNicknames}
+                    variant="onboarding"
                   />
                 </div>
               ) : null}
