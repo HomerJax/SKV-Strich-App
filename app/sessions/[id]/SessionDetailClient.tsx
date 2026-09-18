@@ -37,6 +37,7 @@ type SessionDetailClientProps = {
   initialHomeSessionRsvpEnabled?: boolean;
   initialSessionType?: "training" | "event";
   sessionTypesEnabled?: boolean;
+  initialRsvpDeadlineMinutesBefore?: number;
 };
 
 type SectionKey = "attendance" | "teams" | "photo" | "result" | "mvp";
@@ -396,6 +397,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           sessionId={props.sessionId}
           date={session.date}
           notes={session.notes ?? null}
+          startTime={session.start_time ?? null}
+          sessionRsvpDeadlineMinutesBefore={session.rsvp_deadline_minutes_before ?? null}
+          clubRsvpDeadlineMinutesBefore={props.initialRsvpDeadlineMinutesBefore ?? 60}
           presentCount={presentPlayers.length}
           teamACount={allowTeams ? teamA.length : 0}
           teamBCount={allowTeams ? teamB.length : 0}
