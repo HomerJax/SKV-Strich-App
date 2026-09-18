@@ -5,6 +5,7 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -79,6 +80,17 @@ public class GameTimerAlarmPlugin extends Plugin {
             result.put("granted", false);
             result.put("mode", "android_exact_alarm");
             result.put("needsSettings", true);
+            call.resolve(result);
+            return;
+        }
+
+        AudioManager audioManager = (AudioManager) getContext().getSystemService(android.content.Context.AUDIO_SERVICE);
+        if (audioManager != null && audioManager.getStreamVolume(AudioManager.STREAM_ALARM) <= 0) {
+            JSObject result = new JSObject();
+            result.put("granted", false);
+            result.put("mode", "android_exact_alarm");
+            result.put("needsSettings", false);
+            result.put("reason", "alarm_volume_zero");
             call.resolve(result);
             return;
         }
