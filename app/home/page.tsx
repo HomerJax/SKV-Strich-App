@@ -42,6 +42,7 @@ type SeasonSessionRow = {
 
 type HomeClubSettingsRow = {
   rsvp_deadline_minutes_before: number | null;
+  beerkasse_premium_enabled: boolean | null;
   beerkasse_enabled: boolean | null;
   beerkasse_home_enabled: boolean | null;
   beerkasse_paypal_url: string | null;
@@ -423,7 +424,7 @@ export default async function HomePage() {
     supabase
       .from("club_settings")
       .select(
-        "rsvp_deadline_minutes_before, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url"
+        "rsvp_deadline_minutes_before, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url"
       )
       .eq("club_id", clubId)
       .maybeSingle<HomeClubSettingsRow>(),
@@ -462,12 +463,11 @@ export default async function HomePage() {
   const homeSettings = (homeSettingsData ?? null) as HomeClubSettingsRow | null;
   const rsvpDeadlineMinutesBefore =
     homeSettings?.rsvp_deadline_minutes_before ?? 60;
-  const bierkassePaypalUrl =
-    homeSettings?.beerkasse_enabled &&
-    homeSettings?.beerkasse_home_enabled &&
-    homeSettings?.beerkasse_paypal_url?.trim()
-      ? homeSettings.beerkasse_paypal_url.trim()
-      : null;
+  const bierkasseHomeEnabled =
+    homeSettings?.beerkasse_premium_enabled === true &&
+    homeSettings?.beerkasse_enabled === true &&
+    homeSettings?.beerkasse_home_enabled === true &&
+    Boolean(homeSettings?.beerkasse_paypal_url?.trim());
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
   const seasons = (seasonsData ?? []) as SeasonRow[];
@@ -1134,23 +1134,21 @@ export default async function HomePage() {
           </section>
         ) : null}
 
-        {bierkassePaypalUrl ? (
-          <a
-            href={bierkassePaypalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+        {bierkasseHomeEnabled ? (
+          <Link
+            href="/mannschaftskasse#bierkasse"
             className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm"
           >
             <div>
               <div className="text-[10px] font-black uppercase tracking-[.16em] text-amber-700">
-                🍺 Bierkasse
+                🍺 Bierkasse+
               </div>
-              <div className="text-sm font-black text-slate-950">Bier zahlen</div>
+              <div className="text-sm font-black text-slate-950">Bier buchen & zahlen</div>
             </div>
             <span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black text-slate-950">
-              PayPal →
+              Öffnen →
             </span>
-          </a>
+          </Link>
         ) : null}
 
         <Link
