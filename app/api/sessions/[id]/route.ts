@@ -12,6 +12,11 @@ import { persistSessionTeams } from "@/lib/session-detail/actions/persist-teams"
 import { canManageClub } from "@/lib/auth/access";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { sendClubPush } from "@/lib/push/club-events";
+import {
+  formatDeadlineForDisplay,
+  getSessionDeadlineEpochMs,
+  isSessionRsvpDeadlinePassed,
+} from "@/lib/session-rsvp-deadline";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -197,6 +202,7 @@ export async function POST(
       }
 
       const status = String(formData.get("status") ?? "").trim() as RsvpStatus;
+      const reason = String(formData.get("reason") ?? "").trim().slice(0, 80);
 
       if (status !== "in" && status !== "out" && status !== "open") {
         return fail("Ungültiger Status.", 400);
@@ -231,12 +237,40 @@ export async function POST(
         );
       }
 
-      const { data: existingRsvp, error: existingRsvpError } = await adminSupabase
-        .from("session_rsvps")
-        .select("status")
-        .eq("session_id", sessionId)
-        .eq("player_id", playerId)
-        .maybeSingle<{ status: string }>();
+      if (sessionType === "event" && status === "in") {
+        const { data: exclusion, error: exclusionError } = await adminSupabase
+          .from("session_event_exclusions")
+          .select("player_id")
+          .eq("club_id", clubId)
+          .eq("session_id", sessionId)
+          .eq("player_id", playerId)
+          .maybeSingle();
+
+        if (exclusionError) {
+          return fail("Event-Kader konnte nicht geprüft werden.", 500);
+        }
+
+        if (exclusion) {
+          return fail("Du bist für diesen Termin aktuell nicht nominiert.", 403);
+        }
+      }
+
+      const [
+        { data: existingRsvp, error: existingRsvpError },
+        { data: deadlineSettings, error: deadlineSettingsError },
+      ] = await Promise.all([
+        adminSupabase
+          .from("session_rsvps")
+          .select("status")
+          .eq("session_id", sessionId)
+          .eq("player_id", playerId)
+          .maybeSingle<{ status: string }>(),
+        adminSupabase
+          .from("club_settings")
+          .select("rsvp_deadline_minutes_before")
+          .eq("club_id", clubId)
+          .maybeSingle<{ rsvp_deadline_minutes_before: number | null }>(),
+      ]);
 
       if (existingRsvpError) {
         return fail(
@@ -245,8 +279,33 @@ export async function POST(
         );
       }
 
+      if (deadlineSettingsError) {
+        return fail("Anmeldeschluss konnte nicht geprüft werden.", 500);
+      }
+
       const previousStatus = existingRsvp?.status ?? null;
       const playerName = getPlayerDisplayName(playerData);
+      const deadlineAt = getSessionDeadlineEpochMs({
+        date: session.date,
+        startTime: session.start_time,
+        sessionOverrideMinutes: session.rsvp_deadline_minutes_before,
+        clubDefaultMinutes: deadlineSettings?.rsvp_deadline_minutes_before ?? 60,
+      });
+      const deadlinePassed = isSessionRsvpDeadlinePassed(deadlineAt);
+      const deadlineLabel = formatDeadlineForDisplay(deadlineAt);
+
+      if (
+        deadlinePassed &&
+        previousStatus === "in" &&
+        status !== "in"
+      ) {
+        return fail(
+          deadlineLabel
+            ? `Der Anmeldeschluss war ${deadlineLabel} Uhr. Eine bestehende Zusage kann danach nicht mehr selbst abgesagt werden. Bitte wende dich an einen Admin.`
+            : "Der Anmeldeschluss ist vorbei. Eine bestehende Zusage kann danach nicht mehr selbst abgesagt werden. Bitte wende dich an einen Admin.",
+          409,
+        );
+      }
 
       if (status === "in") {
         const { error: insertError } = await adminSupabase
@@ -276,6 +335,7 @@ export async function POST(
               session_id: sessionId,
               player_id: playerId,
               status: "in",
+              reason: null,
               updated_at: new Date().toISOString(),
             },
             {
@@ -288,6 +348,80 @@ export async function POST(
             `Zusage konnte nicht gespeichert werden: ${rsvpError.message}`,
             500
           );
+        }
+
+        let latePenalty:
+          | { label: string; value: string; type: string; message: string }
+          | null = null;
+
+        const isLateSignup = deadlinePassed && previousStatus !== "in";
+
+        if (isLateSignup && featureFlags.penalties === true) {
+          const { data: rule, error: ruleError } = await adminSupabase
+            .from("penalty_rules")
+            .select("label,reason,type,value,escalation_after_days,escalation_value")
+            .eq("club_id", clubId)
+            .eq("rule_key", "late_rsvp")
+            .eq("enabled", true)
+            .maybeSingle<{
+              label: string;
+              reason: string;
+              type: "beer" | "money" | "custom";
+              value: string;
+              escalation_after_days: number | null;
+              escalation_value: string | null;
+            }>();
+
+          if (!ruleError && rule) {
+            const sourceKey = `late_rsvp:${sessionId}`;
+            const { data: existingPenalty } = await adminSupabase
+              .from("penalties")
+              .select("id")
+              .eq("club_id", clubId)
+              .eq("player_id", playerId)
+              .eq("source_key", sourceKey)
+              .maybeSingle<{ id: number }>();
+
+            if (!existingPenalty) {
+              const today = new Date();
+              let dueDate: string | null = null;
+              if (rule.escalation_after_days && rule.escalation_after_days > 0) {
+                today.setUTCDate(today.getUTCDate() + rule.escalation_after_days);
+                dueDate = today.toISOString().slice(0, 10);
+              }
+
+              const { error: penaltyError } = await adminSupabase
+                .from("penalties")
+                .insert({
+                  club_id: clubId,
+                  player_id: playerId,
+                  reason: rule.reason,
+                  type: rule.type,
+                  value: rule.value,
+                  due_date: dueDate,
+                  escalation_after_days: rule.escalation_after_days,
+                  escalation_value: rule.escalation_value,
+                  source_key: sourceKey,
+                  notes: `Automatisch: Zusage nach Anmeldeschluss für Session ${sessionId}`,
+                });
+
+              if (!penaltyError) {
+                latePenalty = {
+                  label: rule.label,
+                  value: rule.value,
+                  type: rule.type,
+                  message:
+                    rule.type === "money"
+                      ? `${rule.value} wandern in die Mannschaftskasse. 😄`
+                      : `${rule.value} geht auf dich. 😄`,
+                };
+              } else {
+                console.error("Late RSVP penalty failed", penaltyError);
+              }
+            }
+          } else if (ruleError) {
+            console.error("Late RSVP rule lookup failed", ruleError);
+          }
         }
 
         await sendRsvpUpdatePush({
@@ -307,6 +441,8 @@ export async function POST(
               ? "Du bist dabei beim Training."
               : "Du bist beim Termin dabei.",
           status: "in",
+          lateSignup: isLateSignup,
+          latePenalty,
         });
       }
 
@@ -351,6 +487,7 @@ export async function POST(
             session_id: sessionId,
             player_id: playerId,
             status: "out",
+            reason: reason || null,
             updated_at: new Date().toISOString(),
           },
           {
