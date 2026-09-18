@@ -75,8 +75,8 @@ export async function scheduleNativeGameTimerAlarm(options: {
   if (!supportsNativeGameTimerAlarm()) return false;
 
   try {
-    await NativeGameTimerAlarm.schedule(options);
-    return true;
+    const result = await NativeGameTimerAlarm.schedule(options);
+    return result.ok === true;
   } catch (error) {
     console.warn("Scheduling native game timer alarm failed", error);
     return false;
