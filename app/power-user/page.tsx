@@ -2,17 +2,20 @@ import Link from "next/link";
 import {
   Award,
   BarChart3,
+  Beer,
   Building2,
   CalendarDays,
   CreditCard,
   MailCheck,
   MailOpen,
   Shield,
+  Sparkles,
   Trash2,
   Users,
 } from "lucide-react";
 import { BADGE_DEFINITIONS } from "@/lib/badges/catalog";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
 
@@ -99,6 +102,7 @@ export default async function PowerUserPage() {
   await requirePowerUser();
 
   const supabase = await createClient();
+  const adminSupabase = createAdminClient();
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const sevenDaysAgoIso = sevenDaysAgo.toISOString();
@@ -112,6 +116,7 @@ export default async function PowerUserPage() {
     clubsResult,
     latestInviteUsagesResult,
     latestSessionsResult,
+    beerConsumptionsResult,
     authUsers,
   ] = await Promise.all([
     supabase.from("clubs").select("id", { count: "exact", head: true }),
@@ -151,6 +156,10 @@ export default async function PowerUserPage() {
       .order("created_at", { ascending: false })
       .limit(8),
 
+    adminSupabase
+      .from("beer_consumptions")
+      .select("quantity,total_cents,club_id"),
+
     listAllAuthUsers().catch(() => []),
   ]);
 
@@ -177,6 +186,21 @@ export default async function PowerUserPage() {
   const openInvitesCount = getSafeCount(openInvitesCountResult);
   const sessionsCount = getSafeCount(sessionsCountResult);
   const sessionsLast7DaysCount = getSafeCount(sessionsLast7DaysCountResult);
+  const beerRows = beerConsumptionsResult.error
+    ? []
+    : ((beerConsumptionsResult.data ?? []) as {
+        quantity: number;
+        total_cents: number;
+        club_id: string;
+      }[]);
+  const beerCount = beerRows.reduce(
+    (sum, row) => sum + (Number(row.quantity) || 0),
+    0
+  );
+  const beerValueCents = beerRows.reduce(
+    (sum, row) => sum + (Number(row.total_cents) || 0),
+    0
+  );
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -239,6 +263,25 @@ export default async function PowerUserPage() {
             value="Live"
             description="Besuche, Quellen, Kampagnen, Geräte und letzte Landingpage-Aufrufe ansehen."
             icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <KpiCard
+            href="/power-user/beerkasse"
+            label="Bier über strikr gebucht"
+            value={`${beerCount} 🍺`}
+            description={`${(beerValueCents / 100).toLocaleString("de-DE", {
+              style: "currency",
+              currency: "EUR",
+            })} wurden bisher an PayPal übergeben. Zahlung noch nicht technisch bestätigt.`}
+            icon={<Beer className="h-6 w-6" strokeWidth={2.1} />}
+          />
+
+          <KpiCard
+            href="/power-user/onboarding-simulator"
+            label="Onboarding Simulator"
+            value="Starten"
+            description="Den kompletten neuen Admin-Start jederzeit gefahrlos durchspielen – ohne echten Club oder Änderungen."
+            icon={<Sparkles className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
