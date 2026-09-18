@@ -10,6 +10,9 @@ import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -36,6 +39,7 @@ public class GameTimerAlarmService extends Service {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private AudioTrack audioTrack;
+    private Ringtone fallbackRingtone;
     private Vibrator vibrator;
     private PowerManager.WakeLock wakeLock;
     private String activeKey;
@@ -198,7 +202,15 @@ public class GameTimerAlarmService extends Service {
                 .setBufferSizeInBytes(samples.length * 2)
                 .build();
 
-            audioTrack.write(samples, 0, samples.length);
+            if (audioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
+                throw new IllegalStateException("AudioTrack konnte nicht initialisiert werden.");
+            }
+
+            int written = audioTrack.write(samples, 0, samples.length);
+            if (written <= 0) {
+                throw new IllegalStateException("Alarmton konnte nicht in AudioTrack geschrieben werden.");
+            }
+
             audioTrack.setLoopPoints(0, samples.length, -1);
             audioTrack.play();
         } catch (Exception error) {
@@ -206,6 +218,45 @@ public class GameTimerAlarmService extends Service {
                 audioTrack.release();
                 audioTrack = null;
             }
+            startFallbackRingtone();
+        }
+    }
+
+    private void startFallbackRingtone() {
+        stopFallbackRingtone();
+
+        try {
+            Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            if (uri == null) {
+                uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            }
+            if (uri == null) return;
+
+            fallbackRingtone = RingtoneManager.getRingtone(this, uri);
+            if (fallbackRingtone == null) return;
+
+            AudioAttributes attributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+            fallbackRingtone.setAudioAttributes(attributes);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                fallbackRingtone.setLooping(true);
+            }
+
+            fallbackRingtone.play();
+        } catch (Exception ignored) {
+            stopFallbackRingtone();
+        }
+    }
+
+    private void stopFallbackRingtone() {
+        if (fallbackRingtone != null) {
+            try {
+                fallbackRingtone.stop();
+            } catch (Exception ignored) {}
+            fallbackRingtone = null;
         }
     }
 
@@ -263,6 +314,8 @@ public class GameTimerAlarmService extends Service {
     }
 
     private void stopAlarmOutput() {
+        stopFallbackRingtone();
+
         if (audioTrack != null) {
             try {
                 audioTrack.stop();
