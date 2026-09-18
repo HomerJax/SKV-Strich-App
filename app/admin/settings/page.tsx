@@ -62,18 +62,21 @@ function RsvpSettingsCard({
             Diese Frist wird auf der Startseite beim nächsten Training angezeigt.
           </div>
 
-          <select
-            name="rsvp_deadline_minutes_before"
-            defaultValue={String(value)}
-            className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
-          >
-            <option value="0">bis Trainingsbeginn</option>
-            <option value="15">15 Minuten vorher</option>
-            <option value="30">30 Minuten vorher</option>
-            <option value="60">1 Stunde vorher</option>
-            <option value="120">2 Stunden vorher</option>
-            <option value="1440">1 Tag vorher</option>
-          </select>
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              name="rsvp_deadline_minutes_before"
+              type="number"
+              min={0}
+              max={10080}
+              step={15}
+              defaultValue={value}
+              className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
+            />
+            <span className="text-sm font-semibold text-slate-500">Min. vorher</span>
+          </div>
+          <div className="mt-2 text-xs text-slate-500">
+            Standard: 60 Minuten. Beispiel: 120 = 2 Stunden vorher, 1440 = 1 Tag vorher.
+          </div>
         </label>
 
         <button
@@ -292,7 +295,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
         <SettingsShell title="Zusagen" description="Uhrzeit und Frist für Zu- und Absagen steuern.">
           <RsvpSettingsCard
-            value={settings?.rsvp_deadline_minutes_before ?? 30}
+            value={settings?.rsvp_deadline_minutes_before ?? 60}
             saved={clubSaved}
             error={clubError}
           />
