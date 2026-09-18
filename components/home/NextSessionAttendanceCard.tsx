@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Clock3, UserCheck, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
+import LateRsvpModal from "@/components/sessions/LateRsvpModal";
 
 type PresenceStatus = "in" | "out" | "open";
 type PendingAction = "in" | "out" | null;
@@ -87,6 +88,7 @@ export default function NextSessionAttendanceCard({
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [notNominated, setNotNominated] = useState(false);
+  const [latePenaltyMessage, setLatePenaltyMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setNow(new Date());
@@ -113,6 +115,12 @@ export default function NextSessionAttendanceCard({
 
   async function updateStatus(nextStatus: PresenceStatus, action: Exclude<PendingAction, null>, absenceReason = "") {
     if (busy || status === nextStatus || notNominated) return;
+
+    if (deadlineTone === "passed" && status === "in" && nextStatus !== "in") {
+      setErrorMessage("Der Anmeldeschluss ist vorbei. Deine Zusage ist jetzt verbindlich – bitte wende dich für eine Änderung an einen Admin.");
+      return;
+    }
+
     const previousStatus = status;
 
     try {
@@ -123,23 +131,16 @@ export default function NextSessionAttendanceCard({
       const formData = new FormData();
       formData.set("intent", "set_self_presence");
       formData.set("status", nextStatus);
+      if (nextStatus === "out") formData.set("reason", absenceReason.trim().slice(0, 80));
       const response = await fetch(`/api/sessions/${sessionId}`, { method: "POST", body: formData, credentials: "same-origin" });
       const raw = await response.text();
       const payload = raw ? JSON.parse(raw) : null;
       if (!response.ok) throw new Error(payload?.error || "Status konnte nicht gespeichert werden.");
 
-      if (nextStatus === "out") {
-        const reasonResponse = await fetch(`/api/sessions/${sessionId}/rsvp-reason`, {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reason: absenceReason.trim().slice(0, 80) }),
-        });
-        const reasonPayload = await reasonResponse.json().catch(() => null) as { error?: string } | null;
-        if (!reasonResponse.ok) throw new Error(reasonPayload?.error || "Absagegrund konnte nicht gespeichert werden.");
-      }
-
       setStatus(nextStatus);
+      if (nextStatus === "in" && payload?.latePenalty?.message) {
+        setLatePenaltyMessage(String(payload.latePenalty.message));
+      }
       setReasonOpen(false);
       if (nextStatus !== "out") setReason("");
       if (previousStatus === "in") setPresentCount((prev) => Math.max(0, prev - 1));
@@ -204,13 +205,18 @@ export default function NextSessionAttendanceCard({
       {!notNominated ? (
         <div className="relative mt-5 rounded-[28px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
           <div className="grid grid-cols-2 gap-1.5">
-            <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={busy} aria-busy={pendingAction === "in"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", inActive ? "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 text-white shadow-[0_16px_34px_rgba(56,189,248,0.24)]" : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50"].join(" ")}>
+            <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", inActive ? "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 text-white shadow-[0_16px_34px_rgba(56,189,248,0.24)]" : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50"].join(" ")}>
               <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-blue-50 text-blue-600 ring-1 ring-blue-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? "Speichert…" : inActive ? "Dabei ✓" : "Ich bin dabei"}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{presentCount} dabei</span></span></div>
             </button>
-            <button type="button" onClick={() => { if (outActive) void updateStatus("open", "out"); else setReasonOpen(true); }} disabled={busy} aria-busy={pendingAction === "out"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", outActive ? "bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_18px_36px_rgba(244,63,94,0.24)]" : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70"].join(" ")}>
-              <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", outActive ? "bg-white/15 text-white ring-1 ring-white/20" : "bg-white text-rose-500 ring-1 ring-rose-100"].join(" ")}><UserX className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "out" ? "Speichert…" : outActive ? "Abgesagt ✓" : "Ich bin raus"}</span><span className={["mt-0.5 block text-xs font-medium", outActive ? "text-white/75" : "text-rose-500"].join(" ")}>{absentCount} raus</span></span></div>
+            <button type="button" onClick={() => { if (outActive) void updateStatus("open", "out"); else setReasonOpen(true); }} disabled={busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "out"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", outActive ? "bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_18px_36px_rgba(244,63,94,0.24)]" : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70"].join(" ")}>
+              <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", outActive ? "bg-white/15 text-white ring-1 ring-white/20" : "bg-white text-rose-500 ring-1 ring-rose-100"].join(" ")}><UserX className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "out" ? "Speichert…" : deadlineTone === "passed" && inActive ? "Absage gesperrt" : outActive ? "Abgesagt ✓" : "Ich bin raus"}</span><span className={["mt-0.5 block text-xs font-medium", outActive ? "text-white/75" : "text-rose-500"].join(" ")}>{absentCount} raus</span></span></div>
             </button>
           </div>
+          {deadlineTone === "passed" && inActive ? (
+            <div className="m-1.5 mt-2 rounded-[18px] border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+              Anmeldeschluss vorbei · deine Zusage ist verbindlich.
+            </div>
+          ) : null}
           {reasonOpen ? (
             <div className="m-1.5 mt-2 rounded-[20px] border border-rose-200 bg-white p-3">
               <div className="text-xs font-bold text-rose-800">Warum bist du nicht dabei? <span className="font-medium text-rose-500">(optional)</span></div>
@@ -220,6 +226,12 @@ export default function NextSessionAttendanceCard({
           ) : null}
         </div>
       ) : null}
+
+      <LateRsvpModal
+        open={latePenaltyMessage !== null}
+        message={latePenaltyMessage ?? ""}
+        onClose={() => setLatePenaltyMessage(null)}
+      />
 
       <div className="relative mt-3 flex justify-end">
         <Link href={href} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">Training öffnen<ArrowRight className="h-3.5 w-3.5" /></Link>
