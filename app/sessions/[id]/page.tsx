@@ -22,6 +22,7 @@ type ClubSettings = {
   goalkeeper_label: string | null;
   use_nicknames?: boolean;
   use_field_view?: boolean;
+  rsvp_deadline_minutes_before?: number | null;
 };
 
 const DEFAULT_CLUB_SETTINGS: ClubSettings = {
@@ -35,6 +36,7 @@ const DEFAULT_CLUB_SETTINGS: ClubSettings = {
   goalkeeper_label: "Torwart",
   use_nicknames: false,
   use_field_view: false,
+  rsvp_deadline_minutes_before: 60,
 };
 
 type ClubRow = { id: string; primary_color: string | null };
@@ -72,13 +74,13 @@ export default async function SessionDetailPage({ params }: PageProps) {
     supabase.from("clubs").select("id, primary_color").eq("id", clubId).maybeSingle<ClubRow>(),
     supabase
       .from("club_settings")
-      .select("use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label")
+      .select("use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label, rsvp_deadline_minutes_before")
       .eq("club_id", clubId)
       .limit(1)
       .maybeSingle(),
     supabase
       .from("sessions")
-      .select("id, date, notes, type, winner_photo_path, club_id")
+      .select("id, date, notes, type, winner_photo_path, start_time, rsvp_deadline_minutes_before, club_id")
       .eq("id", sessionId)
       .eq("club_id", clubId)
       .single(),
@@ -223,6 +225,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialHomeSessionRsvpEnabled={homeSessionRsvpEnabled}
       initialSessionType={session.type === "event" ? "event" : "training"}
       sessionTypesEnabled={sessionTypesEnabled}
+      initialRsvpDeadlineMinutesBefore={clubSettings.rsvp_deadline_minutes_before ?? 60}
     />
   );
 }
