@@ -702,7 +702,7 @@ export default async function Page({ searchParams }: Props) {
                         <form action={resolvePenaltyAction}>
                           <input type="hidden" name="penalty_id" value={entry.id} />
                           <button className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-black text-emerald-800">
-                            ✓ Bezahlt
+                            {entry.type === "money" ? "✓ Bezahlt" : "✓ Erledigt"}
                           </button>
                         </form>
                         <form action={deletePenaltyAction}>
