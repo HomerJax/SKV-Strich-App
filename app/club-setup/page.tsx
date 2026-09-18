@@ -1,4 +1,16 @@
+import Image from "next/image";
 import Link from "next/link";
+import {
+  ArrowRight,
+  Check,
+  Circle,
+  Rocket,
+  Share2,
+  Sparkles,
+  Trophy,
+  Users,
+  WandSparkles,
+} from "lucide-react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth/context";
@@ -84,10 +96,33 @@ const STEP_ORDER: SetupStep[] = [
 ];
 
 const STEP_LABELS: Record<SetupStep, string> = {
-  club: "Sport & Club",
-  team: "Teamgenerator",
-  categories: "Kategorien",
-  done: "Fertig",
+  club: "Dein Club",
+  team: "Faire Teams",
+  categories: "Spielergruppen",
+  done: "Team starten",
+};
+
+const STEP_COPY: Record<SetupStep, { eyebrow: string; title: string; text: string }> = {
+  club: {
+    eyebrow: "Dein Auftritt",
+    title: "Gib deinem Team ein Gesicht.",
+    text: "Name, Logo und Farben – damit sich strikr vom ersten Training an wie euer Club anfühlt.",
+  },
+  team: {
+    eyebrow: "Das Herzstück",
+    title: "So baut strikr faire Teams.",
+    text: "Du legst nur fest, welche Informationen zählen. strikr kümmert sich danach automatisch um die beste Aufteilung.",
+  },
+  categories: {
+    eyebrow: "Feinschliff",
+    title: "Wer spielt bei euch?",
+    text: "Mit Spielergruppen kann strikr unterschiedliche Niveaus noch besser einordnen. Nur wenn ihr sie wirklich braucht.",
+  },
+  done: {
+    eyebrow: "Bereit",
+    title: "Dein Team kann loslegen.",
+    text: "Jetzt noch die Mannschaft reinholen – und aus dem nächsten Training wird eure erste strikr Session.",
+  },
 };
 
 function getStep(value: string | null): SetupStep {
@@ -168,29 +203,73 @@ function StepHero({
   clubName: string;
   currentStep: SetupStep;
 }) {
-  const stepNumber = getStepIndex(currentStep) + 1;
-  const remainingSteps = getRemainingSteps(currentStep);
+  const stepIndex = getStepIndex(currentStep);
+  const copy = STEP_COPY[currentStep];
 
   return (
-    <div className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-            Team erstellt
+    <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#070b12] p-5 text-white shadow-[0_28px_80px_rgba(2,6,23,0.28)] sm:p-7">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 left-10 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" />
+      <div className="relative">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Image
+              src="/icon-light.png"
+              alt="strikr"
+              width={44}
+              height={44}
+              className="h-11 w-11 shrink-0 rounded-2xl"
+            />
+            <div className="min-w-0">
+              <div className="truncate text-sm font-black tracking-tight">{clubName}</div>
+              <div className="text-[10px] font-black uppercase tracking-[.18em] text-white/35">
+                strikr setup
+              </div>
+            </div>
           </div>
+          <div className="rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-[10px] font-black text-white/70">
+            {stepIndex + 1}/{STEP_ORDER.length}
+          </div>
+        </div>
 
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-950 sm:text-4xl">
-            {clubName} startklar machen
+        <div className="mt-6">
+          <div className="text-[10px] font-black uppercase tracking-[.22em] text-cyan-300">
+            {copy.eyebrow}
+          </div>
+          <h1 className="mt-2 max-w-2xl text-3xl font-black leading-[1.03] tracking-[-.045em] sm:text-4xl">
+            {copy.title}
           </h1>
-
-          <p className="mt-2 text-sm text-neutral-600">
-            Schritt {stepNumber} von {STEP_ORDER.length}
-            {remainingSteps > 0 ? ` · noch ${remainingSteps} offen` : ""}
+          <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/55">
+            {copy.text}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-black/10 bg-[#f7f8fb] px-4 py-3 text-sm font-medium text-neutral-700">
-          {STEP_LABELS[currentStep]}
+        <div className="mt-7 grid grid-cols-4 gap-2">
+          {STEP_ORDER.map((step, index) => {
+            const done = index < stepIndex;
+            const active = index === stepIndex;
+
+            return (
+              <div key={step} className="min-w-0">
+                <div
+                  className={[
+                    "h-1.5 rounded-full transition",
+                    done || active ? "bg-gradient-to-r from-cyan-300 to-violet-400" : "bg-white/10",
+                  ].join(" ")}
+                />
+                <div className="mt-2 flex items-center gap-1.5">
+                  {done ? (
+                    <Check className="h-3 w-3 shrink-0 text-cyan-300" />
+                  ) : (
+                    <Circle className={`h-2.5 w-2.5 shrink-0 ${active ? "fill-white text-white" : "text-white/20"}`} />
+                  )}
+                  <span className={`truncate text-[9px] font-bold ${active ? "text-white" : done ? "text-white/55" : "text-white/25"}`}>
+                    {STEP_LABELS[step]}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
