@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   addPenaltyAction,
   deletePenaltyAction,
@@ -173,7 +173,7 @@ export default async function Page({ searchParams }: Props) {
 
   const access = await requireCashboxAccess({ manage: true });
   const { clubId, isClubAdmin } = access;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [
     { data: playersData },
@@ -270,9 +270,13 @@ export default async function Page({ searchParams }: Props) {
     return sum + (cents && cents > 0 ? cents : 0);
   }, 0);
 
-  const openContributionCents = contributionMembers.reduce((sum, member) => {
+  const activeContributionIds = new Set(activeContributions.map((item) => item.id));
+  const activeContributionMembers = contributionMembers.filter((member) =>
+    activeContributionIds.has(member.contribution_id),
+  );
+  const openContributionCents = activeContributionMembers.reduce((sum, member) => {
     if (member.status !== "open") return sum;
-    const contribution = contributions.find((item) => item.id === member.contribution_id);
+    const contribution = activeContributions.find((item) => item.id === member.contribution_id);
     return sum + (contribution?.amount_cents ?? 0);
   }, 0);
 
@@ -379,7 +383,7 @@ export default async function Page({ searchParams }: Props) {
                   </div>
                   <div className="rounded-2xl bg-blue-50 p-4">
                     <div className="text-2xl font-black text-blue-950">
-                      {contributionMembers.filter((member) => member.status === "open").length}
+                      {activeContributionMembers.filter((member) => member.status === "open").length}
                     </div>
                     <div className="text-xs font-bold text-blue-700">offene Beiträge</div>
                   </div>
