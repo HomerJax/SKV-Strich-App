@@ -141,12 +141,10 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             #endif
 
-            let soundFile = try ensureSoundFile(for: sound, persistent: persistent)
             scheduleNotificationFallback(
                 key: key,
                 date: date,
                 kind: kind,
-                soundFile: soundFile,
                 persistent: persistent,
                 call: call
             )
@@ -267,16 +265,13 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
         key: String,
         date: Date,
         kind: String,
-        soundFile: String,
         persistent: Bool,
         call: CAPPluginCall
     ) {
         let content = UNMutableNotificationContent()
         content.title = title(for: kind)
         content.body = body(for: kind, persistent: persistent)
-        content.sound = UNNotificationSound(
-            named: UNNotificationSoundName(rawValue: soundFile)
-        )
+        content.sound = .default
         if #available(iOS 15.0, *) {
             content.interruptionLevel = .timeSensitive
         }
