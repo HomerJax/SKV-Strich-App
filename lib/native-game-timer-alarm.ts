@@ -9,6 +9,8 @@ type AuthorizationResult = {
   granted: boolean;
   mode?: string;
   needsSettings?: boolean;
+  reason?: "alarm_volume_zero" | string;
+  notificationGranted?: boolean;
 };
 
 type NativeAlarmAuthorizationState = AuthorizationResult & {
