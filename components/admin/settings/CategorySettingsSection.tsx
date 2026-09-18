@@ -18,6 +18,7 @@ type CategorySettingsSectionProps = {
   redirectTo?: string;
   saved?: boolean;
   error?: string;
+  variant?: "default" | "onboarding";
 };
 
 export function CategorySettingsSection({
@@ -26,6 +27,7 @@ export function CategorySettingsSection({
   redirectTo = "/admin/settings",
   saved = false,
   error = "",
+  variant = "default",
 }: CategorySettingsSectionProps) {
   const activeCategories = categories
     .filter((category) => category.is_active)
@@ -61,17 +63,26 @@ export function CategorySettingsSection({
         ) : null}
       </div>
 
-      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
-        <div className="font-bold">Welche Kategorie ist stärker?</div>
-        <p className="mt-1">
-          Die Reihenfolge ist künftig egal. Markiere bei den aktiven Kategorien einfach die sportlich stärkere Kategorie. Der Generator bewertet diese höher und nutzt die individuelle Stärke 1–5 anschließend zur Feinabstimmung.
-        </p>
-        <p className="mt-2 text-blue-900">
-          Pro Club kann genau eine aktive Kategorie als stärker markiert sein. Wenn Kategorien bei euch keine sportliche Stärke ausdrücken, kannst du die Kategorien im Teamgenerator komplett deaktivieren.
-        </p>
-      </div>
+      {variant === "onboarding" ? (
+        <div className="rounded-[22px] border border-cyan-100 bg-gradient-to-br from-cyan-50 to-white p-4 text-sm leading-6 text-slate-700">
+          <div className="font-black text-slate-950">Kurz erklärt</div>
+          <p className="mt-1">
+            Nutzt ihr unterschiedliche Gruppen wie AH und Ü32? Dann leg sie hier an. Wenn eine Gruppe sportlich klar stärker ist, markierst du genau diese – den Rest erledigt strikr.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+          <div className="font-bold">Welche Kategorie ist stärker?</div>
+          <p className="mt-1">
+            Die Reihenfolge ist künftig egal. Markiere bei den aktiven Kategorien einfach die sportlich stärkere Kategorie. Der Generator bewertet diese höher und nutzt die individuelle Stärke 1–5 anschließend zur Feinabstimmung.
+          </p>
+          <p className="mt-2 text-blue-900">
+            Pro Club kann genau eine aktive Kategorie als stärker markiert sein. Wenn Kategorien bei euch keine sportliche Stärke ausdrücken, kannst du die Kategorien im Teamgenerator komplett deaktivieren.
+          </p>
+        </div>
+      )}
 
-      <div className="rounded-xl border border-black/10 bg-neutral-50 p-3">
+      <div className={variant === "onboarding" ? "rounded-[22px] border border-slate-200 bg-slate-50 p-3" : "rounded-xl border border-black/10 bg-neutral-50 p-3"}>
         <form action={addCategoryAction} className="flex gap-2">
           <input type="hidden" name="redirect_to" value={redirectTo} />
           <input
