@@ -25,6 +25,7 @@ type SessionRow = {
   id: number;
   date: string;
   start_time: string | null;
+  rsvp_deadline_minutes_before: number | null;
   notes: string | null;
 };
 
@@ -441,7 +442,7 @@ export default async function HomePage() {
       .order("start_date", { ascending: false }),
     supabase
       .from("sessions")
-      .select("id, date, start_time, notes")
+      .select("id, date, start_time, rsvp_deadline_minutes_before, notes")
       .eq("club_id", clubId)
       .gte("date", today)
       .order("date", { ascending: true })
@@ -449,7 +450,7 @@ export default async function HomePage() {
       .maybeSingle<SessionRow>(),
     supabase
       .from("sessions")
-      .select("id, date, start_time, notes")
+      .select("id, date, start_time, rsvp_deadline_minutes_before, notes")
       .eq("club_id", clubId)
       .order("date", { ascending: false })
       .limit(12),
@@ -460,7 +461,7 @@ export default async function HomePage() {
   const club = (clubData ?? null) as ClubRow | null;
   const homeSettings = (homeSettingsData ?? null) as HomeClubSettingsRow | null;
   const rsvpDeadlineMinutesBefore =
-    homeSettings?.rsvp_deadline_minutes_before ?? 30;
+    homeSettings?.rsvp_deadline_minutes_before ?? 60;
   const bierkassePaypalUrl =
     homeSettings?.beerkasse_enabled &&
     homeSettings?.beerkasse_home_enabled &&
@@ -922,6 +923,7 @@ export default async function HomePage() {
               sessionDate={nextSession.date}
               startTime={nextSession.start_time}
               rsvpDeadlineMinutesBefore={rsvpDeadlineMinutesBefore}
+              sessionRsvpDeadlineMinutesBefore={nextSession.rsvp_deadline_minutes_before}
               participantNames={nextSessionParticipantNames}
             />
           ) : (
