@@ -139,6 +139,7 @@ export default function SessionGameTimerCard({
   const [hydrated, setHydrated] = useState(false);
   const handledTargetRef = useRef<number | null>(null);
   const signalStopTimeoutRef = useRef<number | null>(null);
+  const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
 
   const isRunning = runtime.phase === "running";
   const canEdit = runtime.phase === "idle" || runtime.phase === "finished";
@@ -173,6 +174,46 @@ export default function SessionGameTimerCard({
       cancelNativeGameTimerAlarm(finalAlarmKey),
     ]);
   }, [finalAlarmKey, halftimeAlarmKey]);
+
+  const releaseBrowserWakeLock = useCallback(async () => {
+    const current = wakeLockRef.current;
+    wakeLockRef.current = null;
+
+    if (!current) return;
+
+    try {
+      await current.release();
+    } catch {
+      // Wake Lock kann vom Browser bereits automatisch freigegeben worden sein.
+    }
+  }, []);
+
+  const acquireBrowserWakeLock = useCallback(async () => {
+    if (
+      typeof navigator === "undefined" ||
+      supportsNativeGameTimerAlarm() ||
+      document.visibilityState !== "visible" ||
+      !("wakeLock" in navigator)
+    ) {
+      return false;
+    }
+
+    if (wakeLockRef.current) return true;
+
+    try {
+      const wakeLockNavigator = navigator as Navigator & {
+        wakeLock?: {
+          request: (type: "screen") => Promise<{ release: () => Promise<void> }>;
+        };
+      };
+      const sentinel = await wakeLockNavigator.wakeLock?.request("screen");
+      wakeLockRef.current = sentinel ?? null;
+      return Boolean(sentinel);
+    } catch {
+      wakeLockRef.current = null;
+      return false;
+    }
+  }, []);
 
   const resetRuntime = useCallback(
     (nextSettings: GameTimerSettings = settings) => {
@@ -231,8 +272,38 @@ export default function SessionGameTimerCard({
   useEffect(() => {
     return () => {
       stopBrowserAlarm();
+      void releaseBrowserWakeLock();
     };
-  }, [stopBrowserAlarm]);
+  }, [releaseBrowserWakeLock, stopBrowserAlarm]);
+
+  useEffect(() => {
+    if (!hydrated || !isRunning || nativeAlarmSupported) {
+      void releaseBrowserWakeLock();
+      return;
+    }
+
+    void acquireBrowserWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void acquireBrowserWakeLock();
+      } else {
+        wakeLockRef.current = null;
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      void releaseBrowserWakeLock();
+    };
+  }, [
+    acquireBrowserWakeLock,
+    hydrated,
+    isRunning,
+    nativeAlarmSupported,
+    releaseBrowserWakeLock,
+  ]);
 
   useEffect(() => {
     if (!hydrated || !isRunning || !runtime.targetAt) return;
@@ -399,7 +470,14 @@ export default function SessionGameTimerCard({
     handledTargetRef.current = null;
     stopBrowserAlarm();
     await cancelAllNativeAlarms();
-    await primeTimerAudio();
+
+    const audioReady = await primeTimerAudio();
+    if (!nativeAlarmSupported && !audioReady) {
+      setError(
+        "Der Alarmton konnte auf diesem Gerät nicht aktiviert werden. Bitte Lautstärke prüfen und „Ton testen“ verwenden.",
+      );
+      return;
+    }
 
     const now = Date.now();
     const activeSettings = normalizeSettings(settings);
@@ -503,11 +581,17 @@ export default function SessionGameTimerCard({
       savedAt: Date.now(),
     });
     setRemainingMs(Math.max(0, targetAt - now));
-    setMessage(
-      nativeReady.useNative
-        ? "Spieluhr läuft. Du kannst den Bildschirm sperren."
-        : "Spieluhr läuft. Für diesen App-Build die App geöffnet lassen.",
-    );
+
+    if (nativeReady.useNative) {
+      setMessage("Spieluhr läuft. Du kannst den Bildschirm sperren.");
+    } else {
+      const wakeLockActive = await acquireBrowserWakeLock();
+      setMessage(
+        wakeLockActive
+          ? "Spieluhr läuft. Bildschirm bleibt nach Möglichkeit aktiv."
+          : "Spieluhr läuft. Bitte App geöffnet und Bildschirm eingeschaltet lassen.",
+      );
+    }
   }
 
   async function stopCurrentAlarm() {
@@ -526,7 +610,14 @@ export default function SessionGameTimerCard({
     handledTargetRef.current = null;
     stopBrowserAlarm();
     await cancelNativeGameTimerAlarm(halftimeAlarmKey);
-    await primeTimerAudio();
+
+    const audioReady = await primeTimerAudio();
+    if (!nativeAlarmSupported && !audioReady) {
+      setError(
+        "Der Alarmton konnte auf diesem Gerät nicht aktiviert werden. Bitte Lautstärke prüfen und „Ton testen“ verwenden.",
+      );
+      return;
+    }
 
     const activeSettings = runtime.settings;
     const now = Date.now();
@@ -588,6 +679,7 @@ export default function SessionGameTimerCard({
 
   async function stopTimer() {
     stopBrowserAlarm();
+    await releaseBrowserWakeLock();
     await cancelAllNativeAlarms();
     setMessage("Spieluhr gestoppt.");
     setError(null);
