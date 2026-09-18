@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
-function url(params: Record<string, string>) {
-  return `/mannschaftskasse?${new URLSearchParams(params)}`;
+function url(params: Record<string, string>, base = "/mannschaftskasse") {
+  return `${base}?${new URLSearchParams(params)}`;
 }
 
 function addDaysIso(days: number | null) {
@@ -35,14 +35,18 @@ function buildPaypalUrl(baseUrl: string, totalCents: number) {
 }
 
 export async function buyBeerAction(formData: FormData) {
+  const returnTo =
+    String(formData.get("return_to") ?? "") === "/home"
+      ? "/home"
+      : "/mannschaftskasse";
   const { clubId, player } = await requireClub();
   const flags = await getFeatureFlagsForClub(clubId);
   if (!(flags.penalties ?? false)) redirect("/home");
-  if (!player) redirect(url({ beer_error: "Kein Spielerprofil gefunden." }));
+  if (!player) redirect(url({ beer_error: "Kein Spielerprofil gefunden." }, returnTo));
 
   const quantity = Number(String(formData.get("quantity") ?? "1"));
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
-    redirect(url({ beer_error: "Bitte eine gültige Anzahl wählen." }));
+    redirect(url({ beer_error: "Bitte eine gültige Anzahl wählen." }, returnTo));
   }
 
   const supabase = await createClient();
@@ -55,7 +59,7 @@ export async function buyBeerAction(formData: FormData) {
     .maybeSingle();
 
   if (settingsError) {
-    redirect(url({ beer_error: "Bierkasse konnte nicht geladen werden." }));
+    redirect(url({ beer_error: "Bierkasse konnte nicht geladen werden." }, returnTo));
   }
 
   const premiumEnabled = settings?.beerkasse_premium_enabled === true;
@@ -64,11 +68,11 @@ export async function buyBeerAction(formData: FormData) {
   const unitPriceCents = Number(settings?.beerkasse_price_cents ?? 0);
 
   if (!premiumEnabled || !featureEnabled || !paypalUrl) {
-    redirect(url({ beer_error: "Bierkasse+ ist für diesen Club nicht aktiv." }));
+    redirect(url({ beer_error: "Bierkasse+ ist für diesen Club nicht aktiv." }, returnTo));
   }
 
   if (!Number.isInteger(unitPriceCents) || unitPriceCents < 1) {
-    redirect(url({ beer_error: "Für die Bierkasse ist kein gültiger Preis hinterlegt." }));
+    redirect(url({ beer_error: "Für die Bierkasse ist kein gültiger Preis hinterlegt." }, returnTo));
   }
 
   const totalCents = unitPriceCents * quantity;
@@ -81,7 +85,7 @@ export async function buyBeerAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(url({ beer_error: "Bier konnte nicht gebucht werden." }));
+    redirect(url({ beer_error: "Bier konnte nicht gebucht werden." }, returnTo));
   }
 
   revalidatePath("/mannschaftskasse");
