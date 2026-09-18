@@ -441,7 +441,11 @@ export default function SessionGameTimerCard({
       return { useNative: true } as const;
     }
 
-    if (authorization.needsSettings) {
+    if (authorization.reason === "alarm_volume_zero") {
+      setError(
+        "Deine Wecker-/Alarmlautstärke ist auf 0. Bitte am Handy die Alarmlautstärke erhöhen und danach erneut starten.",
+      );
+    } else if (authorization.needsSettings) {
       setError(
         "Bitte erlaube strikr unter „Alarme & Erinnerungen“ exakte Alarme und tippe danach erneut auf Spiel starten.",
       );
