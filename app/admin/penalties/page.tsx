@@ -809,19 +809,39 @@ export default async function Page({ searchParams }: Props) {
               {rules.map((rule) => (
                 <form key={rule.rule_key} action={savePenaltyRuleAction} className="rounded-2xl border bg-slate-50 p-3">
                   <input type="hidden" name="rule_key" value={rule.rule_key} />
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <input name="label" defaultValue={rule.label} className="rounded-xl border bg-white px-3 py-2 text-sm font-bold" />
-                    <input name="reason" defaultValue={rule.reason} className="rounded-xl border bg-white px-3 py-2 text-sm" />
-                    <select name="type" defaultValue={rule.type} className="rounded-xl border bg-white px-3 py-2 text-sm">
-                      <option value="beer">Sachposten</option>
-                      <option value="money">Geld</option>
-                      <option value="custom">Sonstiges</option>
-                    </select>
-                    <input name="value" defaultValue={rule.value} className="rounded-xl border bg-white px-3 py-2 text-sm" />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Regelname</span>
+                      <input name="label" defaultValue={rule.label} className="w-full rounded-xl border bg-white px-3 py-2 text-sm font-bold" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Grund / Beschreibung</span>
+                      <input name="reason" defaultValue={rule.reason} className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Art</span>
+                      <select name="type" defaultValue={rule.type} className="w-full rounded-xl border bg-white px-3 py-2 text-sm">
+                        <option value="beer">Sachposten</option>
+                        <option value="money">Geld</option>
+                        <option value="custom">Sonstiges</option>
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Wert / Posten</span>
+                      <input name="value" defaultValue={rule.value} className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
+                    </label>
                   </div>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    <input name="escalation_after_days" type="number" min="1" defaultValue={rule.escalation_after_days ?? ""} placeholder="Eskalation nach Tagen" className="rounded-xl border bg-white px-3 py-2 text-sm" />
-                    <input name="escalation_value" defaultValue={rule.escalation_value ?? ""} placeholder="z. B. + 1 Sechserträger" className="rounded-xl border bg-white px-3 py-2 text-sm" />
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Eskalation nach Tagen</span>
+                      <input name="escalation_after_days" type="number" min="1" defaultValue={rule.escalation_after_days ?? ""} placeholder="z. B. 28" className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
+                      <span className="mt-1 block text-[10px] font-medium text-slate-500">Nach wie vielen Tagen sich der Posten verschärft.</span>
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Danach gilt</span>
+                      <input name="escalation_value" defaultValue={rule.escalation_value ?? ""} placeholder="z. B. + 1 Sechserträger" className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
+                      <span className="mt-1 block text-[10px] font-medium text-slate-500">Optional: neue Strafe oder zusätzlicher Posten nach Ablauf.</span>
+                    </label>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
                     <label className="flex items-center gap-2 text-xs font-black">
