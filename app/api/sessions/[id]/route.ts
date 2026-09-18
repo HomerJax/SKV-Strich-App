@@ -258,6 +258,7 @@ export async function POST(
       const [
         { data: existingRsvp, error: existingRsvpError },
         { data: deadlineSettings, error: deadlineSettingsError },
+        { data: firstInHistory, error: firstInHistoryError },
       ] = await Promise.all([
         adminSupabase
           .from("session_rsvps")
@@ -270,6 +271,13 @@ export async function POST(
           .select("rsvp_deadline_minutes_before")
           .eq("club_id", clubId)
           .maybeSingle<{ rsvp_deadline_minutes_before: number | null }>(),
+        adminSupabase
+          .from("session_rsvp_first_ins")
+          .select("first_in_at")
+          .eq("club_id", clubId)
+          .eq("session_id", sessionId)
+          .eq("player_id", playerId)
+          .maybeSingle<{ first_in_at: string }>(),
       ]);
 
       if (existingRsvpError) {
@@ -281,6 +289,10 @@ export async function POST(
 
       if (deadlineSettingsError) {
         return fail("Anmeldeschluss konnte nicht geprüft werden.", 500);
+      }
+
+      if (firstInHistoryError) {
+        return fail("Bisherige Zusage konnte nicht geprüft werden.", 500);
       }
 
       const previousStatus = existingRsvp?.status ?? null;
@@ -308,6 +320,26 @@ export async function POST(
       }
 
       if (status === "in") {
+        const currentSignupAt = new Date().toISOString();
+        const { error: firstInInsertError } = await adminSupabase
+          .from("session_rsvp_first_ins")
+          .upsert(
+            {
+              club_id: clubId,
+              session_id: sessionId,
+              player_id: playerId,
+              first_in_at: firstInHistory?.first_in_at ?? currentSignupAt,
+            },
+            {
+              onConflict: "session_id,player_id",
+              ignoreDuplicates: true,
+            }
+          );
+
+        if (firstInInsertError) {
+          console.error("First RSVP tracking failed", firstInInsertError);
+        }
+
         const { error: insertError } = await adminSupabase
           .from("session_players")
           .upsert(
@@ -354,7 +386,12 @@ export async function POST(
           | { label: string; value: string; type: string; message: string }
           | null = null;
 
-        const isLateSignup = deadlinePassed && previousStatus !== "in";
+        const firstInAt = firstInHistory?.first_in_at ?? currentSignupAt;
+        const firstInEpochMs = Date.parse(firstInAt);
+        const isLateSignup =
+          deadlinePassed &&
+          deadlineAt !== null &&
+          (!Number.isFinite(firstInEpochMs) || firstInEpochMs >= deadlineAt);
 
         if (isLateSignup && featureFlags.penalties === true) {
           const { data: rule, error: ruleError } = await adminSupabase
