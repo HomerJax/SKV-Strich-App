@@ -266,5 +266,5 @@ export default function SignupForm({
         </div>
       </section>
     </main>
-  );}
+  );
 }
