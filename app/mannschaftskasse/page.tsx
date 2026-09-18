@@ -114,8 +114,7 @@ export default async function Page({ searchParams }: Props) {
       .select("id,amount_cents,title,category,occurred_on")
       .eq("club_id", clubId)
       .order("occurred_on", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(20),
+      .order("id", { ascending: false }),
     supabase
       .from("cash_contributions")
       .select("id,title,amount_cents,due_date,archived_at")
@@ -139,8 +138,13 @@ export default async function Page({ searchParams }: Props) {
   const mine = player
     ? openPenalties.filter((entry) => entry.player_id === player.id)
     : [];
+  const activeContributionIds = new Set(contributions.map((entry) => entry.id));
   const myContributionMembers = player
-    ? contributionMembers.filter((entry) => entry.player_id === player.id)
+    ? contributionMembers.filter(
+        (entry) =>
+          entry.player_id === player.id &&
+          activeContributionIds.has(entry.contribution_id),
+      )
     : [];
   const myOpenContributions = myContributionMembers.filter(
     (entry) => entry.status === "open",
