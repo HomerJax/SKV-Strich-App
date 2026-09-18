@@ -4,5 +4,6 @@
       "path": "/api/cron/finalize-mvp-votings",
       "schedule": "0 10 * * *"
     }
-  ]
+  ],
+  "ignoreCommand": "if [ \"$VERCEL_PROJECT_ID\" = \"prj_CEw44LCdZhqmVDnuszwTPlCekZwq\" ]; then [ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]; elif [ \"$VERCEL_PROJECT_ID\" = \"prj_UPZ5p7vh8P6zXT8xmSH869HwlAsd\" ]; then [ \"$VERCEL_GIT_COMMIT_REF\" != \"staging\" ]; else exit 1; fi"
 }
