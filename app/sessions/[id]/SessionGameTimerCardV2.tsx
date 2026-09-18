@@ -146,6 +146,7 @@ export default function SessionGameTimerCard({
   const nativeAlarmSupported = hydrated && supportsNativeGameTimerAlarm();
   const halftimeAlarmKey = `strikr-game-${sessionId}-halftime`;
   const finalAlarmKey = `strikr-game-${sessionId}-final`;
+  const testAlarmKey = `strikr-game-${sessionId}-test`;
 
   const persistRuntime = useCallback(
     (nextRuntime: PersistedTimerRuntime) => {
@@ -172,8 +173,9 @@ export default function SessionGameTimerCard({
     await Promise.all([
       cancelNativeGameTimerAlarm(halftimeAlarmKey),
       cancelNativeGameTimerAlarm(finalAlarmKey),
+      cancelNativeGameTimerAlarm(testAlarmKey),
     ]);
-  }, [finalAlarmKey, halftimeAlarmKey]);
+  }, [finalAlarmKey, halftimeAlarmKey, testAlarmKey]);
 
   const releaseBrowserWakeLock = useCallback(async () => {
     const current = wakeLockRef.current;
@@ -695,6 +697,37 @@ export default function SessionGameTimerCard({
 
   async function testSound() {
     setError(null);
+    setMessage(null);
+
+    if (nativeAlarmSupported) {
+      await cancelNativeGameTimerAlarm(testAlarmKey);
+
+      const nativeReady = await ensureNativeAlarmReady();
+      if ("blocked" in nativeReady && nativeReady.blocked) return;
+      if (!nativeReady.useNative) {
+        setError("Der native Alarm ist auf diesem Gerät nicht verfügbar.");
+        return;
+      }
+
+      const scheduled = await scheduleNativeAlarm({
+        key: testAlarmKey,
+        atEpochMs: Date.now() + 10_000,
+        kind: "final",
+        sound: settings.alarmSound,
+        persistent: true,
+      });
+
+      if (!scheduled) {
+        setError("Der Testalarm konnte nicht geplant werden.");
+        return;
+      }
+
+      setMessage(
+        "Testalarm kommt in 10 Sekunden. Sperr jetzt ruhig das Handy – genau das wird getestet.",
+      );
+      return;
+    }
+
     await primeTimerAudio();
     const played = await playTimerAlarm(settings.alarmSound, { preview: true });
     if (!played) {
@@ -1030,7 +1063,7 @@ export default function SessionGameTimerCard({
                   onClick={() => void testSound()}
                   className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                 >
-                  Ton testen
+                  {nativeAlarmSupported ? "Alarm testen · 10 Sek." : "Ton testen"}
                 </button>
               </div>
             </label>
@@ -1072,9 +1105,9 @@ export default function SessionGameTimerCard({
         ) : null}
 
         <p className="mt-4 text-[11px] leading-5 text-slate-400">
-          Der Timer läuft nur auf diesem Gerät. In einem nativen Build werden Halbzeit und Abpfiff lokal geplant,
-          damit das Display gesperrt werden kann. Beim reinen Halbzeit-Signal klingelt es rund 10 Sekunden;
-          Halbzeitpause und Abpfiff klingeln bis zum Stoppen.
+          Der Timer läuft nur auf diesem Gerät. In der App werden Halbzeit und Abpfiff lokal geplant,
+          damit das Display gesperrt werden kann. Bei gesperrtem Handy nutzt strikr aus Zuverlässigkeitsgründen
+          den System-Alarmton. Mit „Alarm testen · 10 Sek.“ kannst du das direkt mit gesperrtem Bildschirm prüfen.
         </p>
       </div>
     </section>
