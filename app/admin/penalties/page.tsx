@@ -17,7 +17,7 @@ import {
   setCashboxManagerAction,
   setContributionStatusAction,
 } from "./cashbox-actions";
-import { saveBeerkasseAction } from "./beerkasse-actions";
+import { saveBeerkasseAction, setBeerkassePremiumAction } from "./beerkasse-actions";
 
 type Props = {
   searchParams?: Promise<{
@@ -174,7 +174,7 @@ export default async function Page({ searchParams }: Props) {
     : "overview";
 
   const access = await requireCashboxAccess({ manage: true });
-  const { clubId, isClubAdmin } = access;
+  const { clubId, isClubAdmin, isPowerUser } = access;
   const supabase = createAdminClient();
 
   const [
@@ -203,7 +203,7 @@ export default async function Page({ searchParams }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("club_settings")
-      .select("beerkasse_enabled,beerkasse_paypal_url,beerkasse_home_enabled")
+      .select("beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_home_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -881,24 +881,127 @@ export default async function Page({ searchParams }: Props) {
             ) : null}
 
             {isClubAdmin ? (
-              <section className="rounded-[24px] border border-amber-200 bg-amber-50/70 p-5">
-                <h2 className="font-black">🍺 PayPal / Bierkasse</h2>
-                {q?.beerkasse_saved ? <p className="mt-2 text-xs font-bold text-emerald-700">✓ Gespeichert</p> : null}
-                {q?.beerkasse_error ? <p className="mt-2 text-xs font-bold text-red-700">Bitte gültigen https-Link eintragen.</p> : null}
-                <form action={saveBeerkasseAction} className="mt-4 space-y-3">
-                  <input name="paypal_url" defaultValue={settings?.beerkasse_paypal_url ?? ""} placeholder="https://paypal.me/..." className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm" />
-                  <label className="flex items-center gap-2 text-sm font-bold">
-                    <input type="checkbox" name="enabled" defaultChecked={settings?.beerkasse_enabled === true} />
-                    PayPal für Spieler anzeigen
-                  </label>
-                  <label className="flex items-center gap-2 text-sm font-bold">
-                    <input type="checkbox" name="home_enabled" defaultChecked={settings?.beerkasse_home_enabled === true} />
-                    „Bier zahlen“ zusätzlich auf Home anzeigen
-                  </label>
-                  <button className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white">
-                    Speichern
-                  </button>
-                </form>
+              <section className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-white p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
+                      Club Extra
+                    </div>
+                    <h2 className="mt-1 text-lg font-black">🍺 Bierkasse+</h2>
+                    <p className="mt-1 text-xs font-medium text-slate-600">
+                      Bier buchen, Preis automatisch berechnen, PayPal öffnen und direkt in die Bierstatistik übernehmen.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black text-white">
+                    0,99 € / Monat
+                  </span>
+                </div>
+
+                {q?.beerkasse_saved ? (
+                  <p className="mt-3 text-xs font-bold text-emerald-700">✓ Gespeichert</p>
+                ) : null}
+                {q?.beerkasse_error ? (
+                  <p className="mt-3 text-xs font-bold text-red-700">
+                    {q.beerkasse_error === "premium"
+                      ? "Bierkasse+ ist für diesen Club noch nicht freigeschaltet."
+                      : q.beerkasse_error === "price"
+                        ? "Bitte einen gültigen Preis pro Bier eintragen."
+                        : q.beerkasse_error === "url"
+                          ? "Bitte einen gültigen https-PayPal-Link eintragen."
+                          : "Bierkasse+ konnte nicht gespeichert werden."}
+                  </p>
+                ) : null}
+
+                {settings?.beerkasse_premium_enabled === true ? (
+                  <>
+                    <div className="mt-4 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                      <div>
+                        <div className="text-sm font-black text-emerald-900">Premium freigeschaltet</div>
+                        <div className="text-[11px] font-medium text-emerald-700">Der Club kann selbst entscheiden, ob das Modul sichtbar ist.</div>
+                      </div>
+                      <span className="text-lg">✓</span>
+                    </div>
+
+                    <form action={saveBeerkasseAction} className="mt-4 space-y-3">
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-black text-slate-600">Preis pro Bier</span>
+                        <div className="relative">
+                          <input
+                            name="price"
+                            inputMode="decimal"
+                            defaultValue={((settings?.beerkasse_price_cents ?? 200) / 100).toFixed(2).replace(".", ",")}
+                            className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 pr-10 text-sm font-bold"
+                          />
+                          <span className="absolute right-3 top-2.5 text-sm font-black text-slate-400">€</span>
+                        </div>
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-black text-slate-600">PayPal-Link</span>
+                        <input
+                          name="paypal_url"
+                          defaultValue={settings?.beerkasse_paypal_url ?? ""}
+                          placeholder="https://paypal.me/..."
+                          className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm"
+                        />
+                        <span className="mt-1 block text-[10px] font-medium text-slate-500">
+                          Bei paypal.me wird der berechnete Betrag automatisch vorbelegt.
+                        </span>
+                      </label>
+
+                      <div className="space-y-2 rounded-2xl border border-amber-100 bg-white/80 p-3">
+                        <label className="flex items-center justify-between gap-3 text-sm font-bold">
+                          <span>🍺 Bierkasse+ aktiv</span>
+                          <input type="checkbox" name="enabled" defaultChecked={settings?.beerkasse_enabled === true} className="h-5 w-5" />
+                        </label>
+                        <label className="flex items-center justify-between gap-3 text-sm font-bold">
+                          <span>📊 Bierstatistik anzeigen</span>
+                          <input type="checkbox" name="stats_enabled" defaultChecked={settings?.beerkasse_stats_enabled !== false} className="h-5 w-5" />
+                        </label>
+                        <label className="flex items-center justify-between gap-3 text-sm font-bold">
+                          <span>🏅 Bier-Badges anzeigen</span>
+                          <input type="checkbox" name="badges_enabled" defaultChecked={settings?.beerkasse_badges_enabled !== false} className="h-5 w-5" />
+                        </label>
+                        <label className="flex items-center justify-between gap-3 text-sm font-bold">
+                          <span>🏠 „Bier zahlen“ auf Home</span>
+                          <input type="checkbox" name="home_enabled" defaultChecked={settings?.beerkasse_home_enabled === true} className="h-5 w-5" />
+                        </label>
+                      </div>
+
+                      <button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
+                        Bierkasse+ speichern
+                      </button>
+                    </form>
+
+                    {isPowerUser ? (
+                      <form action={setBeerkassePremiumAction} className="mt-3">
+                        <input type="hidden" name="enabled" value="0" />
+                        <button className="text-[10px] font-bold text-slate-400 underline">
+                          Power User: Premium-Freigabe entfernen
+                        </button>
+                      </form>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-white p-4">
+                    <div className="font-black text-slate-950">Bierkasse+ ist nicht freigeschaltet</div>
+                    <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
+                      Ohne Freigabe sind Bier-Checkout, Statistik, Badges und Home-Button für den Club komplett unsichtbar.
+                    </p>
+                    {isPowerUser ? (
+                      <form action={setBeerkassePremiumAction} className="mt-3">
+                        <input type="hidden" name="enabled" value="1" />
+                        <button className="w-full rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-black text-slate-950">
+                          Power User: für diesen Club freischalten
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
+                        Premium-Add-on · 0,99 € / Monat pro Club
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             ) : (
               <div className="rounded-[24px] border bg-white p-5 text-sm text-slate-600">
