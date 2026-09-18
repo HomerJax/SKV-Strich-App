@@ -77,7 +77,7 @@ public class GameTimerAlarmService extends Service {
         acquireWakeLock();
         startForeground(NOTIFICATION_ID, buildNotification(key, kind, persistent));
         startVibration();
-        startAudio(sound);
+        startSystemAlarmRingtone(sound);
 
         if (!persistent) {
             autoStopRunnable = this::stopAlarmAndSelf;
@@ -218,11 +218,10 @@ public class GameTimerAlarmService extends Service {
                 audioTrack.release();
                 audioTrack = null;
             }
-            startFallbackRingtone();
         }
     }
 
-    private void startFallbackRingtone() {
+    private void startSystemAlarmRingtone(String rawSound) {
         stopFallbackRingtone();
 
         try {
@@ -248,7 +247,12 @@ public class GameTimerAlarmService extends Service {
             fallbackRingtone.play();
         } catch (Exception ignored) {
             stopFallbackRingtone();
+            startAudio(rawSound);
         }
+    }
+
+    private void startFallbackRingtone() {
+        startSystemAlarmRingtone("whistle");
     }
 
     private void stopFallbackRingtone() {
