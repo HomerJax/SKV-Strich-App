@@ -34,6 +34,7 @@ export type SessionRow = {
   type?: SessionType | null;
   winner_photo_path?: string | null;
   start_time?: string | null;
+  rsvp_deadline_minutes_before?: number | null;
   timer_mode?: GameTimerMode | null;
   timer_duration_minutes?: number | null;
   timer_end_time?: string | null;
