@@ -53,7 +53,7 @@ begin
       '0,50 €',
       null,
       null,
-      true,
+      false,
       45
     from public.clubs c
     on conflict (club_id, rule_key) do nothing;
