@@ -26,6 +26,8 @@ type Props = {
     error?: string;
     beerkasse_saved?: string;
     beerkasse_error?: string;
+    kind?: string;
+    category?: string;
   }>;
 };
 
@@ -285,6 +287,23 @@ export default async function Page({ searchParams }: Props) {
   const thisMonth = transactions.filter((transaction) =>
     transaction.occurred_on.startsWith(monthKey),
   );
+  const transactionKindFilter =
+    q?.kind === "income" || q?.kind === "expense" || q?.kind === "reversal"
+      ? q.kind
+      : "all";
+  const transactionCategoryFilter = q?.category?.trim() ?? "";
+  const transactionCategories = Array.from(
+    new Set(transactions.map((transaction) => transaction.category).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b, "de"));
+  const filteredTransactions = transactions.filter((transaction) => {
+    const kindMatches =
+      transactionKindFilter === "all" ||
+      transaction.kind === transactionKindFilter;
+    const categoryMatches =
+      !transactionCategoryFilter ||
+      transaction.category === transactionCategoryFilter;
+    return kindMatches && categoryMatches;
+  });
   const monthIncome = thisMonth.reduce(
     (sum, transaction) =>
       transaction.amount_cents > 0 ? sum + transaction.amount_cents : sum,
@@ -464,8 +483,36 @@ export default async function Page({ searchParams }: Props) {
                 <h2 className="text-lg font-black">Umsätze</h2>
                 <div className="text-sm font-black text-slate-900">{formatCents(balanceCents)}</div>
               </div>
+
+              <form method="get" className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                <input type="hidden" name="tab" value="transactions" />
+                <select
+                  name="kind"
+                  defaultValue={transactionKindFilter}
+                  className="rounded-xl border bg-white px-3 py-2 text-sm"
+                >
+                  <option value="all">Alle Buchungen</option>
+                  <option value="income">Einnahmen</option>
+                  <option value="expense">Ausgaben</option>
+                  <option value="reversal">Stornos</option>
+                </select>
+                <select
+                  name="category"
+                  defaultValue={transactionCategoryFilter}
+                  className="rounded-xl border bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">Alle Kategorien</option>
+                  {transactionCategories.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+                <button className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 text-xs font-black text-slate-700">
+                  Filtern
+                </button>
+              </form>
+
               <div className="mt-4 space-y-2">
-                {transactions.map((transaction) => {
+                {filteredTransactions.map((transaction) => {
                   const reversed = reversedTransactionIds.has(transaction.id);
                   return (
                     <div key={transaction.id} className="rounded-2xl border border-slate-200 p-3">
@@ -506,7 +553,11 @@ export default async function Page({ searchParams }: Props) {
                     </div>
                   );
                 })}
-                {transactions.length === 0 ? <p className="text-sm text-slate-500">Noch keine Umsätze.</p> : null}
+                {filteredTransactions.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Keine Umsätze für diesen Filter.
+                  </p>
+                ) : null}
               </div>
             </section>
           </>
