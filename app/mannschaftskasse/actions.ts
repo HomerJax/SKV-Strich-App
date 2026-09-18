@@ -17,6 +17,78 @@ function addDaysIso(days: number | null) {
   return date.toISOString().slice(0, 10);
 }
 
+function buildPaypalUrl(baseUrl: string, totalCents: number) {
+  try {
+    const paypalUrl = new URL(baseUrl);
+    if (!["paypal.me", "www.paypal.me"].includes(paypalUrl.hostname.toLowerCase())) {
+      return baseUrl;
+    }
+
+    const parts = paypalUrl.pathname.split("/").filter(Boolean);
+    if (!parts[0]) return baseUrl;
+
+    paypalUrl.pathname = `/${parts[0]}/${(totalCents / 100).toFixed(2)}`;
+    return paypalUrl.toString();
+  } catch {
+    return baseUrl;
+  }
+}
+
+export async function buyBeerAction(formData: FormData) {
+  const { clubId, player } = await requireClub();
+  const flags = await getFeatureFlagsForClub(clubId);
+  if (!(flags.penalties ?? false)) redirect("/home");
+  if (!player) redirect(url({ beer_error: "Kein Spielerprofil gefunden." }));
+
+  const quantity = Number(String(formData.get("quantity") ?? "1"));
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+    redirect(url({ beer_error: "Bitte eine gültige Anzahl wählen." }));
+  }
+
+  const supabase = await createClient();
+  const { data: settings, error: settingsError } = await supabase
+    .from("club_settings")
+    .select(
+      "beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_price_cents",
+    )
+    .eq("club_id", clubId)
+    .maybeSingle();
+
+  if (settingsError) {
+    redirect(url({ beer_error: "Bierkasse konnte nicht geladen werden." }));
+  }
+
+  const premiumEnabled = settings?.beerkasse_premium_enabled === true;
+  const featureEnabled = settings?.beerkasse_enabled === true;
+  const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
+  const unitPriceCents = Number(settings?.beerkasse_price_cents ?? 0);
+
+  if (!premiumEnabled || !featureEnabled || !paypalUrl) {
+    redirect(url({ beer_error: "Bierkasse+ ist für diesen Club nicht aktiv." }));
+  }
+
+  if (!Number.isInteger(unitPriceCents) || unitPriceCents < 1) {
+    redirect(url({ beer_error: "Für die Bierkasse ist kein gültiger Preis hinterlegt." }));
+  }
+
+  const totalCents = unitPriceCents * quantity;
+  const { error } = await supabase.from("beer_consumptions").insert({
+    club_id: clubId,
+    player_id: player.id,
+    quantity,
+    unit_price_cents: unitPriceCents,
+    total_cents: totalCents,
+  });
+
+  if (error) {
+    redirect(url({ beer_error: "Bier konnte nicht gebucht werden." }));
+  }
+
+  revalidatePath("/mannschaftskasse");
+  revalidatePath("/home");
+  redirect(buildPaypalUrl(paypalUrl, totalCents));
+}
+
 export async function reportPenaltyAction(formData: FormData) {
   const { clubId } = await requireClub();
   const flags = await getFeatureFlagsForClub(clubId);
