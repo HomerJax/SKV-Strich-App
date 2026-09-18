@@ -8,6 +8,7 @@ import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
 import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
+import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 
@@ -46,6 +47,7 @@ type HomeClubSettingsRow = {
   beerkasse_enabled: boolean | null;
   beerkasse_home_enabled: boolean | null;
   beerkasse_paypal_url: string | null;
+  beerkasse_price_cents: number | null;
 };
 
 type ResultSessionRow = {
@@ -395,7 +397,8 @@ function MiniStatCard({
   );
 }
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams?: Promise<{ beer_error?: string }> }) {
+  const q = await searchParams;
   const clubAccess = await requireClub();
   const { clubId, membership, isPowerUser, user, player } = clubAccess;
   const supabase = await createClient();
@@ -424,7 +427,7 @@ export default async function HomePage() {
     supabase
       .from("club_settings")
       .select(
-        "rsvp_deadline_minutes_before, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url"
+        "rsvp_deadline_minutes_before, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_price_cents"
       )
       .eq("club_id", clubId)
       .maybeSingle<HomeClubSettingsRow>(),
@@ -468,6 +471,10 @@ export default async function HomePage() {
     homeSettings?.beerkasse_enabled === true &&
     homeSettings?.beerkasse_home_enabled === true &&
     Boolean(homeSettings?.beerkasse_paypal_url?.trim());
+  const bierkassePriceCents = Math.max(
+    1,
+    Number(homeSettings?.beerkasse_price_cents ?? 200),
+  );
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
   const seasons = (seasonsData ?? []) as SeasonRow[];
@@ -1135,20 +1142,14 @@ export default async function HomePage() {
         ) : null}
 
         {bierkasseHomeEnabled ? (
-          <Link
-            href="/mannschaftskasse#bierkasse"
-            className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm"
-          >
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[.16em] text-amber-700">
-                🍺 Bierkasse+
+          <>
+            <HomeBeerCheckoutModal priceCents={bierkassePriceCents} />
+            {q?.beer_error ? (
+              <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">
+                {q.beer_error}
               </div>
-              <div className="text-sm font-black text-slate-950">Bier buchen & zahlen</div>
-            </div>
-            <span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black text-slate-950">
-              Öffnen →
-            </span>
-          </Link>
+            ) : null}
+          </>
         ) : null}
 
         <Link
