@@ -113,7 +113,6 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         let kind = call.getString("kind") == "halftime" ? "halftime" : "final"
-        let sound = normalizedSound(call.getString("sound"))
         let persistent = call.getBool("persistent") ?? true
         let date = Date(timeIntervalSince1970: atEpochMs / 1000.0)
 
@@ -122,35 +121,31 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
-        do {
-            #if canImport(AlarmKit)
-            if #available(iOS 26.0, *), persistent {
-                Task {
-                    do {
-                        try await scheduleAlarmKit(
-                            key: key,
-                            date: date,
-                            kind: kind
-                        )
-                        call.resolve(["ok": true])
-                    } catch {
-                        call.reject("Alarm konnte nicht geplant werden.", nil, error)
-                    }
+        #if canImport(AlarmKit)
+        if #available(iOS 26.1, *), persistent {
+            Task {
+                do {
+                    try await scheduleAlarmKit(
+                        key: key,
+                        date: date,
+                        kind: kind
+                    )
+                    call.resolve(["ok": true])
+                } catch {
+                    call.reject("Alarm konnte nicht geplant werden.", nil, error)
                 }
-                return
             }
-            #endif
-
-            scheduleNotificationFallback(
-                key: key,
-                date: date,
-                kind: kind,
-                persistent: persistent,
-                call: call
-            )
-        } catch {
-            call.reject("Alarmton konnte nicht vorbereitet werden.", nil, error)
+            return
         }
+        #endif
+
+        scheduleNotificationFallback(
+            key: key,
+            date: date,
+            kind: kind,
+            persistent: persistent,
+            call: call
+        )
     }
 
     @objc public func cancel(_ call: CAPPluginCall) {
@@ -220,12 +215,12 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     #if canImport(AlarmKit)
-    @available(iOS 26.0, *)
+    @available(iOS 26.1, *)
     private struct StrikrAlarmMetadata: AlarmMetadata, Codable, Hashable {
         let kind: String
     }
 
-    @available(iOS 26.0, *)
+    @available(iOS 26.1, *)
     private func scheduleAlarmKit(
         key: String,
         date: Date,
