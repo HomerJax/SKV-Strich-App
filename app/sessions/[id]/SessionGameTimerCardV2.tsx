@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  GAME_TIMER_ALARM_OPTIONS,
   GAME_TIMER_HALFTIME_BEHAVIOR_OPTIONS,
   type GameTimerAlarmSound,
   type GameTimerHalftimeBehavior,
@@ -58,10 +57,6 @@ function formatRemaining(milliseconds: number) {
 
 function formatEndTime(value: string | null) {
   return value || "–";
-}
-
-function getAlarmLabel(sound: GameTimerAlarmSound) {
-  return GAME_TIMER_ALARM_OPTIONS.find((option) => option.value === sound)?.label ?? "Alarm";
 }
 
 function normalizeSettings(settings: GameTimerSettings): GameTimerSettings {
@@ -139,6 +134,7 @@ export default function SessionGameTimerCard({
   const [hydrated, setHydrated] = useState(false);
   const handledTargetRef = useRef<number | null>(null);
   const signalStopTimeoutRef = useRef<number | null>(null);
+  const testMessageTimeoutRef = useRef<number | null>(null);
   const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
 
   const isRunning = runtime.phase === "running";
@@ -274,6 +270,10 @@ export default function SessionGameTimerCard({
   useEffect(() => {
     return () => {
       stopBrowserAlarm();
+      if (typeof window !== "undefined" && testMessageTimeoutRef.current !== null) {
+        window.clearTimeout(testMessageTimeoutRef.current);
+        testMessageTimeoutRef.current = null;
+      }
       void releaseBrowserWakeLock();
     };
   }, [releaseBrowserWakeLock, stopBrowserAlarm]);
@@ -430,7 +430,7 @@ export default function SessionGameTimerCard({
       : settings.halftimeBehavior === "signal"
         ? "Halbzeit-Signal"
         : "echte Halbzeitpause";
-    return `${target} · ${halftime} · ${getAlarmLabel(settings.alarmSound)}`;
+    return `${target} · ${halftime} · System-Alarmton`;
   }, [settings]);
 
   async function ensureNativeAlarmReady() {
@@ -725,6 +725,18 @@ export default function SessionGameTimerCard({
       setMessage(
         "Testalarm kommt in 10 Sekunden. Sperr jetzt ruhig das Handy – genau das wird getestet.",
       );
+
+      if (typeof window !== "undefined") {
+        if (testMessageTimeoutRef.current !== null) {
+          window.clearTimeout(testMessageTimeoutRef.current);
+        }
+        testMessageTimeoutRef.current = window.setTimeout(() => {
+          setMessage((current) =>
+            current?.startsWith("Testalarm kommt in 10 Sekunden") ? null : current,
+          );
+          testMessageTimeoutRef.current = null;
+        }, 12_000);
+      }
       return;
     }
 
@@ -1039,34 +1051,24 @@ export default function SessionGameTimerCard({
               </div>
             ) : null}
 
-            <label className="block">
-              <span className="text-xs font-bold text-slate-700">Alarmton</span>
-              <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
-                <select
-                  value={settings.alarmSound}
-                  onChange={(event) =>
-                    setSettings((current) => ({
-                      ...current,
-                      alarmSound: event.target.value as GameTimerAlarmSound,
-                    }))
-                  }
-                  className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-900"
-                >
-                  {GAME_TIMER_ALARM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+            <div className="rounded-2xl border border-slate-200 bg-white p-3.5">
+              <div className="text-xs font-bold text-slate-700">Alarmton</div>
+              <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-sm font-bold text-slate-900">System-Alarmton</div>
+                  <div className="mt-0.5 text-xs leading-5 text-slate-500">
+                    strikr nutzt den zuverlässigen Alarmton deines iPhones bzw. Android-Handys.
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => void testSound()}
-                  className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                 >
                   {nativeAlarmSupported ? "Alarm testen · 10 Sek." : "Ton testen"}
                 </button>
               </div>
-            </label>
+            </div>
 
             <div className="flex flex-wrap gap-2">
               <button
