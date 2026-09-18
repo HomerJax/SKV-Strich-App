@@ -378,79 +378,139 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
   const previousStep = getPreviousStep(currentStep);
 
   return (
-    <main className="min-h-screen bg-[#f5f7fb] text-neutral-950">
+    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_12%_8%,rgba(34,211,238,.10),transparent_28%),radial-gradient(circle_at_88%_12%,rgba(124,58,237,.10),transparent_30%),#f5f7fb] text-neutral-950">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 sm:py-6">
         {!created ? (
-          <section className="flex flex-1 items-start justify-center py-2 sm:py-4">
-            <div className="w-full max-w-4xl">
-              <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
-                <h1 className="text-3xl font-bold tracking-tight text-neutral-950 sm:text-5xl">
-                  Dein strikr Start
-                </h1>
+          <section className="relative flex flex-1 items-center justify-center overflow-hidden py-4 sm:py-8">
+            <div className="pointer-events-none absolute left-[8%] top-[8%] h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+            <div className="pointer-events-none absolute bottom-[6%] right-[8%] h-64 w-64 rounded-full bg-violet-500/12 blur-3xl" />
 
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-neutral-700 sm:text-base">
-                  Du bist eingeloggt, aber aktuell noch in keinem Team. Erstelle
-                  jetzt dein eigenes Team oder warte auf eine Einladung von
-                  einem Admin.
-                </p>
+            <div className="relative grid w-full max-w-5xl gap-5 lg:grid-cols-[1.02fr_.98fr]">
+              <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-[#070b12] p-6 text-white shadow-[0_28px_90px_rgba(2,6,23,.26)] sm:p-8">
+                <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-24 -left-10 h-60 w-60 rounded-full bg-cyan-400/15 blur-3xl" />
+
+                <div className="relative">
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src="/icon-light.png"
+                      alt="strikr"
+                      width={48}
+                      height={48}
+                      className="h-12 w-12 rounded-2xl"
+                      priority
+                    />
+                    <div>
+                      <div className="text-lg font-black tracking-[-.04em]">strikr</div>
+                      <div className="text-[9px] font-black uppercase tracking-[.2em] text-white/35">
+                        Training redefined.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.18em] text-cyan-200">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    In wenigen Minuten startklar
+                  </div>
+
+                  <h1 className="mt-5 max-w-xl text-4xl font-black leading-[.98] tracking-[-.055em] sm:text-5xl">
+                    Dein Team.
+                    <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
+                      Deine Saison.
+                    </span>
+                  </h1>
+
+                  <p className="mt-5 max-w-xl text-sm font-medium leading-7 text-white/58 sm:text-base">
+                    Wir richten strikr gemeinsam ein. Danach habt ihr faire Teams, Ergebnisse,
+                    Tabelle, Stats und Trophäen – aus euren ganz normalen Trainings.
+                  </p>
+
+                  <div className="mt-8 grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                    {[
+                      ["01", "Club anlegen", "Name & Auftritt"],
+                      ["02", "Faire Teams", "Generator einstellen"],
+                      ["03", "Team reinholen", "Link teilen & loslegen"],
+                    ].map(([number, title, text]) => (
+                      <div key={number} className="rounded-[20px] border border-white/10 bg-white/5 p-3">
+                        <div className="text-[9px] font-black tracking-[.18em] text-cyan-300">{number}</div>
+                        <div className="mt-2 text-sm font-black">{title}</div>
+                        <div className="mt-1 text-[11px] font-medium text-white/40">{text}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[34px] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,.10)] sm:p-7">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-600">
+                      Los geht&apos;s
+                    </div>
+                    <h2 className="mt-2 text-2xl font-black tracking-[-.035em] text-slate-950 sm:text-3xl">
+                      Wie heißt euer Team?
+                    </h2>
+                    <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+                      Mehr brauchen wir für den Start noch nicht.
+                    </p>
+                  </div>
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
+                    <Rocket className="h-5 w-5" />
+                  </div>
+                </div>
 
                 {errorMessage ? (
-                  <div className="mt-6">
+                  <div className="mt-5">
                     <Banner tone="error">{errorMessage}</Banner>
                   </div>
                 ) : null}
 
-                <div className="mt-8 grid gap-4 md:grid-cols-2">
-                  <EmptyStateActionCard
-                    title="Eigenes Team erstellen"
-                    description="Starte mit deinem eigenen Team und richte strikr Schritt für Schritt für eure Trainings ein."
+                <form action={createClubAction} className="mt-7 space-y-4">
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-black uppercase tracking-[.12em] text-slate-500">
+                      Teamname
+                    </span>
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      placeholder="z. B. SKV Rutesheim AH"
+                      autoFocus
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-bold text-slate-950 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                      required
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="group flex w-full items-center justify-between rounded-2xl bg-slate-950 px-5 py-4 text-left text-white shadow-[0_12px_30px_rgba(15,23,42,.18)] transition hover:-translate-y-0.5 hover:bg-slate-900"
                   >
-                    <form action={createClubAction} className="space-y-4">
-                      <div>
-                        <label
-                          htmlFor="name"
-                          className="mb-2 block text-sm font-medium text-neutral-700"
-                        >
-                          Teamname
-                        </label>
-                        <input
-                          id="name"
-                          name="name"
-                          type="text"
-                          placeholder="z. B. AH Ditzingen"
-                          className="w-full rounded-2xl border border-black/10 bg-[#f7f8fb] px-4 py-3 text-neutral-950 outline-none placeholder:text-neutral-400 focus:border-neutral-300"
-                          required
-                        />
-                      </div>
+                    <span>
+                      <span className="block text-[10px] font-black uppercase tracking-[.16em] text-cyan-300">
+                        Schritt 1 starten
+                      </span>
+                      <span className="mt-0.5 block text-base font-black">Team einrichten</span>
+                    </span>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-950 transition group-hover:translate-x-0.5">
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </button>
+                </form>
 
-                      <button
-                        type="submit"
-                        className="inline-flex w-full items-center justify-center rounded-2xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
-                      >
-                        Team erstellen
-                      </button>
-                    </form>
-                  </EmptyStateActionCard>
-
-                  <EmptyStateActionCard
-                    title="Auf Einladung warten"
-                    description="Du wurdest schon eingeladen? Dann musst du jetzt nichts weiter tun. Öffne einfach den Einladungslink deines Teams."
+                <div className="mt-6 border-t border-slate-100 pt-5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                    <Users className="h-4 w-4" />
+                    Du wurdest eingeladen?
+                  </div>
+                  <p className="mt-2 text-xs font-medium leading-5 text-slate-400">
+                    Dann brauchst du keinen eigenen Club anzulegen. Öffne einfach den Einladungslink deines Teams.
+                  </p>
+                  <Link
+                    href="/"
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-black text-slate-700 hover:text-slate-950"
                   >
-                    <div className="rounded-2xl border border-black/10 bg-[#f7f8fb] p-4 text-sm leading-6 text-neutral-700">
-                      Sobald dir ein Admin einen Invite-Link schickt, kannst du
-                      dem Team mit einem Klick beitreten. Danach landest du
-                      automatisch im richtigen Club-Kontext.
-                    </div>
-
-                    <div className="mt-4">
-                      <Link
-                        href="/"
-                        className="inline-flex w-full items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-neutral-50"
-                      >
-                        Zurück zur Startseite
-                      </Link>
-                    </div>
-                  </EmptyStateActionCard>
+                    Zurück <ArrowRight className="h-3 w-3 rotate-180" />
+                  </Link>
                 </div>
               </div>
             </div>
