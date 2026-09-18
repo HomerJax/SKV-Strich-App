@@ -522,16 +522,21 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
               {currentStep === "club" ? (
                 <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
-                  <div className="mb-5">
-                    <div className="text-sm font-semibold text-neutral-500">
-                      Schritt 1
+                  <div className="mb-6 flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
+                      <WandSparkles className="h-5 w-5" />
                     </div>
-                    <h2 className="mt-1 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
-                      Sport & Club
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-neutral-700">
-                      Sportart, Name, Logo, Farbe und Anzeigeoptionen festlegen.
-                    </p>
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[.18em] text-violet-600">
+                        Schritt 1 · Euer Auftritt
+                      </div>
+                      <h2 className="mt-1 text-2xl font-black tracking-[-.035em] text-neutral-950">
+                        Mach strikr zu eurem Club.
+                      </h2>
+                      <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
+                        Wähle Sport, Logo und Farbe. Alles lässt sich später jederzeit ändern.
+                      </p>
+                    </div>
                   </div>
 
                   <ClubSetupClubStep
@@ -551,25 +556,31 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
               {currentStep === "team" ? (
                 <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
-                  <div className="mb-5">
-                    <div className="text-sm font-semibold text-neutral-500">
-                      Schritt 2
+                  <div className="mb-6 flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-500 text-white">
+                      <Sparkles className="h-5 w-5" />
                     </div>
-                    <h2 className="mt-1 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
-                      Teamgenerator
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-neutral-700">
-                      Stärke und Kategorien für faire Teams definieren.
-                    </p>
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
+                        Schritt 2 · Faire Teams
+                      </div>
+                      <h2 className="mt-1 text-2xl font-black tracking-[-.035em] text-neutral-950">
+                        Sag strikr nur, was zählen soll.
+                      </h2>
+                      <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
+                        Der Algorithmus macht danach den Rest – bei jedem Training automatisch.
+                      </p>
+                    </div>
                   </div>
 
                   <TeamGeneratorSettingsCard
                     useStrength={settings?.use_strength ?? false}
                     useCategories={useCategories}
                     redirectTo={buildWizardUrl("categories")}
-                    submitLabel="Weiter"
+                    submitLabel="Weiter zu den Spielergruppen"
                     saved={settingsSaved}
                     error={settingsError}
+                    variant="onboarding"
                   />
 
                   {previousStep ? (
@@ -587,16 +598,21 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
               {currentStep === "categories" ? (
                 <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
-                  <div className="mb-5">
-                    <div className="text-sm font-semibold text-neutral-500">
-                      Schritt 3
+                  <div className="mb-6 flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
+                      <Users className="h-5 w-5" />
                     </div>
-                    <h2 className="mt-1 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
-                      Kategorien
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-neutral-700">
-                      AH, Ü32 oder eigene Gruppen pflegen.
-                    </p>
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
+                        Schritt 3 · Spielergruppen
+                      </div>
+                      <h2 className="mt-1 text-2xl font-black tracking-[-.035em] text-neutral-950">
+                        Nur so viel Struktur wie ihr braucht.
+                      </h2>
+                      <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
+                        AH, Ü32 oder eigene Gruppen – oder einfach ohne Kategorien weitermachen.
+                      </p>
+                    </div>
                   </div>
 
                   <CategorySettingsSection
@@ -605,6 +621,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     redirectTo={buildWizardUrl("categories")}
                     saved={categorySaved}
                     error={categoryError}
+                    variant="onboarding"
                   />
 
                   <div className="mt-6 flex items-center justify-between">
@@ -621,32 +638,39 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
                     <Link
                       href={buildWizardUrl("done")}
-                      className="inline-flex items-center justify-center rounded-xl bg-neutral-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800"
+                      className="inline-flex items-center gap-2 justify-center rounded-2xl bg-neutral-950 px-5 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(15,23,42,.12)] transition hover:-translate-y-0.5 hover:bg-neutral-800"
                     >
-                      Weiter
+                      Team fertig machen <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>
               ) : null}
 
               {currentStep === "done" ? (
-                <div className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-8">
-                  <div className="mx-auto max-w-xl text-center">
-                    <div className="text-sm font-semibold text-neutral-500">
-                      Glückwunsch
+                <div className="overflow-hidden rounded-[32px] border border-black/10 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
+                  <div className="relative overflow-hidden bg-[#070b12] px-6 py-9 text-center text-white sm:px-8 sm:py-11">
+                    <div className="pointer-events-none absolute left-1/2 top-0 h-56 w-56 -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
+                    <div className="pointer-events-none absolute -right-16 bottom-[-80px] h-56 w-56 rounded-full bg-violet-500/20 blur-3xl" />
+                    <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] border border-white/10 bg-white/8 shadow-[0_0_50px_rgba(34,211,238,.15)]">
+                      <Trophy className="h-7 w-7 text-cyan-200" />
                     </div>
-                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
-                      Dein Team „{clubName}“ wurde erstellt.
+                    <div className="relative mt-5 text-[10px] font-black uppercase tracking-[.22em] text-cyan-300">
+                      Setup geschafft
+                    </div>
+                    <h2 className="relative mt-2 text-3xl font-black tracking-[-.045em] sm:text-4xl">
+                      {clubName} ist startklar.
                     </h2>
-                    <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
-                      Das Setup ist abgeschlossen. Lade jetzt deine
-                      Teamkameraden ein, damit ihr gemeinsam loslegen könnt.
+                    <p className="relative mx-auto mt-3 max-w-xl text-sm font-medium leading-6 text-white/55 sm:text-base">
+                      Ab jetzt wird aus jedem Trainingsabend mehr: faire Teams, Ergebnisse, Tabelle, Stats und Trophäen.
                     </p>
                   </div>
 
-                  <div className="mt-7 rounded-[1.5rem] border border-black/10 bg-[#f7f8fb] p-4 sm:p-5">
-                    <div className="text-sm font-bold text-neutral-950">
-                      Teamkameraden einladen
+                  <div className="p-5 sm:p-7">
+
+                  <div className="rounded-[24px] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-cyan-50 p-4 sm:p-5">
+                    <div className="flex items-center gap-2 text-sm font-black text-neutral-950">
+                      <Share2 className="h-4 w-4 text-violet-600" />
+                      Teamkameraden reinholen
                     </div>
                     <p className="mt-1 text-sm leading-6 text-neutral-600">
                       Erzeuge einen mehrfach nutzbaren Link und teile ihn direkt
@@ -701,13 +725,28 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     </div>
                   ) : null}
 
-                  <div className="mt-8 flex justify-center">
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     <Link
-                      href="/"
-                      className="inline-flex items-center justify-center rounded-xl bg-neutral-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
+                      href="/sessions/new"
+                      className="group flex items-center justify-between rounded-[22px] bg-slate-950 px-4 py-4 text-white shadow-[0_12px_30px_rgba(15,23,42,.14)] transition hover:-translate-y-0.5"
                     >
-                      Los geht’s
+                      <span>
+                        <span className="block text-[9px] font-black uppercase tracking-[.16em] text-cyan-300">Empfohlen</span>
+                        <span className="mt-1 block text-sm font-black">Erstes Training anlegen</span>
+                      </span>
+                      <Rocket className="h-5 w-5 text-white/80 transition group-hover:translate-x-0.5" />
                     </Link>
+                    <Link
+                      href="/home"
+                      className="flex items-center justify-between rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-slate-950 transition hover:bg-slate-50"
+                    >
+                      <span>
+                        <span className="block text-[9px] font-black uppercase tracking-[.16em] text-slate-400">Später</span>
+                        <span className="mt-1 block text-sm font-black">Zur Home-Ansicht</span>
+                      </span>
+                      <ArrowRight className="h-5 w-5 text-slate-400" />
+                    </Link>
+                  </div>
                   </div>
                 </div>
               ) : null}
