@@ -245,7 +245,7 @@ export async function POST(request: Request) {
     season_end_month: 12,
     season_year_mode: "start_year",
     awards_started_at: null,
-    rsvp_deadline_minutes_before: 30,
+    rsvp_deadline_minutes_before: 60,
   };
 
   const useStrength = submitsTeamGeneratorSettings
@@ -314,15 +314,14 @@ export async function POST(request: Request) {
     submitsAwardSettings ? parsedAwardsStartedAt : currentSettings.awards_started_at;
 
   const rawRsvpDeadline = parseInteger(formData.get("rsvp_deadline_minutes_before"));
-  const allowedRsvpDeadlines = new Set([0, 15, 30, 60, 120, 1440]);
-
   const rsvpDeadlineMinutesBefore = submitsRsvpSettings
     ? rawRsvpDeadline
-    : (currentSettings.rsvp_deadline_minutes_before ?? 30);
+    : (currentSettings.rsvp_deadline_minutes_before ?? 60);
 
   if (
     !Number.isInteger(rsvpDeadlineMinutesBefore) ||
-    !allowedRsvpDeadlines.has(rsvpDeadlineMinutesBefore)
+    rsvpDeadlineMinutesBefore < 0 ||
+    rsvpDeadlineMinutesBefore > 10080
   ) {
     return redirectWithParams(request, redirectTo, { error: "invalid_rsvp_deadline" });
   }
