@@ -3,6 +3,7 @@
 import Image from "next/image";
 import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
 import SessionNoteEditor from "./SessionNoteEditor";
+import SessionRsvpDeadlineEditor from "./SessionRsvpDeadlineEditor";
 
 type SessionType = "training" | "event";
 
@@ -10,6 +11,9 @@ type Props = {
   sessionId: number;
   date: string;
   notes: string | null;
+  startTime: string | null;
+  sessionRsvpDeadlineMinutesBefore: number | null;
+  clubRsvpDeadlineMinutesBefore: number;
   presentCount: number;
   teamACount: number;
   teamBCount: number;
@@ -129,6 +133,9 @@ export default function SessionHeaderCard({
   sessionId,
   date,
   notes,
+  startTime,
+  sessionRsvpDeadlineMinutesBefore,
+  clubRsvpDeadlineMinutesBefore,
   presentCount,
   teamACount,
   teamBCount,
@@ -285,6 +292,14 @@ export default function SessionHeaderCard({
             {fmtLongDate(date)}
           </h1>
           <SessionNoteEditor sessionId={sessionId} notes={notes} isAdmin={isAdmin} />
+          <SessionRsvpDeadlineEditor
+            sessionId={sessionId}
+            date={date}
+            startTime={startTime}
+            sessionOverrideMinutes={sessionRsvpDeadlineMinutesBefore}
+            clubDefaultMinutes={clubRsvpDeadlineMinutesBefore}
+            isAdmin={isAdmin}
+          />
         </div>
 
         <div className={`mt-5 grid gap-2 ${isEvent ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
