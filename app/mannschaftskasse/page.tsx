@@ -3,9 +3,10 @@ import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
 import { createClient } from "@/lib/supabase/server";
 import { reportPenaltyAction } from "./actions";
+import BeerCheckoutCard from "./BeerCheckoutCard";
 
 type Props = {
-  searchParams?: Promise<{ saved?: string; error?: string }>;
+  searchParams?: Promise<{ saved?: string; error?: string; beer_error?: string }>;
 };
 
 type Player = {
@@ -57,6 +58,15 @@ type ContributionMember = {
   status: "open" | "paid" | "exempt";
 };
 
+type BeerConsumption = {
+  id: number;
+  player_id: number;
+  quantity: number;
+  unit_price_cents: number;
+  total_cents: number;
+  created_at: string;
+};
+
 function playerName(player: Player) {
   return (
     player.nickname?.trim() ||
@@ -69,6 +79,15 @@ function playerName(player: Player) {
 function fmtDate(value: string | null | undefined) {
   if (!value) return "–";
   return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString("de-DE");
+}
+
+function beerBadge(total: number) {
+  if (total >= 100) return "👑 Zapfkönig";
+  if (total >= 50) return "🏅 Stammtisch";
+  if (total >= 20) return "📦 Kiste voll";
+  if (total >= 6) return "🍻 Sechserträger";
+  if (total >= 1) return "🍺 Erstes Bier";
+  return null;
 }
 
 export default async function Page({ searchParams }: Props) {
@@ -85,6 +104,7 @@ export default async function Page({ searchParams }: Props) {
     { data: transactionsData },
     { data: contributionsData },
     { data: contributionMembersData },
+    { data: beerConsumptionsData },
   ] = await Promise.all([
     supabase
       .from("players")
@@ -100,7 +120,7 @@ export default async function Page({ searchParams }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("club_settings")
-      .select("beerkasse_enabled,beerkasse_paypal_url")
+      .select("beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -125,6 +145,11 @@ export default async function Page({ searchParams }: Props) {
       .from("cash_contribution_members")
       .select("contribution_id,player_id,status")
       .eq("club_id", clubId),
+    supabase
+      .from("beer_consumptions")
+      .select("id,player_id,quantity,unit_price_cents,total_cents,created_at")
+      .eq("club_id", clubId)
+      .order("created_at", { ascending: false }),
   ]);
 
   const players = (playersData ?? []) as Player[];
@@ -133,6 +158,7 @@ export default async function Page({ searchParams }: Props) {
   const transactions = (transactionsData ?? []) as Transaction[];
   const contributions = (contributionsData ?? []) as Contribution[];
   const contributionMembers = (contributionMembersData ?? []) as ContributionMember[];
+  const beerConsumptions = (beerConsumptionsData ?? []) as BeerConsumption[];
   const names = new Map(players.map((entry) => [entry.id, playerName(entry)]));
   const openPenalties = penalties.filter((entry) => !entry.resolved_at);
   const mine = player
@@ -160,8 +186,11 @@ export default async function Page({ searchParams }: Props) {
     const cents = parseEuroToCents(entry.value);
     return sum + (cents && cents > 0 ? cents : 0);
   }, 0);
+  const beerFeatureEnabled =
+    settings?.beerkasse_premium_enabled === true &&
+    settings?.beerkasse_enabled === true;
   const pay =
-    settings?.beerkasse_enabled && settings?.beerkasse_paypal_url
+    beerFeatureEnabled && settings?.beerkasse_paypal_url
       ? settings.beerkasse_paypal_url
       : null;
   const today = new Date().toISOString().slice(0, 10);
@@ -169,6 +198,26 @@ export default async function Page({ searchParams }: Props) {
     (sum, transaction) => sum + transaction.amount_cents,
     0,
   );
+  const beerStatsEnabled =
+    beerFeatureEnabled && settings?.beerkasse_stats_enabled === true;
+  const beerBadgesEnabled =
+    beerStatsEnabled && settings?.beerkasse_badges_enabled === true;
+  const beerPriceCents = Math.max(1, Number(settings?.beerkasse_price_cents ?? 200));
+  const beerTotals = new Map<number, number>();
+  for (const entry of beerConsumptions) {
+    beerTotals.set(
+      entry.player_id,
+      (beerTotals.get(entry.player_id) ?? 0) + entry.quantity,
+    );
+  }
+  const myBeerTotal = player ? beerTotals.get(player.id) ?? 0 : 0;
+  const beerLeaderboard = [...beerTotals.entries()]
+    .map(([playerId, total]) => ({
+      playerId,
+      total,
+      name: names.get(playerId) ?? `Spieler ${playerId}`,
+    }))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "de"));
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -210,26 +259,72 @@ export default async function Page({ searchParams }: Props) {
           </div>
         </div>
 
-        {pay ? (
-          <a
-            href={pay}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between rounded-[22px] border border-amber-200 bg-amber-50 p-4"
-          >
-            <div>
-              <div className="text-xs font-black uppercase tracking-wide text-amber-700">
-                💸 Bezahlen
+        {pay && player ? (
+          <BeerCheckoutCard
+            priceCents={beerPriceCents}
+            myTotal={myBeerTotal}
+            badge={beerBadgesEnabled ? beerBadge(myBeerTotal) : null}
+          />
+        ) : null}
+
+        {q?.beer_error ? (
+          <div className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800">
+            {q.beer_error}
+          </div>
+        ) : null}
+
+        {beerStatsEnabled ? (
+          <section className="rounded-[24px] border border-amber-100 bg-white p-5 shadow-sm">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
+                  🍺 Bierstatistik
+                </div>
+                <h2 className="mt-1 text-lg font-black text-slate-950">Saison am Zapfhahn</h2>
               </div>
-              <div className="mt-0.5 font-black">Direkt zur Mannschaftskasse</div>
-              <p className="text-xs text-slate-600">
-                Zahlung per hinterlegtem PayPal-Link.
-              </p>
+              <div className="text-right">
+                <div className="text-2xl font-black text-slate-950">{myBeerTotal}</div>
+                <div className="text-[10px] font-bold text-slate-500">dein Stand</div>
+              </div>
             </div>
-            <span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black">
-              PayPal →
-            </span>
-          </a>
+
+            {beerBadgesEnabled && beerBadge(myBeerTotal) ? (
+              <div className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-black text-amber-900">
+                Dein Bier-Badge: {beerBadge(myBeerTotal)}
+              </div>
+            ) : null}
+
+            <div className="mt-4 space-y-2">
+              {beerLeaderboard.slice(0, 10).map((entry, index) => (
+                <div
+                  key={entry.playerId}
+                  className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="w-6 text-center text-xs font-black text-slate-400">
+                      {index + 1}.
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-black text-slate-900">{entry.name}</div>
+                      {beerBadgesEnabled && beerBadge(entry.total) ? (
+                        <div className="text-[10px] font-bold text-amber-700">
+                          {beerBadge(entry.total)}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-sm font-black text-slate-950">
+                    {entry.total} 🍺
+                  </div>
+                </div>
+              ))}
+              {beerLeaderboard.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  Noch kein Bier gebucht. Irgendwer muss anfangen. 😄
+                </p>
+              ) : null}
+            </div>
+          </section>
         ) : null}
 
         {q?.saved ? (
