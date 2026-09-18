@@ -10,6 +10,8 @@ export type SessionRow = {
   notes: string | null;
   type: SessionType | null;
   winner_photo_path: string | null;
+  start_time: string | null;
+  rsvp_deadline_minutes_before: number | null;
   club_id: string;
 };
 
@@ -75,7 +77,7 @@ export async function requireSessionAccess(sessionId: number) {
 
   const { data: sessionData, error: sessionError } = await userSupabase
     .from("sessions")
-    .select("id, date, notes, type, winner_photo_path, club_id")
+    .select("id, date, notes, type, winner_photo_path, start_time, rsvp_deadline_minutes_before, club_id")
     .eq("id", sessionId)
     .eq("club_id", ctx.activeClubId)
     .maybeSingle();
