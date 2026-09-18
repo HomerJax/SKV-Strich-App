@@ -72,9 +72,13 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
             if #available(iOS 26.0, *) {
                 do {
                     let state = try await AlarmManager.shared.requestAuthorization()
+                    let notificationGranted = try await UNUserNotificationCenter.current().requestAuthorization(
+                        options: [.alert, .sound]
+                    )
                     call.resolve([
                         "granted": state == .authorized,
                         "mode": "alarmkit",
+                        "notificationGranted": notificationGranted,
                     ])
                 } catch {
                     call.reject("Alarm-Berechtigung konnte nicht angefragt werden.", nil, error)
@@ -119,8 +123,6 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         do {
-            let soundFile = try ensureSoundFile(for: sound, persistent: persistent)
-
             #if canImport(AlarmKit)
             if #available(iOS 26.0, *), persistent {
                 Task {
@@ -128,8 +130,7 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
                         try await scheduleAlarmKit(
                             key: key,
                             date: date,
-                            kind: kind,
-                            soundFile: soundFile
+                            kind: kind
                         )
                         call.resolve(["ok": true])
                     } catch {
@@ -140,6 +141,7 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             #endif
 
+            let soundFile = try ensureSoundFile(for: sound, persistent: persistent)
             scheduleNotificationFallback(
                 key: key,
                 date: date,
@@ -229,8 +231,7 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
     private func scheduleAlarmKit(
         key: String,
         date: Date,
-        kind: String,
-        soundFile: String
+        kind: String
     ) async throws {
         if let previous = storedAlarmId(for: key) {
             try? AlarmManager.shared.cancel(id: previous)
@@ -254,7 +255,7 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
             attributes: attributes,
             stopIntent: nil,
             secondaryIntent: nil,
-            sound: .named(soundFile)
+            sound: .default
         )
 
         _ = try await AlarmManager.shared.schedule(id: alarmId, configuration: configuration)
@@ -280,16 +281,27 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
             content.interruptionLevel = .timeSensitive
         }
 
-        let interval = max(1.0, date.timeIntervalSinceNow)
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-        let request = UNNotificationRequest(identifier: key, content: content, trigger: trigger)
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            let allowed =
+                settings.authorizationStatus == .authorized ||
+                settings.authorizationStatus == .provisional
+            guard allowed && settings.soundSetting == .enabled else {
+                call.reject("Benachrichtigungston ist für strikr deaktiviert.")
+                return
+            }
 
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [key])
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                call.reject("Alarm konnte nicht geplant werden.", nil, error)
-            } else {
-                call.resolve(["ok": true])
+            let interval = max(1.0, date.timeIntervalSinceNow)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+            let request = UNNotificationRequest(identifier: key, content: content, trigger: trigger)
+
+            center.removePendingNotificationRequests(withIdentifiers: [key])
+            center.add(request) { error in
+                if let error = error {
+                    call.reject("Alarm konnte nicht geplant werden.", nil, error)
+                } else {
+                    call.resolve(["ok": true])
+                }
             }
         }
     }
