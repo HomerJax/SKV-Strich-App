@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LateRsvpModal from "@/components/sessions/LateRsvpModal";
 
 type PresenceStatus = "in" | "out" | "open";
 
 export default function SessionRsvpButtons({
   sessionId,
   initialStatus,
+  deadlineEpochMs = null,
 }: {
   sessionId: number;
   initialStatus: PresenceStatus;
+  deadlineEpochMs?: number | null;
 }) {
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [busy, setBusy] = useState<PresenceStatus | null>(null);
@@ -17,6 +20,13 @@ export default function SessionRsvpButtons({
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [notNominated, setNotNominated] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const [latePenaltyMessage, setLatePenaltyMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -33,9 +43,16 @@ export default function SessionRsvpButtons({
     return () => { active = false; };
   }, [sessionId]);
 
+  const deadlinePassed = deadlineEpochMs !== null && now >= deadlineEpochMs;
+
   async function setPresence(nextStatus: "in" | "out", absenceReason = "") {
     if (busy || notNominated) return;
     const target: PresenceStatus = status === nextStatus ? "open" : nextStatus;
+
+    if (deadlinePassed && status === "in" && target !== "in") {
+      setError("Der Anmeldeschluss ist vorbei. Deine Zusage ist jetzt verbindlich – bitte wende dich für eine Änderung an einen Admin.");
+      return;
+    }
 
     try {
       setBusy(nextStatus);
@@ -44,6 +61,7 @@ export default function SessionRsvpButtons({
       const formData = new FormData();
       formData.set("intent", "set_self_presence");
       formData.set("status", target);
+      if (target === "out") formData.set("reason", absenceReason.trim().slice(0, 80));
 
       const response = await fetch(`/api/sessions/${sessionId}`, {
         method: "POST",
@@ -54,18 +72,10 @@ export default function SessionRsvpButtons({
       const payload = raw ? JSON.parse(raw) : null;
       if (!response.ok) throw new Error(payload?.error || "Rückmeldung konnte nicht gespeichert werden.");
 
-      if (target === "out") {
-        const reasonResponse = await fetch(`/api/sessions/${sessionId}/rsvp-reason`, {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reason: absenceReason.trim().slice(0, 80) }),
-        });
-        const reasonPayload = await reasonResponse.json().catch(() => null) as { error?: string } | null;
-        if (!reasonResponse.ok) throw new Error(reasonPayload?.error || "Absagegrund konnte nicht gespeichert werden.");
-      }
-
       setStatus(target);
+      if (target === "in" && payload?.latePenalty?.message) {
+        setLatePenaltyMessage(String(payload.latePenalty.message));
+      }
       setReasonOpen(false);
       if (target !== "out") setReason("");
     } catch (err) {
@@ -86,13 +96,19 @@ export default function SessionRsvpButtons({
   return (
     <div className="mt-3" onClick={(event) => event.preventDefault()}>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" disabled={busy !== null} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void setPresence("in"); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "in" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"].join(" ")}>
+        <button type="button" disabled={busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void setPresence("in"); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "in" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"].join(" ")}>
           {busy === "in" ? "Speichert…" : status === "in" ? "✓ Zugesagt" : "Zusagen"}
         </button>
-        <button type="button" disabled={busy !== null} onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (status === "out") void setPresence("out"); else setReasonOpen(true); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "out" ? "border-rose-600 bg-rose-600 text-white" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"].join(" ")}>
-          {busy === "out" ? "Speichert…" : status === "out" ? "✓ Abgesagt" : "Absagen"}
+        <button type="button" disabled={busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (status === "out") void setPresence("out"); else setReasonOpen(true); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "out" ? "border-rose-600 bg-rose-600 text-white" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"].join(" ")}>
+          {busy === "out" ? "Speichert…" : deadlinePassed && status === "in" ? "Absage gesperrt" : status === "out" ? "✓ Abgesagt" : "Absagen"}
         </button>
       </div>
+
+      {deadlinePassed && status === "in" ? (
+        <div className="mt-2 text-[11px] font-semibold text-slate-500">
+          Anmeldeschluss vorbei · deine Zusage ist verbindlich.
+        </div>
+      ) : null}
 
       {reasonOpen ? (
         <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-2.5" onClick={(event) => event.stopPropagation()}>
@@ -106,6 +122,11 @@ export default function SessionRsvpButtons({
       ) : null}
 
       {error ? <div className="mt-2 text-xs font-semibold text-rose-700">{error}</div> : null}
+      <LateRsvpModal
+        open={latePenaltyMessage !== null}
+        message={latePenaltyMessage ?? ""}
+        onClose={() => setLatePenaltyMessage(null)}
+      />
     </div>
   );
 }
