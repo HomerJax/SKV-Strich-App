@@ -224,10 +224,12 @@ async function change(
     redirect(url({ error: penaltyError?.message ?? "Posten nicht gefunden." }));
   }
 
+  if (mode === "resolve" && penalty.resolved_at) {
+    redirect(url({ saved: "1" }));
+  }
+
   try {
     if (mode === "resolve") {
-      if (penalty.resolved_at) redirect(url({ saved: "1" }));
-
       let transactionId: number | null = null;
       const amountCents =
         penalty.type === "money" ? parseEuroToCents(penalty.value) : null;
