@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, Clock3, UserCheck, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 import LateRsvpModal from "@/components/sessions/LateRsvpModal";
+import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
 
 type PresenceStatus = "in" | "out" | "open";
 type PendingAction = "in" | "out" | null;
@@ -20,22 +21,19 @@ type NextSessionAttendanceCardProps = {
   sessionDate?: string;
   startTime?: string | null;
   rsvpDeadlineMinutesBefore?: number;
+  sessionRsvpDeadlineMinutesBefore?: number | null;
   participantNames?: string[];
 };
 
-function getDeadline(sessionDate: string | undefined, startTime: string | null | undefined, minutesBefore: number) {
-  if (!sessionDate || !startTime) return null;
-  const [year, month, day] = sessionDate.split("-").map(Number);
-  const [hour, minute] = startTime.slice(0, 5).split(":").map(Number);
-  if (!year || !month || !day || !Number.isFinite(hour) || !Number.isFinite(minute)) return null;
-  const start = new Date(year, month - 1, day, hour, minute, 0);
-  const deadline = new Date(start);
-  deadline.setMinutes(deadline.getMinutes() - minutesBefore);
-  return { start, deadline };
-}
-
 function formatDeadline(date: Date) {
-  return date.toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleString("de-DE", {
+    timeZone: "Europe/Berlin",
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function getRemainingLabel(deadline: Date, now: Date) {
@@ -76,7 +74,8 @@ export default function NextSessionAttendanceCard({
   initialAbsentCount = 0,
   sessionDate,
   startTime,
-  rsvpDeadlineMinutesBefore = 30,
+  rsvpDeadlineMinutesBefore = 60,
+  sessionRsvpDeadlineMinutesBefore = null,
 }: NextSessionAttendanceCardProps) {
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [presentCount, setPresentCount] = useState<number>(initialPresentCount);
@@ -108,10 +107,18 @@ export default function NextSessionAttendanceCard({
     return () => { active = false; };
   }, [sessionId]);
 
-  const deadlineInfo = getDeadline(sessionDate, startTime, rsvpDeadlineMinutesBefore);
-  const deadlineTone = getDeadlineTone(deadlineInfo?.deadline ?? null, now);
-  const deadlineText = deadlineInfo ? `Rückmeldung bis ${formatDeadline(deadlineInfo.deadline)} Uhr` : null;
-  const remainingText = deadlineInfo && now ? getRemainingLabel(deadlineInfo.deadline, now) : null;
+  const deadlineEpochMs = sessionDate
+    ? getSessionDeadlineEpochMs({
+        date: sessionDate,
+        startTime,
+        sessionOverrideMinutes: sessionRsvpDeadlineMinutesBefore,
+        clubDefaultMinutes: rsvpDeadlineMinutesBefore,
+      })
+    : null;
+  const deadline = deadlineEpochMs !== null ? new Date(deadlineEpochMs) : null;
+  const deadlineTone = getDeadlineTone(deadline, now);
+  const deadlineText = deadline ? `Rückmeldung bis ${formatDeadline(deadline)} Uhr` : null;
+  const remainingText = deadline && now ? getRemainingLabel(deadline, now) : null;
 
   async function updateStatus(nextStatus: PresenceStatus, action: Exclude<PendingAction, null>, absenceReason = "") {
     if (busy || status === nextStatus || notNominated) return;
