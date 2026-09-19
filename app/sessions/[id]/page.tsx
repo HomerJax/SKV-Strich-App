@@ -32,7 +32,7 @@ const DEFAULT_CLUB_SETTINGS: ClubSettings = {
   use_categories: true,
   category_label: "Kategorie",
   position_label: "Position",
-  attack_label: "Vorne",
+  attack_label: "Mittelfeld/Vorne",
   defense_label: "Hinten",
   goalkeeper_label: "Torwart",
   use_nicknames: false,
@@ -82,7 +82,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .maybeSingle(),
     supabase
       .from("sessions")
-      .select("id, date, notes, type, winner_photo_path, start_time, rsvp_deadline_minutes_before, club_id")
+      .select("id, date, notes, type, winner_photo_path, start_time, rsvp_deadline_minutes_before, series_id, series_index, club_id")
       .eq("id", sessionId)
       .eq("club_id", clubId)
       .single(),

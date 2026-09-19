@@ -5,7 +5,7 @@ import { PublicPlayer } from "@/lib/types/player";
 import { getPlayerDisplayName } from "@/lib/player-display";
 
 type PlayerListItem = PublicPlayer & { first_name?: string | null; last_name?: string | null; nickname?: string | null; };
-function positionLabel(pos: PublicPlayer["preferred_position"]) { if (pos === "defense") return "Hinten"; if (pos === "attack") return "Vorne"; if (pos === "goalkeeper") return "Torwart"; return "Position offen"; }
+function positionLabel(pos: PublicPlayer["preferred_position"]) { if (pos === "defense") return "Hinten"; if (pos === "attack") return "Mittelfeld/Vorne"; if (pos === "goalkeeper") return "Torwart"; return "Position offen"; }
 function sortPlayersByDisplayName(players: PlayerListItem[]) { return [...players].sort((a,b)=>getPlayerDisplayName(a).localeCompare(getPlayerDisplayName(b),"de")); }
 
 export default async function PlayersPage() {

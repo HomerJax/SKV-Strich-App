@@ -727,7 +727,7 @@ export default function SessionAttendanceCard({
                       {clubSettings?.defense_label ?? "Hinten"}
                     </option>
                     <option value="attack">
-                      {clubSettings?.attack_label ?? "Vorne"}
+                      {clubSettings?.attack_label ?? "Mittelfeld/Vorne"}
                     </option>
                   </select>
                 </label>

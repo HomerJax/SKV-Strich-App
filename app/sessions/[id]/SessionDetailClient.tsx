@@ -441,6 +441,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           hasWinnerPhoto={hasWinnerPhoto}
           winnerPhotoUrl={winnerPhotoUrl}
           mvpVotingEnabled={showMvpSection}
+          seriesId={session.series_id ?? null}
         />
 
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}

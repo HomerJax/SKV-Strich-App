@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -383,13 +384,16 @@ export default async function NewSessionPage({
         );
       }
 
-      const rowsToInsert = datesToCreate.map((currentDate) => ({
+      const seriesId = randomUUID();
+      const rowsToInsert = datesToCreate.map((currentDate, index) => ({
         date: currentDate,
         start_time: startTime,
         notes,
         season_id: season.id,
         club_id: actionClubId,
         type: sessionType,
+        series_id: seriesId,
+        series_index: index + 1,
       }));
 
       const { error: insertError } = await actionSupabase

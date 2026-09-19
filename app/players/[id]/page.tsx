@@ -20,7 +20,7 @@ type PlayerPass = {
 function positionLabel(value: PlayerPass["preferred_position"]) {
   if (value === "goalkeeper") return "Torwart";
   if (value === "defense") return "Hinten";
-  if (value === "attack") return "Vorne";
+  if (value === "attack") return "Mittelfeld/Vorne";
   return "—";
 }
 function dateLabel(value: string | null) { return value ? new Date(`${value}T12:00:00`).toLocaleDateString("de-DE") : "—"; }

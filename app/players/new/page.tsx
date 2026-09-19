@@ -169,7 +169,7 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400"
             >
               <option value="defense">Hinten (Abwehr)</option>
-              <option value="attack">Vorne (Angriff)</option>
+              <option value="attack">Mittelfeld/Vorne</option>
               <option value="goalkeeper">Torwart</option>
             </select>
           </div>

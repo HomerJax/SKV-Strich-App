@@ -16,7 +16,7 @@ export function getErrorMessage(e: unknown, fallback: string) {
 
 export function positionLabel(pos: Player["preferred_position"]) {
   if (pos === "defense") return "Hinten";
-  if (pos === "attack") return "Vorne";
+  if (pos === "attack") return "Mittelfeld/Vorne";
   if (pos === "goalkeeper") return "Torwart";
   return "Unbekannt";
 }

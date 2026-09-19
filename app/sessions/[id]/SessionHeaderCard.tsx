@@ -4,6 +4,7 @@ import Image from "next/image";
 import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
 import SessionNoteEditor from "./SessionNoteEditor";
 import SessionRsvpDeadlineEditor from "./SessionRsvpDeadlineEditor";
+import SessionScheduleEditor from "./SessionScheduleEditor";
 
 type SessionType = "training" | "event";
 
@@ -35,6 +36,7 @@ type Props = {
   hasWinnerPhoto?: boolean;
   winnerPhotoUrl?: string | null;
   mvpVotingEnabled?: boolean;
+  seriesId?: string | null;
 };
 
 function fmtLongDate(iso: string) {
@@ -156,6 +158,7 @@ export default function SessionHeaderCard({
   hasWinnerPhoto = false,
   winnerPhotoUrl = null,
   mvpVotingEnabled = false,
+  seriesId = null,
 }: Props) {
   const isEvent = sessionType === "event";
   const hasTeams = teamACount > 0 || teamBCount > 0;
@@ -191,6 +194,16 @@ export default function SessionHeaderCard({
               <div className="mt-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl">
                 {fmtLongDate(date)}
               </div>
+
+              {isAdmin ? (
+                <SessionScheduleEditor
+                  sessionId={sessionId}
+                  date={date}
+                  startTime={startTime}
+                  isSeries={Boolean(seriesId)}
+                  compact
+                />
+              ) : null}
 
               <SessionNoteEditor sessionId={sessionId} notes={notes} isAdmin={isAdmin} />
 
@@ -291,6 +304,15 @@ export default function SessionHeaderCard({
           <h1 className="mt-2 text-2xl font-extrabold tracking-[-0.035em] text-white sm:text-3xl">
             {fmtLongDate(date)}
           </h1>
+          {isAdmin ? (
+            <SessionScheduleEditor
+              sessionId={sessionId}
+              date={date}
+              startTime={startTime}
+              isSeries={Boolean(seriesId)}
+              compact
+            />
+          ) : null}
           <SessionNoteEditor sessionId={sessionId} notes={notes} isAdmin={isAdmin} />
           <SessionRsvpDeadlineEditor
             sessionId={sessionId}
