@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 
 type LoginFormProps = {
@@ -36,8 +37,12 @@ export default function LoginForm({
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
+  const [nativeError, setNativeError] = useState("");
+  const [isNativeSubmitting, setIsNativeSubmitting] = useState(false);
 
-  const activeErrorCode = hasEditedSinceSubmit ? "" : initialError || "";
+  const activeErrorCode = hasEditedSinceSubmit
+    ? ""
+    : nativeError || initialError || "";
 
   const errorMessage = useMemo(
     () => getErrorMessage(activeErrorCode),
@@ -53,6 +58,49 @@ export default function LoginForm({
     : `/login/forgot-password?email=${encodeURIComponent(email)}`;
 
   const isTeamStart = initialNext.includes("club-setup");
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    setHasEditedSinceSubmit(false);
+    setNativeError("");
+
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    event.preventDefault();
+    if (isNativeSubmitting) return;
+
+    setIsNativeSubmitting(true);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      formData.set("native", "1");
+
+      const response = await fetch("/api/login", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+        headers: {
+          "X-Strikr-Native": "1",
+        },
+      });
+
+      const result = (await response.json().catch(() => null)) as
+        | { ok?: boolean; target?: string; error?: string }
+        | null;
+
+      if (!response.ok || result?.ok !== true || !result.target) {
+        setNativeError(result?.error || "session-not-ready");
+        return;
+      }
+
+      window.location.replace(result.target);
+    } catch {
+      setNativeError("session-not-ready");
+    } finally {
+      setIsNativeSubmitting(false);
+    }
+  }
 
   return (
     <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_12%_10%,rgba(34,211,238,.10),transparent_28%),radial-gradient(circle_at_86%_14%,rgba(124,58,237,.12),transparent_30%),#f5f7fb]">
@@ -157,7 +205,7 @@ export default function LoginForm({
               <form
                 action="/api/login"
                 method="post"
-                onSubmit={() => setHasEditedSinceSubmit(false)}
+                onSubmit={handleSubmit}
                 className="mt-7 space-y-4"
               >
                 <input type="hidden" name="next" value={initialNext} />
@@ -176,6 +224,7 @@ export default function LoginForm({
                     }}
                     required
                     autoComplete="email"
+                    disabled={isNativeSubmitting}
                     className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 text-base outline-none transition placeholder:text-neutral-400 focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100"
                     placeholder="du@beispiel.de"
                   />
@@ -203,19 +252,23 @@ export default function LoginForm({
                     }}
                     required
                     autoComplete="current-password"
+                    disabled={isNativeSubmitting}
                     className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 text-base outline-none transition focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100"
                   />
                 </label>
 
                 <button
                   type="submit"
+                  disabled={isNativeSubmitting}
                   className="group mt-2 flex w-full items-center justify-between rounded-2xl bg-slate-950 px-5 py-4 text-left text-white shadow-[0_12px_30px_rgba(15,23,42,.16)] transition hover:-translate-y-0.5 hover:bg-slate-900"
                 >
                   <span>
                     <span className="block text-[10px] font-black uppercase tracking-[.16em] text-cyan-300">
-                      {isTeamStart ? "Weiter zum Setup" : "Weiter"}
+                      {isNativeSubmitting ? "Anmeldung läuft…" : isTeamStart ? "Weiter zum Setup" : "Weiter"}
                     </span>
-                    <span className="mt-0.5 block text-base font-black">Einloggen</span>
+                    <span className="mt-0.5 block text-base font-black">
+                      {isNativeSubmitting ? "Einen Moment" : "Einloggen"}
+                    </span>
                   </span>
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-950 transition group-hover:translate-x-0.5">
                     <ArrowRight className="h-4 w-4" />

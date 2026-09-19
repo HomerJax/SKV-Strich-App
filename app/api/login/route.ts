@@ -13,6 +13,53 @@ function buildRedirect(request: NextRequest, path: string) {
   return new URL(path, request.url);
 }
 
+function copyCookies(from: NextResponse, to: NextResponse) {
+  for (const cookie of from.cookies.getAll()) {
+    to.cookies.set(cookie);
+  }
+  return to;
+}
+
+function successResponse(
+  request: NextRequest,
+  cookieSource: NextResponse,
+  path: string,
+  native: boolean,
+) {
+  if (native) {
+    return copyCookies(
+      cookieSource,
+      NextResponse.json({ ok: true, target: path }),
+    );
+  }
+
+  return copyCookies(
+    cookieSource,
+    NextResponse.redirect(buildRedirect(request, path), { status: 303 }),
+  );
+}
+
+function errorResponse(
+  request: NextRequest,
+  code: string,
+  email: string,
+  next: string,
+  native: boolean,
+) {
+  if (native) {
+    return NextResponse.json({ ok: false, error: code }, { status: 400 });
+  }
+
+  const nextQuery = next ? `&next=${encodeURIComponent(next)}` : "";
+  return NextResponse.redirect(
+    buildRedirect(
+      request,
+      `/login?error=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}${nextQuery}`,
+    ),
+    { status: 303 },
+  );
+}
+
 function normalizeNext(value: FormDataEntryValue | null) {
   const next = String(value ?? "").trim();
 
@@ -31,14 +78,12 @@ export async function POST(request: NextRequest) {
     .toLowerCase();
   const password = String(formData.get("password") ?? "").trim();
   const next = normalizeNext(formData.get("next"));
-  const nextQuery = next ? `&next=${encodeURIComponent(next)}` : "";
+  const native =
+    String(formData.get("native") ?? "") === "1" ||
+    request.headers.get("x-strikr-native") === "1";
 
   if (!email || !password) {
-    const url = buildRedirect(
-      request,
-      `/login?error=missing-fields&email=${encodeURIComponent(email)}${nextQuery}`
-    );
-    return NextResponse.redirect(url, { status: 303 });
+    return errorResponse(request, "missing-fields", email, next, native);
   }
 
   const response = NextResponse.next();
@@ -67,26 +112,13 @@ export async function POST(request: NextRequest) {
     });
 
   if (signInError || !signInData.user) {
-    const url = buildRedirect(
-      request,
-      `/login?error=invalid-credentials&email=${encodeURIComponent(email)}${nextQuery}`
-    );
-    return NextResponse.redirect(url, { status: 303 });
+    return errorResponse(request, "invalid-credentials", email, next, native);
   }
 
   const user = signInData.user;
 
   if (next) {
-    const redirectResponse = NextResponse.redirect(
-      buildRedirect(request, next),
-      { status: 303 }
-    );
-
-    for (const cookie of response.cookies.getAll()) {
-      redirectResponse.cookies.set(cookie);
-    }
-
-    return redirectResponse;
+    return successResponse(request, response, next, native);
   }
 
   const { data: memberships, error: membershipsError } = await supabase
@@ -95,13 +127,13 @@ export async function POST(request: NextRequest) {
     .eq("user_id", user.id);
 
   if (membershipsError) {
-    const url = buildRedirect(
+    return errorResponse(
       request,
-      `/login?error=${encodeURIComponent(
-        `membership-load-failed:${membershipsError.message}`
-      )}&email=${encodeURIComponent(email)}`
+      `membership-load-failed:${membershipsError.message}`,
+      email,
+      next,
+      native,
     );
-    return NextResponse.redirect(url, { status: 303 });
   }
 
   const normalizedMemberships = (memberships ?? []) as MembershipRow[];
@@ -114,32 +146,25 @@ export async function POST(request: NextRequest) {
       .eq("is_guest", false);
 
     if (playerError) {
-      const url = buildRedirect(
+      return errorResponse(
         request,
-        `/login?error=${encodeURIComponent(
-          `player-load-failed:${playerError.message}`
-        )}&email=${encodeURIComponent(email)}`
+        `player-load-failed:${playerError.message}`,
+        email,
+        next,
+        native,
       );
-      return NextResponse.redirect(url, { status: 303 });
     }
 
     const hasAnyPlayerProfile = (players ?? []).length > 0;
 
-    const redirectResponse = NextResponse.redirect(
-      buildRedirect(
-        request,
-        hasAnyPlayerProfile
-          ? AUTH_ROUTES.waitingForInvite
-          : AUTH_ROUTES.onboarding
-      ),
-      { status: 303 }
+    return successResponse(
+      request,
+      response,
+      hasAnyPlayerProfile
+        ? AUTH_ROUTES.waitingForInvite
+        : AUTH_ROUTES.onboarding,
+      native,
     );
-
-    for (const cookie of response.cookies.getAll()) {
-      redirectResponse.cookies.set(cookie);
-    }
-
-    return redirectResponse;
   }
 
   const existingActiveClubId =
@@ -175,14 +200,5 @@ export async function POST(request: NextRequest) {
     targetPath = AUTH_ROUTES.dashboard;
   }
 
-  const redirectResponse = NextResponse.redirect(
-    buildRedirect(request, targetPath),
-    { status: 303 }
-  );
-
-  for (const cookie of response.cookies.getAll()) {
-    redirectResponse.cookies.set(cookie);
-  }
-
-  return redirectResponse;
+  return successResponse(request, response, targetPath, native);
 }
