@@ -53,7 +53,7 @@ function statusLabel(row: BeerRow) {
 
 export default async function BeerManagementPage({ searchParams }: Props) {
   const q = await searchParams;
-  const { clubId } = await requireBeerManagementAccess();
+  const { clubId, isClubAdmin } = await requireBeerManagementAccess();
   const admin = createAdminClient();
 
   const [{ data: playersData }, { data: rowsData }] = await Promise.all([
@@ -92,9 +92,15 @@ export default async function BeerManagementPage({ searchParams }: Props) {
           <Link href="/mannschaftskasse" className="text-sm font-semibold text-slate-600">
             ← Mannschaftskasse
           </Link>
-          <Link href="/admin/members" className="text-xs font-black text-slate-500">
-            Berechtigungen →
-          </Link>
+          {isClubAdmin ? (
+            <Link href="/admin/members" className="text-xs font-black text-slate-500">
+              Berechtigungen →
+            </Link>
+          ) : (
+            <span className="text-[10px] font-black uppercase tracking-[.14em] text-amber-700">
+              Bierkassen-Verwalter
+            </span>
+          )}
         </div>
 
         <div className="relative overflow-hidden rounded-[28px] bg-slate-950 p-5 text-white">

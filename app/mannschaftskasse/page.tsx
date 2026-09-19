@@ -273,7 +273,7 @@ export default async function Page({ searchParams }: Props) {
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">
-                {formatCents(myOpenPenaltyCents + myOpenContributionCents)}
+                {formatCents(myOpenPenaltyCents + myOpenContributionCents + myOpenBeerCents)}
               </div>
               <div className="mt-1 text-[10px] font-bold text-white/50">bei mir offen</div>
             </div>

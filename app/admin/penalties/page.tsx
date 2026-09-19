@@ -909,7 +909,7 @@ export default async function Page({ searchParams }: Props) {
                     </div>
                     <h2 className="mt-1 text-lg font-black">🍺 Bierkasse+</h2>
                     <p className="mt-1 text-xs font-medium text-slate-600">
-                      Bier buchen, Preis automatisch berechnen, PayPal öffnen und direkt in die Bierstatistik übernehmen.
+                      Bier eintragen, Verbrauch und Zahlung getrennt führen und wahlweise per PayPal oder bar abrechnen.
                     </p>
                   </div>
                   <span className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black text-white">
@@ -957,7 +957,7 @@ export default async function Page({ searchParams }: Props) {
                       </label>
 
                       <label className="block">
-                        <span className="mb-1 block text-xs font-black text-slate-600">PayPal-Link</span>
+                        <span className="mb-1 block text-xs font-black text-slate-600">PayPal-Link <span className="font-medium text-slate-400">(optional)</span></span>
                         <input
                           name="paypal_url"
                           defaultValue={settings?.beerkasse_paypal_url ?? ""}
@@ -965,7 +965,7 @@ export default async function Page({ searchParams }: Props) {
                           className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm"
                         />
                         <span className="mt-1 block text-[10px] font-medium text-slate-500">
-                          Bei paypal.me wird der berechnete Betrag automatisch vorbelegt.
+                          Bei paypal.me wird der Betrag automatisch vorbelegt. Ohne Link bleibt Barzahlung trotzdem verfügbar.
                         </span>
                       </label>
 
@@ -983,7 +983,7 @@ export default async function Page({ searchParams }: Props) {
                           <input type="checkbox" name="badges_enabled" defaultChecked={settings?.beerkasse_badges_enabled !== false} className="h-5 w-5" />
                         </label>
                         <label className="flex items-center justify-between gap-3 text-sm font-bold">
-                          <span>🏠 „Bier zahlen“ auf Home</span>
+                          <span>🏠 „Bier eintragen“ auf Home</span>
                           <input type="checkbox" name="home_enabled" defaultChecked={settings?.beerkasse_home_enabled === true} className="h-5 w-5" />
                         </label>
                       </div>
