@@ -20,6 +20,7 @@ const config: CapacitorConfig = {
     ],
   },
   ios: {
+    appendUserAgent: " strikr-ios",
     backgroundColor: "#070B12",
     includePlugins: [
       "@capacitor-firebase/messaging",
