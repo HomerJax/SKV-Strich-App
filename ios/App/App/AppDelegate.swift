@@ -390,8 +390,117 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 }
 
+private extension Notification.Name {
+    static let strikrHideStartupOverlay = Notification.Name("strikrHideStartupOverlay")
+}
+
+@objc(StartupOverlayPlugin)
+public class StartupOverlayPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "StartupOverlayPlugin"
+    public let jsName = "StartupOverlay"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
+    ]
+
+    @objc public func hide(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .strikrHideStartupOverlay, object: nil)
+            call.resolve(["ok": true])
+        }
+    }
+}
+
 class ViewController: CAPBridgeViewController {
+    private var startupOverlay: UIView?
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        showStartupOverlay()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(hideStartupOverlay),
+            name: .strikrHideStartupOverlay,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(GameTimerAlarmPlugin())
+        bridge?.registerPluginInstance(StartupOverlayPlugin())
+    }
+
+    private func showStartupOverlay() {
+        guard startupOverlay == nil else { return }
+
+        let overlay = UIView()
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        overlay.backgroundColor = UIColor(
+            red: 7.0 / 255.0,
+            green: 11.0 / 255.0,
+            blue: 18.0 / 255.0,
+            alpha: 1.0
+        )
+
+        let brand = UILabel()
+        brand.translatesAutoresizingMaskIntoConstraints = false
+        brand.text = "strikr"
+        brand.textColor = .white
+        brand.textAlignment = .center
+        brand.font = .systemFont(ofSize: 42, weight: .black)
+
+        let claim = UILabel()
+        claim.translatesAutoresizingMaskIntoConstraints = false
+        claim.text = "JEDES TRAINING ZÄHLT."
+        claim.textColor = UIColor.white.withAlphaComponent(0.46)
+        claim.textAlignment = .center
+        claim.font = .systemFont(ofSize: 10, weight: .bold)
+
+        let loader = UIActivityIndicatorView(style: .medium)
+        loader.translatesAutoresizingMaskIntoConstraints = false
+        loader.color = UIColor.white.withAlphaComponent(0.82)
+        loader.startAnimating()
+
+        view.addSubview(overlay)
+        overlay.addSubview(brand)
+        overlay.addSubview(claim)
+        overlay.addSubview(loader)
+
+        NSLayoutConstraint.activate([
+            overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            overlay.topAnchor.constraint(equalTo: view.topAnchor),
+            overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            brand.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            brand.centerYAnchor.constraint(equalTo: overlay.centerYAnchor, constant: -48),
+
+            claim.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            claim.topAnchor.constraint(equalTo: brand.bottomAnchor, constant: 12),
+
+            loader.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            loader.topAnchor.constraint(equalTo: claim.bottomAnchor, constant: 26),
+        ])
+
+        view.bringSubviewToFront(overlay)
+        startupOverlay = overlay
+    }
+
+    @objc private func hideStartupOverlay() {
+        guard let overlay = startupOverlay else { return }
+        startupOverlay = nil
+
+        UIView.animate(
+            withDuration: 0.18,
+            animations: {
+                overlay.alpha = 0
+            },
+            completion: { _ in
+                overlay.removeFromSuperview()
+            }
+        )
     }
 }
