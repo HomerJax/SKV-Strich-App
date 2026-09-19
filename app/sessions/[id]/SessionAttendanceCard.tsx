@@ -16,6 +16,7 @@ type ClubSettings = {
   attack_label: string | null;
   defense_label: string | null;
   goalkeeper_label: string | null;
+  require_rsvp_reason_on_absence?: boolean | null;
 };
 
 type SessionAttendanceCardProps = {
@@ -469,6 +470,7 @@ export default function SessionAttendanceCard({
                 sessionId={sessionId}
                 initialStatus={selfStatus}
                 deadlineEpochMs={rsvpDeadlineEpochMs}
+                requireAbsenceReason={clubSettings?.require_rsvp_reason_on_absence === true}
                 onStatusChange={(nextStatus) => {
                   setMemberPresentIds((currentIds) => {
                     const withoutSelf = currentIds.filter(

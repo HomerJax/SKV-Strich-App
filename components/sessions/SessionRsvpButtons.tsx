@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import LateRsvpModal from "@/components/sessions/LateRsvpModal";
+import {
+  getRequiredRsvpReasonError,
+  isMeaningfulRsvpReason,
+} from "@/lib/rsvp-reason";
 
 type PresenceStatus = "in" | "out" | "open";
 
@@ -10,11 +14,13 @@ export default function SessionRsvpButtons({
   initialStatus,
   deadlineEpochMs = null,
   onStatusChange,
+  requireAbsenceReason = false,
 }: {
   sessionId: number;
   initialStatus: PresenceStatus;
   deadlineEpochMs?: number | null;
   onStatusChange?: (status: PresenceStatus) => void;
+  requireAbsenceReason?: boolean;
 }) {
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [busy, setBusy] = useState<PresenceStatus | null>(null);
@@ -50,6 +56,14 @@ export default function SessionRsvpButtons({
   async function setPresence(nextStatus: "in" | "out", absenceReason = "") {
     if (busy || notNominated) return;
     const target: PresenceStatus = status === nextStatus ? "open" : nextStatus;
+
+    if (target === "out" && requireAbsenceReason) {
+      const reasonError = getRequiredRsvpReasonError(absenceReason);
+      if (reasonError) {
+        setError(reasonError);
+        return;
+      }
+    }
 
     if (deadlinePassed && status === "in" && target !== "in") {
       setError("Der Anmeldeschluss ist vorbei. Deine Zusage ist jetzt verbindlich – bitte wende dich für eine Änderung an einen Admin.");
@@ -88,6 +102,9 @@ export default function SessionRsvpButtons({
     }
   }
 
+  const reasonValid =
+    !requireAbsenceReason || isMeaningfulRsvpReason(reason);
+
   if (notNominated) {
     return (
       <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
@@ -115,11 +132,21 @@ export default function SessionRsvpButtons({
 
       {reasonOpen ? (
         <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-2.5" onClick={(event) => event.stopPropagation()}>
-          <div className="text-[11px] font-bold text-rose-800">Warum bist du nicht dabei? <span className="font-medium text-rose-500">(optional)</span></div>
-          <input autoFocus value={reason} maxLength={80} onChange={(event) => setReason(event.target.value)} placeholder="z. B. Urlaub, Rücken, Frau sagt nein 😄" className="mt-2 w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs outline-none focus:border-rose-400" />
+          <div className="text-[11px] font-bold text-rose-800">
+            Warum bist du nicht dabei?{" "}
+            <span className="font-medium text-rose-500">
+              {requireAbsenceReason ? "(Pflicht)" : "(optional)"}
+            </span>
+          </div>
+          <input autoFocus value={reason} maxLength={80} onChange={(event) => { setReason(event.target.value); setError(""); }} placeholder="z. B. Urlaub, krank, Termin" className="mt-2 w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs outline-none focus:border-rose-400" />
+          {requireAbsenceReason ? (
+            <div className={`mt-1.5 text-[10px] font-semibold ${reason.length > 0 && !reasonValid ? "text-rose-700" : "text-slate-500"}`}>
+              Mindestens 4 Buchstaben · keine Punkte oder einzelnen Zeichen.
+            </div>
+          ) : null}
           <div className="mt-2 flex justify-end gap-2">
-            <button type="button" onClick={() => { setReasonOpen(false); setReason(""); }} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">Abbrechen</button>
-            <button type="button" disabled={busy !== null} onClick={() => void setPresence("out", reason)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-60">Absage speichern</button>
+            <button type="button" onClick={() => { setReasonOpen(false); setReason(""); setError(""); }} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">Abbrechen</button>
+            <button type="button" disabled={busy !== null || !reasonValid} onClick={() => void setPresence("out", reason)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40">Absage speichern</button>
           </div>
         </div>
       ) : null}

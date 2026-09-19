@@ -38,11 +38,13 @@ function SessionCard({
   rsvpStatus,
   allowRsvp = false,
   clubDeadlineMinutes,
+  requireAbsenceReason,
 }: {
   session: SessionRow;
   rsvpStatus?: PresenceStatus;
   allowRsvp?: boolean;
   clubDeadlineMinutes: number;
+  requireAbsenceReason: boolean;
 }) {
   const deadlineEpochMs = getSessionDeadlineEpochMs({
     date: session.date,
@@ -76,6 +78,7 @@ function SessionCard({
           sessionId={session.id}
           initialStatus={rsvpStatus}
           deadlineEpochMs={deadlineEpochMs}
+          requireAbsenceReason={requireAbsenceReason}
         />
       ) : null}
     </div>
@@ -109,7 +112,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     supabase.from("clubs").select("id, display_name, primary_color").eq("id", clubId).maybeSingle<ClubRow>(),
     supabase.from("seasons").select("id, name, start_date, end_date").eq("club_id", clubId).order("start_date", { ascending: false }),
     supabase.from("sessions").select("id, date, start_time, rsvp_deadline_minutes_before, notes, season_id, type").eq("club_id", clubId).order("date", { ascending: false }),
-    supabase.from("club_settings").select("rsvp_deadline_minutes_before").eq("club_id", clubId).maybeSingle(),
+    supabase.from("club_settings").select("rsvp_deadline_minutes_before, require_rsvp_reason_on_absence").eq("club_id", clubId).maybeSingle(),
   ]);
 
   if (seasonsError || sessionsError || rsvpSettingsError) {
@@ -133,9 +136,14 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   const totalTrainings = sessions.filter((session) => session.type !== "event").length;
   const totalEvents = sessions.filter((session) => session.type === "event").length;
   const playerId = player?.id ?? null;
+  const rsvpSettings = rsvpSettingsData as {
+    rsvp_deadline_minutes_before?: number | null;
+    require_rsvp_reason_on_absence?: boolean | null;
+  } | null;
   const clubDeadlineMinutes =
-    (rsvpSettingsData as { rsvp_deadline_minutes_before?: number | null } | null)
-      ?.rsvp_deadline_minutes_before ?? 60;
+    rsvpSettings?.rsvp_deadline_minutes_before ?? 60;
+  const requireAbsenceReason =
+    rsvpSettings?.require_rsvp_reason_on_absence === true;
 
   const rsvpBySession = new Map<number, PresenceStatus>();
   if (playerId && futureCurrentSeasonSessions.length > 0) {
@@ -180,18 +188,18 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
           </div>
         ) : (
           <div className="space-y-5">
-            {nextSession ? <SectionCard title="Als Nächstes" subtitle="Hier kannst du direkt zu- oder absagen."><SessionCard session={nextSession} rsvpStatus={statusFor(nextSession.id)} allowRsvp={!!playerId} clubDeadlineMinutes={clubDeadlineMinutes} /></SectionCard> : null}
+            {nextSession ? <SectionCard title="Als Nächstes" subtitle="Hier kannst du direkt zu- oder absagen."><SessionCard session={nextSession} rsvpStatus={statusFor(nextSession.id)} allowRsvp={!!playerId} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} /></SectionCard> : null}
 
             <SectionCard title="Kommende Einträge" subtitle={currentSeason ? `Aus der laufenden Saison${currentSeason.name ? ` · ${currentSeason.name}` : ""} · direkt Rückmeldung geben` : "Alle kommenden Einträge"}>
-              {moreUpcomingSessions.length > 0 ? <div className="space-y-3">{moreUpcomingSessions.map((session) => <SessionCard key={session.id} session={session} rsvpStatus={statusFor(session.id)} allowRsvp={!!playerId} clubDeadlineMinutes={clubDeadlineMinutes} />)}</div> : futureCurrentSeasonSessions.length > 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine weiteren kommenden Einträge außer dem nächsten oben.</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine kommenden Einträge.</div>}
+              {moreUpcomingSessions.length > 0 ? <div className="space-y-3">{moreUpcomingSessions.map((session) => <SessionCard key={session.id} session={session} rsvpStatus={statusFor(session.id)} allowRsvp={!!playerId} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} />)}</div> : futureCurrentSeasonSessions.length > 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine weiteren kommenden Einträge außer dem nächsten oben.</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine kommenden Einträge.</div>}
             </SectionCard>
 
             <details className="group rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
               <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-3"><div><div className="text-sm font-semibold text-slate-900">Vergangene Einträge</div><div className="mt-1 text-xs text-slate-500">{currentSeason ? `Aus der aktuellen Saison · ${currentSeason.name}` : "Vergangene Einträge"}</div></div><div className="rounded-full border border-black/10 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">⌄</div></div></summary>
-              <div className="mt-4 border-t border-slate-100 pt-4">{pastCurrentSeasonSessions.length > 0 ? <div className="space-y-3">{pastCurrentSeasonSessions.map((session) => <SessionCard key={session.id} session={session} clubDeadlineMinutes={clubDeadlineMinutes} />)}</div> : <div className="text-sm text-slate-500">Noch keine vergangenen Einträge.</div>}</div>
+              <div className="mt-4 border-t border-slate-100 pt-4">{pastCurrentSeasonSessions.length > 0 ? <div className="space-y-3">{pastCurrentSeasonSessions.map((session) => <SessionCard key={session.id} session={session} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} />)}</div> : <div className="text-sm text-slate-500">Noch keine vergangenen Einträge.</div>}</div>
             </details>
 
-            {withoutSeason.length > 0 ? <details className="group rounded-[28px] border border-amber-200 bg-amber-50 p-4 shadow-sm"><summary className="cursor-pointer list-none"><div className="text-sm font-semibold text-amber-900">Ohne Saison · {withoutSeason.length}</div></summary><div className="mt-4 space-y-3">{withoutSeason.map((session) => <SessionCard key={session.id} session={session} clubDeadlineMinutes={clubDeadlineMinutes} />)}</div></details> : null}
+            {withoutSeason.length > 0 ? <details className="group rounded-[28px] border border-amber-200 bg-amber-50 p-4 shadow-sm"><summary className="cursor-pointer list-none"><div className="text-sm font-semibold text-amber-900">Ohne Saison · {withoutSeason.length}</div></summary><div className="mt-4 space-y-3">{withoutSeason.map((session) => <SessionCard key={session.id} session={session} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} />)}</div></details> : null}
 
             <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm font-semibold text-slate-900">Saison-Archiv</div><div className="mt-1 text-sm text-slate-500">Vergangene, abgeschlossene Saisons separat ansehen.</div></div><Link href="/sessions/archive" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Archiv öffnen{archivedSeasons.length > 0 ? ` (${archivedSeasons.length})` : ""}</Link></div></section>
           </div>

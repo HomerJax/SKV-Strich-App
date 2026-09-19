@@ -25,14 +25,17 @@ type ClubSettingsRow = {
   use_categories: boolean | null;
   awards_started_at: string | null;
   rsvp_deadline_minutes_before: number | null;
+  require_rsvp_reason_on_absence: boolean | null;
 };
 
 function RsvpSettingsCard({
   value,
+  requireReason,
   saved,
   error,
 }: {
   value: number;
+  requireReason: boolean;
   saved: boolean;
   error: string;
 }) {
@@ -79,11 +82,28 @@ function RsvpSettingsCard({
           </div>
         </label>
 
+        <label className="flex cursor-pointer items-start gap-3 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+          <input
+            type="checkbox"
+            name="require_rsvp_reason_on_absence"
+            defaultChecked={requireReason}
+            className="mt-0.5 h-5 w-5 rounded border-slate-300 accent-slate-950"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-slate-950">
+              Absagegrund verpflichtend
+            </span>
+            <span className="mt-1 block text-sm leading-6 text-slate-600">
+              Spieler können nur absagen, wenn sie einen kurzen echten Grund angeben. Punkte oder einzelne Zeichen reichen nicht.
+            </span>
+          </span>
+        </label>
+
         <button
           type="submit"
           className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Zusagefrist speichern
+          Zu-/Absage-Einstellungen speichern
         </button>
       </form>
     </div>
@@ -220,7 +240,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
   const [{ data: settingsData }, { data: categoriesData }] = await Promise.all([
     supabase
       .from("club_settings")
-      .select("use_strength, use_categories, awards_started_at, rsvp_deadline_minutes_before")
+      .select("use_strength, use_categories, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -296,6 +316,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
         <SettingsShell title="Zusagen" description="Uhrzeit und Frist für Zu- und Absagen steuern.">
           <RsvpSettingsCard
             value={settings?.rsvp_deadline_minutes_before ?? 60}
+            requireReason={settings?.require_rsvp_reason_on_absence === true}
             saved={clubSaved}
             error={clubError}
           />

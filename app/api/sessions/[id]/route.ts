@@ -17,6 +17,7 @@ import {
   getSessionDeadlineEpochMs,
   isSessionRsvpDeadlinePassed,
 } from "@/lib/session-rsvp-deadline";
+import { getRequiredRsvpReasonError } from "@/lib/rsvp-reason";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -268,9 +269,12 @@ export async function POST(
           .maybeSingle<{ status: string }>(),
         adminSupabase
           .from("club_settings")
-          .select("rsvp_deadline_minutes_before")
+          .select("rsvp_deadline_minutes_before, require_rsvp_reason_on_absence")
           .eq("club_id", clubId)
-          .maybeSingle<{ rsvp_deadline_minutes_before: number | null }>(),
+          .maybeSingle<{
+            rsvp_deadline_minutes_before: number | null;
+            require_rsvp_reason_on_absence: boolean | null;
+          }>(),
         adminSupabase
           .from("session_rsvp_first_ins")
           .select("first_in_at")
@@ -297,6 +301,16 @@ export async function POST(
 
       const previousStatus = existingRsvp?.status ?? null;
       const playerName = getPlayerDisplayName(playerData);
+      const requireAbsenceReason =
+        deadlineSettings?.require_rsvp_reason_on_absence === true;
+
+      if (status === "out" && requireAbsenceReason) {
+        const reasonError = getRequiredRsvpReasonError(reason);
+        if (reasonError) {
+          return fail(reasonError, 400);
+        }
+      }
+
       const deadlineAt = getSessionDeadlineEpochMs({
         date: session.date,
         startTime: session.start_time,

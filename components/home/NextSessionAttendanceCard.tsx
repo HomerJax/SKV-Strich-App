@@ -6,6 +6,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import LateRsvpModal from "@/components/sessions/LateRsvpModal";
 import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
+import {
+  getRequiredRsvpReasonError,
+  isMeaningfulRsvpReason,
+} from "@/lib/rsvp-reason";
 
 type PresenceStatus = "in" | "out" | "open";
 type PendingAction = "in" | "out" | null;
@@ -25,6 +29,7 @@ type NextSessionAttendanceCardProps = {
   sessionRsvpDeadlineMinutesBefore?: number | null;
   participantNames?: string[];
   absentPlayers?: { name: string; reason: string | null }[];
+  requireAbsenceReason?: boolean;
 };
 
 function formatDeadline(date: Date) {
@@ -80,6 +85,7 @@ export default function NextSessionAttendanceCard({
   sessionRsvpDeadlineMinutesBefore = null,
   participantNames = [],
   absentPlayers = [],
+  requireAbsenceReason = false,
 }: NextSessionAttendanceCardProps) {
   const router = useRouter();
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
@@ -130,6 +136,14 @@ export default function NextSessionAttendanceCard({
   async function updateStatus(nextStatus: PresenceStatus, action: Exclude<PendingAction, null>, absenceReason = "") {
     if (busy || status === nextStatus || notNominated) return;
 
+    if (nextStatus === "out" && requireAbsenceReason) {
+      const reasonError = getRequiredRsvpReasonError(absenceReason);
+      if (reasonError) {
+        setErrorMessage(reasonError);
+        return;
+      }
+    }
+
     if (deadlineTone === "passed" && status === "in" && nextStatus !== "in") {
       setErrorMessage("Der Anmeldeschluss ist vorbei. Deine Zusage ist jetzt verbindlich – bitte wende dich für eine Änderung an einen Admin.");
       return;
@@ -173,6 +187,8 @@ export default function NextSessionAttendanceCard({
 
   const inActive = status === "in";
   const outActive = status === "out";
+  const reasonValid =
+    !requireAbsenceReason || isMeaningfulRsvpReason(reason);
 
   return (
     <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_20px_52px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5">
@@ -223,9 +239,19 @@ export default function NextSessionAttendanceCard({
           ) : null}
           {reasonOpen ? (
             <div className="m-1.5 mt-2 rounded-[20px] border border-rose-200 bg-white p-3">
-              <div className="text-xs font-bold text-rose-800">Warum bist du nicht dabei? <span className="font-medium text-rose-500">(optional)</span></div>
-              <input autoFocus value={reason} maxLength={80} onChange={(event) => setReason(event.target.value)} placeholder="z. B. Urlaub, Rücken, Frau sagt nein 😄" className="mt-2 w-full rounded-xl border border-rose-200 px-3 py-2 text-xs outline-none focus:border-rose-400" />
-              <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => { setReasonOpen(false); setReason(""); }} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">Abbrechen</button><button type="button" disabled={busy} onClick={() => void updateStatus("out", "out", reason)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-60">Absage speichern</button></div>
+              <div className="text-xs font-bold text-rose-800">
+                Warum bist du nicht dabei?{" "}
+                <span className="font-medium text-rose-500">
+                  {requireAbsenceReason ? "(Pflicht)" : "(optional)"}
+                </span>
+              </div>
+              <input autoFocus value={reason} maxLength={80} onChange={(event) => { setReason(event.target.value); setErrorMessage(""); }} placeholder="z. B. Urlaub, krank, Termin" className="mt-2 w-full rounded-xl border border-rose-200 px-3 py-2 text-xs outline-none focus:border-rose-400" />
+              {requireAbsenceReason ? (
+                <div className={`mt-1.5 text-[10px] font-semibold ${reason.length > 0 && !reasonValid ? "text-rose-700" : "text-slate-500"}`}>
+                  Mindestens 4 Buchstaben · keine Punkte oder einzelnen Zeichen.
+                </div>
+              ) : null}
+              <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => { setReasonOpen(false); setReason(""); setErrorMessage(""); }} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">Abbrechen</button><button type="button" disabled={busy || !reasonValid} onClick={() => void updateStatus("out", "out", reason)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40">Absage speichern</button></div>
             </div>
           ) : null}
         </div>

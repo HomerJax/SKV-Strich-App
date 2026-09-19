@@ -23,6 +23,7 @@ type ClubSettings = {
   use_nicknames?: boolean;
   use_field_view?: boolean;
   rsvp_deadline_minutes_before?: number | null;
+  require_rsvp_reason_on_absence?: boolean | null;
 };
 
 const DEFAULT_CLUB_SETTINGS: ClubSettings = {
@@ -37,6 +38,7 @@ const DEFAULT_CLUB_SETTINGS: ClubSettings = {
   use_nicknames: false,
   use_field_view: false,
   rsvp_deadline_minutes_before: 60,
+  require_rsvp_reason_on_absence: false,
 };
 
 type ClubRow = { id: string; primary_color: string | null };
@@ -74,7 +76,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     supabase.from("clubs").select("id, primary_color").eq("id", clubId).maybeSingle<ClubRow>(),
     supabase
       .from("club_settings")
-      .select("use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label, rsvp_deadline_minutes_before")
+      .select("use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence")
       .eq("club_id", clubId)
       .limit(1)
       .maybeSingle(),

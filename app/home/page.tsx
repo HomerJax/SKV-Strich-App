@@ -43,6 +43,7 @@ type SeasonSessionRow = {
 
 type HomeClubSettingsRow = {
   rsvp_deadline_minutes_before: number | null;
+  require_rsvp_reason_on_absence: boolean | null;
   beerkasse_premium_enabled: boolean | null;
   beerkasse_enabled: boolean | null;
   beerkasse_home_enabled: boolean | null;
@@ -433,7 +434,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     supabase
       .from("club_settings")
       .select(
-        "rsvp_deadline_minutes_before, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_price_cents"
+        "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_price_cents"
       )
       .eq("club_id", clubId)
       .maybeSingle<HomeClubSettingsRow>(),
@@ -472,6 +473,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const homeSettings = (homeSettingsData ?? null) as HomeClubSettingsRow | null;
   const rsvpDeadlineMinutesBefore =
     homeSettings?.rsvp_deadline_minutes_before ?? 60;
+  const requireRsvpReasonOnAbsence =
+    homeSettings?.require_rsvp_reason_on_absence === true;
   const bierkasseHomeEnabled =
     homeSettings?.beerkasse_premium_enabled === true &&
     homeSettings?.beerkasse_enabled === true &&
@@ -959,6 +962,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               sessionRsvpDeadlineMinutesBefore={nextSession.rsvp_deadline_minutes_before}
               participantNames={nextSessionParticipantNames}
               absentPlayers={nextSessionAbsentPlayers}
+              requireAbsenceReason={requireRsvpReasonOnAbsence}
             />
           ) : (
             <MainActionCard
