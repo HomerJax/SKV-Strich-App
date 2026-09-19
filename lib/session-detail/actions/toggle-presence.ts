@@ -37,6 +37,7 @@ export async function handleTogglePresence({
     .from("results")
     .select("id")
     .eq("session_id", sessionId)
+    .limit(1)
     .maybeSingle();
 
   if (existingResultError) {

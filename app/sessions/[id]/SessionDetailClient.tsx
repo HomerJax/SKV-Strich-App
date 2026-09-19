@@ -10,7 +10,7 @@ import SessionMvpCard from "./SessionMvpCard";
 import SessionGameTimerLoader from "./SessionGameTimerLoader";
 import SessionEndModal from "@/components/SessionEndModal";
 import { updateSessionTypeAction } from "./session-type-actions";
-import type { Player, SessionRow, TeamMap } from "./session-types";
+import type { Player, SessionGameResult, SessionRow, TeamMap } from "./session-types";
 import type { ClubSettings } from "./session-detail-helpers";
 import { normalizeGoalValue } from "./session-ui";
 import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
@@ -32,6 +32,7 @@ type SessionDetailClientProps = {
   initialGoalsA: string;
   initialGoalsB: string;
   initialHasResult: boolean;
+  initialResults: SessionGameResult[];
   initialPrimaryColor?: string | null;
   initialMvpVotingEnabled: boolean;
   initialUseNicknames?: boolean;
@@ -113,6 +114,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     goalsB,
     setGoalsA,
     setGoalsB,
+    results,
     hasResult,
     hasWinnerPhoto,
     teamsConfirmed,
@@ -189,6 +191,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     generateTeams,
     setSide,
     saveResult,
+    updateResult,
     deleteResult,
     handleWinnerPhotoUpload,
     handleWinnerPhotoDelete,
@@ -333,7 +336,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     return (
       <div ref={resultRef}>
         <SessionScoreCard
-          hasResult={hasResult}
+          results={results}
           saving={saving}
           collapsed={resultCollapsed}
           goalsA={goalsA}
@@ -341,9 +344,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
           onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
           onSaveResult={saveResult}
-          onDeleteResult={deleteResult}
+          onUpdateResult={(gameNo, nextA, nextB) => {
+            void updateResult(gameNo, nextA, nextB);
+          }}
+          onDeleteResult={(gameNo) => {
+            void deleteResult(gameNo);
+          }}
           onToggleCollapsed={() => setResultCollapsed((prev) => !prev)}
-          title="Ergebnis"
+          title="Spiele & Ergebnisse"
         />
       </div>
     );
@@ -365,7 +373,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         : activeSection === "photo"
           ? "Optional Siegerfoto ergänzen"
           : activeSection === "result"
-            ? "Ergebnis eintragen"
+            ? "Spielergebnis eintragen"
             : activeSection === "mvp"
               ? "MVP Voting"
               : null;
@@ -382,7 +390,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         : activeSection === "photo"
           ? "Optional, aber stark für Stimmung und spätere SiegerCard."
           : activeSection === "result"
-            ? "Zum Schluss das Endergebnis sauber speichern."
+            ? "Spiel 1 speichern – weitere Spiele kannst du danach direkt ergänzen."
             : activeSection === "mvp"
               ? "Nach dem Ergebnis läuft hier das Voting bzw. Reveal."
               : undefined;
@@ -441,6 +449,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           hasWinnerPhoto={hasWinnerPhoto}
           winnerPhotoUrl={winnerPhotoUrl}
           mvpVotingEnabled={showMvpSection}
+          resultCount={results.length}
           seriesId={session.series_id ?? null}
         />
 

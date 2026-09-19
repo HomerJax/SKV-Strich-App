@@ -22,6 +22,7 @@ type ClubRow = {
 
 type ResultRow = {
   id: number;
+  game_no: number;
   team_a_id: number | null;
   team_b_id: number | null;
   goals_team_a: number | null;
@@ -209,9 +210,9 @@ export async function getResultShareData(
 
   const resultResponse = await supabase
     .from("results")
-    .select("id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+    .select("id, game_no, team_a_id, team_b_id, goals_team_a, goals_team_b")
     .eq("session_id", sessionId)
-    .maybeSingle();
+    .order("game_no", { ascending: true });
 
   const sessionData = sessionResponse.data;
   const sessionError = sessionResponse.error;
@@ -229,9 +230,9 @@ export async function getResultShareData(
   }
 
   const session = sessionData as SessionRow;
-  const result = (resultData ?? null) as ResultRow | null;
+  const results = (resultData ?? []) as ResultRow[];
 
-  if (!result) {
+  if (results.length === 0) {
     throw new Error("Für diese Session gibt es noch kein Ergebnis");
   }
 
@@ -254,14 +255,34 @@ export async function getResultShareData(
     branding.clubCrestUrl = clubLogoUrl;
   }
 
-  const goalsA = result.goals_team_a ?? 0;
-  const goalsB = result.goals_team_b ?? 0;
+  const firstResult = results[0];
+  let goalsA = firstResult.goals_team_a ?? 0;
+  let goalsB = firstResult.goals_team_b ?? 0;
+
+  if (results.length > 1) {
+    goalsA = results.filter(
+      (result) =>
+        result.goals_team_a != null &&
+        result.goals_team_b != null &&
+        result.goals_team_a > result.goals_team_b,
+    ).length;
+    goalsB = results.filter(
+      (result) =>
+        result.goals_team_a != null &&
+        result.goals_team_b != null &&
+        result.goals_team_b > result.goals_team_a,
+    ).length;
+  }
+
   const storyFlags = buildStoryFlags(goalsA, goalsB);
 
   return {
     sessionId: session.id,
     title: "Ergebnis",
-    subtitle: "match result by strikr",
+    subtitle:
+      results.length > 1
+        ? `${results.length} Spiele · Tagessiege · strikr`
+        : "match result by strikr",
     date: session.date ? formatDate(session.date) : "",
     goalsA: String(goalsA),
     goalsB: String(goalsB),

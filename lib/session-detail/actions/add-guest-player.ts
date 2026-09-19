@@ -54,6 +54,7 @@ export async function handleAddGuestPlayer({
     .from("results")
     .select("id")
     .eq("session_id", sessionId)
+    .limit(1)
     .maybeSingle();
 
   if (existingResultError) {

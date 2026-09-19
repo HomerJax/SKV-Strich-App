@@ -771,6 +771,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     .from("results")
     .select("session_id")
     .eq("session_id", sessionId)
+    .limit(1)
     .maybeSingle();
 
   if (resultError) {
@@ -907,6 +908,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     .from("results")
     .select("session_id")
     .eq("session_id", sessionId)
+    .limit(1)
     .maybeSingle();
 
   if (resultError) {

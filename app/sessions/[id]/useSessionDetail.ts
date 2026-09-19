@@ -8,6 +8,7 @@ import type {
   TeamMap,
   TeamSide,
   SessionType,
+  SessionGameResult,
 } from "./session-types";
 import {
   buildLineupShareText,
@@ -47,6 +48,7 @@ type SessionDetailClientProps = {
   initialGoalsA: string;
   initialGoalsB: string;
   initialHasResult: boolean;
+  initialResults: SessionGameResult[];
   initialPrimaryColor?: string | null;
   initialMvpVotingEnabled: boolean;
   initialUseNicknames?: boolean;
@@ -62,7 +64,7 @@ type ApiSuccess =
       message: string;
       deletedGuestPlayerId: number;
     }
-  | { ok: true; message: string; hasResult: boolean; goalsA: string; goalsB: string }
+  | { ok: true; message: string; hasResult: boolean; goalsA: string; goalsB: string; gameNo: number }
   | {
       ok: true;
       message: string;
@@ -178,6 +180,7 @@ export function useSessionDetail({
   initialGoalsA,
   initialGoalsB,
   initialHasResult,
+  initialResults,
   initialPrimaryColor,
   initialMvpVotingEnabled,
   initialUseNicknames,
@@ -225,7 +228,8 @@ export function useSessionDetail({
 
   const [goalsA, setGoalsA] = useState(initialGoalsA);
   const [goalsB, setGoalsB] = useState(initialGoalsB);
-  const [hasResult, setHasResult] = useState(initialHasResult);
+  const [results, setResults] = useState<SessionGameResult[]>(initialResults);
+  const [hasResult, setHasResult] = useState(initialResults.length > 0 || initialHasResult);
   const [teamsConfirmed, setTeamsConfirmed] = useState(
     initialHasResult ||
       (initialPresentIds.length > 0 &&
@@ -384,16 +388,17 @@ export function useSessionDetail({
   }, [initialWinnerPhotoUrl]);
 
   useEffect(() => {
-    setHasResult(initialHasResult);
+    setResults(initialResults);
+    setHasResult(initialResults.length > 0 || initialHasResult);
     setGoalsA(initialGoalsA);
     setGoalsB(initialGoalsB);
 
-    if (initialHasResult) {
+    if (initialResults.length > 0 || initialHasResult) {
       setWinnerPhotoCollapsed(true);
       setResultCollapsed(true);
       setTeamsConfirmed(true);
     }
-  }, [initialHasResult, initialGoalsA, initialGoalsB]);
+  }, [initialResults, initialHasResult, initialGoalsA, initialGoalsB]);
 
   const attendanceDirty = useMemo(() => {
     if (directAttendanceSaveEnabled) {
@@ -462,8 +467,20 @@ export function useSessionDetail({
     allowResult &&
     teamA.length > 0 &&
     teamB.length > 0 &&
-    goalsA.trim() !== "" &&
-    goalsB.trim() !== "";
+    hasResult;
+
+  const resultSummary = useMemo(() => {
+    let winsA = 0;
+    let winsB = 0;
+
+    for (const result of results) {
+      if (result.goals_team_a == null || result.goals_team_b == null) continue;
+      if (result.goals_team_a > result.goals_team_b) winsA += 1;
+      if (result.goals_team_b > result.goals_team_a) winsB += 1;
+    }
+
+    return { winsA, winsB };
+  }, [results]);
 
   const teamsComplete =
     !allowTeams || (teamA.length > 0 && teamB.length > 0 && unassigned.length === 0);
@@ -478,8 +495,15 @@ export function useSessionDetail({
     !saving &&
     !deletingSession;
 
-  const scoreAValue = Number(goalsA) || 0;
-  const scoreBValue = Number(goalsB) || 0;
+  const firstSavedResult = results[0] ?? null;
+  const scoreAValue =
+    results.length > 1
+      ? resultSummary.winsA
+      : firstSavedResult?.goals_team_a ?? Number(goalsA) || 0;
+  const scoreBValue =
+    results.length > 1
+      ? resultSummary.winsB
+      : firstSavedResult?.goals_team_b ?? Number(goalsB) || 0;
 
   const autoTeamNames = useMemo(
     () =>
@@ -1381,7 +1405,12 @@ ${sessionUrl}`;
     });
   }
 
-  async function saveResult() {
+  async function persistGameResult(
+    gameNo: number,
+    rawGoalsA: string,
+    rawGoalsB: string,
+    isNewGame: boolean,
+  ) {
     if (!allowResult) {
       setErr("Für diesen Termin gibt es kein Ergebnis.");
       return;
@@ -1389,8 +1418,8 @@ ${sessionUrl}`;
 
     if (saving || deletingSession || deletingGuestPlayerId) return;
 
-    const cleanA = normalizeGoalValue(goalsA);
-    const cleanB = normalizeGoalValue(goalsB);
+    const cleanA = normalizeGoalValue(rawGoalsA);
+    const cleanB = normalizeGoalValue(rawGoalsB);
 
     if (attendanceDirty) {
       setErr("Bitte zuerst die Anwesenheit speichern.");
@@ -1414,10 +1443,12 @@ ${sessionUrl}`;
       return;
     }
 
-    const okConfirm = window.confirm(
-      "Ergebnis speichern? Danach sind Aufstellungen & Anwesenheit gesperrt."
-    );
-    if (!okConfirm) return;
+    if (isNewGame && results.length === 0) {
+      const okConfirm = window.confirm(
+        "Erstes Ergebnis speichern? Danach sind Aufstellungen & Anwesenheit gesperrt."
+      );
+      if (!okConfirm) return;
+    }
 
     const restoreScroll = preserveScrollPosition();
 
@@ -1427,26 +1458,46 @@ ${sessionUrl}`;
 
       const formData = new FormData();
       formData.set("intent", "save_result");
+      formData.set("game_no", String(gameNo));
       formData.set("goals_a", cleanA);
       formData.set("goals_b", cleanB);
       formData.set("manual_teams", JSON.stringify(manualTeams));
 
       const result = await postForm(formData);
 
-      if ("hasResult" in result) {
-        setHasResult(result.hasResult);
-        setGoalsA(result.goalsA);
-        setGoalsB(result.goalsB);
+      if ("gameNo" in result) {
+        const nextGame: SessionGameResult = {
+          game_no: result.gameNo,
+          goals_team_a: Number(result.goalsA),
+          goals_team_b: Number(result.goalsB),
+        };
+
+        setResults((previous) => {
+          const withoutCurrent = previous.filter(
+            (entry) => entry.game_no !== result.gameNo
+          );
+          return [...withoutCurrent, nextGame].sort(
+            (a, b) => a.game_no - b.game_no
+          );
+        });
+        setHasResult(true);
         setAttendanceCollapsed(true);
         setTeamsCollapsed(true);
         setWinnerPhotoCollapsed(true);
-        setResultCollapsed(true);
         setTeamsConfirmed(true);
         setMsg(result.message);
         resetPreparedResultShare();
 
-        if (result.hasResult) {
+        if (isNewGame) {
+          setGoalsA("");
+          setGoalsB("");
+        }
+
+        if (results.length === 0) {
+          setResultCollapsed(true);
           setShowSessionEndModal(true);
+        } else {
+          setResultCollapsed(false);
         }
       }
     } catch (e: unknown) {
@@ -1457,7 +1508,21 @@ ${sessionUrl}`;
     }
   }
 
-  async function deleteResult() {
+  async function saveResult() {
+    const nextGameNo =
+      results.reduce((max, entry) => Math.max(max, entry.game_no), 0) + 1;
+    await persistGameResult(nextGameNo, goalsA, goalsB, true);
+  }
+
+  async function updateResult(
+    gameNo: number,
+    nextGoalsA: string,
+    nextGoalsB: string,
+  ) {
+    await persistGameResult(gameNo, nextGoalsA, nextGoalsB, false);
+  }
+
+  async function deleteResult(gameNo: number) {
     if (!allowResult) {
       setErr("Für diesen Termin gibt es kein Ergebnis.");
       return;
@@ -1465,9 +1530,7 @@ ${sessionUrl}`;
 
     if (saving || deletingSession || deletingGuestPlayerId) return;
 
-    const okConfirm = window.confirm(
-      "Ergebnis wirklich löschen?\nDanach sind Aufstellungen & Anwesenheit wieder bearbeitbar."
-    );
+    const okConfirm = window.confirm(`Spiel ${gameNo} wirklich löschen?`);
     if (!okConfirm) return;
 
     const restoreScroll = preserveScrollPosition();
@@ -1478,20 +1541,24 @@ ${sessionUrl}`;
 
       const formData = new FormData();
       formData.set("intent", "delete_result");
+      formData.set("game_no", String(gameNo));
 
       const result = await postForm(formData);
 
       if ("hasResult" in result) {
+        const nextResults = results.filter((entry) => entry.game_no !== gameNo);
+        setResults(nextResults);
         setHasResult(result.hasResult);
-        setGoalsA(result.goalsA);
-        setGoalsB(result.goalsB);
-        setAttendanceCollapsed(false);
-        setTeamsCollapsed(false);
-        setWinnerPhotoCollapsed(false);
-        setResultCollapsed(false);
         setShowSessionEndModal(false);
         resetPreparedResultShare();
         setMsg(result.message);
+
+        if (!result.hasResult) {
+          setAttendanceCollapsed(false);
+          setTeamsCollapsed(false);
+          setWinnerPhotoCollapsed(false);
+          setResultCollapsed(false);
+        }
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Fehler beim Löschen des Ergebnisses."));
@@ -1661,6 +1728,7 @@ ${sessionUrl}`;
     goalsB,
     setGoalsA,
     setGoalsB,
+    results,
     hasResult,
     hasWinnerPhoto,
     teamsConfirmed,
@@ -1745,6 +1813,7 @@ ${sessionUrl}`;
     generateTeams,
     setSide,
     saveResult,
+    updateResult,
     deleteResult,
     handleWinnerPhotoUpload,
     handleWinnerPhotoDelete,

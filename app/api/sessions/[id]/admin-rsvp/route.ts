@@ -38,7 +38,7 @@ export async function POST(
 
   const [{ data: player, error: playerError }, { data: result, error: resultError }] = await Promise.all([
     adminSupabase.from("players").select("id, name, first_name, last_name, nickname").eq("id", playerId).eq("club_id", clubId).maybeSingle(),
-    adminSupabase.from("results").select("id").eq("session_id", sessionId).maybeSingle(),
+    adminSupabase.from("results").select("id").eq("session_id", sessionId).limit(1).maybeSingle(),
   ]);
 
   if (playerError) return fail(`Spieler konnte nicht geladen werden: ${playerError.message}`, 500);

@@ -78,6 +78,7 @@ export async function getLineupShareData(
       .from("results")
       .select("id, team_a_id, team_b_id")
       .eq("session_id", sessionId)
+      .limit(1)
       .maybeSingle(),
   ]);
 

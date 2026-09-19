@@ -44,5 +44,14 @@ export type SessionRow = {
   timer_alarm_sound?: GameTimerAlarmSound | null;
 };
 
+export type SessionGameResult = {
+  id?: number;
+  game_no: number;
+  team_a_id?: number | null;
+  team_b_id?: number | null;
+  goals_team_a: number | null;
+  goals_team_b: number | null;
+};
+
 export type TeamSide = "A" | "B";
 export type TeamMap = Record<number, TeamSide | null>;

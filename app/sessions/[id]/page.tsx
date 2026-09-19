@@ -42,7 +42,7 @@ const DEFAULT_CLUB_SETTINGS: ClubSettings = {
 };
 
 type ClubRow = { id: string; primary_color: string | null };
-type ResultRow = { id: number; team_a_id: number | null; team_b_id: number | null; goals_team_a: number | null; goals_team_b: number | null };
+type ResultRow = { id: number; game_no: number; team_a_id: number | null; team_b_id: number | null; goals_team_a: number | null; goals_team_b: number | null };
 type TeamRow = { id: number; name: string };
 type TeamPlayerRow = { team_id: number; player_id: number };
 type SessionPlayerRow = { player_id: number };
@@ -100,7 +100,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     supabase.from("session_players").select("player_id").eq("session_id", sessionId),
     supabase.from("session_rsvps").select("player_id, status, reason").eq("session_id", sessionId).eq("club_id", clubId),
     supabase.from("session_event_exclusions").select("player_id").eq("session_id", sessionId).eq("club_id", clubId),
-    supabase.from("results").select("id, team_a_id, team_b_id, goals_team_a, goals_team_b").eq("session_id", sessionId).maybeSingle(),
+    supabase.from("results").select("id, game_no, team_a_id, team_b_id, goals_team_a, goals_team_b").eq("session_id", sessionId).order("game_no", { ascending: true }),
     supabase.from("teams").select("id, name").eq("session_id", sessionId).eq("club_id", clubId),
   ]);
 
@@ -161,14 +161,15 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const presentIds = ((sessionPlayersData ?? []) as SessionPlayerRow[])
     .map((row) => row.player_id)
     .filter((playerId) => !isEvent || !eventExcludedPlayerIds.has(playerId));
-  const result = (resultData ?? null) as ResultRow | null;
+  const results = (resultData ?? []) as ResultRow[];
+  const result = results[0] ?? null;
   const teams = (teamsData ?? []) as TeamRow[];
   const manualTeams: Record<number, "A" | "B" | null> = {};
   presentIds.forEach((playerId) => { manualTeams[playerId] = null; });
 
-  let goalsA = "";
-  let goalsB = "";
-  let hasResult = false;
+  const goalsA = "";
+  const goalsB = "";
+  const hasResult = results.length > 0;
 
   const savedTeamAId = result?.team_a_id ?? teams.find((team) => team.name === "Team 1")?.id ?? null;
   const savedTeamBId = result?.team_b_id ?? teams.find((team) => team.name === "Team 2")?.id ?? null;
@@ -194,12 +195,6 @@ export default async function SessionDetailPage({ params }: PageProps) {
     if (teamPlayer.team_id === savedTeamBId) manualTeams[teamPlayer.player_id] = "B";
   }
 
-  if (result) {
-    if (result.goals_team_a != null) goalsA = String(result.goals_team_a);
-    if (result.goals_team_b != null) goalsB = String(result.goals_team_b);
-    hasResult = true;
-  }
-
   const balanceCategories = ((categoriesData ?? []) as BalanceCategoryRow[])
     .filter((category) => category.is_active)
     .map((category) => ({ key: category.key, label: category.label, isStrong: category.is_strong }));
@@ -221,6 +216,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialGoalsA={goalsA}
       initialGoalsB={goalsB}
       initialHasResult={hasResult}
+      initialResults={results}
       initialPrimaryColor={clubData?.primary_color ?? "black"}
       initialMvpVotingEnabled={mvpVotingEnabled}
       initialUseNicknames={useNicknames}

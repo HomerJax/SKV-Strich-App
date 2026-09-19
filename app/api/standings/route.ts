@@ -129,11 +129,11 @@ function buildTeamPlayerSets(rows: TeamPlayerRow[]) {
 }
 
 function buildDecidedResultMap(results: ResultSourceRow[]) {
-  const resultBySession = new Map<
+  const winsBySession = new Map<
     number,
     {
-      winnerTeamId: number;
-      loserTeamId: number;
+      winsByTeam: Map<number, number>;
+      teamIds: Set<number>;
     }
   >();
 
@@ -144,16 +144,49 @@ function buildDecidedResultMap(results: ResultSourceRow[]) {
     if (
       ga == null ||
       gb == null ||
-      ga === gb ||
       result.team_a_id == null ||
       result.team_b_id == null
     ) {
       continue;
     }
 
-    resultBySession.set(result.session_id, {
-      winnerTeamId: ga > gb ? result.team_a_id : result.team_b_id,
-      loserTeamId: ga > gb ? result.team_b_id : result.team_a_id,
+    if (!winsBySession.has(result.session_id)) {
+      winsBySession.set(result.session_id, {
+        winsByTeam: new Map<number, number>(),
+        teamIds: new Set<number>(),
+      });
+    }
+
+    const aggregate = winsBySession.get(result.session_id)!;
+    aggregate.teamIds.add(result.team_a_id);
+    aggregate.teamIds.add(result.team_b_id);
+
+    if (ga === gb) continue;
+
+    const winnerId = ga > gb ? result.team_a_id : result.team_b_id;
+    aggregate.winsByTeam.set(
+      winnerId,
+      (aggregate.winsByTeam.get(winnerId) ?? 0) + 1,
+    );
+  }
+
+  const resultBySession = new Map<
+    number,
+    { winnerTeamId: number; loserTeamId: number }
+  >();
+
+  for (const [sessionId, aggregate] of winsBySession) {
+    const teamIds = [...aggregate.teamIds];
+    if (teamIds.length !== 2) continue;
+
+    const [teamAId, teamBId] = teamIds;
+    const winsA = aggregate.winsByTeam.get(teamAId) ?? 0;
+    const winsB = aggregate.winsByTeam.get(teamBId) ?? 0;
+    if (winsA === winsB) continue;
+
+    resultBySession.set(sessionId, {
+      winnerTeamId: winsA > winsB ? teamAId : teamBId,
+      loserTeamId: winsA > winsB ? teamBId : teamAId,
     });
   }
 

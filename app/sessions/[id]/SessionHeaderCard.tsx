@@ -37,6 +37,7 @@ type Props = {
   winnerPhotoUrl?: string | null;
   mvpVotingEnabled?: boolean;
   seriesId?: string | null;
+  resultCount?: number;
 };
 
 function fmtLongDate(iso: string) {
@@ -159,6 +160,7 @@ export default function SessionHeaderCard({
   winnerPhotoUrl = null,
   mvpVotingEnabled = false,
   seriesId = null,
+  resultCount = 0,
 }: Props) {
   const isEvent = sessionType === "event";
   const hasTeams = teamACount > 0 || teamBCount > 0;
@@ -208,7 +210,7 @@ export default function SessionHeaderCard({
               <SessionNoteEditor sessionId={sessionId} notes={notes} isAdmin={isAdmin} />
 
               <div className="mt-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/48">
-                Ergebnis
+                {resultCount > 1 ? "Tagessiege" : "Ergebnis"}
               </div>
 
               <div className="mt-1.5 text-5xl font-extrabold leading-none tracking-tight text-white sm:text-6xl">
@@ -238,7 +240,9 @@ export default function SessionHeaderCard({
           ) : null}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <StatusPill tone="success">Ergebnis gespeichert</StatusPill>
+            <StatusPill tone="success">
+              {resultCount > 1 ? `${resultCount} Spiele gespeichert` : "Ergebnis gespeichert"}
+            </StatusPill>
             {hasWinnerPhoto ? (
               <StatusPill tone="success">Siegerfoto vorhanden</StatusPill>
             ) : null}

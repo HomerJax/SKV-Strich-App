@@ -606,6 +606,7 @@ export async function POST(
         .from("results")
         .select("session_id")
         .eq("session_id", sessionId)
+        .limit(1)
         .maybeSingle();
 
       if (resultError) {
@@ -748,6 +749,7 @@ export async function POST(
         );
       }
 
+      const gameNo = Number(String(formData.get("game_no") ?? "1"));
       const goalsA = String(formData.get("goals_a") ?? "");
       const goalsB = String(formData.get("goals_b") ?? "");
       const manualTeamsRaw = String(formData.get("manual_teams") ?? "{}");
@@ -756,6 +758,7 @@ export async function POST(
         supabase,
         sessionId,
         clubId,
+        gameNo,
         goalsA,
         goalsB,
         manualTeamsRaw,
@@ -771,9 +774,13 @@ export async function POST(
         );
       }
 
+      const gameNo = Number(String(formData.get("game_no") ?? "1"));
+
       return handleDeleteResult({
         supabase,
         sessionId,
+        clubId,
+        gameNo,
       });
     }
 
