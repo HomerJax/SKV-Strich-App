@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 
@@ -33,6 +34,7 @@ export default function LoginForm({
   initialError = "",
   initialNext = "",
 }: LoginFormProps) {
+  const router = useRouter();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
@@ -91,7 +93,8 @@ export default function LoginForm({
       }
 
       const target = result.target.startsWith("/") ? result.target : "/home";
-      window.location.replace(target);
+      router.replace(target);
+      router.refresh();
     } catch {
       setSubmitError("session-not-ready");
     } finally {
