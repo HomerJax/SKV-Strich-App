@@ -115,6 +115,12 @@ type NextSessionParticipantRow = {
     | null;
 };
 
+type NextSessionAbsentRow = {
+  player_id: number;
+  reason: string | null;
+  players: NextSessionParticipantRow["players"];
+};
+
 type HomeMvpHighlight = {
   notificationKey: string;
   sessionId: number;
@@ -766,6 +772,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   let nextSessionPresentCount = 0;
   let nextSessionAbsentCount = 0;
   let nextSessionParticipantNames: string[] = [];
+  let nextSessionAbsentPlayers: { name: string; reason: string | null }[] = [];
 
   if (homeSessionRsvpEnabled && nextSession) {
     const selfRsvpPromise = currentPlayerId
@@ -778,14 +785,24 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       : Promise.resolve({ data: null as { status: string } | null, error: null });
 
     const [
-      { count: nextSessionAbsentCountValue },
+      { data: absentRows },
       { data: participantRows },
       { data: selfRsvp },
     ] = await Promise.all([
       supabase
         .from("session_rsvps")
-        .select("id", { count: "exact", head: true })
+        .select(
+          `
+          player_id,
+          reason,
+          players (
+            first_name,
+            last_name
+          )
+        `
+        )
         .eq("session_id", nextSession.id)
+        .eq("club_id", clubId)
         .eq("status", "out"),
       supabase
         .from("session_players")
@@ -803,13 +820,22 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     ]);
 
     const participants = (participantRows ?? []) as NextSessionParticipantRow[];
+    const absences = (absentRows ?? []) as NextSessionAbsentRow[];
     nextSessionPresentCount = participants.length;
-    nextSessionAbsentCount = nextSessionAbsentCountValue ?? 0;
+    nextSessionAbsentCount = absences.length;
 
     nextSessionParticipantNames = participants
       .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players)))
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b, "de"));
+
+    nextSessionAbsentPlayers = absences
+      .map((row) => ({
+        name: getSimplePlayerName(normalizeSimplePlayerRelation(row.players)),
+        reason: row.reason?.trim() || null,
+      }))
+      .filter((row) => Boolean(row.name))
+      .sort((a, b) => a.name.localeCompare(b.name, "de"));
 
     const selfPresence = currentPlayerId
       ? participants.some((row) => row.player_id === currentPlayerId)
@@ -932,6 +958,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               rsvpDeadlineMinutesBefore={rsvpDeadlineMinutesBefore}
               sessionRsvpDeadlineMinutesBefore={nextSession.rsvp_deadline_minutes_before}
               participantNames={nextSessionParticipantNames}
+              absentPlayers={nextSessionAbsentPlayers}
             />
           ) : (
             <MainActionCard

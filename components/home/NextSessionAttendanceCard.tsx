@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Clock3, UserCheck, UserX } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, ChevronDown, UserCheck, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import LateRsvpModal from "@/components/sessions/LateRsvpModal";
 import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
 
@@ -23,6 +24,7 @@ type NextSessionAttendanceCardProps = {
   rsvpDeadlineMinutesBefore?: number;
   sessionRsvpDeadlineMinutesBefore?: number | null;
   participantNames?: string[];
+  absentPlayers?: { name: string; reason: string | null }[];
 };
 
 function formatDeadline(date: Date) {
@@ -77,7 +79,9 @@ export default function NextSessionAttendanceCard({
   rsvpDeadlineMinutesBefore = 60,
   sessionRsvpDeadlineMinutesBefore = null,
   participantNames = [],
+  absentPlayers = [],
 }: NextSessionAttendanceCardProps) {
+  const router = useRouter();
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [presentCount, setPresentCount] = useState<number>(initialPresentCount);
   const [absentCount, setAbsentCount] = useState<number>(initialAbsentCount);
@@ -90,6 +94,7 @@ export default function NextSessionAttendanceCard({
   const [notNominated, setNotNominated] = useState(false);
   const [latePenaltyMessage, setLatePenaltyMessage] = useState<string | null>(null);
   const [showParticipants, setShowParticipants] = useState(false);
+  const [showAbsences, setShowAbsences] = useState(false);
 
   useEffect(() => {
     setNow(new Date());
@@ -119,7 +124,7 @@ export default function NextSessionAttendanceCard({
     : null;
   const deadline = deadlineEpochMs !== null ? new Date(deadlineEpochMs) : null;
   const deadlineTone = getDeadlineTone(deadline, now);
-  const deadlineText = deadline ? `Rückmeldung bis ${formatDeadline(deadline)} Uhr` : null;
+  const deadlineText = deadline ? `Zu-/Absage bis ${formatDeadline(deadline)} Uhr` : null;
   const remainingText = deadline && now ? getRemainingLabel(deadline, now) : null;
 
   async function updateStatus(nextStatus: PresenceStatus, action: Exclude<PendingAction, null>, absenceReason = "") {
@@ -156,6 +161,7 @@ export default function NextSessionAttendanceCard({
       if (previousStatus === "out") setAbsentCount((prev) => Math.max(0, prev - 1));
       if (nextStatus === "in") setPresentCount((prev) => prev + 1);
       if (nextStatus === "out") setAbsentCount((prev) => prev + 1);
+      router.refresh();
     } catch (error) {
       console.error(error);
       setErrorMessage(error instanceof Error ? error.message : "Status konnte nicht gespeichert werden.");
@@ -167,16 +173,6 @@ export default function NextSessionAttendanceCard({
 
   const inActive = status === "in";
   const outActive = status === "out";
-  const isOpen = status === "open";
-  const reminderText = deadlineTone === "passed"
-    ? "Deine Rückmeldung ist noch offen. Die angezeigte Frist ist bereits vorbei."
-    : deadlineTone === "urgent"
-      ? `Bitte jetzt kurz entscheiden${remainingText ? ` – ${remainingText}` : ""}.`
-      : deadlineTone === "soon"
-        ? `Bitte heute noch zu- oder absagen${remainingText ? ` – ${remainingText}` : ""}.`
-        : "Bitte kurz zu- oder absagen, damit euer Training planbar bleibt.";
-  const participantPreview = participantNames.slice(0, 5);
-  const remainingParticipants = Math.max(participantNames.length - participantPreview.length, 0);
 
   return (
     <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_20px_52px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5">
@@ -199,92 +195,19 @@ export default function NextSessionAttendanceCard({
       </div>
 
       {notNominated ? (
-        <div className="relative mt-4 rounded-[22px] border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700">Nicht im Event-Kader</div>
-      ) : isOpen ? (
-        <div className={`relative mt-4 rounded-[22px] border px-3 py-2.5 text-xs ${deadlineTone === "passed" ? "border-rose-200 bg-rose-50 text-rose-900" : deadlineTone === "urgent" || deadlineTone === "soon" ? "border-amber-200 bg-amber-50 text-amber-950" : "border-blue-100 bg-blue-50 text-blue-900"}`}>
-          <div className="font-bold">Rückmeldung offen</div>
-          <div className="mt-0.5 leading-5 opacity-85">{reminderText}</div>
+        <div className="relative mt-4 rounded-[22px] border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700">
+          Nicht im Event-Kader
         </div>
-      ) : (
-        <div className={`relative mt-4 flex items-center justify-between gap-3 rounded-[22px] border px-3 py-2.5 text-xs font-semibold ${inActive ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-rose-200 bg-rose-50 text-rose-900"}`}>
-          <span>Deine Rückmeldung</span><span>{inActive ? "✓ Du bist dabei" : "Du bist raus"}</span>
+      ) : null}
+
+      {errorMessage ? (
+        <div className="relative mt-4 rounded-[18px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">
+          {errorMessage}
         </div>
-      )}
-
-      {errorMessage ? <div className="relative mt-4 rounded-[18px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">{errorMessage}</div> : null}
-
-      <div className="relative mt-4 overflow-hidden rounded-[24px] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-3.5">
-        <button
-          type="button"
-          onClick={() => {
-            if (participantNames.length > 0) setShowParticipants((value) => !value);
-          }}
-          className="w-full text-left"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
-                Wer ist dabei?
-              </div>
-              <div className="mt-1 text-sm font-black text-slate-950">
-                {presentCount > 0
-                  ? `${presentCount} ${presentCount === 1 ? "Spieler ist" : "Spieler sind"} schon am Start`
-                  : "Noch keine Zusage"}
-              </div>
-            </div>
-            {participantNames.length > 0 ? (
-              <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-emerald-700 shadow-sm ring-1 ring-emerald-100">
-                {showParticipants ? "Weniger" : "Alle ansehen"}
-              </span>
-            ) : null}
-          </div>
-
-          {participantPreview.length > 0 ? (
-            <div className="mt-3 flex items-center gap-2 overflow-hidden">
-              <div className="flex -space-x-2">
-                {participantPreview.map((name, index) => (
-                  <span
-                    key={`${name}-${index}`}
-                    title={name}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-950 text-[10px] font-black uppercase text-white shadow-sm"
-                  >
-                    {name.trim().charAt(0) || "?"}
-                  </span>
-                ))}
-              </div>
-              <div className="min-w-0 truncate text-xs font-semibold text-slate-600">
-                {participantPreview.join(" · ")}
-                {remainingParticipants > 0 ? ` · +${remainingParticipants}` : ""}
-              </div>
-            </div>
-          ) : (
-            <div className="mt-2 text-xs font-medium text-slate-500">
-              Sei der Erste – oft reicht eine Zusage und die Runde kommt ins Rollen. 😄
-            </div>
-          )}
-        </button>
-
-        {showParticipants && participantNames.length > 0 ? (
-          <div className="mt-3 grid gap-2 border-t border-emerald-100 pt-3 sm:grid-cols-2">
-            {participantNames.map((name, index) => (
-              <div
-                key={`participant-${name}-${index}`}
-                className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm ring-1 ring-slate-950/5"
-              >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-black uppercase text-emerald-800">
-                  {name.trim().charAt(0) || "?"}
-                </span>
-                <span className="min-w-0 truncate text-xs font-bold text-slate-800">
-                  {name}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      ) : null}
 
       {!notNominated ? (
-        <div className="relative mt-5 rounded-[28px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
+        <div className="relative mt-4 rounded-[28px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
           <div className="grid grid-cols-2 gap-1.5">
             <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", inActive ? "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 text-white shadow-[0_16px_34px_rgba(56,189,248,0.24)]" : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50"].join(" ")}>
               <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-blue-50 text-blue-600 ring-1 ring-blue-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? "Speichert…" : inActive ? "Dabei ✓" : "Ich bin dabei"}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{presentCount} dabei</span></span></div>
@@ -307,6 +230,88 @@ export default function NextSessionAttendanceCard({
           ) : null}
         </div>
       ) : null}
+
+      <div className="relative mt-4 grid gap-2">
+        <div className="overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50/60">
+          <button
+            type="button"
+            onClick={() => setShowParticipants((value) => !value)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">
+                {presentCount}
+              </span>
+              <div>
+                <div className="text-sm font-black text-slate-950">Dabei</div>
+                <div className="text-[11px] font-medium text-emerald-700">
+                  {presentCount === 1 ? "1 Zusage" : `${presentCount} Zusagen`}
+                </div>
+              </div>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-emerald-700 transition ${showParticipants ? "rotate-180" : ""}`} />
+          </button>
+
+          {showParticipants ? (
+            <div className="border-t border-emerald-100 bg-white/70 px-3 py-3">
+              {participantNames.length > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {participantNames.map((name, index) => (
+                    <div key={`participant-${name}-${index}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-black uppercase text-emerald-800">
+                        {name.trim().charAt(0) || "?"}
+                      </span>
+                      <span className="min-w-0 truncate text-xs font-bold text-slate-800">{name}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-1 py-1 text-xs font-medium text-slate-500">Noch keine Zusage.</div>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50/60">
+          <button
+            type="button"
+            onClick={() => setShowAbsences((value) => !value)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-xs font-black text-white">
+                {absentCount}
+              </span>
+              <div>
+                <div className="text-sm font-black text-slate-950">Raus</div>
+                <div className="text-[11px] font-medium text-rose-700">
+                  {absentCount === 1 ? "1 Absage" : `${absentCount} Absagen`}
+                </div>
+              </div>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-rose-700 transition ${showAbsences ? "rotate-180" : ""}`} />
+          </button>
+
+          {showAbsences ? (
+            <div className="border-t border-rose-100 bg-white/70 px-3 py-3">
+              {absentPlayers.length > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {absentPlayers.map((player, index) => (
+                    <div key={`absence-${player.name}-${index}`} className="rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5">
+                      <div className="text-xs font-black text-slate-800">{player.name}</div>
+                      <div className={`mt-0.5 text-[11px] ${player.reason ? "font-semibold text-rose-700" : "text-slate-400"}`}>
+                        {player.reason ? `„${player.reason}“` : "Kein Grund angegeben"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-1 py-1 text-xs font-medium text-slate-500">Noch keine Absage.</div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       <LateRsvpModal
         open={latePenaltyMessage !== null}

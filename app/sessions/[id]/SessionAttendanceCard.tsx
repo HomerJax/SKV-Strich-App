@@ -367,6 +367,11 @@ export default function SessionAttendanceCard({
     const acceptedPlayers = players.filter((player) =>
       memberPresentIds.includes(player.id),
     );
+    const absentPlayers = players.filter(
+      (player) =>
+        !memberPresentIds.includes(player.id) &&
+        getPlayerRsvpStatus(player) === "out",
+    );
     const currentPlayer =
       currentPlayerId !== null
         ? players.find((player) => player.id === currentPlayerId) ?? null
@@ -402,45 +407,58 @@ export default function SessionAttendanceCard({
         </div>
 
         <div className="p-4">
-          {acceptedPlayers.length > 0 ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {acceptedPlayers.map((player) => {
-                const playerName = getPlayerDisplayName(player);
-                return (
-                  <div
-                    key={player.id}
-                    className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/50 px-3 py-2.5"
-                  >
-                    <span
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 bg-cover bg-center text-xs font-black uppercase text-white shadow-sm"
-                      style={
-                        player.photo_url
-                          ? { backgroundImage: `url("${player.photo_url}")` }
-                          : undefined
-                      }
-                    >
-                      {!player.photo_url ? playerName.trim().charAt(0) || "?" : null}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-black text-slate-900">
-                        {playerName}
-                      </div>
-                      <div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700">
-                        ✓ Dabei
-                      </div>
+          <div className="grid gap-3">
+            <div className="overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50/50">
+              <div className="flex items-center justify-between px-3 py-2.5">
+                <div className="text-sm font-black text-slate-950">Dabei</div>
+                <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black text-white">
+                  {acceptedPlayers.length}
+                </span>
+              </div>
+              <div className="grid gap-2 border-t border-emerald-100 bg-white/70 p-3 sm:grid-cols-2">
+                {acceptedPlayers.length > 0 ? acceptedPlayers.map((player) => {
+                  const playerName = getPlayerDisplayName(player);
+                  return (
+                    <div key={player.id} className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 ring-1 ring-slate-950/5">
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 bg-cover bg-center text-xs font-black uppercase text-white shadow-sm"
+                        style={player.photo_url ? { backgroundImage: `url("${player.photo_url}")` } : undefined}
+                      >
+                        {!player.photo_url ? playerName.trim().charAt(0) || "?" : null}
+                      </span>
+                      <div className="min-w-0 truncate text-sm font-black text-slate-900">{playerName}</div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
-              <div className="text-sm font-black text-slate-800">Mach den Anfang 😄</div>
-              <div className="mt-1 text-xs text-slate-500">
-                Sobald jemand zusagt, taucht er hier auf.
+                  );
+                }) : (
+                  <div className="text-xs font-medium text-slate-500">Noch keine Zusage.</div>
+                )}
               </div>
             </div>
-          )}
+
+            <div className="overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50/50">
+              <div className="flex items-center justify-between px-3 py-2.5">
+                <div className="text-sm font-black text-slate-950">Raus</div>
+                <span className="rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-black text-white">
+                  {absentPlayers.length}
+                </span>
+              </div>
+              <div className="grid gap-2 border-t border-rose-100 bg-white/70 p-3 sm:grid-cols-2">
+                {absentPlayers.length > 0 ? absentPlayers.map((player) => {
+                  const playerName = getPlayerDisplayName(player);
+                  return (
+                    <div key={player.id} className="rounded-2xl bg-white px-3 py-2.5 ring-1 ring-slate-950/5">
+                      <div className="text-sm font-black text-slate-900">{playerName}</div>
+                      <div className={`mt-1 text-[11px] ${player.rsvp_reason ? "font-semibold text-rose-700" : "text-slate-400"}`}>
+                        {player.rsvp_reason ? `„${player.rsvp_reason}“` : "Kein Grund angegeben"}
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <div className="text-xs font-medium text-slate-500">Noch keine Absage.</div>
+                )}
+              </div>
+            </div>
+          </div>
 
           {selfRsvpEnabled && currentPlayerId !== null ? (
             <div className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50 p-3.5">
