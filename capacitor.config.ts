@@ -8,6 +8,7 @@ const config: CapacitorConfig = {
   webDir: "public",
   server: {
     url: "https://www.strikr.team",
+    appStartPath: "/home",
     cleartext: false,
     allowNavigation: ["www.strikr.team", "strikr.team"],
   },
