@@ -13,6 +13,7 @@ import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionRow, TeamMap } from "./session-types";
 import type { ClubSettings } from "./session-detail-helpers";
 import { normalizeGoalValue } from "./session-ui";
+import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
 import type { BalanceCategory } from "./session-ui";
 import { useSessionDetail } from "./useSessionDetail";
 
@@ -24,6 +25,7 @@ type SessionDetailClientProps = {
   initialManualTeams: TeamMap;
   initialClubId: string;
   initialIsAdmin: boolean;
+  initialCurrentPlayerId: number | null;
   initialClubSettings: ClubSettings;
   initialBalanceCategories?: BalanceCategory[];
   initialWinnerPhotoUrl: string | null;
@@ -202,6 +204,12 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   const currentSessionType = session.type === "event" ? "event" : "training";
   const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
+  const rsvpDeadlineEpochMs = getSessionDeadlineEpochMs({
+    date: session.date,
+    startTime: session.start_time ?? null,
+    sessionOverrideMinutes: session.rsvp_deadline_minutes_before ?? null,
+    clubDefaultMinutes: props.initialRsvpDeadlineMinutesBefore ?? 60,
+  });
 
   let activeSection: SectionKey | null = null;
 
@@ -230,6 +238,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         />
 
         <SessionAttendanceCard
+          sessionId={props.sessionId}
+          currentPlayerId={props.initialCurrentPlayerId}
+          selfRsvpEnabled={props.initialHomeSessionRsvpEnabled === true}
+          rsvpDeadlineEpochMs={rsvpDeadlineEpochMs}
           players={displayPlayers}
           presentIds={draftPresentIds}
           hasResult={hasResult}
@@ -343,9 +355,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   const activeTitle =
     activeSection === "attendance"
-      ? isEventSession
-        ? "Teilnehmer festlegen"
-        : "Anwesenheit prüfen"
+      ? isAdmin
+        ? isEventSession
+          ? "Teilnehmer festlegen"
+          : "Anwesenheit prüfen"
+        : "Wer ist dabei?"
       : activeSection === "teams"
         ? "Teams prüfen und anpassen"
         : activeSection === "photo"
@@ -358,9 +372,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   const activeDescription =
     activeSection === "attendance"
-      ? isEventSession
-        ? "Hier sammelst du Zu- und Absagen für den Termin."
-        : "Zuerst festlegen, wer heute wirklich da ist."
+      ? isAdmin
+        ? isEventSession
+          ? "Hier sammelst du Zu- und Absagen für den Termin."
+          : "Zuerst festlegen, wer heute wirklich da ist."
+        : "Schau, wer schon zugesagt hat – und gib direkt deine eigene Rückmeldung."
       : activeSection === "teams"
         ? "Teams erst prüfen, bei Bedarf verschieben und dann bestätigen."
         : activeSection === "photo"

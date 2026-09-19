@@ -9,10 +9,12 @@ export default function SessionRsvpButtons({
   sessionId,
   initialStatus,
   deadlineEpochMs = null,
+  onStatusChange,
 }: {
   sessionId: number;
   initialStatus: PresenceStatus;
   deadlineEpochMs?: number | null;
+  onStatusChange?: (status: PresenceStatus) => void;
 }) {
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [busy, setBusy] = useState<PresenceStatus | null>(null);
@@ -73,6 +75,7 @@ export default function SessionRsvpButtons({
       if (!response.ok) throw new Error(payload?.error || "Rückmeldung konnte nicht gespeichert werden.");
 
       setStatus(target);
+      onStatusChange?.(target);
       if (target === "in" && payload?.latePenalty?.message) {
         setLatePenaltyMessage(String(payload.latePenalty.message));
       }

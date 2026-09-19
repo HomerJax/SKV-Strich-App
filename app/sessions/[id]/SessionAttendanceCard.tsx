@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import PlayerBadge from "@/components/badges/PlayerBadge";
+import SessionRsvpButtons from "@/components/sessions/SessionRsvpButtons";
 import type { Player } from "./session-types";
 import { ageBadgeColor, badgeColor, positionLabel } from "./session-ui";
 
@@ -18,6 +19,10 @@ type ClubSettings = {
 };
 
 type SessionAttendanceCardProps = {
+  sessionId: number;
+  currentPlayerId: number | null;
+  selfRsvpEnabled: boolean;
+  rsvpDeadlineEpochMs: number | null;
   players: Player[];
   presentIds: number[];
   hasResult: boolean;
@@ -245,6 +250,10 @@ function getPlayerRsvpStatus(player: Player) {
 }
 
 export default function SessionAttendanceCard({
+  sessionId,
+  currentPlayerId,
+  selfRsvpEnabled,
+  rsvpDeadlineEpochMs,
   players,
   presentIds,
   hasResult,
@@ -293,6 +302,7 @@ export default function SessionAttendanceCard({
     string | null
   >(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [memberPresentIds, setMemberPresentIds] = useState<number[]>(presentIds);
 
   const presentIdsSignature = useMemo(
     () => [...presentIds].sort((a, b) => a - b).join(","),
@@ -306,6 +316,10 @@ export default function SessionAttendanceCard({
   useEffect(() => {
     restoreScrollPosition();
   }, [presentIdsSignature]);
+
+  useEffect(() => {
+    setMemberPresentIds(presentIds);
+  }, [presentIdsSignature, presentIds]);
 
   useEffect(() => {
     if (!wasSavingRef.current || savingPresence) {
@@ -347,6 +361,112 @@ export default function SessionAttendanceCard({
     rememberScrollPosition();
     setJustSaved(false);
     onSavePresence();
+  }
+
+  if (!isAdmin) {
+    const acceptedPlayers = players.filter((player) =>
+      memberPresentIds.includes(player.id),
+    );
+    const currentPlayer =
+      currentPlayerId !== null
+        ? players.find((player) => player.id === currentPlayerId) ?? null
+        : null;
+    const selfStatus: "in" | "out" | "open" =
+      currentPlayerId !== null && memberPresentIds.includes(currentPlayerId)
+        ? "in"
+        : currentPlayer && getPlayerRsvpStatus(currentPlayer) === "out"
+          ? "out"
+          : "open";
+
+    return (
+      <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 px-4 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">
+                Wer ist dabei?
+              </div>
+              <div className="mt-1 text-xl font-black tracking-[-0.035em] text-slate-950">
+                {acceptedPlayers.length > 0
+                  ? `${acceptedPlayers.length} ${acceptedPlayers.length === 1 ? "Zusage" : "Zusagen"}`
+                  : "Noch keiner zugesagt"}
+              </div>
+              <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                Hier siehst du nur die Jungs, die schon zugesagt haben.
+              </p>
+            </div>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-sm">
+              {acceptedPlayers.length}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-4">
+          {acceptedPlayers.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {acceptedPlayers.map((player) => {
+                const playerName = getPlayerDisplayName(player);
+                return (
+                  <div
+                    key={player.id}
+                    className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/50 px-3 py-2.5"
+                  >
+                    <span
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 bg-cover bg-center text-xs font-black uppercase text-white shadow-sm"
+                      style={
+                        player.photo_url
+                          ? { backgroundImage: `url("${player.photo_url}")` }
+                          : undefined
+                      }
+                    >
+                      {!player.photo_url ? playerName.trim().charAt(0) || "?" : null}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-black text-slate-900">
+                        {playerName}
+                      </div>
+                      <div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700">
+                        ✓ Dabei
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
+              <div className="text-sm font-black text-slate-800">Mach den Anfang 😄</div>
+              <div className="mt-1 text-xs text-slate-500">
+                Sobald jemand zusagt, taucht er hier auf.
+              </div>
+            </div>
+          )}
+
+          {selfRsvpEnabled && currentPlayerId !== null ? (
+            <div className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50 p-3.5">
+              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Deine Rückmeldung
+              </div>
+              <SessionRsvpButtons
+                sessionId={sessionId}
+                initialStatus={selfStatus}
+                deadlineEpochMs={rsvpDeadlineEpochMs}
+                onStatusChange={(nextStatus) => {
+                  setMemberPresentIds((currentIds) => {
+                    const withoutSelf = currentIds.filter(
+                      (playerId) => playerId !== currentPlayerId,
+                    );
+                    return nextStatus === "in"
+                      ? [...withoutSelf, currentPlayerId]
+                      : withoutSelf;
+                  });
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
+      </section>
+    );
   }
 
   if (collapsed) {

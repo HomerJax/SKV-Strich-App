@@ -52,7 +52,7 @@ type PageProps = { params: Promise<{ id: string }> };
 export default async function SessionDetailPage({ params }: PageProps) {
   const resolvedParams = await params;
   const sessionId = Number(resolvedParams.id);
-  const { clubId, membership, isPowerUser } = await requireClub();
+  const { clubId, membership, isPowerUser, player } = await requireClub();
   const supabase = await createClient();
 
   if (!Number.isFinite(sessionId)) redirect("/sessions");
@@ -212,6 +212,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialManualTeams={manualTeams}
       initialClubId={clubId}
       initialIsAdmin={isPowerUser || isAdminRole(membership.role)}
+      initialCurrentPlayerId={player?.id ?? null}
       initialClubSettings={clubSettings}
       initialBalanceCategories={balanceCategories}
       initialWinnerPhotoUrl={winnerPhotoUrl}

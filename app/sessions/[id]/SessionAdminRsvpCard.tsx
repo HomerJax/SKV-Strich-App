@@ -120,7 +120,7 @@ export default function SessionAdminRsvpCard({ sessionId, players, hasResult, is
     }
   }
 
-  if (!isAdmin && absentPlayers.length === 0) return null;
+  if (!isAdmin) return null;
 
   return (
     <div className="space-y-3">

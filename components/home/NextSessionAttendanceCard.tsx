@@ -76,6 +76,7 @@ export default function NextSessionAttendanceCard({
   startTime,
   rsvpDeadlineMinutesBefore = 60,
   sessionRsvpDeadlineMinutesBefore = null,
+  participantNames = [],
 }: NextSessionAttendanceCardProps) {
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [presentCount, setPresentCount] = useState<number>(initialPresentCount);
@@ -88,6 +89,7 @@ export default function NextSessionAttendanceCard({
   const [reason, setReason] = useState("");
   const [notNominated, setNotNominated] = useState(false);
   const [latePenaltyMessage, setLatePenaltyMessage] = useState<string | null>(null);
+  const [showParticipants, setShowParticipants] = useState(false);
 
   useEffect(() => {
     setNow(new Date());
@@ -173,6 +175,8 @@ export default function NextSessionAttendanceCard({
       : deadlineTone === "soon"
         ? `Bitte heute noch zu- oder absagen${remainingText ? ` – ${remainingText}` : ""}.`
         : "Bitte kurz zu- oder absagen, damit euer Training planbar bleibt.";
+  const participantPreview = participantNames.slice(0, 5);
+  const remainingParticipants = Math.max(participantNames.length - participantPreview.length, 0);
 
   return (
     <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_20px_52px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5">
@@ -208,6 +212,76 @@ export default function NextSessionAttendanceCard({
       )}
 
       {errorMessage ? <div className="relative mt-4 rounded-[18px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">{errorMessage}</div> : null}
+
+      <div className="relative mt-4 overflow-hidden rounded-[24px] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-3.5">
+        <button
+          type="button"
+          onClick={() => {
+            if (participantNames.length > 0) setShowParticipants((value) => !value);
+          }}
+          className="w-full text-left"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                Wer ist dabei?
+              </div>
+              <div className="mt-1 text-sm font-black text-slate-950">
+                {presentCount > 0
+                  ? `${presentCount} ${presentCount === 1 ? "Spieler ist" : "Spieler sind"} schon am Start`
+                  : "Noch keine Zusage"}
+              </div>
+            </div>
+            {participantNames.length > 0 ? (
+              <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-emerald-700 shadow-sm ring-1 ring-emerald-100">
+                {showParticipants ? "Weniger" : "Alle ansehen"}
+              </span>
+            ) : null}
+          </div>
+
+          {participantPreview.length > 0 ? (
+            <div className="mt-3 flex items-center gap-2 overflow-hidden">
+              <div className="flex -space-x-2">
+                {participantPreview.map((name, index) => (
+                  <span
+                    key={`${name}-${index}`}
+                    title={name}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-950 text-[10px] font-black uppercase text-white shadow-sm"
+                  >
+                    {name.trim().charAt(0) || "?"}
+                  </span>
+                ))}
+              </div>
+              <div className="min-w-0 truncate text-xs font-semibold text-slate-600">
+                {participantPreview.join(" · ")}
+                {remainingParticipants > 0 ? ` · +${remainingParticipants}` : ""}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 text-xs font-medium text-slate-500">
+              Sei der Erste – oft reicht eine Zusage und die Runde kommt ins Rollen. 😄
+            </div>
+          )}
+        </button>
+
+        {showParticipants && participantNames.length > 0 ? (
+          <div className="mt-3 grid gap-2 border-t border-emerald-100 pt-3 sm:grid-cols-2">
+            {participantNames.map((name, index) => (
+              <div
+                key={`participant-${name}-${index}`}
+                className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm ring-1 ring-slate-950/5"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-black uppercase text-emerald-800">
+                  {name.trim().charAt(0) || "?"}
+                </span>
+                <span className="min-w-0 truncate text-xs font-bold text-slate-800">
+                  {name}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       {!notNominated ? (
         <div className="relative mt-5 rounded-[28px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
