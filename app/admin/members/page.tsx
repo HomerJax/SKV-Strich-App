@@ -10,6 +10,7 @@ import { AUTH_ROUTES } from "@/lib/auth/routes";
 import InviteActions from "./InviteActions";
 import { getAuthContext } from "@/lib/auth/context";
 import { buildAbsoluteInviteUrl } from "@/lib/invites/url";
+import { setMemberPermissionAction } from "./permission-actions";
 
 function getAdminSupabase() {
   return createAdminClient(
@@ -118,6 +119,7 @@ export default async function AdminMembersPage({
     { data: memberships, error: membershipsError },
     { data: players, error: playersError },
     { data: invites, error: invitesError },
+    { data: memberPermissions, error: memberPermissionsError },
   ] = await Promise.all([
     adminSupabase
       .from("club_memberships")
@@ -135,6 +137,11 @@ export default async function AdminMembersPage({
       .eq("club_id", clubId)
       .is("accepted_at", null)
       .order("created_at", { ascending: false }),
+    adminSupabase
+      .from("club_member_permissions")
+      .select("user_id,permission_key")
+      .eq("club_id", clubId)
+      .eq("permission_key", "manage_beerkasse"),
   ]);
 
   if (membershipsError) {
@@ -152,6 +159,16 @@ export default async function AdminMembersPage({
       `Einladungen konnten nicht geladen werden: ${invitesError.message}`
     );
   }
+
+  if (memberPermissionsError) {
+    throw new Error(
+      `Zusatzrechte konnten nicht geladen werden: ${memberPermissionsError.message}`
+    );
+  }
+
+  const beerManagerUserIds = new Set(
+    (memberPermissions ?? []).map((permission) => String(permission.user_id)),
+  );
 
   const playerByUserId = new Map<
     string,
@@ -289,6 +306,12 @@ export default async function AdminMembersPage({
                         {getMemberRoleLabel(member.role)}
                       </span>
 
+                      {member.role === "admin" || beerManagerUserIds.has(member.user_id) ? (
+                        <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                          🍺 Bierkasse
+                        </span>
+                      ) : null}
+
                       {isCurrentUser ? (
                         <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
                           Du
@@ -306,7 +329,7 @@ export default async function AdminMembersPage({
                       {member.email || "Keine E-Mail hinterlegt"}
                     </div>
 
-                    <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+                    <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
                       <div className="rounded-2xl bg-white p-3">
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                           Rolle
@@ -348,6 +371,43 @@ export default async function AdminMembersPage({
                       </div>
 
                       <div className="rounded-2xl bg-white p-3">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Zusatzrechte
+                        </div>
+
+                        {member.role === "admin" ? (
+                          <div className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+                            🍺 Bierkasse verwalten · automatisch als Admin
+                          </div>
+                        ) : (
+                          <form action={setMemberPermissionAction} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <div className="text-sm font-semibold text-slate-900">Bierkasse verwalten</div>
+                              <div className="mt-0.5 text-xs text-slate-500">
+                                Barzahlungen bestätigen, Einträge korrigieren und stornieren.
+                              </div>
+                            </div>
+                            <input type="hidden" name="user_id" value={member.user_id} />
+                            <input
+                              type="hidden"
+                              name="enabled"
+                              value={beerManagerUserIds.has(member.user_id) ? "0" : "1"}
+                            />
+                            <button
+                              type="submit"
+                              className={`shrink-0 rounded-xl px-3 py-2 text-xs font-black ${
+                                beerManagerUserIds.has(member.user_id)
+                                  ? "border border-rose-200 bg-rose-50 text-rose-700"
+                                  : "bg-slate-950 text-white"
+                              }`}
+                            >
+                              {beerManagerUserIds.has(member.user_id) ? "Recht entfernen" : "Recht geben"}
+                            </button>
+                          </form>
+                        )}
+                      </div>
+
+                      <div className="rounded-2xl bg-white p-3 lg:col-span-2">
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                           Mitgliedschaft
                         </div>

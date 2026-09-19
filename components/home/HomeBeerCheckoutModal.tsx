@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
-import { buyBeerAction } from "@/app/mannschaftskasse/actions";
+import { Banknote, CreditCard, X } from "lucide-react";
+import { recordBeerAction } from "@/app/mannschaftskasse/actions";
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("de-DE", {
@@ -13,8 +13,10 @@ function formatEuro(cents: number) {
 
 export default function HomeBeerCheckoutModal({
   priceCents,
+  paypalEnabled,
 }: {
   priceCents: number;
+  paypalEnabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -22,15 +24,12 @@ export default function HomeBeerCheckoutModal({
 
   useEffect(() => {
     if (!open) return;
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKeyDown);
-
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
@@ -51,7 +50,10 @@ export default function HomeBeerCheckoutModal({
           <div className="text-[10px] font-black uppercase tracking-[.16em] text-amber-700">
             🍺 Bierkasse+
           </div>
-          <div className="text-sm font-black text-slate-950">Bier zahlen</div>
+          <div className="text-sm font-black text-slate-950">Bier eintragen</div>
+          <div className="mt-0.5 text-[11px] font-medium text-slate-500">
+            Verbrauch erfassen · PayPal oder bar
+          </div>
         </div>
         <span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black text-slate-950">
           Öffnen →
@@ -73,89 +75,69 @@ export default function HomeBeerCheckoutModal({
             className="w-full rounded-t-[30px] bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-w-md sm:rounded-[30px] sm:p-6"
           >
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
-
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
                   🍺 Bierkasse+
                 </div>
                 <h2 id="beer-checkout-title" className="mt-1 text-2xl font-black text-slate-950">
-                  Wie viele Bier?
+                  Wie viele hattest du?
                 </h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">
                   {formatEuro(priceCents)} pro Bier
                 </p>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600"
-                aria-label="Schließen"
-              >
+              <button type="button" onClick={() => setOpen(false)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600" aria-label="Schließen">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form action={buyBeerAction} className="mt-6">
+            <form action={recordBeerAction} className="mt-6">
               <input type="hidden" name="quantity" value={quantity} />
               <input type="hidden" name="return_to" value="/home" />
 
               <div className="flex items-center justify-between rounded-[24px] border border-amber-200 bg-amber-50/60 p-4">
-                <button
-                  type="button"
-                  onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl font-black text-slate-900 shadow-sm ring-1 ring-slate-200"
-                  aria-label="Ein Bier weniger"
-                >
-                  −
-                </button>
-
+                <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl font-black text-slate-900 shadow-sm ring-1 ring-slate-200" aria-label="Ein Bier weniger">−</button>
                 <div className="min-w-0 text-center">
-                  <div className="text-5xl font-black tracking-tight text-slate-950">
-                    {quantity}
-                  </div>
-                  <div className="mt-1 text-xs font-black uppercase tracking-[.14em] text-slate-500">
-                    {quantity === 1 ? "Bier" : "Bier"}
-                  </div>
+                  <div className="text-5xl font-black tracking-tight text-slate-950">{quantity}</div>
+                  <div className="mt-1 text-xs font-black uppercase tracking-[.14em] text-slate-500">Bier</div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setQuantity((value) => Math.min(99, value + 1))}
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-3xl font-black text-white shadow-sm"
-                  aria-label="Ein Bier mehr"
-                >
-                  +
-                </button>
+                <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-3xl font-black text-white shadow-sm" aria-label="Ein Bier mehr">+</button>
               </div>
 
               <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-sm font-bold text-slate-500">Gesamt</span>
-                <span className="text-2xl font-black text-slate-950">
-                  {formatEuro(totalCents)}
-                </span>
+                <span className="text-sm font-bold text-slate-500">Wert</span>
+                <span className="text-2xl font-black text-slate-950">{formatEuro(totalCents)}</span>
               </div>
 
-              <button
-                type="submit"
-                className="mt-4 flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]"
-              >
-                <span>
-                  <span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">
-                    PayPal
+              <div className="mt-4 grid gap-2">
+                {paypalEnabled ? (
+                  <button name="payment_method" value="paypal" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
+                    <span className="flex items-center gap-3">
+                      <CreditCard className="h-5 w-5" />
+                      <span>
+                        <span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span>
+                        <span className="block text-base font-black">Eintragen & PayPal öffnen</span>
+                      </span>
+                    </span>
+                    <span className="font-black">→</span>
+                  </button>
+                ) : null}
+
+                <button name="payment_method" value="cash" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
+                  <span className="flex items-center gap-3">
+                    <Banknote className="h-5 w-5 text-emerald-700" />
+                    <span>
+                      <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">Bar</span>
+                      <span className="block text-base font-black">Eintragen · Zahlung offen</span>
+                    </span>
                   </span>
-                  <span className="block text-base font-black">
-                    {quantity} Bier · {formatEuro(totalCents)}
-                  </span>
-                </span>
-                <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-[#0070ba]">
-                  Bezahlen →
-                </span>
-              </button>
+                  <span className="font-black">→</span>
+                </button>
+              </div>
 
               <p className="mt-3 text-center text-[11px] font-medium leading-4 text-slate-500">
-                Die Bier werden beim Wechsel zu PayPal in deiner Statistik erfasst.
+                Verbrauch und Zahlung werden getrennt geführt. Bar gilt erst nach Bestätigung als bezahlt.
               </p>
             </form>
           </div>

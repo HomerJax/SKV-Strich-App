@@ -75,5 +75,7 @@ export function getSuccessText(action?: string) {
     ? "Die Rolle wurde erfolgreich geändert."
     : action === "member_removed"
       ? "Das Mitglied wurde erfolgreich entfernt."
-      : null;
+      : action === "beer_permission_updated"
+        ? "Bierkassen-Berechtigung wurde aktualisiert."
+        : null;
 }

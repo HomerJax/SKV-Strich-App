@@ -3,7 +3,9 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireClub } from "@/lib/auth/guards";
+import { requireBeerManagementAccess } from "@/lib/cashbox/access";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
 function url(params: Record<string, string>, base = "/mannschaftskasse") {
@@ -34,12 +36,12 @@ function buildPaypalUrl(baseUrl: string, totalCents: number) {
   }
 }
 
-export async function buyBeerAction(formData: FormData) {
+export async function recordBeerAction(formData: FormData) {
   const returnTo =
     String(formData.get("return_to") ?? "") === "/home"
       ? "/home"
       : "/mannschaftskasse";
-  const { clubId, player } = await requireClub();
+  const { clubId, player, user } = await requireClub();
   const flags = await getFeatureFlagsForClub(clubId);
   if (!(flags.penalties ?? false)) redirect("/home");
   if (!player) redirect(url({ beer_error: "Kein Spielerprofil gefunden." }, returnTo));
@@ -48,6 +50,9 @@ export async function buyBeerAction(formData: FormData) {
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
     redirect(url({ beer_error: "Bitte eine gültige Anzahl wählen." }, returnTo));
   }
+
+  const paymentMethod =
+    String(formData.get("payment_method") ?? "") === "cash" ? "cash" : "paypal";
 
   const supabase = await createClient();
   const { data: settings, error: settingsError } = await supabase
@@ -67,8 +72,12 @@ export async function buyBeerAction(formData: FormData) {
   const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
   const unitPriceCents = Number(settings?.beerkasse_price_cents ?? 0);
 
-  if (!premiumEnabled || !featureEnabled || !paypalUrl) {
+  if (!premiumEnabled || !featureEnabled) {
     redirect(url({ beer_error: "Bierkasse+ ist für diesen Club nicht aktiv." }, returnTo));
+  }
+
+  if (paymentMethod === "paypal" && !paypalUrl) {
+    redirect(url({ beer_error: "PayPal ist für diesen Club nicht eingerichtet." }, returnTo));
   }
 
   if (!Number.isInteger(unitPriceCents) || unitPriceCents < 1) {
@@ -82,15 +91,248 @@ export async function buyBeerAction(formData: FormData) {
     quantity,
     unit_price_cents: unitPriceCents,
     total_cents: totalCents,
+    payment_method: paymentMethod,
+    payment_status: "pending",
+    created_by: user.id,
+    updated_at: new Date().toISOString(),
   });
 
   if (error) {
-    redirect(url({ beer_error: "Bier konnte nicht gebucht werden." }, returnTo));
+    redirect(url({ beer_error: "Bier konnte nicht eingetragen werden." }, returnTo));
   }
 
   revalidatePath("/mannschaftskasse");
+  revalidatePath("/mannschaftskasse/bier");
   revalidatePath("/home");
+  revalidatePath("/power-user/beerkasse");
+
+  if (paymentMethod === "cash") {
+    redirect(url({ beer_saved: "cash" }, returnTo));
+  }
+
   redirect(buildPaypalUrl(paypalUrl, totalCents));
+}
+
+function beerManageUrl(params: Record<string, string> = {}) {
+  return url(params, "/mannschaftskasse/bier");
+}
+
+function refreshBeerViews() {
+  revalidatePath("/mannschaftskasse");
+  revalidatePath("/mannschaftskasse/bier");
+  revalidatePath("/home");
+  revalidatePath("/power-user");
+  revalidatePath("/power-user/beerkasse");
+}
+
+export async function markBeerCashPaidAction(formData: FormData) {
+  const { clubId, user } = await requireBeerManagementAccess();
+  const consumptionId = Number(String(formData.get("consumption_id") ?? ""));
+  if (!Number.isFinite(consumptionId)) {
+    redirect(beerManageUrl({ error: "Ungültiger Bier-Eintrag." }));
+  }
+
+  const admin = createAdminClient();
+  const { data: entry, error: entryError } = await admin
+    .from("beer_consumptions")
+    .select("id,quantity,total_cents,payment_method,payment_status,cash_transaction_id")
+    .eq("club_id", clubId)
+    .eq("id", consumptionId)
+    .maybeSingle<{
+      id: number;
+      quantity: number;
+      total_cents: number;
+      payment_method: "paypal" | "cash";
+      payment_status: "pending" | "paid" | "cancelled";
+      cash_transaction_id: number | null;
+    }>();
+
+  if (entryError || !entry) {
+    redirect(beerManageUrl({ error: "Bier-Eintrag nicht gefunden." }));
+  }
+
+  if (entry.payment_method !== "cash") {
+    redirect(beerManageUrl({ error: "Nur Barzahlungen werden manuell bestätigt." }));
+  }
+
+  if (entry.payment_status !== "pending") {
+    redirect(beerManageUrl({ error: "Dieser Eintrag ist nicht mehr offen." }));
+  }
+
+  const sourceKey = `beer:${entry.id}:cash-payment`;
+  let transactionId = entry.cash_transaction_id;
+
+  if (!transactionId) {
+    const { data: transaction, error: transactionError } = await admin
+      .from("cash_transactions")
+      .insert({
+        club_id: clubId,
+        amount_cents: entry.total_cents,
+        kind: "income",
+        category: "Getränke",
+        title: `Bierkasse · ${entry.quantity} Bier`,
+        source_type: "beer",
+        source_id: entry.id,
+        source_key: sourceKey,
+        created_by: user.id,
+      })
+      .select("id")
+      .single<{ id: number }>();
+
+    if (transactionError) {
+      if (transactionError.code === "23505") {
+        const { data: existingTransaction } = await admin
+          .from("cash_transactions")
+          .select("id")
+          .eq("club_id", clubId)
+          .eq("source_key", sourceKey)
+          .maybeSingle<{ id: number }>();
+        transactionId = existingTransaction?.id ?? null;
+      } else {
+        redirect(beerManageUrl({ error: "Barzahlung konnte nicht verbucht werden." }));
+      }
+    } else {
+      transactionId = transaction?.id ?? null;
+    }
+  }
+
+  if (!transactionId) {
+    redirect(beerManageUrl({ error: "Barzahlung konnte nicht verbucht werden." }));
+  }
+
+  const { error: updateError } = await admin
+    .from("beer_consumptions")
+    .update({
+      payment_status: "paid",
+      paid_at: new Date().toISOString(),
+      confirmed_by: user.id,
+      cash_transaction_id: transactionId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("club_id", clubId)
+    .eq("id", entry.id);
+
+  if (updateError) {
+    redirect(beerManageUrl({ error: "Zahlungsstatus konnte nicht gespeichert werden." }));
+  }
+
+  refreshBeerViews();
+  redirect(beerManageUrl({ saved: "paid" }));
+}
+
+export async function updateBeerConsumptionAction(formData: FormData) {
+  const { clubId } = await requireBeerManagementAccess();
+  const consumptionId = Number(String(formData.get("consumption_id") ?? ""));
+  const quantity = Number(String(formData.get("quantity") ?? ""));
+
+  if (!Number.isFinite(consumptionId) || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+    redirect(beerManageUrl({ error: "Bitte eine gültige Bier-Anzahl wählen." }));
+  }
+
+  const admin = createAdminClient();
+  const { data: entry, error: entryError } = await admin
+    .from("beer_consumptions")
+    .select("id,unit_price_cents,payment_status")
+    .eq("club_id", clubId)
+    .eq("id", consumptionId)
+    .maybeSingle<{
+      id: number;
+      unit_price_cents: number;
+      payment_status: "pending" | "paid" | "cancelled";
+    }>();
+
+  if (entryError || !entry) {
+    redirect(beerManageUrl({ error: "Bier-Eintrag nicht gefunden." }));
+  }
+
+  if (entry.payment_status !== "pending") {
+    redirect(beerManageUrl({ error: "Nur offene Einträge können korrigiert werden." }));
+  }
+
+  const { error } = await admin
+    .from("beer_consumptions")
+    .update({
+      quantity,
+      total_cents: quantity * entry.unit_price_cents,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("club_id", clubId)
+    .eq("id", entry.id);
+
+  if (error) {
+    redirect(beerManageUrl({ error: "Bier-Anzahl konnte nicht geändert werden." }));
+  }
+
+  refreshBeerViews();
+  redirect(beerManageUrl({ saved: "updated" }));
+}
+
+export async function cancelBeerConsumptionAction(formData: FormData) {
+  const { clubId, user } = await requireBeerManagementAccess();
+  const consumptionId = Number(String(formData.get("consumption_id") ?? ""));
+  if (!Number.isFinite(consumptionId)) {
+    redirect(beerManageUrl({ error: "Ungültiger Bier-Eintrag." }));
+  }
+
+  const admin = createAdminClient();
+  const { data: entry, error: entryError } = await admin
+    .from("beer_consumptions")
+    .select("id,quantity,total_cents,payment_method,payment_status,cash_transaction_id")
+    .eq("club_id", clubId)
+    .eq("id", consumptionId)
+    .maybeSingle<{
+      id: number;
+      quantity: number;
+      total_cents: number;
+      payment_method: "paypal" | "cash";
+      payment_status: "pending" | "paid" | "cancelled";
+      cash_transaction_id: number | null;
+    }>();
+
+  if (entryError || !entry) {
+    redirect(beerManageUrl({ error: "Bier-Eintrag nicht gefunden." }));
+  }
+
+  if (entry.payment_status === "cancelled") {
+    redirect(beerManageUrl());
+  }
+
+  if (entry.payment_status === "paid" && entry.cash_transaction_id) {
+    const { error: reversalError } = await admin.from("cash_transactions").insert({
+      club_id: clubId,
+      amount_cents: -entry.total_cents,
+      kind: "reversal",
+      category: "Getränke",
+      title: `Storno: Bierkasse · ${entry.quantity} Bier`,
+      source_type: "beer_reversal",
+      source_id: entry.id,
+      source_key: `beer:${entry.id}:cash-reversal`,
+      reversed_transaction_id: entry.cash_transaction_id,
+      created_by: user.id,
+    });
+
+    if (reversalError && reversalError.code !== "23505") {
+      redirect(beerManageUrl({ error: "Gegenbuchung konnte nicht erstellt werden." }));
+    }
+  }
+
+  const { error } = await admin
+    .from("beer_consumptions")
+    .update({
+      payment_status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: user.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("club_id", clubId)
+    .eq("id", entry.id);
+
+  if (error) {
+    redirect(beerManageUrl({ error: "Bier-Eintrag konnte nicht storniert werden." }));
+  }
+
+  refreshBeerViews();
+  redirect(beerManageUrl({ saved: "cancelled" }));
 }
 
 export async function reportPenaltyAction(formData: FormData) {

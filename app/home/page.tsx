@@ -404,7 +404,7 @@ function MiniStatCard({
   );
 }
 
-export default async function HomePage({ searchParams }: { searchParams?: Promise<{ beer_error?: string }> }) {
+export default async function HomePage({ searchParams }: { searchParams?: Promise<{ beer_error?: string; beer_saved?: string }> }) {
   const q = await searchParams;
   const clubAccess = await requireClub();
   const { clubId, membership, isPowerUser, user, player } = clubAccess;
@@ -478,8 +478,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const bierkasseHomeEnabled =
     homeSettings?.beerkasse_premium_enabled === true &&
     homeSettings?.beerkasse_enabled === true &&
-    homeSettings?.beerkasse_home_enabled === true &&
-    Boolean(homeSettings?.beerkasse_paypal_url?.trim());
+    homeSettings?.beerkasse_home_enabled === true;
+  const bierkassePaypalEnabled = Boolean(homeSettings?.beerkasse_paypal_url?.trim());
   const bierkassePriceCents = Math.max(
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
@@ -1174,7 +1174,15 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
         {bierkasseHomeEnabled ? (
           <>
-            <HomeBeerCheckoutModal priceCents={bierkassePriceCents} />
+            <HomeBeerCheckoutModal
+              priceCents={bierkassePriceCents}
+              paypalEnabled={bierkassePaypalEnabled}
+            />
+            {q?.beer_saved === "cash" ? (
+              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
+                🍺 Eingetragen · Barzahlung ist noch offen.
+              </div>
+            ) : null}
             {q?.beer_error ? (
               <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">
                 {q.beer_error}
