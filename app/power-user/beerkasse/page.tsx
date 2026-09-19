@@ -10,6 +10,8 @@ type BeerRow = {
   quantity: number;
   unit_price_cents: number;
   total_cents: number;
+  payment_method: "paypal" | "cash";
+  payment_status: "pending" | "paid" | "cancelled";
   created_at: string;
 };
 
@@ -38,7 +40,7 @@ export default async function PowerUserBeerkassePage() {
     await Promise.all([
       admin
         .from("beer_consumptions")
-        .select("id,club_id,player_id,quantity,unit_price_cents,total_cents,created_at")
+        .select("id,club_id,player_id,quantity,unit_price_cents,total_cents,payment_method,payment_status,created_at")
         .order("created_at", { ascending: false }),
       admin.from("clubs").select("id,display_name,name"),
     ]);
@@ -54,12 +56,22 @@ export default async function PowerUserBeerkassePage() {
 
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
-  const beers = rows.reduce((sum, row) => sum + row.quantity, 0);
-  const totalCents = rows.reduce((sum, row) => sum + row.total_cents, 0);
-  const beersToday = rows
+  const activeRows = rows.filter((row) => row.payment_status !== "cancelled");
+  const beers = activeRows.reduce((sum, row) => sum + row.quantity, 0);
+  const totalCents = activeRows.reduce((sum, row) => sum + row.total_cents, 0);
+  const paidCents = activeRows
+    .filter((row) => row.payment_status === "paid")
+    .reduce((sum, row) => sum + row.total_cents, 0);
+  const openCashCents = activeRows
+    .filter((row) => row.payment_method === "cash" && row.payment_status === "pending")
+    .reduce((sum, row) => sum + row.total_cents, 0);
+  const pendingPaypalCents = activeRows
+    .filter((row) => row.payment_method === "paypal" && row.payment_status === "pending")
+    .reduce((sum, row) => sum + row.total_cents, 0);
+  const beersToday = activeRows
     .filter((row) => now - new Date(row.created_at).getTime() < dayMs)
     .reduce((sum, row) => sum + row.quantity, 0);
-  const beers7d = rows
+  const beers7d = activeRows
     .filter((row) => now - new Date(row.created_at).getTime() < 7 * dayMs)
     .reduce((sum, row) => sum + row.quantity, 0);
 
@@ -68,7 +80,7 @@ export default async function PowerUserBeerkassePage() {
     { clubId: string; clubName: string; beers: number; totalCents: number; bookings: number }
   >();
 
-  for (const row of rows) {
+  for (const row of activeRows) {
     const current = byClub.get(row.club_id) ?? {
       clubId: row.club_id,
       clubName: clubNames.get(row.club_id) ?? "Unbekannter Club",
@@ -109,8 +121,8 @@ export default async function PowerUserBeerkassePage() {
               Wie viel Bier läuft eigentlich über strikr?
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/55">
-              Gezählt werden bestätigte strikr-Buchungen beim Wechsel zu PayPal.
-              Ob die PayPal-Zahlung danach wirklich abgeschlossen wurde, können wir aktuell noch nicht bestätigen.
+              Verbrauch und Zahlung sind jetzt getrennt. Barzahlungen werden durch einen
+              Bierkassen-Verwalter bestätigt; PayPal bleibt bis zur technischen Rückmeldung ungeklärt.
             </p>
           </div>
         </div>
@@ -118,27 +130,27 @@ export default async function PowerUserBeerkassePage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
-              label: "Bier gesamt",
+              label: "Bier erfasst",
               value: `${beers} 🍺`,
-              text: `${rows.length} Buchungen`,
+              text: `${activeRows.length} aktive Einträge · 24h: ${beersToday} · 7d: ${beers7d}`,
               icon: <Beer className="h-5 w-5" />,
             },
             {
-              label: "An PayPal übergeben",
-              value: euro(totalCents),
-              text: "noch keine Zahlungsbestätigung",
+              label: "Bestätigt bezahlt",
+              value: euro(paidCents),
+              text: "aktuell vor allem bestätigte Barzahlungen",
               icon: <CreditCard className="h-5 w-5" />,
             },
             {
-              label: "Letzte 24 Stunden",
-              value: `${beersToday} 🍺`,
-              text: "frische Buchungen",
+              label: "Bar offen",
+              value: euro(openCashCents),
+              text: "wartet auf Bestätigung im Club",
               icon: <Clock3 className="h-5 w-5" />,
             },
             {
-              label: "Letzte 7 Tage",
-              value: `${beers7d} 🍺`,
-              text: `${clubStats.length} Clubs mit Buchung`,
+              label: "PayPal ungeklärt",
+              value: euro(pendingPaypalCents),
+              text: "bis ein PayPal-Webhook angebunden ist",
               icon: <ReceiptText className="h-5 w-5" />,
             },
           ].map((card) => (
@@ -182,7 +194,7 @@ export default async function PowerUserBeerkassePage() {
                       {index + 1}. {club.clubName}
                     </div>
                     <div className="mt-1 text-xs font-medium text-slate-500">
-                      {club.bookings} Buchungen · {euro(club.totalCents)} an PayPal übergeben
+                      {club.bookings} Einträge · {euro(club.totalCents)} Verbrauchswert
                     </div>
                   </div>
                   <div className="shrink-0 text-lg font-black text-slate-950">
@@ -209,7 +221,13 @@ export default async function PowerUserBeerkassePage() {
                     {clubNames.get(row.club_id) ?? "Unbekannter Club"} · {row.quantity} 🍺
                   </div>
                   <div className="mt-1 text-xs font-medium text-slate-500">
-                    Spieler #{row.player_id} · {euro(row.total_cents)}
+                    Spieler #{row.player_id} · {euro(row.total_cents)} · {row.payment_method === "cash" ? "Bar" : "PayPal"} · {
+                      row.payment_status === "paid"
+                        ? "bezahlt"
+                        : row.payment_status === "cancelled"
+                          ? "storniert"
+                          : "offen/ungeklärt"
+                    }
                   </div>
                 </div>
                 <div className="text-xs font-medium text-slate-400">

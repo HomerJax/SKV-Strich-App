@@ -158,7 +158,7 @@ export default async function PowerUserPage() {
 
     adminSupabase
       .from("beer_consumptions")
-      .select("quantity,total_cents,club_id"),
+      .select("quantity,total_cents,club_id,payment_method,payment_status"),
 
     listAllAuthUsers().catch(() => []),
   ]);
@@ -192,15 +192,23 @@ export default async function PowerUserPage() {
         quantity: number;
         total_cents: number;
         club_id: string;
+        payment_method: "paypal" | "cash";
+        payment_status: "pending" | "paid" | "cancelled";
       }[]);
-  const beerCount = beerRows.reduce(
+  const activeBeerRows = beerRows.filter(
+    (row) => row.payment_status !== "cancelled",
+  );
+  const beerCount = activeBeerRows.reduce(
     (sum, row) => sum + (Number(row.quantity) || 0),
     0
   );
-  const beerValueCents = beerRows.reduce(
+  const beerValueCents = activeBeerRows.reduce(
     (sum, row) => sum + (Number(row.total_cents) || 0),
     0
   );
+  const paidBeerValueCents = activeBeerRows
+    .filter((row) => row.payment_status === "paid")
+    .reduce((sum, row) => sum + (Number(row.total_cents) || 0), 0);
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -267,12 +275,15 @@ export default async function PowerUserPage() {
 
           <KpiCard
             href="/power-user/beerkasse"
-            label="Bier über strikr gebucht"
+            label="Bier über strikr erfasst"
             value={`${beerCount} 🍺`}
             description={`${(beerValueCents / 100).toLocaleString("de-DE", {
               style: "currency",
               currency: "EUR",
-            })} wurden bisher an PayPal übergeben. Zahlung noch nicht technisch bestätigt.`}
+            })} Verbrauchswert · ${(paidBeerValueCents / 100).toLocaleString("de-DE", {
+              style: "currency",
+              currency: "EUR",
+            })} bestätigt bezahlt.`}
             icon={<Beer className="h-6 w-6" strokeWidth={2.1} />}
           />
 
