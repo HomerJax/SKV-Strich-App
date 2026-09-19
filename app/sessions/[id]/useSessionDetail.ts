@@ -499,11 +499,11 @@ export function useSessionDetail({
   const scoreAValue =
     results.length > 1
       ? resultSummary.winsA
-      : firstSavedResult?.goals_team_a ?? Number(goalsA) || 0;
+      : (firstSavedResult?.goals_team_a ?? (Number(goalsA) || 0));
   const scoreBValue =
     results.length > 1
       ? resultSummary.winsB
-      : firstSavedResult?.goals_team_b ?? Number(goalsB) || 0;
+      : (firstSavedResult?.goals_team_b ?? (Number(goalsB) || 0));
 
   const autoTeamNames = useMemo(
     () =>
