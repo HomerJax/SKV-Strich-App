@@ -79,8 +79,9 @@ export async function POST(request: NextRequest) {
   const password = String(formData.get("password") ?? "").trim();
   const next = normalizeNext(formData.get("next"));
   const native =
-    String(formData.get("native") ?? "") === "1" ||
-    request.headers.get("x-strikr-native") === "1";
+    String(formData.get("json") ?? "") === "1" ||
+    request.headers.get("x-strikr-login-mode") === "json" ||
+    request.headers.get("accept")?.includes("application/json") === true;
 
   if (!email || !password) {
     return errorResponse(request, "missing-fields", email, next, native);
