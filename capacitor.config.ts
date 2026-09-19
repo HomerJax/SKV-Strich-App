@@ -20,6 +20,7 @@ const config: CapacitorConfig = {
     ],
   },
   ios: {
+    backgroundColor: "#070B12",
     includePlugins: [
       "@capacitor-firebase/messaging",
       "@capacitor/filesystem",
