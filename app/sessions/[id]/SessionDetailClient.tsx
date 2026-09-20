@@ -171,6 +171,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     canUploadWinnerPhoto,
     scoreAValue,
     scoreBValue,
+    dayWinnerSide,
 
     showMvpSection,
     nextStepLabel,
@@ -220,16 +221,16 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   if (isEventSession) {
     activeSection = "attendance";
-  } else if (hasResult) {
-    activeSection = showMvpSection ? "mvp" : null;
   } else if (attendanceDirty || presentPlayers.length < 2) {
     activeSection = "attendance";
   } else if (!teamsComplete || !teamsConfirmed) {
     activeSection = "teams";
-  } else if (!hasWinnerPhoto) {
+  } else if (!hasResult) {
+    activeSection = "result";
+  } else if (dayWinnerSide && !hasWinnerPhoto) {
     activeSection = "photo";
   } else {
-    activeSection = "result";
+    activeSection = showMvpSection ? "mvp" : null;
   }
 
   function renderAttendance() {
@@ -313,7 +314,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   }
 
   function renderWinnerPhoto() {
-    if (!allowWinnerPhoto) return null;
+    if (!allowWinnerPhoto || !hasResult || !dayWinnerSide) return null;
 
     return (
       <SessionWinnerPhotoCard
@@ -329,7 +330,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         onWinnerPhotoUpload={handleWinnerPhotoUpload}
         onWinnerPhotoDelete={handleWinnerPhotoDelete}
         onToggleCollapsed={() => setWinnerPhotoCollapsed((prev) => !prev)}
-        title="Siegerfoto"
+        title="Tagessiegerfoto"
       />
     );
   }
@@ -375,7 +376,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       : activeSection === "teams"
         ? "Teams prüfen und anpassen"
         : activeSection === "photo"
-          ? "Optional Siegerfoto ergänzen"
+          ? "Tagessiegerfoto ergänzen"
           : activeSection === "result"
             ? "Spielergebnis eintragen"
             : activeSection === "mvp"
@@ -392,7 +393,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       : activeSection === "teams"
         ? "Teams erst prüfen, bei Bedarf verschieben und dann bestätigen."
         : activeSection === "photo"
-          ? "Optional, aber stark für Stimmung und spätere SiegerCard."
+          ? "Der Tagessieger steht fest. Jetzt kannst du das gemeinsame Siegerfoto ergänzen."
           : activeSection === "result"
             ? "Spiel 1 speichern – weitere Spiele kannst du danach direkt ergänzen."
             : activeSection === "mvp"
@@ -467,16 +468,22 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           <SessionGameTimerLoader sessionId={props.sessionId} />
         ) : null}
 
+        {allowResult ? renderWorkflowSection("result", renderResult()) : null}
         {allowWinnerPhoto
           ? renderWorkflowSection("photo", renderWinnerPhoto())
           : null}
-        {allowResult ? renderWorkflowSection("result", renderResult()) : null}
+
+        {hasResult && !dayWinnerSide ? (
+          <NoticeCard tone="default">
+            Tagessiege {scoreAValue}:{scoreBValue} – aktuell gibt es keinen eindeutigen Tagessieger. Deshalb wird kein Siegerfoto verwendet.
+          </NoticeCard>
+        ) : null}
+
         {showMvpSection ? renderWorkflowSection("mvp", renderMvp()) : null}
 
-        {isTrainingSession && !hasResult && !activeSection ? (
+        {isTrainingSession && hasResult && !activeSection ? (
           <NoticeCard tone="default">
-            Teams, Foto und Ergebnis sind bereit. Du kannst direkt den
-            Abschluss speichern.
+            Training gespeichert. Weitere Spiele kannst du jederzeit ergänzen.
           </NoticeCard>
         ) : null}
 
