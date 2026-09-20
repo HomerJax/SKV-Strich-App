@@ -32,6 +32,7 @@ type SessionAttendanceCardProps = {
   guestName: string;
   guestPosition: Player["preferred_position"] | "";
   guestAgeGroup: Player["age_group"] | "";
+  guestStrength: string;
   guestSaving: boolean;
   clubSettings: ClubSettings | null;
   collapsed: boolean;
@@ -46,6 +47,7 @@ type SessionAttendanceCardProps = {
   onGuestNameChange: (value: string) => void;
   onGuestPositionChange: (value: Player["preferred_position"] | "") => void;
   onGuestAgeGroupChange: (value: Player["age_group"] | "") => void;
+  onGuestStrengthChange: (value: string) => void;
   onAddGuestPlayer: () => void;
   onDeleteGuestPlayer: (playerId: number) => void;
   onTogglePresence: (playerId: number) => void;
@@ -263,6 +265,7 @@ export default function SessionAttendanceCard({
   guestName,
   guestPosition,
   guestAgeGroup,
+  guestStrength,
   guestSaving,
   clubSettings,
   collapsed,
@@ -277,6 +280,7 @@ export default function SessionAttendanceCard({
   onGuestNameChange,
   onGuestPositionChange,
   onGuestAgeGroupChange,
+  onGuestStrengthChange,
   onAddGuestPlayer,
   onDeleteGuestPlayer,
   onTogglePresence,
@@ -705,7 +709,7 @@ export default function SessionAttendanceCard({
                 />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className={`grid gap-3 ${clubSettings?.use_strength ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
                 <label className="block">
                   <div className="mb-1.5 text-xs font-semibold text-slate-700">
                     {clubSettings?.position_label ?? "Position"} (optional)
@@ -750,6 +754,28 @@ export default function SessionAttendanceCard({
                     <option value="Ü32">Ü32</option>
                   </select>
                 </label>
+
+                {clubSettings?.use_strength ? (
+                  <label className="block">
+                    <div className="mb-1.5 text-xs font-semibold text-slate-700">
+                      Stärke (optional)
+                    </div>
+                    <select
+                      value={guestStrength}
+                      onChange={(e) => onGuestStrengthChange(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
+                    >
+                      <option value="">
+                        Unbekannt (Standard {clubSettings.strength_default ?? 3})
+                      </option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                    </select>
+                  </label>
+                ) : null}
               </div>
 
               <div className="pt-1">
