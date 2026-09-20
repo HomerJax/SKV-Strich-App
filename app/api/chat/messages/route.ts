@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { canManageClub } from "@/lib/auth/access";
 import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,11 @@ function authorName(params: {
   ).slice(0, 80);
 }
 
+async function requireTeamChat(clubId: string) {
+  const flags = await getFeatureFlagsForClub(clubId);
+  return flags.team_chat === true;
+}
+
 async function listMessages(clubId: string) {
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -62,6 +68,9 @@ async function listMessages(clubId: string) {
 
 export async function GET() {
   const { clubId } = await requireClub();
+  if (!(await requireTeamChat(clubId))) {
+    return NextResponse.json({ error: "Teamchat ist für diesen Club noch nicht freigeschaltet." }, { status: 403 });
+  }
 
   try {
     const messages = await listMessages(clubId);
@@ -80,6 +89,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const { clubId, user, player } = await requireClub();
+  if (!(await requireTeamChat(clubId))) {
+    return NextResponse.json({ error: "Teamchat ist für diesen Club noch nicht freigeschaltet." }, { status: 403 });
+  }
+
   const payload = (await request.json().catch(() => null)) as
     | { body?: unknown }
     | null;
@@ -125,6 +138,10 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const { clubId, user, membership, isPowerUser } = await requireClub();
+  if (!(await requireTeamChat(clubId))) {
+    return NextResponse.json({ error: "Teamchat ist für diesen Club noch nicht freigeschaltet." }, { status: 403 });
+  }
+
   const payload = (await request.json().catch(() => null)) as
     | { id?: unknown }
     | null;
