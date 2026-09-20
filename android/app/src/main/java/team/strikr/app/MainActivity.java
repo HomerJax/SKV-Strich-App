@@ -1,5 +1,6 @@
 package team.strikr.app;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -79,6 +80,27 @@ public class MainActivity extends BridgeActivity {
             progress,
             new LinearLayout.LayoutParams(dp(28), dp(28))
         );
+
+        final TextView instagram = new TextView(this);
+        instagram.setText("@getstrikr · Instagram");
+        instagram.setTextColor(Color.rgb(100, 116, 139));
+        instagram.setTextSize(12);
+        instagram.setGravity(Gravity.CENTER);
+        instagram.setPadding(dp(12), dp(12), dp(12), dp(12));
+        instagram.setOnClickListener(v -> {
+            final Intent intent = new Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("https://www.instagram.com/getstrikr/")
+            );
+            startActivity(intent);
+        });
+
+        final LinearLayout.LayoutParams instagramParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        instagramParams.topMargin = dp(18);
+        content.addView(instagram, instagramParams);
 
         final FrameLayout.LayoutParams contentParams = new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
