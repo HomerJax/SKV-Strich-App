@@ -1510,12 +1510,8 @@ ${sessionUrl}`;
           setGoalsB("");
         }
 
-        if (results.length === 0) {
-          setResultCollapsed(true);
-          setShowSessionEndModal(true);
-        } else {
-          setResultCollapsed(false);
-        }
+        setResultCollapsed(false);
+        setShowSessionEndModal(false);
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Fehler beim Speichern."));
