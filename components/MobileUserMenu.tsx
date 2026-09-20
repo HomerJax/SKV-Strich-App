@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Banknote, Instagram, LogOut, MessageCircle, PlayCircle, UserRound } from "lucide-react";
+import { Banknote, LogOut, MessageCircle, PlayCircle, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import LogoutButton from "@/components/LogoutButton";
 
@@ -106,19 +106,6 @@ export default function MobileUserMenu({
               </div>
             </Link>
           ) : null}
-          <a
-            href="https://www.instagram.com/getstrikr/"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setOpen(false)}
-            className={item}
-          >
-            <Instagram className="h-5 w-5 text-pink-600" />
-            <div>
-              <div>Instagram · @getstrikr</div>
-              <div className="text-[11px] text-slate-500">Folge strikr auf Instagram</div>
-            </div>
-          </a>
           <Link href="/demo" onClick={() => setOpen(false)} className={item}>
             <PlayCircle className="h-5 w-5 text-amber-700" />
             <div>
