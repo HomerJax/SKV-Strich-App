@@ -13,6 +13,12 @@ function addMonths(months: number) {
   return date.toISOString();
 }
 
+function addDays(days: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
 function getBillingPatch(action: string) {
   switch (action) {
     case "free":
@@ -24,14 +30,16 @@ function getBillingPatch(action: string) {
         billing_note: "Manuell auf Free gesetzt.",
       };
 
-    case "supercup_trial":
+    case "supercup_trial": {
+      const trialEndsAt = addDays(30);
       return {
         plan_key: "supercup_trial",
         status: "active",
-        trial_ends_at: "2026-07-31T21:59:59.000Z",
-        pro_ends_at: "2026-07-31T21:59:59.000Z",
-        billing_note: "Supercup Trial bis Ende Juli.",
+        trial_ends_at: trialEndsAt,
+        pro_ends_at: trialEndsAt,
+        billing_note: "Manuell für 30 Tage als Pro-Trial freigeschaltet.",
       };
+    }
 
     case "pro_6_months":
       return {
