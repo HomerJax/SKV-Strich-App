@@ -1,13 +1,18 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { canManageClub } from "@/lib/auth/access";
 import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import ChatClient, { type ChatMessage } from "./ChatClient";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
 export default async function ChatPage() {
   const { clubId, user, membership, isPowerUser } = await requireClub();
+  const flags = await getFeatureFlagsForClub(clubId);
+  if (flags.team_chat !== true) redirect("/home");
+
   const admin = createAdminClient();
 
   const [{ data: messagesData }, { data: clubData }] = await Promise.all([
