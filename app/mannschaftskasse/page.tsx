@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
 import { createClient } from "@/lib/supabase/server";
