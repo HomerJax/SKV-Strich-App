@@ -128,6 +128,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     setGuestPosition,
     guestAgeGroup,
     setGuestAgeGroup,
+    guestStrength,
+    setGuestStrength,
     guestSaving,
     deletingGuestPlayerId,
 
@@ -253,6 +255,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           guestName={guestName}
           guestPosition={guestPosition}
           guestAgeGroup={guestAgeGroup}
+          guestStrength={guestStrength}
           guestSaving={guestSaving}
           clubSettings={clubSettings}
           collapsed={attendanceCollapsed}
@@ -267,6 +270,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           onGuestNameChange={setGuestName}
           onGuestPositionChange={setGuestPosition}
           onGuestAgeGroupChange={setGuestAgeGroup}
+          onGuestStrengthChange={setGuestStrength}
           onAddGuestPlayer={addGuestPlayer}
           onDeleteGuestPlayer={handleDeleteGuestPlayer}
           onTogglePresence={(playerId) => {
