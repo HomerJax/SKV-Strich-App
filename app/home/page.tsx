@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CalendarDays, Medal, Star, TrendingUp, Trophy } from "lucide-react";
+import { CalendarDays, Instagram, Medal, Star, TrendingUp, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
@@ -1031,6 +1031,16 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             Geschichte lesen →
           </div>
         </Link>
+
+        <a
+          href="https://www.instagram.com/getstrikr/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mx-auto inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold text-slate-400 transition hover:bg-white hover:text-pink-600"
+        >
+          <Instagram className="h-4 w-4" />
+          @getstrikr auf Instagram
+        </a>
       </section>
     </main>
   );
