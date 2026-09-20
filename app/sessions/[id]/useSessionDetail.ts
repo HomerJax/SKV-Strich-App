@@ -484,6 +484,13 @@ export function useSessionDetail({
     return { winsA, winsB };
   }, [results]);
 
+  const dayWinnerSide: "A" | "B" | null =
+    resultSummary.winsA > resultSummary.winsB
+      ? "A"
+      : resultSummary.winsB > resultSummary.winsA
+        ? "B"
+        : null;
+
   const teamsComplete =
     !allowTeams || (teamA.length > 0 && teamB.length > 0 && unassigned.length === 0);
 
@@ -491,6 +498,8 @@ export function useSessionDetail({
 
   const canUploadWinnerPhoto =
     allowWinnerPhoto &&
+    hasResult &&
+    dayWinnerSide !== null &&
     teamsComplete &&
     teamsConfirmed &&
     !photoBusy &&
@@ -1486,8 +1495,13 @@ ${sessionUrl}`;
         setHasResult(true);
         setAttendanceCollapsed(true);
         setTeamsCollapsed(true);
-        setWinnerPhotoCollapsed(true);
+        setWinnerPhotoCollapsed(false);
         setTeamsConfirmed(true);
+
+        if (result.winnerPhotoCleared === true && session) {
+          setSession({ ...session, winner_photo_path: null });
+          setWinnerPhotoUrl(null);
+        }
         setMsg(result.message);
         resetPreparedResultShare();
 
@@ -1554,6 +1568,11 @@ ${sessionUrl}`;
         setHasResult(result.hasResult);
         setShowSessionEndModal(false);
         resetPreparedResultShare();
+
+        if (result.winnerPhotoCleared === true && session) {
+          setSession({ ...session, winner_photo_path: null });
+          setWinnerPhotoUrl(null);
+        }
         setMsg(result.message);
 
         if (!result.hasResult) {
@@ -1579,6 +1598,16 @@ ${sessionUrl}`;
 
     if (!allowWinnerPhoto) {
       setErr("Für diesen Termin gibt es kein Siegerfoto.");
+      return;
+    }
+
+    if (!hasResult) {
+      setErr("Bitte zuerst mindestens ein Ergebnis speichern.");
+      return;
+    }
+
+    if (!dayWinnerSide) {
+      setErr("Bei Gleichstand gibt es keinen eindeutigen Tagessieger und deshalb kein Siegerfoto.");
       return;
     }
 
@@ -1636,7 +1665,7 @@ ${sessionUrl}`;
             ? " Tipp: Für die Share Card funktioniert ein Hochformat-Foto meistens deutlich besser."
             : "";
 
-        setMsg(`Siegerfoto hochgeladen. Jetzt noch Ergebnis eintragen.${orientationHint}`);
+        setMsg(`Tagessiegerfoto gespeichert.${orientationHint}`);
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Siegerfoto konnte nicht hochgeladen werden."));
@@ -1793,6 +1822,7 @@ ${sessionUrl}`;
     canUploadWinnerPhoto,
     scoreAValue,
     scoreBValue,
+    dayWinnerSide,
     autoTeamNames,
 
     attendanceDone,
