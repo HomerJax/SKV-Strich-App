@@ -308,12 +308,12 @@ export async function completeOnboarding(
     .upsert(
       {
         club_id: club.id,
-        plan_key: "supercup_trial",
+        plan_key: "free",
         status: "active",
-        trial_ends_at: "2026-07-31T21:59:59.000Z",
-        pro_ends_at: "2026-07-31T21:59:59.000Z",
+        trial_ends_at: null,
+        pro_ends_at: null,
         billing_note:
-          "Automatisch beim Onboarding als Supercup Trial bis Ende Juli angelegt.",
+          "Automatisch beim Onboarding im kostenlosen Startplan angelegt.",
         updated_at: new Date().toISOString(),
       },
       {
