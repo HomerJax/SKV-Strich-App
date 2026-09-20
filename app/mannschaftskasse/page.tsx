@@ -420,7 +420,7 @@ export default async function Page({ searchParams }: Props) {
           </div>
         ) : null}
 
-        <section className="rounded-[24px] border bg-white p-5">
+        <section className={contributionsEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
           <h2 className="text-lg font-black">Meine Beiträge</h2>
           <div className="mt-3 space-y-2">
             {myContributionMembers.map((member) => {
@@ -464,7 +464,7 @@ export default async function Page({ searchParams }: Props) {
           </div>
         </section>
 
-        <section className="rounded-[24px] border bg-white p-5">
+        <section className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
           <h2 className="text-lg font-black">Meine offenen Strafen</h2>
           <div className="mt-3 space-y-2">
             {mine.map((entry) => {
@@ -494,7 +494,7 @@ export default async function Page({ searchParams }: Props) {
           </div>
         </section>
 
-        <section className="rounded-[24px] border bg-white p-5">
+        <section className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
           <h2 className="text-lg font-black">Posten melden</h2>
           <p className="mt-1 text-xs text-slate-500">
             Jeder im Team darf einen Posten melden. Bezahlt, befreit oder storniert wird durch Kassenwart/Admin.
@@ -559,7 +559,7 @@ export default async function Page({ searchParams }: Props) {
           </div>
         </details>
 
-        <details className="rounded-[24px] border bg-white p-5">
+        <details className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
           <summary className="cursor-pointer font-black">
             Teamweit offene Strafen ({openPenalties.length})
           </summary>
