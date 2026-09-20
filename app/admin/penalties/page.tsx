@@ -203,7 +203,7 @@ export default async function Page({ searchParams }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("club_settings")
-      .select("beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_home_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
+      .select("cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_home_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -315,14 +315,23 @@ export default async function Page({ searchParams }: Props) {
     0,
   );
 
-  const tabs = [
+  const penaltiesEnabled = settings?.cashbox_penalties_enabled === true;
+  const contributionsEnabled = settings?.cashbox_contributions_enabled === true;
+  const tabs = ([
     ["overview", "Übersicht"],
     ["transactions", "Umsätze"],
     ["contributions", "Beiträge"],
     ["penalties", "Strafen"],
     ["rules", "Regeln"],
     ["settings", "Einstellungen"],
-  ] as const;
+  ] as const).filter(([key]) =>
+    key === "contributions"
+      ? contributionsEnabled
+      : key === "penalties" || key === "rules"
+        ? penaltiesEnabled
+        : true,
+  );
+  const visibleTab = tabs.some(([key]) => key === activeTab) ? activeTab : "overview";
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -331,9 +340,7 @@ export default async function Page({ searchParams }: Props) {
           <Link href={isClubAdmin ? "/admin" : "/mannschaftskasse"} className="text-sm font-semibold text-slate-600">
             ← Zurück
           </Link>
-          <Link href="/mannschaftskasse" className="text-xs font-bold text-slate-500">
-            Spieleransicht
-          </Link>
+          <div className="flex items-center gap-2"><Link href="/mannschaftskasse/setup?edit=1" className="text-xs font-bold text-slate-500">Setup ändern</Link><Link href="/mannschaftskasse" className="text-xs font-bold text-slate-500">Spieleransicht</Link></div>
         </div>
 
         <div className="rounded-[28px] bg-slate-950 p-5 text-white">
@@ -355,7 +362,7 @@ export default async function Page({ searchParams }: Props) {
               href={tabHref(key)}
               className={[
                 "whitespace-nowrap rounded-full px-4 py-2 text-xs font-black transition",
-                activeTab === key
+                visibleTab === key
                   ? "bg-slate-950 text-white"
                   : "border border-slate-200 bg-white text-slate-600",
               ].join(" ")}
@@ -376,7 +383,7 @@ export default async function Page({ searchParams }: Props) {
           </div>
         ) : null}
 
-        {activeTab === "overview" ? (
+        {visibleTab === "overview" ? (
           <>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <StatCard label="Kassenstand" value={formatCents(balanceCents)} />
@@ -447,7 +454,7 @@ export default async function Page({ searchParams }: Props) {
           </>
         ) : null}
 
-        {activeTab === "transactions" ? (
+        {visibleTab === "transactions" ? (
           <>
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black">Neue Buchung</h2>
@@ -563,7 +570,7 @@ export default async function Page({ searchParams }: Props) {
           </>
         ) : null}
 
-        {activeTab === "contributions" ? (
+        {visibleTab === "contributions" ? (
           <>
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black">Neuer Beitrag</h2>
@@ -691,7 +698,7 @@ export default async function Page({ searchParams }: Props) {
           </>
         ) : null}
 
-        {activeTab === "penalties" ? (
+        {visibleTab === "penalties" ? (
           <>
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black">Neuer Posten</h2>
@@ -799,7 +806,7 @@ export default async function Page({ searchParams }: Props) {
           </>
         ) : null}
 
-        {activeTab === "rules" ? (
+        {visibleTab === "rules" ? (
           <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-black">Strafen & Automatik-Regeln</h2>
             <p className="mt-1 text-xs text-slate-500">
@@ -857,7 +864,7 @@ export default async function Page({ searchParams }: Props) {
           </section>
         ) : null}
 
-        {activeTab === "settings" ? (
+        {visibleTab === "settings" ? (
           <>
             {isClubAdmin ? (
               <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
