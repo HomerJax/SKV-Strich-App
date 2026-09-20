@@ -230,7 +230,7 @@ function BillingActions({ clubId }: { clubId: string }) {
           type="submit"
           className="inline-flex w-full items-center justify-center rounded-xl bg-amber-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-amber-700"
         >
-          Supercup bis 31.07.
+          Pro-Trial 30 Tage
         </button>
       </form>
 
