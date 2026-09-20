@@ -246,6 +246,7 @@ export function useSessionDetail({
   const [guestAgeGroup, setGuestAgeGroup] = useState<Player["age_group"] | "">(
     ""
   );
+  const [guestStrength, setGuestStrength] = useState("");
   const [guestSaving, setGuestSaving] = useState(false);
   const [deletingGuestPlayerId, setDeletingGuestPlayerId] = useState<number | null>(
     null
@@ -358,6 +359,7 @@ export function useSessionDetail({
     setGuestName("");
     setGuestPosition("");
     setGuestAgeGroup("");
+    setGuestStrength("");
     setShowGuestForm(false);
   }
 
@@ -1090,6 +1092,7 @@ ${sessionUrl}`;
       formData.set("guest_name", cleanName);
       formData.set("guest_position", guestPosition ?? "");
       formData.set("guest_age_group", guestAgeGroup ?? "");
+      formData.set("guest_strength", guestStrength);
 
       const result = await postForm(formData);
 
@@ -1743,6 +1746,8 @@ ${sessionUrl}`;
     setGuestPosition,
     guestAgeGroup,
     setGuestAgeGroup,
+    guestStrength,
+    setGuestStrength,
     guestSaving,
     deletingGuestPlayerId,
 
