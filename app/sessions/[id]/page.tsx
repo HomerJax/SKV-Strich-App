@@ -178,9 +178,30 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const teamPlayersPromise = teamIds.length > 0
     ? supabase.from("team_players").select("team_id, player_id").in("team_id", teamIds)
     : Promise.resolve({ data: [] as TeamPlayerRow[], error: null });
-  const winnerPhotoPromise = session.winner_photo_path
-    ? supabase.storage.from("session-photos").createSignedUrl(session.winner_photo_path, 60 * 60)
-    : Promise.resolve({ data: null as { signedUrl: string } | null, error: null });
+
+  let dayWinsA = 0;
+  let dayWinsB = 0;
+  for (const savedResult of results) {
+    if (
+      savedResult.goals_team_a == null ||
+      savedResult.goals_team_b == null
+    ) {
+      continue;
+    }
+    if (savedResult.goals_team_a > savedResult.goals_team_b) dayWinsA += 1;
+    if (savedResult.goals_team_b > savedResult.goals_team_a) dayWinsB += 1;
+  }
+  const hasUniqueDayWinner = results.length > 0 && dayWinsA !== dayWinsB;
+  const sessionForClient: SessionRow = {
+    ...session,
+    winner_photo_path: hasUniqueDayWinner ? session.winner_photo_path : null,
+  };
+  const winnerPhotoPromise =
+    sessionForClient.winner_photo_path
+      ? supabase.storage
+          .from("session-photos")
+          .createSignedUrl(sessionForClient.winner_photo_path, 60 * 60)
+      : Promise.resolve({ data: null as { signedUrl: string } | null, error: null });
 
   const [
     { data: teamPlayersData, error: teamPlayersError },
@@ -203,7 +224,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   return (
     <SessionDetailClient
       sessionId={sessionId}
-      initialSession={session}
+      initialSession={sessionForClient}
       initialPlayers={players}
       initialPresentIds={presentIds}
       initialManualTeams={manualTeams}
