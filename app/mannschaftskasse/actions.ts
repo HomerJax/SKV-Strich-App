@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireClub } from "@/lib/auth/guards";
 import { requireBeerManagementAccess } from "@/lib/cashbox/access";
-import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
 function url(params: Record<string, string>, base = "/mannschaftskasse") {
   return `${base}?${new URLSearchParams(params)}`;
@@ -42,8 +41,6 @@ export async function recordBeerAction(formData: FormData) {
       ? "/home"
       : "/mannschaftskasse";
   const { clubId, player, user } = await requireClub();
-  const flags = await getFeatureFlagsForClub(clubId);
-  if (!(flags.penalties ?? false)) redirect("/home");
   if (!player) redirect(url({ beer_error: "Kein Spielerprofil gefunden." }, returnTo));
 
   const quantity = Number(String(formData.get("quantity") ?? "1"));
@@ -337,10 +334,20 @@ export async function cancelBeerConsumptionAction(formData: FormData) {
 
 export async function reportPenaltyAction(formData: FormData) {
   const { clubId } = await requireClub();
-  const flags = await getFeatureFlagsForClub(clubId);
-  if (!(flags.penalties ?? false)) redirect("/home");
-
   const supabase = await createClient();
+
+  const { data: cashboxSettings } = await supabase
+    .from("club_settings")
+    .select("cashbox_setup_completed,cashbox_penalties_enabled")
+    .eq("club_id", clubId)
+    .maybeSingle();
+
+  if (
+    cashboxSettings?.cashbox_setup_completed !== true ||
+    cashboxSettings?.cashbox_penalties_enabled !== true
+  ) {
+    redirect(url({ error: "Posten & Strafen sind für euren Club nicht aktiviert." }));
+  }
   const playerId = Number(String(formData.get("player_id") ?? ""));
   if (!Number.isFinite(playerId)) redirect(url({ error: "Bitte einen Spieler auswählen." }));
 

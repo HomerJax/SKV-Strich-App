@@ -52,13 +52,6 @@ export const FEATURE_FLAG_DEFINITIONS: FeatureFlagDefinition[] = [
       "Kontrollierter Rollout der Hall of Fame und automatischen Karriere-Trophäen. Sobald stabil, wird auch das zum Standard.",
     audience: "players",
   },
-  {
-    key: "penalties",
-    title: "Strafen",
-    description:
-      "Aktiviert den noch im Ausbau befindlichen Strafenkatalog für Kisten, Geldstrafen und offene Team-Schulden.",
-    audience: "players",
-  },
 ];
 
 export type ClubFeatureFlagRow = {

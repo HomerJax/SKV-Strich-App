@@ -4,16 +4,9 @@ import { redirect } from "next/navigation";
 import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
-import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
 export async function requireCashboxAccess(options?: { manage?: boolean }) {
   const ctx = await requireClub();
-  const flags = await getFeatureFlagsForClub(ctx.clubId);
-
-  if (!(flags.penalties ?? false)) {
-    redirect("/home");
-  }
-
   const isClubAdmin = canManageClub({
     isPowerUser: ctx.isPowerUser,
     role: ctx.membership.role,
