@@ -7,7 +7,7 @@ import { reportPenaltyAction } from "./actions";
 import BeerCheckoutCard from "./BeerCheckoutCard";
 
 type Props = {
-  searchParams?: Promise<{ saved?: string; error?: string; beer_error?: string; beer_saved?: string }>;
+  searchParams?: Promise<{ saved?: string; error?: string; beer_error?: string; beer_saved?: string; setup_saved?: string }>;
 };
 
 type Player = {
@@ -96,7 +96,7 @@ function beerBadge(total: number) {
 export default async function Page({ searchParams }: Props) {
   const q = await searchParams;
   const access = await requireCashboxAccess();
-  const { clubId, player, canManageCashbox, canManageBeer } = access;
+  const { clubId, player, canManageCashbox, canManageBeer, isClubAdmin } = access;
   const supabase = await createClient();
 
   const [
@@ -123,7 +123,7 @@ export default async function Page({ searchParams }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("club_settings")
-      .select("beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
+      .select("cashbox_setup_completed,cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
