@@ -9,6 +9,7 @@ type DeleteResultInput = {
   sessionId: number;
   clubId: string;
   gameNo: number;
+  winnerPhotoPath?: string | null;
 };
 
 export async function handleDeleteResult({
@@ -16,6 +17,7 @@ export async function handleDeleteResult({
   sessionId,
   clubId,
   gameNo,
+  winnerPhotoPath = null,
 }: DeleteResultInput) {
   if (!Number.isInteger(gameNo) || gameNo < 1) {
     return fail("Ungültige Spielnummer.");
@@ -36,6 +38,22 @@ export async function handleDeleteResult({
 
   if (countError) return fail(countError.message, 500);
 
+  let winnerPhotoCleared = false;
+  if (winnerPhotoPath) {
+    const { error: photoResetError } = await supabase
+      .from("sessions")
+      .update({ winner_photo_path: null })
+      .eq("id", sessionId)
+      .eq("club_id", clubId);
+
+    if (!photoResetError) {
+      winnerPhotoCleared = true;
+      await supabase.storage.from("session-photos").remove([winnerPhotoPath]);
+    } else {
+      console.error("Winner photo reset after result deletion failed", photoResetError);
+    }
+  }
+
   try {
     await syncClubAchievements(clubId);
   } catch (error) {
@@ -52,5 +70,6 @@ export async function handleDeleteResult({
     goalsA: "",
     goalsB: "",
     gameNo,
+    winnerPhotoCleared,
   });
 }
