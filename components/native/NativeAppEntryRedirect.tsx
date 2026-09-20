@@ -53,7 +53,7 @@ export default function NativeAppEntryRedirect() {
     };
   }, []);
 
-  if (!nativeBoot) return null;
+  if (!nativeBoot || Capacitor.getPlatform() === "ios") return null;
 
   return (
     <div className="fixed inset-0 z-[10000] flex min-h-[100dvh] items-center justify-center bg-[#070B12] px-6 text-white">
