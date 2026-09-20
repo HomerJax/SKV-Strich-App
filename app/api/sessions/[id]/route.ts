@@ -765,6 +765,7 @@ export async function POST(
         goalsB,
         manualTeamsRaw,
         actorUserId: currentUserId,
+        winnerPhotoPath: session.winner_photo_path,
       });
     }
 
@@ -783,6 +784,7 @@ export async function POST(
         sessionId,
         clubId,
         gameNo,
+        winnerPhotoPath: session.winner_photo_path,
       });
     }
 
@@ -933,6 +935,39 @@ export async function POST(
       if (!allowWinnerPhoto) {
         return fail(
           "Für diesen Termin gibt es kein Siegerfoto.",
+          400
+        );
+      }
+
+      const { data: resultRows, error: resultRowsError } = await adminSupabase
+        .from("results")
+        .select("goals_team_a,goals_team_b")
+        .eq("session_id", sessionId);
+
+      if (resultRowsError) {
+        return fail("Tagessieger konnte nicht geprüft werden.", 500);
+      }
+
+      let winsA = 0;
+      let winsB = 0;
+      for (const resultRow of resultRows ?? []) {
+        if (
+          typeof resultRow.goals_team_a !== "number" ||
+          typeof resultRow.goals_team_b !== "number"
+        ) {
+          continue;
+        }
+        if (resultRow.goals_team_a > resultRow.goals_team_b) winsA += 1;
+        if (resultRow.goals_team_b > resultRow.goals_team_a) winsB += 1;
+      }
+
+      if ((resultRows ?? []).length === 0) {
+        return fail("Bitte zuerst mindestens ein Ergebnis speichern.", 400);
+      }
+
+      if (winsA === winsB) {
+        return fail(
+          "Aktuell gibt es keinen eindeutigen Tagessieger. Bei Gleichstand gibt es kein Siegerfoto.",
           400
         );
       }
