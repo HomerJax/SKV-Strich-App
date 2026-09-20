@@ -136,7 +136,6 @@ export default function CashboxSetupWizard({
     return result;
   }, [beerEnabled, premiumBeer]);
 
-  const stepIndex = Math.max(0, steps.indexOf(stepId));
   const safeStepId = steps.includes(stepId) ? stepId : "managers";
   const safeStepIndex = Math.max(0, steps.indexOf(safeStepId));
   const progress = ((safeStepIndex + 1) / steps.length) * 100;
