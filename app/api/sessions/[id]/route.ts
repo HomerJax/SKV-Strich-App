@@ -574,6 +574,7 @@ export async function POST(
       const guestName = String(formData.get("guest_name") ?? "");
       const guestPosition = String(formData.get("guest_position") ?? "");
       const guestAgeGroup = String(formData.get("guest_age_group") ?? "");
+      const guestStrength = String(formData.get("guest_strength") ?? "");
 
       return handleAddGuestPlayer({
         supabase,
@@ -583,6 +584,7 @@ export async function POST(
         guestName,
         guestPosition,
         guestAgeGroup,
+        guestStrength,
       });
     }
 
