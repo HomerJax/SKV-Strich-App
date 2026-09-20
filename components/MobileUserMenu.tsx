@@ -12,6 +12,7 @@ type P = {
   profilePhotoPositionX?: number | null;
   profilePhotoPositionY?: number | null;
   profilePhotoZoom?: number | null;
+  showTeamChatLink?: boolean;
 };
 
 function initial(value: string | null) {
@@ -24,6 +25,7 @@ export default function MobileUserMenu({
   profilePhotoPositionX = 50,
   profilePhotoPositionY = 50,
   profilePhotoZoom = 1,
+  showTeamChatLink = false,
 }: P) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement | null>(null);
@@ -95,13 +97,15 @@ export default function MobileUserMenu({
               <div className="text-[11px] text-slate-500">Posten sehen & melden</div>
             </div>
           </Link>
-          <Link href="/chat" onClick={() => setOpen(false)} className={item}>
-            <MessageCircle className="h-5 w-5 text-blue-700" />
-            <div>
-              <div>Teamchat</div>
-              <div className="text-[11px] text-slate-500">Nachrichten im Team</div>
-            </div>
-          </Link>
+          {showTeamChatLink ? (
+            <Link href="/chat" onClick={() => setOpen(false)} className={item}>
+              <MessageCircle className="h-5 w-5 text-blue-700" />
+              <div>
+                <div>Teamchat</div>
+                <div className="text-[11px] text-slate-500">Nachrichten im Team</div>
+              </div>
+            </Link>
+          ) : null}
           <a
             href="https://www.instagram.com/getstrikr/"
             target="_blank"
