@@ -415,6 +415,21 @@ class ViewController: CAPBridgeViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        let startupBackground = UIColor(
+            red: 7.0 / 255.0,
+            green: 11.0 / 255.0,
+            blue: 18.0 / 255.0,
+            alpha: 1.0
+        )
+        view.backgroundColor = startupBackground
+
+        if let webView = bridge?.webView {
+            webView.isOpaque = false
+            webView.backgroundColor = startupBackground
+            webView.scrollView.backgroundColor = startupBackground
+        }
+
         showStartupOverlay()
         NotificationCenter.default.addObserver(
             self,
