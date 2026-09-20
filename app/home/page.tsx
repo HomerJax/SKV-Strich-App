@@ -488,6 +488,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   );
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
+  const clubName = club?.display_name?.trim() || "Dein Team";
+  const userId = user?.id ?? null;
   const hasSeason = Boolean(seasonExistsData);
 
   const showGettingStarted =
