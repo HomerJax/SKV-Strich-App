@@ -29,6 +29,7 @@ export const FEATURE_FLAG_KEYS = [
   "home_session_rsvp",
   "session_types",
   "penalties",
+  "team_chat",
 ] as const;
 
 export type FeatureFlagKey = (typeof FEATURE_FLAG_KEYS)[number];
