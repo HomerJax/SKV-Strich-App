@@ -64,7 +64,7 @@ type ApiSuccess =
       message: string;
       deletedGuestPlayerId: number;
     }
-  | { ok: true; message: string; hasResult: boolean; goalsA: string; goalsB: string; gameNo: number }
+  | { ok: true; message: string; hasResult: boolean; goalsA: string; goalsB: string; gameNo: number; winnerPhotoCleared?: boolean }
   | {
       ok: true;
       message: string;
