@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { saveCashboxSetupAction } from "./actions";
 
 type Props = {
-  searchParams?: Promise<{ error?: string; edit?: string }>;
+  searchParams?: Promise<{ error?: string; edit?: string; wizard?: string }>;
 };
 
 type PlayerRow = {
@@ -73,7 +73,8 @@ export default async function Page({ searchParams }: Props) {
     (managersData ?? []).map((row) => String(row.user_id)),
   );
   const premiumBeer = settings?.beerkasse_premium_enabled === true;
-  const editing = settings?.cashbox_setup_completed === true || q?.edit === "1";
+  const wizardMode = q?.wizard === "1";
+  const editing = !wizardMode && (settings?.cashbox_setup_completed === true || q?.edit === "1");
   const error = errorText(q?.error);
 
   return (
@@ -84,10 +85,17 @@ export default async function Page({ searchParams }: Props) {
             ← Mannschaftskasse
           </Link>
           {editing ? (
-            <span className="rounded-full bg-slate-200 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.12em] text-slate-600">
-              Setup ändern
+            <Link
+              href="/mannschaftskasse/setup?wizard=1"
+              className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[.12em] text-slate-700"
+            >
+              Wizard erneut starten
+            </Link>
+          ) : (
+            <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.12em] text-emerald-800">
+              Setup-Wizard
             </span>
-          ) : null}
+          )}
         </div>
 
         <div className="overflow-hidden rounded-[30px] bg-slate-950 p-6 text-white shadow-lg">
@@ -98,7 +106,9 @@ export default async function Page({ searchParams }: Props) {
             {editing ? "Was wollt ihr nutzen?" : "Einmal kurz einrichten."}
           </h1>
           <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-white/60">
-            Aktiviert nur die Bereiche, die zu eurem Team passen. Das könnt ihr später jederzeit wieder ändern.
+            {wizardMode
+              ? "Der Wizard ist wieder aktiv. Eure bisherigen Einstellungen bleiben vorausgewählt – du kannst sie einfach prüfen und neu speichern."
+              : "Aktiviert nur die Bereiche, die zu eurem Team passen. Das könnt ihr später jederzeit wieder ändern."}
           </p>
         </div>
 
