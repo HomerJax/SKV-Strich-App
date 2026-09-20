@@ -7,6 +7,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
+import HomeQuickStats from "@/components/home/HomeQuickStats";
 import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import PageHero from "@/components/ui/PageHero";
@@ -421,7 +422,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     { data: homeSettingsData },
     { count: invitesCount },
     { count: sessionsCount },
-    { data: seasonsData },
+    { data: seasonExistsData },
     { data: nextSessionData },
     { data: recentSessionsData },
   ] = await Promise.all([
@@ -448,9 +449,10 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       .eq("club_id", clubId),
     supabase
       .from("seasons")
-      .select("id, start_date, end_date")
+      .select("id")
       .eq("club_id", clubId)
-      .order("start_date", { ascending: false }),
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from("sessions")
       .select("id, date, start_time, rsvp_deadline_minutes_before, notes")
@@ -486,101 +488,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   );
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
-  const seasons = (seasonsData ?? []) as SeasonRow[];
-  const clubName = club?.display_name?.trim() || "Dein Team";
-  const userId = user?.id ?? null;
-
-  const currentSeason = getCurrentSeason(seasons, today);
-  const currentSeasonSessionsPromise = currentSeason
-    ? supabase
-        .from("sessions")
-        .select("id, date")
-        .eq("club_id", clubId)
-        .eq("season_id", currentSeason.id)
-        .lte("date", today)
-        .order("date", { ascending: false })
-    : Promise.resolve({
-        data: [] as SeasonSessionRow[],
-        error: null,
-      });
-
-  const { data: currentSeasonSessionsData } = await currentSeasonSessionsPromise;
-  const currentSeasonSessions = (currentSeasonSessionsData ?? []) as SeasonSessionRow[];
-  const currentSeasonSessionIds = currentSeasonSessions.map((session) => session.id);
-
-  let personalSuccessRate: number | null = null;
-
-  if (currentPlayerId && currentSeasonSessionIds.length > 0) {
-    const { data: personalResultsData } = await supabase
-      .from("results")
-      .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
-      .eq("club_id", clubId)
-      .in("session_id", currentSeasonSessionIds);
-
-    const results = (personalResultsData ?? []) as HomeResultRow[];
-    const resultTeamIds = Array.from(
-      new Set(
-        results.flatMap((result) =>
-          [result.team_a_id, result.team_b_id].filter(
-            (value): value is number =>
-              typeof value === "number" && Number.isFinite(value)
-          )
-        )
-      )
-    );
-
-    if (resultTeamIds.length > 0) {
-      const { data: myTeamRows } = await supabase
-        .from("team_players")
-        .select("team_id, player_id")
-        .eq("player_id", currentPlayerId)
-        .in("team_id", resultTeamIds);
-
-      const myTeamIds = new Set(
-        ((myTeamRows ?? []) as HomeTeamPlayerRow[])
-          .map((row) => row.team_id)
-          .filter((value) => Number.isFinite(value))
-      );
-
-      let wins = 0;
-      let completedResults = 0;
-
-      for (const result of results) {
-        const myTeamIsA =
-          result.team_a_id !== null && myTeamIds.has(result.team_a_id);
-        const myTeamIsB =
-          result.team_b_id !== null && myTeamIds.has(result.team_b_id);
-
-        if (!myTeamIsA && !myTeamIsB) {
-          continue;
-        }
-
-        const goalsA =
-          typeof result.goals_team_a === "number" ? result.goals_team_a : null;
-        const goalsB =
-          typeof result.goals_team_b === "number" ? result.goals_team_b : null;
-
-        if (goalsA === null || goalsB === null) {
-          continue;
-        }
-
-        completedResults += 1;
-
-        if ((myTeamIsA && goalsA > goalsB) || (myTeamIsB && goalsB > goalsA)) {
-          wins += 1;
-        }
-      }
-
-      personalSuccessRate =
-        completedResults > 0 ? Math.round((wins / completedResults) * 100) : null;
-    }
-  }
+  const hasSeason = Boolean(seasonExistsData);
 
   const showGettingStarted =
     isAdmin &&
     !isPowerUser &&
     ((sessionsCount ?? 0) === 0 ||
-      seasons.length === 0 ||
+      !hasSeason ||
       (invitesCount ?? 0) === 0);
 
   let clubLogoUrl: string | null = null;
@@ -853,43 +767,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     }
   }
 
-  let personalAttendanceCount = 0;
-  let attendanceRank: number | null = null;
-
-  if (currentPlayerId) {
-    const { data: clubPlayersData } = await supabase
-      .from("players")
-      .select("id")
-      .eq("club_id", clubId);
-
-    const clubPlayers = (clubPlayersData ?? []) as ClubPlayerStatsRow[];
-    const clubPlayerIds = clubPlayers
-      .map((clubPlayer) => Number(clubPlayer.id))
-      .filter((id) => Number.isFinite(id));
-
-    if (clubPlayerIds.length > 0 && currentSeasonSessionIds.length > 0) {
-      const { data: allAttendanceRows } = await supabase
-        .from("session_players")
-        .select("player_id")
-        .in("player_id", clubPlayerIds)
-        .in("session_id", currentSeasonSessionIds);
-
-      const attendanceCounts = new Map<number, number>();
-
-      for (const row of (allAttendanceRows ?? []) as AttendanceRow[]) {
-        const playerId = Number(row.player_id);
-        attendanceCounts.set(playerId, (attendanceCounts.get(playerId) ?? 0) + 1);
-      }
-
-      personalAttendanceCount = attendanceCounts.get(currentPlayerId) ?? 0;
-      attendanceRank =
-        1 +
-        clubPlayers.filter((clubPlayer) => {
-          const count = attendanceCounts.get(clubPlayer.id) ?? 0;
-          return count > personalAttendanceCount;
-        }).length;
-    }
-  }
 
   return (
     <main className="min-h-screen bg-neutral-100 pb-24">
@@ -997,65 +874,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           </div>
 
           {currentPlayerId ? (
-            <>
-              <div className="mt-4 grid grid-cols-4 gap-2.5">
-                <MiniStatCard
-                  icon={<CalendarDays className="h-4 w-4" />}
-                  value={String(personalAttendanceCount)}
-                  label="Teilnahmen"
-                  tone="blue"
-                />
-
-                <MiniStatCard
-                  icon={<TrendingUp className="h-4 w-4" />}
-                  value={formatPercent(personalSuccessRate)}
-                  label="Erfolgsquote"
-                  tone="emerald"
-                />
-
-                <MiniStatCard
-                  icon={<Medal className="h-4 w-4" />}
-                  value={formatRank(attendanceRank)}
-                  label="Tabelle"
-                  tone="violet"
-                />
-
-                <MiniStatCard
-                  icon={<Star className="h-4 w-4" />}
-                  value="?"
-                  label="Awards"
-                  tone="amber"
-                />
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Link
-                  href="/stats"
-                  className="flex min-h-[54px] items-center justify-between rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 via-cyan-50 to-white px-4 text-sm font-semibold text-slate-950 shadow-[0_12px_28px_rgba(37,99,235,0.08)] transition hover:from-blue-100 hover:via-cyan-50 hover:to-white"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-                      <TrendingUp className="h-4 w-4" />
-                    </span>
-                    <span>Mein Fortschritt</span>
-                  </span>
-                  <span className="text-blue-700" aria-hidden="true">→</span>
-                </Link>
-
-                <Link
-                  href="/standings"
-                  className="flex min-h-[54px] items-center justify-between rounded-[24px] border border-amber-100 bg-gradient-to-br from-amber-50 via-orange-50 to-white px-4 text-sm font-semibold text-slate-950 shadow-[0_12px_28px_rgba(245,158,11,0.08)] transition hover:from-amber-100 hover:via-orange-50 hover:to-white"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-                      <Trophy className="h-4 w-4" />
-                    </span>
-                    <span>Tabelle</span>
-                  </span>
-                  <span className="text-amber-600" aria-hidden="true">→</span>
-                </Link>
-              </div>
-            </>
+            <HomeQuickStats />
           ) : (
             <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 text-sm font-medium text-slate-600">
               Dein Profil ist noch nicht mit einem Spieler verknüpft.
