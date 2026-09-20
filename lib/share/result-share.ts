@@ -239,10 +239,6 @@ export async function getResultShareData(
   const branding = await getBaseShareBranding();
 
   const clubShareData = await getClubShareData(session.club_id, supabase);
-  const winnerPhotoUrl = await getWinnerPhotoUrl(
-    session.winner_photo_path,
-    supabase
-  );
 
   const club = clubShareData.club;
   const clubLogoUrl = clubShareData.clubLogoUrl;
@@ -274,6 +270,10 @@ export async function getResultShareData(
     ).length;
   }
 
+  const winnerPhotoUrl =
+    goalsA === goalsB
+      ? null
+      : await getWinnerPhotoUrl(session.winner_photo_path, supabase);
   const storyFlags = buildStoryFlags(goalsA, goalsB);
 
   return {
