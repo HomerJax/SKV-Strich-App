@@ -477,11 +477,19 @@ class ViewController: CAPBridgeViewController {
         loader.color = UIColor.white.withAlphaComponent(0.82)
         loader.startAnimating()
 
+        let instagramButton = UIButton(type: .system)
+        instagramButton.translatesAutoresizingMaskIntoConstraints = false
+        instagramButton.setTitle("@getstrikr · Instagram", for: .normal)
+        instagramButton.setTitleColor(UIColor.white.withAlphaComponent(0.52), for: .normal)
+        instagramButton.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
+        instagramButton.addTarget(self, action: #selector(openInstagram), for: .touchUpInside)
+
         view.addSubview(overlay)
         overlay.addSubview(logo)
         overlay.addSubview(brand)
         overlay.addSubview(claim)
         overlay.addSubview(loader)
+        overlay.addSubview(instagramButton)
 
         NSLayoutConstraint.activate([
             overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -502,10 +510,18 @@ class ViewController: CAPBridgeViewController {
 
             loader.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
             loader.topAnchor.constraint(equalTo: claim.bottomAnchor, constant: 26),
+
+            instagramButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            instagramButton.bottomAnchor.constraint(equalTo: overlay.safeAreaLayoutGuide.bottomAnchor, constant: -22),
         ])
 
         view.bringSubviewToFront(overlay)
         startupOverlay = overlay
+    }
+
+    @objc private func openInstagram() {
+        guard let url = URL(string: "https://www.instagram.com/getstrikr/") else { return }
+        UIApplication.shared.open(url)
     }
 
     @objc private func hideStartupOverlay() {
