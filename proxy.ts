@@ -3,6 +3,41 @@ import { NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
 const NATIVE_IOS_MARKER = "strikr-ios";
+const LAST_NATIVE_PATH_COOKIE = "strikr_last_path";
+
+function getSafeNativeRestorePath(rawValue: string | undefined) {
+  if (!rawValue) return "/home";
+
+  let decoded = rawValue;
+  try {
+    decoded = decodeURIComponent(rawValue);
+  } catch {
+    return "/home";
+  }
+
+  if (!decoded.startsWith("/") || decoded.startsWith("//")) return "/home";
+
+  const pathname = decoded.split(/[?#]/, 1)[0] || "/";
+  const blockedPrefixes = [
+    "/login",
+    "/signup",
+    "/auth",
+    "/join",
+    "/forgot-password",
+    "/reset-password",
+  ];
+
+  if (
+    pathname === "/" ||
+    blockedPrefixes.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    )
+  ) {
+    return "/home";
+  }
+
+  return decoded;
+}
 const RESTORABLE_NATIVE_PREFIXES = [
   "/home",
   "/sessions",
