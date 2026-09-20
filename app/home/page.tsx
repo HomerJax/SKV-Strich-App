@@ -415,15 +415,16 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     isPowerUser || membership.role === "admin" || membership.role === "owner";
   const currentPlayerId = player?.id ?? null;
 
+  const needsSetupState = isAdmin && !isPowerUser;
+
   const [
     featureFlags,
     { data: clubData },
     { data: homeSettingsData },
-    { count: invitesCount },
-    { count: sessionsCount },
-    { data: seasonsData },
+    { data: inviteExistsData },
+    { data: sessionExistsData },
+    { data: latestSeasonData },
     { data: nextSessionData },
-    { data: recentSessionsData },
   ] = await Promise.all([
     getFeatureFlagsForClub(clubId),
     supabase
@@ -438,19 +439,27 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       )
       .eq("club_id", clubId)
       .maybeSingle<HomeClubSettingsRow>(),
-    supabase
-      .from("invites")
-      .select("id", { count: "exact", head: true })
-      .eq("club_id", clubId),
+    needsSetupState
+      ? supabase
+          .from("invites")
+          .select("id")
+          .eq("club_id", clubId)
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: { id: "skip" }, error: null }),
     supabase
       .from("sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("club_id", clubId),
+      .select("id")
+      .eq("club_id", clubId)
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from("seasons")
       .select("id, start_date, end_date")
       .eq("club_id", clubId)
-      .order("start_date", { ascending: false }),
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .maybeSingle<SeasonRow>(),
     supabase
       .from("sessions")
       .select("id, date, start_time, rsvp_deadline_minutes_before, notes")
@@ -459,12 +468,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       .order("date", { ascending: true })
       .limit(1)
       .maybeSingle<SessionRow>(),
-    supabase
-      .from("sessions")
-      .select("id, date, start_time, rsvp_deadline_minutes_before, notes")
-      .eq("club_id", clubId)
-      .order("date", { ascending: false })
-      .limit(12),
   ]);
 
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
@@ -485,12 +488,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     Number(homeSettings?.beerkasse_price_cents ?? 200),
   );
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
-  const recentSessions = (recentSessionsData ?? []) as SessionRow[];
-  const seasons = (seasonsData ?? []) as SeasonRow[];
+  const currentSeason = (latestSeasonData ?? null) as SeasonRow | null;
   const clubName = club?.display_name?.trim() || "Dein Team";
   const userId = user?.id ?? null;
+  const hasSessions = Boolean(sessionExistsData);
+  const hasInvites = Boolean(inviteExistsData);
+  const hasSeason = Boolean(currentSeason);
 
-  const currentSeason = getCurrentSeason(seasons, today);
   const currentSeasonSessionsPromise = currentSeason
     ? supabase
         .from("sessions")
@@ -508,16 +512,30 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const currentSeasonSessions = (currentSeasonSessionsData ?? []) as SeasonSessionRow[];
   const currentSeasonSessionIds = currentSeasonSessions.map((session) => session.id);
 
-  let personalSuccessRate: number | null = null;
+  async function loadPersonalStats() {
+    if (!currentPlayerId || currentSeasonSessionIds.length === 0) {
+      return {
+        personalSuccessRate: null as number | null,
+        personalAttendanceCount: 0,
+        attendanceRank: null as number | null,
+      };
+    }
 
-  if (currentPlayerId && currentSeasonSessionIds.length > 0) {
-    const { data: personalResultsData } = await supabase
-      .from("results")
-      .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
-      .eq("club_id", clubId)
-      .in("session_id", currentSeasonSessionIds);
+    const [{ data: personalResultsData }, { data: clubPlayersData }] =
+      await Promise.all([
+        supabase
+          .from("results")
+          .select("session_id, team_a_id, team_b_id, goals_team_a, goals_team_b")
+          .eq("club_id", clubId)
+          .in("session_id", currentSeasonSessionIds),
+        supabase
+          .from("players")
+          .select("id")
+          .eq("club_id", clubId),
+      ]);
 
     const results = (personalResultsData ?? []) as HomeResultRow[];
+    const clubPlayers = (clubPlayersData ?? []) as ClubPlayerStatsRow[];
     const resultTeamIds = Array.from(
       new Set(
         results.flatMap((result) =>
@@ -528,256 +546,91 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         )
       )
     );
+    const clubPlayerIds = clubPlayers
+      .map((clubPlayer) => Number(clubPlayer.id))
+      .filter((id) => Number.isFinite(id));
 
-    if (resultTeamIds.length > 0) {
-      const { data: myTeamRows } = await supabase
-        .from("team_players")
-        .select("team_id, player_id")
-        .eq("player_id", currentPlayerId)
-        .in("team_id", resultTeamIds);
+    const [{ data: myTeamRows }, { data: allAttendanceRows }] = await Promise.all([
+      resultTeamIds.length > 0
+        ? supabase
+            .from("team_players")
+            .select("team_id, player_id")
+            .eq("player_id", currentPlayerId)
+            .in("team_id", resultTeamIds)
+        : Promise.resolve({ data: [] as HomeTeamPlayerRow[], error: null }),
+      clubPlayerIds.length > 0
+        ? supabase
+            .from("session_players")
+            .select("player_id")
+            .in("player_id", clubPlayerIds)
+            .in("session_id", currentSeasonSessionIds)
+        : Promise.resolve({ data: [] as AttendanceRow[], error: null }),
+    ]);
 
-      const myTeamIds = new Set(
-        ((myTeamRows ?? []) as HomeTeamPlayerRow[])
-          .map((row) => row.team_id)
-          .filter((value) => Number.isFinite(value))
-      );
-
-      let wins = 0;
-      let completedResults = 0;
-
-      for (const result of results) {
-        const myTeamIsA =
-          result.team_a_id !== null && myTeamIds.has(result.team_a_id);
-        const myTeamIsB =
-          result.team_b_id !== null && myTeamIds.has(result.team_b_id);
-
-        if (!myTeamIsA && !myTeamIsB) {
-          continue;
-        }
-
-        const goalsA =
-          typeof result.goals_team_a === "number" ? result.goals_team_a : null;
-        const goalsB =
-          typeof result.goals_team_b === "number" ? result.goals_team_b : null;
-
-        if (goalsA === null || goalsB === null) {
-          continue;
-        }
-
-        completedResults += 1;
-
-        if ((myTeamIsA && goalsA > goalsB) || (myTeamIsB && goalsB > goalsA)) {
-          wins += 1;
-        }
-      }
-
-      personalSuccessRate =
-        completedResults > 0 ? Math.round((wins / completedResults) * 100) : null;
-    }
-  }
-
-  const showGettingStarted =
-    isAdmin &&
-    !isPowerUser &&
-    ((sessionsCount ?? 0) === 0 ||
-      seasons.length === 0 ||
-      (invitesCount ?? 0) === 0);
-
-  let clubLogoUrl: string | null = null;
-
-  if (club?.logo_path) {
-    const { data } = supabase.storage
-      .from("club-logos")
-      .getPublicUrl(club.logo_path);
-
-    clubLogoUrl = data?.publicUrl ?? null;
-  }
-
-  const hasSessions = (sessionsCount ?? 0) > 0;
-  const recentSessionIds = recentSessions.map((session) => session.id);
-
-  let activeVotingSession:
-    | (SessionRow & { voteCount: number; eligibleVoterCount: number })
-    | null = null;
-
-  let mvpHighlight: HomeMvpHighlight | null = null;
-
-  if (mvpVotingEnabled && recentSessionIds.length > 0) {
-    const [{ data: resultsData }, { data: sessionPlayersData }, { data: votesData }] =
-      await Promise.all([
-        supabase
-          .from("results")
-          .select("session_id")
-          .in("session_id", recentSessionIds),
-        supabase
-          .from("session_players")
-          .select("session_id")
-          .in("session_id", recentSessionIds),
-        supabase
-          .from("session_mvp_votes")
-          .select("session_id, voted_player_id")
-          .in("session_id", recentSessionIds),
-      ]);
-
-    const resultSessionIds = new Set(
-      ((resultsData ?? []) as ResultSessionRow[]).map((row) =>
-        Number(row.session_id)
-      )
+    const myTeamIds = new Set(
+      ((myTeamRows ?? []) as HomeTeamPlayerRow[])
+        .map((row) => row.team_id)
+        .filter((value) => Number.isFinite(value))
     );
 
-    const eligibleCountBySession = new Map<number, number>();
-    for (const row of (sessionPlayersData ?? []) as SessionPlayerCountRow[]) {
-      const sessionId = Number(row.session_id);
-      eligibleCountBySession.set(
-        sessionId,
-        (eligibleCountBySession.get(sessionId) ?? 0) + 1
-      );
-    }
+    let wins = 0;
+    let completedResults = 0;
 
-    const voteCountBySession = new Map<number, number>();
-    for (const row of (votesData ?? []) as VoteRow[]) {
-      const sessionId = Number(row.session_id);
-      voteCountBySession.set(
-        sessionId,
-        (voteCountBySession.get(sessionId) ?? 0) + 1
-      );
-    }
+    for (const result of results) {
+      const myTeamIsA =
+        result.team_a_id !== null && myTeamIds.has(result.team_a_id);
+      const myTeamIsB =
+        result.team_b_id !== null && myTeamIds.has(result.team_b_id);
 
-    const found =
-      recentSessions.find(
-        (session) =>
-          resultSessionIds.has(session.id) && isVotingOpen(session.date)
-      ) ?? null;
+      if (!myTeamIsA && !myTeamIsB) continue;
 
-    activeVotingSession = found
-      ? {
-          ...found,
-          voteCount: voteCountBySession.get(found.id) ?? 0,
-          eligibleVoterCount: eligibleCountBySession.get(found.id) ?? 0,
-        }
-      : null;
+      const goalsA =
+        typeof result.goals_team_a === "number" ? result.goals_team_a : null;
+      const goalsB =
+        typeof result.goals_team_b === "number" ? result.goals_team_b : null;
 
-    const latestRevealedSession =
-      recentSessions.find(
-        (session) =>
-          resultSessionIds.has(session.id) && !isVotingOpen(session.date)
-      ) ?? null;
+      if (goalsA === null || goalsB === null) continue;
 
-    if (latestRevealedSession) {
-      const [{ data: mvpPlayersData }, { data: mvpVotesData }] =
-        await Promise.all([
-          supabase
-            .from("session_players")
-            .select(
-              `
-              player_id,
-              players (
-                id,
-                first_name,
-                last_name,
-                user_id,
-                mvp_count
-              )
-            `
-            )
-            .eq("session_id", latestRevealedSession.id),
-          supabase
-            .from("session_mvp_votes")
-            .select("voted_player_id")
-            .eq("session_id", latestRevealedSession.id),
-        ]);
-
-      const participants = ((mvpPlayersData ?? []) as MvpSessionPlayerRow[])
-        .map((row) => {
-          const mvpPlayer = normalizePlayerRelation(row.players);
-          if (!mvpPlayer) return null;
-
-          return {
-            playerId: row.player_id,
-            name: getPlayerName(mvpPlayer),
-            userId: mvpPlayer.user_id,
-            current: safeMvpCount(mvpPlayer.mvp_count),
-          };
-        })
-        .filter(
-          (
-            value
-          ): value is {
-            playerId: number;
-            name: string;
-            userId: string | null;
-            current: number;
-          } => value !== null
-        );
-
-      const participantByPlayerId = new Map(
-        participants.map((participant) => [participant.playerId, participant])
-      );
-
-      const counts = new Map<number, number>();
-      for (const vote of (mvpVotesData ?? []) as MvpVoteRow[]) {
-        const playerId = Number(vote.voted_player_id);
-        counts.set(playerId, (counts.get(playerId) ?? 0) + 1);
-      }
-
-      const leaderboard = [...counts.entries()]
-        .map(([playerId, votes]) => {
-          const participant = participantByPlayerId.get(playerId);
-          return toLeaderboardEntry({
-            playerId,
-            votes,
-            name: participant?.name ?? "Spieler",
-            current: Math.max(participant?.current ?? 1, 1),
-          });
-        })
-        .sort((a, b) =>
-          b.votes !== a.votes
-            ? b.votes - a.votes
-            : a.name.localeCompare(b.name, "de")
-        );
-
-      const winner = leaderboard[0] ?? null;
-      const topVotes = winner?.votes ?? 0;
-      const winners =
-        topVotes > 0
-          ? leaderboard.filter((entry) => entry.votes === topVotes)
-          : [];
-
-      if (winner) {
-        const currentUserWinner =
-          userId
-            ? winners.find((entry) => {
-                const participant = participantByPlayerId.get(entry.playerId);
-                return participant?.userId === userId;
-              }) ?? null
-            : null;
-
-        const displayWinner = currentUserWinner ?? winner;
-        const isWinner = Boolean(currentUserWinner);
-        const badgeKey = getBadgeKey(displayWinner.current);
-
-        mvpHighlight = {
-          notificationKey: `home:mvp-highlight:${clubId}:${latestRevealedSession.id}`,
-          sessionId: latestRevealedSession.id,
-          sessionHref: `/sessions/${latestRevealedSession.id}`,
-          sessionDateLabel: fmtDateLong(latestRevealedSession.date),
-          isWinner,
-          winner: displayWinner,
-          winners,
-          leaderboard,
-          badgeImageUrl: `/badges/hero/${badgeKey}.webp`,
-        };
+      completedResults += 1;
+      if ((myTeamIsA && goalsA > goalsB) || (myTeamIsB && goalsB > goalsA)) {
+        wins += 1;
       }
     }
+
+    const attendanceCounts = new Map<number, number>();
+    for (const row of (allAttendanceRows ?? []) as AttendanceRow[]) {
+      const playerId = Number(row.player_id);
+      attendanceCounts.set(playerId, (attendanceCounts.get(playerId) ?? 0) + 1);
+    }
+
+    const personalAttendanceCount =
+      attendanceCounts.get(currentPlayerId) ?? 0;
+    const attendanceRank =
+      1 +
+      clubPlayers.filter((clubPlayer) => {
+        const count = attendanceCounts.get(clubPlayer.id) ?? 0;
+        return count > personalAttendanceCount;
+      }).length;
+
+    return {
+      personalSuccessRate:
+        completedResults > 0 ? Math.round((wins / completedResults) * 100) : null,
+      personalAttendanceCount,
+      attendanceRank,
+    };
   }
 
-  let nextSessionPresenceStatus: "in" | "out" | "open" = "open";
-  let nextSessionPresentCount = 0;
-  let nextSessionAbsentCount = 0;
-  let nextSessionParticipantNames: string[] = [];
-  let nextSessionAbsentPlayers: { name: string; reason: string | null }[] = [];
+  async function loadNextSessionRsvp() {
+    if (!homeSessionRsvpEnabled || !nextSession) {
+      return {
+        nextSessionPresenceStatus: "open" as const,
+        nextSessionPresentCount: 0,
+        nextSessionAbsentCount: 0,
+        nextSessionParticipantNames: [] as string[],
+        nextSessionAbsentPlayers: [] as { name: string; reason: string | null }[],
+      };
+    }
 
-  if (homeSessionRsvpEnabled && nextSession) {
     const selfRsvpPromise = currentPlayerId
       ? supabase
           .from("session_rsvps")
@@ -824,71 +677,252 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
     const participants = (participantRows ?? []) as NextSessionParticipantRow[];
     const absences = (absentRows ?? []) as NextSessionAbsentRow[];
-    nextSessionPresentCount = participants.length;
-    nextSessionAbsentCount = absences.length;
-
-    nextSessionParticipantNames = participants
-      .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players)))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b, "de"));
-
-    nextSessionAbsentPlayers = absences
-      .map((row) => ({
-        name: getSimplePlayerName(normalizeSimplePlayerRelation(row.players)),
-        reason: row.reason?.trim() || null,
-      }))
-      .filter((row) => Boolean(row.name))
-      .sort((a, b) => a.name.localeCompare(b.name, "de"));
-
     const selfPresence = currentPlayerId
       ? participants.some((row) => row.player_id === currentPlayerId)
       : false;
 
-    if (selfRsvp?.status === "out") {
-      nextSessionPresenceStatus = "out";
-    } else if (selfRsvp?.status === "in" || selfPresence) {
-      nextSessionPresenceStatus = "in";
-    } else {
-      nextSessionPresenceStatus = "open";
-    }
+    const nextSessionPresenceStatus =
+      selfRsvp?.status === "out"
+        ? ("out" as const)
+        : selfRsvp?.status === "in" || selfPresence
+          ? ("in" as const)
+          : ("open" as const);
+
+    return {
+      nextSessionPresenceStatus,
+      nextSessionPresentCount: participants.length,
+      nextSessionAbsentCount: absences.length,
+      nextSessionParticipantNames: participants
+        .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players)))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "de")),
+      nextSessionAbsentPlayers: absences
+        .map((row) => ({
+          name: getSimplePlayerName(normalizeSimplePlayerRelation(row.players)),
+          reason: row.reason?.trim() || null,
+        }))
+        .filter((row) => Boolean(row.name))
+        .sort((a, b) => a.name.localeCompare(b.name, "de")),
+    };
   }
 
-  let personalAttendanceCount = 0;
-  let attendanceRank: number | null = null;
-
-  if (currentPlayerId) {
-    const { data: clubPlayersData } = await supabase
-      .from("players")
-      .select("id")
-      .eq("club_id", clubId);
-
-    const clubPlayers = (clubPlayersData ?? []) as ClubPlayerStatsRow[];
-    const clubPlayerIds = clubPlayers
-      .map((clubPlayer) => Number(clubPlayer.id))
-      .filter((id) => Number.isFinite(id));
-
-    if (clubPlayerIds.length > 0 && currentSeasonSessionIds.length > 0) {
-      const { data: allAttendanceRows } = await supabase
-        .from("session_players")
-        .select("player_id")
-        .in("player_id", clubPlayerIds)
-        .in("session_id", currentSeasonSessionIds);
-
-      const attendanceCounts = new Map<number, number>();
-
-      for (const row of (allAttendanceRows ?? []) as AttendanceRow[]) {
-        const playerId = Number(row.player_id);
-        attendanceCounts.set(playerId, (attendanceCounts.get(playerId) ?? 0) + 1);
-      }
-
-      personalAttendanceCount = attendanceCounts.get(currentPlayerId) ?? 0;
-      attendanceRank =
-        1 +
-        clubPlayers.filter((clubPlayer) => {
-          const count = attendanceCounts.get(clubPlayer.id) ?? 0;
-          return count > personalAttendanceCount;
-        }).length;
+  async function loadMvpState() {
+    if (!mvpVotingEnabled) {
+      return {
+        activeVotingSession: null as
+          | (SessionRow & { voteCount: number; eligibleVoterCount: number })
+          | null,
+        mvpHighlight: null as HomeMvpHighlight | null,
+      };
     }
+
+    const { data: recentSessionsData } = await supabase
+      .from("sessions")
+      .select("id, date, start_time, rsvp_deadline_minutes_before, notes")
+      .eq("club_id", clubId)
+      .order("date", { ascending: false })
+      .limit(12);
+
+    const recentSessions = (recentSessionsData ?? []) as SessionRow[];
+    const recentSessionIds = recentSessions.map((session) => session.id);
+
+    if (recentSessionIds.length === 0) {
+      return {
+        activeVotingSession: null,
+        mvpHighlight: null,
+      };
+    }
+
+    const [{ data: resultsData }, { data: sessionPlayersData }, { data: votesData }] =
+      await Promise.all([
+        supabase.from("results").select("session_id").in("session_id", recentSessionIds),
+        supabase
+          .from("session_players")
+          .select("session_id")
+          .in("session_id", recentSessionIds),
+        supabase
+          .from("session_mvp_votes")
+          .select("session_id, voted_player_id")
+          .in("session_id", recentSessionIds),
+      ]);
+
+    const resultSessionIds = new Set(
+      ((resultsData ?? []) as ResultSessionRow[]).map((row) => Number(row.session_id))
+    );
+    const eligibleCountBySession = new Map<number, number>();
+    for (const row of (sessionPlayersData ?? []) as SessionPlayerCountRow[]) {
+      const sessionId = Number(row.session_id);
+      eligibleCountBySession.set(
+        sessionId,
+        (eligibleCountBySession.get(sessionId) ?? 0) + 1
+      );
+    }
+
+    const voteCountBySession = new Map<number, number>();
+    for (const row of (votesData ?? []) as VoteRow[]) {
+      const sessionId = Number(row.session_id);
+      voteCountBySession.set(
+        sessionId,
+        (voteCountBySession.get(sessionId) ?? 0) + 1
+      );
+    }
+
+    const found =
+      recentSessions.find(
+        (session) =>
+          resultSessionIds.has(session.id) && isVotingOpen(session.date)
+      ) ?? null;
+
+    const activeVotingSession = found
+      ? {
+          ...found,
+          voteCount: voteCountBySession.get(found.id) ?? 0,
+          eligibleVoterCount: eligibleCountBySession.get(found.id) ?? 0,
+        }
+      : null;
+
+    const latestRevealedSession =
+      recentSessions.find(
+        (session) =>
+          resultSessionIds.has(session.id) && !isVotingOpen(session.date)
+      ) ?? null;
+
+    if (!latestRevealedSession) {
+      return { activeVotingSession, mvpHighlight: null };
+    }
+
+    const [{ data: mvpPlayersData }, { data: mvpVotesData }] = await Promise.all([
+      supabase
+        .from("session_players")
+        .select(
+          `
+          player_id,
+          players (
+            id,
+            first_name,
+            last_name,
+            user_id,
+            mvp_count
+          )
+        `
+        )
+        .eq("session_id", latestRevealedSession.id),
+      supabase
+        .from("session_mvp_votes")
+        .select("voted_player_id")
+        .eq("session_id", latestRevealedSession.id),
+    ]);
+
+    const participants = ((mvpPlayersData ?? []) as MvpSessionPlayerRow[])
+      .map((row) => {
+        const mvpPlayer = normalizePlayerRelation(row.players);
+        if (!mvpPlayer) return null;
+        return {
+          playerId: row.player_id,
+          name: getPlayerName(mvpPlayer),
+          userId: mvpPlayer.user_id,
+          current: safeMvpCount(mvpPlayer.mvp_count),
+        };
+      })
+      .filter(
+        (
+          value
+        ): value is {
+          playerId: number;
+          name: string;
+          userId: string | null;
+          current: number;
+        } => value !== null
+      );
+
+    const participantByPlayerId = new Map(
+      participants.map((participant) => [participant.playerId, participant])
+    );
+    const counts = new Map<number, number>();
+
+    for (const vote of (mvpVotesData ?? []) as MvpVoteRow[]) {
+      const playerId = Number(vote.voted_player_id);
+      counts.set(playerId, (counts.get(playerId) ?? 0) + 1);
+    }
+
+    const leaderboard = [...counts.entries()]
+      .map(([playerId, votes]) => {
+        const participant = participantByPlayerId.get(playerId);
+        return toLeaderboardEntry({
+          playerId,
+          votes,
+          name: participant?.name ?? "Spieler",
+          current: Math.max(participant?.current ?? 1, 1),
+        });
+      })
+      .sort((a, b) =>
+        b.votes !== a.votes
+          ? b.votes - a.votes
+          : a.name.localeCompare(b.name, "de")
+      );
+
+    const winner = leaderboard[0] ?? null;
+    if (!winner) return { activeVotingSession, mvpHighlight: null };
+
+    const topVotes = winner.votes;
+    const winners =
+      topVotes > 0
+        ? leaderboard.filter((entry) => entry.votes === topVotes)
+        : [];
+    const currentUserWinner =
+      userId
+        ? winners.find((entry) => {
+            const participant = participantByPlayerId.get(entry.playerId);
+            return participant?.userId === userId;
+          }) ?? null
+        : null;
+    const displayWinner = currentUserWinner ?? winner;
+    const isWinner = Boolean(currentUserWinner);
+    const badgeKey = getBadgeKey(displayWinner.current);
+
+    return {
+      activeVotingSession,
+      mvpHighlight: {
+        notificationKey: `home:mvp-highlight:${clubId}:${latestRevealedSession.id}`,
+        sessionId: latestRevealedSession.id,
+        sessionHref: `/sessions/${latestRevealedSession.id}`,
+        sessionDateLabel: fmtDateLong(latestRevealedSession.date),
+        isWinner,
+        winner: displayWinner,
+        winners,
+        leaderboard,
+        badgeImageUrl: `/badges/hero/${badgeKey}.webp`,
+      } satisfies HomeMvpHighlight,
+    };
+  }
+
+  const [personalStats, nextSessionRsvp, mvpState] = await Promise.all([
+    loadPersonalStats(),
+    loadNextSessionRsvp(),
+    loadMvpState(),
+  ]);
+
+  const {
+    personalSuccessRate,
+    personalAttendanceCount,
+    attendanceRank,
+  } = personalStats;
+  const {
+    nextSessionPresenceStatus,
+    nextSessionPresentCount,
+    nextSessionAbsentCount,
+    nextSessionParticipantNames,
+    nextSessionAbsentPlayers,
+  } = nextSessionRsvp;
+  const { activeVotingSession, mvpHighlight } = mvpState;
+
+  const showGettingStarted =
+    needsSetupState && (!hasSessions || !hasSeason || !hasInvites);
+
+  let clubLogoUrl: string | null = null;
+  if (club?.logo_path) {
+    const { data } = supabase.storage.from("club-logos").getPublicUrl(club.logo_path);
+    clubLogoUrl = data?.publicUrl ?? null;
   }
 
   return (

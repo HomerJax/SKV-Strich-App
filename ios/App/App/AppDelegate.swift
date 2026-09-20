@@ -445,6 +445,19 @@ class ViewController: CAPBridgeViewController {
             alpha: 1.0
         )
 
+        let logo = UIImageView()
+        logo.translatesAutoresizingMaskIntoConstraints = false
+        logo.contentMode = .scaleAspectFit
+        logo.clipsToBounds = true
+        logo.layer.cornerRadius = 20
+        if let iconPath = Bundle.main.path(
+            forResource: "icon-light",
+            ofType: "png",
+            inDirectory: "public"
+        ) {
+            logo.image = UIImage(contentsOfFile: iconPath)
+        }
+
         let brand = UILabel()
         brand.translatesAutoresizingMaskIntoConstraints = false
         brand.text = "strikr"
@@ -465,6 +478,7 @@ class ViewController: CAPBridgeViewController {
         loader.startAnimating()
 
         view.addSubview(overlay)
+        overlay.addSubview(logo)
         overlay.addSubview(brand)
         overlay.addSubview(claim)
         overlay.addSubview(loader)
@@ -475,8 +489,13 @@ class ViewController: CAPBridgeViewController {
             overlay.topAnchor.constraint(equalTo: view.topAnchor),
             overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
+            logo.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            logo.centerYAnchor.constraint(equalTo: overlay.centerYAnchor, constant: -92),
+            logo.widthAnchor.constraint(equalToConstant: 82),
+            logo.heightAnchor.constraint(equalToConstant: 82),
+
             brand.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
-            brand.centerYAnchor.constraint(equalTo: overlay.centerYAnchor, constant: -48),
+            brand.topAnchor.constraint(equalTo: logo.bottomAnchor, constant: 14),
 
             claim.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
             claim.topAnchor.constraint(equalTo: brand.bottomAnchor, constant: 12),
