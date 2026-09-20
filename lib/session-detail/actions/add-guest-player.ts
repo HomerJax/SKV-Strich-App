@@ -26,6 +26,7 @@ type AddGuestPlayerInput = {
   guestName: string;
   guestPosition: string;
   guestAgeGroup: string;
+  guestStrength: string;
 };
 
 function canAddGuestPlayer(role: string | null | undefined) {
@@ -40,6 +41,7 @@ export async function handleAddGuestPlayer({
   guestName,
   guestPosition,
   guestAgeGroup,
+  guestStrength,
 }: AddGuestPlayerInput) {
   const role = membership.role;
 
@@ -71,6 +73,16 @@ export async function handleAddGuestPlayer({
     return fail("Bitte einen Namen für den Gastspieler eingeben.");
   }
 
+  const cleanStrength = guestStrength.trim();
+  const parsedStrength = cleanStrength === "" ? null : Number(cleanStrength);
+
+  if (
+    parsedStrength !== null &&
+    (!Number.isInteger(parsedStrength) || parsedStrength < 1 || parsedStrength > 5)
+  ) {
+    return fail("Bitte eine gültige Stärke zwischen 1 und 5 wählen.");
+  }
+
   const payload = {
     club_id: clubId,
     name: guestName.trim(),
@@ -78,7 +90,7 @@ export async function handleAddGuestPlayer({
     is_guest: true,
     preferred_position: guestPosition.trim() === "" ? null : guestPosition.trim(),
     age_group: guestAgeGroup.trim() === "" ? null : guestAgeGroup.trim(),
-    strength: null,
+    strength: parsedStrength,
   };
 
   const { data: createdPlayer, error: insertPlayerError } = await supabase
