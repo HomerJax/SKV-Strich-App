@@ -9,6 +9,7 @@ import PresenceHeartbeat from "@/components/PresenceHeartbeat";
 import ClubSwitcher, {
   type ClubSwitcherClub,
 } from "@/components/PowerClubSwitcher";
+import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
 type ClubRow = {
   id: string;
@@ -101,6 +102,7 @@ export default async function AppHeader() {
   let profilePhotoZoom = 1;
   let primaryColor = COLOR_MAP.black;
   let switcherClubs: ClubSwitcherClub[] = [];
+  let showTeamChatLink = false;
 
   if (ctx.user) {
     const supabase = await createClient();
@@ -204,6 +206,11 @@ export default async function AppHeader() {
     }
   }
 
+  if (ctx.user && activeClubId) {
+    const flags = await getFeatureFlagsForClub(activeClubId);
+    showTeamChatLink = flags.team_chat === true;
+  }
+
   const nickname = ctx.player?.nickname?.trim() || null;
   const firstName = ctx.player?.first_name?.trim() || null;
   const profileLabel = nickname ?? firstName ?? "Spieler";
@@ -288,6 +295,7 @@ export default async function AppHeader() {
                 profilePhotoPositionY={profilePhotoPositionY}
                 profilePhotoZoom={profilePhotoZoom}
                 showPlayerStatsLink={true}
+                showTeamChatLink={showTeamChatLink}
               />
 
               <ClubSwitcher
