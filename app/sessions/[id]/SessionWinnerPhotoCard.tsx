@@ -350,9 +350,9 @@ export default function SessionWinnerPhotoCard({
       <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
         <button type="button" onClick={onToggleCollapsed} className={`flex w-full items-center justify-between gap-4 rounded-[20px] px-4 py-3.5 text-left transition ${done ? "bg-emerald-50" : "hover:bg-slate-50/70"}`}>
           <div className="flex items-center gap-3">
-            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${done ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500"}`}>{done ? "✓" : "3"}</span>
+            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${done ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500"}`}>{done ? "✓" : "🏆"}</span>
             <div>
-              <div className="text-sm font-bold text-slate-950">{done ? "Siegerfoto übernommen" : title}</div>
+              <div className="text-sm font-bold text-slate-950">{done ? "Tagessiegerfoto übernommen" : title}</div>
               <SummaryPill tone={done ? "success" : "muted"}>{done ? "Foto vorhanden" : "Optional"}</SummaryPill>
             </div>
           </div>
@@ -366,7 +366,7 @@ export default function SessionWinnerPhotoCard({
     <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between px-4 py-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-600">3</div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-600">🏆</div>
           <div>
             <div className="text-sm font-semibold text-slate-900">{title}</div>
             <SummaryPill tone={done ? "success" : "muted"}>{done ? "Foto vorhanden" : "Optional"}</SummaryPill>
