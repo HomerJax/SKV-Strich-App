@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Banknote, LogOut, PlayCircle, UserRound } from "lucide-react";
+import { Banknote, LogOut, MessageCircle, PlayCircle, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import LogoutButton from "@/components/LogoutButton";
 
@@ -93,6 +93,13 @@ export default function MobileUserMenu({
             <div>
               <div>Mannschaftskasse</div>
               <div className="text-[11px] text-slate-500">Posten sehen & melden</div>
+            </div>
+          </Link>
+          <Link href="/chat" onClick={() => setOpen(false)} className={item}>
+            <MessageCircle className="h-5 w-5 text-blue-700" />
+            <div>
+              <div>Teamchat</div>
+              <div className="text-[11px] text-slate-500">Nachrichten im Team</div>
             </div>
           </Link>
           <Link href="/demo" onClick={() => setOpen(false)} className={item}>
