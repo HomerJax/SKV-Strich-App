@@ -276,7 +276,7 @@ export default function CashboxSetupWizard({
                 Wollt ihr eine Bierkasse nutzen?
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Bier eintragen, offene Beträge sehen und Barzahlung oder PayPal nutzen.
+                Beispiel: Donnerstags nach dem Training – 1 Bier = 1 €. Eintragen, offenen Betrag sehen und auf Wunsch direkt per PayPal-Link zahlen. Dazu gibt’s Bierstatistik und Bier-Badges.
               </p>
 
               {premiumBeer ? (
