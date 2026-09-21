@@ -346,7 +346,7 @@ export async function reportPenaltyAction(formData: FormData) {
     cashboxSettings?.cashbox_setup_completed !== true ||
     cashboxSettings?.cashbox_penalties_enabled !== true
   ) {
-    redirect(url({ error: "Posten & Strafen sind für euren Club nicht aktiviert." }));
+    redirect(url({ error: "FBZG ist für euren Club nicht aktiviert." }));
   }
   const playerId = Number(String(formData.get("player_id") ?? ""));
   if (!Number.isFinite(playerId)) redirect(url({ error: "Bitte einen Spieler auswählen." }));
@@ -376,7 +376,7 @@ export async function reportPenaltyAction(formData: FormData) {
   const type: "beer" | "money" | "custom" =
     typeRaw === "money" || typeRaw === "custom" ? typeRaw : "beer";
   const value = (preset?.value ?? String(formData.get("value") ?? "").trim()) || null;
-  if (!reason || !value) redirect(url({ error: "Bitte Grund und Posten angeben." }));
+  if (!reason || !value) redirect(url({ error: "Bitte Grund und Beitrag angeben." }));
 
   const notes = String(formData.get("notes") ?? "").trim() || null;
   const escalationDays = preset?.escalation_after_days ?? (type === "beer" ? 28 : null);
@@ -394,7 +394,7 @@ export async function reportPenaltyAction(formData: FormData) {
     escalation_value: escalationValue,
   });
 
-  if (error) redirect(url({ error: "Posten konnte nicht eingetragen werden." }));
+  if (error) redirect(url({ error: "FBZG konnte nicht eingetragen werden." }));
   revalidatePath("/mannschaftskasse");
   revalidatePath("/admin/penalties");
   redirect(url({ saved: "1" }));
