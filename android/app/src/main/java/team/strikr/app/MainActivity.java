@@ -39,10 +39,10 @@ public class MainActivity extends BridgeActivity {
             return;
         }
 
-        webView.setBackgroundColor(Color.rgb(245, 245, 245));
+        webView.setBackgroundColor(Color.rgb(7, 11, 18));
 
         final FrameLayout overlay = new FrameLayout(this);
-        overlay.setBackgroundColor(Color.rgb(245, 245, 245));
+        overlay.setBackgroundColor(Color.rgb(7, 11, 18));
         overlay.setClickable(true);
 
         final LinearLayout content = new LinearLayout(this);
@@ -62,8 +62,8 @@ public class MainActivity extends BridgeActivity {
 
         final TextView title = new TextView(this);
         title.setText("strikr");
-        title.setTextColor(Color.rgb(15, 23, 42));
-        title.setTextSize(30);
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(42);
         title.setGravity(Gravity.CENTER);
         title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
 
@@ -71,8 +71,22 @@ public class MainActivity extends BridgeActivity {
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         );
-        titleParams.bottomMargin = dp(18);
+        titleParams.bottomMargin = dp(10);
         content.addView(title, titleParams);
+
+        final TextView claim = new TextView(this);
+        claim.setText("JEDES TRAINING ZÄHLT.");
+        claim.setTextColor(Color.argb(117, 255, 255, 255));
+        claim.setTextSize(10);
+        claim.setGravity(Gravity.CENTER);
+        claim.setTypeface(claim.getTypeface(), android.graphics.Typeface.BOLD);
+
+        final LinearLayout.LayoutParams claimParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        claimParams.bottomMargin = dp(20);
+        content.addView(claim, claimParams);
 
         final ProgressBar progress = new ProgressBar(this);
         progress.setIndeterminate(true);
@@ -83,7 +97,7 @@ public class MainActivity extends BridgeActivity {
 
         final TextView instagram = new TextView(this);
         instagram.setText("@getstrikr · Instagram");
-        instagram.setTextColor(Color.rgb(100, 116, 139));
+        instagram.setTextColor(Color.argb(115, 255, 255, 255));
         instagram.setTextSize(12);
         instagram.setGravity(Gravity.CENTER);
         instagram.setPadding(dp(12), dp(12), dp(12), dp(12));
