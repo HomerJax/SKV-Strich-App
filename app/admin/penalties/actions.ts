@@ -120,7 +120,7 @@ export async function addPenaltyAction(formData: FormData) {
     (preset?.value ?? String(formData.get("value") ?? "").trim()) || null;
 
   if (!reason || !value) {
-    redirect(url({ error: "Bitte Grund und Posten angeben." }));
+    redirect(url({ error: "Bitte Grund und Beitrag angeben." }));
   }
 
   const dueRaw = String(formData.get("due_date") ?? "").trim();
@@ -203,7 +203,7 @@ async function change(
   const id = Number(String(formData.get("penalty_id") ?? ""));
 
   if (!Number.isFinite(id)) {
-    redirect(url({ error: "Ungültiger Posten." }));
+    redirect(url({ error: "Ungültiger FBZG-Eintrag." }));
   }
 
   const { data: penalty, error: penaltyError } = await supabase
@@ -221,7 +221,7 @@ async function change(
     }>();
 
   if (penaltyError || !penalty) {
-    redirect(url({ error: penaltyError?.message ?? "Posten nicht gefunden." }));
+    redirect(url({ error: penaltyError?.message ?? "FBZG-Eintrag nicht gefunden." }));
   }
 
   if (mode === "resolve" && penalty.resolved_at) {
@@ -242,7 +242,7 @@ async function change(
             amount_cents: amountCents,
             kind: "income",
             category: "Strafen",
-            title: penalty.reason || "Geldstrafe",
+            title: penalty.reason || "FBZG-Geldbeitrag",
             source_type: "penalty",
             source_id: penalty.id,
             source_key: `penalty:${penalty.id}:payment:${Date.now()}`,
