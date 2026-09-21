@@ -321,7 +321,7 @@ export default async function Page({ searchParams }: Props) {
     ["overview", "Übersicht"],
     ["transactions", "Umsätze"],
     ["contributions", "Beiträge"],
-    ["penalties", "Strafen"],
+    ["penalties", "FBZG"],
     ["rules", "Regeln"],
     ["settings", "Einstellungen"],
   ] as const).filter(([key]) =>
@@ -349,7 +349,7 @@ export default async function Page({ searchParams }: Props) {
           </div>
           <h1 className="mt-1 text-2xl font-black">💰 Mannschaftskasse</h1>
           <p className="mt-2 max-w-2xl text-sm text-white/65">
-            Kassenstand, Beiträge, Strafen und echte Umsätze in einem System.
+            Kassenstand, Beiträge, FBZG und echte Umsätze in einem System. FBZG steht für „Freiwilliger Beitrag zur Gemeinschaft“ – Kisten, Kuchen, Geldbeträge & Co. mit einem Augenzwinkern.
           </p>
           <div className="mt-4 text-3xl font-black">{formatCents(balanceCents)}</div>
           <div className="mt-1 text-xs font-semibold text-white/45">aktueller Kassenstand</div>
@@ -390,7 +390,7 @@ export default async function Page({ searchParams }: Props) {
               <StatCard
                 label="Offen"
                 value={formatCents(openPenaltyCents + openContributionCents)}
-                hint="Geldstrafen + Beiträge"
+                hint="FBZG + Beiträge"
               />
               <StatCard label="Einnahmen Monat" value={formatCents(monthIncome)} />
               <StatCard label="Ausgaben Monat" value={formatCents(monthExpense)} />
@@ -405,7 +405,7 @@ export default async function Page({ searchParams }: Props) {
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl bg-amber-50 p-4">
                     <div className="text-2xl font-black text-amber-950">{openPenalties.length}</div>
-                    <div className="text-xs font-bold text-amber-700">offene Strafen</div>
+                    <div className="text-xs font-bold text-amber-700">offene FBZG</div>
                   </div>
                   <div className="rounded-2xl bg-blue-50 p-4">
                     <div className="text-2xl font-black text-blue-950">
@@ -434,7 +434,7 @@ export default async function Page({ searchParams }: Props) {
                       <div className="min-w-0">
                         <div className="truncate text-sm font-bold text-slate-900">{transaction.title}</div>
                         <div className="text-[11px] text-slate-500">
-                          {fmtDate(transaction.occurred_on)} · {transaction.category}
+                          {fmtDate(transaction.occurred_on)} · {transaction.category === "Strafen" ? "FBZG" : transaction.category}
                         </div>
                       </div>
                       <div className={`shrink-0 text-sm font-black ${transaction.amount_cents >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
@@ -471,7 +471,7 @@ export default async function Page({ searchParams }: Props) {
                 <select name="category" className="rounded-xl border px-3 py-2.5 text-sm">
                   <option>Startbestand</option>
                   <option>Beiträge</option>
-                  <option>Strafen</option>
+                  <option value="Strafen">FBZG</option>
                   <option>Getränke</option>
                   <option>Feier</option>
                   <option>Ausrüstung</option>
@@ -535,7 +535,7 @@ export default async function Page({ searchParams }: Props) {
                             ) : null}
                           </div>
                           <div className="mt-1 text-xs text-slate-500">
-                            {fmtDate(transaction.occurred_on)} · {transaction.category}
+                            {fmtDate(transaction.occurred_on)} · {transaction.category === "Strafen" ? "FBZG" : transaction.category}
                             {transaction.source_type && transaction.source_type !== "manual"
                               ? ` · automatisch: ${transaction.source_type}`
                               : ""}
@@ -701,7 +701,7 @@ export default async function Page({ searchParams }: Props) {
         {visibleTab === "penalties" ? (
           <>
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-black">Neuer Posten</h2>
+              <h2 className="text-lg font-black">Neuer FBZG-Eintrag</h2>
               <form action={addPenaltyAction} className="mt-4 space-y-3">
                 <select name="player_id" required className="w-full rounded-xl border px-3 py-2.5 text-sm">
                   <option value="">Spieler wählen</option>
@@ -710,7 +710,7 @@ export default async function Page({ searchParams }: Props) {
                   ))}
                 </select>
                 <select name="preset" defaultValue="" className="w-full rounded-xl border px-3 py-2.5 text-sm">
-                  <option value="">Eigener Posten</option>
+                  <option value="">Eigener Anlass</option>
                   {rules.filter((rule) => rule.enabled).map((rule) => (
                     <option key={rule.rule_key} value={rule.rule_key}>
                       {rule.label} · {rule.value}
@@ -720,7 +720,7 @@ export default async function Page({ searchParams }: Props) {
                 <div className="grid gap-2 sm:grid-cols-3">
                   <input name="reason" placeholder="Eigener Grund" className="rounded-xl border px-3 py-2.5 text-sm" />
                   <select name="type" className="rounded-xl border px-3 py-2.5 text-sm">
-                    <option value="beer">Sachposten</option>
+                    <option value="beer">Sachbeitrag</option>
                     <option value="money">Geld</option>
                     <option value="custom">Sonstiges</option>
                   </select>
@@ -728,15 +728,15 @@ export default async function Page({ searchParams }: Props) {
                 </div>
                 <input name="notes" placeholder="Notiz (optional)" className="w-full rounded-xl border px-3 py-2.5 text-sm" />
                 <button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
-                  Posten eintragen
+                  FBZG eintragen
                 </button>
               </form>
             </section>
 
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-black">Offene Strafen · {openPenalties.length}</h2>
+              <h2 className="text-lg font-black">Offene FBZG-Einträge · {openPenalties.length}</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Bei Geldstrafen erzeugt „Bezahlt“ automatisch eine Einnahme im Umsatzbuch.
+                Bei FBZG-Geldbeträgen erzeugt „Bezahlt“ automatisch eine Einnahme im Umsatzbuch.
               </p>
               <div className="mt-4 space-y-2">
                 {openPenalties.map((entry) => (
@@ -808,9 +808,9 @@ export default async function Page({ searchParams }: Props) {
 
         {visibleTab === "rules" ? (
           <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-black">Strafen & Automatik-Regeln</h2>
+            <h2 className="text-lg font-black">FBZG-Regeln & Automatik</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Betrag oder Sachposten, Aktivierung und Eskalation frei festlegen. Automatische Regeln wie „Verspätete Anmeldung“ laufen direkt in diese Liste.
+              Geld- oder Sachbeitrag, Aktivierung und Eskalation frei festlegen. Automatische Regeln wie „Verspätete Anmeldung“ laufen direkt in diese Liste.
             </p>
             <div className="mt-4 space-y-3">
               {rules.map((rule) => (
@@ -834,7 +834,7 @@ export default async function Page({ searchParams }: Props) {
                       </select>
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Wert / Posten</span>
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Wert / Beitrag</span>
                       <input name="value" defaultValue={rule.value} className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
                     </label>
                   </div>
@@ -842,12 +842,12 @@ export default async function Page({ searchParams }: Props) {
                     <label className="block">
                       <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Eskalation nach Tagen</span>
                       <input name="escalation_after_days" type="number" min="1" defaultValue={rule.escalation_after_days ?? ""} placeholder="z. B. 28" className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
-                      <span className="mt-1 block text-[10px] font-medium text-slate-500">Nach wie vielen Tagen sich der Posten verschärft.</span>
+                      <span className="mt-1 block text-[10px] font-medium text-slate-500">Nach wie vielen Tagen sich der Beitrag verschärft.</span>
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Danach gilt</span>
                       <input name="escalation_value" defaultValue={rule.escalation_value ?? ""} placeholder="z. B. + 1 Sechserträger" className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
-                      <span className="mt-1 block text-[10px] font-medium text-slate-500">Optional: neue Strafe oder zusätzlicher Posten nach Ablauf.</span>
+                      <span className="mt-1 block text-[10px] font-medium text-slate-500">Optional: zusätzlicher oder verschärfter FBZG-Beitrag nach Ablauf.</span>
                     </label>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
