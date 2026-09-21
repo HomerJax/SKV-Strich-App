@@ -252,10 +252,10 @@ export default function CashboxSetupWizard({
                 Beiträge
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                Sammelt ihr Mannschaftsbeiträge?
+                Sammelt ihr gemeinsame Beiträge?
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Beiträge anlegen und pro Spieler als offen, bezahlt oder befreit führen.
+                Zum Beispiel Jahresbeitrag, Geburtstagsgeld oder andere Umlagen. Ihr könnt mehrere Beitragsarten anlegen und pro Spieler getrennt als offen, bezahlt oder befreit führen.
               </p>
               <div className="mt-8">
                 <ToggleQuestion
