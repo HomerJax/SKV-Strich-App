@@ -29,8 +29,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 
     func applicationWillResignActive(_ application: UIApplication) {}
     func applicationDidEnterBackground(_ application: UIApplication) {}
-    func applicationWillEnterForeground(_ application: UIApplication) {}
-    func applicationDidBecomeActive(_ application: UIApplication) {}
+    func applicationWillEnterForeground(_ application: UIApplication) {
+        NotificationCenter.default.post(name: .strikrWillEnterForeground, object: nil)
+    }
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        NotificationCenter.default.post(name: .strikrDidBecomeActive, object: nil)
+    }
     func applicationWillTerminate(_ application: UIApplication) {}
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
@@ -392,6 +396,8 @@ public class GameTimerAlarmPlugin: CAPPlugin, CAPBridgedPlugin {
 
 private extension Notification.Name {
     static let strikrHideStartupOverlay = Notification.Name("strikrHideStartupOverlay")
+    static let strikrWillEnterForeground = Notification.Name("strikrWillEnterForeground")
+    static let strikrDidBecomeActive = Notification.Name("strikrDidBecomeActive")
 }
 
 @objc(StartupOverlayPlugin)
@@ -437,6 +443,18 @@ class ViewController: CAPBridgeViewController {
             name: .strikrHideStartupOverlay,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(prepareForForeground),
+            name: .strikrWillEnterForeground,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(prepareForForeground),
+            name: .strikrDidBecomeActive,
+            object: nil
+        )
     }
 
     deinit {
@@ -446,6 +464,37 @@ class ViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(GameTimerAlarmPlugin())
         bridge?.registerPluginInstance(StartupOverlayPlugin())
+        applyWebViewBackground()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        applyWebViewBackground()
+    }
+
+    private func applyWebViewBackground() {
+        let startupBackground = UIColor(
+            red: 7.0 / 255.0,
+            green: 11.0 / 255.0,
+            blue: 18.0 / 255.0,
+            alpha: 1.0
+        )
+
+        view.backgroundColor = startupBackground
+
+        if let webView = bridge?.webView {
+            webView.isOpaque = false
+            webView.backgroundColor = startupBackground
+            webView.scrollView.backgroundColor = startupBackground
+        }
+    }
+
+    @objc private func prepareForForeground() {
+        applyWebViewBackground()
+
+        if bridge?.webView?.isLoading == true {
+            showStartupOverlay()
+        }
     }
 
     private func showStartupOverlay() {
