@@ -226,15 +226,15 @@ export default function CashboxSetupWizard({
 
           {safeStepId === "penalties" ? (
             <section>
-              <div className="text-5xl">⚠️</div>
+              <div className="text-5xl">🤝</div>
               <div className="mt-6 text-xs font-black uppercase tracking-[.2em] text-slate-400">
-                Posten & Strafen
+                FBZG
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                Wollt ihr Posten und Strafen verwalten?
+                Wollt ihr FBZG nutzen?
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Für Kisten, Kuchen, Geldstrafen oder eigene Regeln. Spieler können Vorfälle selbst melden.
+                FBZG steht für „Freiwilliger Beitrag zur Gemeinschaft“ – euer augenzwinkernder Sammelbegriff für Kisten, Kuchen, Geldbeträge oder andere Teamregeln. Spieler können Vorfälle selbst melden.
               </p>
               <div className="mt-8">
                 <ToggleQuestion
@@ -433,7 +433,7 @@ export default function CashboxSetupWizard({
 
               <div className="mt-8 space-y-2">
                 <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
-                  <span className="font-bold">Posten & Strafen</span>
+                  <span className="font-bold">FBZG</span>
                   <b>{penaltiesEnabled ? "An" : "Aus"}</b>
                 </div>
                 <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
