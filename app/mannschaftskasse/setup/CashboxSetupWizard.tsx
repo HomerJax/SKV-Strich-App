@@ -165,8 +165,8 @@ export default function CashboxSetupWizard({
     /^\d+(?:[,.]\d{1,2})?$/.test(beerPrice.trim());
 
   return (
-    <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#f5f6f8] text-slate-950">
-      <form action={saveCashboxSetupAction} className="min-h-full">
+    <main className="fixed inset-0 z-[500] h-[100dvh] overflow-hidden bg-[#f5f6f8] text-slate-950">
+      <form action={saveCashboxSetupAction} className="flex h-full min-h-0 flex-col">
         {penaltiesEnabled ? (
           <input type="hidden" name="penalties_enabled" value="on" />
         ) : null}
@@ -190,7 +190,7 @@ export default function CashboxSetupWizard({
           />
         ))}
 
-        <div className="sticky top-0 z-10 border-b border-slate-200 bg-[#f5f6f8]/95 px-4 pb-3 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur">
+        <div className="z-10 shrink-0 border-b border-slate-200 bg-[#f5f6f8]/95 px-4 pb-3 pt-[max(14px,env(safe-area-inset-top))] backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <Link
               href="/mannschaftskasse"
@@ -217,7 +217,7 @@ export default function CashboxSetupWizard({
           </div>
         </div>
 
-        <div className="mx-auto flex min-h-[calc(100vh-170px)] max-w-3xl flex-col justify-center px-5 py-10 sm:px-8">
+        <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto px-5 py-8 sm:justify-center sm:px-8 sm:py-10">
           {error ? (
             <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-800">
               {error}
@@ -469,7 +469,7 @@ export default function CashboxSetupWizard({
           ) : null}
         </div>
 
-        <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-[#f5f6f8]/95 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+        <div className="z-10 shrink-0 border-t border-slate-200 bg-[#f5f6f8]/95 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center gap-3">
             <button
               type="button"
