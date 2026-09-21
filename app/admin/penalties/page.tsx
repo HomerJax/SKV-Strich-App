@@ -828,7 +828,7 @@ export default async function Page({ searchParams }: Props) {
                     <label className="block">
                       <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Art</span>
                       <select name="type" defaultValue={rule.type} className="w-full rounded-xl border bg-white px-3 py-2 text-sm">
-                        <option value="beer">Sachposten</option>
+                        <option value="beer">Sachbeitrag</option>
                         <option value="money">Geld</option>
                         <option value="custom">Sonstiges</option>
                       </select>
