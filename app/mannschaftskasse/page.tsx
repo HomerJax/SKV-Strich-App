@@ -157,7 +157,7 @@ export default async function Page({ searchParams }: Props) {
 
   if (settings?.cashbox_setup_completed !== true) {
     if (isClubAdmin) redirect("/mannschaftskasse/setup");
-    return <main className="min-h-screen bg-neutral-100"><section className="mx-auto max-w-3xl space-y-4 px-4 py-6"><Link href="/home" className="text-sm font-semibold text-slate-600">← Home</Link><div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"><div className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">Mannschaftskasse</div><h1 className="mt-2 text-2xl font-black text-slate-950">Noch nicht eingerichtet</h1><p className="mt-2 text-sm font-medium leading-6 text-slate-600">Eure Mannschaftskasse wurde noch nicht eingerichtet. Sobald ein Admin das Setup abgeschlossen hat, findest du hier eure Beiträge, Posten oder Bierkasse.</p></div></section></main>;
+    return <main className="min-h-screen bg-neutral-100"><section className="mx-auto max-w-3xl space-y-4 px-4 py-6"><Link href="/home" className="text-sm font-semibold text-slate-600">← Home</Link><div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"><div className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">Mannschaftskasse</div><h1 className="mt-2 text-2xl font-black text-slate-950">Noch nicht eingerichtet</h1><p className="mt-2 text-sm font-medium leading-6 text-slate-600">Eure Mannschaftskasse wurde noch nicht eingerichtet. Sobald ein Admin das Setup abgeschlossen hat, findest du hier eure Beiträge, FBZG oder Bierkasse.</p></div></section></main>;
   }
   const penaltiesEnabled = settings.cashbox_penalties_enabled === true;
   const contributionsEnabled = settings.cashbox_contributions_enabled === true;
@@ -280,7 +280,7 @@ export default async function Page({ searchParams }: Props) {
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">{mine.length}</div>
-              <div className="mt-1 text-[10px] font-bold text-white/50">meine Strafen</div>
+              <div className="mt-1 text-[10px] font-bold text-white/50">FBZG offen</div>
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">
@@ -301,6 +301,12 @@ export default async function Page({ searchParams }: Props) {
         ) : null}
 
         {q?.setup_saved ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">✓ Mannschaftskasse eingerichtet.</div> : null}
+
+        {penaltiesEnabled ? (
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold leading-5 text-slate-600 shadow-sm">
+            <b className="text-slate-950">FBZG</b> = Freiwilliger Beitrag zur Gemeinschaft. 😄 So nennen wir Kisten, Kuchen, Geldbeträge & Co. – mit einem Augenzwinkern.
+          </div>
+        ) : null}
 
         {q?.beer_saved === "cash" ? (
           <div className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
@@ -411,7 +417,7 @@ export default async function Page({ searchParams }: Props) {
 
         {q?.saved ? (
           <div className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
-            Posten eingetragen. 😄
+            FBZG-Eintrag gespeichert. 😄
           </div>
         ) : null}
         {q?.error ? (
@@ -465,7 +471,7 @@ export default async function Page({ searchParams }: Props) {
         </section>
 
         <section className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
-          <h2 className="text-lg font-black">Meine offenen Strafen</h2>
+          <h2 className="text-lg font-black">Meine offenen FBZG-Einträge</h2>
           <div className="mt-3 space-y-2">
             {mine.map((entry) => {
               const escalated = Boolean(
@@ -495,9 +501,9 @@ export default async function Page({ searchParams }: Props) {
         </section>
 
         <section className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
-          <h2 className="text-lg font-black">Posten melden</h2>
+          <h2 className="text-lg font-black">FBZG melden</h2>
           <p className="mt-1 text-xs text-slate-500">
-            Jeder im Team darf einen Posten melden. Bezahlt, befreit oder storniert wird durch Kassenwart/Admin.
+            Jeder im Team darf einen FBZG-Vorfall melden. Erledigt, befreit oder storniert wird durch Kassenwart/Admin.
           </p>
           <form action={reportPenaltyAction} className="mt-4 space-y-3">
             <select
@@ -513,7 +519,7 @@ export default async function Page({ searchParams }: Props) {
               ))}
             </select>
             <select name="preset" className="w-full rounded-xl border px-3 py-2.5 text-sm">
-              <option value="">Eigener Posten</option>
+              <option value="">Eigener Anlass</option>
               {rules.map((rule) => (
                 <option key={rule.rule_key} value={rule.rule_key}>
                   {rule.label} · {rule.value}
@@ -523,15 +529,15 @@ export default async function Page({ searchParams }: Props) {
             <div className="grid gap-2 sm:grid-cols-3">
               <input name="reason" placeholder="Eigener Grund" className="rounded-xl border px-3 py-2.5 text-sm" />
               <select name="type" className="rounded-xl border px-3 py-2.5 text-sm">
-                <option value="beer">Sachposten</option>
-                <option value="money">Geld</option>
+                <option value="beer">Sachbeitrag</option>
+                <option value="money">Geldbeitrag</option>
                 <option value="custom">Sonstiges</option>
               </select>
               <input name="value" placeholder="z. B. Kuchen / 2 €" className="rounded-xl border px-3 py-2.5 text-sm" />
             </div>
             <input name="notes" placeholder="Notiz (optional)" className="w-full rounded-xl border px-3 py-2.5 text-sm" />
             <button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
-              Posten eintragen
+              FBZG melden
             </button>
           </form>
         </section>
@@ -561,7 +567,7 @@ export default async function Page({ searchParams }: Props) {
 
         <details className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
           <summary className="cursor-pointer font-black">
-            Teamweit offene Strafen ({openPenalties.length})
+            Teamweit offene FBZG-Einträge ({openPenalties.length})
           </summary>
           <div className="mt-3 space-y-2">
             {openPenalties.map((entry) => (
