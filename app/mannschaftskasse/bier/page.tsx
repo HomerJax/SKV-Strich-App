@@ -48,7 +48,7 @@ function dateTime(value: string) {
 function statusLabel(row: BeerRow) {
   if (row.payment_status === "cancelled") return "Storniert";
   if (row.payment_status === "paid") return "✓ Bezahlt";
-  return row.payment_method === "cash" ? "Bar offen" : "PayPal ungeklärt";
+  return row.payment_method === "cash" ? "Bar offen" : "PayPal offen";
 }
 
 export default async function BeerManagementPage({ searchParams }: Props) {
@@ -73,17 +73,15 @@ export default async function BeerManagementPage({ searchParams }: Props) {
   const rows = (rowsData ?? []) as BeerRow[];
   const names = new Map(players.map((player) => [player.id, playerName(player)]));
   const activeRows = rows.filter((row) => row.payment_status !== "cancelled");
-  const pendingCash = activeRows.filter(
-    (row) => row.payment_method === "cash" && row.payment_status === "pending",
-  );
+  const pendingRows = activeRows.filter((row) => row.payment_status === "pending");
+  const pendingCash = pendingRows.filter((row) => row.payment_method === "cash");
+  const pendingPaypal = pendingRows.filter((row) => row.payment_method === "paypal");
   const totalBeers = activeRows.reduce((sum, row) => sum + row.quantity, 0);
   const pendingCashCents = pendingCash.reduce((sum, row) => sum + row.total_cents, 0);
   const paidCashCents = activeRows
     .filter((row) => row.payment_method === "cash" && row.payment_status === "paid")
     .reduce((sum, row) => sum + row.total_cents, 0);
-  const pendingPaypalCents = activeRows
-    .filter((row) => row.payment_method === "paypal" && row.payment_status === "pending")
-    .reduce((sum, row) => sum + row.total_cents, 0);
+  const pendingPaypalCents = pendingPaypal.reduce((sum, row) => sum + row.total_cents, 0);
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -109,7 +107,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
             <div className="text-[10px] font-black uppercase tracking-[.2em] text-amber-300">🍺 Bierkasse+</div>
             <h1 className="mt-1 text-2xl font-black">Bierkonto verwalten</h1>
             <p className="mt-2 max-w-xl text-sm font-medium text-white/60">
-              Verbrauch ist Verbrauch. Bezahlt ist erst bezahlt, wenn es bestätigt wurde.
+              Verbrauch ist Verbrauch. Grün bedeutet bezahlt, gelb bedeutet noch offen. Bier-Anzahl und Zahlungsstatus könnt ihr hier jederzeit sauber korrigieren.
             </p>
           </div>
         </div>
@@ -139,22 +137,22 @@ export default async function BeerManagementPage({ searchParams }: Props) {
         <section className="rounded-[26px] border border-amber-200 bg-white p-5 shadow-sm">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">Barzahlung</div>
-              <h2 className="mt-1 text-lg font-black text-slate-950">Noch zu bestätigen</h2>
+              <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">Zahlungen</div>
+              <h2 className="mt-1 text-lg font-black text-slate-950">Offen / noch zu bestätigen</h2>
             </div>
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">
-              {pendingCash.length} offen
+              {pendingRows.length} offen
             </span>
           </div>
 
           <div className="mt-4 space-y-3">
-            {pendingCash.map((row) => (
+            {pendingRows.map((row) => (
               <div key={row.id} className="rounded-2xl border border-slate-200 p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <div className="font-black text-slate-950">{names.get(row.player_id) ?? `Spieler ${row.player_id}`}</div>
                     <div className="mt-1 text-xs font-medium text-slate-500">
-                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {dateTime(row.created_at)}
+                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {row.payment_method === "cash" ? "Bar" : "PayPal"} · {dateTime(row.created_at)}
                     </div>
                   </div>
 
@@ -177,7 +175,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                     <form action={markBeerCashPaidAction}>
                       <input type="hidden" name="consumption_id" value={row.id} />
                       <button className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white">
-                        ✓ Bar bezahlt
+                        {row.payment_method === "cash" ? "✓ Bar bezahlt" : "✓ PayPal bezahlt"}
                       </button>
                     </form>
 
@@ -191,12 +189,15 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                 </div>
               </div>
             ))}
-            {pendingCash.length === 0 ? (
+            {pendingRows.length === 0 ? (
               <div className="rounded-2xl bg-emerald-50 px-4 py-4 text-sm font-bold text-emerald-800">
-                Alles sauber – keine offene Barzahlung. 🍻
+                Alles sauber – keine offene Zahlung. 🍻
               </div>
             ) : null}
           </div>
+          <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2.5 text-[11px] font-medium leading-5 text-slate-600">
+            PayPal-Zahlungen werden aktuell nicht automatisch von PayPal bestätigt. Sobald das Geld angekommen ist, tippt der Kassenwart auf „PayPal bezahlt“. Erst dann wird der Betrag grün und in den Kassenstand übernommen.
+          </p>
         </section>
 
         <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">

@@ -575,7 +575,7 @@ export default async function Page({ searchParams }: Props) {
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black">Neuer Beitrag</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Monatsbeitrag, Saisonbeitrag, Weihnachtsfeier oder jede andere gemeinsame Umlage.
+                Zum Beispiel „Jahresbeitrag 2026“. Jeder ausgewählte Spieler startet automatisch als „Offen“. Sobald du bei einem Spieler „Bezahlt“ wählst, wird der Betrag als Einnahme in den Kassenstand gebucht.
               </p>
               <form action={addContributionAction} className="mt-4 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -628,7 +628,7 @@ export default async function Page({ searchParams }: Props) {
                           </div>
                         </div>
                         <div className="text-right text-xs font-bold text-slate-500">
-                          <div>{paid} bezahlt · {open} offen</div>
+                          <div><span className="text-emerald-700">✓ {paid} bezahlt</span> · <span className="text-amber-700">{open} offen</span></div>
                           {exempt ? <div>{exempt} befreit</div> : null}
                         </div>
                       </div>

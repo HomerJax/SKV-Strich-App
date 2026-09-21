@@ -276,7 +276,7 @@ export default async function Page({ searchParams }: Props) {
           <div className="mt-5 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">{formatCents(teamBalance)}</div>
-              <div className="mt-1 text-[10px] font-bold text-white/50">Teamkasse</div>
+              <div className="mt-1 text-[10px] font-bold text-white/50">Kassenstand</div>
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">{mine.length}</div>
@@ -289,7 +289,37 @@ export default async function Page({ searchParams }: Props) {
               <div className="mt-1 text-[10px] font-bold text-white/50">bei mir offen</div>
             </div>
           </div>
+          <p className="mt-3 text-[11px] font-semibold leading-5 text-white/45">
+            Kassenstand = tatsächlich verbuchte Einnahmen minus Ausgaben. Offene Beiträge, FBZG und Bier zählen erst dazu, sobald sie als bezahlt bestätigt wurden.
+          </p>
         </div>
+
+        {canManageCashbox ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {contributionsEnabled ? (
+              <Link
+                href="/admin/penalties?tab=contributions"
+                className="rounded-2xl border border-blue-200 bg-blue-50 p-4"
+              >
+                <div className="text-sm font-black text-blue-950">💶 Beiträge verwalten</div>
+                <div className="mt-1 text-xs font-medium leading-5 text-blue-800/70">
+                  Jahresbeitrag anlegen und pro Spieler sofort sehen: offen, bezahlt oder befreit.
+                </div>
+              </Link>
+            ) : null}
+            {canManageBeer && beerFeatureEnabled ? (
+              <Link
+                href="/mannschaftskasse/bier"
+                className="rounded-2xl border border-amber-200 bg-amber-50 p-4"
+              >
+                <div className="text-sm font-black text-amber-950">🍺 Bierkasse verwalten</div>
+                <div className="mt-1 text-xs font-medium leading-5 text-amber-800/70">
+                  Bier-Anzahl korrigieren und offene Bar- oder PayPal-Zahlungen bestätigen.
+                </div>
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
 
         {beerFeatureEnabled && player ? (
           <BeerCheckoutCard

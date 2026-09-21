@@ -334,7 +334,7 @@ export default function CashboxSetupWizard({
                 Soll PayPal angeboten werden?
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Optional. Ohne Link bleibt Barzahlung möglich. Mit paypal.me kann strikr den Betrag direkt mitgeben.
+                Optional. Natürlich könnt ihr PayPal und Barzahlung nutzen. Mit paypal.me kann strikr den Betrag direkt mitgeben. Auch bei Barzahlung lassen sich Bier-Striche später nachtragen – so bleibt die Bierstatistik vollständig.
               </p>
               <input
                 value={paypalUrl}

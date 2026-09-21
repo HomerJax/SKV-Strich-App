@@ -148,15 +148,11 @@ export async function markBeerCashPaidAction(formData: FormData) {
     redirect(beerManageUrl({ error: "Bier-Eintrag nicht gefunden." }));
   }
 
-  if (entry.payment_method !== "cash") {
-    redirect(beerManageUrl({ error: "Nur Barzahlungen werden manuell bestätigt." }));
-  }
-
   if (entry.payment_status !== "pending") {
     redirect(beerManageUrl({ error: "Dieser Eintrag ist nicht mehr offen." }));
   }
 
-  const sourceKey = `beer:${entry.id}:cash-payment`;
+  const sourceKey = `beer:${entry.id}:${entry.payment_method}-payment`;
   let transactionId = entry.cash_transaction_id;
 
   if (!transactionId) {
@@ -167,7 +163,7 @@ export async function markBeerCashPaidAction(formData: FormData) {
         amount_cents: entry.total_cents,
         kind: "income",
         category: "Getränke",
-        title: `Bierkasse · ${entry.quantity} Bier`,
+        title: `Bierkasse · ${entry.quantity} Bier · ${entry.payment_method === "cash" ? "Bar" : "PayPal"}`,
         source_type: "beer",
         source_id: entry.id,
         source_key: sourceKey,
@@ -186,7 +182,7 @@ export async function markBeerCashPaidAction(formData: FormData) {
           .maybeSingle<{ id: number }>();
         transactionId = existingTransaction?.id ?? null;
       } else {
-        redirect(beerManageUrl({ error: "Barzahlung konnte nicht verbucht werden." }));
+        redirect(beerManageUrl({ error: "Zahlung konnte nicht verbucht werden." }));
       }
     } else {
       transactionId = transaction?.id ?? null;
@@ -194,7 +190,7 @@ export async function markBeerCashPaidAction(formData: FormData) {
   }
 
   if (!transactionId) {
-    redirect(beerManageUrl({ error: "Barzahlung konnte nicht verbucht werden." }));
+    redirect(beerManageUrl({ error: "Zahlung konnte nicht verbucht werden." }));
   }
 
   const { error: updateError } = await admin
