@@ -94,7 +94,7 @@ export default function MobileUserMenu({
             <Banknote className="h-5 w-5 text-emerald-700" />
             <div>
               <div>Mannschaftskasse</div>
-              <div className="text-[11px] text-slate-500">Posten sehen & melden</div>
+              <div className="text-[11px] text-slate-500">FBZG, Beiträge & Bierkasse</div>
             </div>
           </Link>
           {showTeamChatLink ? (
