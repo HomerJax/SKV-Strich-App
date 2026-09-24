@@ -11,25 +11,44 @@ function formatEuro(cents: number) {
   }).format(cents / 100);
 }
 
-async function copyPoolAmount(cents: number) {
+function copyPoolAmount(cents: number) {
   const amount = (cents / 100).toFixed(2).replace(".", ",");
+  const textarea = document.createElement("textarea");
 
-  try {
-    await navigator.clipboard.writeText(amount);
-    return true;
-  } catch {
-    const textarea = document.createElement("textarea");
-    textarea.value = amount;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.appendChild(textarea);
-    textarea.select();
+  textarea.value = amount;
+  textarea.setAttribute("readonly", "");
+  textarea.setAttribute("aria-hidden", "true");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  textarea.style.opacity = "0";
 
-    const copied = document.execCommand("copy");
-    textarea.remove();
-    return copied;
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+
+  const copied = document.execCommand("copy");
+  textarea.remove();
+
+  return copied;
+}
+
+function recordPoolBeer(quantity: number) {
+  const body = new FormData();
+  body.set("quantity", String(quantity));
+  body.set("payment_method", "paypal");
+
+  if (navigator.sendBeacon("/api/mannschaftskasse/beer", body)) {
+    return;
   }
+
+  void fetch("/api/mannschaftskasse/beer", {
+    method: "POST",
+    body,
+    credentials: "same-origin",
+    keepalive: true,
+  }).catch(() => undefined);
 }
 
 export default function BeerCheckoutCard({
@@ -38,32 +57,31 @@ export default function BeerCheckoutCard({
   badge,
   paypalEnabled,
   paypalPool,
+  paypalUrl,
 }: {
   priceCents: number;
   myTotal: number;
   badge: string | null;
   paypalEnabled: boolean;
   paypalPool: boolean;
+  paypalUrl: string;
 }) {
   const [quantity, setQuantity] = useState(1);
   const [poolOpening, setPoolOpening] = useState(false);
   const [poolAmountCopied, setPoolAmountCopied] = useState<boolean | null>(null);
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
 
-  async function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
+  function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
     if (!paypalPool || poolOpening) return;
 
     event.preventDefault();
-    const button = event.currentTarget;
-    const form = button.form;
     setPoolOpening(true);
 
-    const copied = await copyPoolAmount(totalCents);
+    const copied = copyPoolAmount(totalCents);
     setPoolAmountCopied(copied);
+    recordPoolBeer(quantity);
 
-    window.setTimeout(() => {
-      form?.requestSubmit(button);
-    }, 450);
+    window.location.assign(paypalUrl);
   }
 
   return (
@@ -97,7 +115,7 @@ export default function BeerCheckoutCard({
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {paypalEnabled ? (
-            <button name="payment_method" value="paypal" onClick={handlePaypalClick} className="flex items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-3.5 text-left text-white shadow-sm">
+            <button name="payment_method" value="paypal" type={paypalPool ? "button" : "submit"} onClick={handlePaypalClick} className="flex items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-3.5 text-left text-white shadow-sm">
               <span className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
                 <span>

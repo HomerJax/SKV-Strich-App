@@ -1005,6 +1005,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               priceCents={bierkassePriceCents}
               paypalEnabled={bierkassePaypalEnabled}
               paypalPool={bierkassePaypalPool}
+              paypalUrl={bierkassePaypalUrl}
             />
             {q?.beer_saved === "cash" ? (
               <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">

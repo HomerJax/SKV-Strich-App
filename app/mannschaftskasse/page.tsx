@@ -329,6 +329,7 @@ export default async function Page({ searchParams }: Props) {
             badge={beerBadgesEnabled ? beerBadge(myBeerTotal) : null}
             paypalEnabled={paypalEnabled}
             paypalPool={paypalPool}
+            paypalUrl={paypalUrl}
           />
         ) : null}
 
