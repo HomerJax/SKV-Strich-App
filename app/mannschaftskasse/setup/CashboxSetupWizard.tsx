@@ -334,14 +334,14 @@ export default function CashboxSetupWizard({
                 Soll PayPal angeboten werden?
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Optional. Natürlich könnt ihr PayPal und Barzahlung nutzen. Mit paypal.me kann strikr den Betrag direkt mitgeben. Auch bei Barzahlung lassen sich Bier-Striche später nachtragen – so bleibt die Bierstatistik vollständig.
+                Optional. Natürlich könnt ihr PayPal und Barzahlung nutzen. Für die direkte Betragsübergabe braucht ihr einen paypal.me-Link: strikr öffnet PayPal dann bereits mit dem errechneten Betrag. PayPal-Pools können geöffnet werden, der Betrag muss dort aber manuell eingegeben werden. Auch bei Barzahlung lassen sich Bier-Striche später nachtragen – so bleibt die Bierstatistik vollständig.
               </p>
               <input
                 value={paypalUrl}
                 onChange={(event) => setPaypalUrl(event.target.value)}
                 inputMode="url"
                 className="mt-8 w-full rounded-[24px] border-2 border-slate-200 bg-white px-5 py-5 text-base font-bold outline-none transition focus:border-slate-950"
-                placeholder="https://paypal.me/..."
+                placeholder="https://paypal.me/euername"
               />
               <button
                 type="button"

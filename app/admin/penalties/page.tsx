@@ -972,7 +972,7 @@ export default async function Page({ searchParams }: Props) {
                           className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm"
                         />
                         <span className="mt-1 block text-[10px] font-medium text-slate-500">
-                          Bei paypal.me wird der Betrag automatisch vorbelegt. Ohne Link bleibt Barzahlung trotzdem verfügbar.
+                          Empfehlung: paypal.me verwenden. Dann gibt strikr den errechneten Betrag direkt an PayPal mit. Bei PayPal-Pools lässt sich der Betrag nicht automatisch vorbelegen und muss in PayPal erneut eingegeben werden.
                         </span>
                       </label>
 
