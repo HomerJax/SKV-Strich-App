@@ -146,6 +146,12 @@ export default function SessionScoreCard({
   onToggleCollapsed,
   title = "Ergebnisse",
 }: Props) {
+  const [showNextGameForm, setShowNextGameForm] = useState(results.length === 0);
+
+  useEffect(() => {
+    setShowNextGameForm(results.length === 0);
+  }, [results.length]);
+
   const summary = useMemo(() => {
     let winsA = 0;
     let winsB = 0;
@@ -239,46 +245,70 @@ export default function SessionScoreCard({
           />
         ))}
 
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-3">
-          <div className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">
-            {results.length === 0 ? "Spiel 1" : `Weiteres Spiel · Spiel ${nextGameNo}`}
+        {showNextGameForm ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">
+                {results.length === 0 ? "Spiel 1" : `Weiteres Trainingsspiel · Spiel ${nextGameNo}`}
+              </div>
+              {results.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowNextGameForm(false)}
+                  disabled={saving}
+                  className="rounded-full px-2 py-1 text-xs font-bold text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+                >
+                  Schließen
+                </button>
+              ) : null}
+            </div>
+            <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+              <input
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={goalsA}
+                onChange={(event) => onGoalsAChange(cleanGoal(event.target.value))}
+                disabled={saving}
+                placeholder="0"
+                className="h-14 rounded-2xl border text-center text-2xl font-black"
+                aria-label="Tore Team 1"
+              />
+              <span className="text-xl font-black text-slate-400">:</span>
+              <input
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={goalsB}
+                onChange={(event) => onGoalsBChange(cleanGoal(event.target.value))}
+                disabled={saving}
+                placeholder="0"
+                className="h-14 rounded-2xl border text-center text-2xl font-black"
+                aria-label="Tore Team 2"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={onSaveResult}
+              disabled={saving || !hasDraft}
+              className="mt-3 w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+            >
+              {saving
+                ? "Speichert..."
+                : results.length === 0
+                  ? "Ergebnis speichern"
+                  : `Spiel ${nextGameNo} speichern`}
+            </button>
           </div>
-          <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-            <input
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={goalsA}
-              onChange={(event) => onGoalsAChange(cleanGoal(event.target.value))}
-              disabled={saving}
-              placeholder="0"
-              className="h-14 rounded-2xl border text-center text-2xl font-black"
-              aria-label="Tore Team 1"
-            />
-            <span className="text-xl font-black text-slate-400">:</span>
-            <input
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={goalsB}
-              onChange={(event) => onGoalsBChange(cleanGoal(event.target.value))}
-              disabled={saving}
-              placeholder="0"
-              className="h-14 rounded-2xl border text-center text-2xl font-black"
-              aria-label="Tore Team 2"
-            />
-          </div>
+        ) : (
           <button
             type="button"
-            onClick={onSaveResult}
-            disabled={saving || !hasDraft}
-            className="mt-3 w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+            onClick={() => setShowNextGameForm(true)}
+            disabled={saving}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 text-sm font-black text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 disabled:opacity-50"
           >
-            {saving
-              ? "Speichert..."
-              : results.length === 0
-                ? "Ergebnis speichern"
-                : `Spiel ${nextGameNo} speichern`}
+            <span className="text-lg leading-none">＋</span>
+            Weiteres Trainingsspiel hinzufügen
           </button>
-        </div>
+        )}
 
         {results.length > 0 ? (
           <p className="text-[11px] leading-5 text-slate-500">
