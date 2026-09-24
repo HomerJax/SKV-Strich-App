@@ -253,7 +253,7 @@ export default function HomeBeerCheckoutModal({
             </h3>
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
               {poolAmountCopied === true
-                ? "Der Betrag wurde in die Zwischenablage kopiert. Du wirst nun zu PayPal weitergeleitet. Tippe dort auf „Beteiligen“, füge den Betrag ein und bestätige die Zahlung."
+                ? "Der Betrag wurde in die Zwischenablage kopiert. Beim Wechsel zu PayPal wird deine Bierstatistik direkt aktualisiert. Du wirst nun zu PayPal weitergeleitet. Tippe dort auf „Beteiligen“, füge den Betrag ein und bestätige die Zahlung."
                 : "Das Kopieren hat auf deinem Gerät nicht funktioniert. Merke dir den Betrag oben. Tippe in PayPal auf „Beteiligen“, gib den Betrag ein und bestätige die Zahlung."}
             </p>
             {poolAmountCopied === false ? (
