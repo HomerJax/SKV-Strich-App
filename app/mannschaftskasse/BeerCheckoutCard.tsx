@@ -11,26 +11,36 @@ function formatEuro(cents: number) {
   }).format(cents / 100);
 }
 
-function copyPoolAmount(cents: number) {
+async function copyPoolAmount(cents: number) {
   const amount = (cents / 100).toFixed(2).replace(".", ",");
-  const textarea = document.createElement("textarea");
 
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(amount);
+      return true;
+    }
+  } catch {}
+
+  const textarea = document.createElement("textarea");
   textarea.value = amount;
   textarea.setAttribute("readonly", "");
-  textarea.setAttribute("aria-hidden", "true");
   textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
+  textarea.style.left = "0";
   textarea.style.top = "0";
+  textarea.style.width = "1px";
+  textarea.style.height = "1px";
   textarea.style.opacity = "0";
-
   document.body.appendChild(textarea);
   textarea.focus();
   textarea.select();
   textarea.setSelectionRange(0, textarea.value.length);
 
-  const copied = document.execCommand("copy");
-  textarea.remove();
+  let copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } catch {}
 
+  textarea.remove();
   return copied;
 }
 
@@ -76,16 +86,19 @@ export default function BeerCheckoutCard({
     if (!paypalPool || poolOpening) return;
 
     event.preventDefault();
-    const copied = copyPoolAmount(totalCents);
-    setPoolAmountCopied(copied);
+    setPoolAmountCopied(null);
     setPoolConfirmOpen(true);
+  }
+
+  async function copyAmount() {
+    const copied = await copyPoolAmount(totalCents);
+    setPoolAmountCopied(copied);
   }
 
   function preparePaypalPoolOpen() {
     if (poolOpening) return;
 
     setPoolOpening(true);
-    copyPoolAmount(totalCents);
     recordPoolBeer(quantity);
   }
 
@@ -161,15 +174,24 @@ export default function BeerCheckoutCard({
               PayPal-Pool
             </div>
             <h3 id="cashbox-paypal-pool-hint-title" className="mt-1 text-xl font-black text-slate-950">
-              {poolAmountCopied === false
-                ? `${formatEuro(totalCents)} bitte kurz merken · Bierstatistik aktualisiert 🍺`
-                : `${formatEuro(totalCents)} kopiert ✓ · Bierstatistik aktualisiert 🍺`}
+              {poolAmountCopied === true
+                ? `${formatEuro(totalCents)} kopiert ✓`
+                : `${formatEuro(totalCents)} für den PayPal-Pool`}
             </h3>
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
-              {poolAmountCopied === false
-                ? "Du wirst jetzt zu PayPal weitergeleitet. Tippe dort auf „Beteiligen“ und gib den angezeigten Betrag ein."
-                : "Du wirst jetzt zu PayPal weitergeleitet. Tippe dort auf „Beteiligen“, füge den Betrag aus deiner Zwischenablage ein und bestätige die Zahlung."}
+              {poolAmountCopied === true
+                ? "Perfekt. Tippe jetzt auf „Zu PayPal“. Dort auf „Beteiligen“, Betrag einfügen und Zahlung bestätigen."
+                : poolAmountCopied === false
+                  ? "iOS hat das automatische Kopieren blockiert. Merke dir den Betrag oben und gib ihn nach „Beteiligen“ in PayPal ein."
+                  : "Kopiere zuerst den Betrag. Danach wirst du zu PayPal weitergeleitet: „Beteiligen“ → Betrag einfügen → Zahlung bestätigen."}
             </p>
+            <button
+              type="button"
+              onClick={copyAmount}
+              className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 shadow-sm"
+            >
+              {poolAmountCopied === true ? "✓ Betrag kopiert" : `${formatEuro(totalCents)} kopieren`}
+            </button>
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
               😉 Hier setzen wir auf dein Vertrauen. Schummeln lohnt sich eh nicht – ein Schiefstand fällt spätestens bei der Kassenprüfung auf.
             </div>
@@ -180,7 +202,7 @@ export default function BeerCheckoutCard({
               onClick={preparePaypalPoolOpen}
               className="mt-4 block w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-center text-sm font-black text-white shadow-sm"
             >
-              Zu PayPal →
+              {poolAmountCopied === true ? "Zu PayPal →" : "Weiter zu PayPal →"}
             </a>
             <button
               type="button"
