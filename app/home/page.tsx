@@ -10,6 +10,7 @@ import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCa
 import HomeQuickStats from "@/components/home/HomeQuickStats";
 import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
+import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 
@@ -771,7 +772,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
 
   return (
-    <main className="min-h-screen bg-neutral-100 pb-24">
+    <HomePullToRefresh>
+      <main className="min-h-screen bg-neutral-100 pb-24">
       <WhatsNewModal version="v0.2" />
 
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
@@ -1048,6 +1050,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           </span>
         </a>
       </section>
-    </main>
+      </main>
+    </HomePullToRefresh>
   );
 }
