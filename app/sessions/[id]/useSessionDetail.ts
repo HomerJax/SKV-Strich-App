@@ -386,6 +386,26 @@ export function useSessionDetail({
   }, [initialSession]);
 
   useEffect(() => {
+    setPlayers(sortPlayersByFirstName(initialPlayers));
+  }, [initialPlayers]);
+
+  useEffect(() => {
+    setPresentIds(initialPresentIds);
+    setDraftPresentIds(initialPresentIds);
+  }, [initialPresentIds]);
+
+  useEffect(() => {
+    setManualTeams(initialManualTeams);
+    setTeamsConfirmed(
+      initialHasResult ||
+        (initialPresentIds.length > 0 &&
+          Object.values(initialManualTeams).some(
+            (side) => side === "A" || side === "B",
+          )),
+    );
+  }, [initialHasResult, initialManualTeams, initialPresentIds]);
+
+  useEffect(() => {
     setWinnerPhotoUrl(initialWinnerPhotoUrl);
   }, [initialWinnerPhotoUrl]);
 

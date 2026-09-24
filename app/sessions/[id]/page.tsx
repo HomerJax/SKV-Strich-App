@@ -3,8 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { isAdminRole } from "@/lib/auth/access";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import SessionDetailClient from "./SessionDetailClient";
 import type { Player, SessionRow } from "./session-types";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata = {
   title: "Session in strikr",
@@ -222,7 +226,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const winnerPhotoUrl = winnerPhotoError ? null : winnerPhotoData?.signedUrl ?? null;
 
   return (
-    <SessionDetailClient
+    <HomePullToRefresh>
+      <SessionDetailClient
       sessionId={sessionId}
       initialSession={sessionForClient}
       initialPlayers={players}
@@ -246,6 +251,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialSessionType={session.type === "event" ? "event" : "training"}
       sessionTypesEnabled={sessionTypesEnabled}
       initialRsvpDeadlineMinutesBefore={clubSettings.rsvp_deadline_minutes_before ?? 60}
-    />
+      />
+    </HomePullToRefresh>
   );
 }
