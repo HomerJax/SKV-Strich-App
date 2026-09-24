@@ -115,6 +115,20 @@ export default function NextSessionAttendanceCard({
   }, [initialStatus, initialPresentCount, initialAbsentCount, sessionId]);
 
   useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    const refreshOnFocus = () => router.refresh();
+
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("focus", refreshOnFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("focus", refreshOnFocus);
+    };
+  }, [router]);
+
+  useEffect(() => {
     let active = true;
     fetch(`/api/sessions/${sessionId}/event-roster`, { credentials: "same-origin" })
       .then(async (response) => response.ok ? response.json() as Promise<{ isEvent?: boolean; currentPlayerNominated?: boolean }> : null)
