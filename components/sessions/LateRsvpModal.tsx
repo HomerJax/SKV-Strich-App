@@ -16,10 +16,10 @@ export default function LateRsvpModal({
       <div className="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-2xl">
         <div className="text-3xl">⚽️</div>
         <h2 className="mt-3 text-xl font-black tracking-tight text-slate-950">
-          Schön, dass du dabei bist!
+          Danke für deinen FBZG 😄
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Leider bist du etwas spät dran 😄
+          Schön, dass du trotzdem dabei bist!
         </p>
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-950">
           {message}

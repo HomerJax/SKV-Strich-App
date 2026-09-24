@@ -463,7 +463,7 @@ export async function POST(
                   type: rule.type,
                   message:
                     rule.type === "money"
-                      ? `${rule.value} wandern in die Mannschaftskasse. 😄`
+                      ? `${/€/.test(rule.value) ? rule.value : `${rule.value} €`} wandert in die Mannschaftskasse. 🍻`
                       : `${rule.value} geht auf dich. 😄`,
                 };
               } else {
