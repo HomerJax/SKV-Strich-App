@@ -109,6 +109,12 @@ export default function NextSessionAttendanceCard({
   }, []);
 
   useEffect(() => {
+    setStatus(initialStatus);
+    setPresentCount(initialPresentCount);
+    setAbsentCount(initialAbsentCount);
+  }, [initialStatus, initialPresentCount, initialAbsentCount, sessionId]);
+
+  useEffect(() => {
     let active = true;
     fetch(`/api/sessions/${sessionId}/event-roster`, { credentials: "same-origin" })
       .then(async (response) => response.ok ? response.json() as Promise<{ isEvent?: boolean; currentPlayerNominated?: boolean }> : null)
