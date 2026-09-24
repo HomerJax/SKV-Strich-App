@@ -16,13 +16,16 @@ export default function LateRsvpModal({
       <div className="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-2xl">
         <div className="text-3xl">⚽️</div>
         <h2 className="mt-3 text-xl font-black tracking-tight text-slate-950">
-          Danke für deinen FBZG 😄
+          Schön, dass du dabei bist!
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Schön, dass du trotzdem dabei bist!
+          Leider einen Tick zu spät dran 😄
         </p>
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-950">
-          {message}
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <div className="font-black">
+            Danke für deinen FBZG – deinen freiwilligen Beitrag zur Gemeinschaft. 😉
+          </div>
+          <div className="mt-2 font-black">{message}</div>
         </div>
         <button
           type="button"
