@@ -972,7 +972,7 @@ export default async function Page({ searchParams }: Props) {
                           className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm"
                         />
                         <span className="mt-1 block text-[10px] font-medium text-slate-500">
-                          Empfehlung: paypal.me verwenden. Dann gibt strikr den errechneten Betrag direkt an PayPal mit. Bei PayPal-Pools lässt sich der Betrag nicht automatisch vorbelegen und muss in PayPal erneut eingegeben werden.
+                          Mit paypal.me gibt strikr den errechneten Betrag direkt an PayPal mit. Bei PayPal-Pools kopiert strikr den Betrag automatisch – in PayPal dann nur noch „Beteiligen“, einfügen und zahlen.
                         </span>
                       </label>
 

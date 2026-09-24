@@ -11,16 +11,57 @@ function formatEuro(cents: number) {
   }).format(cents / 100);
 }
 
+async function copyPoolAmount(cents: number) {
+  const amount = (cents / 100).toFixed(2).replace(".", ",");
+
+  try {
+    await navigator.clipboard.writeText(amount);
+    return true;
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = amount;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    return copied;
+  }
+}
+
 export default function HomeBeerCheckoutModal({
   priceCents,
   paypalEnabled,
+  paypalPool,
 }: {
   priceCents: number;
   paypalEnabled: boolean;
+  paypalPool: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [poolOpening, setPoolOpening] = useState(false);
+  const [poolAmountCopied, setPoolAmountCopied] = useState<boolean | null>(null);
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
+
+  async function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
+    if (!paypalPool || poolOpening) return;
+
+    event.preventDefault();
+    const button = event.currentTarget;
+    const form = button.form;
+    setPoolOpening(true);
+
+    const copied = await copyPoolAmount(totalCents);
+    setPoolAmountCopied(copied);
+
+    window.setTimeout(() => {
+      form?.requestSubmit(button);
+    }, 450);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -42,6 +83,8 @@ export default function HomeBeerCheckoutModal({
         type="button"
         onClick={() => {
           setQuantity(1);
+          setPoolOpening(false);
+          setPoolAmountCopied(null);
           setOpen(true);
         }}
         className="flex w-full items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left shadow-sm transition active:scale-[0.99]"
@@ -112,12 +155,20 @@ export default function HomeBeerCheckoutModal({
 
               <div className="mt-4 grid gap-2">
                 {paypalEnabled ? (
-                  <button name="payment_method" value="paypal" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
+                  <button name="payment_method" value="paypal" type="submit" onClick={handlePaypalClick} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
                     <span className="flex items-center gap-3">
                       <CreditCard className="h-5 w-5" />
                       <span>
                         <span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span>
-                        <span className="block text-base font-black">Eintragen & PayPal öffnen</span>
+                        <span className="block text-base font-black">
+                          {paypalPool && poolOpening
+                            ? poolAmountCopied === false
+                              ? `${formatEuro(totalCents)} merken · Pool öffnet …`
+                              : `${formatEuro(totalCents)} kopiert · Pool öffnet …`
+                            : paypalPool
+                              ? `${formatEuro(totalCents)} kopieren & Pool öffnen`
+                              : "Eintragen & PayPal öffnen"}
+                        </span>
                       </span>
                     </span>
                     <span className="font-black">→</span>
@@ -137,7 +188,9 @@ export default function HomeBeerCheckoutModal({
               </div>
 
               <p className="mt-3 text-center text-[11px] font-medium leading-4 text-slate-500">
-                Verbrauch und Zahlung werden getrennt geführt. Bar gilt erst nach Bestätigung als bezahlt.
+                {paypalPool
+                  ? "Beim PayPal-Pool kopiert strikr den Betrag automatisch. In PayPal nur noch „Beteiligen“, Betrag einfügen und zahlen."
+                  : "Verbrauch und Zahlung werden getrennt geführt. Bar gilt erst nach Bestätigung als bezahlt."}
               </p>
             </form>
           </div>

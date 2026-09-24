@@ -202,8 +202,9 @@ export default async function Page({ searchParams }: Props) {
   const beerFeatureEnabled =
     settings?.beerkasse_premium_enabled === true &&
     settings?.beerkasse_enabled === true;
-  const paypalEnabled =
-    beerFeatureEnabled && Boolean(settings?.beerkasse_paypal_url?.trim());
+  const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
+  const paypalEnabled = beerFeatureEnabled && Boolean(paypalUrl);
+  const paypalPool = paypalUrl.toLowerCase().includes("paypal.com/pool/");
   const today = new Date().toISOString().slice(0, 10);
   const teamBalance = transactions.reduce(
     (sum, transaction) => sum + transaction.amount_cents,
@@ -327,6 +328,7 @@ export default async function Page({ searchParams }: Props) {
             myTotal={myBeerTotal}
             badge={beerBadgesEnabled ? beerBadge(myBeerTotal) : null}
             paypalEnabled={paypalEnabled}
+            paypalPool={paypalPool}
           />
         ) : null}
 

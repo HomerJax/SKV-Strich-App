@@ -482,7 +482,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     homeSettings?.beerkasse_premium_enabled === true &&
     homeSettings?.beerkasse_enabled === true &&
     homeSettings?.beerkasse_home_enabled === true;
-  const bierkassePaypalEnabled = Boolean(homeSettings?.beerkasse_paypal_url?.trim());
+  const bierkassePaypalUrl = homeSettings?.beerkasse_paypal_url?.trim() ?? "";
+  const bierkassePaypalEnabled = Boolean(bierkassePaypalUrl);
+  const bierkassePaypalPool = bierkassePaypalUrl
+    .toLowerCase()
+    .includes("paypal.com/pool/");
   const bierkassePriceCents = Math.max(
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
@@ -1000,6 +1004,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             <HomeBeerCheckoutModal
               priceCents={bierkassePriceCents}
               paypalEnabled={bierkassePaypalEnabled}
+              paypalPool={bierkassePaypalPool}
             />
             {q?.beer_saved === "cash" ? (
               <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
