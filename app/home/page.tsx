@@ -11,8 +11,10 @@ import HomeQuickStats from "@/components/home/HomeQuickStats";
 import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
+import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
+import { getTeamFeedItems } from "@/lib/team-feed";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -426,6 +428,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     { data: seasonExistsData },
     { data: nextSessionData },
     { data: recentSessionsData },
+    teamFeedItems,
   ] = await Promise.all([
     getFeatureFlagsForClub(clubId),
     supabase
@@ -468,6 +471,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       .eq("club_id", clubId)
       .order("date", { ascending: false })
       .limit(12),
+    getTeamFeedItems(clubId, 3),
   ]);
 
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
@@ -888,6 +892,29 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           )}
         </section>
 
+        {bierkasseHomeEnabled ? (
+          <>
+            <HomeBeerCheckoutModal
+              priceCents={bierkassePriceCents}
+              paypalEnabled={bierkassePaypalEnabled}
+              paypalPool={bierkassePaypalPool}
+              paypalUrl={bierkassePaypalUrl}
+            />
+            {q?.beer_saved === "cash" ? (
+              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
+                🍺 Eingetragen · Barzahlung ist noch offen.
+              </div>
+            ) : null}
+            {q?.beer_error ? (
+              <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">
+                {q.beer_error}
+              </div>
+            ) : null}
+          </>
+        ) : null}
+
+        <HomeTeamFeedPreview items={teamFeedItems} />
+
         {activeVotingSession ? (
           <section className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between gap-3">
@@ -995,27 +1022,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               ) : null}
             </div>
           </section>
-        ) : null}
-
-        {bierkasseHomeEnabled ? (
-          <>
-            <HomeBeerCheckoutModal
-              priceCents={bierkassePriceCents}
-              paypalEnabled={bierkassePaypalEnabled}
-              paypalPool={bierkassePaypalPool}
-              paypalUrl={bierkassePaypalUrl}
-            />
-            {q?.beer_saved === "cash" ? (
-              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
-                🍺 Eingetragen · Barzahlung ist noch offen.
-              </div>
-            ) : null}
-            {q?.beer_error ? (
-              <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">
-                {q.beer_error}
-              </div>
-            ) : null}
-          </>
         ) : null}
 
         <Link
