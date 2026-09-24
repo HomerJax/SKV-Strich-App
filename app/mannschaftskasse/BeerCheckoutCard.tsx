@@ -162,13 +162,13 @@ export default function BeerCheckoutCard({
             </div>
             <h3 id="cashbox-paypal-pool-hint-title" className="mt-1 text-xl font-black text-slate-950">
               {poolAmountCopied === false
-                ? `${formatEuro(totalCents)} bitte kurz merken`
-                : `${formatEuro(totalCents)} sind kopiert ✓`}
+                ? `${formatEuro(totalCents)} bitte kurz merken · Bierstatistik aktualisiert 🍺`
+                : `${formatEuro(totalCents)} kopiert ✓ · Bierstatistik aktualisiert 🍺`}
             </h3>
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
               {poolAmountCopied === false
-                ? "Das automatische Kopieren hat auf deinem Gerät leider nicht geklappt. Tippe in PayPal auf „Beteiligen“ und gib den Betrag dort ein."
-                : "Tippe in PayPal auf „Beteiligen“ und füge den Betrag aus deiner Zwischenablage ein."}
+                ? "Du wirst jetzt zu PayPal weitergeleitet. Tippe dort auf „Beteiligen“ und gib den angezeigten Betrag ein."
+                : "Du wirst jetzt zu PayPal weitergeleitet. Tippe dort auf „Beteiligen“, füge den Betrag aus deiner Zwischenablage ein und bestätige die Zahlung."}
             </p>
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
               😉 Hier setzen wir auf dein Vertrauen. Schummeln lohnt sich eh nicht – ein Schiefstand fällt spätestens bei der Kassenprüfung auf.
