@@ -204,7 +204,7 @@ export default async function Page({ searchParams }: Props) {
     settings?.beerkasse_enabled === true;
   const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
   const paypalEnabled = beerFeatureEnabled && Boolean(paypalUrl);
-  const paypalPool = paypalUrl.toLowerCase().includes("paypal.com/pool/");
+  const paypalPool = /paypal\.com\/pools?\//i.test(paypalUrl);
   const today = new Date().toISOString().slice(0, 10);
   const teamBalance = transactions.reduce(
     (sum, transaction) => sum + transaction.amount_cents,

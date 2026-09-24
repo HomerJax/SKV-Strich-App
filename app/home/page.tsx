@@ -484,9 +484,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     homeSettings?.beerkasse_home_enabled === true;
   const bierkassePaypalUrl = homeSettings?.beerkasse_paypal_url?.trim() ?? "";
   const bierkassePaypalEnabled = Boolean(bierkassePaypalUrl);
-  const bierkassePaypalPool = bierkassePaypalUrl
-    .toLowerCase()
-    .includes("paypal.com/pool/");
+  const bierkassePaypalPool = /paypal\.com\/pools?\//i.test(bierkassePaypalUrl);
   const bierkassePriceCents = Math.max(
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
