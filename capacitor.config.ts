@@ -15,6 +15,7 @@ const config: CapacitorConfig = {
     includePlugins: [
       "@capacitor-firebase/messaging",
       "@capacitor/app",
+      "@capacitor/clipboard",
       "@capacitor/filesystem",
       "@capacitor/share",
     ],
@@ -24,6 +25,7 @@ const config: CapacitorConfig = {
     backgroundColor: "#070B12",
     includePlugins: [
       "@capacitor-firebase/messaging",
+      "@capacitor/clipboard",
       "@capacitor/filesystem",
       "@capacitor/share",
     ],

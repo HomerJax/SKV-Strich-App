@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Clipboard } from "@capacitor/clipboard";
+import { Capacitor } from "@capacitor/core";
 import { Banknote, CreditCard } from "lucide-react";
 import { recordBeerAction } from "./actions";
 
@@ -14,6 +16,13 @@ function formatEuro(cents: number) {
 async function copyPoolAmount(cents: number) {
   const amount = (cents / 100).toFixed(2).replace(".", ",");
 
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await Clipboard.write({ string: amount });
+      return true;
+    } catch {}
+  }
+
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(amount);
@@ -23,13 +32,12 @@ async function copyPoolAmount(cents: number) {
 
   const textarea = document.createElement("textarea");
   textarea.value = amount;
-  textarea.setAttribute("readonly", "");
   textarea.style.position = "fixed";
   textarea.style.left = "0";
   textarea.style.top = "0";
-  textarea.style.width = "1px";
-  textarea.style.height = "1px";
-  textarea.style.opacity = "0";
+  textarea.style.width = "2px";
+  textarea.style.height = "2px";
+  textarea.style.opacity = "0.01";
   document.body.appendChild(textarea);
   textarea.focus();
   textarea.select();
@@ -82,11 +90,13 @@ export default function BeerCheckoutCard({
   const [poolAmountCopied, setPoolAmountCopied] = useState<boolean | null>(null);
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
 
-  function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
+  async function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
     if (!paypalPool || poolOpening) return;
 
     event.preventDefault();
     setPoolAmountCopied(null);
+    const copied = await copyPoolAmount(totalCents);
+    setPoolAmountCopied(copied);
     setPoolConfirmOpen(true);
   }
 
@@ -176,22 +186,22 @@ export default function BeerCheckoutCard({
             <h3 id="cashbox-paypal-pool-hint-title" className="mt-1 text-xl font-black text-slate-950">
               {poolAmountCopied === true
                 ? `${formatEuro(totalCents)} kopiert ✓`
-                : `${formatEuro(totalCents)} für den PayPal-Pool`}
+                : `${formatEuro(totalCents)} bitte kurz merken`}
             </h3>
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
               {poolAmountCopied === true
-                ? "Perfekt. Tippe jetzt auf „Zu PayPal“. Dort auf „Beteiligen“, Betrag einfügen und Zahlung bestätigen."
-                : poolAmountCopied === false
-                  ? "iOS hat das automatische Kopieren blockiert. Merke dir den Betrag oben und gib ihn nach „Beteiligen“ in PayPal ein."
-                  : "Kopiere zuerst den Betrag. Danach wirst du zu PayPal weitergeleitet: „Beteiligen“ → Betrag einfügen → Zahlung bestätigen."}
+                ? "Der Betrag wurde in die Zwischenablage kopiert. Du wirst nun zu PayPal weitergeleitet. Tippe dort auf „Beteiligen“, füge den Betrag ein und bestätige die Zahlung."
+                : "Das Kopieren hat auf deinem Gerät nicht funktioniert. Merke dir den Betrag oben. Tippe in PayPal auf „Beteiligen“, gib den Betrag ein und bestätige die Zahlung."}
             </p>
-            <button
-              type="button"
-              onClick={copyAmount}
-              className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 shadow-sm"
-            >
-              {poolAmountCopied === true ? "✓ Betrag kopiert" : `${formatEuro(totalCents)} kopieren`}
-            </button>
+            {poolAmountCopied === false ? (
+              <button
+                type="button"
+                onClick={copyAmount}
+                className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 shadow-sm"
+              >
+                Nochmal kopieren
+              </button>
+            ) : null}
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
               😉 Hier setzen wir auf dein Vertrauen. Schummeln lohnt sich eh nicht – ein Schiefstand fällt spätestens bei der Kassenprüfung auf.
             </div>
@@ -202,7 +212,7 @@ export default function BeerCheckoutCard({
               onClick={preparePaypalPoolOpen}
               className="mt-4 block w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-center text-sm font-black text-white shadow-sm"
             >
-              {poolAmountCopied === true ? "Zu PayPal →" : "Weiter zu PayPal →"}
+              "Zu PayPal →"
             </a>
             <button
               type="button"
