@@ -16,6 +16,7 @@ type Props = {
   sessionOverrideMinutes: number | null;
   clubDefaultMinutes: number;
   isAdmin: boolean;
+  isSeries?: boolean;
 };
 
 function startLabel(value: string | null) {
@@ -29,6 +30,7 @@ export default function SessionRsvpDeadlineEditor({
   sessionOverrideMinutes,
   clubDefaultMinutes,
   isAdmin,
+  isSeries = false,
 }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -37,6 +39,7 @@ export default function SessionRsvpDeadlineEditor({
   const [minutes, setMinutes] = useState(
     String(sessionOverrideMinutes ?? clubDefaultMinutes),
   );
+  const [scope, setScope] = useState<"single" | "future" | "series">("single");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -75,6 +78,7 @@ export default function SessionRsvpDeadlineEditor({
           "rsvp_deadline_minutes_before",
           useClubDefault ? "" : minutes,
         );
+        formData.set("scope", isSeries ? scope : "single");
         await updateSessionRsvpSettingsAction(formData);
         setEditing(false);
         router.refresh();
@@ -132,6 +136,35 @@ export default function SessionRsvpDeadlineEditor({
           />
           Club-Standard verwenden ({clubDefaultMinutes} Min. vorher)
         </label>
+
+        {isSeries ? (
+          <div className="mt-3">
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/48">
+              Änderung anwenden auf
+            </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
+              {[
+                ["single", "Nur diesen Termin"],
+                ["future", "Ab diesem Termin"],
+                ["series", "Ganze Serie"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setScope(value as "single" | "future" | "series")}
+                  className={[
+                    "rounded-xl px-3 py-2 text-xs font-semibold ring-1 transition",
+                    scope === value
+                      ? "bg-white text-slate-950 ring-white"
+                      : "bg-white/8 text-white/72 ring-white/10 hover:bg-white/12",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {error ? <div className="mt-2 text-xs text-rose-300">{error}</div> : null}
 

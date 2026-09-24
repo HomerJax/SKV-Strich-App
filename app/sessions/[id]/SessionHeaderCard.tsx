@@ -325,6 +325,7 @@ export default function SessionHeaderCard({
             sessionOverrideMinutes={sessionRsvpDeadlineMinutesBefore}
             clubDefaultMinutes={clubRsvpDeadlineMinutesBefore}
             isAdmin={isAdmin}
+            isSeries={Boolean(seriesId)}
           />
         </div>
 

@@ -6,6 +6,14 @@ import { canManageClub } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_RSVP_DEADLINE_MINUTES } from "@/lib/session-rsvp-deadline";
 
+type Scope = "single" | "future" | "series";
+
+function normalizeScope(value: FormDataEntryValue | null): Scope {
+  const raw = String(value ?? "").trim();
+  if (raw === "future" || raw === "series") return raw;
+  return "single";
+}
+
 export async function updateSessionRsvpSettingsAction(formData: FormData) {
   const { clubId, membership, isPowerUser } = await requireClub();
 
@@ -16,6 +24,7 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
   const sessionId = Number(String(formData.get("sessionId") ?? "").trim());
   const startTimeRaw = String(formData.get("start_time") ?? "").trim();
   const overrideRaw = String(formData.get("rsvp_deadline_minutes_before") ?? "").trim();
+  const requestedScope = normalizeScope(formData.get("scope"));
 
   if (!Number.isFinite(sessionId)) {
     throw new Error("Ungültige Session-ID.");
@@ -45,10 +54,10 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
   const supabase = await createClient();
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .select("id")
+    .select("id,date,series_id")
     .eq("id", sessionId)
     .eq("club_id", clubId)
-    .maybeSingle<{ id: number }>();
+    .maybeSingle<{ id: number; date: string; series_id: string | null }>();
 
   if (sessionError) {
     throw new Error(`Session konnte nicht geprüft werden: ${sessionError.message}`);
@@ -57,20 +66,47 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
     throw new Error("Session nicht gefunden.");
   }
 
+  const scope: Scope = session.series_id ? requestedScope : "single";
+  let targetQuery = supabase
+    .from("sessions")
+    .select("id")
+    .eq("club_id", clubId);
+
+  if (scope === "single") {
+    targetQuery = targetQuery.eq("id", sessionId);
+  } else {
+    targetQuery = targetQuery.eq("series_id", session.series_id!);
+    if (scope === "future") {
+      targetQuery = targetQuery.gte("date", session.date);
+    }
+  }
+
+  const { data: targets, error: targetsError } = await targetQuery;
+  if (targetsError) {
+    throw new Error(`Serientermine konnten nicht geladen werden: ${targetsError.message}`);
+  }
+
+  const targetIds = (targets ?? []).map((row) => Number(row.id));
+  if (targetIds.length === 0) {
+    throw new Error("Keine passenden Termine gefunden.");
+  }
+
   const { error } = await supabase
     .from("sessions")
     .update({
       start_time: startTime,
       rsvp_deadline_minutes_before: deadlineOverride,
     })
-    .eq("id", sessionId)
-    .eq("club_id", clubId);
+    .eq("club_id", clubId)
+    .in("id", targetIds);
 
   if (error) {
     throw new Error(`Einstellungen konnten nicht gespeichert werden: ${error.message}`);
   }
 
-  revalidatePath(`/sessions/${sessionId}`);
+  for (const targetId of targetIds) {
+    revalidatePath(`/sessions/${targetId}`);
+  }
   revalidatePath("/sessions");
   revalidatePath("/home");
 }
