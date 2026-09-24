@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireClub } from "@/lib/auth/guards";
 
 export async function POST(request: Request) {
@@ -50,16 +51,94 @@ export async function POST(request: Request) {
     }
 
     const totalCents = unitPriceCents * quantity;
+    const now = new Date().toISOString();
+
+    if (paymentMethod === "paypal") {
+      const admin = createAdminClient();
+      const { data: consumption, error: consumptionError } = await admin
+        .from("beer_consumptions")
+        .insert({
+          club_id: clubId,
+          player_id: player.id,
+          quantity,
+          unit_price_cents: unitPriceCents,
+          total_cents: totalCents,
+          payment_method: "paypal",
+          payment_status: "pending",
+          created_by: user.id,
+          updated_at: now,
+        })
+        .select("id")
+        .single<{ id: number }>();
+
+      if (consumptionError || !consumption) {
+        return NextResponse.json({ error: "Bier konnte nicht eingetragen werden." }, { status: 500 });
+      }
+
+      const { data: transaction, error: transactionError } = await admin
+        .from("cash_transactions")
+        .insert({
+          club_id: clubId,
+          amount_cents: totalCents,
+          kind: "income",
+          category: "Getränke",
+          title: `Bierkasse · ${quantity} Bier · PayPal`,
+          source_type: "beer",
+          source_id: consumption.id,
+          source_key: `beer:${consumption.id}:paypal-payment`,
+          created_by: user.id,
+        })
+        .select("id")
+        .single<{ id: number }>();
+
+      if (transactionError || !transaction) {
+        await admin
+          .from("beer_consumptions")
+          .delete()
+          .eq("club_id", clubId)
+          .eq("id", consumption.id);
+        return NextResponse.json({ error: "Bier konnte nicht verbucht werden." }, { status: 500 });
+      }
+
+      const { error: paidError } = await admin
+        .from("beer_consumptions")
+        .update({
+          payment_status: "paid",
+          paid_at: now,
+          confirmed_by: user.id,
+          cash_transaction_id: transaction.id,
+          updated_at: now,
+        })
+        .eq("club_id", clubId)
+        .eq("id", consumption.id);
+
+      if (paidError) {
+        await admin
+          .from("cash_transactions")
+          .delete()
+          .eq("club_id", clubId)
+          .eq("id", transaction.id);
+        await admin
+          .from("beer_consumptions")
+          .delete()
+          .eq("club_id", clubId)
+          .eq("id", consumption.id);
+        return NextResponse.json({ error: "Bier konnte nicht verbucht werden." }, { status: 500 });
+      }
+
+      return new NextResponse(null, { status: 204 });
+    }
+
     const { error } = await supabase.from("beer_consumptions").insert({
       club_id: clubId,
       player_id: player.id,
       quantity,
       unit_price_cents: unitPriceCents,
       total_cents: totalCents,
-      payment_method: paymentMethod,
+      payment_method: "cash",
       payment_status: "pending",
       created_by: user.id,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     });
 
     if (error) {

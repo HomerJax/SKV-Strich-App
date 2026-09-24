@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Clipboard } from "@capacitor/clipboard";
-import { Capacitor } from "@capacitor/core";
 import { Banknote, CreditCard, X } from "lucide-react";
 import { recordBeerAction } from "@/app/mannschaftskasse/actions";
 
@@ -11,45 +9,6 @@ function formatEuro(cents: number) {
     style: "currency",
     currency: "EUR",
   }).format(cents / 100);
-}
-
-async function copyPoolAmount(cents: number) {
-  const amount = (cents / 100).toFixed(2).replace(".", ",");
-
-  if (Capacitor.isNativePlatform()) {
-    try {
-      await Clipboard.write({ string: amount });
-      return true;
-    } catch {}
-  }
-
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(amount);
-      return true;
-    }
-  } catch {}
-
-  const textarea = document.createElement("textarea");
-  textarea.value = amount;
-  textarea.style.position = "fixed";
-  textarea.style.left = "0";
-  textarea.style.top = "0";
-  textarea.style.width = "2px";
-  textarea.style.height = "2px";
-  textarea.style.opacity = "0.01";
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  textarea.setSelectionRange(0, textarea.value.length);
-
-  let copied = false;
-  try {
-    copied = document.execCommand("copy");
-  } catch {}
-
-  textarea.remove();
-  return copied;
 }
 
 function recordPoolBeer(quantity: number) {
@@ -84,26 +43,20 @@ export default function HomeBeerCheckoutModal({
   const [quantity, setQuantity] = useState(1);
   const [poolOpening, setPoolOpening] = useState(false);
   const [poolConfirmOpen, setPoolConfirmOpen] = useState(false);
-  const [poolAmountCopied, setPoolAmountCopied] = useState<boolean | null>(null);
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
 
-  async function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
+  function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
     if (!paypalPool || poolOpening) return;
 
     event.preventDefault();
-    setPoolAmountCopied(null);
-    const copied = await copyPoolAmount(totalCents);
-    setPoolAmountCopied(copied);
     setPoolConfirmOpen(true);
   }
 
-  async function copyAmount() {
-    const copied = await copyPoolAmount(totalCents);
-    setPoolAmountCopied(copied);
-  }
-
-  function preparePaypalPoolOpen() {
-    if (poolOpening) return;
+  function preparePaypalPoolOpen(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (poolOpening) {
+      event.preventDefault();
+      return;
+    }
 
     setPoolOpening(true);
     recordPoolBeer(quantity);
@@ -131,7 +84,6 @@ export default function HomeBeerCheckoutModal({
           setQuantity(1);
           setPoolOpening(false);
           setPoolConfirmOpen(false);
-          setPoolAmountCopied(null);
           setOpen(true);
         }}
         className="flex w-full items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left shadow-sm transition active:scale-[0.99]"
@@ -232,7 +184,7 @@ export default function HomeBeerCheckoutModal({
 
               <p className="mt-3 text-center text-[11px] font-medium leading-4 text-slate-500">
                 {paypalPool
-                  ? "Beim PayPal-Pool kopiert strikr den Betrag automatisch. In PayPal nur noch „Beteiligen“, Betrag einfügen und zahlen."
+                  ? "PayPal-Pool: Bier wird direkt verbucht. In PayPal nur noch „Beteiligen“, Betrag eingeben und zahlen."
                   : "Verbrauch und Zahlung werden getrennt geführt. Bar gilt erst nach Bestätigung als bezahlt."}
               </p>
             </form>
@@ -246,27 +198,14 @@ export default function HomeBeerCheckoutModal({
             <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0070ba]">
               PayPal-Pool
             </div>
-            <h3 id="paypal-pool-hint-title" className="mt-1 text-xl font-black text-slate-950">
-              {poolAmountCopied === true
-                ? `${formatEuro(totalCents)} kopiert ✓`
-                : `${formatEuro(totalCents)} bitte kurz merken`}
+            <h3 id="paypal-pool-hint-title" className="mt-1 text-2xl font-black text-slate-950">
+              🍺 {quantity} Bier · {formatEuro(totalCents)}
             </h3>
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
-              {poolAmountCopied === true
-                ? "Der Betrag wurde in die Zwischenablage kopiert. Beim Wechsel zu PayPal wird deine Bierstatistik direkt aktualisiert. Du wirst nun zu PayPal weitergeleitet. Tippe dort auf „Beteiligen“, füge den Betrag ein und bestätige die Zahlung."
-                : "Das Kopieren hat auf deinem Gerät nicht funktioniert. Merke dir den Betrag oben. Tippe in PayPal auf „Beteiligen“, gib den Betrag ein und bestätige die Zahlung."}
+              Deine Bierstatistik wird beim Wechsel zu PayPal direkt gespeichert. Tippe dort auf „Beteiligen“, gib <strong>{formatEuro(totalCents)}</strong> ein und bestätige die Zahlung.
             </p>
-            {poolAmountCopied === false ? (
-              <button
-                type="button"
-                onClick={copyAmount}
-                className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 shadow-sm"
-              >
-                Nochmal kopieren
-              </button>
-            ) : null}
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
-              😉 Hier setzen wir auf dein Vertrauen. Schummeln lohnt sich eh nicht – ein Schiefstand fällt spätestens bei der Kassenprüfung auf.
+              😉 Wir vertrauen dir: strikr prüft die PayPal-Zahlung danach nicht extra nach. Bitte einfach den richtigen Betrag eingeben.
             </div>
             <a
               href={paypalUrl}
@@ -275,7 +214,7 @@ export default function HomeBeerCheckoutModal({
               onClick={preparePaypalPoolOpen}
               className="mt-4 block w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-center text-sm font-black text-white shadow-sm"
             >
-              "Zu PayPal →"
+              {formatEuro(totalCents)} merken &amp; zu PayPal →
             </a>
             <button
               type="button"
