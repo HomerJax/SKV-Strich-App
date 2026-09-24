@@ -78,13 +78,12 @@ export default function HomeBeerCheckoutModal({
     setPoolConfirmOpen(true);
   }
 
-  function openPaypalPool() {
+  function preparePaypalPoolOpen() {
     if (poolOpening) return;
 
     setPoolOpening(true);
     copyPoolAmount(totalCents);
     recordPoolBeer(quantity);
-    window.location.assign(paypalUrl);
   }
 
   useEffect(() => {
@@ -237,14 +236,15 @@ export default function HomeBeerCheckoutModal({
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
               😉 Hier setzen wir auf dein Vertrauen. Schummeln lohnt sich eh nicht – ein Schiefstand fällt spätestens bei der Kassenprüfung auf.
             </div>
-            <button
-              type="button"
-              onClick={openPaypalPool}
-              disabled={poolOpening}
-              className="mt-4 w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-sm font-black text-white shadow-sm disabled:opacity-60"
+            <a
+              href={paypalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={preparePaypalPoolOpen}
+              className="mt-4 block w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-center text-sm font-black text-white shadow-sm"
             >
-              {poolOpening ? "PayPal öffnet …" : "Zu PayPal →"}
-            </button>
+              Zu PayPal →
+            </a>
             <button
               type="button"
               onClick={() => {
