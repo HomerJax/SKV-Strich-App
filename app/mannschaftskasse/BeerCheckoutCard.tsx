@@ -68,6 +68,7 @@ export default function BeerCheckoutCard({
 }) {
   const [quantity, setQuantity] = useState(1);
   const [poolOpening, setPoolOpening] = useState(false);
+  const [poolConfirmOpen, setPoolConfirmOpen] = useState(false);
   const [poolAmountCopied, setPoolAmountCopied] = useState<boolean | null>(null);
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
 
@@ -75,12 +76,17 @@ export default function BeerCheckoutCard({
     if (!paypalPool || poolOpening) return;
 
     event.preventDefault();
-    setPoolOpening(true);
-
     const copied = copyPoolAmount(totalCents);
     setPoolAmountCopied(copied);
-    recordPoolBeer(quantity);
+    setPoolConfirmOpen(true);
+  }
 
+  function openPaypalPool() {
+    if (poolOpening) return;
+
+    setPoolOpening(true);
+    copyPoolAmount(totalCents);
+    recordPoolBeer(quantity);
     window.location.assign(paypalUrl);
   }
 
@@ -121,13 +127,9 @@ export default function BeerCheckoutCard({
                 <span>
                   <span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span>
                   <span className="block text-sm font-black">
-                    {paypalPool && poolOpening
-                      ? poolAmountCopied === false
-                        ? `${formatEuro(totalCents)} merken · Pool öffnet …`
-                        : `${formatEuro(totalCents)} kopiert · Pool öffnet …`
-                      : paypalPool
-                        ? `${formatEuro(totalCents)} kopieren & Pool öffnen`
-                        : formatEuro(totalCents)}
+                    {paypalPool
+                      ? `${formatEuro(totalCents)} · mit PayPal zahlen`
+                      : formatEuro(totalCents)}
                   </span>
                 </span>
               </span>
@@ -153,6 +155,46 @@ export default function BeerCheckoutCard({
             : "Die Bier zählen sofort für deine Statistik. Bezahlt zählt getrennt davon."}
         </p>
       </form>
+      {poolConfirmOpen ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-[2px]">
+          <div role="dialog" aria-modal="true" aria-labelledby="cashbox-paypal-pool-hint-title" className="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-2xl">
+            <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0070ba]">
+              PayPal-Pool
+            </div>
+            <h3 id="cashbox-paypal-pool-hint-title" className="mt-1 text-xl font-black text-slate-950">
+              {poolAmountCopied === false
+                ? `${formatEuro(totalCents)} bitte kurz merken`
+                : `${formatEuro(totalCents)} sind kopiert ✓`}
+            </h3>
+            <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
+              {poolAmountCopied === false
+                ? "Das automatische Kopieren hat auf deinem Gerät leider nicht geklappt. Tippe in PayPal auf „Beteiligen“ und gib den Betrag dort ein."
+                : "Tippe in PayPal auf „Beteiligen“ und füge den Betrag aus deiner Zwischenablage ein."}
+            </p>
+            <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
+              😉 Hier setzen wir auf dein Vertrauen. Schummeln lohnt sich eh nicht – ein Schiefstand fällt spätestens bei der Kassenprüfung auf.
+            </div>
+            <button
+              type="button"
+              onClick={openPaypalPool}
+              disabled={poolOpening}
+              className="mt-4 w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-sm font-black text-white shadow-sm disabled:opacity-60"
+            >
+              {poolOpening ? "PayPal öffnet …" : "Zu PayPal →"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPoolConfirmOpen(false);
+                setPoolOpening(false);
+              }}
+              className="mt-2 w-full rounded-2xl px-4 py-3 text-xs font-black text-slate-500"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
