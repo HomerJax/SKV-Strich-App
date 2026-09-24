@@ -31,7 +31,7 @@ import {
   teamMeta,
   withDisplayNames,
 } from "./session-detail-helpers";
-import { fetchImageAsFile } from "@/lib/share/utils";
+import { fetchImageAsFile, shareImageFromUrl } from "@/lib/share/utils";
 import { compressImageFile } from "@/lib/client-images/compress-image";
 
 type SessionDetailClientProps = {
@@ -704,12 +704,35 @@ export function useSessionDetail({
         throw new Error("Bitte zuerst beide Teams zuweisen.");
       }
 
+      // Vor dem Teilen immer den aktuellen Stand persistieren. So nutzt die
+      // Sharecard auch direkt nach dem Generieren/Verschieben exakt diese Teams.
+      await persistTeamsNow({ ...manualTeams });
+
       const text = buildLineupShareText(
         session,
         displayTeamA,
         displayTeamB,
         useNicknames
       );
+
+      try {
+        const result = await shareImageFromUrl({
+          imageUrl: `/share/lineup/${sessionId}/image`,
+          fileName: `strikr-aufstellung-${sessionId}.png`,
+          title: "strikr Aufstellung",
+          text,
+        });
+
+        if (result.mode === "cancelled") {
+          return;
+        }
+
+        setMsg("Aufstellung erfolgreich geteilt.");
+        return;
+      } catch {
+        // Falls Bild-Sharing im Browser nicht verfügbar ist, bleibt der
+        // bestehende Text-Share als verlässlicher Fallback erhalten.
+      }
 
       const result = await shareText(text, "Aufstellung teilen");
 
