@@ -21,6 +21,7 @@ type Props = {
   initialZoom?: number | null;
   children: ReactNode;
   className?: string;
+  readOnly?: boolean;
 };
 
 type Point = { x: number; y: number };
@@ -62,6 +63,7 @@ export default function PlayerPhotoUpload({
   initialZoom = 1,
   children,
   className = "",
+  readOnly = false,
 }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -296,6 +298,10 @@ export default function PlayerPhotoUpload({
     transform: `scale(${zoom})`,
     transformOrigin: `${positionX}% ${positionY}%`,
   } as const;
+
+  if (readOnly) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
     <>
