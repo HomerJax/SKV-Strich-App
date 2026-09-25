@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { completeOnboarding, type OnboardingState } from "./actions";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type OnboardingFormProps = {
   initialNext?: string;
@@ -16,6 +17,7 @@ export default function OnboardingForm({
   initialNext = "",
   inviteFlow = false,
 }: OnboardingFormProps) {
+  const { t } = useI18n();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [nickname, setNickname] = useState("");
@@ -41,18 +43,16 @@ export default function OnboardingForm({
       <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Profil vervollständigen
+            {t("onboarding.title")}
           </h1>
 
           {inviteFlow ? (
             <p className="mt-2 text-sm text-slate-600">
-              Du bist fast fertig. Ergänze kurz dein Profil, dann trittst du dem
-              Team direkt bei.
+              {t("onboarding.inviteHint")}
             </p>
           ) : (
             <p className="mt-2 text-sm text-slate-600">
-              Ergänze kurz dein Profil und entscheide, wie du mit STRIKR starten
-              möchtest.
+              {t("onboarding.hint")}
             </p>
           )}
         </div>
@@ -76,7 +76,7 @@ export default function OnboardingForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-800">
-                Vorname
+                {t("profile.firstName")}
               </label>
               <input
                 name="firstName"
@@ -94,7 +94,7 @@ export default function OnboardingForm({
 
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-800">
-                Nachname
+                {t("profile.lastName")}
               </label>
               <input
                 name="lastName"
@@ -113,7 +113,7 @@ export default function OnboardingForm({
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-800">
-              Spitzname
+              {t("profile.nickname")}
             </label>
             <input
               name="nickname"
@@ -131,7 +131,7 @@ export default function OnboardingForm({
           {!inviteFlow ? (
             <div className="space-y-3">
               <div className="text-sm font-medium text-slate-800">
-                Wie möchtest du starten?
+                {t("onboarding.howStart")}
               </div>
 
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50">
@@ -149,10 +149,10 @@ export default function OnboardingForm({
                 />
                 <div>
                   <div className="text-sm font-semibold text-slate-900">
-                    Ich erstelle einen neuen Club
+                    {t("onboarding.createClub")}
                   </div>
                   <div className="mt-1 text-sm text-slate-600">
-                    Du legst direkt dein eigenes Team an und startest als Admin.
+                    {t("onboarding.createClubHint")}
                   </div>
                 </div>
               </label>
@@ -172,11 +172,10 @@ export default function OnboardingForm({
                 />
                 <div>
                   <div className="text-sm font-semibold text-slate-900">
-                    Ich warte auf eine Einladung
+                    {t("onboarding.waitInvite")}
                   </div>
                   <div className="mt-1 text-sm text-slate-600">
-                    Dein Profil wird angelegt, damit du später einem Team
-                    beitreten kannst.
+                    {t("onboarding.waitInviteHint")}
                   </div>
                 </div>
               </label>
@@ -186,7 +185,7 @@ export default function OnboardingForm({
           {showClubName ? (
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-800">
-                Clubname
+                {t("onboarding.clubName")}
               </label>
               <input
                 name="clubName"
@@ -198,7 +197,7 @@ export default function OnboardingForm({
                 }}
                 required
                 disabled={isPending}
-                placeholder="z. B. FC STRIKR Mittwoch"
+                placeholder={t("onboarding.clubPlaceholder")}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-400"
               />
             </div>
@@ -210,12 +209,12 @@ export default function OnboardingForm({
             className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isPending
-              ? "Wird gespeichert..."
+              ? t("onboarding.saving")
               : inviteFlow
-                ? "Profil speichern und Team beitreten"
+                ? t("onboarding.saveJoin")
                 : intention === "create-team"
-                  ? "Profil speichern und Club erstellen"
-                  : "Profil speichern"}
+                  ? t("onboarding.saveCreate")
+                  : t("onboarding.save")}
           </button>
         </form>
       </div>
