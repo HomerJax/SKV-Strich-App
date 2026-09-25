@@ -127,8 +127,8 @@ export default function HomeTeamFeedPreview({
                     <button
                       type="button"
                       onClick={() => setOpenBadge(item)}
-                      aria-label={`${item.title} groß ansehen`}
-                      title="Badge groß ansehen"
+                      aria-label={`${item.title} Details ansehen`}
+                      title="Badge-Details ansehen"
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition hover:bg-amber-50 active:scale-95"
                     >
                       <AchievementBadgeVisual badgeKey={item.badgeKey} size="lg" />
@@ -223,7 +223,7 @@ export default function HomeTeamFeedPreview({
 
             <div className="min-w-0 flex-1">
               <div className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">
-                Karriere-Badge
+                {openBadge.badgeKey.startsWith("career_") ? "Karriere-Badge" : "Badge"}
               </div>
               <div className="mt-1 text-sm font-black leading-5 text-slate-950">
                 {openBadge.title}
