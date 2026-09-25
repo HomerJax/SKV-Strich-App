@@ -38,7 +38,7 @@ export async function requireCashboxAccess(options?: { manage?: boolean }) {
   }
 
   const canManageCashbox = isClubAdmin || isCashboxManager;
-  const canManageBeer = isClubAdmin || isBeerManager;
+  const canManageBeer = isClubAdmin || isCashboxManager || isBeerManager;
 
   if (options?.manage && !canManageCashbox) {
     redirect("/mannschaftskasse");
