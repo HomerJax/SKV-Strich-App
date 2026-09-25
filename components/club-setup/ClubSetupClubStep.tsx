@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type SportType =
   | "football"
@@ -27,76 +29,40 @@ type ClubSetupClubStepProps = {
   variant?: "default" | "onboarding";
 };
 
-const COLOR_OPTIONS = [
-  { value: "black", label: "Schwarz", color: "#020617" },
-  { value: "blue", label: "Blau", color: "#1d4ed8" },
-  { value: "red", label: "Rot", color: "#dc2626" },
-  { value: "green", label: "Grün", color: "#16a34a" },
-] as const;
+const COLOR_OPTIONS: Array<{ value: string; labelKey: MessageKey; color: string }> = [
+  { value: "black", labelKey: "clubSetup.colorBlack", color: "#020617" },
+  { value: "blue", labelKey: "clubSetup.colorBlue", color: "#1d4ed8" },
+  { value: "red", labelKey: "clubSetup.colorRed", color: "#dc2626" },
+  { value: "green", labelKey: "clubSetup.colorGreen", color: "#16a34a" },
+];
 
 const SPORT_OPTIONS: Array<{
   value: SportType;
-  label: string;
-  description: string;
+  labelKey: MessageKey;
+  descriptionKey: MessageKey;
 }> = [
-  {
-    value: "football",
-    label: "Fußball",
-    description: "Trainings, Teams, Ergebnisse und MVPs für Fußballteams.",
-  },
-  {
-    value: "handball",
-    label: "Handball",
-    description: "Für Hallen- und Feldteams mit Trainings-Flow.",
-  },
-  {
-    value: "basketball",
-    label: "Basketball",
-    description: "Für schnelle Trainingsgruppen und faire Teams.",
-  },
-  {
-    value: "volleyball",
-    label: "Volleyball",
-    description: "Für Teams, Trainingsabende und interne Spielrunden.",
-  },
-  {
-    value: "ice_hockey",
-    label: "Eishockey",
-    description: "Für Eis- und Inline-Teams.",
-  },
-  {
-    value: "tennis",
-    label: "Tennis",
-    description: "Für Trainingsgruppen, Doppel und interne Runden.",
-  },
-  {
-    value: "padel",
-    label: "Padel",
-    description: "Für Padel-Gruppen, Doppel und regelmäßige Sessions.",
-  },
-  {
-    value: "other",
-    label: "Andere Sportart",
-    description: "Für alle Teams, die strikr flexibel nutzen möchten.",
-  },
+  { value: "football", labelKey: "clubSetup.sportFootball", descriptionKey: "clubSetup.sportFootballHint" },
+  { value: "handball", labelKey: "clubSetup.sportHandball", descriptionKey: "clubSetup.sportHandballHint" },
+  { value: "basketball", labelKey: "clubSetup.sportBasketball", descriptionKey: "clubSetup.sportBasketballHint" },
+  { value: "volleyball", labelKey: "clubSetup.sportVolleyball", descriptionKey: "clubSetup.sportVolleyballHint" },
+  { value: "ice_hockey", labelKey: "clubSetup.sportIceHockey", descriptionKey: "clubSetup.sportIceHockeyHint" },
+  { value: "tennis", labelKey: "clubSetup.sportTennis", descriptionKey: "clubSetup.sportTennisHint" },
+  { value: "padel", labelKey: "clubSetup.sportPadel", descriptionKey: "clubSetup.sportPadelHint" },
+  { value: "other", labelKey: "clubSetup.sportOther", descriptionKey: "clubSetup.sportOtherHint" },
 ];
 
-function getErrorMessage(error?: string) {
+function getErrorMessage(
+  error: string | undefined,
+  t: (key: MessageKey) => string,
+) {
   switch (error) {
-    case "unauthorized":
-      return "Du hast keinen Zugriff auf diesen Bereich.";
-    case "missing_club":
-      return "Es konnte kein Club gefunden werden.";
-    case "invalid_file":
-      return "Bitte lade nur PNG, JPG, JPEG oder WEBP hoch.";
-    case "file_too_large":
-      return "Die Datei ist zu groß. Maximal 2 MB sind erlaubt.";
-    case "save_failed":
-      return "Die Änderungen konnten nicht gespeichert werden.";
-    case "remove_failed":
-      return "Das Logo konnte nicht entfernt werden.";
-    default:
-      return "";
+    case "unauthorized": return t("clubSetup.unauthorized");
+    case "missing_club": return t("clubSetup.missingClub");
+    case "invalid_file": return t("clubSetup.invalidFile");
+    case "file_too_large": return t("clubSetup.fileTooLarge");
+    case "save_failed": return t("clubSetup.saveFailed");
+    case "remove_failed": return t("clubSetup.removeFailed");
+    default: return "";
   }
 }
 
@@ -119,6 +85,7 @@ export default function ClubSetupClubStep({
   useNicknames,
   variant = "default",
 }: ClubSetupClubStepProps) {
+  const { t } = useI18n();
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [primaryColor, setPrimaryColor] = useState(
     initialPrimaryColor || "black"
@@ -141,11 +108,11 @@ export default function ClubSetupClubStep({
     SPORT_OPTIONS[0];
 
   const previewLogoUrl = selectedPreviewUrl ?? initialLogoUrl ?? null;
-  const errorMessage = getErrorMessage(error);
+  const errorMessage = getErrorMessage(error, t);
 
   const playerNameModeLabel = useMemo(
-    () => (nicknameMode ? "Spitznamen aktiv" : "Vor- und Nachname"),
-    [nicknameMode]
+    () => (nicknameMode ? t("clubSetup.nicknamesActive") : t("clubSetup.fullName")),
+    [nicknameMode, t]
   );
 
   return (
@@ -158,13 +125,13 @@ export default function ClubSetupClubStep({
 
       {saved ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Änderungen gespeichert.
+          {t("clubSetup.saved")}
         </div>
       ) : null}
 
       <div className={variant === "onboarding" ? "rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5" : "rounded-[20px] border border-black/10 bg-neutral-50 p-4"}>
         <div className={variant === "onboarding" ? "mb-3 text-[10px] font-black uppercase tracking-[.16em] text-slate-500" : "mb-3 text-sm font-semibold text-slate-500"}>
-          Live-Vorschau
+          {t("clubSetup.livePreview")}
         </div>
 
         <div
@@ -176,7 +143,7 @@ export default function ClubSetupClubStep({
               <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
                 <Image
                   src={previewLogoUrl}
-                  alt={displayName || "Clublogo"}
+                  alt={displayName || t("clubSetup.clubLogo")}
                   width={80}
                   height={80}
                   unoptimized
@@ -191,14 +158,14 @@ export default function ClubSetupClubStep({
 
             <div className="min-w-0">
               <div className="truncate text-lg font-bold text-slate-950">
-                {displayName.trim() || "Dein Team"}
+                {displayName.trim() || t("home.yourTeam")}
               </div>
               <div className="text-sm text-slate-500">
-                {selectedSport.label} · euer Club in strikr
+                {t("clubSetup.clubInStrikr", { sport: t(selectedSport.labelKey) })}
               </div>
               {variant === "default" ? (
                 <div className="mt-1 text-xs text-slate-500">
-                  Spielernamen:{" "}
+                  {t("clubSetup.playerNames")}{" "}
                   <span className="font-semibold text-slate-700">
                     {playerNameModeLabel}
                   </span>
@@ -206,7 +173,7 @@ export default function ClubSetupClubStep({
               ) : null}
               {selectedFileName ? (
                 <div className="mt-2 text-xs font-medium text-emerald-700">
-                  Ausgewählt: {selectedFileName}
+                  {t("clubSetup.selectedFile", { file: selectedFileName })}
                 </div>
               ) : null}
             </div>
@@ -227,7 +194,7 @@ export default function ClubSetupClubStep({
             htmlFor="sport_type"
             className={variant === "onboarding" ? "block text-xs font-black uppercase tracking-[.12em] text-slate-500" : "block text-sm font-medium text-slate-900"}
           >
-            Sportart
+            {t("clubSetup.sport")}
           </label>
 
           <select
@@ -241,13 +208,13 @@ export default function ClubSetupClubStep({
           >
             {SPORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.labelKey)}
               </option>
             ))}
           </select>
 
           <p className="text-xs leading-5 text-slate-500">
-            {selectedSport.description}
+            {t(selectedSport.descriptionKey)}
           </p>
         </div>
 
@@ -256,7 +223,7 @@ export default function ClubSetupClubStep({
             htmlFor="display_name"
             className={variant === "onboarding" ? "block text-xs font-black uppercase tracking-[.12em] text-slate-500" : "block text-sm font-medium text-slate-900"}
           >
-            Teamname
+            {t("clubSetup.teamName")}
           </label>
           <input
             id="display_name"
@@ -265,7 +232,7 @@ export default function ClubSetupClubStep({
             maxLength={80}
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
-            placeholder="z. B. SKV Rutesheim"
+            placeholder={t("clubSetup.teamNamePlaceholder")}
             className={variant === "onboarding" ? "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100" : "w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"}
           />
         </div>
@@ -275,7 +242,7 @@ export default function ClubSetupClubStep({
             htmlFor="logo"
             className={variant === "onboarding" ? "block text-xs font-black uppercase tracking-[.12em] text-slate-500" : "block text-sm font-medium text-slate-900"}
           >
-            Vereinslogo <span className="normal-case tracking-normal text-slate-400">(optional)</span>
+            {t("clubSetup.clubLogoOptional")}
           </label>
 
           <input
@@ -299,13 +266,13 @@ export default function ClubSetupClubStep({
           />
 
           <p className="text-xs text-slate-500">
-            Erlaubt: PNG, JPG, JPEG, WEBP · maximal 2 MB
+            {t("clubSetup.allowedFiles")}
           </p>
         </div>
 
         <div className="space-y-2">
           <div className={variant === "onboarding" ? "block text-xs font-black uppercase tracking-[.12em] text-slate-500" : "block text-sm font-medium text-slate-900"}>
-            Vereinsfarbe
+            {t("clubSetup.clubColor")}
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -325,20 +292,20 @@ export default function ClubSetupClubStep({
                   className="h-4 w-4 rounded-full border border-black/10"
                   style={{ backgroundColor: option.color }}
                 />
-                <span>{option.label}</span>
+                <span>{t(option.labelKey)}</span>
               </label>
             ))}
           </div>
 
           <p className="text-xs text-slate-500">
-            Die Farbe wird als dezenter Akzent für euren Club in der App genutzt.
+            {t("clubSetup.clubColorHint")}
           </p>
         </div>
 
         {variant === "onboarding" ? (
           <details className="rounded-[20px] border border-slate-200 bg-slate-50">
             <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-slate-600 [&::-webkit-details-marker]:hidden">
-              Optionale Anzeigeeinstellung
+              {t("clubSetup.optionalDisplay")}
             </summary>
             <div className="border-t border-slate-200 p-3">
               <label className="flex items-start gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
@@ -351,15 +318,15 @@ export default function ClubSetupClubStep({
                   className="mt-1 h-4 w-4 rounded border-neutral-300"
                 />
                 <div>
-                  <div className="text-sm font-bold text-slate-950">Spitznamen anzeigen</div>
-                  <div className="mt-1 text-xs leading-5 text-slate-500">Kannst du später jederzeit in den Einstellungen ändern.</div>
+                  <div className="text-sm font-bold text-slate-950">{t("clubSetup.showNicknames")}</div>
+                  <div className="mt-1 text-xs leading-5 text-slate-500">{t("clubSetup.nicknamesLater")}</div>
                 </div>
               </label>
             </div>
           </details>
         ) : (
           <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-            <div className="mb-3 text-sm font-semibold text-slate-500">Allgemeine Anzeige</div>
+            <div className="mb-3 text-sm font-semibold text-slate-500">{t("clubSetup.generalDisplay")}</div>
             <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3">
               <input
                 type="checkbox"
@@ -370,8 +337,8 @@ export default function ClubSetupClubStep({
                 className="mt-1 h-4 w-4 rounded border-neutral-300"
               />
               <div>
-                <div className="text-sm font-semibold text-slate-950">Spitznamen anzeigen</div>
-                <div className="text-sm text-slate-600">Wenn aktiv, werden Spieler in Sessions, Teams, Stats und weiteren Ansichten bevorzugt mit ihrem Spitznamen angezeigt.</div>
+                <div className="text-sm font-semibold text-slate-950">{t("clubSetup.showNicknames")}</div>
+                <div className="text-sm text-slate-600">{t("clubSetup.nicknamesHint")}</div>
               </div>
             </label>
           </div>
@@ -397,7 +364,7 @@ export default function ClubSetupClubStep({
             type="submit"
             className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
           >
-            Logo entfernen
+            {t("clubSetup.removeLogo")}
           </button>
         </form>
       ) : null}
