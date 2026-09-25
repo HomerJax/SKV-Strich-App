@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
+import { Instagram } from "lucide-react";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -288,6 +289,17 @@ export default async function AppHeader() {
 
           {ctx.user ? (
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <a
+                href="https://www.instagram.com/getstrikr/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="strikr auf Instagram"
+                title="@getstrikr auf Instagram"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-pink-600 sm:h-10 sm:w-10"
+              >
+                <Instagram className="h-4.5 w-4.5" />
+              </a>
+
               <MobileUserMenu
                 profileLabel={profileLabel}
                 profilePhotoSrc={profilePhotoSrc}
