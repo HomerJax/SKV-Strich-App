@@ -163,7 +163,7 @@ export default async function Page({ searchParams }: Props) {
 
   if (settings?.cashbox_setup_completed !== true) {
     if (isClubAdmin) redirect("/mannschaftskasse/setup");
-    return <main className="min-h-screen bg-neutral-100"><section className="mx-auto max-w-3xl space-y-4 px-4 py-6"><Link href="/home" className="text-sm font-semibold text-slate-600">← Home</Link><div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"><div className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">Mannschaftskasse</div><h1 className="mt-2 text-2xl font-black text-slate-950">Noch nicht eingerichtet</h1><p className="mt-2 text-sm font-medium leading-6 text-slate-600">Eure Mannschaftskasse wurde noch nicht eingerichtet. Sobald ein Admin das Setup abgeschlossen hat, findest du hier eure Beiträge, FBZG oder Bierkasse.</p></div></section></main>;
+    return <main className="min-h-screen bg-neutral-100"><section className="mx-auto max-w-3xl space-y-4 px-4 py-6"><Link href="/home" className="text-sm font-semibold text-slate-600">← Home</Link><div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"><div className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">{t("cashbox.title")}</div><h1 className="mt-2 text-2xl font-black text-slate-950">{t("cashbox.notSetUp")}</h1><p className="mt-2 text-sm font-medium leading-6 text-slate-600">{t("cashbox.notSetUpText")}</p></div></section></main>;
   }
   const penaltiesEnabled = settings.cashbox_penalties_enabled === true;
   const contributionsEnabled = settings.cashbox_contributions_enabled === true;
@@ -254,14 +254,14 @@ export default async function Page({ searchParams }: Props) {
           </Link>
           <div className="flex items-center gap-2">
             {isClubAdmin ? (
-              <Link href="/mannschaftskasse/setup?edit=1" className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">Setup ändern</Link>
+              <Link href="/mannschaftskasse/setup?edit=1" className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">{t("cashbox.editSetup")}</Link>
             ) : null}
             {canManageBeer && beerFeatureEnabled ? (
               <Link
                 href="/mannschaftskasse/bier"
                 className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-900"
               >
-                🍺 Bierkasse verwalten
+                {t("cashbox.manageBeer")}
               </Link>
             ) : null}
             {canManageCashbox ? (
@@ -269,7 +269,7 @@ export default async function Page({ searchParams }: Props) {
                 href="/admin/penalties"
                 className="rounded-full bg-slate-950 px-3 py-2 text-xs font-black text-white"
               >
-                Kasse verwalten
+                {t("cashbox.manageCashbox")}
               </Link>
             ) : null}
           </div>
@@ -277,27 +277,27 @@ export default async function Page({ searchParams }: Props) {
 
         <div className="rounded-[28px] bg-slate-950 p-5 text-white">
           <div className="text-[11px] font-black uppercase tracking-[.2em] text-white/45">
-            Teamleben
+            {t("cashbox.teamLife")}
           </div>
-          <h1 className="mt-1 text-2xl font-black">💰 Mannschaftskasse</h1>
+          <h1 className="mt-1 text-2xl font-black">💰 {t("cashbox.title")}</h1>
           <div className="mt-5 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">{formatCents(teamBalance)}</div>
-              <div className="mt-1 text-[10px] font-bold text-white/50">Kassenstand</div>
+              <div className="mt-1 text-[10px] font-bold text-white/50">{t("cashbox.balance")}</div>
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">{mine.length}</div>
-              <div className="mt-1 text-[10px] font-bold text-white/50">FBZG offen</div>
+              <div className="mt-1 text-[10px] font-bold text-white/50">{t("cashbox.fbzgOpen")}</div>
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">
                 {formatCents(myOpenPenaltyCents + myOpenContributionCents + myOpenBeerCents)}
               </div>
-              <div className="mt-1 text-[10px] font-bold text-white/50">bei mir offen</div>
+              <div className="mt-1 text-[10px] font-bold text-white/50">{t("cashbox.mineOpen")}</div>
             </div>
           </div>
           <p className="mt-3 text-[11px] font-semibold leading-5 text-white/45">
-            Kassenstand = tatsächlich verbuchte Einnahmen minus Ausgaben. Offene Beiträge, FBZG und Bier zählen erst dazu, sobald sie als bezahlt bestätigt wurden.
+            {t("cashbox.balanceHint")}
           </p>
         </div>
 
@@ -308,9 +308,9 @@ export default async function Page({ searchParams }: Props) {
                 href="/admin/penalties?tab=contributions"
                 className="rounded-2xl border border-blue-200 bg-blue-50 p-4"
               >
-                <div className="text-sm font-black text-blue-950">💶 Beiträge verwalten</div>
+                <div className="text-sm font-black text-blue-950">{t("cashbox.manageContributions")}</div>
                 <div className="mt-1 text-xs font-medium leading-5 text-blue-800/70">
-                  Jahresbeitrag anlegen und pro Spieler sofort sehen: offen, bezahlt oder befreit.
+                  {t("cashbox.manageContributionsHint")}
                 </div>
               </Link>
             ) : null}
@@ -319,9 +319,9 @@ export default async function Page({ searchParams }: Props) {
                 href="/mannschaftskasse/bier"
                 className="rounded-2xl border border-amber-200 bg-amber-50 p-4"
               >
-                <div className="text-sm font-black text-amber-950">🍺 Bierkasse verwalten</div>
+                <div className="text-sm font-black text-amber-950">{t("cashbox.manageBeer")}</div>
                 <div className="mt-1 text-xs font-medium leading-5 text-amber-800/70">
-                  Bier-Anzahl korrigieren und offene Bar- oder PayPal-Zahlungen bestätigen.
+                  {t("cashbox.manageBeerHint")}
                 </div>
               </Link>
             ) : null}
@@ -332,24 +332,24 @@ export default async function Page({ searchParams }: Props) {
           <BeerCheckoutCard
             priceCents={beerPriceCents}
             myTotal={myBeerTotal}
-            badge={beerBadgesEnabled ? beerBadge(myBeerTotal) : null}
+            badge={beerBadgesEnabled ? beerBadge(myBeerTotal, locale) : null}
             paypalEnabled={paypalEnabled}
             paypalPool={paypalPool}
             paypalUrl={paypalUrl}
           />
         ) : null}
 
-        {q?.setup_saved ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">✓ Mannschaftskasse eingerichtet.</div> : null}
+        {q?.setup_saved ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">{t("cashbox.setUpSaved")}</div> : null}
 
         {penaltiesEnabled ? (
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold leading-5 text-slate-600 shadow-sm">
-            <b className="text-slate-950">FBZG</b> = Freiwilliger Beitrag zur Gemeinschaft. 😄 So nennen wir Kisten, Kuchen, Geldbeträge & Co. – mit einem Augenzwinkern.
+            <b className="text-slate-950">FBZG</b> = {t("cashbox.fbzgExplain")}
           </div>
         ) : null}
 
         {q?.beer_saved === "cash" ? (
           <div className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
-            🍺 Bier eingetragen · {formatCents(myOpenBeerCents)} sind bei dir aktuell noch ungeklärt/offen.
+            {t("cashbox.beerSavedCash", { amount: formatCents(myOpenBeerCents, locale) })}
           </div>
         ) : null}
 
@@ -364,15 +364,15 @@ export default async function Page({ searchParams }: Props) {
             <div className="flex items-end justify-between gap-3">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400">
-                  Mein Bierkonto
+                  {t("cashbox.myBeerAccount")}
                 </div>
                 <h2 className="mt-1 text-lg font-black text-slate-950">
-                  Verbrauch & Zahlung getrennt
+                  {t("cashbox.consumptionPayment")}
                 </h2>
               </div>
               <div className="text-right">
                 <div className="text-xl font-black text-amber-700">{formatCents(myOpenBeerCents)}</div>
-                <div className="text-[10px] font-bold text-slate-500">offen / ungeklärt</div>
+                <div className="text-[10px] font-bold text-slate-500">{t("cashbox.openUnclear")}</div>
               </div>
             </div>
             <div className="mt-4 space-y-2">
@@ -381,7 +381,7 @@ export default async function Page({ searchParams }: Props) {
                   <div>
                     <div className="text-sm font-black text-slate-900">{entry.quantity} 🍺 · {formatCents(entry.total_cents)}</div>
                     <div className="mt-0.5 text-[10px] font-bold text-slate-500">
-                      {entry.payment_method === "cash" ? "Bar" : "PayPal"} · {fmtDate(entry.created_at)}
+                      {entry.payment_method === "cash" ? t("cashbox.cash") : "PayPal"} · {fmtDate(entry.created_at, locale)}
                     </div>
                   </div>
                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
@@ -389,12 +389,12 @@ export default async function Page({ searchParams }: Props) {
                       ? "bg-emerald-100 text-emerald-800"
                       : "bg-amber-100 text-amber-900"
                   }`}>
-                    {entry.payment_status === "paid" ? "✓ Bezahlt" : "Offen"}
+                    {entry.payment_status === "paid" ? t("cashbox.paid") : t("cashbox.open")}
                   </span>
                 </div>
               ))}
               {myRecentBeer.length === 0 ? (
-                <p className="text-sm text-slate-500">Noch kein Bier eingetragen.</p>
+                <p className="text-sm text-slate-500">{t("cashbox.noBeer")}</p>
               ) : null}
             </div>
           </section>
@@ -405,19 +405,19 @@ export default async function Page({ searchParams }: Props) {
             <div className="flex items-end justify-between gap-3">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
-                  🍺 Bierstatistik
+                  {t("cashbox.beerStats")}
                 </div>
-                <h2 className="mt-1 text-lg font-black text-slate-950">Saison am Zapfhahn</h2>
+                <h2 className="mt-1 text-lg font-black text-slate-950">{t("cashbox.tapSeason")}</h2>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-black text-slate-950">{myBeerTotal}</div>
-                <div className="text-[10px] font-bold text-slate-500">dein Stand</div>
+                <div className="text-[10px] font-bold text-slate-500">{t("cashbox.yourTotal")}</div>
               </div>
             </div>
 
-            {beerBadgesEnabled && beerBadge(myBeerTotal) ? (
+            {beerBadgesEnabled && beerBadge(myBeerTotal, locale) ? (
               <div className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-black text-amber-900">
-                Dein Bier-Badge: {beerBadge(myBeerTotal)}
+                {t("cashbox.yourBeerBadge", { badge: beerBadge(myBeerTotal, locale) ?? "" })}
               </div>
             ) : null}
 
@@ -433,9 +433,9 @@ export default async function Page({ searchParams }: Props) {
                     </span>
                     <div className="min-w-0">
                       <div className="truncate text-sm font-black text-slate-900">{entry.name}</div>
-                      {beerBadgesEnabled && beerBadge(entry.total) ? (
+                      {beerBadgesEnabled && beerBadge(entry.total, locale) ? (
                         <div className="text-[10px] font-bold text-amber-700">
-                          {beerBadge(entry.total)}
+                          {beerBadge(entry.total, locale)}
                         </div>
                       ) : null}
                     </div>
@@ -447,7 +447,7 @@ export default async function Page({ searchParams }: Props) {
               ))}
               {beerLeaderboard.length === 0 ? (
                 <p className="text-sm text-slate-500">
-                  Noch kein Bier gebucht. Irgendwer muss anfangen. 😄
+                  {t("cashbox.noBeerLeaderboard")}
                 </p>
               ) : null}
             </div>
@@ -456,7 +456,7 @@ export default async function Page({ searchParams }: Props) {
 
         {q?.saved ? (
           <div className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
-            FBZG-Eintrag gespeichert. 😄
+            {t("cashbox.fbzgSaved")}
           </div>
         ) : null}
         {q?.error ? (
@@ -466,7 +466,7 @@ export default async function Page({ searchParams }: Props) {
         ) : null}
 
         <section className={contributionsEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
-          <h2 className="text-lg font-black">Meine Beiträge</h2>
+          <h2 className="text-lg font-black">{t("cashbox.myContributions")}</h2>
           <div className="mt-3 space-y-2">
             {myContributionMembers.map((member) => {
               const contribution = contributions.find(
@@ -488,29 +488,29 @@ export default async function Page({ searchParams }: Props) {
                       <div className="mt-1 text-xs text-slate-600">
                         {formatCents(contribution.amount_cents)}
                         {contribution.due_date
-                          ? ` · fällig ${fmtDate(contribution.due_date)}`
+                          ? ` · ${t("cashbox.due", { date: fmtDate(contribution.due_date, locale) })}`
                           : ""}
                       </div>
                     </div>
                     <div className="text-xs font-black">
                       {member.status === "paid"
-                        ? "✓ Bezahlt"
+                        ? t("cashbox.paid")
                         : member.status === "exempt"
-                          ? "Befreit"
-                          : "Offen"}
+                          ? t("cashbox.exempt")
+                          : t("cashbox.open")}
                     </div>
                   </div>
                 </div>
               );
             })}
             {myContributionMembers.length === 0 ? (
-              <p className="text-sm text-slate-500">Aktuell keine Beiträge für dich.</p>
+              <p className="text-sm text-slate-500">{t("cashbox.noContributions")}</p>
             ) : null}
           </div>
         </section>
 
         <section className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
-          <h2 className="text-lg font-black">Meine offenen FBZG-Einträge</h2>
+          <h2 className="text-lg font-black">{t("cashbox.myOpenFbzg")}</h2>
           <div className="mt-3 space-y-2">
             {mine.map((entry) => {
               const escalated = Boolean(
@@ -523,26 +523,26 @@ export default async function Page({ searchParams }: Props) {
                   <div className="font-black">{entry.reason}</div>
                   <div className="text-sm text-slate-600">
                     <b>{entry.value}</b>
-                    {entry.due_date ? ` · bis ${fmtDate(entry.due_date)}` : ""}
+                    {entry.due_date ? ` · ${t("cashbox.until", { date: fmtDate(entry.due_date, locale) })}` : ""}
                   </div>
                   {escalated ? (
                     <div className="mt-1 text-xs font-black text-amber-700">
-                      ⏰ Überfällig: {entry.escalation_value}
+                      {t("cashbox.overdue", { value: entry.escalation_value })}
                     </div>
                   ) : null}
                 </div>
               );
             })}
             {mine.length === 0 ? (
-              <p className="text-sm text-slate-500">Bei dir ist alles sauber. 😄</p>
+              <p className="text-sm text-slate-500">{t("cashbox.allClear")}</p>
             ) : null}
           </div>
         </section>
 
         <section className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
-          <h2 className="text-lg font-black">FBZG melden</h2>
+          <h2 className="text-lg font-black">{t("cashbox.reportFbzg")}</h2>
           <p className="mt-1 text-xs text-slate-500">
-            Jeder im Team darf einen FBZG-Vorfall melden. Erledigt, befreit oder storniert wird durch Kassenwart/Admin.
+            {t("cashbox.reportHint")}
           </p>
           <form action={reportPenaltyAction} className="mt-4 space-y-3">
             <select
@@ -550,15 +550,15 @@ export default async function Page({ searchParams }: Props) {
               required
               className="w-full rounded-xl border px-3 py-2.5 text-sm"
             >
-              <option value="">Wen hat&apos;s erwischt?</option>
+              <option value="">{t("cashbox.who")}</option>
               {players.map((entry) => (
                 <option key={entry.id} value={entry.id}>
-                  {playerName(entry)}
+                  {playerName(entry, locale)}
                 </option>
               ))}
             </select>
             <select name="preset" className="w-full rounded-xl border px-3 py-2.5 text-sm">
-              <option value="">Eigener Anlass</option>
+              <option value="">{t("cashbox.customReason")}</option>
               {rules.map((rule) => (
                 <option key={rule.rule_key} value={rule.rule_key}>
                   {rule.label} · {rule.value}
@@ -566,30 +566,30 @@ export default async function Page({ searchParams }: Props) {
               ))}
             </select>
             <div className="grid gap-2 sm:grid-cols-3">
-              <input name="reason" placeholder="Eigener Grund" className="rounded-xl border px-3 py-2.5 text-sm" />
+              <input name="reason" placeholder={t("cashbox.ownReason")} className="rounded-xl border px-3 py-2.5 text-sm" />
               <select name="type" className="rounded-xl border px-3 py-2.5 text-sm">
-                <option value="beer">Sachbeitrag</option>
-                <option value="money">Geldbeitrag</option>
-                <option value="custom">Sonstiges</option>
+                <option value="beer">{t("cashbox.inKind")}</option>
+                <option value="money">{t("cashbox.money")}</option>
+                <option value="custom">{t("cashbox.other")}</option>
               </select>
-              <input name="value" placeholder="z. B. Kuchen / 2 €" className="rounded-xl border px-3 py-2.5 text-sm" />
+              <input name="value" placeholder={t("cashbox.valuePlaceholder")} className="rounded-xl border px-3 py-2.5 text-sm" />
             </div>
-            <input name="notes" placeholder="Notiz (optional)" className="w-full rounded-xl border px-3 py-2.5 text-sm" />
+            <input name="notes" placeholder={t("cashbox.noteOptional")} className="w-full rounded-xl border px-3 py-2.5 text-sm" />
             <button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
-              FBZG melden
+              {t("cashbox.reportFbzg")}
             </button>
           </form>
         </section>
 
         <details className="rounded-[24px] border bg-white p-5">
-          <summary className="cursor-pointer font-black">Letzte Kassenbewegungen</summary>
+          <summary className="cursor-pointer font-black">{t("cashbox.recentTransactions")}</summary>
           <div className="mt-3 space-y-2">
             {transactions.slice(0, 10).map((transaction) => (
               <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3">
                 <div>
                   <div className="text-sm font-bold">{transaction.title}</div>
                   <div className="text-[11px] text-slate-500">
-                    {fmtDate(transaction.occurred_on)} · {transaction.category}
+                    {fmtDate(transaction.occurred_on, locale)} · {transaction.category}
                   </div>
                 </div>
                 <div className={`text-sm font-black ${transaction.amount_cents >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
@@ -599,14 +599,14 @@ export default async function Page({ searchParams }: Props) {
               </div>
             ))}
             {transactions.length === 0 ? (
-              <p className="text-sm text-slate-500">Noch keine Kassenbewegungen.</p>
+              <p className="text-sm text-slate-500">{t("cashbox.noTransactions")}</p>
             ) : null}
           </div>
         </details>
 
         <details className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
           <summary className="cursor-pointer font-black">
-            Teamweit offene FBZG-Einträge ({openPenalties.length})
+            {t("cashbox.teamOpenFbzg", { count: openPenalties.length })}
           </summary>
           <div className="mt-3 space-y-2">
             {openPenalties.map((entry) => (
