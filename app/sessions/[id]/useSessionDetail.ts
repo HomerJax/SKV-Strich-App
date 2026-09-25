@@ -824,7 +824,7 @@ ${sessionUrl}`;
       }
 
       if (!shareFile) {
-        throw new Error("SiegerCard konnte nicht vorbereitet werden.");
+        throw new Error(t("sessionHook.shareCardPrepareFailed"));
       }
 
       if (typeof navigator.canShare === "function") {
@@ -843,10 +843,10 @@ ${sessionUrl}`;
         files: [shareFile],
       });
 
-      setResultShareMessage("SiegerCard erfolgreich geteilt.");
+      setResultShareMessage(t("sessionHook.shareCardShared"));
     } catch (e: unknown) {
       const error =
-        e instanceof Error ? e : new Error("SiegerCard konnte nicht geteilt werden.");
+        e instanceof Error ? e : new Error(t("sessionHook.shareCardFailed"));
 
       const errorName =
         typeof error === "object" &&
@@ -863,7 +863,7 @@ ${sessionUrl}`;
       }
 
       const rawMessage =
-        error instanceof Error ? error.message : "SiegerCard konnte nicht geteilt werden.";
+        error instanceof Error ? error.message : t("sessionHook.shareCardFailed");
 
       const isUserGestureIssue =
         rawMessage.includes("Must be handling a user gesture") ||
@@ -908,7 +908,7 @@ ${sessionUrl}`;
       player.name?.trim() ||
       [player.first_name, player.last_name].filter(Boolean).join(" ").trim() ||
       player.nickname?.trim() ||
-      "Gast";
+      t("sessionHook.guest");
 
     const confirmed = window.confirm(
       t("sessionHook.deleteGuestConfirm", { name: playerName })
@@ -1106,7 +1106,7 @@ ${sessionUrl}`;
       setAttendanceCollapsed(true);
       setMsg(t("sessionHook.attendanceSaved"));
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Anwesenheit konnte nicht gespeichert werden."));
+      setErr(getErrorMessage(e, t("sessionHook.attendanceSaveFailed")));
     } finally {
       setSavingPresence(false);
       restoreScroll();
@@ -1172,7 +1172,7 @@ ${sessionUrl}`;
         setMsg(result.message);
       }
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Gastspieler konnte nicht angelegt werden."));
+      setErr(getErrorMessage(e, t("sessionHook.guestAddFailed")));
     } finally {
       setGuestSaving(false);
       restoreScroll();
