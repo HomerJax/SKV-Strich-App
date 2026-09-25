@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { getAuthContext } from "@/lib/auth/context";
+import { getSupportViewPlayer } from "@/lib/auth/support-view";
 
 type GuardMembership = {
   club_id: string;
@@ -45,6 +46,7 @@ export async function requirePlayer() {
 
 export async function requireClub() {
   const ctx = await getAuthContext();
+  const supportView = await getSupportViewPlayer(ctx);
 
   if (!ctx.user) {
     redirect(AUTH_ROUTES.login);
@@ -82,5 +84,9 @@ export async function requireClub() {
     membership: membership as GuardMembership,
     memberships: ctx.memberships,
     isPowerUser: ctx.isPowerUser,
+    supportViewPlayer: supportView?.player ?? null,
+    supportViewRole: supportView?.role ?? null,
+    supportViewLabel: supportView?.label ?? null,
+    isSupportView: Boolean(supportView),
   };
 }
