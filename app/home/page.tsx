@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CalendarDays, Instagram, Medal, Star, TrendingUp, Trophy } from "lucide-react";
+import { CalendarDays, Medal, Star, TrendingUp, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
@@ -14,7 +14,7 @@ import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
-import { getTeamFeedItems } from "@/lib/team-feed";
+import { getAchievementFeedItem, getTeamFeedItems } from "@/lib/team-feed";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -53,6 +53,7 @@ type HomeClubSettingsRow = {
   beerkasse_home_enabled: boolean | null;
   beerkasse_paypal_url: string | null;
   beerkasse_price_cents: number | null;
+  home_team_feed_enabled: boolean | null;
 };
 
 type ResultSessionRow = {
@@ -318,28 +319,6 @@ function formatRank(value: number | null) {
   return `#${value}`;
 }
 
-function QuickActionCard({
-  title,
-  text,
-  href,
-}: {
-  title: string;
-  text: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm transition hover:bg-slate-50"
-    >
-      <div className="text-sm font-black text-slate-950">{title}</div>
-      <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-        {text}
-      </div>
-    </Link>
-  );
-}
-
 function MainActionCard({
   eyebrow,
   title,
@@ -428,7 +407,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     { data: seasonExistsData },
     { data: nextSessionData },
     { data: recentSessionsData },
-    teamFeedItems,
   ] = await Promise.all([
     getFeatureFlagsForClub(clubId),
     supabase
@@ -439,7 +417,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     supabase
       .from("club_settings")
       .select(
-        "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_price_cents"
+        "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_price_cents, home_team_feed_enabled"
       )
       .eq("club_id", clubId)
       .maybeSingle<HomeClubSettingsRow>(),
@@ -471,7 +449,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       .eq("club_id", clubId)
       .order("date", { ascending: false })
       .limit(12),
-    getTeamFeedItems(clubId, 3),
   ]);
 
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
@@ -482,6 +459,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     homeSettings?.rsvp_deadline_minutes_before ?? 60;
   const requireRsvpReasonOnAbsence =
     homeSettings?.require_rsvp_reason_on_absence === true;
+  const teamFeedEnabled = homeSettings?.home_team_feed_enabled === true;
   const bierkasseHomeEnabled =
     homeSettings?.beerkasse_premium_enabled === true &&
     homeSettings?.beerkasse_enabled === true &&
@@ -493,6 +471,29 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
   );
+  const teamFeedPageSize = 8;
+  const baseTeamFeedItems = teamFeedEnabled
+    ? await getTeamFeedItems(clubId, teamFeedPageSize)
+    : [];
+
+  // TEMP: Badge-Feed-Darstellung im SKV-Team sichtbar testen.
+  // Der Achievement-Datensatz und sein echtes Datum bleiben unverändert.
+  const featuredSommiBadge =
+    teamFeedEnabled && clubId === "108590d9-0877-4787-90a5-4679615b3b76"
+      ? await getAchievementFeedItem({
+          clubId,
+          playerId: 30,
+          badgeKey: "career_wins_25",
+        })
+      : null;
+
+  const teamFeedItems = featuredSommiBadge
+    ? [
+        featuredSommiBadge,
+        ...baseTeamFeedItems.filter((item) => item.id !== featuredSommiBadge.id),
+      ]
+    : baseTeamFeedItems;
+
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
   const clubName = club?.display_name?.trim() || "Dein Team";
@@ -516,7 +517,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     clubLogoUrl = data?.publicUrl ?? null;
   }
 
-  const hasSessions = (sessionsCount ?? 0) > 0;
   const recentSessionIds = recentSessions.map((session) => session.id);
 
   let activeVotingSession:
@@ -902,7 +902,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             />
             {q?.beer_saved === "cash" ? (
               <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
-                🍺 Eingetragen · Barzahlung ist noch offen.
+                🍺 Eingetragen · Zahlung wartet auf Bestätigung.
               </div>
             ) : null}
             {q?.beer_error ? (
@@ -913,7 +913,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           </>
         ) : null}
 
-        <HomeTeamFeedPreview items={teamFeedItems} />
+        {teamFeedEnabled ? (
+          <HomeTeamFeedPreview
+            items={teamFeedItems}
+            initialOffset={baseTeamFeedItems.length}
+            initialHasMore={baseTeamFeedItems.length === teamFeedPageSize}
+          />
+        ) : null}
 
         {activeVotingSession ? (
           <section className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
@@ -958,42 +964,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           />
         ) : null}
 
-        <section className="space-y-2">
-          <div className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-            Mehr
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <QuickActionCard
-              title="Stats komplett"
-              text="Alle Zahlen ansehen"
-              href="/stats"
-            />
-
-            <QuickActionCard
-              title={hasSessions ? "Sessions" : "Archiv"}
-              text={hasSessions ? "Trainingsverlauf" : "Noch leer"}
-              href="/sessions"
-            />
-
-            {isAdmin ? (
-              <>
-                <QuickActionCard
-                  title="Training anlegen"
-                  text="Admin-Aktion"
-                  href="/sessions/new"
-                />
-
-                <QuickActionCard
-                  title="Admin"
-                  text="Club verwalten"
-                  href="/admin"
-                />
-              </>
-            ) : null}
-          </div>
-        </section>
-
         {showGettingStarted ? (
           <section className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm">
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
@@ -1024,41 +994,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           </section>
         ) : null}
 
-        <Link
-          href="/about"
-          className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="text-sm font-black text-slate-500">Über strikr</div>
-
-          <h2 className="mt-1 text-lg font-black text-slate-950">
-            Vom Bierdeckel zur App 🍻⚽
-          </h2>
-
-          <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
-            Angefangen mit Strichen auf Papier, dann Excel und irgendwann die
-            Frage: Warum sind Teams eigentlich immer unfair?
-          </p>
-
-          <div className="mt-3 text-sm font-black text-slate-900">
-            Geschichte lesen →
-          </div>
-        </Link>
-
-        <a
-          href="https://www.instagram.com/getstrikr/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group mx-auto flex w-fit max-w-full items-center gap-2.5 rounded-full border border-slate-200 bg-white px-3.5 py-2.5 text-slate-600 shadow-sm transition hover:border-pink-200 hover:text-pink-600"
-        >
-          <Instagram className="h-4 w-4 shrink-0" />
-          <span className="text-xs font-black">@getstrikr</span>
-          <span className="hidden text-[11px] font-semibold text-slate-400 sm:inline">
-            auf Instagram
-          </span>
-          <span className="text-xs font-black transition group-hover:translate-x-0.5">
-            →
-          </span>
-        </a>
       </section>
       </main>
     </HomePullToRefresh>
