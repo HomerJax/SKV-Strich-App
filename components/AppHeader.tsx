@@ -3,6 +3,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { Instagram } from "lucide-react";
 import { getAuthContext } from "@/lib/auth/context";
+import { getSupportViewPlayer } from "@/lib/auth/support-view";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import MobileUserMenu from "@/components/MobileUserMenu";
@@ -88,6 +89,8 @@ function dedupeSwitcherClubs(
 
 export default async function AppHeader() {
   const ctx = await getAuthContext();
+  const supportView = await getSupportViewPlayer(ctx);
+  const profilePlayer = ctx.player ?? supportView?.player ?? null;
 
   const activeClubId =
     ctx.activeClubId ??
@@ -139,11 +142,11 @@ export default async function AppHeader() {
             .returns<ClubRow[]>()
         : Promise.resolve({ data: [], error: null });
 
-    const playerPhotoPromise = ctx.player?.id
-      ? supabase
+    const playerPhotoPromise = profilePlayer?.id
+      ? clubReader
           .from("players")
           .select("photo_path, photo_position_x, photo_position_y, photo_zoom")
-          .eq("id", ctx.player.id)
+          .eq("id", profilePlayer.id)
           .maybeSingle<PlayerPhotoRow>()
       : Promise.resolve({ data: null, error: null });
 
@@ -212,8 +215,8 @@ export default async function AppHeader() {
     showTeamChatLink = flags.team_chat === true;
   }
 
-  const nickname = ctx.player?.nickname?.trim() || null;
-  const firstName = ctx.player?.first_name?.trim() || null;
+  const nickname = profilePlayer?.nickname?.trim() || null;
+  const firstName = profilePlayer?.first_name?.trim() || null;
   const profileLabel = nickname ?? firstName ?? "Spieler";
   const profileInitial = getInitial(profileLabel);
   void profileInitial;
@@ -296,6 +299,8 @@ export default async function AppHeader() {
                 activeLogoSrc={logoSrc}
                 primaryColor={primaryColor}
                 clubs={switcherClubs}
+                supportViewLabel={supportView?.label ?? null}
+                supportViewRole={supportView?.role ?? null}
                 canCreateClub={true}
                 createClubHref="/create-club"
               />
