@@ -1,3 +1,5 @@
+import type { AppLocale } from "@/lib/i18n/config";
+
 export type BadgeScope = "season" | "career";
 
 export type BadgeCategory =
@@ -63,6 +65,32 @@ export const BADGE_DEFINITION_BY_KEY = new Map<string, BadgeDefinition>(
 
 export function getBadgeDefinition(key: string) {
   return BADGE_DEFINITION_BY_KEY.get(key) ?? null;
+}
+
+const EN_BADGE_COPY: Record<string, Pick<BadgeDefinition, "title" | "description">> = {
+  career_appearances_10: { title: "10 Appearances", description: "10 appearances overall." },
+  career_appearances_25: { title: "25 Appearances", description: "25 appearances overall." },
+  career_appearances_50: { title: "50 Appearances", description: "50 appearances overall." },
+  career_appearances_100: { title: "100 Appearances", description: "100 appearances overall." },
+  career_appearances_250: { title: "250 Appearances", description: "250 appearances overall." },
+  career_appearances_500: { title: "500 Appearances", description: "500 appearances overall." },
+  career_wins_1: { title: "1st Career Win", description: "Your first career win." },
+  career_wins_10: { title: "10 Wins", description: "10 career wins overall." },
+  career_wins_25: { title: "25 Wins", description: "25 career wins overall." },
+  career_wins_50: { title: "50 Wins", description: "50 career wins overall." },
+  career_wins_100: { title: "100 Wins", description: "100 career wins overall." },
+  career_wins_250: { title: "250 Wins", description: "250 career wins overall." },
+};
+
+export function getLocalizedBadgeDefinition(
+  key: string,
+  locale: AppLocale,
+): BadgeDefinition | null {
+  const definition = getBadgeDefinition(key);
+  if (!definition || locale === "de") return definition;
+
+  const copy = EN_BADGE_COPY[key];
+  return copy ? { ...definition, ...copy } : definition;
 }
 
 export const SEASON_BADGES: readonly BadgeDefinition[] = [];
