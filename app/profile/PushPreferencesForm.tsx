@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type PushPreferences = {
   trainingReminders: boolean;
@@ -20,39 +22,38 @@ const DEFAULT_PREFERENCES: PushPreferences = {
 
 const OPTIONS: Array<{
   key: keyof PushPreferences;
-  label: string;
-  description: string;
+  labelKey: MessageKey;
+  descriptionKey: MessageKey;
 }> = [
   {
     key: "trainingReminders",
-    label: "Training & Erinnerungen",
-    description:
-      "Erinnert dich am Vorabend bei fehlender Rückmeldung und informiert über wichtige Änderungen oder Absagen.",
+    labelKey: "profile.pushTraining",
+    descriptionKey: "profile.pushTrainingHint",
   },
   {
     key: "rsvpUpdates",
-    label: "Zu- & Absagen im Team",
-    description:
-      "Mitteilung, wenn jemand aus deinem Team zu- oder absagt. Kann bei vielen Rückmeldungen jederzeit deaktiviert werden.",
+    labelKey: "profile.pushRsvp",
+    descriptionKey: "profile.pushRsvpHint",
   },
   {
     key: "results",
-    label: "Ergebnisse",
-    description: "Mitteilung, sobald ein Training abgeschlossen und das Ergebnis eingetragen wurde.",
+    labelKey: "profile.pushResults",
+    descriptionKey: "profile.pushResultsHint",
   },
   {
     key: "badges",
-    label: "MVP, Badges & Trophäen",
-    description: "Vorbereitet für MVP-, Badge- und Trophäen-Updates. Die genaue Logik bauen wir noch aus.",
+    labelKey: "profile.pushBadges",
+    descriptionKey: "profile.pushBadgesHint",
   },
   {
     key: "announcements",
-    label: "Club-Ankündigungen",
-    description: "Wichtige Mitteilungen, die ein Admin an den Club schickt.",
+    labelKey: "profile.pushAnnouncements",
+    descriptionKey: "profile.pushAnnouncementsHint",
   },
 ];
 
 export default function PushPreferencesForm() {
+  const { t } = useI18n();
   const [preferences, setPreferences] = useState<PushPreferences>(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,7 +72,7 @@ export default function PushPreferencesForm() {
         const payload = await response.json();
 
         if (!response.ok) {
-          throw new Error(payload?.error ?? "Einstellungen konnten nicht geladen werden.");
+          throw new Error(payload?.error ?? t("profile.preferencesLoadError"));
         }
 
         if (!cancelled && payload?.preferences) {
@@ -82,7 +83,7 @@ export default function PushPreferencesForm() {
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Einstellungen konnten nicht geladen werden.",
+              : t("profile.preferencesLoadError"),
           );
         }
       } finally {
@@ -118,15 +119,15 @@ export default function PushPreferencesForm() {
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload?.error ?? "Einstellungen konnten nicht gespeichert werden.");
+        throw new Error(payload?.error ?? t("profile.preferencesSaveError"));
       }
 
-      setMessage("Benachrichtigungseinstellungen gespeichert.");
+      setMessage(t("profile.preferencesSaved"));
     } catch (saveError) {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Einstellungen konnten nicht gespeichert werden.",
+          : t("profile.preferencesSaveError"),
       );
     } finally {
       setSaving(false);
@@ -139,10 +140,10 @@ export default function PushPreferencesForm() {
       className="scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
     >
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-        Benachrichtigungen
+        {t("profile.notifications")}
       </h2>
       <p className="mt-2 text-sm leading-6 text-slate-700">
-        Wähle, welche Push-Mitteilungen du von strikr erhalten möchtest.
+        {t("profile.notificationsHint")}
       </p>
 
       <div className="mt-5 divide-y divide-slate-100 rounded-2xl border border-slate-200">
@@ -153,10 +154,10 @@ export default function PushPreferencesForm() {
           >
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-slate-900">
-                {option.label}
+                {t(option.labelKey)}
               </span>
               <span className="mt-1 block text-xs leading-5 text-slate-500">
-                {option.description}
+                {t(option.descriptionKey)}
               </span>
             </span>
 
@@ -189,7 +190,7 @@ export default function PushPreferencesForm() {
         disabled={loading || saving}
         className="mt-5 inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {loading ? "Lädt…" : saving ? "Speichert…" : "Einstellungen speichern"}
+        {loading ? t("profile.loading") : saving ? t("profile.savingShort") : t("profile.savePreferences")}
       </button>
     </section>
   );
