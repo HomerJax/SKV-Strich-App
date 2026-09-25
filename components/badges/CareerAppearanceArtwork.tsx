@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 import { getBadgeDefinition } from "@/lib/badges/catalog";
 import { getBadgeVisualMeta } from "@/lib/badges/visual-catalog";
 
-type Props = { badgeKey: string; px: number; grayscale?: boolean; className?: string };
+type Props = { badgeKey: string; px: number; grayscale?: boolean; className?: string; interactive?: boolean };
 type Ring = { rx: number; ry: number; rotate: number; width: number; opacity: number };
 type ArtConfig = { value: number; tier: string; hero: string; glow: string; colors: string[]; rings: Ring[]; badgeSize: number; artwork?: string };
 
@@ -38,12 +38,38 @@ function CareerArtwork({ badgeKey, className = "" }: { badgeKey: string; classNa
   </svg>;
 }
 
-export default function CareerAppearanceArtwork({ badgeKey, px, grayscale=false, className="" }: Props) {
+export default function CareerAppearanceArtwork({ badgeKey, px, grayscale=false, className="", interactive=true }: Props) {
   const [open,setOpen]=useState(false); const c=CONFIG[badgeKey];
   const definition=useMemo(()=>getBadgeDefinition(badgeKey),[badgeKey]); const visual=useMemo(()=>getBadgeVisualMeta(badgeKey),[badgeKey]);
   useEffect(()=>{ if(!open)return; const prev=document.body.style.overflow; document.body.style.overflow="hidden"; const key=(e:KeyboardEvent)=>{if(e.key==="Escape")setOpen(false)}; window.addEventListener("keydown",key); return()=>{document.body.style.overflow=prev;window.removeEventListener("keydown",key)} },[open]);
   if(!c)return null;
   const renderedPreview = Boolean(c.artwork);
+
+  if (!interactive) {
+    return (
+      <span
+        className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border-0 bg-transparent p-0 ${className}`}
+        style={{ width: px, height: px }}
+        aria-label={definition?.title ?? badgeKey}
+      >
+        {renderedPreview ? (
+          <div className={`pointer-events-none absolute inset-0 overflow-hidden rounded-[22%] ${grayscale ? "grayscale opacity-45" : ""}`}>
+            <img
+              src={c.artwork}
+              alt={`${c.value} Einsätze · ${c.tier}`}
+              className="absolute left-1/2 top-1/2 block max-w-none"
+              style={{ width: "166%", height: "auto", transform: "translate(-50%, -43%)" }}
+            />
+          </div>
+        ) : (
+          <span className={`pointer-events-none block ${grayscale ? "grayscale opacity-45" : ""}`} style={{ width: px * 1.72, height: px * 1.72 }}>
+            <CareerArtwork badgeKey={badgeKey} className="h-full w-full" />
+          </span>
+        )}
+      </span>
+    );
+  }
+
   const modal = open ? <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-0 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label={definition?.title??badgeKey} onMouseDown={e=>{if(e.currentTarget===e.target)setOpen(false)}}>
       <button type="button" onClick={()=>setOpen(false)} className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur" aria-label="Vollbild schließen"><X className="h-5 w-5"/></button>
       {c.artwork?<img src={c.artwork} alt={`${c.value} Einsätze · ${c.tier}`} className="max-h-[100dvh] max-w-full object-contain"/>:<div className="flex max-h-[92dvh] w-full max-w-3xl flex-col items-center overflow-y-auto rounded-[32px] border border-white/10 bg-slate-950 px-5 pb-7 pt-8 text-center"><div className="text-[10px] font-black uppercase tracking-[.32em] text-white/40">Hall of Fame · Karriere · Einsätze</div><div className="mt-1 text-sm font-black uppercase tracking-[.18em] text-white/65">{c.tier}</div><div className="mt-2 aspect-square w-full max-w-[560px]"><CareerArtwork badgeKey={badgeKey} className="h-full w-full"/></div><div className="-mt-5 text-5xl font-black text-white">{c.value}</div><div className="mt-1 text-xs font-black uppercase tracking-[.34em] text-white/60">Einsätze</div>{definition?.description?<p className="mt-4 text-sm text-white/55">{definition.description}</p>:null}<p className="mt-2 text-xs text-white/35">{visual.motifLabel}</p></div>}
