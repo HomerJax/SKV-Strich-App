@@ -23,6 +23,7 @@ type ClubSettingsRow = {
   awards_started_at: string | null;
   rsvp_deadline_minutes_before: number | null;
   require_rsvp_reason_on_absence: boolean | null;
+  home_team_feed_enabled: boolean | null;
 };
 
 function redirectWithParams(
@@ -215,11 +216,14 @@ export async function POST(request: Request) {
   const submitsRsvpSettings =
     settingsScope === "rsvp" || hasField(formData, "rsvp_deadline_minutes_before");
 
+  const submitsHomeSettings = settingsScope === "home";
+
   if (
     !submitsTeamGeneratorSettings &&
     !submitsSeasonSettings &&
     !submitsAwardSettings &&
-    !submitsRsvpSettings
+    !submitsRsvpSettings &&
+    !submitsHomeSettings
   ) {
     return redirectWithParams(request, redirectTo, { error: "nothing_to_save" });
   }
@@ -227,7 +231,7 @@ export async function POST(request: Request) {
   const { data: existingSettings, error: existingSettingsError } = await supabase
     .from("club_settings")
     .select(
-      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence"
+      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled"
     )
     .eq("club_id", activeClubId)
     .maybeSingle<ClubSettingsRow>();
@@ -248,6 +252,7 @@ export async function POST(request: Request) {
     awards_started_at: null,
     rsvp_deadline_minutes_before: 60,
     require_rsvp_reason_on_absence: false,
+    home_team_feed_enabled: false,
   };
 
   const useStrength = submitsTeamGeneratorSettings
@@ -332,6 +337,10 @@ export async function POST(request: Request) {
     ? parseBoolean(formData.get("require_rsvp_reason_on_absence"))
     : (currentSettings.require_rsvp_reason_on_absence ?? false);
 
+  const homeTeamFeedEnabled = submitsHomeSettings
+    ? parseBoolean(formData.get("home_team_feed_enabled"))
+    : (currentSettings.home_team_feed_enabled ?? false);
+
   const { error: upsertError } = await supabase.from("club_settings").upsert(
     {
       club_id: activeClubId,
@@ -345,6 +354,7 @@ export async function POST(request: Request) {
       awards_started_at: awardsStartedAt,
       rsvp_deadline_minutes_before: rsvpDeadlineMinutesBefore,
       require_rsvp_reason_on_absence: requireRsvpReasonOnAbsence,
+      home_team_feed_enabled: homeTeamFeedEnabled,
     },
     {
       onConflict: "club_id",
