@@ -959,6 +959,10 @@ export const DE_MESSAGES = {
   "sessionHook.photoUploadFailed": "Siegerfoto konnte nicht hochgeladen werden.",
   "sessionHook.noWinnerPhoto": "Kein Siegerfoto vorhanden.",
   "sessionHook.noClub": "Kein Club gefunden.",
+  "sessionHook.shareCardPrepareFailed": "SiegerCard konnte nicht vorbereitet werden.",
+  "sessionHook.shareCardShared": "SiegerCard erfolgreich geteilt.",
+  "sessionHook.guest": "Gast",
+  "sessionHook.guestAddFailed": "Gastspieler konnte nicht angelegt werden.",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -1922,6 +1926,10 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "sessionHook.photoUploadFailed": "Winner photo could not be uploaded.",
   "sessionHook.noWinnerPhoto": "No winner photo available.",
   "sessionHook.noClub": "No club found.",
+  "sessionHook.shareCardPrepareFailed": "The winner card could not be prepared.",
+  "sessionHook.shareCardShared": "Winner card shared successfully.",
+  "sessionHook.guest": "Guest",
+  "sessionHook.guestAddFailed": "Guest player could not be added.",
 };
 
 export const MESSAGES: Record<AppLocale, Record<MessageKey, string>> = {
