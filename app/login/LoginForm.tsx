@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type LoginFormProps = {
   initialEmail?: string;
@@ -12,14 +14,17 @@ type LoginFormProps = {
   initialNext?: string;
 };
 
-function getErrorMessage(error: string) {
+function getErrorMessage(
+  error: string,
+  t: (key: MessageKey) => string,
+) {
   switch (error) {
     case "missing-fields":
-      return "Bitte gib E-Mail und Passwort ein.";
+      return t("auth.loginMissing");
     case "invalid-credentials":
-      return "E-Mail oder Passwort ist nicht korrekt.";
+      return t("auth.invalidCredentials");
     case "session-not-ready":
-      return "Die Anmeldung wurde verarbeitet, aber die Session war noch nicht bereit. Bitte versuche es erneut.";
+      return t("auth.sessionNotReady");
     default:
       return initialErrorMessage(error);
   }
@@ -34,6 +39,7 @@ export default function LoginForm({
   initialError = "",
   initialNext = "",
 }: LoginFormProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
@@ -46,8 +52,8 @@ export default function LoginForm({
     : submitError || initialError || "";
 
   const errorMessage = useMemo(
-    () => getErrorMessage(activeErrorCode),
-    [activeErrorCode]
+    () => getErrorMessage(activeErrorCode, t),
+    [activeErrorCode, t]
   );
 
   const signupHref = initialNext
@@ -131,22 +137,22 @@ export default function LoginForm({
               <div className="my-auto py-10">
                 <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.18em] text-cyan-200">
                   <Sparkles className="h-3.5 w-3.5" />
-                  {isTeamStart ? "Weiter mit deinem Team" : "Willkommen zurück"}
+                  {isTeamStart ? t("auth.continueTeam") : t("auth.welcomeBack")}
                 </div>
 
                 <h1 className="mt-5 max-w-xl text-4xl font-black leading-[.98] tracking-[-.055em] sm:text-5xl">
                   {isTeamStart ? (
                     <>
-                      Einloggen.
+                      {t("auth.loginHeadline")}
                       <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
-                        Team starten.
+                        {t("auth.teamStartHeadline")}
                       </span>
                     </>
                   ) : (
                     <>
-                      Weiter
+                      {t("auth.continueHeadline")}
                       <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
-                        bei strikr.
+                        {t("auth.atStrikr")}
                       </span>
                     </>
                   )}
@@ -154,16 +160,16 @@ export default function LoginForm({
 
                 <p className="mt-5 max-w-xl text-sm font-medium leading-7 text-white/58 sm:text-base">
                   {isTeamStart
-                    ? "Nach dem Login landest du direkt im Team-Setup. Kein Umweg, kein Admin-Chaos."
-                    : "Melde dich an und steig direkt wieder in deinen Club ein."}
+                    ? t("auth.loginTeamHint")
+                    : t("auth.loginHint")}
                 </p>
 
                 {isTeamStart ? (
                   <div className="mt-8 space-y-3">
                     {[
-                      "Club in wenigen Minuten startklar",
-                      "Faire Teams direkt konfigurieren",
-                      "Mannschaft anschließend per Link reinholen",
+                      t("auth.teamBenefit1"),
+                      t("auth.teamBenefit2"),
+                      t("auth.teamBenefit3"),
                     ].map((item) => (
                       <div key={item} className="flex items-center gap-3 text-sm font-bold text-white/75">
                         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-300/20">
@@ -177,7 +183,7 @@ export default function LoginForm({
               </div>
 
               <div className="text-[10px] font-bold uppercase tracking-[.18em] text-white/25">
-                Jedes Training zählt.
+                {t("auth.everyTrainingCounts")}
               </div>
             </div>
           </div>
@@ -185,15 +191,15 @@ export default function LoginForm({
           <div className="flex items-center rounded-[34px] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,.10)] sm:p-8">
             <div className="mx-auto w-full max-w-md">
               <div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-600">
-                {isTeamStart ? "Account vorhanden" : "Login"}
+                {isTeamStart ? t("auth.accountExists") : "Login"}
               </div>
               <h2 className="mt-2 text-3xl font-black tracking-[-.04em] text-neutral-950">
-                Einloggen.
+                {t("auth.loginHeadline")}
               </h2>
               <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
                 {isTeamStart
-                  ? "Danach öffnet sich direkt dein Team-Setup."
-                  : "Schön, dass du wieder da bist."}
+                  ? t("auth.loginTeamNext")
+                  : t("auth.loginWelcome")}
               </p>
 
               {errorMessage ? (
@@ -212,7 +218,7 @@ export default function LoginForm({
 
                 <label className="block">
                   <span className="mb-2 block text-xs font-black uppercase tracking-[.12em] text-neutral-500">
-                    E-Mail
+                    {t("auth.email")}
                   </span>
                   <input
                     name="email"
@@ -226,20 +232,20 @@ export default function LoginForm({
                     autoComplete="email"
                     disabled={isSubmitting}
                     className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 text-base outline-none transition placeholder:text-neutral-400 focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100"
-                    placeholder="du@beispiel.de"
+                    placeholder={t("auth.emailPlaceholder")}
                   />
                 </label>
 
                 <label className="block">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <span className="text-xs font-black uppercase tracking-[.12em] text-neutral-500">
-                      Passwort
+                      {t("auth.password")}
                     </span>
                     <Link
                       href={forgotPasswordHref}
                       className="text-xs font-bold text-neutral-500 hover:text-neutral-900"
                     >
-                      Vergessen?
+                      {t("auth.forgot")}
                     </Link>
                   </div>
                   <input
@@ -264,10 +270,10 @@ export default function LoginForm({
                 >
                   <span>
                     <span className="block text-[10px] font-black uppercase tracking-[.16em] text-cyan-300">
-                      {isSubmitting ? "Anmeldung läuft…" : isTeamStart ? "Weiter zum Setup" : "Weiter"}
+                      {isSubmitting ? t("auth.loginRunning") : isTeamStart ? t("auth.continueSetup") : t("auth.continue")}
                     </span>
                     <span className="mt-0.5 block text-base font-black">
-                      {isSubmitting ? "Einen Moment" : "Einloggen"}
+                      {isSubmitting ? t("auth.oneMoment") : t("auth.login")}
                     </span>
                   </span>
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-950 transition group-hover:translate-x-0.5">
@@ -277,12 +283,12 @@ export default function LoginForm({
               </form>
 
               <div className="mt-6 text-center text-sm font-medium text-neutral-500">
-                Noch kein Account?{" "}
+                {t("auth.noAccount")}{" "}
                 <Link
                   href={signupHref}
                   className="font-black text-neutral-900 hover:underline"
                 >
-                  Jetzt registrieren
+                  {t("auth.registerNow")}
                 </Link>
               </div>
             </div>
