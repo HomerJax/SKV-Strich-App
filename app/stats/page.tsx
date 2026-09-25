@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { TrendingUp, UsersRound, History, Award } from "lucide-react";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import PageHero from "@/components/ui/PageHero";
 import ScopeToggle from "@/components/stats/ScopeToggle";
@@ -260,8 +261,9 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const requestedScope = String(resolvedSearchParams?.scope ?? "season").trim();
   const scope: StatsScope = requestedScope === "career" ? "career" : "season";
 
-  const { clubId, player } = await requireClub();
-  const supabase = await createClient();
+  const { clubId, player, supportViewPlayer, isSupportView } = await requireClub();
+  const viewPlayer = player ?? supportViewPlayer;
+  const supabase = isSupportView ? createAdminClient() : await createClient();
 
   const [
     flags,
@@ -368,7 +370,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
     );
   }
 
-  if (!player) {
+  if (!viewPlayer) {
     return (
       <main className="min-h-screen bg-neutral-100">
         <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
@@ -407,16 +409,16 @@ export default async function StatsPage({ searchParams }: PageProps) {
       .from("players")
       .select("id, mvp_count")
       .eq("club_id", clubId)
-      .eq("id", player.id)
+      .eq("id", viewPlayer.id)
       .maybeSingle<PlayerMetaRow>(),
     supabase
       .from("session_players")
       .select("session_id")
-      .eq("player_id", player.id),
+      .eq("player_id", viewPlayer.id),
     supabase
       .from("team_players")
       .select("team_id")
-      .eq("player_id", player.id),
+      .eq("player_id", viewPlayer.id),
   ]);
 
   if (playerMetaError) {
@@ -806,7 +808,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
         .filter(([, count]) => count === maxVotes)
         .map(([playerId]) => playerId);
 
-      if (winnerIds.includes(player.id)) {
+      if (winnerIds.includes(viewPlayer.id)) {
         wins += 1;
       }
     }
