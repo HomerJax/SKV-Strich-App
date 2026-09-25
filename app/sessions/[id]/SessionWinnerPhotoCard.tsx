@@ -8,6 +8,7 @@ import type {
   RefObject,
 } from "react";
 import { compressImageFile } from "@/lib/client-images/compress-image";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 const MASTER_MAX_SIZE = 2400;
 const MAX_SOURCE_FILE_SIZE_BYTES = 20 * 1024 * 1024;
@@ -66,7 +67,11 @@ function ControlButton({ children, onClick, disabled = false, tone = "default" }
   );
 }
 
-function cropImageFile(file: File, trim: PhotoTrim): Promise<File> {
+function cropImageFile(
+  file: File,
+  trim: PhotoTrim,
+  cropErrorText: string,
+): Promise<File> {
   if (!trim.top && !trim.right && !trim.bottom && !trim.left) return Promise.resolve(file);
 
   return new Promise((resolve, reject) => {
@@ -85,12 +90,12 @@ function cropImageFile(file: File, trim: PhotoTrim): Promise<File> {
         canvas.width = sourceWidth;
         canvas.height = sourceHeight;
         const context = canvas.getContext("2d", { alpha: false });
-        if (!context) throw new Error("Bild konnte nicht zugeschnitten werden.");
+        if (!context) throw new Error(cropErrorText);
 
         context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
         canvas.toBlob((blob) => {
           if (!blob) {
-            reject(new Error("Bild konnte nicht zugeschnitten werden."));
+            reject(new Error(cropErrorText));
             return;
           }
           const baseName = file.name.replace(/\.[^.]+$/, "") || "winner-photo";
@@ -105,7 +110,7 @@ function cropImageFile(file: File, trim: PhotoTrim): Promise<File> {
 
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error("Bild konnte nicht zugeschnitten werden."));
+      reject(new Error(cropErrorText));
     };
     image.src = objectUrl;
   });
@@ -121,10 +126,11 @@ export default function SessionWinnerPhotoCard({
   winnerPhotoInputRef,
   onWinnerPhotoUpload,
   onWinnerPhotoDelete,
-  title = "Siegerfoto",
+  title,
   collapsed,
   onToggleCollapsed,
 }: SessionWinnerPhotoCardProps) {
+  const { t } = useI18n();
   const focusWorkspaceRef = useRef<HTMLDivElement | null>(null);
   const focusDragRef = useRef<{ pointerId: number; startClientX: number; startClientY: number; startFocus: PhotoFocus } | null>(null);
   const cropDragRef = useRef<{ pointerId: number; handle: CropHandle; startClientX: number; startClientY: number; startTrim: PhotoTrim } | null>(null);
@@ -170,11 +176,11 @@ export default function SessionWinnerPhotoCard({
     event.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setPhotoError("Bitte ein Bild auswählen.");
+      setPhotoError(t("winnerPhoto.chooseImage"));
       return;
     }
     if (file.size > MAX_SOURCE_FILE_SIZE_BYTES) {
-      setPhotoError("Das Originalbild ist zu groß. Bitte maximal 20 MB verwenden.");
+      setPhotoError(t("winnerPhoto.tooLarge"));
       return;
     }
 
@@ -190,7 +196,7 @@ export default function SessionWinnerPhotoCard({
         outputType: "image/jpeg",
       });
       if (preparedFile.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
-        setPhotoError("Das Foto konnte nicht weit genug verkleinert werden. Bitte ein kleineres Bild wählen.");
+        setPhotoError(t("winnerPhoto.compressFailed"));
         setMasterFile(null);
         setMasterPreviewUrl(null);
         return;
@@ -198,7 +204,7 @@ export default function SessionWinnerPhotoCard({
       setMasterFile(preparedFile);
       setMasterPreviewUrl(URL.createObjectURL(preparedFile));
     } catch (error) {
-      setPhotoError(error instanceof Error ? error.message : "Das Foto konnte nicht vorbereitet werden.");
+      setPhotoError(error instanceof Error ? error.message : t("winnerPhoto.prepareFailed"));
     } finally {
       setPreparing(false);
     }
@@ -302,7 +308,7 @@ export default function SessionWinnerPhotoCard({
     });
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(payload?.error || "Foto-Fokus konnte nicht gespeichert werden.");
+      throw new Error(payload?.error || t("winnerPhoto.focusSaveFailed"));
     }
   }
 
@@ -311,7 +317,7 @@ export default function SessionWinnerPhotoCard({
     try {
       setLocalBusy(true);
       setPhotoError(null);
-      const croppedFile = await cropImageFile(masterFile, trim);
+      const croppedFile = await cropImageFile(masterFile, trim, t("winnerPhoto.cropFailed"));
       const visibleWidth = Math.max(0.01, 1 - (trim.left + trim.right) / 100);
       const visibleHeight = Math.max(0.01, 1 - (trim.top + trim.bottom) / 100);
       const nextFocus: PhotoFocus = {
@@ -324,7 +330,7 @@ export default function SessionWinnerPhotoCard({
       await Promise.resolve(onWinnerPhotoUpload(syntheticEvent));
       clearPreparedPhoto();
     } catch (error) {
-      setPhotoError(error instanceof Error ? error.message : "Das Foto konnte nicht gespeichert werden.");
+      setPhotoError(error instanceof Error ? error.message : t("winnerPhoto.saveFailed"));
       setLocalBusy(false);
     }
   }
@@ -352,11 +358,11 @@ export default function SessionWinnerPhotoCard({
           <div className="flex items-center gap-3">
             <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${done ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500"}`}>{done ? "✓" : "🏆"}</span>
             <div>
-              <div className="text-sm font-bold text-slate-950">{done ? "Tagessiegerfoto übernommen" : title}</div>
-              <SummaryPill tone={done ? "success" : "muted"}>{done ? "Foto vorhanden" : "Optional"}</SummaryPill>
+              <div className="text-sm font-bold text-slate-950">{done ? t("winnerPhoto.adopted") : title ?? t("winnerPhoto.title")}</div>
+              <SummaryPill tone={done ? "success" : "muted"}>{done ? t("winnerPhoto.available") : t("winnerPhoto.optional")}</SummaryPill>
             </div>
           </div>
-          <div className="rounded-full border px-4 py-2 text-sm font-semibold">Bearbeiten</div>
+          <div className="rounded-full border px-4 py-2 text-sm font-semibold">{t("winnerPhoto.edit")}</div>
         </button>
       </section>
     );
@@ -368,11 +374,11 @@ export default function SessionWinnerPhotoCard({
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-600">🏆</div>
           <div>
-            <div className="text-sm font-semibold text-slate-900">{title}</div>
-            <SummaryPill tone={done ? "success" : "muted"}>{done ? "Foto vorhanden" : "Optional"}</SummaryPill>
+            <div className="text-sm font-semibold text-slate-900">{title ?? t("winnerPhoto.title")}</div>
+            <SummaryPill tone={done ? "success" : "muted"}>{done ? t("winnerPhoto.available") : t("winnerPhoto.optional")}</SummaryPill>
           </div>
         </div>
-        <button type="button" onClick={onToggleCollapsed} className="rounded-full border px-4 py-2 text-sm font-semibold">{done ? "Foto übernehmen" : "Ohne Foto weiter"}</button>
+        <button type="button" onClick={onToggleCollapsed} className="rounded-full border px-4 py-2 text-sm font-semibold">{done ? t("winnerPhoto.usePhoto") : t("winnerPhoto.continueWithout")}</button>
       </div>
 
       <div className="space-y-3 px-4 pb-4">
@@ -380,16 +386,16 @@ export default function SessionWinnerPhotoCard({
 
         <div className="flex flex-wrap gap-2">
           <ControlButton onClick={triggerFilePicker} disabled={!canUploadWinnerPhoto || controlsBusy} tone="primary">
-            {preparing ? "Bild wird optimiert..." : photoBusy || localBusy ? "Speichert..." : done ? "Foto ersetzen" : masterFile ? "Anderes Foto" : "Foto auswählen"}
+            {preparing ? t("winnerPhoto.optimizing") : photoBusy || localBusy ? t("winnerPhoto.saving") : done ? t("winnerPhoto.replace") : masterFile ? t("winnerPhoto.other") : t("winnerPhoto.select")}
           </ControlButton>
-          {done && !masterFile ? <ControlButton onClick={onWinnerPhotoDelete} disabled={controlsBusy} tone="danger">Löschen</ControlButton> : null}
+          {done && !masterFile ? <ControlButton onClick={onWinnerPhotoDelete} disabled={controlsBusy} tone="danger">{t("winnerPhoto.delete")}</ControlButton> : null}
         </div>
 
         {masterPreviewUrl ? (
           <div className="space-y-3 rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             <div>
-              <div className="text-sm font-bold text-slate-950">Foto zuschneiden & ausrichten</div>
-              <div className="mt-1 text-xs leading-5 text-slate-600">Zieh die weißen Griffe direkt mit dem Finger. Dunkle Bereiche werden entfernt. Das Bild selbst kannst du weiterhin verschieben, um den Motiv-Fokus für die SiegerCard festzulegen.</div>
+              <div className="text-sm font-bold text-slate-950">{t("winnerPhoto.cropTitle")}</div>
+              <div className="mt-1 text-xs leading-5 text-slate-600">{t("winnerPhoto.cropHint")}</div>
             </div>
 
             <div
@@ -404,7 +410,7 @@ export default function SessionWinnerPhotoCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={masterPreviewUrl}
-                alt="Siegerfoto Motivfokus"
+                alt={t("winnerPhoto.focusAlt")}
                 draggable={false}
                 onLoad={(event) => {
                   const image = event.currentTarget;
@@ -444,21 +450,21 @@ export default function SessionWinnerPhotoCard({
               <ControlButton onClick={() => adjustZoom(focus.zoom - 0.15)} disabled={controlsBusy || focus.zoom <= MIN_FOCUS_ZOOM}>−</ControlButton>
               <div className="min-w-24 text-center text-[11px] font-semibold text-slate-500">Zoom {Math.round(focus.zoom * 100)} %</div>
               <ControlButton onClick={() => adjustZoom(focus.zoom + 0.15)} disabled={controlsBusy || focus.zoom >= MAX_FOCUS_ZOOM}>+</ControlButton>
-              <ControlButton onClick={resetFocus} disabled={controlsBusy}>Zurücksetzen</ControlButton>
+              <ControlButton onClick={resetFocus} disabled={controlsBusy}>{t("winnerPhoto.reset")}</ControlButton>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <ControlButton onClick={() => void usePreparedPhoto()} disabled={controlsBusy} tone="primary">{photoBusy || localBusy ? "Speichert..." : "✓ Foto verwenden"}</ControlButton>
-              <ControlButton onClick={clearPreparedPhoto} disabled={controlsBusy}>Abbrechen</ControlButton>
+              <ControlButton onClick={() => void usePreparedPhoto()} disabled={controlsBusy} tone="primary">{photoBusy || localBusy ? t("winnerPhoto.saving") : t("winnerPhoto.use")}</ControlButton>
+              <ControlButton onClick={clearPreparedPhoto} disabled={controlsBusy}>{t("winnerPhoto.cancel")}</ControlButton>
             </div>
           </div>
         ) : (
           <div className="rounded-[20px] border border-slate-200 bg-slate-50 p-3">
             {winnerPhotoUrl ? (
               <div className="relative mx-auto flex min-h-[180px] w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[16px] bg-slate-950">
-                <Image src={winnerPhotoUrl} alt="Siegerfoto" width={280} height={280} className="max-h-[320px] h-auto w-auto max-w-full object-contain" />
+                <Image src={winnerPhotoUrl} alt={t("winnerPhoto.alt")} width={280} height={280} className="max-h-[320px] h-auto w-auto max-w-full object-contain" />
               </div>
-            ) : <div className="flex min-h-[150px] flex-col items-center justify-center text-center text-xs text-slate-500">Noch kein Foto</div>}
+            ) : <div className="flex min-h-[150px] flex-col items-center justify-center text-center text-xs text-slate-500">{t("winnerPhoto.none")}</div>}
           </div>
         )}
 
