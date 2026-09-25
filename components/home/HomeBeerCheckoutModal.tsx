@@ -202,7 +202,7 @@ export default function HomeBeerCheckoutModal({
               {t("beer.poolTitle")}
             </div>
             <h3 id="paypal-pool-hint-title" className="mt-1 text-2xl font-black text-slate-950">
-              🍺 {quantity} Bier · {formatEuro(totalCents, locale)}
+              🍺 {quantity} {t("beer.beer")} · {formatEuro(totalCents, locale)}
             </h3>
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
               {t("beer.poolText", { price: formatEuro(totalCents, locale) })}
