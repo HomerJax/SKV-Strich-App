@@ -3,6 +3,7 @@
 import { getPlayerDisplayName } from "@/lib/player-display";
 import type { RankRow } from "./standings-types";
 import { movementClass, movementText } from "./standings-ui";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type StandingsShareCardProps = {
   exportId: string;
@@ -42,11 +43,12 @@ function MiniRow({ row }: { row: RankRow }) {
 }
 
 function LeaderPanel({ row }: { row: RankRow }) {
+  const { t } = useI18n();
   return (
     <div className="relative overflow-hidden rounded-[18px] border border-white/10 bg-[radial-gradient(circle_at_82%_15%,rgba(59,130,246,0.18),transparent_32%),linear-gradient(145deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[7px] font-black uppercase tracking-[0.20em] text-white/38">Platz 1</div>
+          <div className="text-[7px] font-black uppercase tracking-[0.20em] text-white/38">{t("standings.shareRank", { rank: 1 })}</div>
           <div className="mt-1 truncate text-[21px] font-black leading-none tracking-[-0.055em] text-white">
             {getPlayerDisplayName(row)}
           </div>
@@ -59,14 +61,14 @@ function LeaderPanel({ row }: { row: RankRow }) {
           <div className="text-[33px] font-black leading-[0.82] tracking-[-0.07em] text-blue-300 drop-shadow-[0_0_18px_rgba(96,165,250,0.42)]">
             {row.wins}
           </div>
-          <div className="mt-1 text-[7px] font-black uppercase tracking-[0.18em] text-white/38">Siege</div>
+          <div className="mt-1 text-[7px] font-black uppercase tracking-[0.18em] text-white/38">{t("standings.wins")}</div>
         </div>
       </div>
 
       <div className="mt-2.5 flex items-center gap-4 border-t border-white/10 pt-2 text-[8px] font-bold text-white/52">
-        <span>{row.sessions} Teilnahmen</span>
+        <span>{row.sessions} {t("standings.shareAppearances")}</span>
         <span>·</span>
-        <span>{formatWinRate(row.wins, row.sessions)} Siegquote</span>
+        <span>{formatWinRate(row.wins, row.sessions)} {t("standings.winRate")}</span>
       </div>
     </div>
   );
@@ -79,8 +81,11 @@ export default function StandingsShareCard({
   endRank,
   rows,
 }: StandingsShareCardProps) {
+  const { locale, t } = useI18n();
   const isTopCard = startRank === 1;
-  const rangeLabel = startRank === endRank ? `Platz ${startRank}` : `Plätze ${startRank}–${endRank}`;
+  const rangeLabel = startRank === endRank
+    ? t("standings.shareRank", { rank: startRank })
+    : t("standings.shareRanks", { start: startRank, end: endRank });
   const leader = isTopCard ? rows[0] : null;
   const listRows = isTopCard ? rows.slice(1) : rows;
 
@@ -112,11 +117,11 @@ export default function StandingsShareCard({
 
         <div className="mt-[10px] flex items-end justify-between gap-3">
           <div className="text-[39px] font-black leading-[0.82] tracking-[-0.065em] text-white drop-shadow-[0_8px_24px_rgba(0,0,0,0.28)]">
-            {isTopCard ? "TOP 10." : "TABELLE."}
+            {isTopCard ? t("standings.shareTop") : t("standings.shareTable")}
           </div>
           <div className="pb-0.5 text-right">
-            <div className="text-[6px] font-black uppercase tracking-[0.16em] text-white/38">Stand</div>
-            <div className="mt-0.5 text-[8px] font-black text-white/72">{new Date().toLocaleDateString("de-DE")}</div>
+            <div className="text-[6px] font-black uppercase tracking-[0.16em] text-white/38">{locale === "de" ? "Stand" : "As of"}</div>
+            <div className="mt-0.5 text-[8px] font-black text-white/72">{new Date().toLocaleDateString(locale === "de" ? "de-DE" : "en-GB")}</div>
           </div>
         </div>
       </div>
@@ -128,12 +133,12 @@ export default function StandingsShareCard({
           <div className={leader ? "mt-2" : "mt-0"}>
             <div className="mb-1.5 flex items-center justify-between px-1">
               <div className="text-[6px] font-black uppercase tracking-[0.18em] text-white/34">
-                {isTopCard ? "Plätze 2–10" : rangeLabel}
+                {isTopCard ? t("standings.shareRanks2to10") : rangeLabel}
               </div>
               <div className="flex items-center gap-2 pr-[31px] text-[6px] font-bold text-white/28">
-                <span>Siege</span>
-                <span>Teiln.</span>
-                <span>Quote</span>
+                <span>{t("standings.wins")}</span>
+                <span>{t("standings.appearancesShort")}</span>
+                <span>{t("standings.shareQuote")}</span>
               </div>
             </div>
 
@@ -148,7 +153,7 @@ export default function StandingsShareCard({
 
       <div className="absolute inset-x-0 bottom-0 z-20 flex h-[42px] items-end justify-between gap-4 bg-[linear-gradient(180deg,rgba(2,6,23,0.88),#020617)] px-[16px] pb-[10px] pt-[6px]">
         <div className="max-w-[235px] text-[6px] font-semibold leading-relaxed text-white/34">
-          {isTopCard ? "Die komplette Tabelle mit allen Spielern findest du direkt in strikr." : "Alle Plätze und Stats findest du direkt in strikr."}
+          {isTopCard ? t("standings.shareFullHint") : t("standings.shareStatsHint")}
         </div>
 
         <div className="text-right">
