@@ -1,3 +1,7 @@
+"use client";
+
+import { useI18n } from "@/components/i18n/I18nProvider";
+
 type SessionType = "training" | "event";
 
 type SessionTypeBadgeProps = {
@@ -10,6 +14,7 @@ export default function SessionTypeBadge({
   className = "",
 }: SessionTypeBadgeProps) {
   const isEvent = type === "event";
+  const { t } = useI18n();
 
   return (
     <span
@@ -28,7 +33,7 @@ export default function SessionTypeBadge({
           isEvent ? "bg-slate-400" : "bg-emerald-500",
         ].join(" ")}
       />
-      <span>{isEvent ? "Termin" : "Training"}</span>
+      <span>{isEvent ? t("session.typeEvent") : t("session.typeTraining")}</span>
     </span>
   );
 }
