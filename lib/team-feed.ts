@@ -1,7 +1,9 @@
 import "server-only";
 
-import { getBadgeDefinition } from "@/lib/badges/catalog";
+import { getLocalizedBadgeDefinition } from "@/lib/badges/catalog";
 import { createClient } from "@/lib/supabase/server";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export type TeamFeedItem = {
   id: string;
@@ -46,32 +48,32 @@ function badgeNewsLabel(params: {
   badgeKey: string;
   scope: "season" | "career";
   category: "attendance" | "wins" | "losses" | "special" | "career";
-}) {
+}, locale: AppLocale) {
   if (params.badgeKey.startsWith("career_wins_")) {
-    return "🏆 Karrieremeilenstein";
+    return locale === "de" ? "🏆 Karrieremeilenstein" : "🏆 Career milestone";
   }
 
   if (params.badgeKey.startsWith("career_appearances_")) {
-    return "⚽ Einsatz-Jubiläum";
+    return locale === "de" ? "⚽ Einsatz-Jubiläum" : "⚽ Appearance milestone";
   }
 
   if (params.scope === "season" && params.category === "attendance") {
-    return "🔥 Saison-Update";
+    return locale === "de" ? "🔥 Saison-Update" : "🔥 Season update";
   }
 
   if (params.scope === "season" && params.category === "wins") {
-    return "📈 Serie läuft";
+    return locale === "de" ? "📈 Serie läuft" : "📈 Winning streak";
   }
 
   if (params.scope === "season" && params.category === "losses") {
-    return "😬 Kabinen-Update";
+    return locale === "de" ? "😬 Kabinen-Update" : "😬 Dressing-room update";
   }
 
   if (params.category === "special") {
-    return "✨ Neues Special";
+    return locale === "de" ? "✨ Neues Special" : "✨ New special";
   }
 
-  return "🏅 Neues Badge erreicht";
+  return locale === "de" ? "🏅 Neues Badge erreicht" : "🏅 New badge unlocked";
 }
 
 function badgeNewsCopy(params: {
@@ -80,35 +82,45 @@ function badgeNewsCopy(params: {
   fallbackTitle: string;
   scope: "season" | "career";
   category: "attendance" | "wins" | "losses" | "special" | "career";
-}) {
+}, locale: AppLocale) {
   const winsMatch = params.badgeKey.match(/^career_wins_(\d+)$/);
   if (winsMatch?.[1]) {
     return {
-      title: `${winsMatch[1]} Karrieresiege erreicht`,
-      body: badgeNewsLabel(params),
-      detailText: `${params.actorName} hat ${winsMatch[1]} Siege in seiner Karriere erreicht.`,
+      title: locale === "de"
+        ? `${winsMatch[1]} Karrieresiege erreicht`
+        : `${winsMatch[1]} career wins reached`,
+      body: badgeNewsLabel(params, locale),
+      detailText: locale === "de"
+        ? `${params.actorName} hat ${winsMatch[1]} Siege in seiner Karriere erreicht.`
+        : `${params.actorName} has reached ${winsMatch[1]} career wins.`,
     };
   }
 
   const appearancesMatch = params.badgeKey.match(/^career_appearances_(\d+)$/);
   if (appearancesMatch?.[1]) {
     return {
-      title: `${appearancesMatch[1]} Karriere-Einsätze erreicht`,
-      body: badgeNewsLabel(params),
-      detailText: `${params.actorName} hat ${appearancesMatch[1]} Einsätze in seiner Karriere erreicht.`,
+      title: locale === "de"
+        ? `${appearancesMatch[1]} Karriere-Einsätze erreicht`
+        : `${appearancesMatch[1]} career appearances reached`,
+      body: badgeNewsLabel(params, locale),
+      detailText: locale === "de"
+        ? `${params.actorName} hat ${appearancesMatch[1]} Einsätze in seiner Karriere erreicht.`
+        : `${params.actorName} has reached ${appearancesMatch[1]} career appearances.`,
     };
   }
 
   return {
     title: params.fallbackTitle,
-    body: badgeNewsLabel(params),
-    detailText: `${params.actorName} hat „${params.fallbackTitle}“ erreicht.`,
+    body: badgeNewsLabel(params, locale),
+    detailText: locale === "de"
+      ? `${params.actorName} hat „${params.fallbackTitle}“ erreicht.`
+      : `${params.actorName} unlocked “${params.fallbackTitle}”.`,
   };
 }
 
-function playerName(player: BadgePlayer | BadgePlayer[] | null) {
+function playerName(player: BadgePlayer | BadgePlayer[] | null, locale: AppLocale) {
   const value = Array.isArray(player) ? player[0] ?? null : player;
-  if (!value) return "Ein Spieler";
+  if (!value) return locale === "de" ? "Ein Spieler" : "A player";
 
   const nickname = value.nickname?.trim();
   if (nickname) return nickname;
@@ -119,10 +131,10 @@ function playerName(player: BadgePlayer | BadgePlayer[] | null) {
     .join(" ")
     .trim();
 
-  return name || "Ein Spieler";
+  return name || (locale === "de" ? "Ein Spieler" : "A player");
 }
 
-function resultSummary(rows: ResultRow[]) {
+function resultSummary(rows: ResultRow[], locale: AppLocale) {
   const sorted = [...rows].sort(
     (a, b) => Number(a.game_no ?? 1) - Number(b.game_no ?? 1),
   );
@@ -136,8 +148,12 @@ function resultSummary(rows: ResultRow[]) {
     .map((row) => `${row.goals_team_a}:${row.goals_team_b}`);
 
   if (scores.length === 0) return null;
-  if (scores.length === 1) return `Ergebnis ${scores[0]}`;
-  return `${scores.length} Spiele · ${scores.join(" · ")}`;
+  if (scores.length === 1) {
+    return locale === "de" ? `Ergebnis ${scores[0]}` : `Result ${scores[0]}`;
+  }
+  return locale === "de"
+    ? `${scores.length} Spiele · ${scores.join(" · ")}`
+    : `${scores.length} games · ${scores.join(" · ")}`;
 }
 
 function sessionOccurredAt(session: SessionRow) {
@@ -149,6 +165,7 @@ export async function getTeamFeedItems(
   clubId: string,
   limit = 20,
 ): Promise<TeamFeedItem[]> {
+  const { locale } = await getServerI18n();
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
@@ -181,13 +198,13 @@ export async function getTeamFeedItems(
   }
 
   const resultItems: TeamFeedItem[] = sessions.flatMap((session) => {
-    const summary = resultSummary(resultRowsBySession.get(session.id) ?? []);
+    const summary = resultSummary(resultRowsBySession.get(session.id) ?? [], locale);
     if (!summary) return [];
 
     return [{
       id: `result:${session.id}`,
       kind: "result" as const,
-      title: "Training abgeschlossen",
+      title: locale === "de" ? "Training abgeschlossen" : "Training completed",
       body: summary,
       href: `/sessions/${session.id}`,
       occurredAt: sessionOccurredAt(session),
@@ -214,17 +231,17 @@ export async function getTeamFeedItems(
   const badgeItems: TeamFeedItem[] = achievementsError
     ? []
     : ((achievementsData ?? []) as AchievementRow[]).flatMap((achievement) => {
-        const badge = getBadgeDefinition(achievement.badge_key);
+        const badge = getLocalizedBadgeDefinition(achievement.badge_key, locale);
         if (!badge) return [];
 
-        const actorName = playerName(achievement.players);
+        const actorName = playerName(achievement.players, locale);
         const copy = badgeNewsCopy({
           badgeKey: achievement.badge_key,
           actorName,
           fallbackTitle: badge.title,
           scope: badge.scope,
           category: badge.category,
-        });
+        }, locale);
 
         return [{
           id: `badge:${achievement.id}`,
@@ -253,6 +270,7 @@ export async function getAchievementFeedItem(params: {
   playerId: number;
   badgeKey: string;
 }): Promise<TeamFeedItem | null> {
+  const { locale } = await getServerI18n();
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -277,17 +295,17 @@ export async function getAchievementFeedItem(params: {
 
   if (error || !data) return null;
 
-  const badge = getBadgeDefinition(data.badge_key);
+  const badge = getLocalizedBadgeDefinition(data.badge_key, locale);
   if (!badge) return null;
 
-  const actorName = playerName(data.players);
+  const actorName = playerName(data.players, locale);
   const copy = badgeNewsCopy({
     badgeKey: data.badge_key,
     actorName,
     fallbackTitle: badge.title,
     scope: badge.scope,
     category: badge.category,
-  });
+  }, locale);
 
   return {
     id: `badge:${data.id}`,
