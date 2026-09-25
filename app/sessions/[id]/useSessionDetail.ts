@@ -33,6 +33,7 @@ import {
 } from "./session-detail-helpers";
 import { fetchImageAsFile, shareImageFromUrl } from "@/lib/share/utils";
 import { compressImageFile } from "@/lib/client-images/compress-image";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type SessionDetailClientProps = {
   sessionId: number;
@@ -187,6 +188,7 @@ export function useSessionDetail({
   initialUseFieldView,
   initialHomeSessionRsvpEnabled,
 }: SessionDetailClientProps) {
+  const { locale, t } = useI18n();
   const router = useRouter();
 
   const resultRef = useRef<HTMLDivElement | null>(null);
@@ -559,21 +561,21 @@ export function useSessionDetail({
 
   const nextStepLabel = !isTrainingSession
     ? attendanceDirty
-      ? "Anwesenheit speichern"
+      ? t("sessionHook.saveAttendance")
       : presentPlayers.length === 0
-        ? "Teilnehmer festlegen"
-        : "Termin ist organisatorisch bereit"
+        ? t("sessionDetail.setParticipants")
+        : t("sessionHook.eventReady")
     : hasResult
-      ? "Ergebnis ist gespeichert"
+      ? t("sessionHook.resultSaved")
       : attendanceDirty
-        ? "Anwesenheit speichern"
+        ? t("sessionHook.saveAttendance")
         : teamGeneratorPlayers.length < 2
-          ? "Mehr Spieler auf anwesend setzen"
+          ? t("sessionHook.morePresent")
           : !teamsComplete
-            ? "Teams fertig zuweisen"
+            ? t("sessionHook.assignTeams")
             : !teamsConfirmed
-              ? "Teams prüfen und bestätigen"
-              : "Ergebnis eintragen und speichern";
+              ? t("sessionHook.confirmTeams")
+              : t("sessionHook.enterSaveResult");
 
   const resultShareImageUrl = useMemo(() => {
     if (typeof window === "undefined") {
@@ -592,10 +594,10 @@ export function useSessionDetail({
   const prepareResultShare = useCallback(async () => {
     if (!resultShareImageUrl) {
       setPreparedResultShareFile(null);
-      setResultShareMessage("SiegerCard-URL konnte nicht erzeugt werden.");
+      setResultShareMessage(t("sessionHook.shareCardUrlFailed"));
       return {
         ok: false as const,
-        message: "SiegerCard-URL konnte nicht erzeugt werden.",
+        message: t("sessionHook.shareCardUrlFailed"),
       };
     }
 
@@ -608,13 +610,13 @@ export function useSessionDetail({
       );
 
       setPreparedResultShareFile(nextFile);
-      setResultShareMessage("SiegerCard ist bereit.");
+      setResultShareMessage(t("sessionHook.shareCardReady"));
 
       return { ok: true as const, file: nextFile };
     } catch (error: unknown) {
       const message = getErrorMessage(
         error,
-        "SiegerCard konnte nicht geladen werden."
+        t("sessionHook.shareCardLoadFailed")
       );
 
       setPreparedResultShareFile(null);
@@ -640,7 +642,7 @@ export function useSessionDetail({
       return "copied";
     }
 
-    throw new Error("Teilen wird auf diesem Gerät/Browser nicht unterstützt.");
+    throw new Error(t("sessionHook.shareUnsupported"));
   }
 
   function toggleGuestForm() {
@@ -677,7 +679,7 @@ export function useSessionDetail({
 
       await postForm(formData);
     } catch (error: unknown) {
-      setErr(getErrorMessage(error, "Teams konnten nicht gespeichert werden."));
+      setErr(getErrorMessage(error, t("sessionHook.teamsSaveFailed")));
     } finally {
       if (requestId === teamSaveRequestIdRef.current) {
         setSavingTeams(false);
@@ -701,7 +703,7 @@ export function useSessionDetail({
       clearFeedback();
 
       if (!canShareLineup) {
-        throw new Error("Bitte zuerst beide Teams zuweisen.");
+        throw new Error(t("sessionHook.assignBothTeams"));
       }
 
       // Vor dem Teilen immer den aktuellen Stand persistieren. So nutzt die
@@ -719,7 +721,7 @@ export function useSessionDetail({
         const result = await shareImageFromUrl({
           imageUrl: `/share/lineup/${sessionId}/image`,
           fileName: `strikr-aufstellung-${sessionId}.png`,
-          title: "strikr Aufstellung",
+          title: t("sessionHook.lineupTitle"),
           text,
         });
 
@@ -727,22 +729,22 @@ export function useSessionDetail({
           return;
         }
 
-        setMsg("Aufstellung erfolgreich geteilt.");
+        setMsg(t("sessionHook.lineupShared"));
         return;
       } catch {
         // Falls Bild-Sharing im Browser nicht verfügbar ist, bleibt der
         // bestehende Text-Share als verlässlicher Fallback erhalten.
       }
 
-      const result = await shareText(text, "Aufstellung teilen");
+      const result = await shareText(text, t("sessionHook.lineupShareTitle"));
 
       setMsg(
         result === "copied"
-          ? "Aufstellungs-Text in die Zwischenablage kopiert."
-          : "Aufstellung erfolgreich geteilt."
+          ? t("sessionHook.lineupCopied")
+          : t("sessionHook.lineupShared")
       );
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Aufstellung konnte nicht geteilt werden."));
+      setErr(getErrorMessage(e, t("sessionHook.lineupShareFailed")));
     } finally {
       setSharingLineup(false);
     }
@@ -755,7 +757,7 @@ export function useSessionDetail({
 
       if (!canShareResult) {
         throw new Error(
-          "Bitte zuerst Teams und Ergebnis vollständig eintragen."
+          t("sessionHook.completeTeamsResult")
         );
       }
 
@@ -770,22 +772,22 @@ ${teamLine}
 ${highlight}
 ${story}
 
-Schau dir das Ergebnis an, prüf deine Stats und teile die SiegerCard weiter 👀
+${t("sessionHook.shareGroupText")}
 ${sessionUrl}`;
 
       const result = await shareText(
         shareTextValue,
-        "Ergebnis & Stats in Gruppe teilen"
+        t("sessionHook.shareGroupTitle")
       );
 
       setMsg(
         result === "copied"
-          ? "Text zum Gruppenteilen in die Zwischenablage kopiert."
-          : "Ergebnis erfolgreich in der Gruppe geteilt."
+          ? t("sessionHook.groupCopied")
+          : t("sessionHook.shareSuccess")
       );
     } catch (e: unknown) {
       setErr(
-        getErrorMessage(e, "Ergebnis konnte nicht in der Gruppe geteilt werden.")
+        getErrorMessage(e, t("sessionHook.shareFailed"))
       );
     } finally {
       setSharingInternal(false);
@@ -799,12 +801,12 @@ ${sessionUrl}`;
 
       if (!canShareResult) {
         throw new Error(
-          "Bitte zuerst Teams und Ergebnis vollständig und gültig eintragen."
+          t("sessionHook.completeValidTeamsResult")
         );
       }
 
       if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-        throw new Error("Teilen wird auf diesem Gerät oder Browser nicht unterstützt.");
+        throw new Error(t("sessionHook.shareUnsupported"));
       }
 
       let shareFile = preparedResultShareFile;
@@ -832,7 +834,7 @@ ${sessionUrl}`;
 
         if (!canShareFiles) {
           throw new Error(
-            "Dieser Browser unterstützt das direkte Teilen von Bilddateien hier nicht."
+            t("sessionHook.imageShareUnsupported")
           );
         }
       }
@@ -869,8 +871,8 @@ ${sessionUrl}`;
         rawMessage.includes("Navigator");
 
       const message = isUserGestureIssue
-        ? "Direktes Teilen wurde vom Browser blockiert. Bitte Button erneut antippen."
-        : getErrorMessage(error, "SiegerCard konnte nicht geteilt werden.");
+        ? t("sessionHook.directShareBlocked")
+        : getErrorMessage(error, t("sessionHook.shareCardFailed"));
 
       setResultShareMessage(message);
     } finally {
@@ -880,13 +882,13 @@ ${sessionUrl}`;
 
   async function handleDeleteGuestPlayer(playerId: number) {
     if (!isAdmin) {
-      setErr("Nur Admins dürfen Gastspieler löschen.");
+      setErr(t("sessionHook.adminDeleteGuest"));
       return;
     }
 
     if (hasResult) {
       setErr(
-        "Gastspieler können nicht mehr gelöscht werden, wenn bereits ein Ergebnis gespeichert ist."
+        t("sessionHook.guestDeleteLocked")
       );
       return;
     }
@@ -894,7 +896,7 @@ ${sessionUrl}`;
     const player = players.find((entry) => entry.id === playerId);
 
     if (!player?.is_guest) {
-      setErr("Nur Gastspieler können hier gelöscht werden.");
+      setErr(t("sessionHook.onlyGuestDelete"));
       return;
     }
 
@@ -909,7 +911,7 @@ ${sessionUrl}`;
       "Gast";
 
     const confirmed = window.confirm(
-      `Gastspieler "${playerName}" wirklich löschen?\n\nDer Gast wird aus dieser Session entfernt.`
+      t("sessionHook.deleteGuestConfirm", { name: playerName })
     );
 
     if (!confirmed) return;
@@ -937,7 +939,7 @@ ${sessionUrl}`;
         setMsg(result.message);
       }
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Gastspieler konnte nicht gelöscht werden."));
+      setErr(getErrorMessage(e, t("sessionHook.deleteGuestFailed")));
     } finally {
       setDeletingGuestPlayerId(null);
       restoreScroll();
@@ -946,7 +948,7 @@ ${sessionUrl}`;
 
   async function handleDeleteSession() {
     if (!isAdmin) {
-      setErr("Nur Admins dürfen eine Session löschen.");
+      setErr(t("sessionHook.adminDeleteSession"));
       return;
     }
 
@@ -955,7 +957,7 @@ ${sessionUrl}`;
     }
 
     const okConfirm = window.confirm(
-      "Session wirklich komplett löschen?\n\nDabei werden Anwesenheit, Teams, Ergebnis und Siegerfoto endgültig entfernt."
+      t("sessionHook.deleteSessionConfirm")
     );
 
     if (!okConfirm) return;
@@ -976,7 +978,7 @@ ${sessionUrl}`;
         router.refresh();
       }
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Session konnte nicht gelöscht werden."));
+      setErr(getErrorMessage(e, t("sessionHook.deleteSessionFailed")));
     } finally {
       setDeletingSession(false);
       restoreScroll();
@@ -986,7 +988,7 @@ ${sessionUrl}`;
   async function togglePresence(id: number) {
     if (hasResult) {
       setErr(
-        "Anwesenheit ist gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um wieder zu entsperren."
+        t("sessionHook.attendanceLocked")
       );
       return;
     }
@@ -1045,9 +1047,9 @@ ${sessionUrl}`;
         await persistTeamsNow(nextManualTeams);
       }
 
-      setMsg(isCurrentlyPresent ? "Anwesenheit entfernt." : "Anwesenheit gespeichert.");
+      setMsg(isCurrentlyPresent ? t("sessionHook.attendanceRemoved") : t("sessionHook.attendanceSaved"));
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Anwesenheit konnte nicht gespeichert werden."));
+      setErr(getErrorMessage(e, t("sessionHook.attendanceSaveFailed")));
     } finally {
       setSavingPresence(false);
       restoreScroll();
@@ -1102,7 +1104,7 @@ ${sessionUrl}`;
       }
 
       setAttendanceCollapsed(true);
-      setMsg("Anwesenheit gespeichert.");
+      setMsg(t("sessionHook.attendanceSaved"));
     } catch (e: unknown) {
       setErr(getErrorMessage(e, "Anwesenheit konnte nicht gespeichert werden."));
     } finally {
@@ -1117,18 +1119,18 @@ ${sessionUrl}`;
     try {
       if (!isAdmin) {
         throw new Error(
-          "Gastspieler können aktuell nur von Admins angelegt werden."
+          t("sessionHook.guestAdminOnly")
         );
       }
 
       if (hasResult) {
         throw new Error(
-          "Gastspieler können nicht mehr hinzugefügt werden, wenn bereits ein Ergebnis gespeichert ist."
+          t("sessionHook.guestAddLocked")
         );
       }
 
       if (!clubId) {
-        throw new Error("Kein Club gefunden.");
+        throw new Error(t("sessionHook.noClub"));
       }
 
       setGuestSaving(true);
@@ -1136,7 +1138,7 @@ ${sessionUrl}`;
 
       const cleanName = guestName.trim();
       if (!cleanName) {
-        throw new Error("Bitte einen Namen für den Gastspieler eingeben.");
+        throw new Error(t("sessionHook.guestName"));
       }
 
       const formData = new FormData();
@@ -1179,19 +1181,17 @@ ${sessionUrl}`;
 
   async function generateTeams() {
     if (!allowTeams) {
-      setErr("Für diesen Termin gibt es keine Teamaufteilung.");
+      setErr(t("sessionHook.noTeamsEvent"));
       return;
     }
 
     if (hasResult) {
-      setErr(
-        "Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern."
-      );
+      setErr(t("sessionHook.teamsLocked"));
       return;
     }
 
     if (attendanceDirty) {
-      setErr("Bitte zuerst die Anwesenheit speichern.");
+      setErr(t("sessionHook.saveAttendanceFirst"));
       return;
     }
 
@@ -1201,7 +1201,7 @@ ${sessionUrl}`;
 
     const present = teamGeneratorPlayers;
     if (present.length < 2) {
-      setErr("Mindestens 2 Spieler nötig.");
+      setErr(t("sessionHook.minPlayers"));
       restoreScroll();
       return;
     }
@@ -1327,7 +1327,7 @@ ${sessionUrl}`;
     }
 
     if (!bestQuality || bestA.length === 0 || bestB.length === 0) {
-      setErr("Konnte keine gültige Aufteilung finden (unerwartet).");
+      setErr(t("sessionHook.noValidSplit"));
       restoreScroll();
       return;
     }
@@ -1387,24 +1387,26 @@ ${sessionUrl}`;
     );
 
     const balanceGroupText = usesBalanceGroups
-      ? " und Balance-Gruppen"
+      ? locale === "de"
+        ? " und Balance-Gruppen"
+        : " and balance groups"
       : "";
 
     if (useStrength && useCategories) {
       setMsg(
-        `Teams automatisch optimiert. Kategorie, Stärke, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
+        t("sessionHook.optimizedAll", { groups: balanceGroupText })
       );
     } else if (useStrength && !useCategories) {
       setMsg(
-        `Teams automatisch optimiert. Stärke, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
+        t("sessionHook.optimizedStrength", { groups: balanceGroupText })
       );
     } else if (!useStrength && useCategories) {
       setMsg(
-        `Teams automatisch optimiert. Kategorien, Positionsverteilung${balanceGroupText} wurden berücksichtigt.`
+        t("sessionHook.optimizedCategories", { groups: balanceGroupText })
       );
     } else {
       setMsg(
-        `Teams automatisch optimiert. Positionsverteilung${balanceGroupText} wurde berücksichtigt.`
+        t("sessionHook.optimizedPositions", { groups: balanceGroupText })
       );
     }
 
@@ -1422,31 +1424,29 @@ ${sessionUrl}`;
     }
 
     if (!teamsComplete) {
-      setErr("Bitte zuerst beide Teams vollständig zuweisen.");
+      setErr(t("sessionHook.assignAllTeams"));
       return;
     }
 
     clearFeedback();
     setTeamsConfirmed(true);
     setTeamsCollapsed(true);
-    setMsg("Teams bestätigt. Jetzt kannst du optional ein Siegerfoto ergänzen oder direkt das Ergebnis eintragen.");
+    setMsg(t("sessionHook.teamsConfirmed"));
   }
 
   function setSide(playerId: number, side: TeamSide | null) {
     if (!allowTeams) {
-      setErr("Für diesen Termin gibt es keine Teamaufteilung.");
+      setErr(t("sessionHook.noTeamsEvent"));
       return;
     }
 
     if (hasResult) {
-      setErr(
-        "Teams sind gesperrt, weil bereits ein Ergebnis gespeichert ist. Lösche das Ergebnis, um Teams zu ändern."
-      );
+      setErr(t("sessionHook.teamsLocked"));
       return;
     }
 
     if (attendanceDirty) {
-      setErr("Bitte zuerst die Anwesenheit speichern.");
+      setErr(t("sessionHook.saveAttendanceFirst"));
       return;
     }
 
@@ -1467,7 +1467,7 @@ ${sessionUrl}`;
     isNewGame: boolean,
   ) {
     if (!allowResult) {
-      setErr("Für diesen Termin gibt es kein Ergebnis.");
+      setErr(t("sessionHook.noResultEvent"));
       return;
     }
 
@@ -1477,30 +1477,30 @@ ${sessionUrl}`;
     const cleanB = normalizeGoalValue(rawGoalsB);
 
     if (attendanceDirty) {
-      setErr("Bitte zuerst die Anwesenheit speichern.");
+      setErr(t("sessionHook.saveAttendanceFirst"));
       return;
     }
 
     if (!teamsComplete) {
       setErr(
-        "Bitte weise zuerst alle anwesenden Spieler einem Team zu. Beide Teams müssen mindestens einen Spieler haben."
+        t("sessionHook.assignPresent")
       );
       return;
     }
 
     if (!teamsConfirmed) {
-      setErr("Bitte die Teams zuerst prüfen und bestätigen.");
+      setErr(t("sessionHook.confirmTeamsFirst"));
       return;
     }
 
     if (cleanA === "" || cleanB === "") {
-      setErr("Bitte trage zuerst ein vollständiges Ergebnis ein.");
+      setErr(t("sessionHook.enterCompleteResult"));
       return;
     }
 
     if (isNewGame && results.length === 0) {
       const okConfirm = window.confirm(
-        "Erstes Ergebnis speichern? Danach sind Aufstellungen & Anwesenheit gesperrt."
+        t("sessionHook.firstResultConfirm")
       );
       if (!okConfirm) return;
     }
@@ -1557,7 +1557,7 @@ ${sessionUrl}`;
         setShowSessionEndModal(false);
       }
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Fehler beim Speichern."));
+      setErr(getErrorMessage(e, t("sessionHook.saveFailed")));
     } finally {
       setSaving(false);
       restoreScroll();
@@ -1580,13 +1580,13 @@ ${sessionUrl}`;
 
   async function deleteResult(gameNo: number) {
     if (!allowResult) {
-      setErr("Für diesen Termin gibt es kein Ergebnis.");
+      setErr(t("sessionHook.noResultEvent"));
       return;
     }
 
     if (saving || deletingSession || deletingGuestPlayerId) return;
 
-    const okConfirm = window.confirm(`Spiel ${gameNo} wirklich löschen?`);
+    const okConfirm = window.confirm(t("sessionHook.deleteGameConfirm", { game: gameNo }));
     if (!okConfirm) return;
 
     const restoreScroll = preserveScrollPosition();
@@ -1622,7 +1622,7 @@ ${sessionUrl}`;
         }
       }
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Fehler beim Löschen des Ergebnisses."));
+      setErr(getErrorMessage(e, t("sessionHook.deleteResultFailed")));
     } finally {
       setSaving(false);
       restoreScroll();
@@ -1636,34 +1636,34 @@ ${sessionUrl}`;
     if (!file) return;
 
     if (!allowWinnerPhoto) {
-      setErr("Für diesen Termin gibt es kein Siegerfoto.");
+      setErr(t("sessionHook.noWinnerPhotoEvent"));
       return;
     }
 
     if (!hasResult) {
-      setErr("Bitte zuerst mindestens ein Ergebnis speichern.");
+      setErr(t("sessionHook.saveResultFirst"));
       return;
     }
 
     if (!dayWinnerSide) {
-      setErr("Bei Gleichstand gibt es keinen eindeutigen Tagessieger und deshalb kein Siegerfoto.");
+      setErr(t("sessionHook.noClearWinnerPhoto"));
       return;
     }
 
     if (!session) {
-      setErr("Training konnte nicht geladen werden.");
+      setErr(t("sessionHook.trainingLoadFailed"));
       return;
     }
 
     if (!teamsComplete) {
       setErr(
-        "Bitte zuerst die Teams vollständig zuweisen, bevor du ein Siegerfoto hochlädst."
+        t("sessionHook.assignTeamsBeforePhoto")
       );
       return;
     }
 
     if (!teamsConfirmed) {
-      setErr("Bitte die Teams zuerst prüfen und bestätigen.");
+      setErr(t("sessionHook.confirmTeamsFirst"));
       return;
     }
 
@@ -1701,13 +1701,13 @@ ${sessionUrl}`;
 
         const orientationHint =
           orientation === "landscape" || orientation === "square"
-            ? " Tipp: Für die Share Card funktioniert ein Hochformat-Foto meistens deutlich besser."
+            ? t("sessionHook.photoPortraitTip")
             : "";
 
-        setMsg(`Tagessiegerfoto gespeichert.${orientationHint}`);
+        setMsg(t("sessionHook.photoSaved", { hint: orientationHint }));
       }
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Siegerfoto konnte nicht hochgeladen werden."));
+      setErr(getErrorMessage(e, t("sessionHook.photoUploadFailed")));
     } finally {
       setPhotoBusy(false);
       restoreScroll();
@@ -1716,18 +1716,18 @@ ${sessionUrl}`;
 
   async function handleWinnerPhotoDelete() {
     if (!allowWinnerPhoto) {
-      setErr("Für diesen Termin gibt es kein Siegerfoto.");
+      setErr(t("sessionHook.noWinnerPhotoEvent"));
       return;
     }
 
     if (!session?.winner_photo_path) {
-      setErr("Kein Siegerfoto vorhanden.");
+      setErr(t("sessionHook.noWinnerPhoto"));
       return;
     }
 
     if (photoBusy || saving || deletingSession || deletingGuestPlayerId) return;
 
-    const okConfirm = window.confirm("Siegerfoto wirklich löschen?");
+    const okConfirm = window.confirm(t("sessionHook.deletePhotoConfirm"));
     if (!okConfirm) return;
 
     const restoreScroll = preserveScrollPosition();
@@ -1753,7 +1753,7 @@ ${sessionUrl}`;
         setMsg(result.message);
       }
     } catch (e: unknown) {
-      setErr(getErrorMessage(e, "Siegerfoto konnte nicht gelöscht werden."));
+      setErr(getErrorMessage(e, t("sessionHook.deletePhotoFailed")));
     } finally {
       setPhotoBusy(false);
       restoreScroll();
