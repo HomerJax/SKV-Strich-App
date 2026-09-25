@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import LateRsvpModal from "@/components/sessions/LateRsvpModal";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import {
   getRequiredRsvpReasonError,
   isMeaningfulRsvpReason,
@@ -24,6 +25,7 @@ export default function SessionRsvpButtons({
   requireAbsenceReason?: boolean;
   readOnly?: boolean;
 }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [busy, setBusy] = useState<PresenceStatus | null>(null);
   const [error, setError] = useState("");
@@ -73,7 +75,7 @@ export default function SessionRsvpButtons({
     }
 
     if (deadlinePassed && status === "in" && target !== "in") {
-      setError("Der Anmeldeschluss ist vorbei. Deine Zusage ist jetzt verbindlich – bitte wende dich für eine Änderung an einen Admin.");
+      setError(t("session.deadlineLockedError"));
       return;
     }
 
@@ -93,7 +95,7 @@ export default function SessionRsvpButtons({
       });
       const raw = await response.text();
       const payload = raw ? JSON.parse(raw) : null;
-      if (!response.ok) throw new Error(payload?.error || "Rückmeldung konnte nicht gespeichert werden.");
+      if (!response.ok) throw new Error(payload?.error || t("session.responseSaveError"));
 
       setStatus(target);
       onStatusChange?.(target);
@@ -103,7 +105,7 @@ export default function SessionRsvpButtons({
       setReasonOpen(false);
       if (target !== "out") setReason("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Rückmeldung konnte nicht gespeichert werden.");
+      setError(err instanceof Error ? err.message : t("session.responseSaveError"));
     } finally {
       setBusy(null);
     }
@@ -115,7 +117,7 @@ export default function SessionRsvpButtons({
   if (notNominated) {
     return (
       <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
-        Nicht im Event-Kader
+        {t("session.notInRoster")}
       </div>
     );
   }
@@ -124,40 +126,40 @@ export default function SessionRsvpButtons({
     <div className="mt-3" onClick={(event) => event.preventDefault()}>
       <div className="grid grid-cols-2 gap-2">
         <button type="button" disabled={readOnly || busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void setPresence("in"); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "in" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"].join(" ")}>
-          {busy === "in" ? "Speichert…" : status === "in" ? "✓ Zugesagt" : "Zusagen"}
+          {busy === "in" ? t("session.saving") : status === "in" ? t("session.confirmed") : t("session.confirm")}
         </button>
         <button type="button" disabled={readOnly || busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (status === "out") void setPresence("out"); else setReasonOpen(true); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "out" ? "border-rose-600 bg-rose-600 text-white" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"].join(" ")}>
-          {busy === "out" ? "Speichert…" : deadlinePassed && status === "in" ? "Absage gesperrt" : status === "out" ? "✓ Abgesagt" : "Absagen"}
+          {busy === "out" ? t("session.saving") : deadlinePassed && status === "in" ? t("session.cantCancel") : status === "out" ? t("session.cancelled") : t("session.decline")}
         </button>
       </div>
 
       {readOnly ? (
         <div className="mt-2 text-[11px] font-semibold text-violet-700">
-          Supportansicht · Zu-/Absage nur ansehen
+          {t("session.supportView", { label: "" })}
         </div>
       ) : deadlinePassed && status === "in" ? (
         <div className="mt-2 text-[11px] font-semibold text-slate-500">
-          Anmeldeschluss vorbei · deine Zusage ist verbindlich.
+          {t("session.commitmentLocked")}
         </div>
       ) : null}
 
       {reasonOpen ? (
         <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-2.5" onClick={(event) => event.stopPropagation()}>
           <div className="text-[11px] font-bold text-rose-800">
-            Warum bist du nicht dabei?{" "}
+            {t("session.whyOut")}{" "}
             <span className="font-medium text-rose-500">
-              {requireAbsenceReason ? "(Pflicht)" : "(optional)"}
+              {requireAbsenceReason ? t("session.required") : t("session.optional")}
             </span>
           </div>
-          <input autoFocus value={reason} maxLength={80} onChange={(event) => { setReason(event.target.value); setError(""); }} placeholder="z. B. Urlaub, krank, Termin" className="mt-2 w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs outline-none focus:border-rose-400" />
+          <input autoFocus value={reason} maxLength={80} onChange={(event) => { setReason(event.target.value); setError(""); }} placeholder={t("session.reasonPlaceholder")} className="mt-2 w-full rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs outline-none focus:border-rose-400" />
           {requireAbsenceReason ? (
             <div className={`mt-1.5 text-[10px] font-semibold ${reason.length > 0 && !reasonValid ? "text-rose-700" : "text-slate-500"}`}>
-              Mindestens 4 Buchstaben · keine Punkte oder einzelnen Zeichen.
+              {t("session.reasonHint")}
             </div>
           ) : null}
           <div className="mt-2 flex justify-end gap-2">
-            <button type="button" onClick={() => { setReasonOpen(false); setReason(""); setError(""); }} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">Abbrechen</button>
-            <button type="button" disabled={busy !== null || !reasonValid} onClick={() => void setPresence("out", reason)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40">Absage speichern</button>
+            <button type="button" onClick={() => { setReasonOpen(false); setReason(""); setError(""); }} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">{t("common.cancel")}</button>
+            <button type="button" disabled={busy !== null || !reasonValid} onClick={() => void setPresence("out", reason)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40">{t("session.saveAbsence")}</button>
           </div>
         </div>
       ) : null}
