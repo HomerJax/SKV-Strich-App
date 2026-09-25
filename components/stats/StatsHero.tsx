@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Footprints,
   Trophy,
@@ -5,6 +7,8 @@ import {
   Scale,
   Medal,
 } from "lucide-react";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type StatsHeroProps = {
   sessionsPlayed: number;
@@ -27,14 +31,12 @@ type StatCardProps = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
-function formatPercent(value: number) {
-  if (!Number.isFinite(value)) return "0,0";
-  return value.toFixed(1).replace(".", ",");
-}
-
-function formatRate(value: number) {
-  if (!Number.isFinite(value)) return "0,0";
-  return value.toFixed(1).replace(".", ",");
+function formatNumber(value: number, locale: AppLocale) {
+  if (!Number.isFinite(value)) return locale === "de" ? "0,0" : "0.0";
+  return new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 function StatCard({
@@ -88,22 +90,24 @@ export default function StatsHero({
   mvpWins,
   mvpPerGame,
 }: StatsHeroProps) {
+  const { locale, t } = useI18n();
+
   return (
     <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div>
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Spieler
+          {t("stats.player")}
         </div>
         <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-          Meine Stats
+          {t("stats.myStats")}
         </h2>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <StatCard
-          label="Einsätze"
+          label={t("stats.appearances")}
           value={String(sessionsPlayed)}
-          hint="Gespeicherte Sessions"
+          hint={t("stats.savedSessions")}
           valueClassName="text-slate-950"
           borderClassName="border-slate-200"
           accentClassName="bg-slate-200 text-slate-700"
@@ -111,12 +115,12 @@ export default function StatsHero({
         />
 
         <StatCard
-          label="Siege"
+          label={t("stats.wins")}
           value={String(wins)}
           hint={
             completedResults > 0
-              ? `${formatPercent((wins / completedResults) * 100)}% Erfolgsquote`
-              : "Noch keine Ergebnisse"
+? t("stats.successRate", { value: formatNumber((wins / completedResults) * 100, locale) })
+              : t("stats.noResults")
           }
           valueClassName="text-emerald-700"
           borderClassName="border-emerald-200"
@@ -125,12 +129,12 @@ export default function StatsHero({
         />
 
         <StatCard
-          label="Niederlagen"
+          label={t("stats.losses")}
           value={String(losses)}
           hint={
             completedResults > 0
-              ? `${formatPercent((losses / completedResults) * 100)}% der Ergebnisse`
-              : "Noch keine Ergebnisse"
+              ? t("stats.resultShare", { value: formatNumber((losses / completedResults) * 100, locale) })
+              : t("stats.noResults")
           }
           valueClassName="text-rose-700"
           borderClassName="border-rose-200"
@@ -139,12 +143,12 @@ export default function StatsHero({
         />
 
         <StatCard
-          label="Unentschieden"
+          label={t("stats.draws")}
           value={String(draws)}
           hint={
             completedResults > 0
-              ? `${formatPercent((draws / completedResults) * 100)}% der Ergebnisse`
-              : "Noch keine Ergebnisse"
+              ? t("stats.resultShare", { value: formatNumber((draws / completedResults) * 100, locale) })
+              : t("stats.noResults")
           }
           valueClassName="text-amber-700"
           borderClassName="border-amber-200"
@@ -162,13 +166,13 @@ export default function StatsHero({
 
             <div className="min-w-0 flex-1">
               <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                MVP Übersicht
+                {t("stats.mvpOverview")}
               </div>
               <div className="mt-1 text-lg font-bold text-slate-950">
-                {mvpWins} {mvpWins === 1 ? "MVP-Erfolg" : "MVP-Erfolge"}
+                {mvpWins} {mvpWins === 1 ? t("stats.mvpSuccess") : t("stats.mvpSuccessPlural")}
               </div>
               <div className="mt-1 text-sm text-slate-500">
-                {formatRate(mvpPerGame)} pro Einsatz
+                {t("stats.perAppearance", { value: formatNumber(mvpPerGame, locale) })}
               </div>
             </div>
           </div>
