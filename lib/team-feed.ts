@@ -10,6 +10,8 @@ export type TeamFeedItem = {
   body: string;
   href: string;
   occurredAt: string;
+  badgeKey?: string;
+  actorName?: string;
 };
 
 type SessionRow = {
@@ -28,6 +30,7 @@ type ResultRow = {
 type BadgePlayer = {
   first_name: string | null;
   last_name: string | null;
+  nickname?: string | null;
 };
 
 type AchievementRow = {
@@ -38,9 +41,30 @@ type AchievementRow = {
   players: BadgePlayer | BadgePlayer[] | null;
 };
 
+function careerBadgeNewsText(params: {
+  badgeKey: string;
+  actorName: string;
+  fallbackTitle: string;
+}) {
+  const winsMatch = params.badgeKey.match(/^career_wins_(\d+)$/);
+  if (winsMatch?.[1]) {
+    return `${params.actorName} hat ${winsMatch[1]} Siege in seiner Karriere erreicht.`;
+  }
+
+  const appearancesMatch = params.badgeKey.match(/^career_appearances_(\d+)$/);
+  if (appearancesMatch?.[1]) {
+    return `${params.actorName} hat ${appearancesMatch[1]} Einsätze in seiner Karriere erreicht.`;
+  }
+
+  return `${params.actorName} hat „${params.fallbackTitle}“ erreicht.`;
+}
+
 function playerName(player: BadgePlayer | BadgePlayer[] | null) {
   const value = Array.isArray(player) ? player[0] ?? null : player;
   if (!value) return "Ein Spieler";
+
+  const nickname = value.nickname?.trim();
+  if (nickname) return nickname;
 
   const name = [value.first_name, value.last_name]
     .map((part) => part?.trim())
@@ -67,6 +91,11 @@ function resultSummary(rows: ResultRow[]) {
   if (scores.length === 0) return null;
   if (scores.length === 1) return `Ergebnis ${scores[0]}`;
   return `${scores.length} Spiele · ${scores.join(" · ")}`;
+}
+
+function sessionOccurredAt(session: SessionRow) {
+  const time = session.start_time?.slice(0, 5) || "12:00";
+  return `${session.date}T${time}:00`;
 }
 
 export async function getTeamFeedItems(
@@ -105,63 +134,59 @@ export async function getTeamFeedItems(
   }
 
   const resultItems: TeamFeedItem[] = sessions.flatMap((session) => {
-    const rows = resultRowsBySession.get(session.id) ?? [];
-    const summary = resultSummary(rows);
+    const summary = resultSummary(resultRowsBySession.get(session.id) ?? []);
     if (!summary) return [];
 
-    return [
-      {
-        id: `result:${session.id}`,
-        kind: "result" as const,
-        title: "Training abgeschlossen",
-        body: summary,
-        href: `/sessions/${session.id}`,
-        occurredAt: `${session.date}T12:00:00.000Z`,
-      },
-    ];
+    return [{
+      id: `result:${session.id}`,
+      kind: "result" as const,
+      title: "Training abgeschlossen",
+      body: summary,
+      href: `/sessions/${session.id}`,
+      occurredAt: sessionOccurredAt(session),
+    }];
   });
 
-  let badgeItems: TeamFeedItem[] = [];
-
-  // Staging kann bei älteren Datenbankständen noch ohne player_achievements
-  // laufen. Dann bleibt der Feed funktionsfähig und zeigt zunächst Ergebnisse.
   const { data: achievementsData, error: achievementsError } = await supabase
     .from("player_achievements")
-    .select(
-      `
+    .select(`
       id,
       player_id,
       badge_key,
       earned_at,
       players (
         first_name,
-        last_name
+        last_name,
+        nickname
       )
-    `,
-    )
+    `)
     .eq("club_id", clubId)
     .order("earned_at", { ascending: false })
     .limit(Math.max(12, limit * 3));
 
-  if (!achievementsError) {
-    badgeItems = ((achievementsData ?? []) as AchievementRow[]).flatMap(
-      (achievement) => {
+  const badgeItems: TeamFeedItem[] = achievementsError
+    ? []
+    : ((achievementsData ?? []) as AchievementRow[]).flatMap((achievement) => {
         const badge = getBadgeDefinition(achievement.badge_key);
         if (!badge) return [];
 
-        return [
-          {
-            id: `badge:${achievement.id}`,
-            kind: "badge" as const,
-            title: `${playerName(achievement.players)} hat „${badge.title}“ erreicht`,
-            body: badge.description,
-            href: `/badges?player=${achievement.player_id}`,
-            occurredAt: achievement.earned_at,
-          },
-        ];
-      },
-    );
-  }
+        const actorName = playerName(achievement.players);
+
+        return [{
+          id: `badge:${achievement.id}`,
+          kind: "badge" as const,
+          title: careerBadgeNewsText({
+            badgeKey: achievement.badge_key,
+            actorName,
+            fallbackTitle: badge.title,
+          }),
+          body: "",
+          href: `/badges?player=${achievement.player_id}`,
+          occurredAt: achievement.earned_at,
+          badgeKey: achievement.badge_key,
+          actorName,
+        }];
+      });
 
   return [...badgeItems, ...resultItems]
     .sort(
@@ -169,4 +194,55 @@ export async function getTeamFeedItems(
         new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
     )
     .slice(0, limit);
+}
+
+
+export async function getAchievementFeedItem(params: {
+  clubId: string;
+  playerId: number;
+  badgeKey: string;
+}): Promise<TeamFeedItem | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("player_achievements")
+    .select(`
+      id,
+      player_id,
+      badge_key,
+      earned_at,
+      players (
+        first_name,
+        last_name,
+        nickname
+      )
+    `)
+    .eq("club_id", params.clubId)
+    .eq("player_id", params.playerId)
+    .eq("badge_key", params.badgeKey)
+    .order("earned_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<AchievementRow>();
+
+  if (error || !data) return null;
+
+  const badge = getBadgeDefinition(data.badge_key);
+  if (!badge) return null;
+
+  const actorName = playerName(data.players);
+
+  return {
+    id: `badge:${data.id}`,
+    kind: "badge",
+    title: careerBadgeNewsText({
+      badgeKey: data.badge_key,
+      actorName,
+      fallbackTitle: badge.title,
+    }),
+    body: "",
+    href: `/badges?player=${data.player_id}`,
+    occurredAt: data.earned_at,
+    badgeKey: data.badge_key,
+    actorName,
+  };
 }
