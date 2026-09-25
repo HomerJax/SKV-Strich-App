@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { getBadgeDefinition } from "@/lib/badges/catalog";
 
-type Props = { badgeKey: string; px: number; grayscale?: boolean; className?: string };
+type Props = { badgeKey: string; px: number; grayscale?: boolean; className?: string; interactive?: boolean };
 type WinConfig = { value: number; tier: string; artwork: string };
 
 const CONFIG: Record<string, WinConfig> = {
@@ -17,7 +17,7 @@ const CONFIG: Record<string, WinConfig> = {
   career_wins_250: { value: 250, tier: "GOAT", artwork: "/badges/career-wins-250-goat.png" },
 };
 
-export default function CareerWinArtwork({ badgeKey, px, grayscale=false, className="" }: Props) {
+export default function CareerWinArtwork({ badgeKey, px, grayscale=false, className="", interactive=true }: Props) {
   const [open,setOpen]=useState(false);
   const c=CONFIG[badgeKey];
   const definition=useMemo(()=>getBadgeDefinition(badgeKey),[badgeKey]);
@@ -32,6 +32,25 @@ export default function CareerWinArtwork({ badgeKey, px, grayscale=false, classN
   },[open]);
 
   if(!c)return null;
+
+  if (!interactive) {
+    return (
+      <span
+        className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border-0 bg-transparent p-0 ${className}`}
+        style={{ width: px, height: px }}
+        aria-label={definition?.title ?? badgeKey}
+      >
+        <div className={`pointer-events-none absolute inset-0 overflow-hidden rounded-[22%] ${grayscale ? "grayscale opacity-45" : ""}`}>
+          <img
+            src={c.artwork}
+            alt={`${c.value} Siege · ${c.tier}`}
+            className="absolute left-1/2 top-1/2 block max-w-none"
+            style={{ width: "166%", height: "auto", transform: "translate(-50%, -43%)" }}
+          />
+        </div>
+      </span>
+    );
+  }
 
   const modal = open ? (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-0 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label={definition?.title??badgeKey} onMouseDown={e=>{if(e.currentTarget===e.target)setOpen(false)}}>
