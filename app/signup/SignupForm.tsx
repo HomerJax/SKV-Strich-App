@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { signupAction, type SignupState } from "./actions";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type SignupFormProps = {
   initialEmail?: string;
@@ -12,22 +14,25 @@ type SignupFormProps = {
   initialNext?: string;
 };
 
-function getErrorMessage(error: string) {
+function getErrorMessage(
+  error: string,
+  t: (key: MessageKey) => string,
+) {
   switch (error) {
     case "missing-fields":
-      return "Bitte fülle alle Felder aus.";
+      return t("auth.signupMissing");
     case "password-mismatch":
-      return "Die Passwörter stimmen nicht überein.";
+      return t("auth.signupMismatch");
     case "password-too-short":
-      return "Das Passwort muss mindestens 8 Zeichen lang sein.";
+      return t("auth.signupTooShort");
     case "email-already-used":
-      return "Diese E-Mail-Adresse wird bereits verwendet.";
+      return t("auth.emailUsed");
     case "signup-failed":
-      return "Registrierung fehlgeschlagen. Bitte versuche es erneut.";
+      return t("auth.signupFailed");
     case "login-after-signup-failed":
-      return "Registrierung erfolgreich, aber die Anmeldung danach ist fehlgeschlagen.";
+      return t("auth.loginAfterSignupFailed");
     case "session-not-ready":
-      return "Die Registrierung wurde verarbeitet, aber die Session war noch nicht bereit. Bitte logge dich ein.";
+      return t("auth.signupSessionNotReady");
     default:
       return "";
   }
@@ -42,6 +47,7 @@ export default function SignupForm({
   initialError = "",
   initialNext = "",
 }: SignupFormProps) {
+  const { t } = useI18n();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -57,8 +63,8 @@ export default function SignupForm({
     : state.error || initialError || "";
 
   const errorMessage = useMemo(
-    () => getErrorMessage(activeErrorCode),
-    [activeErrorCode]
+    () => getErrorMessage(activeErrorCode, t),
+    [activeErrorCode, t]
   );
 
   const loginHref = initialNext
@@ -96,20 +102,20 @@ export default function SignupForm({
               <div className="my-auto py-10">
                 <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.18em] text-cyan-200">
                   <Sparkles className="h-3.5 w-3.5" />
-                  {isTeamStart ? "Dein Team startet hier" : "Willkommen bei strikr"}
+                  {isTeamStart ? t("auth.teamStartsHere") : t("auth.welcome")}
                 </div>
 
                 <h1 className="mt-5 max-w-xl text-4xl font-black leading-[.98] tracking-[-.055em] sm:text-5xl">
                   {isTeamStart ? (
                     <>
-                      Noch ein Account.
+                      {t("auth.oneMoreAccount")}
                       <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
-                        Dann wird&apos;s gut.
+                        {t("auth.thenGood")}
                       </span>
                     </>
                   ) : (
                     <>
-                      Bereit für
+                      {t("auth.readyFor")}
                       <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
                         strikr.
                       </span>
@@ -119,16 +125,16 @@ export default function SignupForm({
 
                 <p className="mt-5 max-w-xl text-sm font-medium leading-7 text-white/58 sm:text-base">
                   {isTeamStart
-                    ? "Nach der Registrierung führen wir dich direkt durch ein kurzes Setup. Club anlegen, faire Teams einstellen, Leute einladen – fertig."
-                    : "Erstelle deinen Account und steig direkt in deinen Club oder deine Einladung ein."}
+                    ? t("auth.signupTeamHint")
+                    : t("auth.signupHint")}
                 </p>
 
                 {isTeamStart ? (
                   <div className="mt-8 space-y-3">
                     {[
-                      "Club in wenigen Minuten eingerichtet",
-                      "Faire Teams ohne Excel oder Bauchgefühl",
-                      "Danach Training anlegen und Mannschaft einladen",
+                      t("auth.signupBenefit1"),
+                      t("auth.signupBenefit2"),
+                      t("auth.signupBenefit3"),
                     ].map((item) => (
                       <div key={item} className="flex items-center gap-3 text-sm font-bold text-white/75">
                         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-300/20">
@@ -142,7 +148,7 @@ export default function SignupForm({
               </div>
 
               <div className="text-[10px] font-bold uppercase tracking-[.18em] text-white/25">
-                Jedes Training zählt.
+                {t("auth.everyTrainingCounts")}
               </div>
             </div>
           </div>
@@ -150,15 +156,15 @@ export default function SignupForm({
           <div className="flex items-center rounded-[34px] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,.10)] sm:p-8">
             <div className="mx-auto w-full max-w-md">
               <div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-600">
-                {isTeamStart ? "Schritt 1 von 1 · Account" : "Account erstellen"}
+                {isTeamStart ? t("auth.accountStep") : t("auth.createAccount")}
               </div>
               <h2 className="mt-2 text-3xl font-black tracking-[-.04em] text-neutral-950">
-                {isTeamStart ? "Kurz registrieren." : "Registrieren"}
+                {isTeamStart ? t("auth.registerShort") : t("auth.register")}
               </h2>
               <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
                 {isTeamStart
-                  ? "Danach öffnet sich direkt der neue Team-Setup-Wizard."
-                  : "Erstelle deinen Account und kehre danach direkt zu deiner Einladung zurück."}
+                  ? t("auth.signupTeamNext")
+                  : t("auth.signupInviteNext")}
               </p>
 
               {errorMessage ? (
@@ -176,7 +182,7 @@ export default function SignupForm({
 
                 <label className="block">
                   <span className="mb-2 block text-xs font-black uppercase tracking-[.12em] text-neutral-500">
-                    E-Mail
+                    {t("auth.email")}
                   </span>
                   <input
                     name="email"
@@ -189,14 +195,14 @@ export default function SignupForm({
                     required
                     autoComplete="email"
                     className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 text-base outline-none transition placeholder:text-neutral-400 focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100"
-                    placeholder="du@beispiel.de"
+                    placeholder={t("auth.emailPlaceholder")}
                     disabled={isPending}
                   />
                 </label>
 
                 <label className="block">
                   <span className="mb-2 block text-xs font-black uppercase tracking-[.12em] text-neutral-500">
-                    Passwort
+                    {t("auth.password")}
                   </span>
                   <input
                     name="password"
@@ -208,7 +214,7 @@ export default function SignupForm({
                     }}
                     required
                     autoComplete="new-password"
-                    placeholder="Mindestens 8 Zeichen"
+                    placeholder={t("auth.passwordMinPlaceholder")}
                     className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 text-base outline-none transition placeholder:text-neutral-400 focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100"
                     disabled={isPending}
                   />
@@ -216,7 +222,7 @@ export default function SignupForm({
 
                 <label className="block">
                   <span className="mb-2 block text-xs font-black uppercase tracking-[.12em] text-neutral-500">
-                    Passwort bestätigen
+                    {t("auth.confirmPassword")}
                   </span>
                   <input
                     name="password_confirm"
@@ -240,10 +246,10 @@ export default function SignupForm({
                 >
                   <span>
                     <span className="block text-[10px] font-black uppercase tracking-[.16em] text-cyan-300">
-                      {isPending ? "Einen Moment..." : isTeamStart ? "Weiter zum Setup" : "Account erstellen"}
+                      {isPending ? t("auth.oneMoment") : isTeamStart ? t("auth.continueSetup") : t("auth.createAccount")}
                     </span>
                     <span className="mt-0.5 block text-base font-black">
-                      {isPending ? "Registrierung läuft" : "Registrieren"}
+                      {isPending ? t("auth.registrationRunning") : t("auth.register")}
                     </span>
                   </span>
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-950 transition group-hover:translate-x-0.5">
@@ -253,12 +259,12 @@ export default function SignupForm({
               </form>
 
               <div className="mt-6 text-center text-sm font-medium text-neutral-500">
-                Bereits registriert?{" "}
+                {t("auth.alreadyRegistered")}{" "}
                 <Link
                   href={loginHref}
                   className="font-black text-neutral-900 hover:underline"
                 >
-                  Zum Login
+                  {t("auth.toLogin")}
                 </Link>
               </div>
             </div>
