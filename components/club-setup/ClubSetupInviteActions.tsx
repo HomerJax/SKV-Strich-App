@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type ClubSetupInviteActionsProps = {
   inviteUrl: string;
@@ -11,6 +12,7 @@ export default function ClubSetupInviteActions({
   inviteUrl,
   clubName,
 }: ClubSetupInviteActionsProps) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState("");
 
@@ -24,7 +26,7 @@ export default function ClubSetupInviteActions({
         setCopied(false);
       }, 1800);
     } catch {
-      setShareError("Link konnte nicht kopiert werden.");
+      setShareError(t("invite.copyError"));
     }
   }
 
@@ -38,8 +40,8 @@ export default function ClubSetupInviteActions({
       }
 
       await navigator.share({
-        title: `${clubName} auf strikr`,
-        text: `Komm in unser Team auf strikr: ${clubName}`,
+        title: t("invite.title", { club: clubName }),
+        text: t("invite.shareText", { club: clubName }),
         url: inviteUrl,
       });
     } catch (error) {
@@ -47,7 +49,7 @@ export default function ClubSetupInviteActions({
         return;
       }
 
-      setShareError("Teilen konnte nicht gestartet werden.");
+      setShareError(t("invite.shareError"));
     }
   }
 
@@ -55,7 +57,7 @@ export default function ClubSetupInviteActions({
     <div className="space-y-3">
       <div className="rounded-2xl border border-black/10 bg-white p-3">
         <div className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
-          Einladungslink
+          {t("invite.link")}
         </div>
 
         <div className="mt-2 rounded-xl border border-black/10 bg-[#f7f8fb] px-3 py-2 text-sm text-neutral-700">
@@ -63,8 +65,7 @@ export default function ClubSetupInviteActions({
         </div>
 
         <p className="mt-2 text-xs leading-5 text-neutral-500">
-          Der Link ist bewusst mehrfach nutzbar und kann direkt in eure
-          Mannschaftsgruppe geschickt werden.
+          {t("invite.multiUse")}
         </p>
       </div>
 
@@ -80,7 +81,7 @@ export default function ClubSetupInviteActions({
           onClick={copyInviteLink}
           className="inline-flex items-center justify-center rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
         >
-          {copied ? "Kopiert" : "Link kopieren"}
+          {copied ? t("invite.copied") : t("invite.copy")}
         </button>
 
         <button
@@ -88,7 +89,7 @@ export default function ClubSetupInviteActions({
           onClick={shareInviteLink}
           className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-neutral-50"
         >
-          Teilen
+          {t("invite.share")}
         </button>
       </div>
     </div>
