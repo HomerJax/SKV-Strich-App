@@ -5,9 +5,11 @@ import { LoaderCircle, Medal, X } from "lucide-react";
 import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TeamFeedItem } from "@/lib/team-feed";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { AppLocale } from "@/lib/i18n/config";
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("de-DE", {
+function formatDate(value: string, locale: AppLocale) {
+  return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", {
     timeZone: "Europe/Berlin",
     day: "2-digit",
     month: "2-digit",
@@ -29,6 +31,7 @@ export default function HomeTeamFeedPreview({
   const [loading, setLoading] = useState(false);
   const [openBadge, setOpenBadge] = useState<TeamFeedItem | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const { locale, t } = useI18n();
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -108,10 +111,10 @@ export default function HomeTeamFeedPreview({
       <section className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
         <div>
           <h2 className="text-base font-black tracking-tight text-slate-950">
-            Kabinen-Talk
+            {t("teamFeed.title")}
           </h2>
           <div className="mt-0.5 text-[10px] font-bold text-slate-400">
-            Was bei euch passiert.
+            {t("teamFeed.subtitle")}
           </div>
         </div>
 
@@ -131,8 +134,8 @@ export default function HomeTeamFeedPreview({
                         event.stopPropagation();
                         setOpenBadge(item);
                       }}
-                      aria-label={`${item.title} Details ansehen`}
-                      title="Badge-Details ansehen"
+                      aria-label={t("teamFeed.viewDetails", { title: item.title })}
+                      title={t("teamFeed.badgeDetails")}
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition hover:bg-amber-50 active:scale-95"
                     >
                       <AchievementBadgeVisual badgeKey={item.badgeKey} size="lg" interactive={false} />
@@ -153,13 +156,13 @@ export default function HomeTeamFeedPreview({
                         </div>
                         {item.actorName ? (
                           <div className="mt-1 text-[10px] font-black text-violet-600">
-                            Vergleiche dich mit {item.actorName} →
+                            {t("teamFeed.compare", { name: item.actorName })}
                           </div>
                         ) : null}
                       </div>
 
                       <div className="shrink-0 text-[10px] font-bold text-slate-400">
-                        {formatDate(item.occurredAt)}
+                        {formatDate(item.occurredAt, locale)}
                       </div>
                     </Link>
                   </div>
@@ -186,7 +189,7 @@ export default function HomeTeamFeedPreview({
                   </div>
 
                   <div className="shrink-0 text-[10px] font-bold text-slate-400">
-                    {formatDate(item.occurredAt)}
+                    {formatDate(item.occurredAt, locale)}
                   </div>
                 </Link>
               );
@@ -194,7 +197,7 @@ export default function HomeTeamFeedPreview({
           </div>
         ) : (
           <div className="mt-3 text-xs font-semibold text-slate-500">
-            Noch keine Team-Ereignisse vorhanden.
+            {t("teamFeed.empty")}
           </div>
         )}
 
@@ -224,7 +227,7 @@ export default function HomeTeamFeedPreview({
             <button
               type="button"
               onClick={() => setOpenBadge(null)}
-              aria-label="Schließen"
+              aria-label={t("teamFeed.close")}
               className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/15 hover:text-white"
             >
               <X className="h-4 w-4" />
@@ -232,7 +235,7 @@ export default function HomeTeamFeedPreview({
 
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/80">
               {openBadge.badgeKey.startsWith("career_")
-                ? "Karriere-Badge"
+                ? t("teamFeed.careerBadge")
                 : "strikr Badge"}
             </div>
 
