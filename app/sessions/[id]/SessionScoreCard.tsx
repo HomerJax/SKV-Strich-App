@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { SessionGameResult } from "./session-types";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type Props = {
   results: SessionGameResult[];
@@ -22,10 +25,12 @@ function cleanGoal(value: string) {
   return value.replace(/\D/g, "").slice(0, 3);
 }
 
-function winnerText(a: number | null, b: number | null) {
-  if (a == null || b == null) return "Offen";
-  if (a === b) return "Remis";
-  return a > b ? "Team 1" : "Team 2";
+function winnerText(a: number | null, b: number | null, locale: AppLocale) {
+  if (a == null || b == null) return translate(locale, "score.open");
+  if (a === b) return translate(locale, "score.draw");
+  return a > b
+    ? translate(locale, "score.team1")
+    : translate(locale, "score.team2");
 }
 
 function GameRow({
@@ -39,6 +44,7 @@ function GameRow({
   onUpdate: (gameNo: number, goalsA: string, goalsB: string) => void;
   onDelete: (gameNo: number) => void;
 }) {
+  const { locale, t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [a, setA] = useState(String(result.goals_team_a ?? ""));
   const [b, setB] = useState(String(result.goals_team_b ?? ""));
@@ -53,13 +59,13 @@ function GameRow({
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">
-            Spiel {result.game_no}
+            {t("score.game", { game: result.game_no })}
           </div>
           {!editing ? (
             <div className="mt-1 text-xl font-black text-slate-950">
               {result.goals_team_a ?? "–"} : {result.goals_team_b ?? "–"}
               <span className="ml-2 text-xs font-bold text-slate-500">
-                · {winnerText(result.goals_team_a, result.goals_team_b)}
+                · {winnerText(result.goals_team_a, result.goals_team_b, locale)}
               </span>
             </div>
           ) : null}
@@ -71,7 +77,7 @@ function GameRow({
             disabled={saving}
             className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700"
           >
-            Bearbeiten
+            {t("score.edit")}
           </button>
         ) : null}
       </div>
@@ -85,7 +91,7 @@ function GameRow({
               onChange={(event) => setA(cleanGoal(event.target.value))}
               disabled={saving}
               className="h-12 rounded-xl border bg-white text-center text-xl font-black"
-              aria-label={`Tore Team 1 Spiel ${result.game_no}`}
+              aria-label={t("score.teamGoals", { team: t("score.team1"), game: result.game_no })}
             />
             <span className="font-black text-slate-400">:</span>
             <input
@@ -94,7 +100,7 @@ function GameRow({
               onChange={(event) => setB(cleanGoal(event.target.value))}
               disabled={saving}
               className="h-12 rounded-xl border bg-white text-center text-xl font-black"
-              aria-label={`Tore Team 2 Spiel ${result.game_no}`}
+              aria-label={t("score.teamGoals", { team: t("score.team2"), game: result.game_no })}
             />
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -107,7 +113,7 @@ function GameRow({
               }}
               className="rounded-full bg-slate-950 px-3 py-2 text-xs font-black text-white disabled:opacity-50"
             >
-              Speichern
+              {t("score.save")}
             </button>
             <button
               type="button"
@@ -115,7 +121,7 @@ function GameRow({
               onClick={() => setEditing(false)}
               className="rounded-full border px-3 py-2 text-xs font-bold"
             >
-              Abbrechen
+              {t("score.cancel")}
             </button>
             <button
               type="button"
@@ -123,7 +129,7 @@ function GameRow({
               onClick={() => onDelete(result.game_no)}
               className="ml-auto rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700"
             >
-              Löschen
+              {t("score.delete")}
             </button>
           </div>
         </div>
@@ -144,8 +150,9 @@ export default function SessionScoreCard({
   onUpdateResult,
   onDeleteResult,
   onToggleCollapsed,
-  title = "Ergebnisse",
+  title,
 }: Props) {
+  const { t } = useI18n();
   const [showNextGameForm, setShowNextGameForm] = useState(results.length === 0);
 
   useEffect(() => {
@@ -178,16 +185,18 @@ export default function SessionScoreCard({
         >
           <div className="min-w-0">
             <div className="text-sm font-black text-emerald-950">
-              {results.length === 1 ? "Ergebnis gespeichert" : `${results.length} Spiele gespeichert`}
+              {results.length === 1
+                ? t("score.resultSaved")
+                : t("score.gamesSaved", { count: results.length })}
             </div>
             <div className="mt-1 text-xs font-bold text-emerald-800">
               {single
                 ? `${single.goals_team_a ?? "–"}:${single.goals_team_b ?? "–"}`
-                : `Tagessiege ${summary.winsA}:${summary.winsB}`}
+                : t("score.dailyWins", { a: summary.winsA, b: summary.winsB })}
             </div>
           </div>
           <span className="rounded-full border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
-            Spiele öffnen
+            {t("score.openGames")}
           </span>
         </button>
       </section>
@@ -199,9 +208,9 @@ export default function SessionScoreCard({
       <div className="border-b border-slate-100 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-sm font-black text-slate-950">{title}</div>
+            <div className="text-sm font-black text-slate-950">{title ?? t("score.results")}</div>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Ein Training, feste Teams, beliebig viele Spiele. Jeder Spielsieg zählt als eigener Strich.
+              {t("score.description")}
             </p>
           </div>
           {results.length > 0 ? (
@@ -210,7 +219,7 @@ export default function SessionScoreCard({
               onClick={onToggleCollapsed}
               className="shrink-0 rounded-full border px-3 py-2 text-xs font-bold"
             >
-              Kompakt
+              {t("score.compact")}
             </button>
           ) : null}
         </div>
@@ -220,17 +229,17 @@ export default function SessionScoreCard({
         {results.length > 1 ? (
           <div className="rounded-2xl bg-slate-950 p-4 text-white">
             <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/50">
-              Sieger des Trainingsabends
+              {t("score.trainingWinner")}
             </div>
             <div className="mt-1 text-2xl font-black">
-              {summary.winsA}:{summary.winsB} Tagessiege
+              {t("score.dailyWinsValue", { a: summary.winsA, b: summary.winsB })}
             </div>
             <div className="mt-1 text-xs font-semibold text-white/65">
               {summary.winsA === summary.winsB
-                ? "Aktuell unentschieden – kein eindeutiges Siegerteam."
+                ? t("score.currentDraw")
                 : summary.winsA > summary.winsB
-                  ? "Team 1 liegt vorne."
-                  : "Team 2 liegt vorne."}
+                  ? t("score.teamAhead", { team: t("score.team1") })
+                  : t("score.teamAhead", { team: t("score.team2") })}
             </div>
           </div>
         ) : null}
@@ -249,7 +258,9 @@ export default function SessionScoreCard({
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-3">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">
-                {results.length === 0 ? "Spiel 1" : `Weiteres Trainingsspiel · Spiel ${nextGameNo}`}
+                {results.length === 0
+                  ? t("score.game", { game: 1 })
+                  : t("score.moreGame", { game: nextGameNo })}
               </div>
               {results.length > 0 ? (
                 <button
@@ -258,7 +269,7 @@ export default function SessionScoreCard({
                   disabled={saving}
                   className="rounded-full px-2 py-1 text-xs font-bold text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
                 >
-                  Schließen
+                  {t("score.close")}
                 </button>
               ) : null}
             </div>
@@ -271,7 +282,7 @@ export default function SessionScoreCard({
                 disabled={saving}
                 placeholder="0"
                 className="h-14 rounded-2xl border text-center text-2xl font-black"
-                aria-label="Tore Team 1"
+                aria-label={t("score.teamGoalsShort", { team: t("score.team1") })}
               />
               <span className="text-xl font-black text-slate-400">:</span>
               <input
@@ -282,7 +293,7 @@ export default function SessionScoreCard({
                 disabled={saving}
                 placeholder="0"
                 className="h-14 rounded-2xl border text-center text-2xl font-black"
-                aria-label="Tore Team 2"
+                aria-label={t("score.teamGoalsShort", { team: t("score.team2") })}
               />
             </div>
             <button
@@ -292,10 +303,10 @@ export default function SessionScoreCard({
               className="mt-3 w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
             >
               {saving
-                ? "Speichert..."
+                ? t("score.saving")
                 : results.length === 0
-                  ? "Ergebnis speichern"
-                  : `Spiel ${nextGameNo} speichern`}
+                  ? t("score.saveResult")
+                  : t("score.saveGame", { game: nextGameNo })}
             </button>
           </div>
         ) : (
@@ -306,13 +317,13 @@ export default function SessionScoreCard({
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 text-sm font-black text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 disabled:opacity-50"
           >
             <span className="text-lg leading-none">＋</span>
-            Weiteres Trainingsspiel hinzufügen
+            {t("score.addGame")}
           </button>
         )}
 
         {results.length > 0 ? (
           <p className="text-[11px] leading-5 text-slate-500">
-            Anwesenheit zählt für den Trainingsabend nur einmal. Die Teams bleiben für alle Spiele dieser Session gleich.
+            {t("score.sessionHint")}
           </p>
         ) : null}
       </div>
