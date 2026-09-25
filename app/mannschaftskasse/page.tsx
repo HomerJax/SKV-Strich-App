@@ -282,7 +282,7 @@ export default async function Page({ searchParams }: Props) {
           <h1 className="mt-1 text-2xl font-black">💰 {t("cashbox.title")}</h1>
           <div className="mt-5 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/8 p-3">
-              <div className="text-lg font-black">{formatCents(teamBalance)}</div>
+              <div className="text-lg font-black">{formatCents(teamBalance, locale)}</div>
               <div className="mt-1 text-[10px] font-bold text-white/50">{t("cashbox.balance")}</div>
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
@@ -291,7 +291,7 @@ export default async function Page({ searchParams }: Props) {
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">
-                {formatCents(myOpenPenaltyCents + myOpenContributionCents + myOpenBeerCents)}
+                {formatCents(myOpenPenaltyCents + myOpenContributionCents + myOpenBeerCents, locale)}
               </div>
               <div className="mt-1 text-[10px] font-bold text-white/50">{t("cashbox.mineOpen")}</div>
             </div>
@@ -371,7 +371,7 @@ export default async function Page({ searchParams }: Props) {
                 </h2>
               </div>
               <div className="text-right">
-                <div className="text-xl font-black text-amber-700">{formatCents(myOpenBeerCents)}</div>
+                <div className="text-xl font-black text-amber-700">{formatCents(myOpenBeerCents, locale)}</div>
                 <div className="text-[10px] font-bold text-slate-500">{t("cashbox.openUnclear")}</div>
               </div>
             </div>
@@ -379,7 +379,7 @@ export default async function Page({ searchParams }: Props) {
               {myRecentBeer.map((entry) => (
                 <div key={entry.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
                   <div>
-                    <div className="text-sm font-black text-slate-900">{entry.quantity} 🍺 · {formatCents(entry.total_cents)}</div>
+                    <div className="text-sm font-black text-slate-900">{entry.quantity} 🍺 · {formatCents(entry.total_cents, locale)}</div>
                     <div className="mt-0.5 text-[10px] font-bold text-slate-500">
                       {entry.payment_method === "cash" ? t("cashbox.cash") : "PayPal"} · {fmtDate(entry.created_at, locale)}
                     </div>
@@ -486,7 +486,7 @@ export default async function Page({ searchParams }: Props) {
                     <div>
                       <div className="font-black">{contribution.title}</div>
                       <div className="mt-1 text-xs text-slate-600">
-                        {formatCents(contribution.amount_cents)}
+                        {formatCents(contribution.amount_cents, locale)}
                         {contribution.due_date
                           ? ` · ${t("cashbox.due", { date: fmtDate(contribution.due_date, locale) })}`
                           : ""}
@@ -594,7 +594,7 @@ export default async function Page({ searchParams }: Props) {
                 </div>
                 <div className={`text-sm font-black ${transaction.amount_cents >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
                   {transaction.amount_cents >= 0 ? "+" : "−"}
-                  {formatCents(Math.abs(transaction.amount_cents))}
+                  {formatCents(Math.abs(transaction.amount_cents), locale)}
                 </div>
               </div>
             ))}
