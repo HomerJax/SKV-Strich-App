@@ -19,6 +19,8 @@ type ClubSwitcherProps = {
   clubs: ClubSwitcherClub[];
   canCreateClub?: boolean;
   createClubHref?: string;
+  supportViewLabel?: string | null;
+  supportViewRole?: string | null;
 };
 
 function normalizeText(value: string) {
@@ -38,6 +40,8 @@ export default function ClubSwitcher({
   clubs,
   canCreateClub = false,
   createClubHref = "/create-club",
+  supportViewLabel = null,
+  supportViewRole = null,
 }: ClubSwitcherProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -235,8 +239,10 @@ export default function ClubSwitcher({
               Aktuell: {activeClubName ?? "Kein Verein gewählt"}
             </div>
             {isPowerUser ? (
-              <div className="mt-2 text-[11px] text-violet-700">
-                Power User: Du siehst alle Vereine.
+              <div className="mt-2 rounded-xl border border-violet-200 bg-violet-50 px-2.5 py-2 text-[11px] font-semibold text-violet-800">
+                {supportViewLabel
+                  ? `Supportansicht · ${supportViewRole === "owner" ? "Owner" : supportViewRole === "admin" ? "Admin" : "Spieler"} ${supportViewLabel} · persönliche Aktionen nur ansehen`
+                  : "Power User: Du siehst alle Vereine."}
               </div>
             ) : (
               <div className="mt-2 text-[11px] text-slate-500">
