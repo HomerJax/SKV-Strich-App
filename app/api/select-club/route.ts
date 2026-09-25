@@ -12,7 +12,7 @@ function normalizeNextPath(value: string | null) {
   const nextPath = (value ?? "").trim();
 
   if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
-    return AUTH_ROUTES.dashboard;
+    return "/home";
   }
 
   return nextPath;
