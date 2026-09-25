@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Info } from "lucide-react";
 import { formatImpactValue } from "@/lib/stats/utils";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type ImpactDetail = {
   sessionId: number;
@@ -51,10 +52,10 @@ function ImpactStat({ label, value, hint }: ImpactStatProps) {
   );
 }
 
-function formatDateDE(date: string | null) {
-  if (!date) return "Ohne Datum";
+function formatDate(date: string | null, locale: "de" | "en") {
+  if (!date) return null;
 
-  return new Date(date).toLocaleDateString("de-DE", {
+  return new Date(date).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
@@ -70,9 +71,10 @@ export default function TeamImpactCard({
   impactMeta,
 }: TeamImpactCardProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const { locale, t } = useI18n();
 
   const impactFormula = impactDetails
-    .map((detail) => formatImpactValue(detail.impactValue))
+    .map((detail) => formatImpactValue(detail.impactValue, locale))
     .join(" + ")
     .replace(/\+ -/g, "- ");
 
@@ -80,8 +82,7 @@ export default function TeamImpactCard({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="max-w-2xl text-sm leading-6 text-slate-600">
-          Zeigt, wie Teams mit dir performen – nicht nur ob du gewinnst,
-          sondern auch wie stark dein Team im Vergleich war.
+          {t("stats.impactIntro")}
         </div>
 
         <span
@@ -96,10 +97,10 @@ export default function TeamImpactCard({
         onClick={() => setDetailsOpen((open) => !open)}
         className="grid w-full grid-cols-2 gap-3 text-left xl:grid-cols-4"
       >
-        <ImpactStat label="Spiele mit dir" value={String(impactGames)} hint="Grundlage für den Impact" />
-        <ImpactStat label="Siege mit dir" value={String(impactWins)} hint="Gewonnene Spiele" />
-        <ImpactStat label="Impact gesamt" value={formatImpactValue(impactTotal)} hint="Aufsummierter Wert" />
-        <ImpactStat label="Impact / Spiel" value={formatImpactValue(impactPerMatch)} hint="Durchschnitt pro Einsatz" />
+        <ImpactStat label={t("stats.gamesWithYou")} value={String(impactGames)} hint={t("stats.gamesWithYouHint")} />
+        <ImpactStat label={t("stats.winsWithYou")} value={String(impactWins)} hint={t("stats.winsWithYouHint")} />
+        <ImpactStat label={t("stats.impactTotal")} value={formatImpactValue(impactTotal, locale)} hint={t("stats.impactTotalHint")} />
+        <ImpactStat label={t("stats.impactPerGame")} value={formatImpactValue(impactPerMatch, locale)} hint={t("stats.impactPerGameHint")} />
       </button>
 
       <button
@@ -109,79 +110,77 @@ export default function TeamImpactCard({
       >
         <span className="inline-flex items-center gap-2">
           <Info className="h-4 w-4 text-slate-500" />
-          Berechnung anzeigen
+          {t("stats.showCalculation")}
         </span>
         <ChevronDown className={`h-4 w-4 text-slate-500 transition ${detailsOpen ? "rotate-180" : ""}`} />
       </button>
 
       {detailsOpen ? (
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          <div className="font-semibold text-slate-900">Deine Berechnung</div>
+          <div className="font-semibold text-slate-900">{t("stats.yourCalculation")}</div>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                Impact gesamt
+                {t("stats.impactTotal")}
               </div>
               <div className="mt-2 text-lg font-bold text-slate-950">
-                {formatImpactValue(impactTotal)}
+                {formatImpactValue(impactTotal, locale)}
               </div>
               <div className="mt-1 text-xs leading-5 text-slate-600">
-                Summe aus {impactGames} bewerteten Spielen.
+                {t("stats.sumGames", { count: impactGames })}
               </div>
               {impactFormula ? (
                 <div className="mt-2 rounded-lg bg-slate-50 px-2 py-2 font-mono text-[11px] leading-5 text-slate-600">
-                  {impactFormula} = {formatImpactValue(impactTotal)}
+                  {impactFormula} = {formatImpactValue(impactTotal, locale)}
                 </div>
               ) : null}
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                Impact / Spiel
+                {t("stats.impactPerGame")}
               </div>
               <div className="mt-2 text-lg font-bold text-slate-950">
-                {formatImpactValue(impactPerMatch)}
+                {formatImpactValue(impactPerMatch, locale)}
               </div>
               <div className="mt-1 text-xs leading-5 text-slate-600">
-                Impact gesamt geteilt durch Spiele mit dir.
+                {t("stats.totalDivided")}
               </div>
               <div className="mt-2 rounded-lg bg-slate-50 px-2 py-2 font-mono text-[11px] leading-5 text-slate-600">
-                {formatImpactValue(impactTotal)} ÷ {impactGames || 0} ={" "}
-                {formatImpactValue(impactPerMatch)}
+                {formatImpactValue(impactTotal, locale)} ÷ {impactGames || 0} ={" "}
+                {formatImpactValue(impactPerMatch, locale)}
               </div>
             </div>
           </div>
 
           <div className="mt-5 font-semibold text-slate-900">
-            So wird ein einzelnes Spiel bewertet
+            {t("stats.singleGameCalc")}
           </div>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-              Sieg mit stärkerem Team → <span className="font-semibold">+1</span>
+              {t("stats.winFavorite")} → <span className="font-semibold">+1</span>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-              Sieg als Underdog → <span className="font-semibold">+2</span>
+              {t("stats.winUnderdog")} → <span className="font-semibold">+2</span>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-              Niederlage trotz stärkerem Team → <span className="font-semibold">-1</span>
+              {t("stats.lossFavorite")} → <span className="font-semibold">-1</span>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-              Niederlage als Underdog → <span className="font-semibold">0</span>
+              {t("stats.lossUnderdog")} → <span className="font-semibold">0</span>
             </div>
           </div>
 
           <p className="mt-3 text-slate-600">
-            Grundlage ist die erwartete Teamstärke aus den gespeicherten Teams.
-            Wenn in deinem Club Stärken aktiv sind, wird mit der Summe der
-            Spieler-Stärken gerechnet. Sonst zählt die Teamgröße als neutrale Basis.
+            {t("stats.impactBasis")}
           </p>
 
           {impactDetails.length > 0 ? (
             <div className="mt-4 space-y-2">
               <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Einzelberechnung
+                {t("stats.singleCalculation")}
               </div>
 
               {impactDetails.map((detail) => (
@@ -192,14 +191,14 @@ export default function TeamImpactCard({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="font-semibold text-slate-950">
-                        {formatDateDE(detail.date)} · {detail.scoreLabel}
+                        {formatDate(detail.date, locale) ?? t("stats.noDate")} · {detail.scoreLabel}
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
-                        {detail.myTeamLabel} · Teamstärke {detail.myTeamScore} : {detail.opponentScore}
+                        {t("stats.teamStrength", { team: detail.myTeamLabel, mine: detail.myTeamScore, opponent: detail.opponentScore })}
                       </div>
                     </div>
                     <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-950">
-                      {formatImpactValue(detail.impactValue)}
+                      {formatImpactValue(detail.impactValue, locale)}
                     </div>
                   </div>
 
