@@ -512,7 +512,7 @@ async function clearFeaturedBadgeAction() {
 
 export default async function BadgesPageV3({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
-  const { clubId, player, supportViewPlayer } = await requireClub();
+  const { clubId, player, supportViewPlayer, isSupportView } = await requireClub();
   const viewPlayer = player ?? supportViewPlayer;
   const flags = await getFeatureFlagsForClub(clubId);
 
@@ -706,7 +706,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                 <div className="mt-0.5 truncate text-sm font-extrabold">
                   {selectedBadge?.title ?? "Noch keiner gewählt"}
                 </div>
-                {isOwnHall && selectedBadge ? (
+                {isOwnHall && selectedBadge && !isSupportView ? (
                   <form action={clearFeaturedBadgeAction} className="mt-1">
                     <button type="submit" className="text-[10px] font-bold text-white/40 underline underline-offset-4 hover:text-white">
                       Entfernen
@@ -725,7 +725,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                   badge={badge}
                   achievementRows={displayAchievementMap.get(badge.key) ?? []}
                   selected={displayPlayer.selected_badge_key === badge.key}
-                  canSelect={isOwnHall}
+                  canSelect={isOwnHall && !isSupportView}
                 />
               ))}
             </div>
