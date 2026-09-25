@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CalendarDays, Medal, Star, TrendingUp, Trophy } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Stats = {
   attendanceCount: number;
@@ -48,6 +49,7 @@ function MiniStatCard({
 
 export default function HomeQuickStats() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -71,28 +73,28 @@ export default function HomeQuickStats() {
         <MiniStatCard
           icon={<CalendarDays className="h-4 w-4" />}
           value={String(stats?.attendanceCount ?? 0)}
-          label="Teilnahmen"
+          label={t("home.attendance")}
           tone="blue"
           loading={!stats}
         />
         <MiniStatCard
           icon={<TrendingUp className="h-4 w-4" />}
           value={stats?.winRate == null ? "–" : `${stats.winRate}%`}
-          label="Siegquote"
+          label={t("home.winRate")}
           tone="emerald"
           loading={!stats}
         />
         <MiniStatCard
           icon={<Medal className="h-4 w-4" />}
           value={stats?.attendanceRank ? `#${stats.attendanceRank}` : "–"}
-          label="Tabelle"
+          label={t("home.standings")}
           tone="violet"
           loading={!stats}
         />
         <MiniStatCard
           icon={<Star className="h-4 w-4" />}
           value={String(stats?.badgeCount ?? 0)}
-          label="Badges"
+          label={t("home.badges")}
           tone="amber"
           loading={!stats}
         />
@@ -107,7 +109,7 @@ export default function HomeQuickStats() {
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
               <TrendingUp className="h-4 w-4" />
             </span>
-            <span>Mein Fortschritt</span>
+            <span>{t("home.myProgress")}</span>
           </span>
           <span className="text-blue-700" aria-hidden="true">→</span>
         </Link>
@@ -120,7 +122,7 @@ export default function HomeQuickStats() {
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
               <Trophy className="h-4 w-4" />
             </span>
-            <span>Tabelle</span>
+            <span>{t("home.standings")}</span>
           </span>
           <span className="text-amber-600" aria-hidden="true">→</span>
         </Link>
