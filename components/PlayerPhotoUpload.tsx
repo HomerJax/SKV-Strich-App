@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera } from "lucide-react";
 import { compressImageFile } from "@/lib/client-images/compress-image";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
   playerId: number;
@@ -65,6 +66,7 @@ export default function PlayerPhotoUpload({
   className = "",
   readOnly = false,
 }: Props) {
+  const { t } = useI18n();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const workspaceRef = useRef<HTMLDivElement | null>(null);
@@ -362,7 +364,7 @@ export default function PlayerPhotoUpload({
             <div className="mt-4 grid grid-cols-[1fr_92px] items-end gap-4">
               <div>
                 <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
-                  <span>Spielerpass</span>
+                  <span>{t("playerCard.title")}</span>
                   <span className="normal-case tracking-normal">{zoom.toFixed(1)}×</span>
                 </div>
                 <div
