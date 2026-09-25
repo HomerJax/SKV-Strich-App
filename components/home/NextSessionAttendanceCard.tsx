@@ -64,11 +64,11 @@ function getDeadlineTone(deadline: Date | null, now: Date | null): DeadlineTone 
   return "normal";
 }
 
-function deadlineClasses(tone: DeadlineTone) {
-  if (tone === "passed") return "border-rose-200 bg-rose-50 text-rose-800";
-  if (tone === "urgent") return "border-amber-300 bg-amber-100 text-amber-950";
-  if (tone === "soon") return "border-amber-200 bg-amber-50 text-amber-900";
-  return "border-slate-200 bg-slate-50 text-slate-600";
+function deadlineTextClasses(tone: DeadlineTone) {
+  if (tone === "passed") return "text-rose-700";
+  if (tone === "urgent") return "text-amber-800";
+  if (tone === "soon") return "text-amber-700";
+  return "text-slate-500";
 }
 
 export default function NextSessionAttendanceCard({
@@ -221,8 +221,8 @@ export default function NextSessionAttendanceCard({
           <h2 className="mt-2 text-[18px] font-semibold leading-tight tracking-[-0.045em] text-slate-950 sm:text-[22px]">{title}</h2>
           {text?.trim() ? <p className="mt-1.5 line-clamp-2 text-xs font-medium leading-5 text-slate-500">{text.trim()}</p> : null}
           {deadlineText ? (
-            <div className={`mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${deadlineClasses(deadlineTone)}`}>
-              <Clock3 className="h-3.5 w-3.5 shrink-0" />
+            <div className={`mt-3 flex max-w-full items-start gap-1.5 text-[11px] font-semibold leading-4 ${deadlineTextClasses(deadlineTone)}`}>
+              <Clock3 className="mt-px h-3.5 w-3.5 shrink-0" />
               <span>{deadlineText}{remainingText ? ` · ${remainingText}` : ""}</span>
             </div>
           ) : null}
@@ -243,7 +243,7 @@ export default function NextSessionAttendanceCard({
       ) : null}
 
       {!notNominated ? (
-        <div className="relative mt-4 rounded-[28px] bg-slate-50 p-1.5 ring-1 ring-slate-950/5">
+        <div className="relative mt-4 rounded-[28px] bg-cyan-50/90 p-1.5 shadow-[0_10px_28px_rgba(34,211,238,0.10)] ring-1 ring-cyan-200/80">
           <div className="grid grid-cols-2 gap-1.5">
             <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", inActive ? "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 text-white shadow-[0_16px_34px_rgba(56,189,248,0.24)]" : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50"].join(" ")}>
               <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-blue-50 text-blue-600 ring-1 ring-blue-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? "Speichert…" : inActive ? "Dabei ✓" : "Ich bin dabei"}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{presentCount} dabei</span></span></div>
