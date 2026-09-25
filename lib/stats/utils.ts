@@ -1,3 +1,6 @@
+import type { AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
+
 export type RecentResult = {
   sessionId: number;
   date: string | null;
@@ -6,15 +9,18 @@ export type RecentResult = {
   myTeamLabel: "Team 1" | "Team 2";
 };
 
-export function formatGermanDate(date: string | null) {
-  if (!date) return "Unbekanntes Datum";
-  return new Date(date).toLocaleDateString("de-DE");
+export function formatGermanDate(date: string | null, locale: AppLocale = "de") {
+  if (!date) return translate(locale, "stats.unknownDate");
+  return new Date(date).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB");
 }
 
-export function outcomeLabel(outcome: RecentResult["outcome"]) {
-  if (outcome === "win") return "Sieg";
-  if (outcome === "loss") return "Niederlage";
-  return "Unentschieden";
+export function outcomeLabel(
+  outcome: RecentResult["outcome"],
+  locale: AppLocale = "de",
+) {
+  if (outcome === "win") return translate(locale, "stats.win");
+  if (outcome === "loss") return translate(locale, "stats.loss");
+  return translate(locale, "stats.draw");
 }
 
 export function outcomeClasses(outcome: RecentResult["outcome"]) {
@@ -28,9 +34,12 @@ export function percentage(part: number, total: number) {
   return `${Math.round((part / total) * 100)}%`;
 }
 
-export function formatRatio(value: number) {
-  if (!Number.isFinite(value)) return "0,00";
-  return value.toFixed(2).replace(".", ",");
+export function formatRatio(value: number, locale: AppLocale = "de") {
+  if (!Number.isFinite(value)) return locale === "de" ? "0,00" : "0.00";
+  return new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 export function trendValueForOutcome(outcome: RecentResult["outcome"]) {
@@ -38,9 +47,12 @@ export function trendValueForOutcome(outcome: RecentResult["outcome"]) {
   return 0;
 }
 
-export function formatImpactValue(value: number) {
-  if (!Number.isFinite(value)) return "0,00";
-  return value.toFixed(2).replace(".", ",");
+export function formatImpactValue(value: number, locale: AppLocale = "de") {
+  if (!Number.isFinite(value)) return locale === "de" ? "0,00" : "0.00";
+  return new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 export function getImpactValue(params: {
@@ -69,11 +81,14 @@ export function getImpactValue(params: {
   return 0;
 }
 
-export function getImpactMeta(impactPerMatch: number) {
+export function getImpactMeta(
+  impactPerMatch: number,
+  locale: AppLocale = "de",
+) {
   if (impactPerMatch >= 1.25) {
     return {
-      title: "Sehr starker Impact",
-      text: "Deine Teams performen mit dir sehr häufig besser als erwartet.",
+      title: translate(locale, "stats.impactVeryStrong"),
+      text: translate(locale, "stats.impactVeryStrongText"),
       badgeClasses: "bg-emerald-100 text-emerald-800",
       boxClasses: "border-emerald-200 bg-emerald-50 text-emerald-900",
     };
@@ -81,8 +96,8 @@ export function getImpactMeta(impactPerMatch: number) {
 
   if (impactPerMatch >= 0.75) {
     return {
-      title: "Starker Impact",
-      text: "Mit dir im Team werden regelmäßig starke Ergebnisse erreicht.",
+      title: translate(locale, "stats.impactStrong"),
+      text: translate(locale, "stats.impactStrongText"),
       badgeClasses: "bg-sky-100 text-sky-800",
       boxClasses: "border-sky-200 bg-sky-50 text-sky-900",
     };
@@ -90,16 +105,16 @@ export function getImpactMeta(impactPerMatch: number) {
 
   if (impactPerMatch >= 0.25) {
     return {
-      title: "Solider Impact",
-      text: "Deine Teams holen mit dir ordentliche Ergebnisse und bleiben im positiven Bereich.",
+      title: translate(locale, "stats.impactSolid"),
+      text: translate(locale, "stats.impactSolidText"),
       badgeClasses: "bg-amber-100 text-amber-800",
       boxClasses: "border-amber-200 bg-amber-50 text-amber-900",
     };
   }
 
   return {
-    title: "Noch Luft nach oben",
-    text: "Aktuell performen deine Teams mit dir noch nicht konstant über Erwartung.",
+    title: translate(locale, "stats.impactLow"),
+    text: translate(locale, "stats.impactLowText"),
     badgeClasses: "bg-rose-100 text-rose-800",
     boxClasses: "border-rose-200 bg-rose-50 text-rose-900",
   };
