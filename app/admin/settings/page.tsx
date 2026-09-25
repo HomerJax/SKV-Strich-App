@@ -7,6 +7,9 @@ import ClubSettingsCard from "@/components/admin/settings/ClubSettingsCard";
 import SeasonSettingsCard from "@/components/admin/settings/SeasonSettingsCard";
 import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
+import { getServerI18n } from "@/lib/i18n/server";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type PageProps = {
   searchParams?: Promise<{
@@ -21,6 +24,7 @@ type PageProps = {
 };
 
 type ClubSettingsRow = {
+  default_locale: string | null;
   use_strength: boolean | null;
   use_categories: boolean | null;
   awards_started_at: string | null;
@@ -28,6 +32,66 @@ type ClubSettingsRow = {
   require_rsvp_reason_on_absence: boolean | null;
   home_team_feed_enabled: boolean | null;
 };
+
+function LanguageSettingsCard({
+  value,
+  saved,
+  error,
+  locale,
+}: {
+  value: string;
+  saved: boolean;
+  error: string;
+  locale: AppLocale;
+}) {
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
+
+  return (
+    <div className="space-y-4">
+      {saved ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {t("settings.language.saved")}
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {t("settings.language.error")}
+        </div>
+      ) : null}
+
+      <form method="post" action="/api/admin/settings" className="space-y-4">
+        <input type="hidden" name="redirect_to" value="/admin/settings" />
+        <input type="hidden" name="settings_scope" value="language" />
+
+        <label className="block rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+          <div className="text-sm font-semibold text-slate-950">
+            {t("settings.language.label")}
+          </div>
+          <select
+            name="default_locale"
+            defaultValue={value}
+            className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
+          >
+            <option value="auto">{t("settings.language.auto")}</option>
+            <option value="de">{t("settings.language.de")}</option>
+            <option value="en">{t("settings.language.en")}</option>
+          </select>
+          <div className="mt-2 text-xs leading-5 text-slate-500">
+            {t("settings.language.hint")}
+          </div>
+        </label>
+
+        <button
+          type="submit"
+          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+        >
+          {t("settings.language.save")}
+        </button>
+      </form>
+    </div>
+  );
+}
 
 function RsvpSettingsCard({
   value,
@@ -281,6 +345,7 @@ function SettingsShell({
 
 export default async function AdminSettingsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
+  const { locale, t } = await getServerI18n();
   const { clubId, membership, isPowerUser } = await requireClub();
 
   const hasAdminAccess = canManageClub({
@@ -297,7 +362,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
   const [{ data: settingsData }, { data: categoriesData }] = await Promise.all([
     supabase
       .from("club_settings")
-      .select("use_strength, use_categories, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled")
+      .select("default_locale, use_strength, use_categories, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -350,6 +415,18 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
         <SettingsShell title="Club & Branding" description="Name, Logo, Farbe und Anzeigeoptionen verwalten.">
           <ClubSettingsCard saved={clubSaved} error={clubError} />
+        </SettingsShell>
+
+        <SettingsShell
+          title={t("settings.language.title")}
+          description={t("settings.language.description")}
+        >
+          <LanguageSettingsCard
+            value={settings?.default_locale ?? "auto"}
+            saved={clubSaved}
+            error={clubError}
+            locale={locale}
+          />
         </SettingsShell>
 
         <SettingsShell title="Startseite" description="Home-Inhalte pro Team ein- oder ausblenden.">
