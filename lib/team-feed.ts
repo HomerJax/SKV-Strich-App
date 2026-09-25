@@ -28,6 +28,7 @@ type ResultRow = {
 type BadgePlayer = {
   first_name: string | null;
   last_name: string | null;
+  nickname?: string | null;
 };
 
 type AchievementRow = {
@@ -41,6 +42,9 @@ type AchievementRow = {
 function playerName(player: BadgePlayer | BadgePlayer[] | null) {
   const value = Array.isArray(player) ? player[0] ?? null : player;
   if (!value) return "Ein Spieler";
+
+  const nickname = value.nickname?.trim();
+  if (nickname) return nickname;
 
   const name = [value.first_name, value.last_name]
     .map((part) => part?.trim())
@@ -132,7 +136,8 @@ export async function getTeamFeedItems(
       earned_at,
       players (
         first_name,
-        last_name
+        last_name,
+        nickname
       )
     `)
     .eq("club_id", clubId)
@@ -161,4 +166,47 @@ export async function getTeamFeedItems(
         new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
     )
     .slice(0, limit);
+}
+
+
+export async function getAchievementFeedItem(params: {
+  clubId: string;
+  playerId: number;
+  badgeKey: string;
+}): Promise<TeamFeedItem | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("player_achievements")
+    .select(`
+      id,
+      player_id,
+      badge_key,
+      earned_at,
+      players (
+        first_name,
+        last_name,
+        nickname
+      )
+    `)
+    .eq("club_id", params.clubId)
+    .eq("player_id", params.playerId)
+    .eq("badge_key", params.badgeKey)
+    .order("earned_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<AchievementRow>();
+
+  if (error || !data) return null;
+
+  const badge = getBadgeDefinition(data.badge_key);
+  if (!badge) return null;
+
+  return {
+    id: `badge:${data.id}`,
+    kind: "badge",
+    title: `${playerName(data.players)} hat „${badge.title}“ erreicht`,
+    body: badge.description,
+    href: `/badges?player=${data.player_id}`,
+    occurredAt: data.earned_at,
+  };
 }
