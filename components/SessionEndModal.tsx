@@ -3,6 +3,9 @@
 
 import { useEffect, useState } from "react";
 import { fetchImageAsFile, shareImageFile } from "@/lib/share/utils";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type SessionEndModalProps = {
   open: boolean;
@@ -20,13 +23,13 @@ type SessionEndModalProps = {
   showMvpVotingFollowup?: boolean;
 };
 
-function getHeadline(scoreA: number, scoreB: number) {
+function getHeadline(scoreA: number, scoreB: number, locale: AppLocale) {
   const diff = Math.abs(scoreA - scoreB);
 
-  if (scoreA === scoreB) return "Hart umkämpft";
-  if (diff >= 4) return "Klare Sache";
-  if (diff === 1) return "Ganz enges Ding";
-  return "Starkes Spiel";
+  if (scoreA === scoreB) return translate(locale, "sessionEnd.drawHeadline");
+  if (diff >= 4) return translate(locale, "sessionEnd.clearHeadline");
+  if (diff === 1) return translate(locale, "sessionEnd.closeHeadline");
+  return translate(locale, "sessionEnd.strongHeadline");
 }
 
 function Pill({
@@ -87,7 +90,15 @@ function appendCacheBuster(url: string) {
   return `${url}${separator}modal_ts=${Date.now()}`;
 }
 
-function HeroPhotoPreview({ src }: { src: string | null }) {
+function HeroPhotoPreview({
+  src,
+  noPhotoLabel,
+  previewAlt,
+}: {
+  src: string | null;
+  noPhotoLabel: string;
+  previewAlt: string;
+}) {
   const [failed, setFailed] = useState(false);
 
   const previewSrc = src ? appendCacheBuster(src) : null;
@@ -96,7 +107,7 @@ function HeroPhotoPreview({ src }: { src: string | null }) {
     return (
       <div className="overflow-hidden rounded-[22px] border border-white/10 bg-white/10 p-2">
         <div className="flex h-full min-h-[132px] w-full items-center justify-center rounded-[16px] bg-slate-950/30 text-center text-xs font-medium text-white/55">
-          Kein Foto
+          {noPhotoLabel}
         </div>
       </div>
     );
@@ -107,7 +118,7 @@ function HeroPhotoPreview({ src }: { src: string | null }) {
       <div className="flex h-full min-h-[132px] w-full items-center justify-center overflow-hidden rounded-[16px] bg-slate-950/30">
         <img
           src={previewSrc}
-          alt="Siegerfoto Vorschau"
+          alt={previewAlt}
           className="h-full w-full object-cover"
           onError={() => setFailed(true)}
         />
@@ -131,6 +142,7 @@ export default function SessionEndModal({
   mvpVotingEnabled = false,
   showMvpVotingFollowup = false,
 }: SessionEndModalProps) {
+  const { locale, t } = useI18n();
   const [showMvpFollowup, setShowMvpFollowup] = useState(false);
   const [sharingMvpVoting, setSharingMvpVoting] = useState(false);
   const [mvpShareMessage, setMvpShareMessage] = useState<string | null>(null);
@@ -171,7 +183,7 @@ export default function SessionEndModal({
         if (cancelled) return;
 
         setPreparedWinnerShareFile(file);
-        setWinnerShareMessage("SiegerCard ist bereit.");
+        setWinnerShareMessage(t("sessionHook.shareCardReady"));
       } catch (error) {
         if (cancelled) return;
 
@@ -179,7 +191,7 @@ export default function SessionEndModal({
         setWinnerShareMessage(
           error instanceof Error
             ? error.message
-            : "SiegerCard konnte nicht vorbereitet werden."
+            : t("sessionHook.shareCardPrepareFailed")
         );
       } finally {
         if (!cancelled) {
@@ -193,11 +205,11 @@ export default function SessionEndModal({
     return () => {
       cancelled = true;
     };
-  }, [open, scoreA, scoreB, winnerPhotoUrl]);
+  }, [open, scoreA, scoreB, winnerPhotoUrl, t]);
 
   if (!open) return null;
 
-  const headline = getHeadline(scoreA, scoreB);
+  const headline = getHeadline(scoreA, scoreB, locale);
   const shareBusy = sharingSocial || preparingResultShare || preparingWinnerShare;
   const shareReady = Boolean(preparedWinnerShareFile) || resultShareReady;
   const displayedShareMessage = winnerShareMessage ?? resultShareMessage;
@@ -212,20 +224,20 @@ export default function SessionEndModal({
       setWinnerShareMessage(null);
       const result = await shareImageFile(
         preparedWinnerShareFile,
-        "strikr SiegerCard",
-        "SiegerCard aus strikr"
+        t("sessionEnd.shareCardTitle"),
+        t("sessionEnd.shareCardText")
       );
 
       setWinnerShareMessage(
         result.mode === "cancelled"
-          ? "SiegerCard ist bereit."
-          : "SiegerCard erfolgreich geteilt."
+          ? t("sessionHook.shareCardReady")
+          : t("sessionHook.shareCardShared")
       );
     } catch (error) {
       setWinnerShareMessage(
         error instanceof Error
           ? error.message
-          : "SiegerCard konnte nicht geteilt werden."
+          : t("sessionHook.shareCardFailed")
       );
     }
   }
@@ -238,14 +250,14 @@ export default function SessionEndModal({
       const sessionUrl =
         typeof window !== "undefined" ? window.location.href : "/sessions";
 
-      const shareText = `MVP Voting ist eröffnet 🔥\n\nStimme jetzt für den Spieler des Trainings ab.\n\nVoting läuft bis morgen 10:00 Uhr.\n\n👉 ${sessionUrl}`;
+      const shareText = t("sessionEnd.mvpShareText", { url: sessionUrl });
 
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
         await navigator.share({
           title: "MVP Voting",
           text: shareText,
         });
-        setMvpShareMessage("MVP Voting erfolgreich geteilt.");
+        setMvpShareMessage(t("sessionEnd.mvpShareSuccess"));
         return;
       }
 
@@ -255,7 +267,7 @@ export default function SessionEndModal({
         typeof navigator.clipboard.writeText === "function"
       ) {
         await navigator.clipboard.writeText(shareText);
-        setMvpShareMessage("Link kopiert – in WhatsApp einfügen 👍");
+        setMvpShareMessage(t("sessionEnd.mvpCopied"));
         return;
       }
 
@@ -265,13 +277,13 @@ export default function SessionEndModal({
           "_blank",
           "noopener,noreferrer"
         );
-        setMvpShareMessage("WhatsApp wurde geöffnet.");
+        setMvpShareMessage(t("sessionEnd.whatsappOpened"));
         return;
       }
 
-      throw new Error("Teilen nicht möglich");
+      throw new Error(t("sessionEnd.shareImpossible"));
     } catch {
-      setMvpShareMessage("Teilen nicht möglich.");
+      setMvpShareMessage(t("sessionEnd.shareImpossible"));
     } finally {
       setSharingMvpVoting(false);
     }
@@ -299,7 +311,7 @@ export default function SessionEndModal({
     <div className="fixed inset-0 z-[1000]">
       <button
         type="button"
-        aria-label="Modal schließen"
+        aria-label={t("sessionEnd.closeModal")}
         className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
         onClick={showMvpFollowup ? handleCloseAll : handleCloseMain}
       />
@@ -311,17 +323,17 @@ export default function SessionEndModal({
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
-                    Ergebnis gespeichert
+                    {t("sessionEnd.resultSaved")}
                   </div>
 
                   <h2 className="mt-2 text-2xl font-extrabold leading-tight tracking-tight text-white">
-                    Training abgeschlossen
+                    {t("sessionEnd.trainingComplete")}
                   </h2>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Pill>{headline}</Pill>
                     {wasUnderdog ? <Pill tone="warning">Underdog</Pill> : null}
-                    {mvpVotingEnabled ? <Pill tone="success">MVP läuft</Pill> : null}
+                    {mvpVotingEnabled ? <Pill tone="success">{t("sessionEnd.mvpRunning")}</Pill> : null}
                   </div>
                 </div>
 
@@ -329,7 +341,7 @@ export default function SessionEndModal({
                   type="button"
                   onClick={handleCloseMain}
                   className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-lg text-white transition hover:bg-white/15"
-                  aria-label="Modal schließen"
+                  aria-label={t("sessionEnd.closeModal")}
                 >
                   ✕
                 </button>
@@ -338,7 +350,7 @@ export default function SessionEndModal({
               <div className="mt-4 grid grid-cols-[1fr_112px] gap-3">
                 <div className="rounded-[22px] border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
-                    Endstand
+                    {t("sessionEnd.finalScore")}
                   </div>
                   <div className="mt-2 text-5xl font-black tracking-tight text-white sm:text-6xl">
                     {scoreA}:{scoreB}
@@ -348,6 +360,8 @@ export default function SessionEndModal({
                 <HeroPhotoPreview
                   key={`${open ? "open" : "closed"}-${winnerPhotoUrl ?? "none"}`}
                   src={winnerPhotoUrl ?? null}
+                  noPhotoLabel={t("sessionEnd.noPhoto")}
+                  previewAlt={t("sessionEnd.photoPreview")}
                 />
               </div>
             </div>
@@ -355,10 +369,10 @@ export default function SessionEndModal({
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
               <div className="rounded-[22px] border border-slate-200 bg-slate-50 p-4">
                 <div className="text-sm font-semibold text-slate-900">
-                  Jetzt teilen
+                  {t("sessionEnd.shareNow")}
                 </div>
                 <div className="mt-1 text-sm leading-6 text-slate-600">
-                  Teile die SiegerCard direkt weiter.
+                  {t("sessionEnd.shareWinnerHint")}
                 </div>
 
                 <div className="mt-4">
@@ -368,17 +382,17 @@ export default function SessionEndModal({
                     tone="primary"
                   >
                     {sharingSocial
-                      ? "SiegerCard wird geteilt..."
+                      ? t("sessionEnd.sharingCard")
                       : shareBusy || !shareReady
-                        ? "SiegerCard wird vorbereitet..."
-                        : "SiegerCard teilen"}
+                        ? t("sessionEnd.preparingCard")
+                        : t("sessionEnd.shareCard")}
                   </Button>
                 </div>
               </div>
 
               {shareBusy && !shareReady ? (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  SiegerCard wird vorbereitet ...
+                  {t("sessionEnd.preparingNotice")}
                 </div>
               ) : null}
 
@@ -391,7 +405,7 @@ export default function SessionEndModal({
 
             <div className="shrink-0 border-t border-slate-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
               <Button tone="secondary" onClick={handleCloseMain}>
-                Schließen
+                {t("sessionEnd.close")}
               </Button>
             </div>
           </div>
@@ -401,15 +415,15 @@ export default function SessionEndModal({
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-                    Nächster Schritt
+                    {t("sessionEnd.nextStep")}
                   </div>
 
                   <h2 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950">
-                    MVP Voting läuft jetzt
+                    {t("sessionEnd.mvpNow")}
                   </h2>
 
                   <div className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-amber-900 ring-1 ring-amber-200">
-                    Offen bis morgen, 10:00 Uhr
+                    {t("sessionEnd.mvpOpenUntil")}
                   </div>
                 </div>
 
@@ -417,7 +431,7 @@ export default function SessionEndModal({
                   type="button"
                   onClick={handleCloseAll}
                   className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-white text-lg text-slate-700 transition hover:bg-amber-100"
-                  aria-label="Modal schließen"
+                  aria-label={t("sessionEnd.closeModal")}
                 >
                   ✕
                 </button>
@@ -427,8 +441,7 @@ export default function SessionEndModal({
             <div className="p-4 sm:p-5">
               <div className="rounded-[22px] border border-amber-200 bg-amber-50 p-4">
                 <div className="text-sm leading-6 text-amber-900">
-                  Teile den Hinweis jetzt mit eurer Gruppe. Abgestimmt wird
-                  direkt in dieser Session im Bereich „MVP Voting“.
+                  {t("sessionEnd.mvpGroupHint")}
                 </div>
 
                 <div className="mt-4">
@@ -437,7 +450,7 @@ export default function SessionEndModal({
                     disabled={sharingMvpVoting}
                     tone="warning"
                   >
-                    {sharingMvpVoting ? "Wird geteilt..." : "MVP Voting teilen"}
+                    {sharingMvpVoting ? t("sessionEnd.sharing") : t("sessionEnd.shareMvp")}
                   </Button>
                 </div>
               </div>
@@ -451,7 +464,7 @@ export default function SessionEndModal({
 
             <div className="border-t border-slate-200 p-3">
               <Button tone="secondary" onClick={handleCloseAll}>
-                Fertig
+                {t("sessionEnd.done")}
               </Button>
             </div>
           </div>
