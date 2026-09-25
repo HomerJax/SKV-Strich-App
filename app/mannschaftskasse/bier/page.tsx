@@ -204,24 +204,54 @@ export default async function BeerManagementPage({ searchParams }: Props) {
           <h2 className="text-lg font-black text-slate-950">Letzte Bier-Einträge</h2>
           <div className="mt-4 space-y-2">
             {rows.slice(0, 30).map((row) => (
-              <div key={row.id} className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 ${row.payment_status === "cancelled" ? "bg-slate-50 opacity-55" : "bg-slate-50"}`}>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-black text-slate-900">
-                    {names.get(row.player_id) ?? `Spieler ${row.player_id}`} · {row.quantity} 🍺
+              <div
+                key={row.id}
+                className={`rounded-xl bg-slate-50 px-3 py-2.5 ${row.payment_status === "cancelled" ? "opacity-55" : ""}`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-black text-slate-900">
+                      {names.get(row.player_id) ?? `Spieler ${row.player_id}`} · {row.quantity} 🍺
+                    </div>
+                    <div className="mt-0.5 text-[10px] font-medium text-slate-500">
+                      {row.payment_method === "cash" ? "Bar" : "PayPal"} · {formatCents(row.total_cents)} · {dateTime(row.created_at)}
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-[10px] font-medium text-slate-500">
-                    {row.payment_method === "cash" ? "Bar" : "PayPal"} · {formatCents(row.total_cents)} · {dateTime(row.created_at)}
-                  </div>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black ${
+                    row.payment_status === "paid"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : row.payment_status === "cancelled"
+                        ? "bg-slate-200 text-slate-600"
+                        : "bg-amber-100 text-amber-900"
+                  }`}>
+                    {statusLabel(row)}
+                  </span>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black ${
-                  row.payment_status === "paid"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : row.payment_status === "cancelled"
-                      ? "bg-slate-200 text-slate-600"
-                      : "bg-amber-100 text-amber-900"
-                }`}>
-                  {statusLabel(row)}
-                </span>
+
+                {row.payment_status === "paid" ? (
+                  <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-200 pt-2">
+                    <form action={updateBeerConsumptionAction} className="flex items-center gap-1">
+                      <input type="hidden" name="consumption_id" value={row.id} />
+                      <input
+                        name="quantity"
+                        type="number"
+                        min={1}
+                        max={99}
+                        defaultValue={row.quantity}
+                        className="w-16 rounded-xl border border-slate-200 bg-white px-2 py-2 text-center text-xs font-black"
+                      />
+                      <button className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700">
+                        Korrigieren
+                      </button>
+                    </form>
+                    <form action={cancelBeerConsumptionAction}>
+                      <input type="hidden" name="consumption_id" value={row.id} />
+                      <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700">
+                        Storno
+                      </button>
+                    </form>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
