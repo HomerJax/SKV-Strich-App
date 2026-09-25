@@ -156,6 +156,7 @@ type StandingsClientProps = {
   isPro?: boolean;
   clubName?: string;
   hallOfFameEnabled?: boolean;
+  currentPlayerId?: number | null;
 };
 
 type StandingsApiResponse = {
@@ -183,6 +184,7 @@ export default function StandingsClient({
   isPro = false,
   clubName = "dein Team",
   hallOfFameEnabled = false,
+  currentPlayerId = null,
 }: StandingsClientProps) {
   void clubName;
 
@@ -433,8 +435,20 @@ export default function StandingsClient({
                   </thead>
 
                   <tbody>
-                    {sortedRows.map((row) => (
-                      <tr key={row.player_id} data-rank={row.rank} className="border-t border-slate-100 transition hover:bg-slate-50/70">
+                    {sortedRows.map((row) => {
+                      const isCurrentPlayer = currentPlayerId === row.player_id;
+
+                      return (
+                      <tr
+                        key={row.player_id}
+                        data-rank={row.rank}
+                        className={[
+                          "border-t border-slate-100 transition",
+                          isCurrentPlayer
+                            ? "bg-cyan-50/75 shadow-[inset_3px_0_0_rgba(6,182,212,0.55)] hover:bg-cyan-100/70"
+                            : "hover:bg-slate-50/70",
+                        ].join(" ")}
+                      >
                         <td className="px-2 py-2 align-middle">
                           <div className="flex items-center gap-1.5">
                             <div className="shrink-0 text-sm font-black leading-none text-slate-700">{row.rank}</div>
@@ -491,7 +505,8 @@ export default function StandingsClient({
                         <td className="px-1 py-2 text-right text-slate-700">{row.sessions}</td>
                         <td className="px-1.5 py-2 text-right font-bold text-slate-900">{formatWinRate(row.wins, row.sessions)}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
