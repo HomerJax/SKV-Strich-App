@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { getBadgeDefinition } from "@/lib/badges/catalog";
+import { getLocalizedBadgeDefinition } from "@/lib/badges/catalog";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = { badgeKey: string; px: number; grayscale?: boolean; className?: string; interactive?: boolean };
 type WinConfig = { value: number; tier: string; artwork: string };
@@ -19,8 +20,12 @@ const CONFIG: Record<string, WinConfig> = {
 
 export default function CareerWinArtwork({ badgeKey, px, grayscale=false, className="", interactive=true }: Props) {
   const [open,setOpen]=useState(false);
+  const { locale } = useI18n();
   const c=CONFIG[badgeKey];
-  const definition=useMemo(()=>getBadgeDefinition(badgeKey),[badgeKey]);
+  const definition=useMemo(()=>getLocalizedBadgeDefinition(badgeKey, locale),[badgeKey,locale]);
+  const winsLabel = locale === "de" ? "Siege" : "Wins";
+  const closeLabel = locale === "de" ? "Vollbild schließen" : "Close fullscreen";
+  const viewLargeLabel = locale === "de" ? "groß anzeigen" : "view large";
 
   useEffect(()=>{
     if(!open)return;
@@ -43,7 +48,7 @@ export default function CareerWinArtwork({ badgeKey, px, grayscale=false, classN
         <div className={`pointer-events-none absolute inset-0 overflow-hidden rounded-[22%] ${grayscale ? "grayscale opacity-45" : ""}`}>
           <img
             src={c.artwork}
-            alt={`${c.value} Siege · ${c.tier}`}
+            alt={`${c.value} ${winsLabel} · ${c.tier}`}
             className="absolute left-1/2 top-1/2 block max-w-none"
             style={{ width: "166%", height: "auto", transform: "translate(-50%, -43%)" }}
           />
@@ -54,15 +59,15 @@ export default function CareerWinArtwork({ badgeKey, px, grayscale=false, classN
 
   const modal = open ? (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-0 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label={definition?.title??badgeKey} onMouseDown={e=>{if(e.currentTarget===e.target)setOpen(false)}}>
-      <button type="button" onClick={()=>setOpen(false)} className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur" aria-label="Vollbild schließen"><X className="h-5 w-5"/></button>
-      <img src={c.artwork} alt={`${c.value} Siege · ${c.tier}`} className="max-h-[100dvh] max-w-full object-contain"/>
+      <button type="button" onClick={()=>setOpen(false)} className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur" aria-label={closeLabel}><X className="h-5 w-5"/></button>
+      <img src={c.artwork} alt={`${c.value} ${winsLabel} · ${c.tier}`} className="max-h-[100dvh] max-w-full object-contain"/>
     </div>
   ) : null;
 
   return <>
-    <button type="button" onClick={()=>!grayscale&&setOpen(true)} className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border-0 bg-transparent p-0 ${grayscale?"cursor-default":"cursor-zoom-in"} ${className}`} style={{width:px,height:px}} aria-label={`${definition?.title??badgeKey} groß anzeigen`}>
+    <button type="button" onClick={()=>!grayscale&&setOpen(true)} className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border-0 bg-transparent p-0 ${grayscale?"cursor-default":"cursor-zoom-in"} ${className}`} style={{width:px,height:px}} aria-label={`${definition?.title??badgeKey} ${viewLargeLabel}`}>
       <div className={`pointer-events-none absolute inset-0 overflow-hidden rounded-[22%] ${grayscale?"grayscale opacity-45":""}`}>
-        <img src={c.artwork} alt={`${c.value} Siege · ${c.tier}`} className="absolute left-1/2 top-1/2 block max-w-none" style={{width:"166%",height:"auto",transform:"translate(-50%, -43%)"}} />
+        <img src={c.artwork} alt={`${c.value} ${winsLabel} · ${c.tier}`} className="absolute left-1/2 top-1/2 block max-w-none" style={{width:"166%",height:"auto",transform:"translate(-50%, -43%)"}} />
       </div>
     </button>
     {modal && typeof document !== "undefined" ? createPortal(modal, document.body) : null}
