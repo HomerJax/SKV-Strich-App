@@ -16,7 +16,11 @@ import { requireClub } from "@/lib/auth/guards";
 import {
   BADGE_DEFINITIONS,
   getBadgeDefinition,
+  getLocalizedBadgeDefinition,
 } from "@/lib/badges/catalog";
+import { getServerI18n } from "@/lib/i18n/server";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 import { syncClubAchievements } from "@/lib/badges/engine";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { getPlayerDisplayName } from "@/lib/player-display";
@@ -137,9 +141,10 @@ function emptyCareerStats(): CareerStats {
   };
 }
 
-function formatPercent(value: number) {
-  if (!Number.isFinite(value)) return "0,0%";
-  return `${value.toFixed(1).replace(".", ",")}%`;
+function formatPercent(value: number, locale: AppLocale) {
+  if (!Number.isFinite(value)) return locale === "de" ? "0,0%" : "0.0%";
+  const formatted = value.toFixed(1);
+  return `${locale === "de" ? formatted.replace(".", ",") : formatted}%`;
 }
 
 function isTrainingSession(session: SessionRow) {
@@ -273,12 +278,16 @@ function TrophyCard({
   achievementRows,
   selected,
   canSelect,
+  locale,
 }: {
   badge: BadgeDefinition;
   achievementRows: AchievementRow[];
   selected: boolean;
   canSelect: boolean;
+  locale: AppLocale;
 }) {
+  const t = (key: Parameters<typeof translate>[1], params?: Record<string, string | number | null | undefined>) =>
+    translate(locale, key, params);
   const repeatCount = achievementRows.length;
 
   return (
@@ -302,7 +311,7 @@ function TrophyCard({
             {selected ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-300 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-950">
                 <Star className="h-3 w-3 fill-current" />
-                Mein Titel
+                {t("badges.myTitle")}
               </span>
             ) : null}
           </div>
@@ -312,8 +321,8 @@ function TrophyCard({
           </p>
 
           <div className="mt-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
-            {badge.scope === "career" ? "Karriere" : "Saison / Serie"}
-            {repeatCount > 1 ? ` · ${repeatCount}× erreicht` : ""}
+            {badge.scope === "career" ? t("badges.career") : t("badges.seasonSeries")}
+            {repeatCount > 1 ? ` · ${t("badges.reachedCount", { count: repeatCount })}` : ""}
           </div>
         </div>
       </div>
@@ -326,7 +335,7 @@ function TrophyCard({
             className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.07] px-3 py-1.5 text-[11px] font-bold text-white/75 transition hover:bg-white hover:text-slate-950"
           >
             <Star className="h-3.5 w-3.5" />
-            Als Titel wählen
+            {t("badges.chooseTitle")}
           </button>
         </form>
       ) : null}
@@ -334,8 +343,9 @@ function TrophyCard({
   );
 }
 
-function LockedBadgeCard({ badge }: { badge: BadgeDefinition }) {
+function LockedBadgeCard({ badge, locale }: { badge: BadgeDefinition; locale: AppLocale }) {
   const secret = SECRET_BADGES.has(badge.key);
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
 
   return (
     <article className="rounded-[20px] border border-slate-200 bg-slate-50 p-3.5">
@@ -349,10 +359,10 @@ function LockedBadgeCard({ badge }: { badge: BadgeDefinition }) {
 
         <div className="min-w-0">
           <h3 className="text-sm font-extrabold text-slate-700">
-            {secret ? "Geheimes Achievement" : badge.title}
+            {secret ? t("badges.secret") : badge.title}
           </h3>
           <p className="mt-0.5 text-xs leading-5 text-slate-500">
-            {secret ? "Wird erst nach der Freischaltung verraten." : badge.description}
+            {secret ? t("badges.secretHint") : badge.description}
           </p>
         </div>
       </div>
@@ -386,13 +396,16 @@ function PlayerBadgeCollection({
   badges,
   achievementMap,
   sharedKeys,
+  locale,
 }: {
   title: string;
   playerId: number;
   badges: readonly BadgeDefinition[];
   achievementMap: Map<string, AchievementRow[]>;
   sharedKeys: Set<string>;
+  locale: AppLocale;
 }) {
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   return (
     <section className="rounded-[24px] border border-slate-200 bg-white p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
@@ -429,7 +442,7 @@ function PlayerBadgeCollection({
                     <div className="text-sm font-extrabold text-slate-900">{badge.title}</div>
                     {shared ? (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-emerald-700">
-                        gemeinsam
+                        {t("badges.shared")}
                       </span>
                     ) : null}
                     {count > 1 ? (
@@ -443,7 +456,7 @@ function PlayerBadgeCollection({
           })}
         </div>
       ) : (
-        <p className="mt-4 text-sm text-slate-500">Noch keine Badges freigeschaltet.</p>
+        <p className="mt-4 text-sm text-slate-500">{t("badges.noneUnlocked")}</p>
       )}
     </section>
   );
@@ -511,6 +524,7 @@ async function clearFeaturedBadgeAction() {
 }
 
 export default async function BadgesPageV3({ searchParams }: PageProps) {
+  const { locale, t } = await getServerI18n();
   const params = (await searchParams) ?? {};
   const { clubId, player, supportViewPlayer, isSupportView } = await requireClub();
   const viewPlayer = player ?? supportViewPlayer;
@@ -523,8 +537,8 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
           <PageHero
             eyebrow="Badges"
             title="Hall of Fame"
-            description="Dieses Feature ist in deinem Club aktuell noch nicht aktiviert."
-            backLabel="Zurück"
+            description={t("badges.featureDisabled")}
+            backLabel={t("badges.back")}
             backHref="/stats"
             compact
           />
@@ -573,9 +587,9 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
           <PageHero
             eyebrow="Badges"
             title="Hall of Fame"
-            description="Dein Account ist noch keinem Spielerprofil zugeordnet."
+            description={t("badges.noProfile")}
             primaryColorKey={clubData?.primary_color}
-            backLabel="Zurück zu Stats"
+            backLabel={t("badges.backStats")}
             backHref="/stats"
             compact
           />
@@ -599,11 +613,15 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
 
   const displayAchievements = achievementsByPlayer.get(displayPlayer.id) ?? [];
   const displayAchievementMap = getAchievementMap(displayAchievements);
-  const earnedBadges = getEarnedDefinitions(displayAchievements);
-  const openBadges = getOpenDefinitions(displayAchievements);
+  const earnedBadges = getEarnedDefinitions(displayAchievements).map(
+    (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
+  );
+  const openBadges = getOpenDefinitions(displayAchievements).map(
+    (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
+  );
   const displayName = getPlayerDisplayName(displayPlayer, { useNicknames });
   const selectedBadge = displayPlayer.selected_badge_key
-    ? getBadgeDefinition(displayPlayer.selected_badge_key)
+    ? getLocalizedBadgeDefinition(displayPlayer.selected_badge_key, locale)
     : null;
 
   const explicitCompareId = parsePlayerId(params.compare);
@@ -618,13 +636,17 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
     : null;
 
   const ownAchievements = achievementsByPlayer.get(ownPlayer.id) ?? [];
-  const ownEarnedBadges = getEarnedDefinitions(ownAchievements);
+  const ownEarnedBadges = getEarnedDefinitions(ownAchievements).map(
+    (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
+  );
   const ownAchievementMap = getAchievementMap(ownAchievements);
   const compareAchievements = comparePlayer
     ? achievementsByPlayer.get(comparePlayer.id) ?? []
     : [];
   const compareEarnedBadges = comparePlayer
-    ? getEarnedDefinitions(compareAchievements)
+    ? getEarnedDefinitions(compareAchievements).map(
+        (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
+      )
     : [];
   const compareAchievementMap = getAchievementMap(compareAchievements);
 
@@ -647,7 +669,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
     .sort((a, b) =>
       getPlayerDisplayName(a, { useNicknames }).localeCompare(
         getPlayerDisplayName(b, { useNicknames }),
-        "de",
+        locale === "de" ? "de" : "en",
       ),
     );
 
@@ -656,14 +678,14 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
         <PageHero
           eyebrow="Badges"
-          title={isOwnHall ? "Meine Hall of Fame" : `${displayName} · Hall of Fame`}
+          title={isOwnHall ? t("badges.myHall") : `${displayName} · Hall of Fame`}
           description={
             isOwnHall
-              ? "Deine Erfolge als persönlicher Trophäenschrank."
-              : `Trophäenschrank von ${displayName}.`
+              ? t("badges.myDescription")
+              : t("badges.playerDescription", { name: displayName })
           }
           primaryColorKey={clubData?.primary_color}
-          backLabel={isOwnHall ? "Zurück zu Stats" : "Meine Hall of Fame"}
+          backLabel={isOwnHall ? t("badges.backStats") : t("badges.myHall")}
           backHref={isOwnHall ? "/stats" : "/badges"}
           topRightSlot={
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold text-white/90">
@@ -684,10 +706,14 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                 {displayName}
               </div>
               <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] sm:text-3xl">
-                {isOwnHall ? "Mein Trophäenschrank" : "Trophäenschrank"}
+                {isOwnHall ? t("badges.myTrophyCase") : t("badges.trophyCase")}
               </h2>
               <p className="mt-2 text-sm font-medium text-white/55">
-                {earnedBadges.length} freigeschaltet · {countByScope(earnedBadges, "career")} Karriere · {countByScope(earnedBadges, "season")} Saison/Serie
+                {t("badges.unlockedSummary", {
+                  count: earnedBadges.length,
+                  career: countByScope(earnedBadges, "career"),
+                  season: countByScope(earnedBadges, "season"),
+                })}
               </p>
             </div>
 
@@ -701,15 +727,15 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
               )}
               <div className="min-w-0 flex-1">
                 <div className="text-[9px] font-black uppercase tracking-[0.15em] text-white/35">
-                  Aktueller Titel
+                  {t("badges.currentTitle")}
                 </div>
                 <div className="mt-0.5 truncate text-sm font-extrabold">
-                  {selectedBadge?.title ?? "Noch keiner gewählt"}
+                  {selectedBadge?.title ?? t("badges.noTitle")}
                 </div>
                 {isOwnHall && selectedBadge && !isSupportView ? (
                   <form action={clearFeaturedBadgeAction} className="mt-1">
                     <button type="submit" className="text-[10px] font-bold text-white/40 underline underline-offset-4 hover:text-white">
-                      Entfernen
+                      {t("badges.remove")}
                     </button>
                   </form>
                 ) : null}
@@ -726,13 +752,14 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                   achievementRows={displayAchievementMap.get(badge.key) ?? []}
                   selected={displayPlayer.selected_badge_key === badge.key}
                   canSelect={isOwnHall && !isSupportView}
+                  locale={locale}
                 />
               ))}
             </div>
           ) : (
             <div className="relative mt-6 rounded-[24px] border border-dashed border-white/15 bg-white/[0.04] p-6 text-center">
               <Sparkles className="mx-auto h-7 w-7 text-white/40" />
-              <div className="mt-3 text-sm font-extrabold">Der Schrank ist noch leer.</div>
+              <div className="mt-3 text-sm font-extrabold">{t("badges.emptyCase")}</div>
             </div>
           )}
         </section>
@@ -741,29 +768,29 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-                Nächste Ziele
+                {t("badges.nextGoals")}
               </div>
               <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
-                Was geht noch?
+                {t("badges.whatNext")}
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Noch nicht erreichte Badges bleiben ausgegraut. Geheime Badges verraten sich erst beim Freischalten.
+                {t("badges.lockedHint")}
               </p>
             </div>
             <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
-              {openBadges.length} offen
+              {t("badges.open", { count: openBadges.length })}
             </div>
           </div>
 
           {openBadges.length > 0 ? (
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {openBadges.map((badge) => (
-                <LockedBadgeCard key={badge.key} badge={badge} />
+                <LockedBadgeCard key={badge.key} badge={badge} locale={locale} />
               ))}
             </div>
           ) : (
             <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
-              Alles eingesammelt. 🏆
+              {t("badges.allCollected")}
             </div>
           )}
         </section>
@@ -777,13 +804,13 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
               <div>
                 <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
                   <Scale className="h-4 w-4" />
-                  Vergleich
+                  {t("badges.compare")}
                 </div>
                 <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
-                  Mit einem Spieler vergleichen
+                  {t("badges.compareTitle")}
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Stats oben, darunter alle Badges beider Spieler.
+                  {t("badges.compareHint")}
                 </p>
               </div>
               <ChevronDown className="h-5 w-5 text-slate-400 transition group-open:rotate-180" />
@@ -794,13 +821,13 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
             <form method="get" action="/badges" className="flex flex-col gap-3 sm:flex-row sm:items-end">
               {isOwnHall ? null : <input type="hidden" name="player" value={displayPlayer.id} />}
               <label className="min-w-0 flex-1">
-                <span className="mb-2 block text-xs font-bold text-slate-600">Spieler auswählen</span>
+                <span className="mb-2 block text-xs font-bold text-slate-600">{t("badges.selectPlayer")}</span>
                 <select
                   name="compare"
                   defaultValue={comparePlayer?.id ?? ""}
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-slate-400"
                 >
-                  <option value="">Bitte auswählen …</option>
+                  <option value="">{t("badges.pleaseSelect")}</option>
                   {comparisonOptions.map((candidate) => (
                     <option key={candidate.id} value={candidate.id}>
                       {getPlayerDisplayName(candidate, { useNicknames })}
@@ -812,7 +839,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                 type="submit"
                 className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
               >
-                Vergleichen
+                {t("badges.compareButton")}
               </button>
             </form>
 
@@ -821,7 +848,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                 <section className="overflow-hidden rounded-[28px] bg-slate-950 p-4 text-white shadow-[0_22px_52px_rgba(15,23,42,0.2)] sm:p-5">
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-1">
                     <div className="min-w-0">
-                      <div className="text-[9px] font-black uppercase tracking-[0.15em] text-white/35">Du</div>
+                      <div className="text-[9px] font-black uppercase tracking-[0.15em] text-white/35">{t("badges.you")}</div>
                       <Link
                         href={`/badges?player=${ownPlayer.id}`}
                         className="mt-1 block text-xs font-black leading-tight text-white underline decoration-white/15 underline-offset-4 hover:decoration-white/60 sm:text-sm"
@@ -835,7 +862,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                     </div>
 
                     <div className="min-w-0 text-right">
-                      <div className="text-[9px] font-black uppercase tracking-[0.15em] text-white/35">Vergleich</div>
+                      <div className="text-[9px] font-black uppercase tracking-[0.15em] text-white/35">{t("badges.compare")}</div>
                       <Link
                         href={`/badges?player=${comparePlayer.id}`}
                         className="mt-1 block text-xs font-black leading-tight text-white underline decoration-white/15 underline-offset-4 hover:decoration-white/60 sm:text-sm"
@@ -847,22 +874,22 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
 
                   <div className="mt-4 divide-y divide-white/10 overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.045]">
                     <ComparisonMetricRow
-                      label="Teilnahmen"
+                      label={t("badges.appearances")}
                       leftValue={String(ownStats.appearances)}
                       rightValue={String(compareStats.appearances)}
                     />
                     <ComparisonMetricRow
-                      label="Siege"
+                      label={t("badges.wins")}
                       leftValue={String(ownStats.wins)}
                       rightValue={String(compareStats.wins)}
                     />
                     <ComparisonMetricRow
-                      label="Siegquote"
-                      leftValue={formatPercent(ownStats.winRate)}
-                      rightValue={formatPercent(compareStats.winRate)}
+                      label={t("badges.winRate")}
+                      leftValue={formatPercent(ownStats.winRate, locale)}
+                      rightValue={formatPercent(compareStats.winRate, locale)}
                     />
                     <ComparisonMetricRow
-                      label="Badges"
+                      label={t("badges.badges")}
                       leftValue={String(ownEarnedBadges.length)}
                       rightValue={String(compareEarnedBadges.length)}
                     />
@@ -876,6 +903,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                     badges={ownEarnedBadges}
                     achievementMap={ownAchievementMap}
                     sharedKeys={sharedKeys}
+                    locale={locale}
                   />
                   <PlayerBadgeCollection
                     title={compareName}
@@ -883,6 +911,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                     badges={compareEarnedBadges}
                     achievementMap={compareAchievementMap}
                     sharedKeys={sharedKeys}
+                    locale={locale}
                   />
                 </div>
               </div>
