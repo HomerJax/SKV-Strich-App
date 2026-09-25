@@ -76,6 +76,15 @@ type MvpVoteRow = {
   voted_player_id: number;
 };
 
+function getTodayInBerlin() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 async function fetchSessions(
   clubId: string,
   seasonIdOrAll: string,
@@ -85,6 +94,8 @@ async function fetchSessions(
     .from("sessions")
     .select("id, date, season_id, mvp_voting_finalized_at")
     .eq("club_id", clubId)
+    .eq("type", "training")
+    .lte("date", getTodayInBerlin())
     .order("date", { ascending: true });
 
   if (seasonIdOrAll !== "all") {
