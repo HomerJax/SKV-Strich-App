@@ -1,5 +1,9 @@
 "use client";
 
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
+
 type TrendPoint = {
   id: string;
   label: string;
@@ -41,18 +45,23 @@ function normalizedValues(points: TrendPoint[]) {
   return points.map((point) => normalizePointValue(point.value));
 }
 
-function resultLetter(value: number) {
+function resultLetter(value: number, locale: AppLocale) {
   const normalized = normalizePointValue(value);
+  if (locale === "en") {
+    if (normalized >= 3) return "W";
+    if (normalized >= 1) return "D";
+    return "L";
+  }
   if (normalized >= 3) return "S";
   if (normalized >= 1) return "U";
   return "N";
 }
 
-function resultWord(value: number) {
+function resultWord(value: number, locale: AppLocale) {
   const normalized = normalizePointValue(value);
-  if (normalized >= 3) return "Sieg";
-  if (normalized >= 1) return "Unentschieden";
-  return "Niederlage";
+  if (normalized >= 3) return translate(locale, "stats.win");
+  if (normalized >= 1) return translate(locale, "stats.draw");
+  return translate(locale, "stats.loss");
 }
 
 function pointClasses(value: number, isLast: boolean) {
@@ -210,87 +219,82 @@ function getTrendMood(points: TrendPoint[]): TrendMood {
   return "flat";
 }
 
-function getTrendCopy(mood: TrendMood, points: TrendPoint[]) {
+function getTrendCopy(
+  mood: TrendMood,
+  points: TrendPoint[],
+  locale: AppLocale,
+) {
   const stats = summary(points);
 
   switch (mood) {
     case "heater":
       return {
-        title: "Heißer Lauf",
-        subtitle: `Starke Serie: ${stats.wins} Siege insgesamt und zuletzt richtig Druck auf dem Kessel.`,
-        badge: "On fire",
+        title: translate(locale, "stats.trendHeaterTitle"),
+        subtitle: translate(locale, "stats.trendHeaterText", { wins: stats.wins }),
+        badge: translate(locale, "stats.trendHeaterBadge"),
         icon: "🔥",
       };
     case "bounce_back":
       return {
-        title: "Kurz gewackelt, stark zurückgekommen",
-        subtitle:
-          "Zwischendurch ein Dämpfer, danach aber wieder klar gefangen. Gute Reaktion statt langer Hänger.",
-        badge: "Bounce Back",
+        title: translate(locale, "stats.trendBounceTitle"),
+        subtitle: translate(locale, "stats.trendBounceText"),
+        badge: translate(locale, "stats.trendBounceBadge"),
         icon: "↺",
       };
     case "steady_up":
       return {
-        title: "Stabiler Aufwärtstrend",
-        subtitle:
-          "Die Kurve zeigt nach oben. Nicht komplett wild, sondern sauber Schritt für Schritt besser.",
-        badge: "Steigend",
+        title: translate(locale, "stats.trendUpTitle"),
+        subtitle: translate(locale, "stats.trendUpText"),
+        badge: translate(locale, "stats.trendUpBadge"),
         icon: "↗",
       };
     case "collapse":
       return {
-        title: "Gerade ziemlich zäh",
-        subtitle:
-          "Im Moment läuft es eher schwer. Da steckt Qualität drin, aber die Punktekurve ist zuletzt klar eingebrochen.",
-        badge: "Tiefphase",
+        title: translate(locale, "stats.trendCollapseTitle"),
+        subtitle: translate(locale, "stats.trendCollapseText"),
+        badge: translate(locale, "stats.trendCollapseBadge"),
         icon: "↘",
       };
     case "slump":
       return {
-        title: "Form rutscht ab",
-        subtitle:
-          "Aktuell eher Abwärtstrend. Weniger Punch, weniger Stabilität, mehr Arbeit gegen den Rhythmus.",
-        badge: "Abwärts",
+        title: translate(locale, "stats.trendSlumpTitle"),
+        subtitle: translate(locale, "stats.trendSlumpText"),
+        badge: translate(locale, "stats.trendSlumpBadge"),
         icon: "↓",
       };
     case "volatile_positive":
       return {
-        title: "Gefährlich gut mit Ausreißern",
-        subtitle:
-          "Nicht komplett sauber, aber insgesamt stark. Zwischen Top-Momenten liegt noch etwas Chaos.",
-        badge: "Wild, aber gut",
+        title: translate(locale, "stats.trendVolatilePositiveTitle"),
+        subtitle: translate(locale, "stats.trendVolatilePositiveText"),
+        badge: translate(locale, "stats.trendVolatilePositiveBadge"),
         icon: "⚡",
       };
     case "volatile_negative":
       return {
-        title: "Zu unruhig für Konstanz",
-        subtitle:
-          "Es blitzt mal auf, kippt aber zu oft wieder weg. Mehr Stabilität würde hier sofort helfen.",
-        badge: "Zu wechselhaft",
+        title: translate(locale, "stats.trendVolatileNegativeTitle"),
+        subtitle: translate(locale, "stats.trendVolatileNegativeText"),
+        badge: translate(locale, "stats.trendVolatileNegativeBadge"),
         icon: "↕",
       };
     case "streaky":
       return {
-        title: "Serienspieler-Modus",
-        subtitle:
-          "Nicht linear, eher in Läufen. Gute Phasen sind da – die Kunst ist, die Dellen kürzer zu halten.",
-        badge: "In Wellen",
+        title: translate(locale, "stats.trendStreakyTitle"),
+        subtitle: translate(locale, "stats.trendStreakyText"),
+        badge: translate(locale, "stats.trendStreakyBadge"),
         icon: "〰",
       };
     case "balanced":
       return {
-        title: "Ordentlich, aber noch ohne klaren Ausschlag",
-        subtitle:
-          "Solide Mischung aus Licht und Arbeit. Noch kein harter Trend, aber auch kein echter Absturz.",
-        badge: "Ausgeglichen",
+        title: translate(locale, "stats.trendBalancedTitle"),
+        subtitle: translate(locale, "stats.trendBalancedText"),
+        badge: translate(locale, "stats.trendBalancedBadge"),
         icon: "→",
       };
     default:
       return {
-        title: "Noch kein klarer Trend",
-        subtitle:
-          "Es sind Ansätze zu sehen, aber noch kein Muster, das sich wirklich festsetzt.",
-        badge: "Neutral",
+        title: translate(locale, "stats.trendFlatTitle"),
+        subtitle: translate(locale, "stats.trendFlatText"),
+        badge: translate(locale, "stats.trendFlatBadge"),
         icon: "→",
       };
   }
@@ -338,6 +342,7 @@ export default function PlayerTrendCard({
   points,
   className = "",
 }: PlayerTrendCardProps) {
+  const { locale, t } = useI18n();
   if (!enabled) return null;
 
   const allPoints = points;
@@ -347,16 +352,16 @@ export default function PlayerTrendCard({
       <div className={`space-y-4 ${className}`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-            → Neutral
+            → {t("stats.neutral")}
           </span>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
           <div className="text-base font-semibold text-slate-950">
-            Noch kein klarer Trend
+            {t("stats.noTrendTitle")}
           </div>
           <div className="mt-1 text-sm text-slate-600">
-            Sobald Ergebnisse vorhanden sind, erscheint hier dein Verlauf.
+            {t("stats.noTrendText")}
           </div>
         </div>
       </div>
@@ -364,7 +369,7 @@ export default function PlayerTrendCard({
   }
 
   const mood = getTrendMood(allPoints);
-  const trendCopy = getTrendCopy(mood, allPoints);
+  const trendCopy = getTrendCopy(mood, allPoints, locale);
   const stats = summary(allPoints);
 
   const chartWidth = Math.max(176, allPoints.length * 34);
@@ -382,16 +387,16 @@ export default function PlayerTrendCard({
     <div className={`space-y-4 ${className}`}>
       <div className="flex flex-wrap gap-2">
         <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-          {stats.total} Spiele
+          {t("stats.games", { count: stats.total })}
         </span>
         <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-          {stats.wins} Siege
+          {t("stats.winsCount", { count: stats.wins })}
         </span>
         <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-          {stats.draws} Unentschieden
+          {t("stats.drawsCount", { count: stats.draws })}
         </span>
         <span className="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
-          {stats.losses} Niederlagen
+          {t("stats.lossesCount", { count: stats.losses })}
         </span>
       </div>
 
@@ -469,9 +474,9 @@ export default function PlayerTrendCard({
                       point.value,
                       isLast
                     )}`}
-                    title={`${point.label}: ${resultWord(point.value)}`}
+                    title={`${point.label}: ${resultWord(point.value, locale)}`}
                   >
-                    {resultLetter(point.value)}
+                    {resultLetter(point.value, locale)}
                   </div>
                 );
               })}
