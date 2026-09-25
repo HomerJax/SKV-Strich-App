@@ -261,7 +261,11 @@ export default async function AppHeader() {
       >
         <div className="relative mx-auto flex h-14 w-full max-w-6xl min-w-0 items-center justify-between gap-1.5 overflow-visible px-2.5 sm:h-[72px] sm:gap-3 sm:px-6">
           <div className="min-w-0 flex items-center gap-2 sm:gap-3">
-            <Link href={ctx.user ? "/home" : "/"} className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+            <Link
+              href={ctx.user ? "/about" : "/"}
+              title={ctx.user ? "Über strikr" : "strikr"}
+              className="flex min-w-0 items-center gap-1.5 sm:gap-3"
+            >
               <Image
                 src="/icon-dark.png"
                 alt="strikr"
