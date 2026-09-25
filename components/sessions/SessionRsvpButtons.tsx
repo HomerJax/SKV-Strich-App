@@ -15,12 +15,14 @@ export default function SessionRsvpButtons({
   deadlineEpochMs = null,
   onStatusChange,
   requireAbsenceReason = false,
+  readOnly = false,
 }: {
   sessionId: number;
   initialStatus: PresenceStatus;
   deadlineEpochMs?: number | null;
   onStatusChange?: (status: PresenceStatus) => void;
   requireAbsenceReason?: boolean;
+  readOnly?: boolean;
 }) {
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [busy, setBusy] = useState<PresenceStatus | null>(null);
@@ -37,6 +39,11 @@ export default function SessionRsvpButtons({
   }, []);
 
   useEffect(() => {
+    if (readOnly) {
+      setNotNominated(false);
+      return;
+    }
+
     let active = true;
     fetch(`/api/sessions/${sessionId}/event-roster`, { credentials: "same-origin" })
       .then(async (response) => {
@@ -49,12 +56,12 @@ export default function SessionRsvpButtons({
       })
       .catch(() => null);
     return () => { active = false; };
-  }, [sessionId]);
+  }, [sessionId, readOnly]);
 
   const deadlinePassed = deadlineEpochMs !== null && now >= deadlineEpochMs;
 
   async function setPresence(nextStatus: "in" | "out", absenceReason = "") {
-    if (busy || notNominated) return;
+    if (readOnly || busy || notNominated) return;
     const target: PresenceStatus = status === nextStatus ? "open" : nextStatus;
 
     if (target === "out" && requireAbsenceReason) {
@@ -116,15 +123,19 @@ export default function SessionRsvpButtons({
   return (
     <div className="mt-3" onClick={(event) => event.preventDefault()}>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" disabled={busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void setPresence("in"); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "in" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"].join(" ")}>
+        <button type="button" disabled={readOnly || busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void setPresence("in"); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "in" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"].join(" ")}>
           {busy === "in" ? "Speichert…" : status === "in" ? "✓ Zugesagt" : "Zusagen"}
         </button>
-        <button type="button" disabled={busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (status === "out") void setPresence("out"); else setReasonOpen(true); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "out" ? "border-rose-600 bg-rose-600 text-white" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"].join(" ")}>
+        <button type="button" disabled={readOnly || busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (status === "out") void setPresence("out"); else setReasonOpen(true); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "out" ? "border-rose-600 bg-rose-600 text-white" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"].join(" ")}>
           {busy === "out" ? "Speichert…" : deadlinePassed && status === "in" ? "Absage gesperrt" : status === "out" ? "✓ Abgesagt" : "Absagen"}
         </button>
       </div>
 
-      {deadlinePassed && status === "in" ? (
+      {readOnly ? (
+        <div className="mt-2 text-[11px] font-semibold text-violet-700">
+          Supportansicht · Zu-/Absage nur ansehen
+        </div>
+      ) : deadlinePassed && status === "in" ? (
         <div className="mt-2 text-[11px] font-semibold text-slate-500">
           Anmeldeschluss vorbei · deine Zusage ist verbindlich.
         </div>
