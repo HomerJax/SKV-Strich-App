@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type SeasonRow = {
   id: number;
@@ -21,9 +22,10 @@ function isDateWithinSeason(dateIso: string, season: SeasonRow) {
 }
 
 export async function GET() {
-  const { clubId, player } = await requireClub();
+  const { clubId, player, supportViewPlayer, isSupportView } = await requireClub();
+  const viewPlayer = player ?? supportViewPlayer;
 
-  if (!player) {
+  if (!viewPlayer) {
     return NextResponse.json({
       attendanceCount: 0,
       winRate: null,
@@ -32,7 +34,7 @@ export async function GET() {
     });
   }
 
-  const supabase = await createClient();
+  const supabase = isSupportView ? createAdminClient() : await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
   const [{ data: seasonsData }, { data: clubPlayersData }] = await Promise.all([
@@ -104,7 +106,7 @@ export async function GET() {
       .from("player_achievements")
       .select("badge_key")
       .eq("club_id", clubId)
-      .eq("player_id", player.id),
+      .eq("player_id", viewPlayer.id),
   ]);
 
   const results = (resultsData ?? []) as ResultRow[];
@@ -122,7 +124,7 @@ export async function GET() {
     ? await supabase
         .from("team_players")
         .select("team_id")
-        .eq("player_id", player.id)
+        .eq("player_id", viewPlayer.id)
         .in("team_id", teamIds)
     : { data: [] as { team_id: number }[] };
 
@@ -160,7 +162,7 @@ export async function GET() {
     attendanceCounts.set(playerId, (attendanceCounts.get(playerId) ?? 0) + 1);
   }
 
-  const attendanceCount = attendanceCounts.get(player.id) ?? 0;
+  const attendanceCount = attendanceCounts.get(viewPlayer.id) ?? 0;
   const attendanceRank =
     1 +
     clubPlayerIds.filter(
