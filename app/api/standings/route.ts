@@ -632,8 +632,37 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const previousSessions =
-      sessions.length >= 2 ? sessions.slice(0, sessions.length - 1) : null;
+    const sessionIds = sessions.map((session) => session.id);
+    const { data: movementResultData, error: movementResultError } =
+      sessionIds.length > 0
+        ? await supabase
+            .from("results")
+            .select("session_id")
+            .eq("club_id", clubId)
+            .in("session_id", sessionIds)
+        : { data: [] as Array<{ session_id: number }>, error: null };
+
+    if (movementResultError) {
+      return NextResponse.json(
+        { error: movementResultError.message },
+        { status: 500 },
+      );
+    }
+
+    const completedSessionIds = new Set(
+      ((movementResultData ?? []) as Array<{ session_id: number }>).map(
+        (row) => Number(row.session_id),
+      ),
+    );
+
+    const latestCompletedSession =
+      [...sessions]
+        .reverse()
+        .find((session) => completedSessionIds.has(session.id)) ?? null;
+
+    const previousSessions = latestCompletedSession
+      ? sessions.filter((session) => session.id !== latestCompletedSession.id)
+      : null;
 
     const [currentStandingRows, previousStandingRows] = await Promise.all([
       computeStandings(clubId, sessions, supabase, awardsStartedAt),
