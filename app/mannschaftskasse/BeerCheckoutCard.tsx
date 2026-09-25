@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import { Banknote, CreditCard } from "lucide-react";
 import { recordBeerAction } from "./actions";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
-function formatEuro(cents: number) {
-  return new Intl.NumberFormat("de-DE", {
+function formatEuro(cents: number, locale: "de" | "en") {
+  return new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", {
     style: "currency",
     currency: "EUR",
   }).format(cents / 100);
@@ -43,6 +44,7 @@ export default function BeerCheckoutCard({
   paypalPool: boolean;
   paypalUrl: string;
 }) {
+  const { locale, t } = useI18n();
   const [quantity, setQuantity] = useState(1);
   const [poolOpening, setPoolOpening] = useState(false);
   const [poolConfirmOpen, setPoolConfirmOpen] = useState(false);
@@ -69,10 +71,14 @@ export default function BeerCheckoutCard({
     <section id="bierkasse" className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">🍺 Bierkasse+</div>
-          <h2 className="mt-1 text-xl font-black text-slate-950">Bier eintragen</h2>
+          <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">🍺 {t("beer.title")}</div>
+          <h2 className="mt-1 text-xl font-black text-slate-950">{t("cashbox.addBeer")}</h2>
           <p className="mt-1 text-xs font-medium text-slate-600">
-            {formatEuro(priceCents)} pro Bier · dein Stand: {myTotal} Bier{badge ? ` · ${badge}` : ""}
+            {t("cashbox.perBeerStand", {
+              price: formatEuro(priceCents, locale),
+              count: myTotal,
+              badge: badge ? ` · ${badge}` : "",
+            })}
           </p>
         </div>
         <span className="rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black text-white">PREMIUM</span>
@@ -84,13 +90,13 @@ export default function BeerCheckoutCard({
 
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-white p-3">
           <div>
-            <div className="text-xs font-bold text-slate-500">Wie viele hattest du?</div>
-            <div className="mt-0.5 text-2xl font-black text-slate-950">{quantity} Bier</div>
+            <div className="text-xs font-bold text-slate-500">{t("cashbox.howManyBeer")}</div>
+            <div className="mt-0.5 text-2xl font-black text-slate-950">{t("cashbox.beerCount", { count: quantity })}</div>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-xl font-black text-slate-900" aria-label="Ein Bier weniger">−</button>
+            <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-xl font-black text-slate-900" aria-label={t("cashbox.oneLessBeer")}>−</button>
             <div className="w-10 text-center text-xl font-black">{quantity}</div>
-            <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-xl font-black text-white" aria-label="Ein Bier mehr">+</button>
+            <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-xl font-black text-white" aria-label={t("cashbox.oneMoreBeer")}>+</button>
           </div>
         </div>
 
@@ -103,8 +109,8 @@ export default function BeerCheckoutCard({
                   <span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span>
                   <span className="block text-sm font-black">
                     {paypalPool
-                      ? `${formatEuro(totalCents)} · mit PayPal zahlen`
-                      : formatEuro(totalCents)}
+                      ? t("cashbox.payPaypal", { price: formatEuro(totalCents, locale) })
+                      : formatEuro(totalCents, locale)}
                   </span>
                 </span>
               </span>
@@ -116,8 +122,8 @@ export default function BeerCheckoutCard({
             <span className="flex items-center gap-2">
               <Banknote className="h-4 w-4 text-emerald-700" />
               <span>
-                <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">Bar</span>
-                <span className="block text-sm font-black">{formatEuro(totalCents)} offen</span>
+                <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">{t("cashbox.cash")}</span>
+                <span className="block text-sm font-black">{t("cashbox.cashOpen", { price: formatEuro(totalCents, locale) })}</span>
               </span>
             </span>
             <span className="font-black">→</span>
@@ -126,24 +132,24 @@ export default function BeerCheckoutCard({
 
         <p className="mt-2 text-[11px] font-medium leading-4 text-slate-500">
           {paypalPool
-            ? "PayPal-Pool: Bier wird direkt verbucht. In PayPal nur noch Beteiligen → Betrag eingeben → Zahlen."
-            : "Die Bier zählen sofort für deine Statistik. Bezahlt zählt getrennt davon."}
+            ? t("cashbox.paypalPoolHint")
+            : t("cashbox.beerCountHint")}
         </p>
       </form>
       {poolConfirmOpen ? (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-[2px]">
           <div role="dialog" aria-modal="true" aria-labelledby="cashbox-paypal-pool-hint-title" className="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-2xl">
             <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0070ba]">
-              PayPal-Pool
+              {t("cashbox.paypalPool")}
             </div>
             <h3 id="cashbox-paypal-pool-hint-title" className="mt-1 text-2xl font-black text-slate-950">
-              🍺 {quantity} Bier · {formatEuro(totalCents)}
+              🍺 {t("cashbox.beerCount", { count: quantity })} · {formatEuro(totalCents, locale)}
             </h3>
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
-              Deine Bierstatistik wird beim Wechsel zu PayPal direkt gespeichert. Tippe dort auf „Beteiligen“, gib <strong>{formatEuro(totalCents)}</strong> ein und bestätige die Zahlung.
+              {t("cashbox.paypalPoolText", { price: formatEuro(totalCents, locale) })}
             </p>
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
-              😉 Wir vertrauen dir: strikr prüft die PayPal-Zahlung danach nicht extra nach. Bitte einfach den richtigen Betrag eingeben.
+              {t("cashbox.paypalTrust")}
             </div>
             <a
               href={paypalUrl}
@@ -152,7 +158,7 @@ export default function BeerCheckoutCard({
               onClick={preparePaypalPoolOpen}
               className="mt-4 block w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-center text-sm font-black text-white shadow-sm"
             >
-              {formatEuro(totalCents)} merken &amp; zu PayPal →
+              {t("cashbox.rememberPaypal", { price: formatEuro(totalCents, locale) })}
             </a>
             <button
               type="button"
@@ -162,7 +168,7 @@ export default function BeerCheckoutCard({
               }}
               className="mt-2 w-full rounded-2xl px-4 py-3 text-xs font-black text-slate-500"
             >
-              Abbrechen
+              {t("common.cancel")}
             </button>
           </div>
         </div>
