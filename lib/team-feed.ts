@@ -41,6 +41,24 @@ type AchievementRow = {
   players: BadgePlayer | BadgePlayer[] | null;
 };
 
+function careerBadgeNewsText(params: {
+  badgeKey: string;
+  actorName: string;
+  fallbackTitle: string;
+}) {
+  const winsMatch = params.badgeKey.match(/^career_wins_(\d+)$/);
+  if (winsMatch?.[1]) {
+    return `${params.actorName} hat ${winsMatch[1]} Siege in seiner Karriere erreicht.`;
+  }
+
+  const appearancesMatch = params.badgeKey.match(/^career_appearances_(\d+)$/);
+  if (appearancesMatch?.[1]) {
+    return `${params.actorName} hat ${appearancesMatch[1]} Einsätze in seiner Karriere erreicht.`;
+  }
+
+  return `${params.actorName} hat „${params.fallbackTitle}“ erreicht.`;
+}
+
 function playerName(player: BadgePlayer | BadgePlayer[] | null) {
   const value = Array.isArray(player) ? player[0] ?? null : player;
   if (!value) return "Ein Spieler";
@@ -157,8 +175,12 @@ export async function getTeamFeedItems(
         return [{
           id: `badge:${achievement.id}`,
           kind: "badge" as const,
-          title: `${actorName} hat „${badge.title}“ erreicht`,
-          body: badge.description,
+          title: careerBadgeNewsText({
+            badgeKey: achievement.badge_key,
+            actorName,
+            fallbackTitle: badge.title,
+          }),
+          body: "",
           href: `/badges?player=${achievement.player_id}`,
           occurredAt: achievement.earned_at,
           badgeKey: achievement.badge_key,
@@ -212,8 +234,12 @@ export async function getAchievementFeedItem(params: {
   return {
     id: `badge:${data.id}`,
     kind: "badge",
-    title: `${actorName} hat „${badge.title}“ erreicht`,
-    body: badge.description,
+    title: careerBadgeNewsText({
+      badgeKey: data.badge_key,
+      actorName,
+      fallbackTitle: badge.title,
+    }),
+    body: "",
     href: `/badges?player=${data.player_id}`,
     occurredAt: data.earned_at,
     badgeKey: data.badge_key,
