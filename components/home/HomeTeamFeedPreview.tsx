@@ -135,7 +135,7 @@ export default function HomeTeamFeedPreview({
                       title="Badge-Details ansehen"
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition hover:bg-amber-50 active:scale-95"
                     >
-                      <AchievementBadgeVisual badgeKey={item.badgeKey} size="lg" />
+                      <AchievementBadgeVisual badgeKey={item.badgeKey} size="lg" interactive={false} />
                     </button>
 
                     <Link
@@ -239,7 +239,7 @@ export default function HomeTeamFeedPreview({
             <div className="relative mx-auto mt-5 flex h-52 w-52 items-center justify-center">
               <div className="absolute inset-5 rounded-full bg-cyan-300/10 blur-3xl" />
               <div className="relative scale-[2.45]">
-                <AchievementBadgeVisual badgeKey={openBadge.badgeKey} size="xl" />
+                <AchievementBadgeVisual badgeKey={openBadge.badgeKey} size="xl" interactive={false} />
               </div>
             </div>
 
