@@ -12,6 +12,7 @@ export type TeamFeedItem = {
   occurredAt: string;
   badgeKey?: string;
   actorName?: string;
+  badgeDetailText?: string;
 };
 
 type SessionRow = {
@@ -41,22 +42,34 @@ type AchievementRow = {
   players: BadgePlayer | BadgePlayer[] | null;
 };
 
-function careerBadgeNewsText(params: {
+function badgeNewsCopy(params: {
   badgeKey: string;
   actorName: string;
   fallbackTitle: string;
 }) {
   const winsMatch = params.badgeKey.match(/^career_wins_(\d+)$/);
   if (winsMatch?.[1]) {
-    return `${params.actorName} hat ${winsMatch[1]} Siege in seiner Karriere erreicht.`;
+    return {
+      title: `${winsMatch[1]} Karrieresiege erreicht`,
+      body: `🎉 Glückwunsch, ${params.actorName}!`,
+      detailText: `${params.actorName} hat ${winsMatch[1]} Siege in seiner Karriere erreicht.`,
+    };
   }
 
   const appearancesMatch = params.badgeKey.match(/^career_appearances_(\d+)$/);
   if (appearancesMatch?.[1]) {
-    return `${params.actorName} hat ${appearancesMatch[1]} Einsätze in seiner Karriere erreicht.`;
+    return {
+      title: `${appearancesMatch[1]} Karriere-Einsätze erreicht`,
+      body: `🎉 Glückwunsch, ${params.actorName}!`,
+      detailText: `${params.actorName} hat ${appearancesMatch[1]} Einsätze in seiner Karriere erreicht.`,
+    };
   }
 
-  return `${params.actorName} hat „${params.fallbackTitle}“ erreicht.`;
+  return {
+    title: params.fallbackTitle,
+    body: `🎉 Glückwunsch, ${params.actorName}!`,
+    detailText: `${params.actorName} hat „${params.fallbackTitle}“ erreicht.`,
+  };
 }
 
 function playerName(player: BadgePlayer | BadgePlayer[] | null) {
@@ -171,20 +184,22 @@ export async function getTeamFeedItems(
         if (!badge) return [];
 
         const actorName = playerName(achievement.players);
+        const copy = badgeNewsCopy({
+          badgeKey: achievement.badge_key,
+          actorName,
+          fallbackTitle: badge.title,
+        });
 
         return [{
           id: `badge:${achievement.id}`,
           kind: "badge" as const,
-          title: careerBadgeNewsText({
-            badgeKey: achievement.badge_key,
-            actorName,
-            fallbackTitle: badge.title,
-          }),
-          body: "",
+          title: copy.title,
+          body: copy.body,
           href: `/badges?player=${achievement.player_id}`,
           occurredAt: achievement.earned_at,
           badgeKey: achievement.badge_key,
           actorName,
+          badgeDetailText: copy.detailText,
         }];
       });
 
@@ -230,19 +245,21 @@ export async function getAchievementFeedItem(params: {
   if (!badge) return null;
 
   const actorName = playerName(data.players);
+  const copy = badgeNewsCopy({
+    badgeKey: data.badge_key,
+    actorName,
+    fallbackTitle: badge.title,
+  });
 
   return {
     id: `badge:${data.id}`,
     kind: "badge",
-    title: careerBadgeNewsText({
-      badgeKey: data.badge_key,
-      actorName,
-      fallbackTitle: badge.title,
-    }),
-    body: "",
+    title: copy.title,
+    body: copy.body,
     href: `/badges?player=${data.player_id}`,
     occurredAt: data.earned_at,
     badgeKey: data.badge_key,
     actorName,
+    badgeDetailText: copy.detailText,
   };
 }
