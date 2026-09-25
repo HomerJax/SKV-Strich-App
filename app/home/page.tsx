@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CalendarDays, Instagram, Medal, Star, TrendingUp, Trophy } from "lucide-react";
+import { CalendarDays, Medal, Star, TrendingUp, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
@@ -319,28 +319,6 @@ function formatRank(value: number | null) {
   return `#${value}`;
 }
 
-function QuickActionCard({
-  title,
-  text,
-  href,
-}: {
-  title: string;
-  text: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm transition hover:bg-slate-50"
-    >
-      <div className="text-sm font-black text-slate-950">{title}</div>
-      <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-        {text}
-      </div>
-    </Link>
-  );
-}
-
 function MainActionCard({
   eyebrow,
   title,
@@ -493,8 +471,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
   );
+  const teamFeedPageSize = 8;
   const baseTeamFeedItems = teamFeedEnabled
-    ? await getTeamFeedItems(clubId, 3)
+    ? await getTeamFeedItems(clubId, teamFeedPageSize)
     : [];
 
   // TEMP: Badge-Feed-Darstellung im SKV-Team sichtbar testen.
@@ -512,7 +491,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     ? [
         featuredSommiBadge,
         ...baseTeamFeedItems.filter((item) => item.id !== featuredSommiBadge.id),
-      ].slice(0, 3)
+      ]
     : baseTeamFeedItems;
 
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
@@ -538,7 +517,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     clubLogoUrl = data?.publicUrl ?? null;
   }
 
-  const hasSessions = (sessionsCount ?? 0) > 0;
   const recentSessionIds = recentSessions.map((session) => session.id);
 
   let activeVotingSession:
@@ -936,7 +914,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         ) : null}
 
         {teamFeedEnabled ? (
-          <HomeTeamFeedPreview items={teamFeedItems} />
+          <HomeTeamFeedPreview
+            items={teamFeedItems}
+            initialOffset={baseTeamFeedItems.length}
+            initialHasMore={baseTeamFeedItems.length === teamFeedPageSize}
+          />
         ) : null}
 
         {activeVotingSession ? (
@@ -981,42 +963,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             badgeImageUrl={mvpHighlight.badgeImageUrl}
           />
         ) : null}
-
-        <section className="space-y-2">
-          <div className="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-            Mehr
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <QuickActionCard
-              title="Stats komplett"
-              text="Alle Zahlen ansehen"
-              href="/stats"
-            />
-
-            <QuickActionCard
-              title={hasSessions ? "Sessions" : "Archiv"}
-              text={hasSessions ? "Trainingsverlauf" : "Noch leer"}
-              href="/sessions"
-            />
-
-            {isAdmin ? (
-              <>
-                <QuickActionCard
-                  title="Training anlegen"
-                  text="Admin-Aktion"
-                  href="/sessions/new"
-                />
-
-                <QuickActionCard
-                  title="Admin"
-                  text="Club verwalten"
-                  href="/admin"
-                />
-              </>
-            ) : null}
-          </div>
-        </section>
 
         {showGettingStarted ? (
           <section className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm">
@@ -1068,21 +1014,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           </div>
         </Link>
 
-        <a
-          href="https://www.instagram.com/getstrikr/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group mx-auto flex w-fit max-w-full items-center gap-2.5 rounded-full border border-slate-200 bg-white px-3.5 py-2.5 text-slate-600 shadow-sm transition hover:border-pink-200 hover:text-pink-600"
-        >
-          <Instagram className="h-4 w-4 shrink-0" />
-          <span className="text-xs font-black">@getstrikr</span>
-          <span className="hidden text-[11px] font-semibold text-slate-400 sm:inline">
-            auf Instagram
-          </span>
-          <span className="text-xs font-black transition group-hover:translate-x-0.5">
-            →
-          </span>
-        </a>
+
       </section>
       </main>
     </HomePullToRefresh>
