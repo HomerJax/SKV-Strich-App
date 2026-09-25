@@ -22,21 +22,24 @@ import ClubSetupInviteActions from "@/components/club-setup/ClubSetupInviteActio
 import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
 import { buildAbsoluteInviteUrl } from "@/lib/invites/url";
+import { getServerI18n } from "@/lib/i18n/server";
+import { translate, type MessageKey } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
-function getErrorMessage(error?: string | null) {
+function getErrorMessage(error: string | null | undefined, locale: AppLocale) {
   switch (error) {
     case "missing-name":
-      return "Bitte gib einen Teamnamen ein.";
+      return translate(locale, "clubSetup.errorMissingName");
     case "club-create-failed":
-      return "Das Team konnte nicht erstellt werden.";
+      return translate(locale, "clubSetup.errorCreate");
     case "membership-create-failed":
-      return "Die Team-Zuordnung konnte nicht erstellt werden.";
+      return translate(locale, "clubSetup.errorMembership");
     case "settings-create-failed":
-      return "Das Team wurde erstellt, aber die Einstellungen konnten nicht vollständig angelegt werden.";
+      return translate(locale, "clubSetup.errorSettings");
     case "membership-load-failed":
-      return "Dein Account konnte nicht geladen werden.";
+      return translate(locale, "clubSetup.errorAccount");
     case "player-link-failed":
-      return "Das Team wurde erstellt, aber dein Spielerprofil konnte nicht mit dem Team verknüpft werden.";
+      return translate(locale, "clubSetup.errorPlayerLink");
     default:
       return null;
   }
@@ -95,33 +98,36 @@ const STEP_ORDER: SetupStep[] = [
   "done",
 ];
 
-const STEP_LABELS: Record<SetupStep, string> = {
-  club: "Dein Club",
-  team: "Faire Teams",
-  categories: "Spielergruppen",
-  done: "Team starten",
+const STEP_LABEL_KEYS: Record<SetupStep, MessageKey> = {
+  club: "clubSetup.stepClub",
+  team: "clubSetup.stepTeam",
+  categories: "clubSetup.stepCategories",
+  done: "clubSetup.stepDone",
 };
 
-const STEP_COPY: Record<SetupStep, { eyebrow: string; title: string; text: string }> = {
+const STEP_COPY_KEYS: Record<
+  SetupStep,
+  { eyebrow: MessageKey; title: MessageKey; text: MessageKey }
+> = {
   club: {
-    eyebrow: "Dein Auftritt",
-    title: "Gib deinem Team ein Gesicht.",
-    text: "Name, Logo und Farben – damit sich strikr vom ersten Training an wie euer Club anfühlt.",
+    eyebrow: "clubSetup.clubEyebrow",
+    title: "clubSetup.clubTitle",
+    text: "clubSetup.clubText",
   },
   team: {
-    eyebrow: "Das Herzstück",
-    title: "So baut strikr faire Teams.",
-    text: "Du legst nur fest, welche Informationen zählen. strikr kümmert sich danach automatisch um die beste Aufteilung.",
+    eyebrow: "clubSetup.teamEyebrow",
+    title: "clubSetup.teamTitle",
+    text: "clubSetup.teamText",
   },
   categories: {
-    eyebrow: "Feinschliff",
-    title: "Wer spielt bei euch?",
-    text: "Mit Spielergruppen kann strikr unterschiedliche Niveaus noch besser einordnen. Nur wenn ihr sie wirklich braucht.",
+    eyebrow: "clubSetup.categoriesEyebrow",
+    title: "clubSetup.categoriesTitle",
+    text: "clubSetup.categoriesText",
   },
   done: {
-    eyebrow: "Bereit",
-    title: "Dein Team kann loslegen.",
-    text: "Jetzt noch die Mannschaft reinholen – und aus dem nächsten Training wird eure erste strikr Session.",
+    eyebrow: "clubSetup.doneEyebrow",
+    title: "clubSetup.doneTitle",
+    text: "clubSetup.doneText",
   },
 };
 
@@ -199,12 +205,19 @@ function Banner({
 function StepHero({
   clubName,
   currentStep,
+  locale,
 }: {
   clubName: string;
   currentStep: SetupStep;
+  locale: AppLocale;
 }) {
   const stepIndex = getStepIndex(currentStep);
-  const copy = STEP_COPY[currentStep];
+  const copyKeys = STEP_COPY_KEYS[currentStep];
+  const copy = {
+    eyebrow: translate(locale, copyKeys.eyebrow),
+    title: translate(locale, copyKeys.title),
+    text: translate(locale, copyKeys.text),
+  };
 
   return (
     <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#070b12] p-5 text-white shadow-[0_28px_80px_rgba(2,6,23,0.28)] sm:p-7">
@@ -264,7 +277,7 @@ function StepHero({
                     <Circle className={`h-2.5 w-2.5 shrink-0 ${active ? "fill-white text-white" : "text-white/20"}`} />
                   )}
                   <span className={`truncate text-[9px] font-bold ${active ? "text-white" : done ? "text-white/55" : "text-white/25"}`}>
-                    {STEP_LABELS[step]}
+                    {translate(locale, STEP_LABEL_KEYS[step])}
                   </span>
                 </div>
               </div>
@@ -277,6 +290,7 @@ function StepHero({
 }
 
 export default async function ClubSetupPage({ searchParams }: PageProps) {
+  const { locale, t } = await getServerI18n();
   const resolvedSearchParams = (await searchParams) ?? {};
   const error = getSearchParam(resolvedSearchParams.error);
   const created = getSearchParam(resolvedSearchParams.created) === "1";
@@ -348,8 +362,8 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
   }
 
   const origin = await getRequestOrigin();
-  const clubName = club?.display_name?.trim() || "dein Team";
-  const errorMessage = getErrorMessage(error);
+  const clubName = club?.display_name?.trim() || t("clubSetup.yourTeam");
+  const errorMessage = getErrorMessage(error, locale);
   const inviteUrl = inviteToken
     ? buildAbsoluteInviteUrl(origin, inviteToken)
     : null;
@@ -518,7 +532,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
         ) : (
           <section className="flex flex-1 items-start justify-center py-2 sm:py-4">
             <div className="w-full max-w-3xl space-y-4">
-              <StepHero clubName={clubName} currentStep={currentStep} />
+              <StepHero clubName={clubName} currentStep={currentStep} locale={locale} />
 
               {currentStep === "club" ? (
                 <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
