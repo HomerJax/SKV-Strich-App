@@ -12,6 +12,7 @@ import ClubSwitcher, {
   type ClubSwitcherClub,
 } from "@/components/PowerClubSwitcher";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type ClubRow = {
   id: string;
@@ -40,10 +41,13 @@ function getInitial(value: string | null) {
   return value.trim().charAt(0).toUpperCase();
 }
 
-function getClubLabel(club: ClubRow | null | undefined) {
+function getClubLabel(
+  club: ClubRow | null | undefined,
+  fallback = "Unbenannter Verein",
+) {
   const displayName = club?.display_name?.trim();
   const legacyName = club?.name?.trim();
-  return displayName || legacyName || "Unbenannter Verein";
+  return displayName || legacyName || fallback;
 }
 
 function dedupeSwitcherClubs(
@@ -88,6 +92,7 @@ function dedupeSwitcherClubs(
 }
 
 export default async function AppHeader() {
+  const { t } = await getServerI18n();
   const ctx = await getAuthContext();
   const supportView = await getSupportViewPlayer(ctx);
   const profilePlayer = ctx.player ?? supportView?.player ?? null;
@@ -160,7 +165,7 @@ export default async function AppHeader() {
       playerPhotoPromise,
     ]);
 
-    clubName = club ? getClubLabel(club) : null;
+    clubName = club ? getClubLabel(club, t("header.unnamedClub")) : null;
     primaryColor = COLOR_MAP[club?.primary_color ?? "black"] ?? COLOR_MAP.black;
 
     if (club?.logo_path) {
@@ -196,7 +201,7 @@ export default async function AppHeader() {
 
         return {
           id: clubRow.id,
-          name: getClubLabel(clubRow),
+          name: getClubLabel(clubRow, t("header.unnamedClub")),
           logoSrc: clubLogoSrc,
         };
       });
@@ -217,7 +222,7 @@ export default async function AppHeader() {
 
   const nickname = profilePlayer?.nickname?.trim() || null;
   const firstName = profilePlayer?.first_name?.trim() || null;
-  const profileLabel = nickname ?? firstName ?? "Spieler";
+  const profileLabel = nickname ?? firstName ?? t("header.player");
   const profileInitial = getInitial(profileLabel);
   void profileInitial;
 
@@ -237,7 +242,7 @@ export default async function AppHeader() {
           <div className="min-w-0 flex items-center gap-2 sm:gap-3">
             <Link
               href={ctx.user ? "/about" : "/"}
-              title={ctx.user ? "Über strikr" : "strikr"}
+              title={ctx.user ? t("header.about") : "strikr"}
               className="flex min-w-0 items-center gap-1.5 sm:gap-3"
             >
               <Image
@@ -258,7 +263,7 @@ export default async function AppHeader() {
               <Link
                 href="/about"
                 className="hidden rounded-full px-1.5 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 sm:inline-flex sm:text-[11px]"
-                title="Was ist neu?"
+                title={t("header.whatsNew")}
               >
                 v1.0
               </Link>
@@ -271,8 +276,8 @@ export default async function AppHeader() {
                 href="https://www.instagram.com/getstrikr/"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="strikr auf Instagram"
-                title="@getstrikr auf Instagram"
+                aria-label={t("header.instagram")}
+                title="@getstrikr · Instagram"
                 className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-pink-600"
               >
                 <Instagram className="h-4 w-4 shrink-0" />
@@ -319,7 +324,7 @@ export default async function AppHeader() {
                 href="/signup?next=%2Fclub-setup"
                 className="inline-flex items-center gap-1 rounded-full bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
               >
-                Team starten
+                {t("header.startTeam")}
               </Link>
             </div>
           )}
