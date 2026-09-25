@@ -7,6 +7,7 @@ import {
   sharePreparedMvpFile,
 } from "@/lib/share/mvp-share";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type HomeMvpHighlightCardProps = {
   notificationKey: string;
@@ -37,6 +38,7 @@ export default function HomeMvpHighlightCard({
   leaderboard,
   badgeImageUrl,
 }: HomeMvpHighlightCardProps) {
+  const { t } = useI18n();
   const shareFileRef = useRef<File | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -48,10 +50,10 @@ export default function HomeMvpHighlightCard({
   }, [notificationKey]);
 
   const title = isWinner
-    ? "Du wurdest zum MVP gewählt."
-    : `${winner.name} wurde MVP.`;
+    ? t("mvp.youWon")
+    : t("mvp.playerWon", { name: winner.name });
 
-  const badgeLine = `Das ${winner.badgeLabel} Badge wurde freigeschaltet.`;
+  const badgeLine = t("mvp.badgeUnlocked", { badge: winner.badgeLabel });
 
   const mode = isWinner ? "winner" : "team";
 
@@ -91,7 +93,7 @@ export default function HomeMvpHighlightCard({
     const preparedFile = shareFileRef.current;
 
     if (!preparedFile) {
-      setShareError("MVP Share Card wird noch vorbereitet. Bitte kurz warten.");
+      setShareError(t("mvp.preparing"));
       return;
     }
 
@@ -108,14 +110,14 @@ export default function HomeMvpHighlightCard({
           : `strikr-mvp-result-${sessionId}.png`,
         title: hasSingleWinner
           ? `${winner.name} wurde zum MVP gewählt`
-          : "MVP Ergebnis",
+          : t("mvp.result"),
         text: hasSingleWinner
-          ? `MVP Card von ${winner.name} aus strikr.`
-          : "Das MVP Ergebnis aus strikr.",
+          ? t("mvp.shareText", { name: winner.name })
+          : t("mvp.resultText"),
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      setShareError("Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.");
+      setShareError(t("mvp.shareFailed"));
     } finally {
       setSharing(false);
     }
@@ -132,7 +134,7 @@ export default function HomeMvpHighlightCard({
           type="button"
           onClick={dismiss}
           className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/70"
-          aria-label="MVP Highlight ausblenden"
+          aria-label={t("mvp.hide")}
         >
           ×
         </button>
@@ -172,7 +174,7 @@ export default function HomeMvpHighlightCard({
           {topThree.length > 1 ? (
             <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3">
               <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
-                Voting Ergebnis
+                {t("mvp.votingResult")}
               </div>
               <div className="mt-2 space-y-1.5">
                 {topThree.map((entry, index) => (
@@ -203,14 +205,14 @@ export default function HomeMvpHighlightCard({
               disabled={sharing}
               className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-black disabled:opacity-60"
             >
-              {sharing ? "Bereite Card vor…" : isWinner ? "Teilen" : "Ergebnis teilen"}
+              {sharing ? t("mvp.preparingCard") : isWinner ? t("mvp.share") : t("mvp.shareResult")}
             </button>
 
             <Link
               href={sessionHref}
               className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-center text-sm font-black text-white"
             >
-              Session ansehen
+              {t("mvp.viewSession")}
             </Link>
           </div>
         </div>
