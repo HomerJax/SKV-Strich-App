@@ -30,6 +30,8 @@ type NextSessionAttendanceCardProps = {
   participantNames?: string[];
   absentPlayers?: { name: string; reason: string | null }[];
   requireAbsenceReason?: boolean;
+  readOnly?: boolean;
+  supportViewLabel?: string | null;
 };
 
 function formatDeadline(date: Date) {
@@ -86,6 +88,8 @@ export default function NextSessionAttendanceCard({
   participantNames = [],
   absentPlayers = [],
   requireAbsenceReason = false,
+  readOnly = false,
+  supportViewLabel = null,
 }: NextSessionAttendanceCardProps) {
   const router = useRouter();
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
@@ -129,6 +133,11 @@ export default function NextSessionAttendanceCard({
   }, [router]);
 
   useEffect(() => {
+    if (readOnly) {
+      setNotNominated(false);
+      return;
+    }
+
     let active = true;
     fetch(`/api/sessions/${sessionId}/event-roster`, { credentials: "same-origin" })
       .then(async (response) => response.ok ? response.json() as Promise<{ isEvent?: boolean; currentPlayerNominated?: boolean }> : null)
@@ -138,7 +147,7 @@ export default function NextSessionAttendanceCard({
       })
       .catch(() => null);
     return () => { active = false; };
-  }, [sessionId]);
+  }, [sessionId, readOnly]);
 
   const deadlineEpochMs = sessionDate
     ? getSessionDeadlineEpochMs({
@@ -154,7 +163,7 @@ export default function NextSessionAttendanceCard({
   const remainingText = deadline && now ? getRemainingLabel(deadline, now) : null;
 
   async function updateStatus(nextStatus: PresenceStatus, action: Exclude<PendingAction, null>, absenceReason = "") {
-    if (busy || status === nextStatus || notNominated) return;
+    if (readOnly || busy || status === nextStatus || notNominated) return;
 
     if (nextStatus === "out" && requireAbsenceReason) {
       const reasonError = getRequiredRsvpReasonError(absenceReason);
@@ -245,14 +254,18 @@ export default function NextSessionAttendanceCard({
       {!notNominated ? (
         <div className="relative mt-4 rounded-[28px] bg-cyan-100/85 p-1.5 shadow-[0_12px_30px_rgba(34,211,238,0.14)] ring-1 ring-cyan-300/80">
           <div className="grid grid-cols-2 gap-1.5">
-            <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", inActive ? "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 text-white shadow-[0_16px_34px_rgba(56,189,248,0.24)]" : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50"].join(" ")}>
+            <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", inActive ? "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 text-white shadow-[0_16px_34px_rgba(56,189,248,0.24)]" : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50"].join(" ")}>
               <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-blue-50 text-blue-600 ring-1 ring-blue-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? "Speichert…" : inActive ? "Dabei ✓" : "Ich bin dabei"}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{presentCount} dabei</span></span></div>
             </button>
-            <button type="button" onClick={() => { if (outActive) void updateStatus("open", "out"); else setReasonOpen(true); }} disabled={busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "out"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", outActive ? "bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_18px_36px_rgba(244,63,94,0.24)]" : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70"].join(" ")}>
+            <button type="button" onClick={() => { if (outActive) void updateStatus("open", "out"); else setReasonOpen(true); }} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "out"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", outActive ? "bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_18px_36px_rgba(244,63,94,0.24)]" : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70"].join(" ")}>
               <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", outActive ? "bg-white/15 text-white ring-1 ring-white/20" : "bg-white text-rose-500 ring-1 ring-rose-100"].join(" ")}><UserX className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "out" ? "Speichert…" : deadlineTone === "passed" && inActive ? "Absage gesperrt" : outActive ? "Abgesagt ✓" : "Ich bin raus"}</span><span className={["mt-0.5 block text-xs font-medium", outActive ? "text-white/75" : "text-rose-500"].join(" ")}>{absentCount} raus</span></span></div>
             </button>
           </div>
-          {deadlineTone === "passed" && inActive ? (
+          {readOnly ? (
+            <div className="m-1.5 mt-2 rounded-[18px] border border-violet-200 bg-white px-3 py-2 text-xs font-semibold text-violet-700">
+              Supportansicht{supportViewLabel ? ` · ${supportViewLabel}` : ""} · Zu-/Absage nur ansehen
+            </div>
+          ) : deadlineTone === "passed" && inActive ? (
             <div className="m-1.5 mt-2 rounded-[18px] border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
               Anmeldeschluss vorbei · deine Zusage ist verbindlich.
             </div>
