@@ -352,7 +352,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
               />
 
               <div className="mt-5 space-y-5">
-                <EmptyStatsContent showMvp={true} badgeMvpCount={3} />
+                <EmptyStatsContent showMvp={true} badgeMvpCount={3} locale={locale} />
               </div>
             </div>
 
