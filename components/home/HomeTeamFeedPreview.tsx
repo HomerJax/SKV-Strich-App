@@ -142,9 +142,11 @@ export default function HomeTeamFeedPreview({
                         <div className="truncate text-sm font-black text-slate-950">
                           {item.title}
                         </div>
-                        <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
-                          {item.body}
-                        </div>
+                        {item.body ? (
+                          <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
+                            {item.body}
+                          </div>
+                        ) : null}
                         {item.actorName ? (
                           <div className="mt-1 text-[10px] font-black text-violet-600">
                             Vergleiche dich mit {item.actorName} →
@@ -205,42 +207,37 @@ export default function HomeTeamFeedPreview({
 
       {openBadge?.badgeKey ? (
         <div
-          className="fixed inset-0 z-[700] flex items-center justify-center bg-slate-950/75 px-5 py-8 backdrop-blur-sm"
+          className="fixed inset-0 z-[700] flex items-start justify-center bg-slate-950/35 px-4 pt-[calc(5.5rem+env(safe-area-inset-top))] backdrop-blur-[2px]"
           role="dialog"
           aria-modal="true"
           aria-label={openBadge.title}
           onClick={() => setOpenBadge(null)}
         >
           <div
-            className="relative w-full max-w-sm overflow-hidden rounded-[30px] border border-white/10 bg-[#070b12] px-5 pb-6 pt-5 text-center text-white shadow-[0_28px_90px_rgba(0,0,0,0.45)]"
+            className="relative flex w-full max-w-sm items-center gap-3 rounded-[22px] border border-slate-200 bg-white p-4 pr-12 text-left shadow-[0_24px_70px_rgba(15,23,42,0.24)]"
             onClick={(event) => event.stopPropagation()}
           >
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center">
+              <AchievementBadgeVisual badgeKey={openBadge.badgeKey} size="xl" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">
+                Karriere-Badge
+              </div>
+              <div className="mt-1 text-sm font-black leading-5 text-slate-950">
+                {openBadge.title}
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={() => setOpenBadge(null)}
               aria-label="Schließen"
-              className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/15 hover:text-white"
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900"
             >
               <X className="h-4 w-4" />
             </button>
-
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
-              strikr Badge
-            </div>
-
-            <div className="relative mx-auto mt-5 flex h-44 w-44 items-center justify-center">
-              <div className="absolute inset-5 rounded-full bg-cyan-300/10 blur-3xl" />
-              <div className="relative scale-[2.15]">
-                <AchievementBadgeVisual badgeKey={openBadge.badgeKey} size="xl" />
-              </div>
-            </div>
-
-            <div className="mt-3 text-xl font-black tracking-tight">
-              {openBadge.title}
-            </div>
-            <div className="mt-1 text-sm font-semibold text-white/55">
-              {openBadge.body}
-            </div>
           </div>
         </div>
       ) : null}
