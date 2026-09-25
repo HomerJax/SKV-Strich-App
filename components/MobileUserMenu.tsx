@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Banknote, LogOut, MessageCircle, PlayCircle, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import LogoutButton from "@/components/LogoutButton";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type P = {
   profileLabel: string;
@@ -29,6 +30,7 @@ export default function MobileUserMenu({
 }: P) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement | null>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     const click = (event: MouseEvent) => {
@@ -58,7 +60,7 @@ export default function MobileUserMenu({
     <div ref={root} className="relative">
       <button
         type="button"
-        aria-label="Profilmenü"
+        aria-label={t("menu.profileMenu")}
         onClick={() => setOpen((value) => !value)}
         className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm sm:h-11 sm:w-11"
       >
@@ -87,38 +89,38 @@ export default function MobileUserMenu({
             <UserRound className="h-5 w-5" />
             <div>
               <div>{profileLabel}</div>
-              <div className="text-[11px] text-slate-500">Spielerpass & Trainingsplanung</div>
+              <div className="text-[11px] text-slate-500">{t("menu.profile")}</div>
             </div>
           </Link>
           <Link href="/mannschaftskasse" onClick={() => setOpen(false)} className={item}>
             <Banknote className="h-5 w-5 text-emerald-700" />
             <div>
-              <div>Mannschaftskasse</div>
-              <div className="text-[11px] text-slate-500">FBZG, Beiträge & Bierkasse</div>
+              <div>{t("menu.teamFund")}</div>
+              <div className="text-[11px] text-slate-500">{t("menu.teamFundHint")}</div>
             </div>
           </Link>
           {showTeamChatLink ? (
             <Link href="/chat" onClick={() => setOpen(false)} className={item}>
               <MessageCircle className="h-5 w-5 text-blue-700" />
               <div>
-                <div>Teamchat</div>
-                <div className="text-[11px] text-slate-500">Nachrichten im Team</div>
+                <div>{t("menu.teamChat")}</div>
+                <div className="text-[11px] text-slate-500">{t("menu.teamChatHint")}</div>
               </div>
             </Link>
           ) : null}
           <Link href="/demo" onClick={() => setOpen(false)} className={item}>
             <PlayCircle className="h-5 w-5 text-amber-700" />
             <div>
-              <div>strikr Demo ansehen</div>
-              <div className="text-[11px] text-slate-500">Alle Funktionen ausprobieren</div>
+              <div>{t("menu.demo")}</div>
+              <div className="text-[11px] text-slate-500">{t("menu.demoHint")}</div>
             </div>
           </Link>
           <LogoutButton className={item}>
             <>
               <LogOut className="h-5 w-5" />
               <div>
-                <div>Logout</div>
-                <div className="text-[11px] text-slate-500">Abmelden</div>
+                <div>{t("menu.logout")}</div>
+                <div className="text-[11px] text-slate-500">{t("menu.logoutHint")}</div>
               </div>
             </>
           </LogoutButton>
