@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { LoaderCircle, Medal, Trophy } from "lucide-react";
+import { LoaderCircle, Medal } from "lucide-react";
+import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TeamFeedItem } from "@/lib/team-feed";
 
@@ -92,30 +93,33 @@ export default function HomeTeamFeedPreview({
 
   return (
     <section className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
-      <h2 className="text-base font-black tracking-tight text-slate-950">
-        Neu im Team
-      </h2>
+      <div>
+        <h2 className="text-base font-black tracking-tight text-slate-950">
+          Kabinen-Talk
+        </h2>
+        <div className="mt-0.5 text-[10px] font-bold text-slate-400">
+          Was bei euch passiert.
+        </div>
+      </div>
 
       {items.length > 0 ? (
         <div className="mt-2 space-y-1">
           {items.map((item) => {
-            const Icon = item.kind === "badge" ? Trophy : Medal;
-
             return (
               <Link
                 key={item.id}
                 href={item.href}
                 className="flex items-center gap-3 rounded-xl px-1 py-3 transition hover:bg-slate-50"
               >
-                <div
-                  className={
-                    item.kind === "badge"
-                      ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"
-                      : "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
-                  }
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
+                {item.kind === "badge" && item.badgeKey ? (
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+                    <AchievementBadgeVisual badgeKey={item.badgeKey} size="lg" />
+                  </div>
+                ) : (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <Medal className="h-4 w-4" />
+                  </div>
+                )}
 
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-black text-slate-950">
@@ -124,6 +128,11 @@ export default function HomeTeamFeedPreview({
                   <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
                     {item.body}
                   </div>
+                  {item.kind === "badge" && item.actorName ? (
+                    <div className="mt-1 text-[10px] font-black text-violet-600">
+                      Vergleiche dich mit {item.actorName} →
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="shrink-0 text-[10px] font-bold text-slate-400">
