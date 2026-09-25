@@ -12,6 +12,8 @@ import NativeLastPathTracker from "@/components/native/NativeLastPathTracker";
 import NativeLastRouteTracker from "@/components/native/NativeLastRouteTracker";
 import GlobalActionFeedback from "@/components/ui/GlobalActionFeedback";
 import PublicDemoLauncher from "@/components/demo/PublicDemoLauncher";
+import I18nProvider from "@/components/i18n/I18nProvider";
+import { getServerI18n } from "@/lib/i18n/server";
 
 const marketingTitle = "strikr – Jedes Training zählt. | Training redefined.";
 const marketingDescription =
@@ -57,14 +59,17 @@ function HeaderFallback() {
   );
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale } = await getServerI18n();
+
   return (
-    <html lang="de">
+    <html lang={locale}>
       <body className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-neutral-100 text-slate-950 antialiased">
+        <I18nProvider locale={locale}>
         <NativeDeepLinkHandler />
         <NativeStartupReady />
         <NativeLastPathTracker />
@@ -89,6 +94,7 @@ export default function RootLayout({
         </RouteAwareAppShell>
 
         <Analytics />
+        </I18nProvider>
       </body>
     </html>
   );
