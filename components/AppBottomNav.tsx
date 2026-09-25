@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, CalendarDays, Home, Shield, Trophy } from "lucide-react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type AppBottomNavProps = {
   isAdmin?: boolean;
@@ -52,6 +53,7 @@ function NavItem({ href, label, active, icon }: NavItemProps) {
 
 export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   if (!pathname) return null;
 
@@ -69,14 +71,14 @@ export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
         <div className="flex h-16 items-center gap-1">
           <NavItem
             href="/home"
-            label="Home"
+            label={t("nav.home")}
             active={pathname === "/" || pathname === "/home"}
             icon={<Home className="h-5 w-5" />}
           />
 
           <NavItem
             href="/sessions"
-            label="Sessions"
+            label={t("nav.sessions")}
             active={
               pathname === "/sessions" || pathname.startsWith("/sessions/")
             }
@@ -85,14 +87,14 @@ export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
 
           <NavItem
             href="/stats"
-            label="Meine Stats"
+            label={t("nav.myStats")}
             active={pathname === "/stats" || pathname.startsWith("/stats/")}
             icon={<BarChart3 className="h-5 w-5" />}
           />
 
           <NavItem
             href="/standings"
-            label="Tabelle"
+            label={t("nav.standings")}
             active={
               pathname === "/standings" || pathname.startsWith("/standings/")
             }
@@ -102,7 +104,7 @@ export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
           {isAdmin ? (
             <NavItem
               href="/admin"
-              label="Admin"
+              label={t("nav.admin")}
               active={pathname === "/admin" || pathname.startsWith("/admin/")}
               icon={<Shield className="h-5 w-5" />}
             />
