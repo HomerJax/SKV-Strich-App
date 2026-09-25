@@ -13,6 +13,7 @@ type RoleRow = {
 
 type ClubSettingsRow = {
   club_id: string;
+  default_locale: string | null;
   use_strength: boolean | null;
   use_categories: boolean | null;
   season_start_day: number | null;
@@ -218,12 +219,16 @@ export async function POST(request: Request) {
 
   const submitsHomeSettings = settingsScope === "home";
 
+  const submitsLanguageSettings =
+    settingsScope === "language" || hasField(formData, "default_locale");
+
   if (
     !submitsTeamGeneratorSettings &&
     !submitsSeasonSettings &&
     !submitsAwardSettings &&
     !submitsRsvpSettings &&
-    !submitsHomeSettings
+    !submitsHomeSettings &&
+    !submitsLanguageSettings
   ) {
     return redirectWithParams(request, redirectTo, { error: "nothing_to_save" });
   }
@@ -231,7 +236,7 @@ export async function POST(request: Request) {
   const { data: existingSettings, error: existingSettingsError } = await supabase
     .from("club_settings")
     .select(
-      "club_id, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled"
+      "club_id, default_locale, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled"
     )
     .eq("club_id", activeClubId)
     .maybeSingle<ClubSettingsRow>();
@@ -242,6 +247,7 @@ export async function POST(request: Request) {
 
   const currentSettings: ClubSettingsRow = existingSettings ?? {
     club_id: activeClubId,
+    default_locale: "auto",
     use_strength: true,
     use_categories: false,
     season_start_day: 1,
@@ -254,6 +260,19 @@ export async function POST(request: Request) {
     require_rsvp_reason_on_absence: false,
     home_team_feed_enabled: false,
   };
+
+  const rawDefaultLocale = String(formData.get("default_locale") ?? "")
+    .trim()
+    .toLowerCase();
+  const defaultLocale = submitsLanguageSettings
+    ? rawDefaultLocale
+    : (currentSettings.default_locale ?? "auto");
+
+  if (!["auto", "de", "en"].includes(defaultLocale)) {
+    return redirectWithParams(request, redirectTo, {
+      error: "invalid_default_locale",
+    });
+  }
 
   const useStrength = submitsTeamGeneratorSettings
     ? parseBoolean(formData.get("use_strength"))
@@ -344,6 +363,7 @@ export async function POST(request: Request) {
   const { error: upsertError } = await supabase.from("club_settings").upsert(
     {
       club_id: activeClubId,
+      default_locale: defaultLocale,
       use_strength: useStrength,
       use_categories: useCategories,
       season_start_day: seasonStartDay,
