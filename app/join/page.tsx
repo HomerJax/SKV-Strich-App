@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import AutoJoinForm from "./AutoJoinForm";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type SearchParams = {
   token?: string | string[];
@@ -25,6 +26,7 @@ export default async function JoinPage({
 }: {
   searchParams?: Promise<SearchParams>;
 }) {
+  const { t } = await getServerI18n();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const token = getSingle(resolvedSearchParams?.token);
   const error = getSingle(resolvedSearchParams?.error);
@@ -35,10 +37,10 @@ export default async function JoinPage({
       <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
         <div className="w-full rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-            Einladung ungültig
+            {t("join.invalid")}
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
-            Es wurde kein Einladungstoken übergeben.
+            {t("join.noToken")}
           </p>
         </div>
       </main>
@@ -77,10 +79,10 @@ export default async function JoinPage({
       <main className="mx-auto flex min-h-[100dvh] w-full max-w-xl items-center px-4 py-10">
         <div className="w-full rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-            Einladung nicht gefunden
+            {t("join.notFound")}
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
-            Dieser Einladungslink ist ungültig oder nicht mehr verfügbar.
+            {t("join.notAvailable")}
           </p>
         </div>
       </main>
@@ -117,18 +119,17 @@ export default async function JoinPage({
       <div className="w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Club beitreten
+            {t("join.title")}
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
-            Du wurdest eingeladen, einem Club in{" "}
-            <span className="font-semibold">strikr</span> beizutreten.
+            {t("join.description")}
           </p>
 
           {!user ? (
             <div className="mt-4 text-sm text-neutral-500">
-              Neu bei strikr? Registriere dich.
+              {t("join.newHere")}
               <br />
-              Bereits registriert? Melde dich einfach an.
+              {t("join.alreadyHere")}
             </div>
           ) : null}
         </div>
@@ -147,20 +148,19 @@ export default async function JoinPage({
 
         {expired ? (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            Diese Einladung ist abgelaufen.
+            {t("join.expired")}
           </div>
         ) : null}
 
         <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-          <div className="text-sm text-neutral-500">Rolle</div>
+          <div className="text-sm text-neutral-500">{t("join.role")}</div>
           <div className="mt-1 font-medium text-neutral-900">
-            {invite.role === "admin" ? "Admin" : "Mitglied"}
+            {invite.role === "admin" ? "Admin" : t("join.member")}
           </div>
         </div>
 
         <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Dieser Link ist mehrfach nutzbar und kann direkt in eure Gruppe
-          geschickt werden.
+          {t("join.multiUse")}
         </div>
 
         {expired ? null : !user ? (
@@ -169,19 +169,18 @@ export default async function JoinPage({
               href={loginHref}
               className="flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
             >
-              Einloggen
+              {t("join.login")}
             </Link>
 
             <Link
               href={signupHref}
               className="flex w-full items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-neutral-50"
             >
-              Neu registrieren
+              {t("join.signup")}
             </Link>
 
             <p className="text-center text-xs text-neutral-500">
-              Nach Login oder Registrierung kommst du automatisch zurück zu
-              diesem Einladungslink.
+              {t("join.returnHint")}
             </p>
           </div>
         ) : !hasPlayer ? (
@@ -190,17 +189,17 @@ export default async function JoinPage({
               href={onboardingHref}
               className="flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
             >
-              Profil anlegen und Einladung annehmen
+              {t("join.createProfile")}
             </Link>
 
             <p className="text-center text-xs text-neutral-500">
-              Danach geht es direkt mit deiner Einladung weiter.
+              {t("join.profileThen")}
             </p>
           </div>
         ) : shouldAutoAccept ? (
           <>
             <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              Einladung wird angenommen und du wirst weitergeleitet...
+              {t("join.accepting")}
             </div>
 
             <AutoJoinForm token={token} />
@@ -212,7 +211,7 @@ export default async function JoinPage({
               type="submit"
               className="w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
             >
-              Einladung annehmen
+              {t("join.accept")}
             </button>
           </form>
         )}
