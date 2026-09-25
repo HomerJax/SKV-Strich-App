@@ -171,8 +171,8 @@ function EmptyStatsContent({
   return (
     <>
       <StatsSection
-        title="Form"
-        subtitle="Verlauf über alle gespielten Einheiten."
+        title={t("stats.form")}
+        subtitle={t("stats.formHint")}
         defaultOpen={true}
         icon={<TrendingUp className="h-5 w-5" />}
       >
@@ -180,8 +180,8 @@ function EmptyStatsContent({
       </StatsSection>
 
       <StatsSection
-        title="Team Impact"
-        subtitle="Wie stark dein Einfluss auf Ergebnisse und Team-Balance war."
+        title={t("stats.teamImpact")}
+        subtitle={t("stats.teamImpactHint")}
         defaultOpen={false}
         icon={<UsersRound className="h-5 w-5" />}
       >
@@ -191,13 +191,13 @@ function EmptyStatsContent({
           impactTotal={0}
           impactPerMatch={0}
           impactDetails={[]}
-          impactMeta={getImpactMeta(0)}
+          impactMeta={getImpactMeta(0, locale)}
         />
       </StatsSection>
 
       <StatsSection
-        title="Letzte Ergebnisse"
-        subtitle="Deine letzten fünf abgeschlossenen Ergebnisse."
+        title={t("stats.recentResults")}
+        subtitle={t("stats.recentResultsHint")}
         defaultOpen={true}
         icon={<History className="h-5 w-5" />}
       >
@@ -206,25 +206,23 @@ function EmptyStatsContent({
 
       {showMvp ? (
         <StatsSection
-          title="Badges"
-          subtitle="Dein aktueller Badge-Status auf Basis deiner gesamten MVP-Erfolge."
+          title={t("stats.badges")}
+          subtitle={t("stats.badgesHint")}
           defaultOpen={true}
           icon={<Award className="h-5 w-5" />}
         >
           <div className="space-y-4">
             <BadgeProgressCard
               mvpCount={badgeMvpCount}
-              title="Badge-Fortschritt"
+              title={t("stats.badgeProgress")}
             />
 
             <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
               <div className="text-sm font-semibold text-slate-900">
-                Coming Soon
+                {t("stats.comingSoon")}
               </div>
               <p className="mt-1 text-sm text-slate-600">
-                Weitere Badges folgen. Hier werden später zusätzliche Erfolge
-                und Auszeichnungen für Training, Teilnahme, Serien und
-                besondere Leistungen sichtbar.
+                {t("stats.moreBadges")}
               </p>
             </div>
           </div>
@@ -337,6 +335,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             scope={scope}
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
+            locale={locale}
           />
 
           <div className="relative overflow-hidden rounded-[28px]">
@@ -360,13 +359,13 @@ export default async function StatsPage({ searchParams }: PageProps) {
             <div className="absolute inset-x-0 top-8 z-10 mx-auto w-[calc(100%-2rem)] max-w-2xl">
               <ProFeatureLock
                 clubName={clubName}
-                title="Stats mit strikr Pro freischalten"
-                description="In Free bleibt die Stats-Welt sichtbar, aber gesperrt. Mit Pro sehen Spieler Formkurve, Team Impact, Ergebnisse, MVP-Erfolge und Badge-Fortschritt."
+                title={t("stats.proTitle")}
+                description={t("stats.proDescription")}
                 featureList={[
-                  "Persönliche Formkurve",
-                  "Team Impact",
-                  "MVP- und Badge-Fortschritt",
-                  "Saison- und Karriere-Ansicht",
+                  t("stats.proFeatureForm"),
+                  t("stats.proFeatureImpact"),
+                  t("stats.proFeatureMvp"),
+                  t("stats.proFeatureScope"),
                 ]}
               />
             </div>
@@ -384,6 +383,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             scope={scope}
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
+            locale={locale}
           />
 
           <StatsHero
@@ -400,6 +400,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
           <EmptyStatsContent
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={0}
+            locale={locale}
           />
         </section>
       </main>
@@ -469,6 +470,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             scope={scope}
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
+            locale={locale}
           />
 
           <StatsHero
@@ -485,6 +487,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
           <EmptyStatsContent
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={badgeMvpCount}
+            locale={locale}
           />
         </section>
       </main>
@@ -543,6 +546,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             scope={scope}
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
+            locale={locale}
           />
 
           <StatsHero
@@ -559,6 +563,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
           <EmptyStatsContent
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={badgeMvpCount}
+            locale={locale}
           />
         </section>
       </main>
@@ -573,6 +578,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             scope={scope}
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
+            locale={locale}
           />
 
           <StatsHero
@@ -589,6 +595,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
           <EmptyStatsContent
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={badgeMvpCount}
+            locale={locale}
           />
         </section>
       </main>
@@ -617,6 +624,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             scope={scope}
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
+            locale={locale}
           />
 
           <StatsHero
@@ -633,6 +641,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
           <EmptyStatsContent
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={badgeMvpCount}
+            locale={locale}
           />
         </section>
       </main>
@@ -953,6 +962,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
           scope={scope}
           seasonName={currentSeasonName}
           primaryColorKey={primaryColorKey}
+          locale={locale}
         />
 
         <StatsHero
