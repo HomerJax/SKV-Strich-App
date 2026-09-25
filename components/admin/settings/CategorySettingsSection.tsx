@@ -2,6 +2,7 @@ import {
   addCategoryAction,
   updateCategoryAction,
 } from "@/app/admin/settings/actions";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type CategoryRow = {
   id: number;
@@ -21,7 +22,7 @@ type CategorySettingsSectionProps = {
   variant?: "default" | "onboarding";
 };
 
-export function CategorySettingsSection({
+export async function CategorySettingsSection({
   categories,
   useCategories,
   redirectTo = "/admin/settings",
@@ -29,6 +30,7 @@ export function CategorySettingsSection({
   error = "",
   variant = "default",
 }: CategorySettingsSectionProps) {
+  const { t } = await getServerI18n();
   const activeCategories = categories
     .filter((category) => category.is_active)
     .sort((a, b) => a.sort_order - b.sort_order);
@@ -39,7 +41,7 @@ export function CategorySettingsSection({
     <div className="space-y-4">
       {saved ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Kategorie gespeichert.
+          {t("categories.saved")}
         </div>
       ) : null}
 
@@ -51,33 +53,33 @@ export function CategorySettingsSection({
 
       <div className="flex flex-wrap items-center gap-2">
         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${useCategories ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>
-          {useCategories ? "Im Generator aktiv" : "Im Generator aktuell aus"}
+          {useCategories ? t("categories.generatorActive") : t("categories.generatorOff")}
         </span>
         <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-          {activeCount} aktiv
+          {t("categories.activeCount", { count: activeCount })}
         </span>
         {strongCategory ? (
           <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
-            Stärker: {strongCategory.label}
+            {t("categories.stronger", { name: strongCategory.label })}
           </span>
         ) : null}
       </div>
 
       {variant === "onboarding" ? (
         <div className="rounded-[22px] border border-cyan-100 bg-gradient-to-br from-cyan-50 to-white p-4 text-sm leading-6 text-slate-700">
-          <div className="font-black text-slate-950">Kurz erklärt</div>
+          <div className="font-black text-slate-950">{t("categories.shortExplain")}</div>
           <p className="mt-1">
-            Nutzt ihr unterschiedliche Gruppen wie AH und Ü32? Dann leg sie hier an. Wenn eine Gruppe sportlich klar stärker ist, markierst du genau diese – den Rest erledigt strikr.
+            {t("categories.shortExplainText")}
           </p>
         </div>
       ) : (
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
-          <div className="font-bold">Welche Kategorie ist stärker?</div>
+          <div className="font-bold">{t("categories.whichStronger")}</div>
           <p className="mt-1">
-            Die Reihenfolge ist künftig egal. Markiere bei den aktiven Kategorien einfach die sportlich stärkere Kategorie. Der Generator bewertet diese höher und nutzt die individuelle Stärke 1–5 anschließend zur Feinabstimmung.
+            {t("categories.whichStrongerText")}
           </p>
           <p className="mt-2 text-blue-900">
-            Pro Club kann genau eine aktive Kategorie als stärker markiert sein. Wenn Kategorien bei euch keine sportliche Stärke ausdrücken, kannst du die Kategorien im Teamgenerator komplett deaktivieren.
+            {t("categories.onlyOneStrong")}
           </p>
         </div>
       )}
@@ -88,18 +90,18 @@ export function CategorySettingsSection({
           <input
             name="label"
             required
-            placeholder="Neue Kategorie, z. B. AH"
+            placeholder={t("categories.newPlaceholder")}
             className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm"
           />
           <button type="submit" className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white">
-            Hinzufügen
+            {t("categories.add")}
           </button>
         </form>
       </div>
 
       {!categories.length ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-          Noch keine Kategorien vorhanden.
+          {t("categories.none")}
         </div>
       ) : (
         <div className="space-y-2">
@@ -127,13 +129,13 @@ export function CategorySettingsSection({
               <div className="flex shrink-0 flex-col gap-2 sm:min-w-48">
                 <label className="flex items-center gap-2 text-sm text-slate-700">
                   <input type="checkbox" name="is_active" defaultChecked={category.is_active} />
-                  Aktiv
+                  {t("categories.active")}
                 </label>
 
                 {category.is_active ? (
                   category.is_strong === true ? (
                     <span className="inline-flex w-fit rounded-full bg-amber-200 px-2.5 py-1 text-xs font-bold text-amber-950">
-                      ★ Stärkere Kategorie
+                      {t("categories.strongCategory")}
                     </span>
                   ) : (
                     <button
@@ -142,16 +144,16 @@ export function CategorySettingsSection({
                       value="1"
                       className="w-fit rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-50"
                     >
-                      Als stärker markieren
+                      {t("categories.markStrong")}
                     </button>
                   )
                 ) : (
-                  <span className="text-xs font-semibold text-slate-500">Nicht im Generator</span>
+                  <span className="text-xs font-semibold text-slate-500">{t("categories.notInGenerator")}</span>
                 )}
               </div>
 
               <button type="submit" className="shrink-0 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-neutral-100">
-                Speichern
+                {t("categories.save")}
               </button>
             </form>
           ))}
