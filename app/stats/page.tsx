@@ -911,12 +911,15 @@ export default async function StatsPage({ searchParams }: PageProps) {
       goalsFor,
       goalsAgainst,
       impactValue,
-      explanation: getImpactExplanation({
-        outcome,
-        myTeamScore,
-        opponentScore,
-        impactValue,
-      }),
+      explanation: getImpactExplanation(
+        {
+          outcome,
+          myTeamScore,
+          opponentScore,
+          impactValue,
+        },
+        locale,
+      ),
     });
 
     return {
@@ -953,7 +956,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
   const impactPerMatch =
     totals.impactGames > 0 ? totals.impactTotal / totals.impactGames : 0;
-  const impactMeta = getImpactMeta(impactPerMatch);
+  const impactMeta = getImpactMeta(impactPerMatch, locale);
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -978,8 +981,8 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
         {flags.player_trends ? (
           <StatsSection
-            title="Meine Form"
-            subtitle={`Verlauf über alle ${trendPoints.length} bewerteten Sessions`}
+            title={t("stats.myForm")}
+            subtitle={t("stats.trendCount", { count: trendPoints.length })}
             defaultOpen={true}
             icon={<TrendingUp className="h-5 w-5" />}
           >
@@ -989,8 +992,8 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
         {flags.team_impact ? (
           <StatsSection
-            title="Team Impact"
-            subtitle="Wie Teams mit dir performen"
+            title={t("stats.teamImpact")}
+            subtitle={t("stats.impactShortHint")}
             defaultOpen={false}
             icon={<UsersRound className="h-5 w-5" />}
           >
@@ -1006,8 +1009,8 @@ export default async function StatsPage({ searchParams }: PageProps) {
         ) : null}
 
         <StatsSection
-          title="Letzte Ergebnisse"
-          subtitle="Deine letzten 5 bewerteten Sessions"
+          title={t("stats.recentResults")}
+          subtitle={t("stats.recentFiveHint")}
           defaultOpen={true}
           icon={<History className="h-5 w-5" />}
         >
@@ -1016,15 +1019,15 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
         {flags.session_mvp_voting ? (
           <StatsSection
-            title="Badges"
-            subtitle="Dein aktueller Badge-Status auf Basis deiner MVP-Erfolge"
+            title={t("stats.badges")}
+            subtitle={t("stats.badgesHint")}
             defaultOpen={true}
             icon={<Award className="h-5 w-5" />}
           >
             <div className="space-y-4">
               <BadgeProgressCard
                 mvpCount={badgeMvpCount}
-                title="Badge-Fortschritt"
+                title={t("stats.badgeProgress")}
               />
 
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
@@ -1033,33 +1036,30 @@ export default async function StatsPage({ searchParams }: PageProps) {
                 </div>
 
                 <div className="mt-3 text-sm font-black text-slate-950">
-                  Trophäenraum kommt
+                  {t("stats.trophyRoomComing")}
                 </div>
 
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Hier sammeln Spieler später ihre freigeschalteten Awards:
-                  Siegesserien, Teilnahme-Serien, Aufsteiger-Momente,
-                  MVP-Badges und weitere Trainings-Erfolge.
+                  {t("stats.trophyRoomText")}
                 </p>
 
                 <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-600 sm:grid-cols-2">
                   <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-                    Freigeschaltete Badges sichtbar
+                    {t("stats.unlockedVisible")}
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-                    Offene Badges ausgegraut
+                    {t("stats.openGreyed")}
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-                    Häufigkeit & beste Serien
+                    {t("stats.frequencyStreaks")}
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-                    Später als Share Card teilbar
+                    {t("stats.shareLater")}
                   </div>
                 </div>
 
                 <p className="mt-3 text-xs leading-5 text-slate-500">
-                  Wichtig: Trainings-Awards zählen offiziell erst ab eurem Go.
-                  Alte Daten bleiben bis dahin nur Preview/Test.
+                  {t("stats.awardsPreviewHint")}
                 </p>
               </div>
             </div>
