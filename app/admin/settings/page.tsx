@@ -26,6 +26,7 @@ type ClubSettingsRow = {
   awards_started_at: string | null;
   rsvp_deadline_minutes_before: number | null;
   require_rsvp_reason_on_absence: boolean | null;
+  home_team_feed_enabled: boolean | null;
 };
 
 function RsvpSettingsCard({
@@ -191,6 +192,62 @@ function AwardsSettingsCard({
   );
 }
 
+function HomeFeedSettingsCard({
+  enabled,
+  saved,
+  error,
+}: {
+  enabled: boolean;
+  saved: boolean;
+  error: string;
+}) {
+  return (
+    <div className="space-y-4">
+      {saved ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Startseite gespeichert.
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Startseiten-Einstellung konnte nicht gespeichert werden.
+        </div>
+      ) : null}
+
+      <form method="post" action="/api/admin/settings" className="space-y-4">
+        <input type="hidden" name="redirect_to" value="/admin/settings" />
+        <input type="hidden" name="settings_scope" value="home" />
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+          <input
+            type="checkbox"
+            name="home_team_feed_enabled"
+            defaultChecked={enabled}
+            className="mt-0.5 h-5 w-5 rounded border-slate-300 accent-slate-950"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-slate-950">
+              „Neu im Team“ auf Home anzeigen
+            </span>
+            <span className="mt-1 block text-sm leading-6 text-slate-600">
+              Zeigt einen kompakten Team-Feed mit Ergebnissen und neuen Badges.
+              Weitere Team-Momente können später in denselben Feed integriert werden.
+            </span>
+          </span>
+        </label>
+
+        <button
+          type="submit"
+          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+        >
+          Startseite speichern
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function SettingsShell({
   title,
   description,
@@ -240,7 +297,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
   const [{ data: settingsData }, { data: categoriesData }] = await Promise.all([
     supabase
       .from("club_settings")
-      .select("use_strength, use_categories, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence")
+      .select("use_strength, use_categories, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -293,6 +350,14 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
         <SettingsShell title="Club & Branding" description="Name, Logo, Farbe und Anzeigeoptionen verwalten.">
           <ClubSettingsCard saved={clubSaved} error={clubError} />
+        </SettingsShell>
+
+        <SettingsShell title="Startseite" description="Home-Inhalte pro Team ein- oder ausblenden.">
+          <HomeFeedSettingsCard
+            enabled={settings?.home_team_feed_enabled === true}
+            saved={clubSaved}
+            error={clubError}
+          />
         </SettingsShell>
 
         <SettingsShell title="Saisons" description="Saisons anlegen, bearbeiten und Serientrainings erzeugen.">
