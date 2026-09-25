@@ -14,6 +14,9 @@ import TeamImpactCard from "@/components/stats/TeamImpactCard";
 import StatsSection from "@/components/stats/StatsSection";
 import ProFeatureLock from "@/components/billing/ProFeatureLock";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { getServerI18n } from "@/lib/i18n/server";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 import {
   getImpactMeta,
   getImpactValue,
@@ -125,48 +128,46 @@ function getCurrentSeason(seasons: SeasonRow[]) {
   return seasons[0] ?? null;
 }
 
-function getScopeDescription(scope: StatsScope) {
-  if (scope === "career") {
-    return "Alle gespeicherten Ergebnisse, Trends und MVP-Erfolge über deine gesamte Zeit im Club.";
-  }
-
-  return "Deine Ergebnisse, Trends und MVP-Erfolge aus der aktuell laufenden Saison.";
+function getScopeDescription(scope: StatsScope, locale: AppLocale) {
+  return translate(
+    locale,
+    scope === "career" ? "stats.scopeCareer" : "stats.scopeSeason",
+  );
 }
 
-function getImpactExplanation(params: {
-  outcome: RecentResult["outcome"];
-  myTeamScore: number;
-  opponentScore: number;
-  impactValue: number;
-}) {
+function getImpactExplanation(
+  params: {
+    outcome: RecentResult["outcome"];
+    myTeamScore: number;
+    opponentScore: number;
+    impactValue: number;
+  },
+  locale: AppLocale,
+) {
   const { outcome, myTeamScore, opponentScore, impactValue } = params;
+  const values = { mine: myTeamScore, opponent: opponentScore };
 
-  if (outcome === "draw") {
-    return "Unentschieden: kein positiver oder negativer Team-Impact.";
-  }
-
-  if (impactValue > 1) {
-    return `Sieg als Underdog: dein Team war auf dem Papier schwächer (${myTeamScore} zu ${opponentScore}) und hat trotzdem gewonnen.`;
-  }
-
-  if (impactValue > 0) {
-    return `Sieg mit mindestens ausgeglichener Teamstärke (${myTeamScore} zu ${opponentScore}).`;
-  }
-
-  if (impactValue < 0) {
-    return `Niederlage trotz stärkerem Team (${myTeamScore} zu ${opponentScore}).`;
-  }
-
-  return `Niederlage als Underdog oder ausgeglichener Effekt (${myTeamScore} zu ${opponentScore}).`;
+  if (outcome === "draw") return translate(locale, "stats.impactDraw");
+  if (impactValue > 1) return translate(locale, "stats.impactUnderdogWin", values);
+  if (impactValue > 0) return translate(locale, "stats.impactBalancedWin", values);
+  if (impactValue < 0) return translate(locale, "stats.impactFavoriteLoss", values);
+  return translate(locale, "stats.impactUnderdogLoss", values);
 }
 
 function EmptyStatsContent({
   showMvp,
   badgeMvpCount,
+  locale,
 }: {
   showMvp: boolean;
   badgeMvpCount: number;
+  locale: AppLocale;
 }) {
+  const t = (
+    key: Parameters<typeof translate>[1],
+    params?: Record<string, string | number | null | undefined>,
+  ) => translate(locale, key, params);
+
   return (
     <>
       <StatsSection
@@ -237,18 +238,22 @@ function StatsIntro({
   scope,
   seasonName,
   primaryColorKey,
+  locale,
 }: {
   scope: StatsScope;
   seasonName: string | null;
   primaryColorKey: string | null | undefined;
+  locale: AppLocale;
 }) {
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
+
   return (
     <PageHero
-      eyebrow="Spieler"
-      title="Meine Stats"
-      description={getScopeDescription(scope)}
+      eyebrow={t("stats.player")}
+      title={t("stats.myStats")}
+      description={getScopeDescription(scope, locale)}
       primaryColorKey={primaryColorKey}
-      backLabel="Zurück"
+      backLabel={t("stats.back")}
       backHref="/"
       topRightSlot={<ScopeToggle scope={scope} seasonName={seasonName} />}
       compact
@@ -257,6 +262,7 @@ function StatsIntro({
 }
 
 export default async function StatsPage({ searchParams }: PageProps) {
+  const { locale, t } = await getServerI18n();
   const resolvedSearchParams = await searchParams;
   const requestedScope = String(resolvedSearchParams?.scope ?? "season").trim();
   const scope: StatsScope = requestedScope === "career" ? "career" : "season";
@@ -321,7 +327,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const useStrength = clubSettings.use_strength ?? true;
   const strengthDefault = clubSettings.strength_default ?? 3;
   const primaryColorKey = clubData?.primary_color ?? "black";
-  const clubName = clubData?.display_name?.trim() || "dein Team";
+  const clubName = clubData?.display_name?.trim() || t("stats.yourTeam");
 
   if (!billingAccess.isPro) {
     return (
