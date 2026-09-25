@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
+import { Instagram } from "lucide-react";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -258,9 +259,13 @@ export default async function AppHeader() {
         style={{ borderTop: `3px solid ${primaryColor}` }}
         className="fixed inset-x-0 top-0 z-[350] w-full border-b border-slate-200 bg-white pt-[env(safe-area-inset-top)] shadow-sm"
       >
-        <div className="mx-auto flex h-14 w-full max-w-6xl min-w-0 items-center justify-between gap-1.5 overflow-visible px-2.5 sm:h-[72px] sm:gap-3 sm:px-6">
+        <div className="relative mx-auto flex h-14 w-full max-w-6xl min-w-0 items-center justify-between gap-1.5 overflow-visible px-2.5 sm:h-[72px] sm:gap-3 sm:px-6">
           <div className="min-w-0 flex items-center gap-2 sm:gap-3">
-            <Link href={ctx.user ? "/home" : "/"} className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+            <Link
+              href={ctx.user ? "/about" : "/"}
+              title={ctx.user ? "Über strikr" : "strikr"}
+              className="flex min-w-0 items-center gap-1.5 sm:gap-3"
+            >
               <Image
                 src="/icon-dark.png"
                 alt="strikr"
@@ -287,7 +292,22 @@ export default async function AppHeader() {
           </div>
 
           {ctx.user ? (
-            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <>
+              <a
+                href="https://www.instagram.com/getstrikr/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="strikr auf Instagram"
+                title="@getstrikr auf Instagram"
+                className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-pink-600"
+              >
+                <Instagram className="h-4 w-4 shrink-0" />
+                <span className="text-[11px] font-black tracking-tight sm:text-xs">
+                  @getstrikr
+                </span>
+              </a>
+
+              <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <MobileUserMenu
                 profileLabel={profileLabel}
                 profilePhotoSrc={profilePhotoSrc}
@@ -308,7 +328,8 @@ export default async function AppHeader() {
                 canCreateClub={true}
                 createClubHref="/create-club"
               />
-            </div>
+              </div>
+            </>
           ) : (
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <Link
