@@ -5,7 +5,8 @@ import { getPlayerDisplayName } from "@/lib/player-display";
 import PlayerBadge from "@/components/badges/PlayerBadge";
 import SessionRsvpButtons from "@/components/sessions/SessionRsvpButtons";
 import type { Player } from "./session-types";
-import { ageBadgeColor, badgeColor, positionLabel } from "./session-ui";
+import { ageBadgeColor, badgeColor } from "./session-ui";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type ClubSettings = {
   use_strength: boolean;
@@ -81,10 +82,10 @@ function restoreScrollPosition() {
   });
 }
 
-function guestBadge(player: Player) {
+function guestBadge(player: Player, label: string) {
   return player.is_guest ? (
     <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">
-      Gast
+      {label}
     </span>
   ) : null;
 }
@@ -104,13 +105,14 @@ function AttendanceHint({
   directSaveEnabled: boolean;
   multiSelectEnabled: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
       {directSaveEnabled
-        ? "Spieler antippen – Änderungen werden direkt gespeichert."
+        ? t("attendance.directHint")
         : multiSelectEnabled
-          ? "Mehrfachauswahl aktiv – Spieler antippen und danach speichern."
-          : "Spieler antippen, dann gesammelt speichern."}
+          ? t("attendance.multiHint")
+          : t("attendance.batchHint")}
     </div>
   );
 }
@@ -126,11 +128,13 @@ function AttendanceStatus({
   lastChangedPlayerName: string | null;
   justSaved: boolean;
 }) {
+  const { t } = useI18n();
   if (savingPresence && directSaveEnabled) {
     return (
       <div className="rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] font-semibold text-blue-800">
-        Speichert Anwesenheit
-        {lastChangedPlayerName ? ` für ${lastChangedPlayerName}` : ""}…
+        {t("attendance.savingFor", {
+          player: lastChangedPlayerName ? ` ${lastChangedPlayerName}` : "",
+        })}
       </div>
     );
   }
@@ -138,7 +142,7 @@ function AttendanceStatus({
   if (justSaved) {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-800">
-        Anwesenheit gespeichert.
+        {t("attendance.saved")}
       </div>
     );
   }
@@ -223,7 +227,16 @@ function ToggleSwitch({
 }
 
 function PlayerMetaChips({ player }: { player: Player }) {
+  const { t } = useI18n();
   const categoryLabel = player.category_label ?? null;
+  const position =
+    player.preferred_position === "goalkeeper"
+      ? t("attendance.goalkeeper")
+      : player.preferred_position === "defense"
+        ? t("attendance.defense")
+        : player.preferred_position === "attack"
+          ? t("attendance.attack")
+          : t("attendance.open");
 
   return (
     <span className="flex shrink-0 items-center gap-1">
@@ -239,7 +252,7 @@ function PlayerMetaChips({ player }: { player: Player }) {
           player.preferred_position,
         )}`}
       >
-        {positionLabel(player.preferred_position)}
+        {position}
       </span>
     </span>
   );
@@ -286,6 +299,7 @@ export default function SessionAttendanceCard({
   onTogglePresence,
   onSavePresence,
 }: SessionAttendanceCardProps) {
+  const { t } = useI18n();
   const presentCount = presentIds.length;
   const rsvpAbsentCount = players.filter(
     (player) =>
@@ -394,15 +408,17 @@ export default function SessionAttendanceCard({
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">
-                Wer ist dabei?
+                {t("attendance.whoIn")}
               </div>
               <div className="mt-1 text-xl font-black tracking-[-0.035em] text-slate-950">
                 {acceptedPlayers.length > 0
-                  ? `${acceptedPlayers.length} ${acceptedPlayers.length === 1 ? "Zusage" : "Zusagen"}`
-                  : "Noch keiner zugesagt"}
+                  ? acceptedPlayers.length === 1
+                    ? t("attendance.oneGoing")
+                    : t("attendance.goingCount", { count: acceptedPlayers.length })
+                  : t("attendance.noneGoing")}
               </div>
               <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
-                Hier siehst du nur die Jungs, die schon zugesagt haben.
+                {t("attendance.onlyConfirmedHint")}
               </p>
             </div>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-sm">
@@ -415,7 +431,7 @@ export default function SessionAttendanceCard({
           <div className="grid gap-3">
             <div className="overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50/50">
               <div className="flex items-center justify-between px-3 py-2.5">
-                <div className="text-sm font-black text-slate-950">Dabei</div>
+                <div className="text-sm font-black text-slate-950">{t("attendance.going")}</div>
                 <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black text-white">
                   {acceptedPlayers.length}
                 </span>
@@ -435,14 +451,14 @@ export default function SessionAttendanceCard({
                     </div>
                   );
                 }) : (
-                  <div className="text-xs font-medium text-slate-500">Noch keine Zusage.</div>
+                  <div className="text-xs font-medium text-slate-500">{t("attendance.noGoing")}</div>
                 )}
               </div>
             </div>
 
             <div className="overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50/50">
               <div className="flex items-center justify-between px-3 py-2.5">
-                <div className="text-sm font-black text-slate-950">Raus</div>
+                <div className="text-sm font-black text-slate-950">{t("attendance.out")}</div>
                 <span className="rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-black text-white">
                   {absentPlayers.length}
                 </span>
@@ -454,12 +470,12 @@ export default function SessionAttendanceCard({
                     <div key={player.id} className="rounded-2xl bg-white px-3 py-2.5 ring-1 ring-slate-950/5">
                       <div className="text-sm font-black text-slate-900">{playerName}</div>
                       <div className={`mt-1 text-[11px] ${player.rsvp_reason ? "font-semibold text-rose-700" : "text-slate-400"}`}>
-                        {player.rsvp_reason ? `„${player.rsvp_reason}“` : "Kein Grund angegeben"}
+                        {player.rsvp_reason ? `„${player.rsvp_reason}“` : t("attendance.noReason")}
                       </div>
                     </div>
                   );
                 }) : (
-                  <div className="text-xs font-medium text-slate-500">Noch keine Absage.</div>
+                  <div className="text-xs font-medium text-slate-500">{t("attendance.noOut")}</div>
                 )}
               </div>
             </div>
@@ -468,7 +484,7 @@ export default function SessionAttendanceCard({
           {selfRsvpEnabled && currentPlayerId !== null ? (
             <div className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50 p-3.5">
               <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                Deine Rückmeldung
+                {t("attendance.yourRsvp")}
               </div>
               <SessionRsvpButtons
                 sessionId={sessionId}
@@ -529,35 +545,35 @@ export default function SessionAttendanceCard({
                   done ? "text-emerald-950" : "text-slate-950"
                 }`}
               >
-                {done ? "Anwesenheit bestätigt" : "Anwesenheit"}
+                {done ? t("attendance.confirmed") : t("attendance.title")}
               </div>
 
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <SectionSummaryPill tone={done ? "success" : "default"}>
-                  {presentCount} anwesend
+                  {t("attendance.presentCount", { count: presentCount })}
                 </SectionSummaryPill>
 
                 {rsvpAbsentCount > 0 ? (
                   <SectionSummaryPill tone="muted">
-                    {rsvpAbsentCount} abgesagt
+                    {t("attendance.outCount", { count: rsvpAbsentCount })}
                   </SectionSummaryPill>
                 ) : null}
 
                 {!done ? (
                   <SectionSummaryPill tone="muted">
-                    {openCount} offen
+                    {t("attendance.openCount", { count: openCount })}
                   </SectionSummaryPill>
                 ) : null}
 
                 {!directSaveEnabled && dirty ? (
                   <SectionSummaryPill tone="muted">
-                    Änderungen offen
+                    {t("attendance.changesOpen")}
                   </SectionSummaryPill>
                 ) : null}
 
                 {savingPresence ? (
                   <SectionSummaryPill tone="muted">
-                    Speichert…
+                    {t("attendance.saving")}
                   </SectionSummaryPill>
                 ) : null}
               </div>
@@ -565,7 +581,7 @@ export default function SessionAttendanceCard({
           </div>
 
           <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-            Bearbeiten
+            {t("attendance.edit")}
           </div>
         </button>
       </section>
@@ -584,28 +600,28 @@ export default function SessionAttendanceCard({
 
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-slate-900">
-                  Anwesenheit
+                  {t("attendance.title")}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <SectionSummaryPill>
-                    {presentCount} anwesend
+                    {t("attendance.presentCount", { count: presentCount })}
                   </SectionSummaryPill>
                   {rsvpAbsentCount > 0 ? (
                     <SectionSummaryPill tone="muted">
-                      {rsvpAbsentCount} abgesagt
+                      {t("attendance.outCount", { count: rsvpAbsentCount })}
                     </SectionSummaryPill>
                   ) : null}
                   <SectionSummaryPill tone="muted">
-                    {openCount} offen
+                    {t("attendance.openCount", { count: openCount })}
                   </SectionSummaryPill>
                   {!directSaveEnabled && dirty ? (
                     <SectionSummaryPill tone="muted">
-                      Änderungen offen
+                      {t("attendance.changesOpen")}
                     </SectionSummaryPill>
                   ) : null}
                   {savingPresence ? (
                     <SectionSummaryPill tone="muted">
-                      Speichert…
+                      {t("attendance.saving")}
                     </SectionSummaryPill>
                   ) : null}
                 </div>
@@ -614,7 +630,7 @@ export default function SessionAttendanceCard({
 
             {hasResult ? (
               <div className="mt-3 text-[11px] text-slate-500">
-                Gesperrt, weil bereits ein Ergebnis gespeichert ist.
+                {t("attendance.lockedResult")}
               </div>
             ) : null}
           </div>
@@ -627,7 +643,7 @@ export default function SessionAttendanceCard({
             }}
             className="shrink-0 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Anwesenheit bestätigen
+            {t("attendance.confirm")}
           </button>
         </div>
 
@@ -638,7 +654,7 @@ export default function SessionAttendanceCard({
               disabled={!dirty || savingPresence}
               tone="primary"
             >
-              {savingPresence ? "Speichert..." : "Anwesenheit speichern"}
+              {savingPresence ? t("profile.saving") : t("attendance.save")}
             </ControlButton>
           ) : null}
 
@@ -647,7 +663,7 @@ export default function SessionAttendanceCard({
               onClick={onToggleShowGuestForm}
               disabled={hasResult || guestSaving}
             >
-              {showGuestForm ? "Gastformular schließen" : "Gast hinzufügen"}
+              {showGuestForm ? t("attendance.closeGuestForm") : t("attendance.addGuest")}
             </ControlButton>
           ) : null}
 
@@ -663,13 +679,13 @@ export default function SessionAttendanceCard({
                 ? "border-slate-900 bg-slate-900 text-white"
                 : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             } ${hasResult || savingPresence ? "cursor-not-allowed opacity-60" : ""}`}
-            title="Mehrfachauswahl aktivieren oder deaktivieren"
+            title={t("attendance.multiSelectTitle")}
           >
             <ToggleSwitch
               active={multiSelectEnabled}
               disabled={hasResult || savingPresence}
             />
-            Mehrfachauswahl
+            {t("attendance.multiSelect")}
           </button>
         </div>
       </div>
@@ -690,21 +706,21 @@ export default function SessionAttendanceCard({
         {isAdmin && showGuestForm && !hasResult ? (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-sm font-semibold text-slate-900">
-              Gastspieler hinzufügen
+              {t("attendance.addGuestTitle")}
             </div>
             <div className="mt-1 text-[11px] text-slate-500">
-              Gastspieler werden direkt als anwesend hinzugefügt.
+              {t("attendance.addGuestHint")}
             </div>
 
             <div className="mt-4 space-y-3">
               <div>
                 <div className="mb-1.5 text-xs font-semibold text-slate-700">
-                  Name
+                  {t("attendance.name")}
                 </div>
                 <input
                   value={guestName}
                   onChange={(e) => onGuestNameChange(e.target.value)}
-                  placeholder="z. B. Gastspieler 1"
+                  placeholder={t("attendance.guestPlaceholder")}
                   className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
                 />
               </div>
@@ -712,7 +728,9 @@ export default function SessionAttendanceCard({
               <div className={`grid gap-3 ${clubSettings?.use_strength ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
                 <label className="block">
                   <div className="mb-1.5 text-xs font-semibold text-slate-700">
-                    {clubSettings?.position_label ?? "Position"} (optional)
+                    {t("attendance.positionOptional", {
+                      label: clubSettings?.position_label ?? t("attendance.position"),
+                    })}
                   </div>
                   <select
                     value={guestPosition ?? ""}
@@ -723,22 +741,24 @@ export default function SessionAttendanceCard({
                     }
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
                   >
-                    <option value="">Offen</option>
+                    <option value="">{t("attendance.open")}</option>
                     <option value="goalkeeper">
-                      {clubSettings?.goalkeeper_label ?? "Torwart"}
+                      {clubSettings?.goalkeeper_label ?? t("attendance.goalkeeper")}
                     </option>
                     <option value="defense">
-                      {clubSettings?.defense_label ?? "Hinten"}
+                      {clubSettings?.defense_label ?? t("attendance.defense")}
                     </option>
                     <option value="attack">
-                      {clubSettings?.attack_label ?? "Mittelfeld/Vorne"}
+                      {clubSettings?.attack_label ?? t("attendance.attack")}
                     </option>
                   </select>
                 </label>
 
                 <label className="block">
                   <div className="mb-1.5 text-xs font-semibold text-slate-700">
-                    {clubSettings?.category_label ?? "Altersgruppe"} (optional)
+                    {t("attendance.positionOptional", {
+                      label: clubSettings?.category_label ?? t("attendance.ageGroup"),
+                    })}
                   </div>
                   <select
                     value={guestAgeGroup ?? ""}
@@ -749,7 +769,7 @@ export default function SessionAttendanceCard({
                     }
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
                   >
-                    <option value="">Offen</option>
+                    <option value="">{t("attendance.open")}</option>
                     <option value="AH">AH</option>
                     <option value="Ü32">Ü32</option>
                   </select>
@@ -758,7 +778,7 @@ export default function SessionAttendanceCard({
                 {clubSettings?.use_strength ? (
                   <label className="block">
                     <div className="mb-1.5 text-xs font-semibold text-slate-700">
-                      Stärke (optional)
+                      {t("attendance.strengthOptional")}
                     </div>
                     <select
                       value={guestStrength}
@@ -766,7 +786,9 @@ export default function SessionAttendanceCard({
                       className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
                     >
                       <option value="">
-                        Unbekannt (Standard {clubSettings.strength_default ?? 3})
+                        {t("attendance.unknownStrength", {
+                          value: clubSettings.strength_default ?? 3,
+                        })}
                       </option>
                       <option value="1">1</option>
                       <option value="2">2</option>
@@ -784,7 +806,7 @@ export default function SessionAttendanceCard({
                   disabled={guestSaving}
                   tone="primary"
                 >
-                  {guestSaving ? "Speichere..." : "Gastspieler anlegen"}
+                  {guestSaving ? t("attendance.savingGuest") : t("attendance.createGuest")}
                 </ControlButton>
               </div>
             </div>
@@ -793,7 +815,7 @@ export default function SessionAttendanceCard({
 
         {!isAdmin ? (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
-            Gastspieler können aktuell nur von Admins angelegt werden.
+            {t("attendance.guestAdminOnly")}
           </div>
         ) : null}
 
@@ -820,12 +842,12 @@ export default function SessionAttendanceCard({
                   disabled={hasResult || savingPresence || isDeletingGuest}
                   title={
                     hasResult
-                      ? "Gesperrt: Ergebnis gespeichert"
+                      ? t("attendance.lockedTitle")
                       : isPresent
-                        ? "Klick: als nicht anwesend markieren"
+                        ? t("attendance.markAbsent")
                         : isAbsent
-                          ? "Hat abgesagt · Klick: als anwesend markieren"
-                          : "Klick: als anwesend markieren"
+                          ? t("attendance.markPresentAfterOut")
+                          : t("attendance.markPresent")
                   }
                   className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
                     isPresent
@@ -865,7 +887,7 @@ export default function SessionAttendanceCard({
                           iconOnly
                         />
 
-                        {guestBadge(player)}
+                        {guestBadge(player, t("attendance.guest"))}
                       </span>
                     </span>
                   </span>
@@ -873,13 +895,13 @@ export default function SessionAttendanceCard({
                   <span className="flex shrink-0 items-center gap-2">
                     {isLastChanged && savingPresence ? (
                       <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">
-                        Speichert…
+                        {t("attendance.saving")}
                       </span>
                     ) : null}
 
                     {isAbsent ? (
                       <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-semibold text-rose-700">
-                        Abgesagt
+                        {t("attendance.declined")}
                       </span>
                     ) : null}
 
@@ -895,10 +917,10 @@ export default function SessionAttendanceCard({
                       onDeleteGuestPlayer(player.id);
                     }}
                     disabled={savingPresence || isDeletingGuest}
-                    title="Gastspieler aus dieser Session löschen"
+                    title={t("attendance.deleteGuestTitle")}
                     className="inline-flex shrink-0 items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isDeletingGuest ? "Löscht..." : "Gast löschen"}
+                    {isDeletingGuest ? t("attendance.deleting") : t("attendance.deleteGuest")}
                   </button>
                 ) : null}
               </div>
@@ -910,8 +932,8 @@ export default function SessionAttendanceCard({
           <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs text-slate-500">
               {dirty
-                ? "Änderungen noch nicht gespeichert."
-                : "Anwesenheit ist gespeichert."}
+                ? t("attendance.unsaved")
+                : t("attendance.saved")}
             </div>
 
             <ControlButton
@@ -919,7 +941,7 @@ export default function SessionAttendanceCard({
               disabled={!dirty || savingPresence}
               tone="primary"
             >
-              {savingPresence ? "Speichert..." : "Anwesenheit speichern"}
+              {savingPresence ? t("profile.saving") : t("attendance.save")}
             </ControlButton>
           </div>
         ) : null}
