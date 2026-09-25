@@ -42,16 +42,50 @@ type AchievementRow = {
   players: BadgePlayer | BadgePlayer[] | null;
 };
 
+function badgeNewsLabel(params: {
+  badgeKey: string;
+  scope: "season" | "career";
+  category: "attendance" | "wins" | "losses" | "special" | "career";
+}) {
+  if (params.badgeKey.startsWith("career_wins_")) {
+    return "🏆 Karrieremeilenstein";
+  }
+
+  if (params.badgeKey.startsWith("career_appearances_")) {
+    return "⚽ Einsatz-Jubiläum";
+  }
+
+  if (params.scope === "season" && params.category === "attendance") {
+    return "🔥 Saison-Update";
+  }
+
+  if (params.scope === "season" && params.category === "wins") {
+    return "📈 Serie läuft";
+  }
+
+  if (params.scope === "season" && params.category === "losses") {
+    return "😬 Kabinen-Update";
+  }
+
+  if (params.category === "special") {
+    return "✨ Neues Special";
+  }
+
+  return "🏅 Neues Badge erreicht";
+}
+
 function badgeNewsCopy(params: {
   badgeKey: string;
   actorName: string;
   fallbackTitle: string;
+  scope: "season" | "career";
+  category: "attendance" | "wins" | "losses" | "special" | "career";
 }) {
   const winsMatch = params.badgeKey.match(/^career_wins_(\d+)$/);
   if (winsMatch?.[1]) {
     return {
       title: `${winsMatch[1]} Karrieresiege erreicht`,
-      body: `🎉 Glückwunsch, ${params.actorName}!`,
+      body: badgeNewsLabel(params),
       detailText: `${params.actorName} hat ${winsMatch[1]} Siege in seiner Karriere erreicht.`,
     };
   }
@@ -60,14 +94,14 @@ function badgeNewsCopy(params: {
   if (appearancesMatch?.[1]) {
     return {
       title: `${appearancesMatch[1]} Karriere-Einsätze erreicht`,
-      body: `🎉 Glückwunsch, ${params.actorName}!`,
+      body: badgeNewsLabel(params),
       detailText: `${params.actorName} hat ${appearancesMatch[1]} Einsätze in seiner Karriere erreicht.`,
     };
   }
 
   return {
     title: params.fallbackTitle,
-    body: `🎉 Glückwunsch, ${params.actorName}!`,
+    body: badgeNewsLabel(params),
     detailText: `${params.actorName} hat „${params.fallbackTitle}“ erreicht.`,
   };
 }
@@ -188,6 +222,8 @@ export async function getTeamFeedItems(
           badgeKey: achievement.badge_key,
           actorName,
           fallbackTitle: badge.title,
+          scope: badge.scope,
+          category: badge.category,
         });
 
         return [{
@@ -249,6 +285,8 @@ export async function getAchievementFeedItem(params: {
     badgeKey: data.badge_key,
     actorName,
     fallbackTitle: badge.title,
+    scope: badge.scope,
+    category: badge.category,
   });
 
   return {
