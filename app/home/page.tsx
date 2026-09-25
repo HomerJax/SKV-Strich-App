@@ -878,19 +878,21 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           />
         )}
 
-        <section className="rounded-[32px] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.09)] ring-1 ring-slate-950/5">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
-            Meine Kurzinfo
-          </div>
-
-          {currentPlayerId ? (
-            <HomeQuickStats />
-          ) : (
-            <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 text-sm font-medium text-slate-600">
-              Dein Profil ist noch nicht mit einem Spieler verknüpft.
+        {currentPlayerId || !isPowerUser ? (
+          <section className="rounded-[32px] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.09)] ring-1 ring-slate-950/5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
+              Meine Kurzinfo
             </div>
-          )}
-        </section>
+
+            {currentPlayerId ? (
+              <HomeQuickStats />
+            ) : (
+              <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 text-sm font-medium text-slate-600">
+                Dein Profil ist noch nicht mit einem Spieler verknüpft.
+              </div>
+            )}
+          </section>
+        ) : null}
 
         {bierkasseHomeEnabled ? (
           <>
