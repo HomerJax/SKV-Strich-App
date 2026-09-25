@@ -143,14 +143,14 @@ export default function HomeTeamFeedPreview({
                       className="flex min-w-0 flex-1 items-center gap-3"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-black text-slate-950">
-                          {item.title}
-                        </div>
                         {item.body ? (
-                          <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
+                          <div className="text-[10px] font-black leading-4 text-amber-600">
                             {item.body}
                           </div>
                         ) : null}
+                        <div className="mt-0.5 line-clamp-2 text-[13px] font-black leading-4 text-slate-950">
+                          {item.title}
+                        </div>
                         {item.actorName ? (
                           <div className="mt-1 text-[10px] font-black text-violet-600">
                             Vergleiche dich mit {item.actorName} →
@@ -244,7 +244,7 @@ export default function HomeTeamFeedPreview({
             </div>
 
             <div className="mx-auto mt-5 max-w-[18rem] text-lg font-black leading-6 tracking-tight text-white">
-              {openBadge.title}
+              {openBadge.badgeDetailText ?? openBadge.title}
             </div>
           </div>
         </div>
