@@ -994,27 +994,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           </section>
         ) : null}
 
-        <Link
-          href="/about"
-          className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="text-sm font-black text-slate-500">Über strikr</div>
-
-          <h2 className="mt-1 text-lg font-black text-slate-950">
-            Vom Bierdeckel zur App 🍻⚽
-          </h2>
-
-          <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
-            Angefangen mit Strichen auf Papier, dann Excel und irgendwann die
-            Frage: Warum sind Teams eigentlich immer unfair?
-          </p>
-
-          <div className="mt-3 text-sm font-black text-slate-900">
-            Geschichte lesen →
-          </div>
-        </Link>
-
-
       </section>
       </main>
     </HomePullToRefresh>
