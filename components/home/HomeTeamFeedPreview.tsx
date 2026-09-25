@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, Medal, Trophy } from "lucide-react";
+import { LoaderCircle, Medal, Trophy } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { TeamFeedItem } from "@/lib/team-feed";
 
 function formatDate(value: string) {
@@ -11,26 +14,90 @@ function formatDate(value: string) {
 }
 
 export default function HomeTeamFeedPreview({
-  items,
+  items: initialItems,
+  initialOffset,
+  initialHasMore,
 }: {
   items: TeamFeedItem[];
+  initialOffset: number;
+  initialHasMore: boolean;
 }) {
+  const [items, setItems] = useState(initialItems);
+  const [offset, setOffset] = useState(initialOffset);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [loading, setLoading] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const loadMore = useCallback(async () => {
+    if (loading || !hasMore) return;
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/team-feed?offset=${offset}&limit=8`,
+        { cache: "no-store" },
+      );
+
+      if (!response.ok) {
+        throw new Error("Feed konnte nicht nachgeladen werden.");
+      }
+
+      const payload = (await response.json()) as {
+        items?: TeamFeedItem[];
+        nextOffset?: number | null;
+        hasMore?: boolean;
+      };
+
+      const nextItems = payload.items ?? [];
+
+      setItems((currentItems) => {
+        const knownIds = new Set(currentItems.map((item) => item.id));
+        return [
+          ...currentItems,
+          ...nextItems.filter((item) => !knownIds.has(item.id)),
+        ];
+      });
+
+      setHasMore(payload.hasMore === true);
+      setOffset(
+        typeof payload.nextOffset === "number"
+          ? payload.nextOffset
+          : offset + nextItems.length,
+      );
+    } catch (error) {
+      console.error(error);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [hasMore, loading, offset]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadMore();
+        }
+      },
+      { rootMargin: "500px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
+
   return (
     <section className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-black tracking-tight text-slate-950">
-          Neu im Team
-        </h2>
-        <Link
-          href="/team-feed"
-          className="inline-flex items-center gap-1 text-xs font-black text-slate-500 transition hover:text-slate-950"
-        >
-          Alle <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+      <h2 className="text-base font-black tracking-tight text-slate-950">
+        Neu im Team
+      </h2>
 
       {items.length > 0 ? (
-        <div className="mt-2 divide-y divide-slate-100">
+        <div className="mt-2 space-y-1">
           {items.map((item) => {
             const Icon = item.kind === "badge" ? Trophy : Medal;
 
@@ -38,7 +105,7 @@ export default function HomeTeamFeedPreview({
               <Link
                 key={item.id}
                 href={item.href}
-                className="flex items-center gap-3 py-3 transition hover:bg-slate-50"
+                className="flex items-center gap-3 rounded-xl px-1 py-3 transition hover:bg-slate-50"
               >
                 <div
                   className={
@@ -71,6 +138,16 @@ export default function HomeTeamFeedPreview({
           Noch keine Team-Ereignisse vorhanden.
         </div>
       )}
+
+      {hasMore ? (
+        <div
+          ref={sentinelRef}
+          className="flex min-h-8 items-center justify-center pt-2 text-slate-400"
+          aria-live="polite"
+        >
+          {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+        </div>
+      ) : null}
     </section>
   );
 }
