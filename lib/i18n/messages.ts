@@ -944,6 +944,21 @@ export const DE_MESSAGES = {
   "sessionHook.photoSaved": "Tagessiegerfoto gespeichert.{hint}",
   "sessionHook.deletePhotoConfirm": "Siegerfoto wirklich löschen?",
   "sessionHook.deletePhotoFailed": "Siegerfoto konnte nicht gelöscht werden.",
+  "sessionHook.shareCardUrlFailed": "SiegerCard-URL konnte nicht erzeugt werden.",
+  "sessionHook.shareCardReady": "SiegerCard ist bereit.",
+  "sessionHook.shareCardLoadFailed": "SiegerCard konnte nicht geladen werden.",
+  "sessionHook.lineupTitle": "strikr Aufstellung",
+  "sessionHook.lineupShareTitle": "Aufstellung teilen",
+  "sessionHook.lineupShared": "Aufstellung erfolgreich geteilt.",
+  "sessionHook.lineupCopied": "Aufstellungs-Text in die Zwischenablage kopiert.",
+  "sessionHook.lineupShareFailed": "Aufstellung konnte nicht geteilt werden.",
+  "sessionHook.groupCopied": "Text zum Gruppenteilen in die Zwischenablage kopiert.",
+  "sessionHook.directShareBlocked": "Direktes Teilen wurde vom Browser blockiert. Bitte Button erneut antippen.",
+  "sessionHook.shareCardFailed": "SiegerCard konnte nicht geteilt werden.",
+  "sessionHook.noClearWinnerPhoto": "Bei Gleichstand gibt es keinen eindeutigen Tagessieger und deshalb kein Siegerfoto.",
+  "sessionHook.photoUploadFailed": "Siegerfoto konnte nicht hochgeladen werden.",
+  "sessionHook.noWinnerPhoto": "Kein Siegerfoto vorhanden.",
+  "sessionHook.noClub": "Kein Club gefunden.",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -1892,6 +1907,21 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "sessionHook.photoSaved": "Daily winner photo saved.{hint}",
   "sessionHook.deletePhotoConfirm": "Really delete the winner photo?",
   "sessionHook.deletePhotoFailed": "Winner photo could not be deleted.",
+  "sessionHook.shareCardUrlFailed": "The winner card URL could not be created.",
+  "sessionHook.shareCardReady": "The winner card is ready.",
+  "sessionHook.shareCardLoadFailed": "The winner card could not be loaded.",
+  "sessionHook.lineupTitle": "strikr Line-up",
+  "sessionHook.lineupShareTitle": "Share line-up",
+  "sessionHook.lineupShared": "Line-up shared successfully.",
+  "sessionHook.lineupCopied": "Line-up text copied to the clipboard.",
+  "sessionHook.lineupShareFailed": "The line-up could not be shared.",
+  "sessionHook.groupCopied": "Group-share text copied to the clipboard.",
+  "sessionHook.directShareBlocked": "Direct sharing was blocked by the browser. Tap the button again.",
+  "sessionHook.shareCardFailed": "The winner card could not be shared.",
+  "sessionHook.noClearWinnerPhoto": "A draw has no clear daily winner, so no winner photo can be used.",
+  "sessionHook.photoUploadFailed": "Winner photo could not be uploaded.",
+  "sessionHook.noWinnerPhoto": "No winner photo available.",
+  "sessionHook.noClub": "No club found.",
 };
 
 export const MESSAGES: Record<AppLocale, Record<MessageKey, string>> = {
