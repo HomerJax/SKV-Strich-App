@@ -16,6 +16,7 @@ import { normalizeGoalValue } from "./session-ui";
 import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
 import type { BalanceCategory } from "./session-ui";
 import { useSessionDetail } from "./useSessionDetail";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type SessionDetailClientProps = {
   sessionId: number;
@@ -89,6 +90,7 @@ function WorkspaceIntro({
 }
 
 export default function SessionDetailClient(props: SessionDetailClientProps) {
+  const { t } = useI18n();
   const {
     router,
     resultRef,
@@ -330,7 +332,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         onWinnerPhotoUpload={handleWinnerPhotoUpload}
         onWinnerPhotoDelete={handleWinnerPhotoDelete}
         onToggleCollapsed={() => setWinnerPhotoCollapsed((prev) => !prev)}
-        title="Tagessiegerfoto"
+        title={t("sessionDetail.winnerPhoto")}
       />
     );
   }
@@ -356,7 +358,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             void deleteResult(gameNo);
           }}
           onToggleCollapsed={() => setResultCollapsed((prev) => !prev)}
-          title="Spiele & Ergebnisse"
+          title={t("sessionDetail.gamesResults")}
         />
       </div>
     );
@@ -370,34 +372,34 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     activeSection === "attendance"
       ? isAdmin
         ? isEventSession
-          ? "Teilnehmer festlegen"
-          : "Anwesenheit prüfen"
-        : "Wer ist dabei?"
+          ? t("sessionDetail.setParticipants")
+          : t("sessionDetail.checkAttendance")
+        : t("sessionDetail.whoIsIn")
       : activeSection === "teams"
-        ? "Teams prüfen und anpassen"
+        ? t("sessionDetail.checkTeams")
         : activeSection === "photo"
-          ? "Tagessiegerfoto ergänzen"
+          ? t("sessionDetail.addWinnerPhoto")
           : activeSection === "result"
-            ? "Spielergebnis eintragen"
+            ? t("sessionDetail.enterResult")
             : activeSection === "mvp"
-              ? "MVP Voting"
+              ? t("sessionDetail.mvpVoting")
               : null;
 
   const activeDescription =
     activeSection === "attendance"
       ? isAdmin
         ? isEventSession
-          ? "Hier sammelst du Zu- und Absagen für den Termin."
-          : "Zuerst festlegen, wer heute wirklich da ist."
-        : "Schau, wer schon zugesagt hat – und gib direkt deine eigene Rückmeldung."
+          ? t("sessionDetail.eventRsvpDescription")
+          : t("sessionDetail.attendanceDescription")
+        : t("sessionDetail.playerRsvpDescription")
       : activeSection === "teams"
-        ? "Teams erst prüfen, bei Bedarf verschieben und dann bestätigen."
+        ? t("sessionDetail.teamsDescription")
         : activeSection === "photo"
-          ? "Der Tagessieger steht fest. Jetzt kannst du das gemeinsame Siegerfoto ergänzen."
+          ? t("sessionDetail.photoDescription")
           : activeSection === "result"
-            ? "Spiel 1 speichern – weitere Spiele kannst du danach direkt ergänzen."
+            ? t("sessionDetail.resultDescription")
             : activeSection === "mvp"
-              ? "Nach dem Ergebnis läuft hier das Voting bzw. Reveal."
+              ? t("sessionDetail.mvpDescription")
               : undefined;
 
   function renderWorkflowSection(key: SectionKey, node: React.ReactNode) {
@@ -409,7 +411,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       <section className="space-y-3">
         {isActive && activeTitle ? (
           <WorkspaceIntro
-            step="Jetzt dran"
+            step={t("sessionDetail.now")}
             title={activeTitle}
             description={activeDescription}
           />
@@ -475,7 +477,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
         {hasResult && !dayWinnerSide ? (
           <NoticeCard tone="default">
-            Tagessiege {scoreAValue}:{scoreBValue} – aktuell gibt es keinen eindeutigen Tagessieger. Deshalb wird kein Siegerfoto verwendet.
+            {t("sessionDetail.noDayWinner", { scoreA: scoreAValue, scoreB: scoreBValue })}
           </NoticeCard>
         ) : null}
 
@@ -483,14 +485,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
         {isTrainingSession && hasResult && !activeSection ? (
           <NoticeCard tone="default">
-            Training gespeichert. Weitere Spiele kannst du jederzeit ergänzen.
+            {t("sessionDetail.savedMoreGames")}
           </NoticeCard>
         ) : null}
 
         {isEventSession ? (
           <NoticeCard tone="default">
-            Termin-Modus: Hier sammelst du Zu- und Absagen. Teams, Ergebnis,
-            Siegerfoto und MVP sind deaktiviert.
+            {t("sessionDetail.eventMode")}
           </NoticeCard>
         ) : null}
       </div>
