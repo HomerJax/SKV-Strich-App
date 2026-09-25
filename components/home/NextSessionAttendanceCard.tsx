@@ -243,7 +243,7 @@ export default function NextSessionAttendanceCard({
       ) : null}
 
       {!notNominated ? (
-        <div className="relative mt-4 rounded-[28px] bg-cyan-50/90 p-1.5 shadow-[0_10px_28px_rgba(34,211,238,0.10)] ring-1 ring-cyan-200/80">
+        <div className="relative mt-4 rounded-[28px] bg-cyan-100/85 p-1.5 shadow-[0_12px_30px_rgba(34,211,238,0.14)] ring-1 ring-cyan-300/80">
           <div className="grid grid-cols-2 gap-1.5">
             <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", inActive ? "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 text-white shadow-[0_16px_34px_rgba(56,189,248,0.24)]" : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50"].join(" ")}>
               <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-blue-50 text-blue-600 ring-1 ring-blue-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? "Speichert…" : inActive ? "Dabei ✓" : "Ich bin dabei"}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{presentCount} dabei</span></span></div>
