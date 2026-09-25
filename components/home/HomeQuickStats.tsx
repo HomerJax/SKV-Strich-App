@@ -6,8 +6,9 @@ import { useEffect, useState, type ReactNode } from "react";
 
 type Stats = {
   attendanceCount: number;
-  successRate: number | null;
+  winRate: number | null;
   attendanceRank: number | null;
+  badgeCount: number;
 };
 
 function MiniStatCard({
@@ -76,8 +77,8 @@ export default function HomeQuickStats() {
         />
         <MiniStatCard
           icon={<TrendingUp className="h-4 w-4" />}
-          value={stats?.successRate == null ? "–" : `${stats.successRate}%`}
-          label="Erfolgsquote"
+          value={stats?.winRate == null ? "–" : `${stats.winRate}%`}
+          label="Siegquote"
           tone="emerald"
           loading={!stats}
         />
@@ -90,9 +91,10 @@ export default function HomeQuickStats() {
         />
         <MiniStatCard
           icon={<Star className="h-4 w-4" />}
-          value="?"
-          label="Awards"
+          value={String(stats?.badgeCount ?? 0)}
+          label="Badges"
           tone="amber"
+          loading={!stats}
         />
       </div>
 
