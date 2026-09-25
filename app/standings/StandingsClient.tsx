@@ -17,6 +17,7 @@ import {
   movementText,
 } from "./standings-ui";
 import type { TrainingAward } from "./standings-ui";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 const DEMO_STANDINGS_MOVEMENT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
 
@@ -128,7 +129,12 @@ async function createStandingsShareBlob(targetId: string) {
   return blobFromDataUrl(dataUrl);
 }
 
-async function shareOrDownloadStandingsBlob(blob: Blob, fileBaseName: string) {
+async function shareOrDownloadStandingsBlob(
+  blob: Blob,
+  fileBaseName: string,
+  shareTitle: string,
+  shareText: string,
+) {
   const fileName = `${sanitizeShareFileBaseName(fileBaseName)}_${buildShareStamp()}.png`;
   const file = new File([blob], fileName, { type: blob.type || "image/png" });
   const nav = navigator as NavigatorWithFileShare;
@@ -136,8 +142,8 @@ async function shareOrDownloadStandingsBlob(blob: Blob, fileBaseName: string) {
   if (typeof nav.share === "function") {
     const shareData: ShareData = {
       files: [file],
-      title: "strikr Tabelle",
-      text: "Standings Card aus strikr.",
+      title: shareTitle,
+      text: shareText,
     };
 
     if (!nav.canShare || nav.canShare(shareData)) {
@@ -187,6 +193,7 @@ export default function StandingsClient({
   currentPlayerId = null,
 }: StandingsClientProps) {
   void clubName;
+  const { locale, t } = useI18n();
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -218,14 +225,14 @@ export default function StandingsClient({
       label: season.name,
     }));
     if (!isPro) return first;
-    return [...first, { value: "all", label: "Ewige Tabelle" }, ...rest];
-  }, [isPro, seasons]);
+    return [...first, { value: "all", label: t("standings.allTime") }, ...rest];
+  }, [isPro, seasons, t]);
 
   const selectedLabel = useMemo(() => {
     return selected === "all"
-      ? "Ewige Tabelle"
-      : options.find((option) => option.value === selected)?.label ?? "Saison";
-  }, [options, selected]);
+      ? t("standings.allTime")
+      : options.find((option) => option.value === selected)?.label ?? t("standings.season");
+  }, [options, selected, t]);
 
   const sortedRows = useMemo(() => {
     const nextRows = [...rows];
@@ -277,7 +284,7 @@ export default function StandingsClient({
           cache: "no-store",
         });
         const payload = (await response.json()) as StandingsApiResponse;
-        if (!response.ok) throw new Error(payload.error || "Fehler beim Laden der Tabelle.");
+        if (!response.ok) throw new Error(payload.error || t("standings.loadError"));
         if (cancelled) return;
 
         setSeasons(payload.seasons ?? []);
@@ -288,7 +295,7 @@ export default function StandingsClient({
         setSortKey("rank");
         setSortDirection("asc");
       } catch (error: unknown) {
-        if (!cancelled) setErr(getErrorMessage(error, "Fehler beim Laden der Tabelle."));
+        if (!cancelled) setErr(getErrorMessage(error, t("standings.loadError")));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -298,7 +305,7 @@ export default function StandingsClient({
     return () => {
       cancelled = true;
     };
-  }, [isPro, seasonParam]);
+  }, [isPro, seasonParam, t]);
 
   function handleSort(nextKey: SortKey) {
     if (sortKey === nextKey) {
@@ -321,8 +328,13 @@ export default function StandingsClient({
       setErr(null);
       setMsg(null);
       const blob = await createStandingsShareBlob(card.exportId);
-      const result = await shareOrDownloadStandingsBlob(blob, card.fileBaseName);
-      setMsg(result === "shared" ? "Tabellenkarte erfolgreich geteilt." : "Tabellenkarte als PNG heruntergeladen.");
+      const result = await shareOrDownloadStandingsBlob(
+        blob,
+        card.fileBaseName,
+        t("standings.shareTitle"),
+        t("standings.shareText"),
+      );
+      setMsg(result === "shared" ? t("standings.shared") : t("standings.downloaded"));
     } catch (error: unknown) {
       const errorName = error instanceof DOMException ? error.name : "";
       if (errorName === "AbortError") {
@@ -330,7 +342,7 @@ export default function StandingsClient({
         setMsg(null);
         return;
       }
-      setErr(getErrorMessage(error, "Tabellenkarte konnte nicht geteilt werden."));
+      setErr(getErrorMessage(error, t("standings.shareError")));
     } finally {
       setSharingCardIndex(null);
     }
@@ -353,17 +365,17 @@ export default function StandingsClient({
                   <div className="mt-2 text-sm leading-5 text-slate-500">{activeAward.award.label}</div>
                 </div>
               </div>
-              <button type="button" onClick={() => setActiveAward(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-black text-slate-500" aria-label="Award Erklärung schließen">×</button>
+              <button type="button" onClick={() => setActiveAward(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-black text-slate-500" aria-label={t("standings.closeAward")}>×</button>
             </div>
           </div>
         ) : null}
 
         <PageHero
-          eyebrow="Tabellen"
-          title="Tabellenübersicht"
-          description="Ranking prüfen, nach Platz, Teilnahmen oder Siegquote sortieren und die Top 10 als kompakte Share Card teilen."
+          eyebrow={t("standings.eyebrow")}
+          title={t("standings.title")}
+          description={t("standings.description")}
           primaryColorKey={initialPrimaryColor}
-          backLabel="Zurück"
+          backLabel={t("standings.back")}
           backHref="/"
           topRightSlot={
             isPro ? (
@@ -381,25 +393,25 @@ export default function StandingsClient({
                 ))}
               </select>
             ) : (
-              <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white backdrop-blur">Aktuelle Tabelle</div>
+              <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white backdrop-blur">{t("standings.current")}</div>
             )
           }
           compact
         />
 
         {msg ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{msg}</div> : null}
-        {loading ? <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">Lade Tabelle…</div> : null}
+        {loading ? <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">{t("standings.loading")}</div> : null}
         {err ? <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{err}</div> : null}
 
         {!loading && !err && rows.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="max-w-lg">
-              <div className="text-sm font-semibold text-slate-500">Noch keine Tabelle</div>
-              <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">In dieser Auswahl sind noch keine Ergebnisse vorhanden.</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Sobald ihr Trainings spielt und Ergebnisse speichert, baut sich eure Tabelle hier automatisch auf. Starte am besten mit eurer ersten Session.</p>
+              <div className="text-sm font-semibold text-slate-500">{t("standings.emptyEyebrow")}</div>
+              <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">{t("standings.emptyTitle")}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{t("standings.emptyText")}</p>
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <Link href="/sessions/new" className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white">Erstes Training erstellen</Link>
-                <Link href="/sessions" className="rounded-xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700">Zu den Trainings</Link>
+                <Link href="/sessions/new" className="rounded-xl bg-slate-950 px-4 py-2.5 text-center text-sm font-semibold text-white">{t("standings.createTraining")}</Link>
+                <Link href="/sessions" className="rounded-xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700">{t("standings.toTraining")}</Link>
               </div>
             </div>
           </div>
@@ -411,9 +423,9 @@ export default function StandingsClient({
               <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-xs font-semibold text-slate-800">{selectedLabel}</div>
-                  <div className="text-[11px] text-slate-500">{rows.length} Spieler · Spalten antippen zum Sortieren</div>
+                  <div className="text-[11px] text-slate-500">{t("standings.playersSort", { count: rows.length })}</div>
                 </div>
-                <div className="text-[10px] text-slate-500">Stand: {new Date().toLocaleDateString("de-DE")}</div>
+                <div className="text-[10px] text-slate-500">{t("standings.asOf", { date: new Date().toLocaleDateString(locale === "de" ? "de-DE" : "en-GB") })}</div>
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -421,15 +433,15 @@ export default function StandingsClient({
                   <thead className="bg-slate-50 text-[11px] text-slate-600">
                     <tr>
                       <th className="w-14 px-2 py-2 text-left">
-                        <button type="button" onClick={() => handleSort("rank")} className="inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">Platz <span className="text-[10px] text-slate-400">{sortIndicator("rank")}</span></button>
+                        <button type="button" onClick={() => handleSort("rank")} className="inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">{t("standings.rank")} <span className="text-[10px] text-slate-400">{sortIndicator("rank")}</span></button>
                       </th>
-                      <th className="px-1.5 py-2 text-left">Spieler</th>
-                      <th className="w-12 px-1 py-2 text-right">Siege</th>
+                      <th className="px-1.5 py-2 text-left">{t("standings.player")}</th>
+                      <th className="w-12 px-1 py-2 text-right">{t("standings.wins")}</th>
                       <th className="w-16 px-1 py-2 text-right">
-                        <button type="button" onClick={() => handleSort("sessions")} className="ml-auto inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">Teiln. <span className="text-[10px] text-slate-400">{sortIndicator("sessions")}</span></button>
+                        <button type="button" onClick={() => handleSort("sessions")} className="ml-auto inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">{t("standings.appearancesShort")} <span className="text-[10px] text-slate-400">{sortIndicator("sessions")}</span></button>
                       </th>
                       <th className="w-20 px-1.5 py-2 text-right">
-                        <button type="button" onClick={() => handleSort("winRate")} className="ml-auto inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">Siegquote <span className="text-[10px] text-slate-400">{sortIndicator("winRate")}</span></button>
+                        <button type="button" onClick={() => handleSort("winRate")} className="ml-auto inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">{t("standings.winRate")} <span className="text-[10px] text-slate-400">{sortIndicator("winRate")}</span></button>
                       </th>
                     </tr>
                   </thead>
@@ -464,7 +476,7 @@ export default function StandingsClient({
                               <Link
                                 href={`/badges?player=${row.player_id}`}
                                 className={`min-w-0 truncate whitespace-nowrap text-[13px] text-slate-950 underline decoration-slate-200 underline-offset-4 transition hover:decoration-slate-500 sm:text-sm ${row.rank <= 3 ? "font-bold" : "font-semibold"}`}
-                                title="Hall of Fame ansehen"
+                                title={t("standings.viewHallOfFame")}
                               >
                                 {getPlayerDisplayName(row)}
                               </Link>
@@ -512,7 +524,7 @@ export default function StandingsClient({
               </div>
 
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-[10px] text-slate-500">Siegquote = Siege ÷ Teilnahmen · Sortieren verändert nur die Ansicht, nicht die offizielle Platzierung.</div>
+                <div className="text-[10px] text-slate-500">{t("standings.winRateHint")}</div>
                 <div className="text-[10px] font-medium text-slate-500">made with strikr · #strikr</div>
               </div>
             </div>
@@ -520,17 +532,19 @@ export default function StandingsClient({
             <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <div className="text-sm font-bold text-slate-900">Tabelle teilen</div>
+                  <div className="text-sm font-bold text-slate-900">{t("standings.shareSection")}</div>
                   <div className="mt-1 max-w-xl text-[11px] leading-5 text-slate-500">
-                    Die Top 10 sind die kompakte Hauptkarte für WhatsApp und Social Media. Bei größeren Kadern bleiben Plätze 11–20, 21–30 usw. als separate Fortsetzung verfügbar – die komplette Tabelle bleibt in strikr.
+                    {t("standings.shareSectionHint")}
                   </div>
                 </div>
-                <div className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{rows.length} Spieler</div>
+                <div className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{t("standings.playersSort", { count: rows.length }).split(" · ")[0]}</div>
               </div>
 
               <div className="space-y-3">
                 {rankingCards.map((card) => {
-                  const title = card.startRank === card.endRank ? `Platz ${card.startRank}` : `Plätze ${card.startRank}–${card.endRank}`;
+                  const title = card.startRank === card.endRank
+                    ? t("standings.shareRank", { rank: card.startRank })
+                    : t("standings.shareRanks", { start: card.startRank, end: card.endRank });
                   const isTopCard = card.index === 0;
 
                   return (
@@ -539,9 +553,9 @@ export default function StandingsClient({
                         <div>
                           <div className="flex items-center gap-2">
                             <div className="text-sm font-semibold text-slate-900">{isTopCard ? "Top 10" : title}</div>
-                            {isTopCard ? <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Empfohlen</span> : null}
+                            {isTopCard ? <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">{t("standings.recommended")}</span> : null}
                           </div>
-                          <div className="mt-1 text-[11px] text-slate-500">{selectedLabel} · {isTopCard ? "Hauptkarte" : `Fortsetzung ${card.index + 1}`}</div>
+                          <div className="mt-1 text-[11px] text-slate-500">{selectedLabel} · {isTopCard ? t("standings.mainCard") : t("standings.continuation", { number: card.index + 1 })}</div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
@@ -550,7 +564,7 @@ export default function StandingsClient({
                             disabled={sharingCardIndex === card.index}
                             className={`rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 ${sharingCardIndex === card.index ? "cursor-not-allowed opacity-60" : ""}`}
                           >
-                            {sharingCardIndex === card.index ? "Teile…" : isTopCard ? "Top 10 teilen" : `${title} teilen`}
+                            {sharingCardIndex === card.index ? t("standings.sharing") : isTopCard ? t("standings.shareTop10") : t("standings.shareRange", { range: title })}
                           </button>
                           <ExportButtons targetId={card.exportId} fileBaseName={card.fileBaseName} />
                         </div>
