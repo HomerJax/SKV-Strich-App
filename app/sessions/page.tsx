@@ -8,6 +8,9 @@ import {
   formatDeadlineForDisplay,
   getSessionDeadlineEpochMs,
 } from "@/lib/session-rsvp-deadline";
+import { getServerI18n } from "@/lib/i18n/server";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type SessionsPageProps = { searchParams?: Promise<{ success?: string }> };
 type Season = { id: number; name: string; start_date: string | null; end_date: string | null };
@@ -16,8 +19,13 @@ type SessionRow = { id: number; date: string; start_time: string | null; rsvp_de
 type ClubRow = { id: string; display_name: string | null; primary_color: string | null };
 type PresenceStatus = "in" | "out" | "open";
 
-function fmtDateDE(iso: string) {
-  return new Date(iso).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+function fmtDate(iso: string, locale: AppLocale) {
+  return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 function getTodayIsoDate() {
   const now = new Date();
@@ -40,6 +48,7 @@ function SessionCard({
   clubDeadlineMinutes,
   requireAbsenceReason,
   readOnlyRsvp = false,
+  locale,
 }: {
   session: SessionRow;
   rsvpStatus?: PresenceStatus;
@@ -47,29 +56,35 @@ function SessionCard({
   clubDeadlineMinutes: number;
   requireAbsenceReason: boolean;
   readOnlyRsvp?: boolean;
+  locale: AppLocale;
 }) {
+  const t = (key: Parameters<typeof translate>[1], params?: Record<string, string | number | null | undefined>) =>
+    translate(locale, key, params);
   const deadlineEpochMs = getSessionDeadlineEpochMs({
     date: session.date,
     startTime: session.start_time,
     sessionOverrideMinutes: session.rsvp_deadline_minutes_before,
     clubDefaultMinutes: clubDeadlineMinutes,
   });
-  const deadlineLabel = formatDeadlineForDisplay(deadlineEpochMs);
+  const deadlineLabel = formatDeadlineForDisplay(
+    deadlineEpochMs,
+    locale === "de" ? "de-DE" : "en-GB",
+  );
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
       <Link href={`/sessions/${session.id}`} className="block transition hover:opacity-75">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xl font-bold tracking-tight text-slate-950">{fmtDateDE(session.date)}</div>
+            <div className="text-xl font-bold tracking-tight text-slate-950">{fmtDate(session.date, locale)}</div>
             {session.start_time ? (
               <div className="mt-1 text-xs font-semibold text-slate-500">
-                Start {session.start_time.slice(0, 5)} Uhr
-                {deadlineLabel ? ` · Anmeldeschluss ${deadlineLabel} Uhr` : ""}
+                {t("session.startAt", { time: session.start_time.slice(0, 5) })}
+                {deadlineLabel ? ` · ${t("session.registrationDeadline", { deadline: deadlineLabel })}` : ""}
               </div>
             ) : null}
             <div className={`mt-1 text-sm ${session.notes ? "text-slate-500" : "text-slate-400"}`}>
-              {session.notes || "Keine Notiz hinterlegt"}
+              {session.notes || t("session.noNote")}
             </div>
           </div>
           <div className="shrink-0"><SessionTypeBadge type={session.type ?? "training"} /></div>
@@ -101,6 +116,7 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
 }
 
 export default async function SessionsPage({ searchParams }: SessionsPageProps) {
+  const { locale, t } = await getServerI18n();
   const { clubId, player, supportViewPlayer, isSupportView } = await requireClub();
   const viewPlayer = player ?? supportViewPlayer;
   const supabase = await createClient();
@@ -120,7 +136,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   ]);
 
   if (seasonsError || sessionsError || rsvpSettingsError) {
-    throw new Error(seasonsError?.message ?? sessionsError?.message ?? rsvpSettingsError?.message ?? "Daten konnten nicht geladen werden.");
+    throw new Error(seasonsError?.message ?? sessionsError?.message ?? rsvpSettingsError?.message ?? (locale === "de" ? "Daten konnten nicht geladen werden." : "Could not load data."));
   }
 
   const club = (clubData ?? null) as ClubRow | null;
@@ -171,41 +187,44 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <PageHero eyebrow="Sessions" title="Trainings & Termine" description="Alle anstehenden und vergangenen Einheiten an einem Ort." primaryColorKey={club?.primary_color} backLabel="Zurück" backHref="/" topRightSlot={<Link href="/sessions/new" className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-white/90">+ Neuer Eintrag</Link>} compact />
+        <PageHero eyebrow="Sessions" title={t("session.pageTitle")} description={t("session.pageDescription")} primaryColorKey={club?.primary_color} backLabel={t("session.back")} backHref="/" topRightSlot={<Link href="/sessions/new" className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-white/90">{t("session.newEntry")}</Link>} compact />
 
         {successMessage ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{successMessage}</div> : null}
         {totalSessions > 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-            {totalSessions} {totalSessions === 1 ? "Eintrag" : "Einträge"} gespeichert.
-            <span className="ml-2 text-slate-400">· {totalTrainings} {totalTrainings === 1 ? "Training" : "Trainings"}</span>
-            <span className="ml-2 text-slate-400">· {totalEvents} {totalEvents === 1 ? "Termin" : "Termine"}</span>
-            {currentSeason ? <span className="ml-2 text-slate-400">· Aktive Saison: {currentSeason.name}</span> : null}
+            {t("session.entriesSaved", {
+              count: totalSessions,
+              label: t(totalSessions === 1 ? "session.entry" : "session.entries"),
+            })}
+            <span className="ml-2 text-slate-400">· {totalTrainings} {t(totalTrainings === 1 ? "session.typeTraining" : "session.trainings")}</span>
+            <span className="ml-2 text-slate-400">· {totalEvents} {t(totalEvents === 1 ? "session.event" : "session.events")}</span>
+            {currentSeason ? <span className="ml-2 text-slate-400">· {t("session.activeSeason", { name: currentSeason.name })}</span> : null}
           </div>
         ) : null}
 
         {totalSessions === 0 ? (
           <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-sm font-semibold text-slate-500">Noch leer</div>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">Ihr habt noch keinen Eintrag erstellt.</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Lege jetzt euer erstes Training oder euren ersten Termin an.</p>
-            <div className="mt-4 flex gap-2"><Link href="/sessions/new" className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">Ersten Eintrag erstellen</Link></div>
+            <div className="text-sm font-semibold text-slate-500">{t("session.emptyEyebrow")}</div>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">{t("session.emptyTitle")}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t("session.emptyText")}</p>
+            <div className="mt-4 flex gap-2"><Link href="/sessions/new" className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">{t("session.createFirst")}</Link></div>
           </div>
         ) : (
           <div className="space-y-5">
-            {nextSession ? <SectionCard title="Als Nächstes" subtitle="Hier kannst du direkt zu- oder absagen."><SessionCard session={nextSession} rsvpStatus={statusFor(nextSession.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} /></SectionCard> : null}
+            {nextSession ? <SectionCard title={t("session.next")} subtitle={t("session.nextHint")}><SessionCard session={nextSession} rsvpStatus={statusFor(nextSession.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} locale={locale} /></SectionCard> : null}
 
-            <SectionCard title="Kommende Einträge" subtitle={currentSeason ? `Aus der laufenden Saison${currentSeason.name ? ` · ${currentSeason.name}` : ""} · direkt Rückmeldung geben` : "Alle kommenden Einträge"}>
-              {moreUpcomingSessions.length > 0 ? <div className="space-y-3">{moreUpcomingSessions.map((session) => <SessionCard key={session.id} session={session} rsvpStatus={statusFor(session.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} />)}</div> : futureCurrentSeasonSessions.length > 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine weiteren kommenden Einträge außer dem nächsten oben.</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine kommenden Einträge.</div>}
+            <SectionCard title={t("session.upcoming")} subtitle={currentSeason ? t("session.currentSeasonHint", { name: currentSeason.name ? ` · ${currentSeason.name}` : "" }) : t("session.allUpcoming")}>
+              {moreUpcomingSessions.length > 0 ? <div className="space-y-3">{moreUpcomingSessions.map((session) => <SessionCard key={session.id} session={session} rsvpStatus={statusFor(session.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} locale={locale} />)}</div> : futureCurrentSeasonSessions.length > 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">{t("session.noMoreUpcoming")}</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">{t("session.noUpcoming")}</div>}
             </SectionCard>
 
             <details className="group rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
-              <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-3"><div><div className="text-sm font-semibold text-slate-900">Vergangene Einträge</div><div className="mt-1 text-xs text-slate-500">{currentSeason ? `Aus der aktuellen Saison · ${currentSeason.name}` : "Vergangene Einträge"}</div></div><div className="rounded-full border border-black/10 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">⌄</div></div></summary>
-              <div className="mt-4 border-t border-slate-100 pt-4">{pastCurrentSeasonSessions.length > 0 ? <div className="space-y-3">{pastCurrentSeasonSessions.map((session) => <SessionCard key={session.id} session={session} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} />)}</div> : <div className="text-sm text-slate-500">Noch keine vergangenen Einträge.</div>}</div>
+              <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-3"><div><div className="text-sm font-semibold text-slate-900">{t("session.past")}</div><div className="mt-1 text-xs text-slate-500">{currentSeason ? t("session.currentSeasonPast", { name: currentSeason.name }) : t("session.past")}</div></div><div className="rounded-full border border-black/10 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">⌄</div></div></summary>
+              <div className="mt-4 border-t border-slate-100 pt-4">{pastCurrentSeasonSessions.length > 0 ? <div className="space-y-3">{pastCurrentSeasonSessions.map((session) => <SessionCard key={session.id} session={session} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} locale={locale} />)}</div> : <div className="text-sm text-slate-500">{t("session.noPast")}</div>}</div>
             </details>
 
-            {withoutSeason.length > 0 ? <details className="group rounded-[28px] border border-amber-200 bg-amber-50 p-4 shadow-sm"><summary className="cursor-pointer list-none"><div className="text-sm font-semibold text-amber-900">Ohne Saison · {withoutSeason.length}</div></summary><div className="mt-4 space-y-3">{withoutSeason.map((session) => <SessionCard key={session.id} session={session} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} />)}</div></details> : null}
+            {withoutSeason.length > 0 ? <details className="group rounded-[28px] border border-amber-200 bg-amber-50 p-4 shadow-sm"><summary className="cursor-pointer list-none"><div className="text-sm font-semibold text-amber-900">{t("session.noSeason", { count: withoutSeason.length })}</div></summary><div className="mt-4 space-y-3">{withoutSeason.map((session) => <SessionCard key={session.id} session={session} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} locale={locale} />)}</div></details> : null}
 
-            <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm font-semibold text-slate-900">Saison-Archiv</div><div className="mt-1 text-sm text-slate-500">Vergangene, abgeschlossene Saisons separat ansehen.</div></div><Link href="/sessions/archive" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">Archiv öffnen{archivedSeasons.length > 0 ? ` (${archivedSeasons.length})` : ""}</Link></div></section>
+            <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm font-semibold text-slate-900">{t("session.archive")}</div><div className="mt-1 text-sm text-slate-500">{t("session.archiveHint")}</div></div><Link href="/sessions/archive" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700">{t("session.openArchive")}{archivedSeasons.length > 0 ? ` (${archivedSeasons.length})` : ""}</Link></div></section>
           </div>
         )}
       </section>
