@@ -11,8 +11,10 @@ import HomeQuickStats from "@/components/home/HomeQuickStats";
 import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
+import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
+import { getTeamFeedItems } from "@/lib/team-feed";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -51,6 +53,7 @@ type HomeClubSettingsRow = {
   beerkasse_home_enabled: boolean | null;
   beerkasse_paypal_url: string | null;
   beerkasse_price_cents: number | null;
+  home_team_feed_enabled: boolean | null;
 };
 
 type ResultSessionRow = {
@@ -436,7 +439,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     supabase
       .from("club_settings")
       .select(
-        "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_price_cents"
+        "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_price_cents, home_team_feed_enabled"
       )
       .eq("club_id", clubId)
       .maybeSingle<HomeClubSettingsRow>(),
@@ -478,6 +481,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     homeSettings?.rsvp_deadline_minutes_before ?? 60;
   const requireRsvpReasonOnAbsence =
     homeSettings?.require_rsvp_reason_on_absence === true;
+  const teamFeedEnabled = homeSettings?.home_team_feed_enabled === true;
   const bierkasseHomeEnabled =
     homeSettings?.beerkasse_premium_enabled === true &&
     homeSettings?.beerkasse_enabled === true &&
@@ -489,6 +493,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
   );
+  const teamFeedItems = teamFeedEnabled
+    ? await getTeamFeedItems(clubId, 3)
+    : [];
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
   const clubName = club?.display_name?.trim() || "Dein Team";
@@ -888,6 +895,31 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           )}
         </section>
 
+        {bierkasseHomeEnabled ? (
+          <>
+            <HomeBeerCheckoutModal
+              priceCents={bierkassePriceCents}
+              paypalEnabled={bierkassePaypalEnabled}
+              paypalPool={bierkassePaypalPool}
+              paypalUrl={bierkassePaypalUrl}
+            />
+            {q?.beer_saved === "cash" ? (
+              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
+                🍺 Eingetragen · Zahlung wartet auf Bestätigung.
+              </div>
+            ) : null}
+            {q?.beer_error ? (
+              <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">
+                {q.beer_error}
+              </div>
+            ) : null}
+          </>
+        ) : null}
+
+        {teamFeedEnabled ? (
+          <HomeTeamFeedPreview items={teamFeedItems} />
+        ) : null}
+
         {activeVotingSession ? (
           <section className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between gap-3">
@@ -995,27 +1027,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               ) : null}
             </div>
           </section>
-        ) : null}
-
-        {bierkasseHomeEnabled ? (
-          <>
-            <HomeBeerCheckoutModal
-              priceCents={bierkassePriceCents}
-              paypalEnabled={bierkassePaypalEnabled}
-              paypalPool={bierkassePaypalPool}
-              paypalUrl={bierkassePaypalUrl}
-            />
-            {q?.beer_saved === "cash" ? (
-              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
-                🍺 Eingetragen · Barzahlung ist noch offen.
-              </div>
-            ) : null}
-            {q?.beer_error ? (
-              <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">
-                {q.beer_error}
-              </div>
-            ) : null}
-          </>
         ) : null}
 
         <Link
