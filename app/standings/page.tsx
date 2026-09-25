@@ -14,7 +14,8 @@ type ClubRow = {
 };
 
 export default async function StandingsPage() {
-  const { clubId } = await requireClub();
+  const { clubId, player, supportViewPlayer } = await requireClub();
+  const viewPlayerId = player?.id ?? supportViewPlayer?.id ?? null;
   const supabase = await createClient();
 
   const [{ data: clubData }, billingAccess, featureFlags] = await Promise.all([
@@ -38,6 +39,7 @@ export default async function StandingsPage() {
         isPro={billingAccess.isPro}
         clubName={clubName}
         hallOfFameEnabled={featureFlags.hall_of_fame_badges}
+        currentPlayerId={viewPlayerId}
       />
       <StandingsTop10Share />
       <StandingsSortAccent />
