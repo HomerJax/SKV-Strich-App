@@ -10,6 +10,8 @@ export type TeamFeedItem = {
   body: string;
   href: string;
   occurredAt: string;
+  badgeKey?: string;
+  actorName?: string;
 };
 
 type SessionRow = {
@@ -150,13 +152,17 @@ export async function getTeamFeedItems(
         const badge = getBadgeDefinition(achievement.badge_key);
         if (!badge) return [];
 
+        const actorName = playerName(achievement.players);
+
         return [{
           id: `badge:${achievement.id}`,
           kind: "badge" as const,
-          title: `${playerName(achievement.players)} hat „${badge.title}“ erreicht`,
+          title: `${actorName} hat „${badge.title}“ erreicht`,
           body: badge.description,
           href: `/badges?player=${achievement.player_id}`,
           occurredAt: achievement.earned_at,
+          badgeKey: achievement.badge_key,
+          actorName,
         }];
       });
 
@@ -201,12 +207,16 @@ export async function getAchievementFeedItem(params: {
   const badge = getBadgeDefinition(data.badge_key);
   if (!badge) return null;
 
+  const actorName = playerName(data.players);
+
   return {
     id: `badge:${data.id}`,
     kind: "badge",
-    title: `${playerName(data.players)} hat „${badge.title}“ erreicht`,
+    title: `${actorName} hat „${badge.title}“ erreicht`,
     body: badge.description,
     href: `/badges?player=${data.player_id}`,
     occurredAt: data.earned_at,
+    badgeKey: data.badge_key,
+    actorName,
   };
 }
