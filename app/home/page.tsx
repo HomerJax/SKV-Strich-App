@@ -14,7 +14,7 @@ import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
-import { getTeamFeedItems } from "@/lib/team-feed";
+import { getAchievementFeedItem, getTeamFeedItems } from "@/lib/team-feed";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -493,9 +493,28 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
   );
-  const teamFeedItems = teamFeedEnabled
+  const baseTeamFeedItems = teamFeedEnabled
     ? await getTeamFeedItems(clubId, 3)
     : [];
+
+  // TEMP: Badge-Feed-Darstellung im SKV-Team sichtbar testen.
+  // Der Achievement-Datensatz und sein echtes Datum bleiben unverändert.
+  const featuredSommiBadge =
+    teamFeedEnabled && clubId === "108590d9-0877-4787-90a5-4679615b3b76"
+      ? await getAchievementFeedItem({
+          clubId,
+          playerId: 30,
+          badgeKey: "career_wins_25",
+        })
+      : null;
+
+  const teamFeedItems = featuredSommiBadge
+    ? [
+        featuredSommiBadge,
+        ...baseTeamFeedItems.filter((item) => item.id !== featuredSommiBadge.id),
+      ].slice(0, 3)
+    : baseTeamFeedItems;
+
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
   const clubName = club?.display_name?.trim() || "Dein Team";
