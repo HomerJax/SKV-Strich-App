@@ -2,6 +2,9 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type ProfilePasswordFormProps = {
   email: string;
@@ -9,20 +12,20 @@ type ProfilePasswordFormProps = {
 
 type FormState = "idle" | "saving" | "success" | "error";
 
-function getSupabaseBrowserClient() {
+function getSupabaseBrowserClient(locale: AppLocale) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase Browser-Konfiguration fehlt.");
+    throw new Error(translate(locale, "profile.unknownError"));
   }
 
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
-function validatePassword(password: string) {
+function validatePassword(password: string, locale: AppLocale) {
   if (password.length < 8) {
-    return "Das neue Passwort muss mindestens 8 Zeichen lang sein.";
+    return translate(locale, "profile.passwordTooShort");
   }
 
   const hasUppercase = /[A-ZÄÖÜ]/.test(password);
@@ -30,23 +33,24 @@ function validatePassword(password: string) {
   const hasNumber = /\d/.test(password);
 
   if (!hasUppercase || !hasLowercase || !hasNumber) {
-    return "Bitte nutze mindestens einen Großbuchstaben, einen Kleinbuchstaben und eine Zahl.";
+    return translate(locale, "profile.passwordComplexity");
   }
 
   return null;
 }
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(error: unknown, locale: AppLocale) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Unbekannter Fehler.";
+  return translate(locale, "profile.unknownError");
 }
 
 export default function ProfilePasswordForm({
   email,
 }: ProfilePasswordFormProps) {
+  const { locale, t } = useI18n();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordRepeat, setNewPasswordRepeat] = useState("");
@@ -56,8 +60,8 @@ export default function ProfilePasswordForm({
   const isSaving = state === "saving";
 
   const passwordHint = useMemo(() => {
-    return "Mindestens 8 Zeichen, mit Groß-/Kleinbuchstaben und Zahl.";
-  }, []);
+    return t("profile.passwordRule");
+  }, [t]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,33 +71,33 @@ export default function ProfilePasswordForm({
 
     try {
       if (!email) {
-        throw new Error("Keine E-Mail-Adresse gefunden.");
+        throw new Error(t("profile.noEmail"));
       }
 
       if (!currentPassword.trim()) {
-        throw new Error("Bitte aktuelles Passwort eingeben.");
+        throw new Error(t("profile.enterCurrentPassword"));
       }
 
       if (!newPassword.trim()) {
-        throw new Error("Bitte neues Passwort eingeben.");
+        throw new Error(t("profile.enterNewPassword"));
       }
 
-      const passwordValidationError = validatePassword(newPassword);
+      const passwordValidationError = validatePassword(newPassword, locale);
       if (passwordValidationError) {
         throw new Error(passwordValidationError);
       }
 
       if (newPassword !== newPasswordRepeat) {
-        throw new Error("Die neuen Passwörter stimmen nicht überein.");
+        throw new Error(t("profile.passwordMismatch"));
       }
 
       if (currentPassword === newPassword) {
-        throw new Error("Das neue Passwort muss sich vom aktuellen unterscheiden.");
+        throw new Error(t("profile.passwordSame"));
       }
 
       setState("saving");
 
-      const supabase = getSupabaseBrowserClient();
+      const supabase = getSupabaseBrowserClient(locale);
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -101,7 +105,7 @@ export default function ProfilePasswordForm({
       });
 
       if (signInError) {
-        throw new Error("Das aktuelle Passwort ist nicht korrekt.");
+        throw new Error(t("profile.wrongPassword"));
       }
 
       const { error: updateError } = await supabase.auth.updateUser({
@@ -116,22 +120,21 @@ export default function ProfilePasswordForm({
       setNewPassword("");
       setNewPasswordRepeat("");
       setState("success");
-      setMessage("Passwort erfolgreich geändert.");
+      setMessage(t("profile.passwordSuccess"));
     } catch (error) {
       setState("error");
-      setMessage(getErrorMessage(error));
+      setMessage(getErrorMessage(error, locale));
     }
   }
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-        Passwort ändern
+        {t("profile.passwordTitle")}
       </h2>
 
       <p className="mt-3 text-sm leading-6 text-slate-700">
-        Ändere hier dein Passwort. Danach kannst du das temporäre Vereins-Passwort
-        nicht mehr verwenden.
+        {t("profile.passwordHintText")}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
@@ -140,7 +143,7 @@ export default function ProfilePasswordForm({
             htmlFor="currentPassword"
             className="mb-1 block text-sm font-medium text-slate-700"
           >
-            Aktuelles Passwort
+            {t("profile.currentPassword")}
           </label>
           <input
             id="currentPassword"
@@ -158,7 +161,7 @@ export default function ProfilePasswordForm({
             htmlFor="newPassword"
             className="mb-1 block text-sm font-medium text-slate-700"
           >
-            Neues Passwort
+            {t("profile.newPassword")}
           </label>
           <input
             id="newPassword"
@@ -177,7 +180,7 @@ export default function ProfilePasswordForm({
             htmlFor="newPasswordRepeat"
             className="mb-1 block text-sm font-medium text-slate-700"
           >
-            Neues Passwort wiederholen
+            {t("profile.repeatPassword")}
           </label>
           <input
             id="newPasswordRepeat"
@@ -208,7 +211,7 @@ export default function ProfilePasswordForm({
             disabled={isSaving}
             className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSaving ? "Speichert..." : "Passwort ändern"}
+            {isSaving ? t("profile.saving") : t("profile.passwordTitle")}
           </button>
         </div>
       </form>
