@@ -424,26 +424,25 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
                   <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.18em] text-cyan-200">
                     <Sparkles className="h-3.5 w-3.5" />
-                    In wenigen Minuten startklar
+                    {t("clubSetup.readyMinutes")}
                   </div>
 
                   <h1 className="mt-5 max-w-xl text-4xl font-black leading-[.98] tracking-[-.055em] sm:text-5xl">
-                    Dein Team.
+                    {t("clubSetup.heroTeam")}
                     <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
-                      Deine Saison.
+                      {t("clubSetup.heroSeason")}
                     </span>
                   </h1>
 
                   <p className="mt-5 max-w-xl text-sm font-medium leading-7 text-white/58 sm:text-base">
-                    Wir richten strikr gemeinsam ein. Danach habt ihr faire Teams, Ergebnisse,
-                    Tabelle, Stats und Trophäen – aus euren ganz normalen Trainings.
+                    {t("clubSetup.heroText")}
                   </p>
 
                   <div className="mt-8 grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                     {[
-                      ["01", "Club anlegen", "Name & Auftritt"],
-                      ["02", "Faire Teams", "Generator einstellen"],
-                      ["03", "Team reinholen", "Link teilen & loslegen"],
+                      ["01", t("clubSetup.intro1Title"), t("clubSetup.intro1Text")],
+                      ["02", t("clubSetup.intro2Title"), t("clubSetup.intro2Text")],
+                      ["03", t("clubSetup.intro3Title"), t("clubSetup.intro3Text")],
                     ].map(([number, title, text]) => (
                       <div key={number} className="rounded-[20px] border border-white/10 bg-white/5 p-3">
                         <div className="text-[9px] font-black tracking-[.18em] text-cyan-300">{number}</div>
@@ -459,13 +458,13 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-600">
-                      Los geht&apos;s
+                      {t("clubSetup.letsGo")}
                     </div>
                     <h2 className="mt-2 text-2xl font-black tracking-[-.035em] text-slate-950 sm:text-3xl">
-                      Wie heißt euer Team?
+                      {t("clubSetup.teamNameQuestion")}
                     </h2>
                     <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
-                      Mehr brauchen wir für den Start noch nicht.
+                      {t("clubSetup.teamNameHint")}
                     </p>
                   </div>
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
@@ -482,13 +481,13 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                 <form action={createClubAction} className="mt-7 space-y-4">
                   <label className="block">
                     <span className="mb-2 block text-xs font-black uppercase tracking-[.12em] text-slate-500">
-                      Teamname
+                      {t("clubSetup.teamName")}
                     </span>
                     <input
                       id="name"
                       name="name"
                       type="text"
-                      placeholder="z. B. SKV Rutesheim AH"
+                      placeholder={t("clubSetup.teamNamePlaceholder")}
                       autoFocus
                       className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-bold text-slate-950 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100"
                       required
@@ -501,9 +500,9 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                   >
                     <span>
                       <span className="block text-[10px] font-black uppercase tracking-[.16em] text-cyan-300">
-                        Schritt 1 starten
+                        {t("clubSetup.startStep1")}
                       </span>
-                      <span className="mt-0.5 block text-base font-black">Team einrichten</span>
+                      <span className="mt-0.5 block text-base font-black">{t("clubSetup.setUpTeam")}</span>
                     </span>
                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-950 transition group-hover:translate-x-0.5">
                       <ArrowRight className="h-4 w-4" />
@@ -514,16 +513,16 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                 <div className="mt-6 border-t border-slate-100 pt-5">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
                     <Users className="h-4 w-4" />
-                    Du wurdest eingeladen?
+                    {t("clubSetup.invited")}
                   </div>
                   <p className="mt-2 text-xs font-medium leading-5 text-slate-400">
-                    Dann brauchst du keinen eigenen Club anzulegen. Öffne einfach den Einladungslink deines Teams.
+                    {t("clubSetup.invitedHint")}
                   </p>
                   <Link
                     href="/"
                     className="mt-3 inline-flex items-center gap-1.5 text-xs font-black text-slate-700 hover:text-slate-950"
                   >
-                    Zurück <ArrowRight className="h-3 w-3 rotate-180" />
+                    {t("clubSetup.back")} <ArrowRight className="h-3 w-3 rotate-180" />
                   </Link>
                 </div>
               </div>
@@ -542,13 +541,13 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     </div>
                     <div>
                       <div className="text-[10px] font-black uppercase tracking-[.18em] text-violet-600">
-                        Schritt 1 · Euer Auftritt
+                        {t("clubSetup.step1")}
                       </div>
                       <h2 className="mt-1 text-2xl font-black tracking-[-.035em] text-neutral-950">
-                        Mach strikr zu eurem Club.
+                        {t("clubSetup.step1Title")}
                       </h2>
                       <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
-                        Wähle Sport, Logo und Farbe. Alles lässt sich später jederzeit ändern.
+                        {t("clubSetup.step1Text")}
                       </p>
                     </div>
                   </div>
@@ -557,7 +556,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     saved={clubSaved}
                     error={clubError}
                     redirectTo={buildWizardUrl("team")}
-                    submitLabel="Weiter zu fairen Teams"
+                    submitLabel={t("clubSetup.continueTeams")}
                     removeLogoRedirectTo={buildWizardUrl("club")}
                     initialDisplayName={club?.display_name ?? ""}
                     initialPrimaryColor={club?.primary_color ?? "black"}
@@ -577,13 +576,13 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     </div>
                     <div>
                       <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
-                        Schritt 2 · Faire Teams
+                        {t("clubSetup.step2")}
                       </div>
                       <h2 className="mt-1 text-2xl font-black tracking-[-.035em] text-neutral-950">
-                        Sag strikr nur, was zählen soll.
+                        {t("clubSetup.step2Title")}
                       </h2>
                       <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
-                        Der Algorithmus macht danach den Rest – bei jedem Training automatisch.
+                        {t("clubSetup.step2Text")}
                       </p>
                     </div>
                   </div>
@@ -592,7 +591,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     useStrength={settings?.use_strength ?? false}
                     useCategories={useCategories}
                     redirectTo={buildWizardUrl("categories")}
-                    submitLabel="Weiter zu den Spielergruppen"
+                    submitLabel={t("clubSetup.continueCategories")}
                     saved={settingsSaved}
                     error={settingsError}
                     variant="onboarding"
@@ -604,7 +603,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                         href={buildWizardUrl(previousStep)}
                         className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50"
                       >
-                        Zurück
+                        {t("clubSetup.back")}
                       </Link>
                     </div>
                   ) : null}
@@ -619,13 +618,13 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     </div>
                     <div>
                       <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
-                        Schritt 3 · Spielergruppen
+                        {t("clubSetup.step3")}
                       </div>
                       <h2 className="mt-1 text-2xl font-black tracking-[-.035em] text-neutral-950">
-                        Nur so viel Struktur wie ihr braucht.
+                        {t("clubSetup.step3Title")}
                       </h2>
                       <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
-                        AH, Ü32 oder eigene Gruppen – oder einfach ohne Kategorien weitermachen.
+                        {t("clubSetup.step3Text")}
                       </p>
                     </div>
                   </div>
@@ -655,7 +654,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                       href={buildWizardUrl("done")}
                       className="inline-flex items-center gap-2 justify-center rounded-2xl bg-neutral-950 px-5 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(15,23,42,.12)] transition hover:-translate-y-0.5 hover:bg-neutral-800"
                     >
-                      Team fertig machen <ArrowRight className="h-4 w-4" />
+                      {t("clubSetup.finishTeam")} <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>
@@ -670,13 +669,13 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                       <Trophy className="h-7 w-7 text-cyan-200" />
                     </div>
                     <div className="relative mt-5 text-[10px] font-black uppercase tracking-[.22em] text-cyan-300">
-                      Setup geschafft
+                      {t("clubSetup.completed")}
                     </div>
                     <h2 className="relative mt-2 text-3xl font-black tracking-[-.045em] sm:text-4xl">
-                      {clubName} ist startklar.
+                      {t("clubSetup.readyClub", { club: clubName })}
                     </h2>
                     <p className="relative mx-auto mt-3 max-w-xl text-sm font-medium leading-6 text-white/55 sm:text-base">
-                      Ab jetzt wird aus jedem Trainingsabend mehr: faire Teams, Ergebnisse, Tabelle, Stats und Trophäen.
+                      {t("clubSetup.completedText")}
                     </p>
                   </div>
 
@@ -685,17 +684,16 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                   <div className="rounded-[24px] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-cyan-50 p-4 sm:p-5">
                     <div className="flex items-center gap-2 text-sm font-black text-neutral-950">
                       <Share2 className="h-4 w-4 text-violet-600" />
-                      Teamkameraden reinholen
+                      {t("clubSetup.inviteTeam")}
                     </div>
                     <p className="mt-1 text-sm leading-6 text-neutral-600">
-                      Erzeuge einen mehrfach nutzbaren Link und teile ihn direkt
-                      in eurer WhatsApp- oder Mannschaftsgruppe.
+                      {t("clubSetup.inviteText")}
                     </p>
 
                     <div className="mt-5">
                       {inviteError ? (
                         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                          Der Einladungslink konnte nicht erstellt werden.
+                          {t("clubSetup.inviteError")}
                         </div>
                       ) : null}
 
@@ -721,13 +719,11 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                             type="submit"
                             className="inline-flex w-full items-center justify-center rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
                           >
-                            Einladungslink erzeugen
+                            {t("clubSetup.createInvite")}
                           </button>
 
                           <p className="text-xs leading-5 text-neutral-500">
-                            Der Link kann von mehreren Spielern genutzt werden.
-                            Du kannst später im Admin-Bereich weitere Links
-                            erzeugen oder Rollen anpassen.
+                            {t("clubSetup.inviteHint")}
                           </p>
                         </form>
                       )}
@@ -736,7 +732,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
                   {inviteCreated ? (
                     <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                      Einladungslink wurde erstellt.
+                      {t("clubSetup.inviteCreated")}
                     </div>
                   ) : null}
 
@@ -746,8 +742,8 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                       className="group flex items-center justify-between rounded-[22px] bg-slate-950 px-4 py-4 text-white shadow-[0_12px_30px_rgba(15,23,42,.14)] transition hover:-translate-y-0.5"
                     >
                       <span>
-                        <span className="block text-[9px] font-black uppercase tracking-[.16em] text-cyan-300">Empfohlen</span>
-                        <span className="mt-1 block text-sm font-black">Erstes Training anlegen</span>
+                        <span className="block text-[9px] font-black uppercase tracking-[.16em] text-cyan-300">{t("clubSetup.recommended")}</span>
+                        <span className="mt-1 block text-sm font-black">{t("clubSetup.firstTraining")}</span>
                       </span>
                       <Rocket className="h-5 w-5 text-white/80 transition group-hover:translate-x-0.5" />
                     </Link>
@@ -756,8 +752,8 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                       className="flex items-center justify-between rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-slate-950 transition hover:bg-slate-50"
                     >
                       <span>
-                        <span className="block text-[9px] font-black uppercase tracking-[.16em] text-slate-400">Später</span>
-                        <span className="mt-1 block text-sm font-black">Zur Home-Ansicht</span>
+                        <span className="block text-[9px] font-black uppercase tracking-[.16em] text-slate-400">{t("clubSetup.later")}</span>
+                        <span className="mt-1 block text-sm font-black">{t("clubSetup.toHome")}</span>
                       </span>
                       <ArrowRight className="h-5 w-5 text-slate-400" />
                     </Link>
