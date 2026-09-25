@@ -5,6 +5,9 @@ import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
 import { createClient } from "@/lib/supabase/server";
 import { reportPenaltyAction } from "./actions";
 import BeerCheckoutCard from "./BeerCheckoutCard";
+import { getServerI18n } from "@/lib/i18n/server";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type Props = {
   searchParams?: Promise<{ saved?: string; error?: string; beer_error?: string; beer_saved?: string; setup_saved?: string }>;
@@ -70,30 +73,33 @@ type BeerConsumption = {
   created_at: string;
 };
 
-function playerName(player: Player) {
+function playerName(player: Player, locale: AppLocale) {
   return (
     player.nickname?.trim() ||
     [player.first_name, player.last_name].filter(Boolean).join(" ") ||
     player.name ||
-    `Spieler ${player.id}`
+    translate(locale, "cashbox.playerFallback", { id: player.id })
   );
 }
 
-function fmtDate(value: string | null | undefined) {
+function fmtDate(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString("de-DE");
+  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString(
+    locale === "de" ? "de-DE" : "en-GB",
+  );
 }
 
-function beerBadge(total: number) {
-  if (total >= 100) return "👑 Zapfkönig";
-  if (total >= 50) return "🏅 Stammtisch";
-  if (total >= 20) return "📦 Kiste voll";
-  if (total >= 6) return "🍻 Sechserträger";
-  if (total >= 1) return "🍺 Erstes Bier";
+function beerBadge(total: number, locale: AppLocale) {
+  if (total >= 100) return translate(locale, "cashbox.beerBadge100");
+  if (total >= 50) return translate(locale, "cashbox.beerBadge50");
+  if (total >= 20) return translate(locale, "cashbox.beerBadge20");
+  if (total >= 6) return translate(locale, "cashbox.beerBadge6");
+  if (total >= 1) return translate(locale, "cashbox.beerBadge1");
   return null;
 }
 
 export default async function Page({ searchParams }: Props) {
+  const { locale, t } = await getServerI18n();
   const q = await searchParams;
   const access = await requireCashboxAccess();
   const { clubId, player, canManageCashbox, canManageBeer, isClubAdmin } = access;
@@ -172,7 +178,7 @@ export default async function Page({ searchParams }: Props) {
   const activeBeerConsumptions = beerConsumptions.filter(
     (entry) => entry.payment_status !== "cancelled",
   );
-  const names = new Map(players.map((entry) => [entry.id, playerName(entry)]));
+  const names = new Map(players.map((entry) => [entry.id, playerName(entry, locale)]));
   const openPenalties = penalties.filter((entry) => !entry.resolved_at);
   const mine = player
     ? openPenalties.filter((entry) => entry.player_id === player.id)
@@ -235,9 +241,9 @@ export default async function Page({ searchParams }: Props) {
     .map(([playerId, total]) => ({
       playerId,
       total,
-      name: names.get(playerId) ?? `Spieler ${playerId}`,
+      name: names.get(playerId) ?? t("cashbox.playerFallback", { id: playerId }),
     }))
-    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "de"));
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, locale === "de" ? "de" : "en"));
 
   return (
     <main className="min-h-screen bg-neutral-100">
