@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Banknote, CreditCard, X } from "lucide-react";
 import { recordBeerAction } from "@/app/mannschaftskasse/actions";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { AppLocale } from "@/lib/i18n/config";
 
-function formatEuro(cents: number) {
-  return new Intl.NumberFormat("de-DE", {
+function formatEuro(cents: number, locale: AppLocale) {
+  return new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", {
     style: "currency",
     currency: "EUR",
   }).format(cents / 100);
@@ -39,6 +41,7 @@ export default function HomeBeerCheckoutModal({
   paypalPool: boolean;
   paypalUrl: string;
 }) {
+  const { locale, t } = useI18n();
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [poolOpening, setPoolOpening] = useState(false);
@@ -90,15 +93,15 @@ export default function HomeBeerCheckoutModal({
       >
         <div>
           <div className="text-[10px] font-black uppercase tracking-[.16em] text-amber-700">
-            🍺 Bierkasse+
+            🍺 {t("beer.title")}
           </div>
-          <div className="text-sm font-black text-slate-950">Bier eintragen</div>
+          <div className="text-sm font-black text-slate-950">{t("beer.add")}</div>
           <div className="mt-0.5 text-[11px] font-medium text-slate-500">
-            Verbrauch erfassen · PayPal oder bar
+            {t("beer.hint")}
           </div>
         </div>
         <span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black text-slate-950">
-          Öffnen →
+          {t("beer.open")}
         </span>
       </button>
 
@@ -120,16 +123,16 @@ export default function HomeBeerCheckoutModal({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
-                  🍺 Bierkasse+
+                  🍺 {t("beer.title")}
                 </div>
                 <h2 id="beer-checkout-title" className="mt-1 text-2xl font-black text-slate-950">
-                  Wie viele hattest du?
+                  {t("beer.question")}
                 </h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">
-                  {formatEuro(priceCents)} pro Bier
+                  {t("beer.perBeer", { price: formatEuro(priceCents, locale) })}
                 </p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600" aria-label="Schließen">
+              <button type="button" onClick={() => setOpen(false)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600" aria-label={t("beer.close")}>
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -139,17 +142,17 @@ export default function HomeBeerCheckoutModal({
               <input type="hidden" name="return_to" value="/home" />
 
               <div className="flex items-center justify-between rounded-[24px] border border-amber-200 bg-amber-50/60 p-4">
-                <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl font-black text-slate-900 shadow-sm ring-1 ring-slate-200" aria-label="Ein Bier weniger">−</button>
+                <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl font-black text-slate-900 shadow-sm ring-1 ring-slate-200" aria-label={t("beer.less")}>−</button>
                 <div className="min-w-0 text-center">
                   <div className="text-5xl font-black tracking-tight text-slate-950">{quantity}</div>
-                  <div className="mt-1 text-xs font-black uppercase tracking-[.14em] text-slate-500">Bier</div>
+                  <div className="mt-1 text-xs font-black uppercase tracking-[.14em] text-slate-500">{t("beer.beer")}</div>
                 </div>
-                <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-3xl font-black text-white shadow-sm" aria-label="Ein Bier mehr">+</button>
+                <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-3xl font-black text-white shadow-sm" aria-label={t("beer.more")}>+</button>
               </div>
 
               <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-sm font-bold text-slate-500">Wert</span>
-                <span className="text-2xl font-black text-slate-950">{formatEuro(totalCents)}</span>
+                <span className="text-sm font-bold text-slate-500">{t("beer.value")}</span>
+                <span className="text-2xl font-black text-slate-950">{formatEuro(totalCents, locale)}</span>
               </div>
 
               <div className="mt-4 grid gap-2">
@@ -161,8 +164,8 @@ export default function HomeBeerCheckoutModal({
                         <span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span>
                         <span className="block text-base font-black">
                           {paypalPool
-                            ? `${formatEuro(totalCents)} · mit PayPal zahlen`
-                            : "Eintragen & PayPal öffnen"}
+                            ? t("beer.payPaypal", { price: formatEuro(totalCents, locale) })
+                            : t("beer.recordPaypal")}
                         </span>
                       </span>
                     </span>
@@ -174,8 +177,8 @@ export default function HomeBeerCheckoutModal({
                   <span className="flex items-center gap-3">
                     <Banknote className="h-5 w-5 text-emerald-700" />
                     <span>
-                      <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">Bar</span>
-                      <span className="block text-base font-black">Eintragen · Zahlung offen</span>
+                      <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">{t("beer.cash")}</span>
+                      <span className="block text-base font-black">{t("beer.cashOpen")}</span>
                     </span>
                   </span>
                   <span className="font-black">→</span>
@@ -184,8 +187,8 @@ export default function HomeBeerCheckoutModal({
 
               <p className="mt-3 text-center text-[11px] font-medium leading-4 text-slate-500">
                 {paypalPool
-                  ? "Dein Verbrauch wird sofort gespeichert. Die PayPal-Zahlung wird anschließend von Kassenwart oder Admin bestätigt."
-                  : "Verbrauch und Zahlung werden getrennt geführt. Die Zahlung gilt erst nach Bestätigung als bezahlt."}
+                  ? t("beer.poolHint")
+                  : t("beer.normalHint")}
               </p>
             </form>
           </div>
@@ -196,16 +199,16 @@ export default function HomeBeerCheckoutModal({
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-[2px]">
           <div role="dialog" aria-modal="true" aria-labelledby="paypal-pool-hint-title" className="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-2xl">
             <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0070ba]">
-              PayPal-Pool
+              {t("beer.poolTitle")}
             </div>
             <h3 id="paypal-pool-hint-title" className="mt-1 text-2xl font-black text-slate-950">
-              🍺 {quantity} Bier · {formatEuro(totalCents)}
+              🍺 {quantity} Bier · {formatEuro(totalCents, locale)}
             </h3>
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
-              Deine Bierstatistik wird beim Wechsel zu PayPal direkt gespeichert. Tippe dort auf „Beteiligen“, gib <strong>{formatEuro(totalCents)}</strong> ein und bestätige die Zahlung.
+              {t("beer.poolText", { price: formatEuro(totalCents, locale) })}
             </p>
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
-              PayPal meldet die Zahlung aktuell nicht automatisch an strikr zurück. Kassenwart oder Admin prüft sie anschließend kurz und bestätigt sie.
+              {t("beer.poolWarning")}
             </div>
             <a
               href={paypalUrl}
@@ -214,7 +217,7 @@ export default function HomeBeerCheckoutModal({
               onClick={preparePaypalPoolOpen}
               className="mt-4 block w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-center text-sm font-black text-white shadow-sm"
             >
-              {formatEuro(totalCents)} merken &amp; zu PayPal →
+              {t("beer.rememberPaypal", { price: formatEuro(totalCents, locale) })}
             </a>
             <button
               type="button"
@@ -224,7 +227,7 @@ export default function HomeBeerCheckoutModal({
               }}
               className="mt-2 w-full rounded-2xl px-4 py-3 text-xs font-black text-slate-500"
             >
-              Abbrechen
+              {t("common.cancel")}
             </button>
           </div>
         </div>
