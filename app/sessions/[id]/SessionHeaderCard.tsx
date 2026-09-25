@@ -5,6 +5,8 @@ import SessionTypeSwitcher from "@/components/sessions/SessionTypeSwitcher";
 import SessionNoteEditor from "./SessionNoteEditor";
 import SessionRsvpDeadlineEditor from "./SessionRsvpDeadlineEditor";
 import SessionScheduleEditor from "./SessionScheduleEditor";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type SessionType = "training" | "event";
 
@@ -40,8 +42,8 @@ type Props = {
   resultCount?: number;
 };
 
-function fmtLongDate(iso: string) {
-  return new Date(iso).toLocaleDateString("de-DE", {
+function fmtLongDate(iso: string, locale: AppLocale) {
+  return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     weekday: "long",
     day: "2-digit",
     month: "2-digit",
@@ -102,14 +104,15 @@ function WinnerPhotoPreview({
 }: {
   winnerPhotoUrl: string | null;
 }) {
+  const { t } = useI18n();
   if (!winnerPhotoUrl) {
     return (
       <div className="flex h-[88px] w-[78px] shrink-0 items-center justify-center rounded-[18px] bg-white/6 ring-1 ring-white/10 backdrop-blur-sm sm:h-[104px] sm:w-[92px]">
         <div className="px-2 text-center">
           <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">
-            Foto
+            {t("sessionHeader.photo")}
           </div>
-          <div className="mt-1 text-[10px] font-medium text-white/58">Keins</div>
+          <div className="mt-1 text-[10px] font-medium text-white/58">{t("sessionHeader.none")}</div>
         </div>
       </div>
     );
@@ -119,7 +122,7 @@ function WinnerPhotoPreview({
     <div className="relative h-[88px] w-[78px] shrink-0 overflow-hidden rounded-[18px] ring-1 ring-white/10 sm:h-[104px] sm:w-[92px]">
       <Image
         src={winnerPhotoUrl}
-        alt="Siegerfoto"
+        alt={t("winnerPhoto.alt")}
         fill
         sizes="92px"
         className="object-cover"
@@ -162,6 +165,7 @@ export default function SessionHeaderCard({
   seriesId = null,
   resultCount = 0,
 }: Props) {
+  const { locale, t } = useI18n();
   const isEvent = sessionType === "event";
   const hasTeams = teamACount > 0 || teamBCount > 0;
 
@@ -175,7 +179,7 @@ export default function SessionHeaderCard({
               onClick={onBack}
               className="inline-flex min-h-8 items-center justify-center rounded-full bg-white/8 px-3 py-1 text-sm font-semibold text-white/92 ring-1 ring-white/10 transition hover:bg-white/12"
             >
-              ← Zurück
+              ← {t("sessionHeader.back")}
             </button>
 
             <SessionTypeSwitcher
@@ -190,11 +194,11 @@ export default function SessionHeaderCard({
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/54">
-                {isEvent ? "Event" : "Training abgeschlossen"}
+                {isEvent ? "Event" : t("sessionHeader.completed")}
               </div>
 
               <div className="mt-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl">
-                {fmtLongDate(date)}
+                {fmtLongDate(date, locale)}
               </div>
 
               {isAdmin ? (
@@ -210,7 +214,7 @@ export default function SessionHeaderCard({
               <SessionNoteEditor sessionId={sessionId} notes={notes} isAdmin={isAdmin} />
 
               <div className="mt-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/48">
-                {resultCount > 1 ? "Tagessiege" : "Ergebnis"}
+                {resultCount > 1 ? t("sessionHeader.dailyWins") : t("sessionHeader.result")}
               </div>
 
               <div className="mt-1.5 text-5xl font-extrabold leading-none tracking-tight text-white sm:text-6xl">
@@ -223,17 +227,17 @@ export default function SessionHeaderCard({
 
           {!isEvent ? (
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <Metric label="Dabei" value={presentCount} hint="Spieler" />
+              <Metric label={t("sessionHeader.going")} value={presentCount} hint={t("sessionHeader.players")} />
               <Metric
-                label="Teams"
+                label={t("sessionHeader.teams")}
                 value={hasTeams ? `${teamACount}:${teamBCount}` : "–"}
-                hint="Spieler verteilt"
+                hint={t("sessionHeader.playersAssigned")}
               />
               <div className="col-span-2 sm:col-span-1">
                 <Metric
-                  label="Status"
-                  value={mvpVotingEnabled ? "MVP läuft" : "Fertig"}
-                  hint={hasWinnerPhoto ? "Foto gespeichert" : "Session gespeichert"}
+                  label={t("sessionHeader.status")}
+                  value={mvpVotingEnabled ? t("sessionHeader.mvpRunning") : t("sessionHeader.done")}
+                  hint={hasWinnerPhoto ? t("sessionHeader.photoSaved") : t("sessionHeader.sessionSaved")}
                 />
               </div>
             </div>
@@ -241,13 +245,15 @@ export default function SessionHeaderCard({
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <StatusPill tone="success">
-              {resultCount > 1 ? `${resultCount} Spiele gespeichert` : "Ergebnis gespeichert"}
+              {resultCount > 1
+                ? t("sessionHeader.gamesSaved", { count: resultCount })
+                : t("sessionHeader.resultSaved")}
             </StatusPill>
             {hasWinnerPhoto ? (
-              <StatusPill tone="success">Siegerfoto vorhanden</StatusPill>
+              <StatusPill tone="success">{t("sessionHeader.winnerPhotoAvailable")}</StatusPill>
             ) : null}
             {mvpVotingEnabled ? (
-              <StatusPill tone="warning">MVP läuft</StatusPill>
+              <StatusPill tone="warning">{t("sessionHeader.mvpRunning")}</StatusPill>
             ) : null}
           </div>
 
@@ -260,7 +266,7 @@ export default function SessionHeaderCard({
                   disabled={deletingSession}
                   className="inline-flex min-h-8 items-center justify-center rounded-full bg-white/8 px-3 py-1 text-[11px] font-semibold text-white/76 ring-1 ring-white/10 transition hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {deletingSession ? "Löscht..." : "Löschen"}
+                  {deletingSession ? t("sessionHeader.deleting") : t("sessionHeader.delete")}
                 </button>
               ) : null}
             </div>
@@ -270,7 +276,7 @@ export default function SessionHeaderCard({
               onClick={onOpenResultModal}
               className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-slate-100"
             >
-              Ergebnis teilen ↗
+              {t("sessionHeader.shareResult")}
             </button>
           </div>
         </div>
@@ -303,10 +309,10 @@ export default function SessionHeaderCard({
 
         <div className="mt-5">
           <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/44">
-            {isEvent ? "Event" : "Training läuft"}
+            {isEvent ? "Event" : t("sessionHeader.running")}
           </div>
           <h1 className="mt-2 text-2xl font-extrabold tracking-[-0.035em] text-white sm:text-3xl">
-            {fmtLongDate(date)}
+            {fmtLongDate(date, locale)}
           </h1>
           {isAdmin ? (
             <SessionScheduleEditor
@@ -330,16 +336,20 @@ export default function SessionHeaderCard({
         </div>
 
         <div className={`mt-5 grid gap-2 ${isEvent ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
-          <Metric label="Dabei" value={presentCount} hint={isEvent ? "Teilnehmer" : "Spieler"} />
+          <Metric
+            label={t("sessionHeader.going")}
+            value={presentCount}
+            hint={isEvent ? t("sessionHeader.participants") : t("sessionHeader.players")}
+          />
           {!isEvent ? (
             <Metric
-              label="Teams"
-              value={hasTeams ? `${teamACount}:${teamBCount}` : "offen"}
-              hint={hasTeams ? "Spieler verteilt" : "noch nicht bestätigt"}
+              label={t("sessionHeader.teams")}
+              value={hasTeams ? `${teamACount}:${teamBCount}` : t("sessionHeader.open")}
+              hint={hasTeams ? t("sessionHeader.playersAssigned") : t("sessionHeader.notConfirmed")}
             />
           ) : null}
           <div className={isEvent ? "" : "col-span-2 sm:col-span-1"}>
-            <Metric label="Als Nächstes" value={nextStepLabel} />
+            <Metric label={t("sessionHeader.next")} value={nextStepLabel} />
           </div>
         </div>
 
@@ -350,7 +360,7 @@ export default function SessionHeaderCard({
               onClick={onScrollToTeams}
               className="inline-flex min-h-9 items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-950 shadow-sm transition hover:bg-slate-100"
             >
-              {hasTeams ? "Teams ansehen" : "Zu den Teams"}
+              {hasTeams ? t("sessionHeader.viewTeams") : t("sessionHeader.toTeams")}
             </button>
             {hasTeams ? (
               <button
@@ -358,7 +368,7 @@ export default function SessionHeaderCard({
                 onClick={onScrollToResult}
                 className="inline-flex min-h-9 items-center justify-center rounded-full bg-white/8 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/12"
               >
-                Zum Ergebnis
+                {t("sessionHeader.toResult")}
               </button>
             ) : null}
           </div>
@@ -372,7 +382,7 @@ export default function SessionHeaderCard({
               disabled={deletingSession}
               className="text-[11px] font-semibold text-white/45 transition hover:text-white/70 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {deletingSession ? "Session wird gelöscht..." : "Session löschen"}
+              {deletingSession ? t("sessionHeader.deletingSession") : t("sessionHeader.deleteSession")}
             </button>
           </div>
         ) : null}
