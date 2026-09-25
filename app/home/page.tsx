@@ -390,13 +390,23 @@ function MiniStatCard({
 export default async function HomePage({ searchParams }: { searchParams?: Promise<{ beer_error?: string; beer_saved?: string }> }) {
   const q = await searchParams;
   const clubAccess = await requireClub();
-  const { clubId, membership, isPowerUser, user, player } = clubAccess;
+  const {
+    clubId,
+    membership,
+    isPowerUser,
+    user,
+    player,
+    supportViewPlayer,
+    supportViewLabel,
+    isSupportView,
+  } = clubAccess;
   const supabase = await createClient();
 
   const today = new Date().toISOString().slice(0, 10);
   const isAdmin =
     isPowerUser || membership.role === "admin" || membership.role === "owner";
-  const currentPlayerId = player?.id ?? null;
+  const viewPlayer = player ?? supportViewPlayer;
+  const currentPlayerId = viewPlayer?.id ?? null;
 
   const [
     featureFlags,
@@ -850,6 +860,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               participantNames={nextSessionParticipantNames}
               absentPlayers={nextSessionAbsentPlayers}
               requireAbsenceReason={requireRsvpReasonOnAbsence}
+              readOnly={isSupportView}
+              supportViewLabel={supportViewLabel}
             />
           ) : (
             <MainActionCard
@@ -880,6 +892,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
         {currentPlayerId || !isPowerUser ? (
           <section className="rounded-[32px] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.09)] ring-1 ring-slate-950/5">
+            {isSupportView && supportViewLabel ? (
+              <div className="mb-3 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-[11px] font-bold text-violet-800">
+                Supportansicht · Admin {supportViewLabel} · nur persönliche Aktionen sind gesperrt
+              </div>
+            ) : null}
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
               Meine Kurzinfo
             </div>
