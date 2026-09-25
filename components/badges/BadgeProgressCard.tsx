@@ -1,9 +1,12 @@
+"use client";
+
 import PlayerBadge from "@/components/badges/PlayerBadge";
 import {
   getBadgeLabel,
   getMvpBadgeLevel,
   getNextBadgeThreshold,
 } from "@/lib/mvp-badges";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type BadgeProgressCardProps = {
   mvpCount: number;
@@ -26,11 +29,12 @@ function getProgressPercent(mvpCount: number, nextThreshold: number | null) {
 
 export default function BadgeProgressCard({
   mvpCount,
-  title = "Badge-Fortschritt",
+  title,
 }: BadgeProgressCardProps) {
+  const { t } = useI18n();
   const badgeLevel = getMvpBadgeLevel(mvpCount);
   const badgeLabel =
-    badgeLevel === "none" ? "Noch kein Badge" : getBadgeLabel(badgeLevel);
+    badgeLevel === "none" ? t("stats.noBadge") : getBadgeLabel(badgeLevel);
 
   const nextThreshold = getNextBadgeThreshold(mvpCount);
   const nextMissing =
@@ -51,16 +55,16 @@ export default function BadgeProgressCard({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-slate-950">{title}</div>
+          <div className="text-sm font-semibold text-slate-950">{title ?? t("stats.badgeProgress")}</div>
           <div className="mt-1 text-sm text-slate-600">
             {badgeLevel === "none"
-              ? "Sobald du deinen ersten MVP holst, schaltest du dein erstes Badge frei."
-              : `Aktueller Status: ${badgeLabel}.`}
+              ? t("stats.firstMvpBadge")
+              : t("stats.currentBadge", { badge: badgeLabel })}
           </div>
 
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-              MVP gesamt
+              {t("stats.mvpTotal")}
             </div>
             <div className="text-sm font-bold text-slate-950">{mvpCount}</div>
           </div>
@@ -75,14 +79,13 @@ export default function BadgeProgressCard({
           <div className="mt-2 text-sm text-slate-600">
             {nextThreshold === null ? (
               <span className="font-semibold text-slate-900">
-                Höchstes Badge erreicht.
+                {t("stats.highestBadge")}
               </span>
             ) : (
               <>
                 <span className="font-semibold text-slate-900">
-                  {nextMissing} MVP
-                </span>{" "}
-                bis zum nächsten Badge
+                  {t("stats.mvpUntilNext", { count: nextMissing })}
+                </span>
               </>
             )}
           </div>
@@ -91,7 +94,7 @@ export default function BadgeProgressCard({
 
       <div className="mt-5">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Badge-Stufen
+          {t("stats.badgeLevels")}
         </div>
 
         <div className="mt-3 overflow-x-auto pb-1">
@@ -120,7 +123,7 @@ export default function BadgeProgressCard({
 
                   <div className="mt-2 text-sm font-semibold">{step.label}</div>
                   <div className="mt-1 text-xs leading-5">
-                    ab {step.threshold} MVP
+                    {t("stats.fromMvp", { count: step.threshold })}
                   </div>
                 </div>
               );
