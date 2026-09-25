@@ -39,12 +39,14 @@ function SessionCard({
   allowRsvp = false,
   clubDeadlineMinutes,
   requireAbsenceReason,
+  readOnlyRsvp = false,
 }: {
   session: SessionRow;
   rsvpStatus?: PresenceStatus;
   allowRsvp?: boolean;
   clubDeadlineMinutes: number;
   requireAbsenceReason: boolean;
+  readOnlyRsvp?: boolean;
 }) {
   const deadlineEpochMs = getSessionDeadlineEpochMs({
     date: session.date,
@@ -79,6 +81,7 @@ function SessionCard({
           initialStatus={rsvpStatus}
           deadlineEpochMs={deadlineEpochMs}
           requireAbsenceReason={requireAbsenceReason}
+          readOnly={readOnlyRsvp}
         />
       ) : null}
     </div>
@@ -98,7 +101,8 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
 }
 
 export default async function SessionsPage({ searchParams }: SessionsPageProps) {
-  const { clubId, player } = await requireClub();
+  const { clubId, player, supportViewPlayer, isSupportView } = await requireClub();
+  const viewPlayer = player ?? supportViewPlayer;
   const supabase = await createClient();
   const resolvedSearchParams = await searchParams;
   const successMessage = resolvedSearchParams?.success ?? "";
@@ -135,7 +139,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   const totalSessions = sessions.length;
   const totalTrainings = sessions.filter((session) => session.type !== "event").length;
   const totalEvents = sessions.filter((session) => session.type === "event").length;
-  const playerId = player?.id ?? null;
+  const playerId = viewPlayer?.id ?? null;
   const rsvpSettings = rsvpSettingsData as {
     rsvp_deadline_minutes_before?: number | null;
     require_rsvp_reason_on_absence?: boolean | null;
@@ -188,10 +192,10 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
           </div>
         ) : (
           <div className="space-y-5">
-            {nextSession ? <SectionCard title="Als Nächstes" subtitle="Hier kannst du direkt zu- oder absagen."><SessionCard session={nextSession} rsvpStatus={statusFor(nextSession.id)} allowRsvp={!!playerId} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} /></SectionCard> : null}
+            {nextSession ? <SectionCard title="Als Nächstes" subtitle="Hier kannst du direkt zu- oder absagen."><SessionCard session={nextSession} rsvpStatus={statusFor(nextSession.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} /></SectionCard> : null}
 
             <SectionCard title="Kommende Einträge" subtitle={currentSeason ? `Aus der laufenden Saison${currentSeason.name ? ` · ${currentSeason.name}` : ""} · direkt Rückmeldung geben` : "Alle kommenden Einträge"}>
-              {moreUpcomingSessions.length > 0 ? <div className="space-y-3">{moreUpcomingSessions.map((session) => <SessionCard key={session.id} session={session} rsvpStatus={statusFor(session.id)} allowRsvp={!!playerId} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} />)}</div> : futureCurrentSeasonSessions.length > 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine weiteren kommenden Einträge außer dem nächsten oben.</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine kommenden Einträge.</div>}
+              {moreUpcomingSessions.length > 0 ? <div className="space-y-3">{moreUpcomingSessions.map((session) => <SessionCard key={session.id} session={session} rsvpStatus={statusFor(session.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} />)}</div> : futureCurrentSeasonSessions.length > 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine weiteren kommenden Einträge außer dem nächsten oben.</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">Aktuell gibt es keine kommenden Einträge.</div>}
             </SectionCard>
 
             <details className="group rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
