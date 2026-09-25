@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/context";
+import { getSupportViewPlayer } from "@/lib/auth/support-view";
 import { getPlayerBadgeProgress } from "@/lib/badges/progress";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 
@@ -9,8 +10,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const ctx = await getAuthContext();
+    const supportView = await getSupportViewPlayer(ctx);
+    const viewPlayer = ctx.player ?? supportView?.player ?? null;
 
-    if (!ctx.user || !ctx.activeClubId || !ctx.player?.id) {
+    if (!ctx.user || !ctx.activeClubId || !viewPlayer?.id) {
       return NextResponse.json({ enabled: false, items: [] }, { status: 200 });
     }
 
@@ -21,7 +24,7 @@ export async function GET() {
 
     const progress = await getPlayerBadgeProgress(
       ctx.activeClubId,
-      Number(ctx.player.id),
+      Number(viewPlayer.id),
     );
 
     return NextResponse.json({
