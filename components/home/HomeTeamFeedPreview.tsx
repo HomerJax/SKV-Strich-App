@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, Medal, Trophy } from "lucide-react";
+import { LoaderCircle, Medal, X } from "lucide-react";
+import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { TeamFeedItem } from "@/lib/team-feed";
 
 function formatDate(value: string) {
@@ -11,74 +15,235 @@ function formatDate(value: string) {
 }
 
 export default function HomeTeamFeedPreview({
-  items,
+  items: initialItems,
+  initialOffset,
+  initialHasMore,
 }: {
   items: TeamFeedItem[];
+  initialOffset: number;
+  initialHasMore: boolean;
 }) {
+  const [items, setItems] = useState(initialItems);
+  const [offset, setOffset] = useState(initialOffset);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [loading, setLoading] = useState(false);
+  const [openBadge, setOpenBadge] = useState<TeamFeedItem | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const loadMore = useCallback(async () => {
+    if (loading || !hasMore) return;
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/team-feed?offset=${offset}&limit=8`,
+        { cache: "no-store" },
+      );
+
+      if (!response.ok) {
+        throw new Error("Feed konnte nicht nachgeladen werden.");
+      }
+
+      const payload = (await response.json()) as {
+        items?: TeamFeedItem[];
+        nextOffset?: number | null;
+        hasMore?: boolean;
+      };
+
+      const nextItems = payload.items ?? [];
+
+      setItems((currentItems) => {
+        const knownIds = new Set(currentItems.map((item) => item.id));
+        return [
+          ...currentItems,
+          ...nextItems.filter((item) => !knownIds.has(item.id)),
+        ];
+      });
+
+      setHasMore(payload.hasMore === true);
+      setOffset(
+        typeof payload.nextOffset === "number"
+          ? payload.nextOffset
+          : offset + nextItems.length,
+      );
+    } catch (error) {
+      console.error(error);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [hasMore, loading, offset]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadMore();
+        }
+      },
+      { rootMargin: "500px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
+
+  useEffect(() => {
+    if (!openBadge) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenBadge(null);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [openBadge]);
+
   return (
-    <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-4">
+    <>
+      <section className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600">
-            Team-Feed
-          </div>
-          <h2 className="mt-0.5 text-lg font-black tracking-tight text-slate-950">
-            Neu im Team
+          <h2 className="text-base font-black tracking-tight text-slate-950">
+            Kabinen-Talk
           </h2>
-        </div>
-
-        <Link
-          href="/team-feed"
-          className="inline-flex items-center gap-1 text-xs font-black text-slate-500 transition hover:text-slate-950"
-        >
-          Alle <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-
-      {items.length > 0 ? (
-        <div className="divide-y divide-slate-100">
-          {items.map((item) => {
-            const Icon = item.kind === "badge" ? Trophy : Medal;
-
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className="flex items-center gap-3 px-4 py-3 transition hover:bg-slate-50"
-              >
-                <div
-                  className={
-                    item.kind === "badge"
-                      ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600"
-                      : "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600"
-                  }
-                >
-                  <Icon className="h-4.5 w-4.5" />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-black text-slate-950">
-                    {item.title}
-                  </div>
-                  <div className="mt-0.5 truncate text-xs font-semibold text-slate-500">
-                    {item.body}
-                  </div>
-                </div>
-
-                <div className="shrink-0 text-[10px] font-bold text-slate-400">
-                  {formatDate(item.occurredAt)}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="px-4 pb-4">
-          <div className="rounded-2xl bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-500">
-            Noch ist es ruhig. Nach den nächsten Trainings passiert hier mehr. ⚽
+          <div className="mt-0.5 text-[10px] font-bold text-slate-400">
+            Was bei euch passiert.
           </div>
         </div>
-      )}
-    </section>
+
+        {items.length > 0 ? (
+          <div className="mt-2 space-y-1">
+            {items.map((item) => {
+              if (item.kind === "badge" && item.badgeKey) {
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 rounded-xl px-1 py-3 transition hover:bg-slate-50"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenBadge(item)}
+                      aria-label={`${item.title} groß ansehen`}
+                      title="Badge groß ansehen"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition hover:bg-amber-50 active:scale-95"
+                    >
+                      <AchievementBadgeVisual badgeKey={item.badgeKey} size="lg" />
+                    </button>
+
+                    <Link
+                      href={item.href}
+                      className="flex min-w-0 flex-1 items-center gap-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-black text-slate-950">
+                          {item.title}
+                        </div>
+                        <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
+                          {item.body}
+                        </div>
+                        {item.actorName ? (
+                          <div className="mt-1 text-[10px] font-black text-violet-600">
+                            Vergleiche dich mit {item.actorName} →
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="shrink-0 text-[10px] font-bold text-slate-400">
+                        {formatDate(item.occurredAt)}
+                      </div>
+                    </Link>
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className="flex items-center gap-3 rounded-xl px-1 py-3 transition hover:bg-slate-50"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <Medal className="h-4 w-4" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-black text-slate-950">
+                      {item.title}
+                    </div>
+                    <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
+                      {item.body}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 text-[10px] font-bold text-slate-400">
+                    {formatDate(item.occurredAt)}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-3 text-xs font-semibold text-slate-500">
+            Noch keine Team-Ereignisse vorhanden.
+          </div>
+        )}
+
+        {hasMore ? (
+          <div
+            ref={sentinelRef}
+            className="flex min-h-8 items-center justify-center pt-2 text-slate-400"
+            aria-live="polite"
+          >
+            {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+          </div>
+        ) : null}
+      </section>
+
+      {openBadge?.badgeKey ? (
+        <div
+          className="fixed inset-0 z-[700] flex items-center justify-center bg-slate-950/75 px-5 py-8 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={openBadge.title}
+          onClick={() => setOpenBadge(null)}
+        >
+          <div
+            className="relative w-full max-w-sm overflow-hidden rounded-[30px] border border-white/10 bg-[#070b12] px-5 pb-6 pt-5 text-center text-white shadow-[0_28px_90px_rgba(0,0,0,0.45)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setOpenBadge(null)}
+              aria-label="Schließen"
+              className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/15 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+              strikr Badge
+            </div>
+
+            <div className="relative mx-auto mt-5 flex h-44 w-44 items-center justify-center">
+              <div className="absolute inset-5 rounded-full bg-cyan-300/10 blur-3xl" />
+              <div className="relative scale-[2.15]">
+                <AchievementBadgeVisual badgeKey={openBadge.badgeKey} size="xl" />
+              </div>
+            </div>
+
+            <div className="mt-3 text-xl font-black tracking-tight">
+              {openBadge.title}
+            </div>
+            <div className="mt-1 text-sm font-semibold text-white/55">
+              {openBadge.body}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
