@@ -169,7 +169,7 @@ export default function ClubSwitcher({
     startTransition(() => {
       setOpen(false);
       window.location.assign(
-        `/api/select-club?clubId=${encodeURIComponent(clubId)}`
+        `/api/select-club?clubId=${encodeURIComponent(clubId)}&next=%2Fhome`
       );
     });
   }
