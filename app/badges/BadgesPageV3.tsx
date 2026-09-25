@@ -512,7 +512,8 @@ async function clearFeaturedBadgeAction() {
 
 export default async function BadgesPageV3({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
-  const { clubId, player } = await requireClub();
+  const { clubId, player, supportViewPlayer } = await requireClub();
+  const viewPlayer = player ?? supportViewPlayer;
   const flags = await getFeatureFlagsForClub(clubId);
 
   if (!flags.hall_of_fame_badges) {
@@ -563,7 +564,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
 
   const players = ((playersData ?? []) as PlayerRow[]).filter((item) => item.is_guest !== true);
   const achievements = (achievementsData ?? []) as AchievementRow[];
-  const ownPlayer = players.find((item) => item.id === player?.id) ?? null;
+  const ownPlayer = players.find((item) => item.id === viewPlayer?.id) ?? null;
 
   if (!ownPlayer) {
     return (
