@@ -117,5 +117,10 @@ export async function getSupportViewPlayer(
     return null;
   }
 
-  return loadSupportViewPlayer(ctx.activeClubId);
+  try {
+    return await loadSupportViewPlayer(ctx.activeClubId);
+  } catch (error) {
+    console.error("Power-user support view could not be resolved", error);
+    return null;
+  }
 }
