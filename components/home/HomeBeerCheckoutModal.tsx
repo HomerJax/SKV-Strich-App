@@ -184,8 +184,8 @@ export default function HomeBeerCheckoutModal({
 
               <p className="mt-3 text-center text-[11px] font-medium leading-4 text-slate-500">
                 {paypalPool
-                  ? "PayPal-Pool: Bier wird direkt verbucht. In PayPal nur noch „Beteiligen“, Betrag eingeben und zahlen."
-                  : "Verbrauch und Zahlung werden getrennt geführt. Bar gilt erst nach Bestätigung als bezahlt."}
+                  ? "Dein Verbrauch wird sofort gespeichert. Die PayPal-Zahlung wird anschließend von Kassenwart oder Admin bestätigt."
+                  : "Verbrauch und Zahlung werden getrennt geführt. Die Zahlung gilt erst nach Bestätigung als bezahlt."}
               </p>
             </form>
           </div>
@@ -205,7 +205,7 @@ export default function HomeBeerCheckoutModal({
               Deine Bierstatistik wird beim Wechsel zu PayPal direkt gespeichert. Tippe dort auf „Beteiligen“, gib <strong>{formatEuro(totalCents)}</strong> ein und bestätige die Zahlung.
             </p>
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
-              😉 Wir vertrauen dir: strikr prüft die PayPal-Zahlung danach nicht extra nach. Bitte einfach den richtigen Betrag eingeben.
+              PayPal meldet die Zahlung aktuell nicht automatisch an strikr zurück. Kassenwart oder Admin prüft sie anschließend kurz und bestätigt sie.
             </div>
             <a
               href={paypalUrl}
