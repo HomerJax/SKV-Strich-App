@@ -15,6 +15,8 @@ import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 import { getAchievementFeedItem, getTeamFeedItems } from "@/lib/team-feed";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -139,8 +141,8 @@ type HomeMvpHighlight = {
   badgeImageUrl: string;
 };
 
-function fmtDateLong(iso: string) {
-  return new Date(iso).toLocaleDateString("de-DE", {
+function fmtDateLong(iso: string, locale: AppLocale) {
+  return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     weekday: "long",
     day: "2-digit",
     month: "2-digit",
@@ -148,9 +150,9 @@ function fmtDateLong(iso: string) {
   });
 }
 
-function fmtDateCompact(iso: string) {
+function fmtDateCompact(iso: string, locale: AppLocale) {
   return new Date(iso)
-    .toLocaleDateString("de-DE", {
+    .toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
       weekday: "long",
       day: "2-digit",
       month: "2-digit",
@@ -158,11 +160,19 @@ function fmtDateCompact(iso: string) {
     .replace(/\.$/, "");
 }
 
-function formatSessionTitle(iso: string, startTime: string | null) {
-  const dateLabel = fmtDateCompact(iso);
+function formatSessionTitle(
+  iso: string,
+  startTime: string | null,
+  locale: AppLocale,
+) {
+  const dateLabel = fmtDateCompact(iso, locale);
   const timeLabel = startTime?.slice(0, 5);
 
-  return timeLabel ? `${dateLabel} · ${timeLabel} Uhr` : dateLabel;
+  return timeLabel
+    ? locale === "de"
+      ? `${dateLabel} · ${timeLabel} Uhr`
+      : `${dateLabel} · ${timeLabel}`
+    : dateLabel;
 }
 
 function isDateWithinSeason(dateIso: string, season: SeasonRow) {
@@ -388,6 +398,7 @@ function MiniStatCard({
 }
 
 export default async function HomePage({ searchParams }: { searchParams?: Promise<{ beer_error?: string; beer_saved?: string }> }) {
+  const { locale, t } = await getServerI18n();
   const q = await searchParams;
   const clubAccess = await requireClub();
   const {
@@ -506,7 +517,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
-  const clubName = club?.display_name?.trim() || "Dein Team";
+  const clubName = club?.display_name?.trim() || t("home.yourTeam");
   const userId = user?.id ?? null;
   const hasSeason = Boolean(seasonExistsData);
 
@@ -693,7 +704,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           notificationKey: `home:mvp-highlight:${clubId}:${latestRevealedSession.id}`,
           sessionId: latestRevealedSession.id,
           sessionHref: `/sessions/${latestRevealedSession.id}`,
-          sessionDateLabel: fmtDateLong(latestRevealedSession.date),
+          sessionDateLabel: fmtDateLong(latestRevealedSession.date, locale),
           isWinner,
           winner: displayWinner,
           winners,
@@ -796,7 +807,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         <PageHero
           primaryColorKey={club?.primary_color ?? "black"}
           title={clubName}
-          description="Training checken. Stats ansehen. Fertig."
+          description={t("home.heroDescription")}
           align="center"
           centerSlot={
             clubLogoUrl ? (
@@ -824,7 +835,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           actionsSlot={
             <>
               <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
-                Zu-/Absagen
+                {t("home.rsvp")}
               </div>
               <div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90">
                 Stats
@@ -843,11 +854,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           homeSessionRsvpEnabled ? (
             <NextSessionAttendanceCard
               sessionId={nextSession.id}
-              title={formatSessionTitle(nextSession.date, nextSession.start_time)}
+              title={formatSessionTitle(nextSession.date, nextSession.start_time, locale)}
               text={
                 nextSession.notes?.trim()
                   ? nextSession.notes.trim()
-                  : "Check kurz deine Teilnahme und wer dabei ist."
+                  : t("home.checkAttendance")
               }
               href={`/sessions/${nextSession.id}`}
               initialStatus={nextSessionPresenceStatus}
@@ -865,28 +876,28 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             />
           ) : (
             <MainActionCard
-              eyebrow="Nächstes Training"
-              title={formatSessionTitle(nextSession.date, nextSession.start_time)}
+              eyebrow={t("home.nextTraining")}
+              title={formatSessionTitle(nextSession.date, nextSession.start_time, locale)}
               text={
                 nextSession.notes?.trim()
                   ? nextSession.notes.trim()
-                  : "Dein nächstes Training ist bereits angelegt."
+                  : t("home.trainingExists")
               }
               href={`/sessions/${nextSession.id}`}
-              cta="Training ansehen"
+              cta={t("home.viewTraining")}
             />
           )
         ) : (
           <MainActionCard
-            eyebrow="Nächstes Training"
-            title="Noch kein Training geplant"
+            eyebrow={t("home.nextTraining")}
+            title={t("home.noTraining")}
             text={
               isAdmin
-                ? "Lege direkt ein neues Training an, damit dein Team planen kann."
-                : "Sobald ein Admin das nächste Training anlegt, kannst du hier zu- oder absagen."
+                ? t("home.createTrainingHint")
+                : t("home.waitForTrainingHint")
             }
             href={isAdmin ? "/sessions/new" : "/sessions"}
-            cta={isAdmin ? "Training anlegen" : "Sessions ansehen"}
+            cta={isAdmin ? t("home.createTraining") : t("home.viewSessions")}
           />
         )}
 
