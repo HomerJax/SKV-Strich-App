@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import LateRsvpModal from "@/components/sessions/LateRsvpModal";
 import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { AppLocale } from "@/lib/i18n/config";
 import {
   getRequiredRsvpReasonError,
   isMeaningfulRsvpReason,
@@ -34,8 +36,8 @@ type NextSessionAttendanceCardProps = {
   supportViewLabel?: string | null;
 };
 
-function formatDeadline(date: Date) {
-  return date.toLocaleString("de-DE", {
+function formatDeadline(date: Date, locale: AppLocale) {
+  return date.toLocaleString(locale === "de" ? "de-DE" : "en-GB", {
     timeZone: "Europe/Berlin",
     weekday: "short",
     day: "2-digit",
@@ -45,16 +47,28 @@ function formatDeadline(date: Date) {
   });
 }
 
-function getRemainingLabel(deadline: Date, now: Date) {
+function getRemainingLabel(
+  deadline: Date,
+  now: Date,
+  locale: AppLocale,
+) {
   const diffMs = deadline.getTime() - now.getTime();
-  if (diffMs <= 0) return "Frist vorbei";
+  if (diffMs <= 0) return locale === "de" ? "Frist vorbei" : "Deadline passed";
   const totalMinutes = Math.ceil(diffMs / 60000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
-  if (days > 0) return `noch ${days} Tg ${hours} Std`;
-  if (hours > 0) return `noch ${hours} Std ${minutes} Min`;
-  return `noch ${minutes} Min`;
+  if (days > 0) {
+    return locale === "de"
+      ? `noch ${days} Tg ${hours} Std`
+      : `${days}d ${hours}h left`;
+  }
+  if (hours > 0) {
+    return locale === "de"
+      ? `noch ${hours} Std ${minutes} Min`
+      : `${hours}h ${minutes}m left`;
+  }
+  return locale === "de" ? `noch ${minutes} Min` : `${minutes}m left`;
 }
 
 function getDeadlineTone(deadline: Date | null, now: Date | null): DeadlineTone {
@@ -92,6 +106,7 @@ export default function NextSessionAttendanceCard({
   supportViewLabel = null,
 }: NextSessionAttendanceCardProps) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [presentCount, setPresentCount] = useState<number>(initialPresentCount);
   const [absentCount, setAbsentCount] = useState<number>(initialAbsentCount);
@@ -159,8 +174,8 @@ export default function NextSessionAttendanceCard({
     : null;
   const deadline = deadlineEpochMs !== null ? new Date(deadlineEpochMs) : null;
   const deadlineTone = getDeadlineTone(deadline, now);
-  const deadlineText = deadline ? `Zu-/Absage bis ${formatDeadline(deadline)} Uhr` : null;
-  const remainingText = deadline && now ? getRemainingLabel(deadline, now) : null;
+  const deadlineText = deadline ? t("session.rsvpUntil", { date: formatDeadline(deadline, locale) }) : null;
+  const remainingText = deadline && now ? getRemainingLabel(deadline, now, locale) : null;
 
   async function updateStatus(nextStatus: PresenceStatus, action: Exclude<PendingAction, null>, absenceReason = "") {
     if (readOnly || busy || status === nextStatus || notNominated) return;
@@ -174,7 +189,7 @@ export default function NextSessionAttendanceCard({
     }
 
     if (deadlineTone === "passed" && status === "in" && nextStatus !== "in") {
-      setErrorMessage("Der Anmeldeschluss ist vorbei. Deine Zusage ist jetzt verbindlich – bitte wende dich für eine Änderung an einen Admin.");
+      setErrorMessage(t("session.deadlineLockedError"));
       return;
     }
 
@@ -192,7 +207,7 @@ export default function NextSessionAttendanceCard({
       const response = await fetch(`/api/sessions/${sessionId}`, { method: "POST", body: formData, credentials: "same-origin" });
       const raw = await response.text();
       const payload = raw ? JSON.parse(raw) : null;
-      if (!response.ok) throw new Error(payload?.error || "Status konnte nicht gespeichert werden.");
+      if (!response.ok) throw new Error(payload?.error || t("session.saveError"));
 
       setStatus(nextStatus);
       if (nextStatus === "in" && payload?.latePenalty?.message) {
@@ -207,7 +222,7 @@ export default function NextSessionAttendanceCard({
       router.refresh();
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : "Status konnte nicht gespeichert werden.");
+      setErrorMessage(error instanceof Error ? error.message : t("session.saveError"));
     } finally {
       setBusy(false);
       setPendingAction(null);
@@ -226,7 +241,7 @@ export default function NextSessionAttendanceCard({
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-600">Nächstes Training</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-600">{t("session.nextTraining")}</div>
           <h2 className="mt-2 text-[18px] font-semibold leading-tight tracking-[-0.045em] text-slate-950 sm:text-[22px]">{title}</h2>
           {text?.trim() ? <p className="mt-1.5 line-clamp-2 text-xs font-medium leading-5 text-slate-500">{text.trim()}</p> : null}
           {deadlineText ? (
@@ -241,7 +256,7 @@ export default function NextSessionAttendanceCard({
 
       {notNominated ? (
         <div className="relative mt-4 rounded-[22px] border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700">
-          Nicht im Event-Kader
+          {t("session.notInRoster")}
         </div>
       ) : null}
 
@@ -255,36 +270,36 @@ export default function NextSessionAttendanceCard({
         <div className="relative mt-4 rounded-[28px] bg-cyan-100/85 p-1.5 shadow-[0_12px_30px_rgba(34,211,238,0.14)] ring-1 ring-cyan-300/80">
           <div className="grid grid-cols-2 gap-1.5">
             <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", inActive ? "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 text-white shadow-[0_16px_34px_rgba(56,189,248,0.24)]" : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50"].join(" ")}>
-              <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-blue-50 text-blue-600 ring-1 ring-blue-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? "Speichert…" : inActive ? "Dabei ✓" : "Ich bin dabei"}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{presentCount} dabei</span></span></div>
+              <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-blue-50 text-blue-600 ring-1 ring-blue-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? t("session.saving") : inActive ? t("session.going") : t("session.imGoing")}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{t("session.goingCount", { count: presentCount })}</span></span></div>
             </button>
             <button type="button" onClick={() => { if (outActive) void updateStatus("open", "out"); else setReasonOpen(true); }} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "out"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", outActive ? "bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_18px_36px_rgba(244,63,94,0.24)]" : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70"].join(" ")}>
-              <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", outActive ? "bg-white/15 text-white ring-1 ring-white/20" : "bg-white text-rose-500 ring-1 ring-rose-100"].join(" ")}><UserX className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "out" ? "Speichert…" : deadlineTone === "passed" && inActive ? "Absage gesperrt" : outActive ? "Abgesagt ✓" : "Ich bin raus"}</span><span className={["mt-0.5 block text-xs font-medium", outActive ? "text-white/75" : "text-rose-500"].join(" ")}>{absentCount} raus</span></span></div>
+              <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", outActive ? "bg-white/15 text-white ring-1 ring-white/20" : "bg-white text-rose-500 ring-1 ring-rose-100"].join(" ")}><UserX className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "out" ? t("session.saving") : deadlineTone === "passed" && inActive ? t("session.cantCancel") : outActive ? t("session.notGoing") : t("session.imOut")}</span><span className={["mt-0.5 block text-xs font-medium", outActive ? "text-white/75" : "text-rose-500"].join(" ")}>{t("session.outCount", { count: absentCount })}</span></span></div>
             </button>
           </div>
           {readOnly ? (
             <div className="m-1.5 mt-2 rounded-[18px] border border-violet-200 bg-white px-3 py-2 text-xs font-semibold text-violet-700">
-              Supportansicht{supportViewLabel ? ` · ${supportViewLabel}` : ""} · Zu-/Absage nur ansehen
+              {t("session.supportView", { label: supportViewLabel ? ` · ${supportViewLabel}` : "" })}
             </div>
           ) : deadlineTone === "passed" && inActive ? (
             <div className="m-1.5 mt-2 rounded-[18px] border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
-              Anmeldeschluss vorbei · deine Zusage ist verbindlich.
+              {t("session.commitmentLocked")}
             </div>
           ) : null}
           {reasonOpen ? (
             <div className="m-1.5 mt-2 rounded-[20px] border border-rose-200 bg-white p-3">
               <div className="text-xs font-bold text-rose-800">
-                Warum bist du nicht dabei?{" "}
+                {t("session.whyOut")}{" "}
                 <span className="font-medium text-rose-500">
-                  {requireAbsenceReason ? "(Pflicht)" : "(optional)"}
+                  {requireAbsenceReason ? t("session.required") : t("session.optional")}
                 </span>
               </div>
-              <input autoFocus value={reason} maxLength={80} onChange={(event) => { setReason(event.target.value); setErrorMessage(""); }} placeholder="z. B. Urlaub, krank, Termin" className="mt-2 w-full rounded-xl border border-rose-200 px-3 py-2 text-xs outline-none focus:border-rose-400" />
+              <input autoFocus value={reason} maxLength={80} onChange={(event) => { setReason(event.target.value); setErrorMessage(""); }} placeholder={t("session.reasonPlaceholder")} className="mt-2 w-full rounded-xl border border-rose-200 px-3 py-2 text-xs outline-none focus:border-rose-400" />
               {requireAbsenceReason ? (
                 <div className={`mt-1.5 text-[10px] font-semibold ${reason.length > 0 && !reasonValid ? "text-rose-700" : "text-slate-500"}`}>
-                  Mindestens 4 Buchstaben · keine Punkte oder einzelnen Zeichen.
+                  {t("session.reasonHint")}
                 </div>
               ) : null}
-              <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => { setReasonOpen(false); setReason(""); setErrorMessage(""); }} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">Abbrechen</button><button type="button" disabled={busy || !reasonValid} onClick={() => void updateStatus("out", "out", reason)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40">Absage speichern</button></div>
+              <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => { setReasonOpen(false); setReason(""); setErrorMessage(""); }} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">{t("common.cancel")}</button><button type="button" disabled={busy || !reasonValid} onClick={() => void updateStatus("out", "out", reason)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40">{t("session.saveAbsence")}</button></div>
             </div>
           ) : null}
         </div>
@@ -302,9 +317,9 @@ export default function NextSessionAttendanceCard({
                 {presentCount}
               </span>
               <div>
-                <div className="text-sm font-black text-slate-950">Dabei</div>
+                <div className="text-sm font-black text-slate-950">{t("session.in")}</div>
                 <div className="text-[11px] font-medium text-emerald-700">
-                  {presentCount === 1 ? "1 Zusage" : `${presentCount} Zusagen`}
+                  {presentCount === 1 ? t("session.oneGoing") : t("session.manyGoing", { count: presentCount })}
                 </div>
               </div>
             </div>
@@ -325,7 +340,7 @@ export default function NextSessionAttendanceCard({
                   ))}
                 </div>
               ) : (
-                <div className="px-1 py-1 text-xs font-medium text-slate-500">Noch keine Zusage.</div>
+                <div className="px-1 py-1 text-xs font-medium text-slate-500">{t("session.noGoing")}</div>
               )}
             </div>
           ) : null}
@@ -342,9 +357,9 @@ export default function NextSessionAttendanceCard({
                 {absentCount}
               </span>
               <div>
-                <div className="text-sm font-black text-slate-950">Raus</div>
+                <div className="text-sm font-black text-slate-950">{t("session.out")}</div>
                 <div className="text-[11px] font-medium text-rose-700">
-                  {absentCount === 1 ? "1 Absage" : `${absentCount} Absagen`}
+                  {absentCount === 1 ? t("session.oneOut") : t("session.manyOut", { count: absentCount })}
                 </div>
               </div>
             </div>
@@ -359,13 +374,13 @@ export default function NextSessionAttendanceCard({
                     <div key={`absence-${player.name}-${index}`} className="rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5">
                       <div className="text-xs font-black text-slate-800">{player.name}</div>
                       <div className={`mt-0.5 text-[11px] ${player.reason ? "font-semibold text-rose-700" : "text-slate-400"}`}>
-                        {player.reason ? `„${player.reason}“` : "Kein Grund angegeben"}
+                        {player.reason ? `„${player.reason}“` : t("session.noReason")}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="px-1 py-1 text-xs font-medium text-slate-500">Noch keine Absage.</div>
+                <div className="px-1 py-1 text-xs font-medium text-slate-500">{t("session.noOut")}</div>
               )}
             </div>
           ) : null}
@@ -379,7 +394,7 @@ export default function NextSessionAttendanceCard({
       />
 
       <div className="relative mt-3 flex justify-end">
-        <Link href={href} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">Training öffnen<ArrowRight className="h-3.5 w-3.5" /></Link>
+        <Link href={href} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">{t("session.openTraining")}<ArrowRight className="h-3.5 w-3.5" /></Link>
       </div>
     </section>
   );
