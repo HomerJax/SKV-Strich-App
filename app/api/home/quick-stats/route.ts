@@ -26,8 +26,9 @@ export async function GET() {
   if (!player) {
     return NextResponse.json({
       attendanceCount: 0,
-      successRate: null,
+      winRate: null,
       attendanceRank: null,
+      badgeCount: 0,
     });
   }
 
@@ -52,8 +53,9 @@ export async function GET() {
   if (!currentSeason) {
     return NextResponse.json({
       attendanceCount: 0,
-      successRate: null,
+      winRate: null,
       attendanceRank: null,
+      badgeCount: 0,
     });
   }
 
@@ -71,8 +73,9 @@ export async function GET() {
   if (sessionIds.length === 0) {
     return NextResponse.json({
       attendanceCount: 0,
-      successRate: null,
+      winRate: null,
       attendanceRank: null,
+      badgeCount: 0,
     });
   }
 
@@ -80,7 +83,11 @@ export async function GET() {
     .map((row) => Number(row.id))
     .filter((id) => Number.isFinite(id));
 
-  const [{ data: resultsData }, { data: attendanceData }] = await Promise.all([
+  const [
+    { data: resultsData },
+    { data: attendanceData },
+    { data: achievementsData },
+  ] = await Promise.all([
     supabase
       .from("results")
       .select("team_a_id,team_b_id,goals_team_a,goals_team_b")
@@ -93,6 +100,11 @@ export async function GET() {
           .in("player_id", clubPlayerIds)
           .in("session_id", sessionIds)
       : Promise.resolve({ data: [] as { player_id: number }[], error: null }),
+    supabase
+      .from("player_achievements")
+      .select("badge_key")
+      .eq("club_id", clubId)
+      .eq("player_id", player.id),
   ]);
 
   const results = (resultsData ?? []) as ResultRow[];
@@ -155,11 +167,18 @@ export async function GET() {
       (playerId) => (attendanceCounts.get(playerId) ?? 0) > attendanceCount,
     ).length;
 
+  const badgeCount = new Set(
+    (achievementsData ?? [])
+      .map((row) => String(row.badge_key ?? "").trim())
+      .filter(Boolean),
+  ).size;
+
   return NextResponse.json(
     {
       attendanceCount,
-      successRate: completed > 0 ? Math.round((wins / completed) * 100) : null,
+      winRate: completed > 0 ? Math.round((wins / completed) * 100) : null,
       attendanceRank,
+      badgeCount,
     },
     {
       headers: {
