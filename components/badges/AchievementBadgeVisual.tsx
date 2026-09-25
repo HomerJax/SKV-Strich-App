@@ -8,6 +8,7 @@ type AchievementBadgeVisualProps = {
   size?: "sm" | "md" | "lg" | "xl";
   grayscale?: boolean;
   className?: string;
+  interactive?: boolean;
 };
 
 const SIZE = {
@@ -34,6 +35,7 @@ export default function AchievementBadgeVisual({
   size = "xl",
   grayscale = false,
   className = "",
+  interactive = true,
 }: AchievementBadgeVisualProps) {
   const px = SIZE[size];
   const visual = getBadgeVisualMeta(badgeKey);
@@ -47,6 +49,7 @@ export default function AchievementBadgeVisual({
         px={px}
         grayscale={grayscale}
         className={className}
+        interactive={interactive}
       />
     );
   }
@@ -58,6 +61,7 @@ export default function AchievementBadgeVisual({
         px={px}
         grayscale={grayscale}
         className={className}
+        interactive={interactive}
       />
     );
   }
