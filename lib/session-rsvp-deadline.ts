@@ -130,10 +130,13 @@ export function isSessionRsvpDeadlinePassed(
   return deadlineEpochMs !== null && nowEpochMs >= deadlineEpochMs;
 }
 
-export function formatDeadlineForDisplay(deadlineEpochMs: number | null) {
+export function formatDeadlineForDisplay(
+  deadlineEpochMs: number | null,
+  locale = "de-DE",
+) {
   if (deadlineEpochMs === null) return null;
 
-  return new Intl.DateTimeFormat("de-DE", {
+  return new Intl.DateTimeFormat(locale, {
     timeZone: "Europe/Berlin",
     weekday: "short",
     day: "2-digit",
