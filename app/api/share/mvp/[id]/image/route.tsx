@@ -2,6 +2,8 @@ import { ImageResponse } from "next/og";
 import { createAdminClient } from "@/lib/supabase/admin";
 import sharp from "sharp";
 import ShareTopBar from "@/components/share/mvp-share/TopBar";
+import { localeFromAcceptLanguage, normalizeLocale, type AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
 
 export const runtime = "nodejs";
 
@@ -40,25 +42,25 @@ type LeaderboardEntry = {
   badgeKey: string;
 };
 
-function getName(player?: PlayerRow | null) {
-  return [player?.first_name, player?.last_name].filter(Boolean).join(" ") || "Spieler";
+function getName(player: PlayerRow | null | undefined, locale: AppLocale) {
+  return [player?.first_name, player?.last_name].filter(Boolean).join(" ") || translate(locale, "mvpShare.playerFallback");
 }
 
-function getBadgeMeta(count: number) {
-  if (count >= 10) return { label: "GOAT", key: "goat" };
-  if (count >= 7) return { label: "Gold", key: "gold" };
-  if (count >= 5) return { label: "Silber", key: "silber" };
-  if (count >= 3) return { label: "Bronze", key: "bronze" };
-  return { label: "Blech", key: "blech" };
+function getBadgeMeta(count: number, locale: AppLocale) {
+  if (count >= 10) return { label: translate(locale, "badge.goat"), key: "goat" };
+  if (count >= 7) return { label: translate(locale, "badge.gold"), key: "gold" };
+  if (count >= 5) return { label: translate(locale, "badge.silver"), key: "silber" };
+  if (count >= 3) return { label: translate(locale, "badge.bronze"), key: "bronze" };
+  return { label: translate(locale, "badge.copper"), key: "blech" };
 }
 
-function getNextBadgeProgress(count: number) {
+function getNextBadgeProgress(count: number, locale: AppLocale) {
   if (count >= 10) {
     return {
       target: null as number | null,
       label: null as string | null,
       progressPercent: 100,
-      text: "Höchstes Badge erreicht",
+      text: translate(locale, "mvpShare.highestBadge"),
     };
   }
 
@@ -67,33 +69,33 @@ function getNextBadgeProgress(count: number) {
       target: 10,
       label: "GOAT",
       progressPercent: Math.min(100, Math.max(8, (count / 10) * 100)),
-      text: `${count} / 10 MVPs bis GOAT`,
+      text: translate(locale, "mvpShare.progressTo", { current: count, target: 10, badge: translate(locale, "badge.goat") }),
     };
   }
 
   if (count >= 5) {
     return {
       target: 7,
-      label: "Gold",
+      label: translate(locale, "badge.gold"),
       progressPercent: Math.min(100, Math.max(8, (count / 7) * 100)),
-      text: `${count} / 7 MVPs bis Gold`,
+      text: translate(locale, "mvpShare.progressTo", { current: count, target: 7, badge: translate(locale, "badge.gold") }),
     };
   }
 
   if (count >= 3) {
     return {
       target: 5,
-      label: "Silber",
+      label: translate(locale, "badge.silver"),
       progressPercent: Math.min(100, Math.max(8, (count / 5) * 100)),
-      text: `${count} / 5 MVPs bis Silber`,
+      text: translate(locale, "mvpShare.progressTo", { current: count, target: 5, badge: translate(locale, "badge.silver") }),
     };
   }
 
   return {
     target: 3,
-    label: "Bronze",
+    label: translate(locale, "badge.bronze"),
     progressPercent: Math.min(100, Math.max(8, (count / 3) * 100)),
-    text: `${count} / 3 MVPs bis Bronze`,
+    text: translate(locale, "mvpShare.progressTo", { current: count, target: 3, badge: translate(locale, "badge.bronze") }),
   };
 }
 
@@ -159,6 +161,9 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const url = new URL(request.url);
+  const locale =
+    normalizeLocale(url.searchParams.get("lang")) ??
+    localeFromAcceptLanguage(request.headers.get("accept-language"));
   const variant = url.searchParams.get("variant") === "winner" ? "winner" : "team";
   const sharePerspective = url.searchParams.get("perspective") === "team" ? "team" : "self";
   const requestedWinnerPlayerIdRaw = url.searchParams.get("playerId");
@@ -222,11 +227,11 @@ export async function GET(request: Request, context: RouteContext) {
       const player = playerById.get(playerId);
       const current = player?.mvp_count ?? 0;
       const previous = Math.max(current - 1, 0);
-      const badge = getBadgeMeta(current);
+      const badge = getBadgeMeta(current, locale);
 
       return {
         playerId,
-        name: getName(player),
+        name: getName(player, locale),
         votes,
         previous,
         current,
@@ -236,7 +241,7 @@ export async function GET(request: Request, context: RouteContext) {
     })
     .sort((a, b) => {
       if (b.votes !== a.votes) return b.votes - a.votes;
-      return a.name.localeCompare(b.name, "de");
+      return a.name.localeCompare(b.name, locale === "de" ? "de" : "en");
     });
 
   const highestVoteCount = leaderboard[0]?.votes ?? 0;
@@ -266,7 +271,7 @@ export async function GET(request: Request, context: RouteContext) {
   const clubName = club?.display_name?.trim() || "strikr Team";
   const isWinnerCard = variant === "winner";
   const isTeamPerspective = isWinnerCard && sharePerspective === "team";
-  const progress = getNextBadgeProgress(winner.current);
+  const progress = getNextBadgeProgress(winner.current, locale);
 
   const badgeImageUrl = toAbsoluteUrl(request, `/badges/hero/${winner.badgeKey}.webp`);
   const strikrLogoUrl = toAbsoluteUrl(request, "/brand/strikr-mark.png");
@@ -356,7 +361,7 @@ export async function GET(request: Request, context: RouteContext) {
                   color: isWinnerCard ? "#ffffff" : "#020617",
                 }}
               >
-                {isTeamPerspective ? winner.name : "Ich wurde zum"}
+                {isTeamPerspective ? winner.name : translate(locale, "mvpShare.iWasMvp")}
               </div>
 
               <div
@@ -385,7 +390,7 @@ export async function GET(request: Request, context: RouteContext) {
                 }}
               >
                 {isTeamPerspective
-                  ? `wurde zum MVP gewählt · ${clubName}`
+                  ? `${translate(locale, "mvpShare.chosen")} · ${clubName}`
                   : `${winner.name} · ${clubName}`}
               </div>
 
@@ -438,7 +443,7 @@ export async function GET(request: Request, context: RouteContext) {
                       color: "rgba(255,255,255,0.50)",
                     }}
                   >
-                    Badge-Fortschritt
+                    {translate(locale, "mvpShare.badgeProgress")}
                   </div>
 
                   <div
@@ -483,7 +488,7 @@ export async function GET(request: Request, context: RouteContext) {
                     color: "rgba(255,255,255,0.56)",
                   }}
                 >
-                  Aktuelles Badge: {winner.badgeLabel} · {winner.current}x MVP
+                  {translate(locale, "mvpShare.currentBadge", { badge: winner.badgeLabel, count: winner.current })}
                 </div>
               </div>
             </div>
@@ -519,7 +524,7 @@ export async function GET(request: Request, context: RouteContext) {
                   color: "#020617",
                 }}
               >
-                {tiedWinners.length > 1 ? `${tiedWinners.length} Gewinner` : winner.name}
+                {tiedWinners.length > 1 ? translate(locale, "mvpShare.winnersCount", { count: tiedWinners.length }) : winner.name}
               </div>
 
               <div
@@ -564,7 +569,7 @@ export async function GET(request: Request, context: RouteContext) {
                         color: "rgba(15,23,42,0.52)",
                       }}
                     >
-                      {entry.votes} {entry.votes === 1 ? "Stimme" : "Stimmen"}
+                      {entry.votes === 1 ? translate(locale, "mvpVoting.oneVote") : translate(locale, "mvpVoting.votes", { count: entry.votes })}
                     </div>
                   </div>
                 ))}
@@ -581,8 +586,8 @@ export async function GET(request: Request, context: RouteContext) {
                 }}
               >
                 {tiedWinners.length > 1
-                  ? "wurden gemeinsam zum MVP gewählt."
-                  : "wurde von seinem Team zum MVP gewählt."}
+                  ? translate(locale, "mvpShare.chosenTogether")
+                  : translate(locale, "mvpShare.chosenByTeam")}
               </div>
             </div>
           )}
