@@ -17,6 +17,8 @@ import { BADGE_DEFINITIONS } from "@/lib/badges/catalog";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePowerUser } from "@/lib/auth/power-user";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
 import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
 
 type ClubRow = {
@@ -47,9 +49,10 @@ type KpiCardProps = {
   value: string;
   description: string;
   icon: React.ReactNode;
+  detailsLabel: string;
 };
 
-function KpiCard({ href, label, value, description, icon }: KpiCardProps) {
+function KpiCard({ href, label, value, description, icon, detailsLabel }: KpiCardProps) {
   return (
     <Link
       href={href}
@@ -72,21 +75,21 @@ function KpiCard({ href, label, value, description, icon }: KpiCardProps) {
       </div>
 
       <div className="mt-5 flex items-center text-sm font-medium text-slate-900">
-        Details ansehen
+        {detailsLabel}
         <span className="ml-2 transition group-hover:translate-x-1">→</span>
       </div>
     </Link>
   );
 }
 
-function formatDateTime(value: string | null | undefined) {
+function formatDateTime(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleString("de-DE");
+  return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-GB");
 }
 
-function formatDate(value: string | null | undefined) {
+function formatDate(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleDateString("de-DE");
+  return new Date(value).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB");
 }
 
 function getSafeCount(
@@ -100,6 +103,8 @@ function getSafeCount(
 
 export default async function PowerUserPage() {
   await requirePowerUser();
+  const { locale, t } = await getServerI18n();
+  const detailsLabel = t("power.details");
 
   const supabase = await createClient();
   const adminSupabase = createAdminClient();
@@ -168,7 +173,7 @@ export default async function PowerUserPage() {
   const clubNameById = new Map(
     clubs.map((club) => [
       club.id,
-      club.display_name?.trim() || club.name?.trim() || "Unbenannter Club",
+      club.display_name?.trim() || club.name?.trim() || t("power.unnamedClub"),
     ])
   );
 
@@ -218,7 +223,7 @@ export default async function PowerUserPage() {
             href="/admin"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Adminbereich
+            ← {t("power.adminBack")}
           </Link>
         </div>
 
@@ -234,15 +239,12 @@ export default async function PowerUserPage() {
               </h1>
 
               <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-                Hier siehst du auf einen Blick, wie viele Clubs, Registrierungen,
-                Einladungen und Trainings es systemweit gibt. Über Clubs &
-                Billing kannst du außerdem Free, Supercup, Pro und Founder
-                manuell setzen.
+                {t("power.dashboard.description")}
               </p>
             </div>
 
             <div className="rounded-3xl border border-violet-200 bg-violet-50 px-5 py-4 text-violet-950">
-              <div className="text-sm font-medium">Zugriff</div>
+              <div className="text-sm font-medium">{t("power.access")}</div>
               <div className="mt-1 text-2xl font-bold">Power User</div>
             </div>
           </div>
@@ -251,95 +253,89 @@ export default async function PowerUserPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <KpiCard
             href="/power-user/clubs"
-            label="Clubs & Billing"
+            label={t("power.clubsBilling")}
             value={String(clubsCount)}
-            description="Alle Clubs prüfen, Support-Kontext sehen und Free, Supercup Trial, Pro oder Founder manuell setzen."
+            description={t("power.clubsBillingDesc")}
             icon={<CreditCard className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/clubs/cleanup"
-            label="Club-Cleanup"
-            value="Aufräumen"
-            description="Testclubs erkennen, Papierkorb prüfen und Clubs wiederherstellen oder zur Löschung vormerken."
+            label={t("power.cleanup")}
+            value={t("power.cleanupValue")}
+            description={t("power.cleanupDesc")}
             icon={<Trash2 className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/landing-stats"
-            label="Landing Analytics"
+            label={t("power.analytics")}
             value="Live"
-            description="Besuche, Quellen, Kampagnen, Geräte und letzte Landingpage-Aufrufe ansehen."
+            description={t("power.analyticsDesc")}
             icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/beerkasse"
-            label="Bier über strikr erfasst"
+            label={t("power.beerCaptured")}
             value={`${beerCount} 🍺`}
-            description={`${(beerValueCents / 100).toLocaleString("de-DE", {
-              style: "currency",
-              currency: "EUR",
-            })} Verbrauchswert · ${(paidBeerValueCents / 100).toLocaleString("de-DE", {
-              style: "currency",
-              currency: "EUR",
-            })} bestätigt bezahlt.`}
+            description={t("power.beerDesc", { value: (beerValueCents / 100).toLocaleString(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }), paid: (paidBeerValueCents / 100).toLocaleString(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }) })}
             icon={<Beer className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/onboarding-simulator"
-            label="Onboarding Simulator"
-            value="Starten"
-            description="Den kompletten neuen Admin-Start jederzeit gefahrlos durchspielen – ohne echten Club oder Änderungen."
+            label={t("power.onboardingSimulator")}
+            value={t("power.start")}
+            description={t("power.onboardingDesc")}
             icon={<Sparkles className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/badges"
-            label="Badge-Katalog"
+            label={t("power.badgeCatalog")}
             value={String(BADGE_DEFINITIONS.length)}
-            description="Alle Hall-of-Fame-Badges mit Kategorie, Regel, Stufe und finalem 3D-Look prüfen."
+            description={t("power.badgeCatalogDesc")}
             icon={<Award className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/users"
-            label="User gesamt"
+            label={t("power.usersTotal")}
             value={String(usersCount)}
-            description="Alle registrierten Auth-User im System."
+            description={t("power.usersTotalDesc")}
             icon={<Users className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/invites?status=accepted"
-            label="Einladungen angenommen"
+            label={t("power.invitesAccepted")}
             value={String(acceptedInvitesCount)}
-            description="Daran erkennst du direkt, ob Registrierungen und Join-Flows funktionieren."
+            description={t("power.invitesAcceptedDesc")}
             icon={<MailCheck className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/invites?status=open"
-            label="Einladungen offen"
+            label={t("power.invitesOpen")}
             value={String(openInvitesCount)}
-            description="Invite-Links, die noch nicht angenommen wurden."
+            description={t("power.invitesOpenDesc")}
             icon={<MailOpen className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/sessions"
-            label="Trainings gesamt"
+            label={t("power.sessionsTotal")}
             value={String(sessionsCount)}
-            description="Alle bisher angelegten Sessions im System."
+            description={t("power.sessionsTotalDesc")}
             icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
           />
 
           <KpiCard
             href="/power-user/sessions?range=7d"
-            label="Trainings letzte 7 Tage"
+            label={t("power.sessions7")}
             value={String(sessionsLast7DaysCount)}
-            description="Damit siehst du schnell, ob gerade echter Betrieb drin ist."
+            description={t("power.sessions7Desc")}
             icon={<CalendarDays className="h-6 w-6" strokeWidth={2.1} />}
           />
         </div>
@@ -370,7 +366,7 @@ export default async function PowerUserPage() {
                 <div className="space-y-3">
                   {latestInviteUsages.map((invite) => {
                     const clubName =
-                      clubNameById.get(invite.club_id) ?? "Unbekannter Club";
+                      clubNameById.get(invite.club_id) ?? t("power.unknownClub");
                     const roleLabel =
                       invite.role === "admin" ? "Admin" : "Mitglied";
 
@@ -418,7 +414,7 @@ export default async function PowerUserPage() {
                 <div className="space-y-3">
                   {latestSessions.map((session) => {
                     const clubName =
-                      clubNameById.get(session.club_id) ?? "Unbekannter Club";
+                      clubNameById.get(session.club_id) ?? t("power.unknownClub");
 
                     return (
                       <div
@@ -493,7 +489,7 @@ export default async function PowerUserPage() {
                       <div className="text-sm font-semibold text-slate-950">
                         {club.display_name?.trim() ||
                           club.name?.trim() ||
-                          "Unbenannter Club"}
+                          t("power.unnamedClub")}
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
                         ID: {club.id}
