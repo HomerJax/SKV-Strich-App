@@ -45,7 +45,7 @@ export default function HomeTeamFeedPreview({
       );
 
       if (!response.ok) {
-        throw new Error("Feed konnte nicht nachgeladen werden.");
+        throw new Error(t("teamFeed.loadMoreFailed"));
       }
 
       const payload = (await response.json()) as {
@@ -76,7 +76,7 @@ export default function HomeTeamFeedPreview({
     } finally {
       setLoading(false);
     }
-  }, [hasMore, loading, offset]);
+  }, [hasMore, loading, offset, t]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
