@@ -411,7 +411,7 @@ function PlayerBadgeCollection({
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-black uppercase tracking-[0.17em] text-slate-400">
-            Badges
+            {t("badges.badges")}
           </div>
           <Link
             href={`/badges?player=${playerId}`}
@@ -535,7 +535,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
       <main className="min-h-screen bg-neutral-100">
         <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6">
           <PageHero
-            eyebrow="Badges"
+            eyebrow={t("badges.badges")}
             title="Hall of Fame"
             description={t("badges.featureDisabled")}
             backLabel={t("badges.back")}
@@ -585,7 +585,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
       <main className="min-h-screen bg-neutral-100">
         <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6">
           <PageHero
-            eyebrow="Badges"
+            eyebrow={t("badges.badges")}
             title="Hall of Fame"
             description={t("badges.noProfile")}
             primaryColorKey={clubData?.primary_color}
@@ -677,7 +677,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
     <main className="min-h-screen bg-neutral-100 pb-24">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
         <PageHero
-          eyebrow="Badges"
+          eyebrow={t("badges.badges")}
           title={isOwnHall ? t("badges.myHall") : `${displayName} · Hall of Fame`}
           description={
             isOwnHall
