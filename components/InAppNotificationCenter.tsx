@@ -37,14 +37,14 @@ function getBadgeKey(notification: NotificationItem) {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
-function buildNotificationShareText(notification: NotificationItem) {
+function buildNotificationShareText(notification: NotificationItem, t: ReturnType<typeof useI18n>["t"]) {
   const isWinner = notification.type === "mvp_winner";
 
   if (isWinner) {
-    return `🏆 Ich bin MVP!\n\n${notification.body ?? "MVP des Trainings bei strikr."}\n\nMarkiere dein Team + @getstrikr\n#strikr`;
+    return t("notifications.shareMvpWinnerText", { body: notification.body ?? t("notifications.shareMvpWinnerFallback") });
   }
 
-  return `🏆 MVP Ergebnis ist da!\n\n${notification.body ?? "Das MVP Voting ist beendet."}\n\nMarkiere dein Team + @getstrikr\n#strikr`;
+  return t("notifications.shareMvpResultText", { body: notification.body ?? t("notifications.shareMvpResultFallback") });
 }
 
 export default function InAppNotificationCenter() {
@@ -128,7 +128,7 @@ export default function InAppNotificationCenter() {
       setShareMessage(null);
 
       const sessionId = getSessionIdFromHref(notification.cta_href);
-      const text = buildNotificationShareText(notification);
+      const text = buildNotificationShareText(notification, t);
       const sessionUrl =
         sessionId && typeof window !== "undefined"
           ? `${window.location.origin}/sessions/${sessionId}`
