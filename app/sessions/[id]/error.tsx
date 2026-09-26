@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 export default function SessionDetailError({
   reset,
@@ -8,6 +9,8 @@ export default function SessionDetailError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
@@ -16,11 +19,10 @@ export default function SessionDetailError({
             Session
           </div>
           <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
-            Session konnte nicht vollständig geöffnet werden
+            {t("sessionError.title")}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Bitte versuche es direkt noch einmal. Falls es erneut passiert,
-            bleibt die Session-Liste weiterhin erreichbar.
+            {t("sessionError.text")}
           </p>
 
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -29,14 +31,14 @@ export default function SessionDetailError({
               onClick={() => reset()}
               className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800"
             >
-              Erneut laden
+              {t("sessionError.retry")}
             </button>
 
             <Link
               href="/sessions"
               className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-50"
             >
-              Zur Session-Liste
+              {t("sessionError.list")}
             </Link>
           </div>
         </div>
