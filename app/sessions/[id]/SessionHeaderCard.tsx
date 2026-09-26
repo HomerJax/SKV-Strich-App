@@ -165,6 +165,7 @@ export default function SessionHeaderCard({
   seriesId = null,
   resultCount = 0,
 }: Props) {
+  const { t } = useI18n();
   const { locale, t } = useI18n();
   const isEvent = sessionType === "event";
   const hasTeams = teamACount > 0 || teamBCount > 0;
@@ -293,7 +294,7 @@ export default function SessionHeaderCard({
             onClick={onBack}
             className="inline-flex min-h-8 items-center justify-center rounded-full bg-white/8 px-3 py-1 text-sm font-semibold text-white/92 ring-1 ring-white/10 transition hover:bg-white/12"
           >
-            ← Zurück
+            ← {t("sessionHeader.back")}
           </button>
 
           {isAdmin ? (
