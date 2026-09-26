@@ -7,6 +7,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { parseEuroToCents } from "@/lib/cashbox/money";
+import { getServerI18n } from "@/lib/i18n/server";
 
 function cashUrl(tab: string, params: Record<string, string> = {}) {
   const search = new URLSearchParams({ tab, ...params });
@@ -82,6 +83,7 @@ async function reverseTransaction(params: {
 }
 
 export async function addCashTransactionAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { admin, clubId, user } = await managerCtx();
   const direction = String(formData.get("direction") ?? "income");
   const amountCents = parseEuroToCents(String(formData.get("amount") ?? ""));
@@ -91,7 +93,7 @@ export async function addCashTransactionAction(formData: FormData) {
   const occurredOn = String(formData.get("occurred_on") ?? "").trim() || null;
 
   if (!amountCents || amountCents <= 0 || !title) {
-    redirect(cashUrl("transactions", { error: "Bitte Betrag und Beschreibung angeben." }));
+    redirect(cashUrl("transactions", { error: t("cashAction.amountTitleRequired") }));
   }
 
   const signedAmount = direction === "expense" ? -amountCents : amountCents;
@@ -117,11 +119,12 @@ export async function addCashTransactionAction(formData: FormData) {
 }
 
 export async function reverseCashTransactionAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { admin, clubId, user } = await managerCtx();
   const transactionId = Number(String(formData.get("transaction_id") ?? ""));
 
   if (!Number.isFinite(transactionId)) {
-    redirect(cashUrl("transactions", { error: "Ungültiger Umsatz." }));
+    redirect(cashUrl("transactions", { error: t("cashAction.invalidTransaction") }));
   }
 
   try {
@@ -133,7 +136,7 @@ export async function reverseCashTransactionAction(formData: FormData) {
     });
   } catch (error) {
     redirect(cashUrl("transactions", {
-      error: error instanceof Error ? error.message : "Storno fehlgeschlagen.",
+      error: error instanceof Error ? error.message : t("cashAction.cancelFailed"),
     }));
   }
 
@@ -142,6 +145,7 @@ export async function reverseCashTransactionAction(formData: FormData) {
 }
 
 export async function addContributionAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { admin, clubId, user } = await managerCtx();
   const title = String(formData.get("title") ?? "").trim();
   const amountCents = parseEuroToCents(String(formData.get("amount") ?? ""));
@@ -150,7 +154,7 @@ export async function addContributionAction(formData: FormData) {
   const allPlayers = formData.get("all_players") === "on";
 
   if (!title || !amountCents || amountCents <= 0) {
-    redirect(cashUrl("contributions", { error: "Bitte Titel und positiven Betrag angeben." }));
+    redirect(cashUrl("contributions", { error: t("cashAction.contributionRequired") }));
   }
 
   let playerIds = formData
@@ -190,7 +194,7 @@ export async function addContributionAction(formData: FormData) {
   playerIds = Array.from(new Set(playerIds));
 
   if (playerIds.length === 0) {
-    redirect(cashUrl("contributions", { error: "Bitte mindestens einen Spieler auswählen." }));
+    redirect(cashUrl("contributions", { error: t("cashAction.playerMinimum") }));
   }
 
   const { data: contribution, error: contributionError } = await admin
@@ -208,7 +212,7 @@ export async function addContributionAction(formData: FormData) {
 
   if (contributionError || !contribution) {
     redirect(cashUrl("contributions", {
-      error: contributionError?.message ?? "Beitrag konnte nicht angelegt werden.",
+      error: contributionError?.message ?? t("cashAction.contributionCreateFailed"),
     }));
   }
 
@@ -233,6 +237,7 @@ export async function addContributionAction(formData: FormData) {
 }
 
 export async function setContributionStatusAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { admin, clubId, user } = await managerCtx();
   const contributionId = Number(String(formData.get("contribution_id") ?? ""));
   const playerId = Number(String(formData.get("player_id") ?? ""));
@@ -240,7 +245,7 @@ export async function setContributionStatusAction(formData: FormData) {
   const nextStatus = statusRaw === "paid" || statusRaw === "exempt" ? statusRaw : "open";
 
   if (!Number.isFinite(contributionId) || !Number.isFinite(playerId)) {
-    redirect(cashUrl("contributions", { error: "Ungültiger Beitrag." }));
+    redirect(cashUrl("contributions", { error: t("cashAction.invalidContribution") }));
   }
 
   const [
@@ -263,7 +268,7 @@ export async function setContributionStatusAction(formData: FormData) {
   ]);
 
   if (contributionError || memberError || !contribution || !member) {
-    redirect(cashUrl("contributions", { error: "Beitrag konnte nicht geladen werden." }));
+    redirect(cashUrl("contributions", { error: t("cashAction.contributionLoadFailed") }));
   }
 
   if (member.status === nextStatus) {
@@ -283,7 +288,7 @@ export async function setContributionStatusAction(formData: FormData) {
       });
     } catch (error) {
       redirect(cashUrl("contributions", {
-        error: error instanceof Error ? error.message : "Gegenbuchung fehlgeschlagen.",
+        error: error instanceof Error ? error.message : t("cashAction.reversalGenericFailed"),
       }));
     }
     transactionId = null;
@@ -309,7 +314,7 @@ export async function setContributionStatusAction(formData: FormData) {
 
     if (transactionError || !transaction) {
       redirect(cashUrl("contributions", {
-        error: transactionError?.message ?? "Zahlung konnte nicht gebucht werden.",
+        error: transactionError?.message ?? t("cashAction.paymentFailed"),
       }));
     }
     transactionId = transaction.id;
@@ -336,11 +341,12 @@ export async function setContributionStatusAction(formData: FormData) {
 }
 
 export async function archiveContributionAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { admin, clubId } = await managerCtx();
   const contributionId = Number(String(formData.get("contribution_id") ?? ""));
 
   if (!Number.isFinite(contributionId)) {
-    redirect(cashUrl("contributions", { error: "Ungültiger Beitrag." }));
+    redirect(cashUrl("contributions", { error: t("cashAction.invalidContribution") }));
   }
 
   const archived = formData.get("archived") === "1";
@@ -362,6 +368,7 @@ export async function archiveContributionAction(formData: FormData) {
 }
 
 export async function setCashboxManagerAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const ctx = await requireClub();
 
   if (!canManageClub({ isPowerUser: ctx.isPowerUser, role: ctx.membership.role })) {
@@ -373,7 +380,7 @@ export async function setCashboxManagerAction(formData: FormData) {
   const admin = createAdminClient();
 
   if (!userId) {
-    redirect(cashUrl("settings", { error: "Mitglied fehlt." }));
+    redirect(cashUrl("settings", { error: t("cashAction.memberMissing") }));
   }
 
   const { data: membership, error: membershipError } = await admin
@@ -384,7 +391,7 @@ export async function setCashboxManagerAction(formData: FormData) {
     .maybeSingle<{ user_id: string }>();
 
   if (membershipError || !membership) {
-    redirect(cashUrl("settings", { error: "Mitglied nicht gefunden." }));
+    redirect(cashUrl("settings", { error: t("cashAction.memberNotFound") }));
   }
 
   const result = enabled
