@@ -919,7 +919,7 @@ export default function SessionGameTimerCard({
                 onClick={() => resetRuntime(settings)}
                 className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800"
               >
-                {t("gameTimer.title")} zurücksetzen
+                {t("gameTimer.reset")}
               </button>
             </>
           ) : null}
