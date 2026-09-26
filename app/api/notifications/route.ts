@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type NotificationRow = {
   id: number;
@@ -18,6 +19,7 @@ type NotificationRow = {
 };
 
 export async function GET(_request: NextRequest) {
+  const { t } = await getServerI18n();
   const supabase = await createClient();
 
   const {
@@ -30,7 +32,7 @@ export async function GET(_request: NextRequest) {
   }
 
   if (!user) {
-    return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });
+    return NextResponse.json({ error: t("notificationApi.notSignedIn") }, { status: 401 });
   }
 
   const { data, error } = await supabase
@@ -84,6 +86,7 @@ export async function GET(_request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { t } = await getServerI18n();
   const supabase = await createClient();
 
   const {
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!user) {
-    return NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 });
+    return NextResponse.json({ error: t("notificationApi.notSignedIn") }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
@@ -121,7 +124,7 @@ export async function POST(request: NextRequest) {
 
   if (intent !== "mark_seen" || !notificationId) {
     return NextResponse.json(
-      { error: "Es wurde keine gültige Notification-Aktion übergeben." },
+      { error: t("notificationApi.invalidAction") },
       { status: 400 }
     );
   }
