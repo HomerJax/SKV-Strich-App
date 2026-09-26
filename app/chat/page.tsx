@@ -5,10 +5,12 @@ import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import ChatClient, { type ChatMessage } from "./ChatClient";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function ChatPage() {
+  const { t } = await getServerI18n();
   const { clubId, user, membership, isPowerUser } = await requireClub();
   const flags = await getFeatureFlagsForClub(clubId);
   if (flags.team_chat !== true) redirect("/home");
@@ -34,7 +36,7 @@ export default async function ChatPage() {
   const clubName =
     clubData?.display_name?.trim() ||
     clubData?.name?.trim() ||
-    "Dein Team";
+    t("chat.teamFallback");
   const canManage = canManageClub({
     isPowerUser,
     role: membership.role,
@@ -55,7 +57,7 @@ export default async function ChatPage() {
               {clubName}
             </div>
             <div className="text-[10px] font-semibold uppercase tracking-[.14em] text-slate-400">
-              strikr Teamchat
+              {t("chat.brandLabel")}
             </div>
           </div>
         </div>
