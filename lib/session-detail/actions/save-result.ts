@@ -37,8 +37,8 @@ export async function handleSaveResult({
   actorUserId,
   winnerPhotoPath = null,
 }: SaveResultInput) {
+  const { t } = await getServerI18n();
   try {
-    const { t } = await getServerI18n();
     const cleanA = normalizeGoalValue(goalsA);
     const cleanB = normalizeGoalValue(goalsB);
 
