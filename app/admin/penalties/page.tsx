@@ -711,16 +711,16 @@ export default async function Page({ searchParams }: Props) {
         {visibleTab === "penalties" ? (
           <>
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-black">Neuer FBZG-Eintrag</h2>
+              <h2 className="text-lg font-black">{t("cashAdmin.newFbzg")}</h2>
               <form action={addPenaltyAction} className="mt-4 space-y-3">
                 <select name="player_id" required className="w-full rounded-xl border px-3 py-2.5 text-sm">
-                  <option value="">Spieler wählen</option>
+                  <option value="">{t("cashAdmin.choosePlayer")}</option>
                   {players.map((player) => (
                     <option key={player.id} value={player.id}>{playerName(player, t("cashAdmin.playerFallback", { id: player.id }))}</option>
                   ))}
                 </select>
                 <select name="preset" defaultValue="" className="w-full rounded-xl border px-3 py-2.5 text-sm">
-                  <option value="">Eigener Anlass</option>
+                  <option value="">{t("cashbox.customReason")}</option>
                   {rules.filter((rule) => rule.enabled).map((rule) => (
                     <option key={rule.rule_key} value={rule.rule_key}>
                       {rule.label} · {rule.value}
@@ -728,25 +728,25 @@ export default async function Page({ searchParams }: Props) {
                   ))}
                 </select>
                 <div className="grid gap-2 sm:grid-cols-3">
-                  <input name="reason" placeholder="Eigener Grund" className="rounded-xl border px-3 py-2.5 text-sm" />
+                  <input name="reason" placeholder={t("cashAdmin.customReason")} className="rounded-xl border px-3 py-2.5 text-sm" />
                   <select name="type" className="rounded-xl border px-3 py-2.5 text-sm">
-                    <option value="beer">Sachbeitrag</option>
-                    <option value="money">Geld</option>
-                    <option value="custom">Sonstiges</option>
+                    <option value="beer">{t("cashAdmin.inKind")}</option>
+                    <option value="money">{t("cashAdmin.money")}</option>
+                    <option value="custom">{t("cashAdmin.other")}</option>
                   </select>
-                  <input name="value" placeholder="z. B. Kuchen / 2 €" className="rounded-xl border px-3 py-2.5 text-sm" />
+                  <input name="value" placeholder={t("cashAdmin.valuePlaceholder")} className="rounded-xl border px-3 py-2.5 text-sm" />
                 </div>
                 <input name="notes" placeholder={t("cashAdmin.noteOptional")} className="w-full rounded-xl border px-3 py-2.5 text-sm" />
                 <button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
-                  FBZG eintragen
+                  {t("cashAdmin.addFbzg")}
                 </button>
               </form>
             </section>
 
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-black">Offene FBZG-Einträge · {openPenalties.length}</h2>
+              <h2 className="text-lg font-black">{t("cashAdmin.openFbzgEntries", { count: openPenalties.length })}</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Bei FBZG-Geldbeträgen erzeugt „Bezahlt“ automatisch eine Einnahme im Umsatzbuch.
+                {t("cashAdmin.fbzgMoneyHint")}
               </p>
               <div className="mt-4 space-y-2">
                 {openPenalties.map((entry) => (
@@ -762,11 +762,11 @@ export default async function Page({ searchParams }: Props) {
                         </div>
                         {isEscalated(entry) ? (
                           <div className="text-xs font-black text-amber-800">
-                            Überfällig: {entry.escalation_value}
+                            {t("cashAdmin.overdue", { value: entry.escalation_value ?? "" })}
                           </div>
                         ) : entry.due_date && entry.escalation_value ? (
                           <div className="text-xs text-slate-500">
-                            Bis {fmtDate(entry.due_date)} · danach {entry.escalation_value}
+                            {t("cashAdmin.untilThen", { date: fmtDate(entry.due_date, locale), value: entry.escalation_value ?? "" })}
                           </div>
                         ) : null}
                       </div>
@@ -774,13 +774,13 @@ export default async function Page({ searchParams }: Props) {
                         <form action={resolvePenaltyAction}>
                           <input type="hidden" name="penalty_id" value={entry.id} />
                           <button className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-black text-emerald-800">
-                            {entry.type === "money" ? "✓ Bezahlt" : "✓ Erledigt"}
+                            {entry.type === "money" ? `✓ ${t("cashAdmin.statusPaid")}` : t("cashAdmin.resolved")}
                           </button>
                         </form>
                         <form action={deletePenaltyAction}>
                           <input type="hidden" name="penalty_id" value={entry.id} />
                           <button className="rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-black text-red-700">
-                            Löschen
+                            {t("cashAdmin.delete")}
                           </button>
                         </form>
                       </div>
@@ -788,7 +788,7 @@ export default async function Page({ searchParams }: Props) {
                   </div>
                 ))}
                 {openPenalties.length === 0 ? (
-                  <p className="text-sm text-slate-500">Alles erledigt. 😄</p>
+                  <p className="text-sm text-slate-500">{t("cashAdmin.allDone")}</p>
                 ) : null}
               </div>
             </section>
@@ -796,7 +796,7 @@ export default async function Page({ searchParams }: Props) {
             {resolvedPenalties.length ? (
               <details className="rounded-[24px] border border-slate-200 bg-white p-5">
                 <summary className="cursor-pointer font-black">
-                  Beglichen ({resolvedPenalties.length})
+                  {t("cashAdmin.settled", { count: resolvedPenalties.length })}
                 </summary>
                 <div className="mt-3 space-y-2">
                   {resolvedPenalties.map((entry) => (
@@ -806,7 +806,7 @@ export default async function Page({ searchParams }: Props) {
                       </span>
                       <form action={reopenPenaltyAction}>
                         <input type="hidden" name="penalty_id" value={entry.id} />
-                        <button className="text-xs font-black text-slate-600">Wieder öffnen</button>
+                        <button className="text-xs font-black text-slate-600">{t("cashAdmin.reopen")}</button>
                       </form>
                     </div>
                   ))}
@@ -818,9 +818,9 @@ export default async function Page({ searchParams }: Props) {
 
         {visibleTab === "rules" ? (
           <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-black">FBZG-Regeln & Automatik</h2>
+            <h2 className="text-lg font-black">{t("cashAdmin.rulesTitle")}</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Geld- oder Sachbeitrag, Aktivierung und Eskalation frei festlegen. Automatische Regeln wie „Verspätete Anmeldung“ laufen direkt in diese Liste.
+              {t("cashAdmin.rulesHint")}
             </p>
             <div className="mt-4 space-y-3">
               {rules.map((rule) => (
@@ -828,44 +828,44 @@ export default async function Page({ searchParams }: Props) {
                   <input type="hidden" name="rule_key" value={rule.rule_key} />
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="block">
-                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Regelname</span>
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.ruleName")}</span>
                       <input name="label" defaultValue={rule.label} className="w-full rounded-xl border bg-white px-3 py-2 text-sm font-bold" />
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Grund / Beschreibung</span>
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.reasonDescription")}</span>
                       <input name="reason" defaultValue={rule.reason} className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Art</span>
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.type")}</span>
                       <select name="type" defaultValue={rule.type} className="w-full rounded-xl border bg-white px-3 py-2 text-sm">
-                        <option value="beer">Sachbeitrag</option>
-                        <option value="money">Geld</option>
-                        <option value="custom">Sonstiges</option>
+                        <option value="beer">{t("cashAdmin.inKind")}</option>
+                        <option value="money">{t("cashAdmin.money")}</option>
+                        <option value="custom">{t("cashAdmin.other")}</option>
                       </select>
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Wert / Beitrag</span>
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.valueContribution")}</span>
                       <input name="value" defaultValue={rule.value} className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
                     </label>
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <label className="block">
-                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Eskalation nach Tagen</span>
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.escalationDays")}</span>
                       <input name="escalation_after_days" type="number" min="1" defaultValue={rule.escalation_after_days ?? ""} placeholder="z. B. 28" className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
-                      <span className="mt-1 block text-[10px] font-medium text-slate-500">Nach wie vielen Tagen sich der Beitrag verschärft.</span>
+                      <span className="mt-1 block text-[10px] font-medium text-slate-500">{t("cashAdmin.escalationDaysHint")}</span>
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Danach gilt</span>
-                      <input name="escalation_value" defaultValue={rule.escalation_value ?? ""} placeholder="z. B. + 1 Sechserträger" className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
-                      <span className="mt-1 block text-[10px] font-medium text-slate-500">Optional: zusätzlicher oder verschärfter FBZG-Beitrag nach Ablauf.</span>
+                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.afterwards")}</span>
+                      <input name="escalation_value" defaultValue={rule.escalation_value ?? ""} placeholder={t("cashAdmin.escalationPlaceholder")} className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
+                      <span className="mt-1 block text-[10px] font-medium text-slate-500">{t("cashAdmin.escalationHint")}</span>
                     </label>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
                     <label className="flex items-center gap-2 text-xs font-black">
-                      <input type="checkbox" name="enabled" defaultChecked={rule.enabled} /> Aktiv
+                      <input type="checkbox" name="enabled" defaultChecked={rule.enabled} /> {t("cashAdmin.active")}
                     </label>
                     <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white">
-                      Regel speichern
+                      {t("cashAdmin.saveRule")}
                     </button>
                   </div>
                 </form>
@@ -878,21 +878,21 @@ export default async function Page({ searchParams }: Props) {
           <>
             {isClubAdmin ? (
               <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 className="text-lg font-black">Kassenwart</h2>
+                <h2 className="text-lg font-black">{t("cashAdmin.treasurer")}</h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Ein Kassenwart kann die Mannschaftskasse verwalten, ohne Club-Admin sein zu müssen.
+                  {t("cashAdmin.treasurerHint")}
                 </p>
 
                 <div className="mt-4 space-y-2">
                   {managers.map((manager) => (
                     <div key={manager.user_id} className="flex items-center justify-between rounded-xl bg-slate-50 p-3">
                       <span className="text-sm font-bold">
-                        {namesByUserId.get(manager.user_id) ?? "Mitglied"}
+                        {namesByUserId.get(manager.user_id) ?? t("cashAdmin.memberFallback")}
                       </span>
                       <form action={setCashboxManagerAction}>
                         <input type="hidden" name="user_id" value={manager.user_id} />
                         <input type="hidden" name="enabled" value="0" />
-                        <button className="text-xs font-black text-rose-700">Entfernen</button>
+                        <button className="text-xs font-black text-rose-700">{t("cashAdmin.remove")}</button>
                       </form>
                     </div>
                   ))}
@@ -900,7 +900,7 @@ export default async function Page({ searchParams }: Props) {
 
                 <form action={setCashboxManagerAction} className="mt-4 flex gap-2">
                   <select name="user_id" required className="min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm">
-                    <option value="">Kassenwart wählen</option>
+                    <option value="">{t("cashAdmin.chooseTreasurer")}</option>
                     {players
                       .filter((player) => player.user_id && !managers.some((manager) => manager.user_id === player.user_id))
                       .map((player) => (
@@ -911,7 +911,7 @@ export default async function Page({ searchParams }: Props) {
                   </select>
                   <input type="hidden" name="enabled" value="1" />
                   <button className="rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white">
-                    Hinzufügen
+                    {t("cashAdmin.add")}
                   </button>
                 </form>
               </section>
@@ -922,30 +922,30 @@ export default async function Page({ searchParams }: Props) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
-                      Club Extra
+                      {t("cashAdmin.clubExtra")}
                     </div>
-                    <h2 className="mt-1 text-lg font-black">🍺 Bierkasse+</h2>
+                    <h2 className="mt-1 text-lg font-black">{t("cashAdmin.beerPlus")}</h2>
                     <p className="mt-1 text-xs font-medium text-slate-600">
-                      Bier eintragen, Verbrauch und Zahlung getrennt führen und wahlweise per PayPal oder bar abrechnen.
+                      {t("cashAdmin.beerPlusHint")}
                     </p>
                   </div>
                   <span className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black text-white">
-                    0,99 € / Monat
+                    {t("cashAdmin.perMonth")}
                   </span>
                 </div>
 
                 {q?.beerkasse_saved ? (
-                  <p className="mt-3 text-xs font-bold text-emerald-700">✓ Gespeichert</p>
+                  <p className="mt-3 text-xs font-bold text-emerald-700">{t("cashAdmin.saved")}</p>
                 ) : null}
                 {q?.beerkasse_error ? (
                   <p className="mt-3 text-xs font-bold text-red-700">
                     {q.beerkasse_error === "premium"
-                      ? "Bierkasse+ ist für diesen Club noch nicht freigeschaltet."
+                      ? t("cashAdmin.beerPremiumMissing")
                       : q.beerkasse_error === "price"
-                        ? "Bitte einen gültigen Preis pro Bier eintragen."
+                        ? t("cashAdmin.beerInvalidPrice")
                         : q.beerkasse_error === "url"
-                          ? "Bitte einen gültigen https-PayPal-Link eintragen."
-                          : "Bierkasse+ konnte nicht gespeichert werden."}
+                          ? t("cashAdmin.beerInvalidUrl")
+                          : t("cashAdmin.beerSaveFailed")}
                   </p>
                 ) : null}
 
@@ -953,15 +953,15 @@ export default async function Page({ searchParams }: Props) {
                   <>
                     <div className="mt-4 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
                       <div>
-                        <div className="text-sm font-black text-emerald-900">Premium freigeschaltet</div>
-                        <div className="text-[11px] font-medium text-emerald-700">Der Club kann selbst entscheiden, ob das Modul sichtbar ist.</div>
+                        <div className="text-sm font-black text-emerald-900">{t("cashAdmin.premiumEnabled")}</div>
+                        <div className="text-[11px] font-medium text-emerald-700">{t("cashAdmin.premiumEnabledHint")}</div>
                       </div>
                       <span className="text-lg">✓</span>
                     </div>
 
                     <form action={saveBeerkasseAction} className="mt-4 space-y-3">
                       <label className="block">
-                        <span className="mb-1 block text-xs font-black text-slate-600">Preis pro Bier</span>
+                        <span className="mb-1 block text-xs font-black text-slate-600">{t("cashAdmin.pricePerBeer")}</span>
                         <div className="relative">
                           <input
                             name="price"
@@ -974,7 +974,7 @@ export default async function Page({ searchParams }: Props) {
                       </label>
 
                       <label className="block">
-                        <span className="mb-1 block text-xs font-black text-slate-600">PayPal-Link <span className="font-medium text-slate-400">(optional)</span></span>
+                        <span className="mb-1 block text-xs font-black text-slate-600">{t("cashAdmin.paypalLink")} <span className="font-medium text-slate-400">{t("cashAdmin.optional")}</span></span>
                         <input
                           name="paypal_url"
                           defaultValue={settings?.beerkasse_paypal_url ?? ""}
@@ -982,31 +982,31 @@ export default async function Page({ searchParams }: Props) {
                           className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm"
                         />
                         <span className="mt-1 block text-[10px] font-medium text-slate-500">
-                          Mit paypal.me gibt strikr den errechneten Betrag direkt an PayPal mit. Bei PayPal-Pools kopiert strikr den Betrag automatisch – in PayPal dann nur noch „Beteiligen“, einfügen und zahlen.
+                          {t("cashAdmin.paypalAdminHint")}
                         </span>
                       </label>
 
                       <div className="space-y-2 rounded-2xl border border-amber-100 bg-white/80 p-3">
                         <label className="flex items-center justify-between gap-3 text-sm font-bold">
-                          <span>🍺 Bierkasse+ aktiv</span>
+                          <span>{t("cashAdmin.beerActive")}</span>
                           <input type="checkbox" name="enabled" defaultChecked={settings?.beerkasse_enabled === true} className="h-5 w-5" />
                         </label>
                         <label className="flex items-center justify-between gap-3 text-sm font-bold">
-                          <span>📊 Bierstatistik anzeigen</span>
+                          <span>{t("cashAdmin.showBeerStats")}</span>
                           <input type="checkbox" name="stats_enabled" defaultChecked={settings?.beerkasse_stats_enabled !== false} className="h-5 w-5" />
                         </label>
                         <label className="flex items-center justify-between gap-3 text-sm font-bold">
-                          <span>🏅 Bier-Badges anzeigen</span>
+                          <span>{t("cashAdmin.showBeerBadges")}</span>
                           <input type="checkbox" name="badges_enabled" defaultChecked={settings?.beerkasse_badges_enabled !== false} className="h-5 w-5" />
                         </label>
                         <label className="flex items-center justify-between gap-3 text-sm font-bold">
-                          <span>🏠 „Bier eintragen“ auf Home</span>
+                          <span>{t("cashAdmin.showBeerHome")}</span>
                           <input type="checkbox" name="home_enabled" defaultChecked={settings?.beerkasse_home_enabled === true} className="h-5 w-5" />
                         </label>
                       </div>
 
                       <button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
-                        Bierkasse+ speichern
+                        {t("cashAdmin.saveBeer")}
                       </button>
                     </form>
 
@@ -1014,27 +1014,27 @@ export default async function Page({ searchParams }: Props) {
                       <form action={setBeerkassePremiumAction} className="mt-3">
                         <input type="hidden" name="enabled" value="0" />
                         <button className="text-[10px] font-bold text-slate-400 underline">
-                          Power User: Premium-Freigabe entfernen
+                          {t("cashAdmin.powerRemovePremium")}
                         </button>
                       </form>
                     ) : null}
                   </>
                 ) : (
                   <div className="mt-4 rounded-2xl border border-amber-200 bg-white p-4">
-                    <div className="font-black text-slate-950">Bierkasse+ ist nicht freigeschaltet</div>
+                    <div className="font-black text-slate-950">{t("cashAdmin.beerNotEnabled")}</div>
                     <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
-                      Ohne Freigabe sind Bier-Checkout, Statistik, Badges und Home-Button für den Club komplett unsichtbar.
+                      {t("cashAdmin.beerNotEnabledHint")}
                     </p>
                     {isPowerUser ? (
                       <form action={setBeerkassePremiumAction} className="mt-3">
                         <input type="hidden" name="enabled" value="1" />
                         <button className="w-full rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-black text-slate-950">
-                          Power User: für diesen Club freischalten
+                          {t("cashAdmin.powerEnablePremium")}
                         </button>
                       </form>
                     ) : (
                       <div className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
-                        Premium-Add-on · 0,99 € / Monat pro Club
+                        {t("cashAdmin.premiumAddon")}
                       </div>
                     )}
                   </div>
@@ -1042,7 +1042,7 @@ export default async function Page({ searchParams }: Props) {
               </section>
             ) : (
               <div className="rounded-[24px] border bg-white p-5 text-sm text-slate-600">
-                Du verwaltest die Kasse als Kassenwart. Club- und Rollen-Einstellungen bleiben beim Admin.
+                {t("cashAdmin.treasurerLimited")}
               </div>
             )}
           </>
