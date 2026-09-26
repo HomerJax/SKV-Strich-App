@@ -2983,6 +2983,42 @@ export const DE_MESSAGES = {
   "mvpApi.voteSaveFailed": "MVP-Stimme konnte nicht gespeichert werden.",
   "mvpApi.clubLoadFailed": "Clubdaten konnten nicht geladen werden: {error}",
 
+  "selectClub.error": "Dieses Team konnte nicht ausgewählt werden.",
+  "selectClub.title": "Wähle dein Team.",
+  "selectClub.description": "Du bist mehreren Clubs zugeordnet. Wähle aus, mit welchem Team du jetzt arbeiten möchtest.",
+  "selectClub.role": "Rolle: {role}",
+  "selectClub.admin": "Admin",
+  "selectClub.member": "Mitglied",
+  "selectClub.opening": "Wird geöffnet...",
+  "selectClub.open": "Mit diesem Team öffnen",
+
+  "inviteShare.text": "Hey 👋\n\ndu wurdest zu Strikr eingeladen ({role}) ⚽\n\n👉 So startest du:\n1. Einladung annehmen / Link öffnen\n2. Registrieren\n3. Fertig 👍\n\n👉 Was du direkt machen kannst:\n• Trainings sehen & teilnehmen\n• Teams einsehen\n• Ergebnisse & Stats checken 📊\n• Siegerfotos anschauen 📸\n\n👉 Wichtig:\nJeder kann Trainings anlegen und Teams erstellen –\nfalls mal jemand fehlt oder spontan organisiert werden muss 👍\n\nDie App ist aktuell noch in der Pilotphase –\nwenn dir etwas auffällt (gut oder schlecht), gerne Bescheid sagen 🙌\n\nHier geht’s los:\n{url}",
+  "inviteShare.mailSubject": "Deine Einladung zu Strikr",
+  "inviteShare.copyLinkFailed": "Link konnte nicht in die Zwischenablage kopiert werden.",
+  "inviteShare.copyMessageFailed": "Nachricht konnte nicht in die Zwischenablage kopiert werden.",
+  "inviteShare.unsupported": "Teilen wird auf diesem Gerät nicht direkt unterstützt. Nutze stattdessen Nachricht kopieren.",
+  "inviteShare.shareFailed": "Teilen war nicht möglich. Nutze stattdessen Nachricht kopieren.",
+  "inviteShare.nativeTitle": "Strikr Einladung",
+  "inviteShare.label": "Nachricht zum Teilen",
+  "inviteShare.hint": "Du kannst diese Nachricht direkt kopieren oder per WhatsApp, E-Mail oder Teilen-Funktion verschicken.",
+  "inviteShare.linkCopied": "Link kopiert",
+  "inviteShare.copyLink": "Link kopieren",
+  "inviteShare.messageCopied": "Nachricht kopiert",
+  "inviteShare.copyMessage": "Nachricht kopieren",
+  "inviteShare.whatsapp": "Per WhatsApp teilen",
+  "inviteShare.share": "Teilen",
+  "inviteShare.email": "Per E-Mail teilen",
+
+  "notificationApi.notSignedIn": "Nicht eingeloggt.",
+  "notificationApi.invalidAction": "Es wurde keine gültige Notification-Aktion übergeben.",
+
+  "powerSwitch.notSignedIn": "Nicht eingeloggt.",
+  "powerSwitch.forbidden": "Keine Berechtigung.",
+  "powerSwitch.clubIdMissing": "clubId fehlt.",
+  "powerSwitch.clubCheckFailed": "Verein konnte nicht geprüft werden.",
+  "powerSwitch.clubNotFound": "Verein nicht gefunden.",
+  "powerSwitch.unexpected": "Unerwarteter Fehler.",
+
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -6000,6 +6036,43 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "mvpApi.playerNotEligible": "This player cannot be selected for the vote.",
   "mvpApi.voteSaveFailed": "MVP vote could not be saved.",
   "mvpApi.clubLoadFailed": "Club data could not be loaded: {error}",
+
+
+  "selectClub.error": "This team could not be selected.",
+  "selectClub.title": "Choose your team.",
+  "selectClub.description": "You belong to multiple clubs. Choose the team you want to work with now.",
+  "selectClub.role": "Role: {role}",
+  "selectClub.admin": "Admin",
+  "selectClub.member": "Member",
+  "selectClub.opening": "Opening...",
+  "selectClub.open": "Open this team",
+
+  "inviteShare.text": "Hey 👋\n\nyou've been invited to Strikr ({role}) ⚽\n\n👉 Get started:\n1. Accept the invitation / open the link\n2. Register\n3. Done 👍\n\n👉 What you can do right away:\n• View & join training sessions\n• View teams\n• Check results & stats 📊\n• View winner photos 📸\n\n👉 Important:\nAnyone can create training sessions and teams –\nif someone is missing or something needs to be organized spontaneously 👍\n\nThe app is still in its pilot phase –\nif you notice anything (good or bad), feel free to let us know 🙌\n\nGet started here:\n{url}",
+  "inviteShare.mailSubject": "Your invitation to Strikr",
+  "inviteShare.copyLinkFailed": "The link could not be copied to the clipboard.",
+  "inviteShare.copyMessageFailed": "The message could not be copied to the clipboard.",
+  "inviteShare.unsupported": "Sharing is not directly supported on this device. Copy the message instead.",
+  "inviteShare.shareFailed": "Sharing was not possible. Copy the message instead.",
+  "inviteShare.nativeTitle": "Strikr invitation",
+  "inviteShare.label": "Message to share",
+  "inviteShare.hint": "You can copy this message directly or send it via WhatsApp, email or the share function.",
+  "inviteShare.linkCopied": "Link copied",
+  "inviteShare.copyLink": "Copy link",
+  "inviteShare.messageCopied": "Message copied",
+  "inviteShare.copyMessage": "Copy message",
+  "inviteShare.whatsapp": "Share via WhatsApp",
+  "inviteShare.share": "Share",
+  "inviteShare.email": "Share via email",
+
+  "notificationApi.notSignedIn": "Not signed in.",
+  "notificationApi.invalidAction": "No valid notification action was provided.",
+
+  "powerSwitch.notSignedIn": "Not signed in.",
+  "powerSwitch.forbidden": "Permission denied.",
+  "powerSwitch.clubIdMissing": "clubId is missing.",
+  "powerSwitch.clubCheckFailed": "Club could not be checked.",
+  "powerSwitch.clubNotFound": "Club not found.",
+  "powerSwitch.unexpected": "Unexpected error.",
 
 
 };
