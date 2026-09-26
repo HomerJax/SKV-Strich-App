@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { resetPasswordAction } from "./actions";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type SearchParams = {
   error?: string | string[];
@@ -16,6 +17,7 @@ export default async function ResetPasswordPage({
 }: {
   searchParams?: Promise<SearchParams>;
 }) {
+  const { t } = await getServerI18n();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const error = getSingle(resolvedSearchParams?.error);
   const message = getSingle(resolvedSearchParams?.message);
@@ -25,10 +27,10 @@ export default async function ResetPasswordPage({
       <div className="w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Neues Passwort setzen
+            {t("resetPassword.title")}
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
-            Lege jetzt ein neues Passwort für dein Konto fest.
+            {t("resetPassword.description")}
           </p>
         </div>
 
@@ -50,7 +52,7 @@ export default async function ResetPasswordPage({
               htmlFor="password"
               className="mb-1.5 block text-sm font-medium text-neutral-900"
             >
-              Neues Passwort
+              {t("resetPassword.newPassword")}
             </label>
             <input
               id="password"
@@ -60,7 +62,7 @@ export default async function ResetPasswordPage({
               minLength={8}
               autoComplete="new-password"
               className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-              placeholder="Mindestens 8 Zeichen"
+              placeholder={t("resetPassword.minPlaceholder")}
             />
           </div>
 
@@ -69,7 +71,7 @@ export default async function ResetPasswordPage({
               htmlFor="password_confirm"
               className="mb-1.5 block text-sm font-medium text-neutral-900"
             >
-              Passwort wiederholen
+              {t("resetPassword.repeatPassword")}
             </label>
             <input
               id="password_confirm"
@@ -79,7 +81,7 @@ export default async function ResetPasswordPage({
               minLength={8}
               autoComplete="new-password"
               className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 outline-none transition focus:border-neutral-900"
-              placeholder="Passwort erneut eingeben"
+              placeholder={t("resetPassword.repeatPlaceholder")}
             />
           </div>
 
@@ -87,13 +89,13 @@ export default async function ResetPasswordPage({
             type="submit"
             className="w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
           >
-            Passwort speichern
+            {t("resetPassword.save")}
           </button>
         </form>
 
         <div className="mt-6 text-sm text-neutral-600">
           <Link className="font-medium text-neutral-900 underline" href="/login">
-            Zurück zum Login
+            {t("resetPassword.backToLogin")}
           </Link>
         </div>
       </div>
