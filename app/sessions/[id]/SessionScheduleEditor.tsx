@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Scope = "single" | "future" | "series";
 
@@ -20,6 +21,7 @@ export default function SessionScheduleEditor({
   isSeries,
   compact = false,
 }: Props) {
+  const { t } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [nextDate, setNextDate] = useState(date);
@@ -36,7 +38,7 @@ export default function SessionScheduleEditor({
 
   async function save() {
     if (!nextDate || !nextTime) {
-      setError("Bitte Datum und Uhrzeit angeben.");
+      setError(t("schedule.missing"));
       return;
     }
 
@@ -55,11 +57,11 @@ export default function SessionScheduleEditor({
         }),
       });
       const payload = (await response.json()) as { error?: string; message?: string };
-      if (!response.ok) throw new Error(payload.error || "Änderung fehlgeschlagen.");
-      setMessage(payload.message || "Termin aktualisiert.");
+      if (!response.ok) throw new Error(payload.error || t("schedule.changeFailed"));
+      setMessage(payload.message || t("schedule.updated"));
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Änderung fehlgeschlagen.");
+      setError(e instanceof Error ? e.message : t("schedule.changeFailed"));
     } finally {
       setBusy(false);
     }
@@ -68,9 +70,9 @@ export default function SessionScheduleEditor({
   async function deleteSeries(deleteScope: "future" | "series") {
     const label =
       deleteScope === "series"
-        ? "wirklich die komplette Terminserie"
-        : "diesen und alle folgenden Termine";
-    if (!window.confirm(`Willst du ${label} löschen?\n\nDas kann nicht rückgängig gemacht werden.`)) {
+        ? t("schedule.deleteSeries")
+        : t("schedule.deleteFuture");
+    if (!window.confirm(t("schedule.deleteConfirm", { scope: label }))) {
       return;
     }
 
@@ -84,11 +86,11 @@ export default function SessionScheduleEditor({
         body: JSON.stringify({ scope: deleteScope }),
       });
       const payload = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(payload.error || "Löschen fehlgeschlagen.");
+      if (!response.ok) throw new Error(payload.error || t("schedule.deleteFailed"));
       router.push("/sessions");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Löschen fehlgeschlagen.");
+      setError(e instanceof Error ? e.message : t("schedule.deleteFailed"));
       setBusy(false);
     }
   }
@@ -100,14 +102,14 @@ export default function SessionScheduleEditor({
         onClick={() => setOpen((value) => !value)}
         className="inline-flex min-h-8 items-center rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 ring-1 ring-white/10 transition hover:bg-white/15"
       >
-        {open ? "Termin bearbeiten schließen" : "✎ Termin bearbeiten"}
+        {open ? t("schedule.closeEdit") : t("schedule.edit")}
       </button>
 
       {open ? (
         <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/55 p-3 backdrop-blur-sm">
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="text-[11px] font-semibold text-white/70">
-              Datum
+              {t("schedule.date")}
               <input
                 type="date"
                 value={nextDate}
@@ -117,7 +119,7 @@ export default function SessionScheduleEditor({
               />
             </label>
             <label className="text-[11px] font-semibold text-white/70">
-              Uhrzeit
+              {t("schedule.time")}
               <input
                 type="time"
                 value={nextTime}
@@ -130,16 +132,16 @@ export default function SessionScheduleEditor({
 
           {isSeries ? (
             <label className="mt-3 block text-[11px] font-semibold text-white/70">
-              Änderung anwenden auf
+              {t("schedule.applyTo")}
               <select
                 value={scope}
                 onChange={(event) => setScope(event.target.value as Scope)}
                 disabled={busy}
                 className="mt-1 block w-full rounded-xl border border-white/15 bg-white px-3 py-2 text-sm text-slate-950"
               >
-                <option value="single">Nur diesen Termin</option>
-                <option value="future">Diesen + alle folgenden</option>
-                <option value="series">Komplette Serie</option>
+                <option value="single">{t("schedule.single")}</option>
+                <option value="future">{t("schedule.future")}</option>
+                <option value="series">{t("schedule.series")}</option>
               </select>
             </label>
           ) : null}
@@ -150,13 +152,13 @@ export default function SessionScheduleEditor({
             disabled={busy}
             className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-950 disabled:opacity-60"
           >
-            {busy ? "Speichert..." : "Datum & Uhrzeit speichern"}
+            {busy ? t("profile.saving") : t("schedule.saveDateTime")}
           </button>
 
           {isSeries ? (
             <div className="mt-3 border-t border-white/10 pt-3">
               <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
-                Serie löschen
+                {t("schedule.deleteSeriesTitle")}
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -165,7 +167,7 @@ export default function SessionScheduleEditor({
                   onClick={() => void deleteSeries("future")}
                   className="rounded-full bg-rose-500/10 px-3 py-2 text-[11px] font-bold text-rose-100 ring-1 ring-rose-300/20 disabled:opacity-60"
                 >
-                  Ab diesem Termin
+                  {t("schedule.fromHere")}
                 </button>
                 <button
                   type="button"
@@ -173,7 +175,7 @@ export default function SessionScheduleEditor({
                   onClick={() => void deleteSeries("series")}
                   className="rounded-full bg-rose-500/10 px-3 py-2 text-[11px] font-bold text-rose-100 ring-1 ring-rose-300/20 disabled:opacity-60"
                 >
-                  Ganze Serie
+                  {t("schedule.wholeSeries")}
                 </button>
               </div>
             </div>
