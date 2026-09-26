@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { parseEuroToCents } from "@/lib/cashbox/money";
+import { getServerI18n } from "@/lib/i18n/server";
 
 async function ctx() {
   const access = await requireCashboxAccess({ manage: true });
@@ -81,11 +82,12 @@ async function reverseCashTransaction(params: {
 }
 
 export async function addPenaltyAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { supabase, clubId } = await ctx();
   const playerId = Number(String(formData.get("player_id") ?? ""));
 
   if (!Number.isFinite(playerId)) {
-    redirect(url({ error: "Bitte einen Spieler auswählen." }));
+    redirect(url({ error: t("cashAction.playerRequired") }));
   }
 
   const { data: player } = await supabase
@@ -97,7 +99,7 @@ export async function addPenaltyAction(formData: FormData) {
     .maybeSingle();
 
   if (!player) {
-    redirect(url({ error: "Spieler nicht gefunden." }));
+    redirect(url({ error: t("cashAction.playerNotFound") }));
   }
 
   const presetKey = String(formData.get("preset") ?? "").trim();
@@ -120,7 +122,7 @@ export async function addPenaltyAction(formData: FormData) {
     (preset?.value ?? String(formData.get("value") ?? "").trim()) || null;
 
   if (!reason || !value) {
-    redirect(url({ error: "Bitte Grund und Beitrag angeben." }));
+    redirect(url({ error: t("cashAction.reasonValueRequired") }));
   }
 
   const dueRaw = String(formData.get("due_date") ?? "").trim();
@@ -150,6 +152,7 @@ export async function addPenaltyAction(formData: FormData) {
 }
 
 export async function savePenaltyRuleAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { supabase, clubId } = await ctx();
   const ruleKey = String(formData.get("rule_key") ?? "").trim();
   const label = String(formData.get("label") ?? "").trim();
@@ -171,7 +174,7 @@ export async function savePenaltyRuleAction(formData: FormData) {
     !value ||
     (daysRaw && !Number.isFinite(days))
   ) {
-    redirect(url({ error: "Regel unvollständig." }, "rules"));
+    redirect(url({ error: t("cashAction.ruleIncomplete") }, "rules"));
   }
 
   const { error } = await supabase
@@ -199,11 +202,12 @@ async function change(
   formData: FormData,
   mode: "resolve" | "reopen" | "delete",
 ) {
+  const { t } = await getServerI18n();
   const { supabase, clubId, user } = await ctx();
   const id = Number(String(formData.get("penalty_id") ?? ""));
 
   if (!Number.isFinite(id)) {
-    redirect(url({ error: "Ungültiger FBZG-Eintrag." }));
+    redirect(url({ error: t("cashAction.invalidFbzg") }));
   }
 
   const { data: penalty, error: penaltyError } = await supabase
@@ -221,7 +225,7 @@ async function change(
     }>();
 
   if (penaltyError || !penalty) {
-    redirect(url({ error: penaltyError?.message ?? "FBZG-Eintrag nicht gefunden." }));
+    redirect(url({ error: penaltyError?.message ?? t("cashAction.fbzgNotFound") }));
   }
 
   if (mode === "resolve" && penalty.resolved_at) {
@@ -253,7 +257,7 @@ async function change(
 
         if (transactionError || !transaction) {
           throw new Error(
-            transactionError?.message ?? "Zahlung konnte nicht gebucht werden.",
+            transactionError?.message ?? t("cashAction.paymentFailed"),
           );
         }
         transactionId = transaction.id;
@@ -317,7 +321,7 @@ async function change(
     redirect(
       url({
         error:
-          error instanceof Error ? error.message : "Aktion fehlgeschlagen.",
+          error instanceof Error ? error.message : t("cashAction.actionFailed"),
       }),
     );
   }
@@ -327,13 +331,16 @@ async function change(
 }
 
 export async function resolvePenaltyAction(formData: FormData) {
+  const { t } = await getServerI18n();
   return change(formData, "resolve");
 }
 
 export async function reopenPenaltyAction(formData: FormData) {
+  const { t } = await getServerI18n();
   return change(formData, "reopen");
 }
 
 export async function deletePenaltyAction(formData: FormData) {
+  const { t } = await getServerI18n();
   return change(formData, "delete");
 }
