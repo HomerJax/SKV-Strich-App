@@ -331,16 +331,13 @@ async function change(
 }
 
 export async function resolvePenaltyAction(formData: FormData) {
-  const { t } = await getServerI18n();
   return change(formData, "resolve");
 }
 
 export async function reopenPenaltyAction(formData: FormData) {
-  const { t } = await getServerI18n();
   return change(formData, "reopen");
 }
 
 export async function deletePenaltyAction(formData: FormData) {
-  const { t } = await getServerI18n();
   return change(formData, "delete");
 }
