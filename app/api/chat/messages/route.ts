@@ -3,6 +3,7 @@ import { canManageClub } from "@/lib/auth/access";
 import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ function authorName(params: {
       }
     | null;
   email?: string | null;
+  fallback: string;
 }) {
   const nickname = params.player?.nickname?.trim();
   if (nickname) return nickname;
@@ -40,7 +42,7 @@ function authorName(params: {
   return (
     fullName ||
     params.email?.split("@")[0]?.trim() ||
-    "Mitspieler"
+    params.fallback
   ).slice(0, 80);
 }
 
@@ -67,9 +69,10 @@ async function listMessages(clubId: string) {
 }
 
 export async function GET() {
+  const { t } = await getServerI18n();
   const { clubId } = await requireClub();
   if (!(await requireTeamChat(clubId))) {
-    return NextResponse.json({ error: "Teamchat ist für diesen Club noch nicht freigeschaltet." }, { status: 403 });
+    return NextResponse.json({ error: t("chatApi.disabled") }, { status: 403 });
   }
 
   try {
@@ -81,16 +84,17 @@ export async function GET() {
   } catch (error) {
     console.error("Team chat load failed", error);
     return NextResponse.json(
-      { error: "Nachrichten konnten nicht geladen werden." },
+      { error: t("chatApi.loadFailed") },
       { status: 500 },
     );
   }
 }
 
 export async function POST(request: Request) {
+  const { t } = await getServerI18n();
   const { clubId, user, player } = await requireClub();
   if (!(await requireTeamChat(clubId))) {
-    return NextResponse.json({ error: "Teamchat ist für diesen Club noch nicht freigeschaltet." }, { status: 403 });
+    return NextResponse.json({ error: t("chatApi.disabled") }, { status: 403 });
   }
 
   const payload = (await request.json().catch(() => null)) as
@@ -100,14 +104,14 @@ export async function POST(request: Request) {
 
   if (!body) {
     return NextResponse.json(
-      { error: "Bitte eine Nachricht eingeben." },
+      { error: t("chatApi.bodyRequired") },
       { status: 400 },
     );
   }
 
   if (body.length > 500) {
     return NextResponse.json(
-      { error: "Nachrichten dürfen maximal 500 Zeichen lang sein." },
+      { error: t("chatApi.bodyTooLong") },
       { status: 400 },
     );
   }
@@ -119,7 +123,7 @@ export async function POST(request: Request) {
       club_id: clubId,
       user_id: user.id,
       player_id: player?.id ?? null,
-      author_name: authorName({ player, email: user.email }),
+      author_name: authorName({ player, email: user.email, fallback: t("chatApi.playerFallback") }),
       body,
     })
     .select("id,club_id,user_id,player_id,author_name,body,created_at")
@@ -128,7 +132,7 @@ export async function POST(request: Request) {
   if (error || !data) {
     console.error("Team chat send failed", error);
     return NextResponse.json(
-      { error: "Nachricht konnte nicht gesendet werden." },
+      { error: t("chatApi.sendFailed") },
       { status: 500 },
     );
   }
@@ -137,9 +141,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const { t } = await getServerI18n();
   const { clubId, user, membership, isPowerUser } = await requireClub();
   if (!(await requireTeamChat(clubId))) {
-    return NextResponse.json({ error: "Teamchat ist für diesen Club noch nicht freigeschaltet." }, { status: 403 });
+    return NextResponse.json({ error: t("chatApi.disabled") }, { status: 403 });
   }
 
   const payload = (await request.json().catch(() => null)) as
@@ -149,7 +154,7 @@ export async function DELETE(request: Request) {
 
   if (!Number.isInteger(messageId) || messageId < 1) {
     return NextResponse.json(
-      { error: "Ungültige Nachricht." },
+      { error: t("chatApi.invalidMessage") },
       { status: 400 },
     );
   }
@@ -164,7 +169,7 @@ export async function DELETE(request: Request) {
 
   if (loadError) {
     return NextResponse.json(
-      { error: "Nachricht konnte nicht geprüft werden." },
+      { error: t("chatApi.checkFailed") },
       { status: 500 },
     );
   }
@@ -179,7 +184,7 @@ export async function DELETE(request: Request) {
 
   if (!canDelete) {
     return NextResponse.json(
-      { error: "Diese Nachricht darfst du nicht löschen." },
+      { error: t("chatApi.deleteForbidden") },
       { status: 403 },
     );
   }
@@ -193,7 +198,7 @@ export async function DELETE(request: Request) {
   if (error) {
     console.error("Team chat delete failed", error);
     return NextResponse.json(
-      { error: "Nachricht konnte nicht gelöscht werden." },
+      { error: t("chatApi.deleteFailed") },
       { status: 500 },
     );
   }
