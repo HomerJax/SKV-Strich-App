@@ -2,6 +2,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import PageHero from "@/components/PageHero";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
 
 type Season = {
   id: number;
@@ -20,16 +23,17 @@ type ClubRow = {
   primary_color: string | null;
 };
 
-function fmtDateRangeDE(startIso: string | null, endIso: string | null) {
-  if (!startIso || !endIso) return "Kein Zeitraum hinterlegt";
+function fmtDateRange(startIso: string | null, endIso: string | null, locale: AppLocale) {
+  if (!startIso || !endIso) return translate(locale, "archive.noRange");
 
-  const start = new Date(startIso).toLocaleDateString("de-DE", {
+  const dateLocale = locale === "de" ? "de-DE" : "en-GB";
+  const start = new Date(startIso).toLocaleDateString(dateLocale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 
-  const end = new Date(endIso).toLocaleDateString("de-DE", {
+  const end = new Date(endIso).toLocaleDateString(dateLocale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -52,6 +56,7 @@ function isSeasonArchived(season: Season, todayIso: string) {
 }
 
 export default async function SessionsArchivePage() {
+  const { locale, t } = await getServerI18n();
   const { clubId } = await requireClub();
   const supabase = await createClient();
 
@@ -77,7 +82,7 @@ export default async function SessionsArchivePage() {
     throw new Error(
       seasonsError?.message ??
         sessionRowsError?.message ??
-        "Archivdaten konnten nicht geladen werden."
+        t("archive.loadFailed")
     );
   }
 
@@ -109,21 +114,21 @@ export default async function SessionsArchivePage() {
             href="/sessions"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zu den Trainings
+            ← {t("archive.backTrainings")}
           </Link>
         </div>
 
         <PageHero
-          eyebrow="Archiv"
-          title="Vergangene Saisons"
-          description="Hier findest du abgeschlossene Saisons mit ihren archivierten Trainingseinheiten."
+          eyebrow={t("archive.eyebrow")}
+          title={t("archive.title")}
+          description={t("archive.description")}
           primaryColorKey={club?.primary_color}
           action={
             <Link
               href="/sessions"
               className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-white/90"
             >
-              Aktuelle Trainingsansicht
+              {t("archive.current")}
             </Link>
           }
         />
@@ -131,14 +136,12 @@ export default async function SessionsArchivePage() {
         {archivedSeasons.length === 0 ? (
           <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="max-w-xl">
-              <div className="text-sm font-semibold text-slate-500">Noch leer</div>
+              <div className="text-sm font-semibold text-slate-500">{t("archive.emptyLabel")}</div>
               <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">
-                Es gibt aktuell noch keine archivierte Saison.
+                {t("archive.emptyTitle")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Sobald eine Saison abgeschlossen ist, erscheint sie hier im Archiv.
-                In der normalen Trainingsübersicht bleibt der Fokus auf der
-                aktuellen Saison.
+                {t("archive.emptyText")}
               </p>
             </div>
           </div>
@@ -156,22 +159,22 @@ export default async function SessionsArchivePage() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="text-sm font-semibold text-slate-500">
-                        Saisonarchiv
+                        {t("archive.seasonArchive")}
                       </div>
                       <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">
                         {season.name}
                       </h2>
                       <p className="mt-2 text-sm text-slate-600">
-                        {fmtDateRangeDE(season.start_date, season.end_date)}
+                        {fmtDateRange(season.start_date, season.end_date, locale)}
                       </p>
                     </div>
 
                     <div className="flex flex-col items-start gap-2 sm:items-end">
                       <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-                        {sessionCount} {sessionCount === 1 ? "Einheit" : "Einheiten"}
+                        {sessionCount} {t(sessionCount === 1 ? "archive.unit" : "archive.units")}
                       </div>
                       <div className="text-sm font-semibold text-slate-900">
-                        Saison öffnen →
+                        {t("archive.openSeason")}
                       </div>
                     </div>
                   </div>
