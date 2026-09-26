@@ -586,8 +586,8 @@ export function useSessionDetail({
       return null;
     }
 
-    return `${window.location.origin}/api/share/result/${sessionId}/image`;
-  }, [canShareResult, sessionId]);
+    return `${window.location.origin}/api/share/result/${sessionId}/image?lang=${locale}`;
+  }, [canShareResult, sessionId, locale]);
 
   const resultShareReady = !!preparedResultShareFile && !preparingResultShare;
 
