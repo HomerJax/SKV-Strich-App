@@ -2768,6 +2768,14 @@ export const DE_MESSAGES = {
   "onboardingApi.profileCreateFailed": "Spielerprofil konnte nicht erstellt werden.",
   "onboardingApi.saveFailed": "Onboarding konnte nicht gespeichert werden.",
   "notificationApi.rsvpFallback": "Bitte kurz zu- oder absagen.",
+  "adminSettings.labelRequired": "Bitte Bezeichnung eingeben",
+  "adminSettings.invalidKey": "Ungültiger Schlüssel",
+  "adminSettings.activeCheckFailed": "Aktive Kategorien konnten nicht geprüft werden",
+  "adminSettings.createdInactive": "Kategorie wurde angelegt, aber nicht aktiviert. Für die Team-Balance können maximal zwei Kategorien aktiv sein.",
+  "adminSettings.invalidCategory": "Ungültige Kategorie",
+  "adminSettings.strongMustBeActive": "Nur eine aktive Kategorie kann als stärkere Kategorie markiert werden.",
+  "adminSettings.maxTwoActive": "Maximal zwei Kategorien können gleichzeitig aktiv sein. Deaktiviere zuerst eine andere Kategorie.",
+  "adminSettings.strongCheckFailed": "Stärkere Kategorie konnte nicht geprüft werden",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5561,6 +5569,15 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "onboardingApi.profileCreateFailed": "Player profile could not be created.",
   "onboardingApi.saveFailed": "Onboarding could not be saved.",
   "notificationApi.rsvpFallback": "Please RSVP.",
+
+  "adminSettings.labelRequired": "Please enter a label",
+  "adminSettings.invalidKey": "Invalid key",
+  "adminSettings.activeCheckFailed": "Active categories could not be checked",
+  "adminSettings.createdInactive": "The category was created but not activated. A maximum of two categories can be active for team balancing.",
+  "adminSettings.invalidCategory": "Invalid category",
+  "adminSettings.strongMustBeActive": "Only an active category can be marked as the stronger category.",
+  "adminSettings.maxTwoActive": "A maximum of two categories can be active at the same time. Deactivate another category first.",
+  "adminSettings.strongCheckFailed": "The stronger category could not be checked",
 
 };
 
