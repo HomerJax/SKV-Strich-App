@@ -6,6 +6,9 @@ import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { sendClubPush } from "@/lib/push/club-events";
 import NewSessionForm from "./NewSessionForm";
+import { getServerI18n } from "@/lib/i18n/server";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type NewSessionPageProps = {
   searchParams?: Promise<{
@@ -49,9 +52,13 @@ function parseIsoDate(value: string) {
   return date;
 }
 
-function formatDateForPush(value: string) {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return match ? `${match[3]}.${match[2]}.` : value;
+function formatDateForPush(value: string, locale: AppLocale) {
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+  });
 }
 
 function normalizeSessionType(
@@ -62,18 +69,35 @@ function normalizeSessionType(
   return String(value ?? "").trim() === "event" ? "event" : "training";
 }
 
-function getSessionTypeLabel(type: SessionType) {
-  return type === "event" ? "Termin" : "Training";
+function getSessionTypeLabel(type: SessionType, locale: AppLocale) {
+  return translate(
+    locale,
+    type === "event" ? "newSession.event" : "newSession.training",
+  );
 }
 
-function formatSuccessMessage(count: number, type: SessionType) {
-  const label = getSessionTypeLabel(type);
+function getSessionTypePlural(type: SessionType, locale: AppLocale) {
+  return translate(
+    locale,
+    type === "event" ? "newSession.eventsPlural" : "newSession.trainingsPlural",
+  );
+}
 
+function formatSuccessMessage(
+  count: number,
+  type: SessionType,
+  locale: AppLocale,
+) {
   if (count <= 1) {
-    return `${label} erfolgreich erstellt.`;
+    return translate(locale, "newSession.createdOne", {
+      type: getSessionTypeLabel(type, locale),
+    });
   }
 
-  return `${count} ${label}${count === 1 ? "" : "e"} erfolgreich erstellt.`;
+  return translate(locale, "newSession.createdMany", {
+    count,
+    type: getSessionTypePlural(type, locale),
+  });
 }
 
 function getWeekdayNumber(value: FormDataEntryValue | null) {
@@ -91,21 +115,22 @@ function getWeekdayNumber(value: FormDataEntryValue | null) {
 function getDatesForWeekdaysInRange(
   startDateIso: string,
   endDateIso: string,
-  weekdays: number[]
+  weekdays: number[],
+  locale: AppLocale,
 ) {
   const start = parseIsoDate(startDateIso);
   const end = parseIsoDate(endDateIso);
 
   if (!start || !end) {
     return {
-      error: "Bitte gültige Datumswerte wählen.",
+      error: translate(locale, "newSession.invalidDates"),
       dates: [] as string[],
     };
   }
 
   if (start > end) {
     return {
-      error: "Das Startdatum muss vor oder am Saisonende liegen.",
+      error: translate(locale, "newSession.startBeforeEnd"),
       dates: [] as string[],
     };
   }
@@ -113,7 +138,7 @@ function getDatesForWeekdaysInRange(
   const weekdaySet = new Set(weekdays);
   if (weekdaySet.size === 0) {
     return {
-      error: "Bitte mindestens einen Wochentag auswählen.",
+      error: translate(locale, "newSession.selectWeekday"),
       dates: [] as string[],
     };
   }
@@ -138,7 +163,8 @@ function getDatesForWeekdaysInRange(
 async function findSeasonIdForDate(
   supabase: Awaited<ReturnType<typeof createClient>>,
   clubId: string,
-  date: string
+  date: string,
+  locale: AppLocale,
 ) {
   const { data: season, error } = await supabase
     .from("seasons")
@@ -151,7 +177,9 @@ async function findSeasonIdForDate(
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Saison konnte nicht geladen werden: ${error.message}`);
+    throw new Error(
+      translate(locale, "newSession.seasonLoadFailed", { error: error.message }),
+    );
   }
 
   return season?.id ?? null;
