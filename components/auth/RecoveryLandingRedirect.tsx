@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 /**
  * Safety net for Supabase recovery emails.
@@ -13,6 +14,8 @@ import { createBrowserClient } from "@supabase/ssr";
  * to the password form.
  */
 export default function RecoveryLandingRedirect() {
+  const { t } = useI18n();
+  const resetError = t("auth.resetInvalid");
   useEffect(() => {
     const hash = window.location.hash.startsWith("#")
       ? window.location.hash.slice(1)
@@ -29,7 +32,7 @@ export default function RecoveryLandingRedirect() {
       window.location.replace(
         "/login/forgot-password?error=" +
           encodeURIComponent(
-            "Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an."
+            resetError
           )
       );
       return;
@@ -47,7 +50,7 @@ export default function RecoveryLandingRedirect() {
           window.location.replace(
             "/login/forgot-password?error=" +
               encodeURIComponent(
-                "Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an."
+                resetError
               )
           );
           return;
@@ -56,7 +59,7 @@ export default function RecoveryLandingRedirect() {
         window.history.replaceState(null, "", "/login/reset-password");
         window.location.replace("/login/reset-password");
       });
-  }, []);
+  }, [resetError]);
 
   return null;
 }
