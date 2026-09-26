@@ -98,23 +98,26 @@ function RsvpSettingsCard({
   requireReason,
   saved,
   error,
+  locale,
 }: {
   value: number;
   requireReason: boolean;
   saved: boolean;
   error: string;
+  locale: AppLocale;
 }) {
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   return (
     <div className="space-y-4">
       {saved ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Zusagefrist gespeichert.
+          {t("settings.rsvp.saved")}
         </div>
       ) : null}
 
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Zusagefrist konnte nicht gespeichert werden.
+          {t("settings.rsvp.error")}
         </div>
       ) : null}
 
@@ -124,10 +127,10 @@ function RsvpSettingsCard({
 
         <label className="block rounded-[20px] border border-black/10 bg-neutral-50 p-4">
           <div className="text-sm font-semibold text-slate-950">
-            Zusagen bis
+            {t("settings.rsvp.deadline")}
           </div>
           <div className="mt-1 text-sm leading-6 text-slate-600">
-            Diese Frist wird auf der Startseite beim nächsten Training angezeigt.
+            {t("settings.rsvp.deadlineHint")}
           </div>
 
           <div className="mt-3 flex items-center gap-2">
@@ -140,10 +143,10 @@ function RsvpSettingsCard({
               defaultValue={value}
               className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
             />
-            <span className="text-sm font-semibold text-slate-500">Min. vorher</span>
+            <span className="text-sm font-semibold text-slate-500">{t("settings.rsvp.minutesBefore")}</span>
           </div>
           <div className="mt-2 text-xs text-slate-500">
-            Standard: 60 Minuten. Beispiel: 120 = 2 Stunden vorher, 1440 = 1 Tag vorher.
+            {t("settings.rsvp.defaultHint")}
           </div>
         </label>
 
@@ -156,10 +159,10 @@ function RsvpSettingsCard({
           />
           <span>
             <span className="block text-sm font-semibold text-slate-950">
-              Absagegrund verpflichtend
+              {t("settings.rsvp.reasonRequired")}
             </span>
             <span className="mt-1 block text-sm leading-6 text-slate-600">
-              Spieler können nur absagen, wenn sie einen kurzen echten Grund angeben. Punkte oder einzelne Zeichen reichen nicht.
+              {t("settings.rsvp.reasonHint")}
             </span>
           </span>
         </label>
@@ -168,7 +171,7 @@ function RsvpSettingsCard({
           type="submit"
           className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Zu-/Absage-Einstellungen speichern
+          {t("settings.rsvp.save")}
         </button>
       </form>
     </div>
@@ -179,36 +182,38 @@ function AwardsSettingsCard({
   awardsStartedAt,
   saved,
   error,
+  locale,
 }: {
   awardsStartedAt: string | null;
   saved: boolean;
   error: string;
+  locale: AppLocale;
 }) {
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   const dateValue = awardsStartedAt ?? "";
 
   return (
     <div className="space-y-5">
       {saved ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Award-Einstellungen gespeichert.
+          {t("settings.awards.saved")}
         </div>
       ) : null}
 
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error === "invalid_awards_started_at"
-            ? "Das Startdatum für Awards ist ungültig."
-            : "Award-Einstellungen konnten nicht gespeichert werden."}
+            ? t("settings.awards.invalidDate")
+            : t("settings.awards.error")}
         </div>
       ) : null}
 
       <div className="rounded-[20px] border border-amber-200 bg-amber-50 p-4">
         <div className="text-sm font-black text-amber-950">
-          Awards sind aktuell Preview
+          {t("settings.awards.previewTitle")}
         </div>
         <p className="mt-1 text-sm leading-6 text-amber-900">
-          Alte Trainingsdaten dürfen zum Testen sichtbar sein. Offiziell zählen
-          Serien, Awards und spätere Trophäen aber erst ab dem Go-Datum.
+          {t("settings.awards.previewHint")}
         </p>
       </div>
 
@@ -217,11 +222,10 @@ function AwardsSettingsCard({
 
         <label className="block rounded-[20px] border border-black/10 bg-neutral-50 p-4">
           <div className="text-sm font-semibold text-slate-950">
-            Offizieller Award-Start
+            {t("settings.awards.start")}
           </div>
           <div className="mt-1 text-sm leading-6 text-slate-600">
-            Ab diesem Datum zählen Trainings-Awards offiziell. Leer lassen,
-            wenn Awards noch nur Preview/Test sein sollen.
+            {t("settings.awards.startHint")}
           </div>
 
           <input
@@ -237,7 +241,7 @@ function AwardsSettingsCard({
             type="submit"
             className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            Award-Start speichern
+            {t("settings.awards.save")}
           </button>
 
           {awardsStartedAt ? (
@@ -247,7 +251,7 @@ function AwardsSettingsCard({
               value=""
               className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              Zurück auf Preview
+              {t("settings.awards.backPreview")}
             </button>
           ) : null}
         </div>
@@ -260,22 +264,25 @@ function HomeFeedSettingsCard({
   enabled,
   saved,
   error,
+  locale,
 }: {
   enabled: boolean;
   saved: boolean;
   error: string;
+  locale: AppLocale;
 }) {
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   return (
     <div className="space-y-4">
       {saved ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Startseite gespeichert.
+          {t("settings.home.saved")}
         </div>
       ) : null}
 
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Startseiten-Einstellung konnte nicht gespeichert werden.
+          {t("settings.home.error")}
         </div>
       ) : null}
 
@@ -292,11 +299,10 @@ function HomeFeedSettingsCard({
           />
           <span>
             <span className="block text-sm font-semibold text-slate-950">
-              „Neu im Team“ auf Home anzeigen
+              {t("settings.home.feedLabel")}
             </span>
             <span className="mt-1 block text-sm leading-6 text-slate-600">
-              Zeigt einen kompakten Team-Feed mit Ergebnissen und neuen Badges.
-              Weitere Team-Momente können später in denselben Feed integriert werden.
+              {t("settings.home.feedHint")}
             </span>
           </span>
         </label>
@@ -305,7 +311,7 @@ function HomeFeedSettingsCard({
           type="submit"
           className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Startseite speichern
+          {t("settings.home.save")}
         </button>
       </form>
     </div>
@@ -394,26 +400,26 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
             href="/admin"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Adminbereich
+            ← {t("settings.page.backAdmin")}
           </Link>
         </div>
 
         <div className="rounded-[24px] border border-black/10 bg-white px-5 py-5 shadow-sm">
           <h1 className="text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
-            Einstellungen
+            {t("settings.page.title")}
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Verwalte Club, Saisons und weitere Einstellungen zentral an einem Ort.
+            {t("settings.page.description")}
           </p>
 
           {isPowerUser ? (
             <div className="mt-4 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-900">
-              Power User Modus: Du prüfst diesen Verein ohne echte Mitgliedschaft.
+              {t("settings.page.powerUser")}
             </div>
           ) : null}
         </div>
 
-        <SettingsShell title="Club & Branding" description="Name, Logo, Farbe und Anzeigeoptionen verwalten.">
+        <SettingsShell title={t("settings.section.club")} description={t("settings.section.clubHint")}>
           <ClubSettingsCard saved={clubSaved} error={clubError} />
         </SettingsShell>
 
@@ -429,46 +435,49 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
           />
         </SettingsShell>
 
-        <SettingsShell title="Startseite" description="Home-Inhalte pro Team ein- oder ausblenden.">
+        <SettingsShell title={t("settings.section.home")} description={t("settings.section.homeHint")}>
           <HomeFeedSettingsCard
             enabled={settings?.home_team_feed_enabled === true}
             saved={clubSaved}
             error={clubError}
+            locale={locale}
           />
         </SettingsShell>
 
-        <SettingsShell title="Saisons" description="Saisons anlegen, bearbeiten und Serientrainings erzeugen.">
+        <SettingsShell title={t("settings.section.seasons")} description={t("settings.section.seasonsHint")}>
           <SeasonSettingsCard message={seasonMessage} error={seasonError} />
         </SettingsShell>
 
-        <SettingsShell title="Kategorien" description="Kategorien und stärkere Kategorie für den Generator festlegen.">
+        <SettingsShell title={t("settings.section.categories")} description={t("settings.section.categoriesHint")}>
           <CategorySettingsSection
             categories={categories}
             useCategories={settings?.use_categories ?? false}
           />
         </SettingsShell>
 
-        <SettingsShell title="Teamgenerator" description="Regeln und Erklärung für automatische Teams.">
+        <SettingsShell title={t("settings.section.generator")} description={t("settings.section.generatorHint")}>
           <TeamGeneratorSettingsCard
             useStrength={settings?.use_strength ?? false}
             useCategories={settings?.use_categories ?? false}
           />
         </SettingsShell>
 
-        <SettingsShell title="Zusagen" description="Uhrzeit und Frist für Zu- und Absagen steuern.">
+        <SettingsShell title={t("settings.section.rsvp")} description={t("settings.section.rsvpHint")}>
           <RsvpSettingsCard
             value={settings?.rsvp_deadline_minutes_before ?? 60}
             requireReason={settings?.require_rsvp_reason_on_absence === true}
             saved={clubSaved}
             error={clubError}
+            locale={locale}
           />
         </SettingsShell>
 
-        <SettingsShell title="Awards" description="Offiziellen Start für Trainings-Awards festlegen.">
+        <SettingsShell title={t("settings.section.awards")} description={t("settings.section.awardsHint")}>
           <AwardsSettingsCard
             awardsStartedAt={settings?.awards_started_at ?? null}
             saved={clubSaved}
             error={clubError}
+            locale={locale}
           />
         </SettingsShell>
       </section>
