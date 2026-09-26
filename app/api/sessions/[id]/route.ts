@@ -18,6 +18,7 @@ import {
   isSessionRsvpDeadlinePassed,
 } from "@/lib/session-rsvp-deadline";
 import { getRequiredRsvpReasonError } from "@/lib/rsvp-reason";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -134,6 +135,7 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const { t } = await getServerI18n();
   const resolvedParams = await context.params;
   const sessionId = Number(resolvedParams.id);
 
@@ -305,7 +307,7 @@ export async function POST(
         deadlineSettings?.require_rsvp_reason_on_absence === true;
 
       if (status === "out" && requireAbsenceReason) {
-        const reasonError = getRequiredRsvpReasonError(reason);
+        const reasonError = getRequiredRsvpReasonError(reason, t("rsvp.reasonRequired"));
         if (reasonError) {
           return fail(reasonError, 400);
         }
