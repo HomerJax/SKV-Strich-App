@@ -1,24 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 import {
   BIG_UPDATE_SEEN_EVENT,
   BIG_UPDATE_STORAGE_KEY,
 } from "@/components/notifications/BigUpdateLaunchModal";
 
-const BADGES: Record<string, { title: string; artwork: string }> = {
-  career_appearances_10: { title: "10 Einsätze", artwork: "/badges/career-appearances-10-blech.png" },
-  career_appearances_25: { title: "25 Einsätze", artwork: "/badges/career-appearances-25-bronze.png" },
-  career_appearances_50: { title: "50 Einsätze", artwork: "/badges/career-appearances-50-silver.png" },
-  career_appearances_100: { title: "100 Einsätze", artwork: "/badges/career-appearances-100-gold.png" },
-  career_appearances_250: { title: "250 Einsätze", artwork: "/badges/career-appearances-250-legend.png" },
-  career_appearances_500: { title: "500 Einsätze", artwork: "/badges/career-appearances-500-goat.png" },
-  career_wins_1: { title: "1. Karrieresieg", artwork: "/badges/career-wins-1-blech.png" },
-  career_wins_10: { title: "10 Siege", artwork: "/badges/career-wins-10-bronze.png" },
-  career_wins_25: { title: "25 Siege", artwork: "/badges/career-wins-25-silver.png" },
-  career_wins_50: { title: "50 Siege", artwork: "/badges/career-wins-50-gold.png" },
-  career_wins_100: { title: "100 Siege", artwork: "/badges/career-wins-100-legend.png" },
-  career_wins_250: { title: "250 Siege", artwork: "/badges/career-wins-250-goat.png" },
+const BADGES: Record<string, { titleKey: MessageKey; artwork: string }> = {
+  career_appearances_10: { titleKey: "careerLaunch.appearances10", artwork: "/badges/career-appearances-10-blech.png" },
+  career_appearances_25: { titleKey: "careerLaunch.appearances25", artwork: "/badges/career-appearances-25-bronze.png" },
+  career_appearances_50: { titleKey: "careerLaunch.appearances50", artwork: "/badges/career-appearances-50-silver.png" },
+  career_appearances_100: { titleKey: "careerLaunch.appearances100", artwork: "/badges/career-appearances-100-gold.png" },
+  career_appearances_250: { titleKey: "careerLaunch.appearances250", artwork: "/badges/career-appearances-250-legend.png" },
+  career_appearances_500: { titleKey: "careerLaunch.appearances500", artwork: "/badges/career-appearances-500-goat.png" },
+  career_wins_1: { titleKey: "careerLaunch.firstWin", artwork: "/badges/career-wins-1-blech.png" },
+  career_wins_10: { titleKey: "careerLaunch.wins10", artwork: "/badges/career-wins-10-bronze.png" },
+  career_wins_25: { titleKey: "careerLaunch.wins25", artwork: "/badges/career-wins-25-silver.png" },
+  career_wins_50: { titleKey: "careerLaunch.wins50", artwork: "/badges/career-wins-50-gold.png" },
+  career_wins_100: { titleKey: "careerLaunch.wins100", artwork: "/badges/career-wins-100-legend.png" },
+  career_wins_250: { titleKey: "careerLaunch.wins250", artwork: "/badges/career-wins-250-goat.png" },
 };
 
 type LaunchData = {
@@ -27,6 +29,7 @@ type LaunchData = {
 };
 
 export default function CareerBadgeLaunchModal() {
+  const { t } = useI18n();
   const [launch, setLaunch] = useState<LaunchData | null>(null);
   const [readyForCareerLaunch, setReadyForCareerLaunch] = useState(false);
   const [slide, setSlide] = useState(0);
@@ -138,30 +141,30 @@ export default function CareerBadgeLaunchModal() {
           {isIntro ? (
             <div className="w-full max-w-xl text-center">
               <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[22px] border border-white/10 bg-white/[0.06] text-3xl shadow-2xl">🏆</div>
-              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300">Neu bei strikr</div>
-              <h1 className="mt-3 text-3xl font-black leading-tight sm:text-5xl">Ab sofort sind die Karriere-Badges verfügbar.</h1>
+              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300">{t("careerLaunch.newAtStrikr")}</div>
+              <h1 className="mt-3 text-3xl font-black leading-tight sm:text-5xl">{t("careerLaunch.title")}</h1>
               <p className="mx-auto mt-5 max-w-lg text-base leading-7 text-white/65 sm:text-lg">
-                Bereits sammeln konntest du in deiner Karriere folgende Badges. Schau sie dir jetzt nacheinander an.
+                {t("careerLaunch.description")}
               </p>
               {earnedBadges.length === 0 ? (
                 <p className="mt-6 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm text-white/55">
-                  Aktuell hast du noch kein Karriere-Badge freigeschaltet – dein erstes wartet schon auf dich.
+                  {t("careerLaunch.none")}
                 </p>
               ) : (
-                <div className="mt-7 text-sm font-bold text-white/80">{earnedBadges.length} bereits freigeschaltet</div>
+                <div className="mt-7 text-sm font-bold text-white/80">{t("careerLaunch.unlockedCount", { count: earnedBadges.length })}</div>
               )}
             </div>
           ) : badge ? (
             <div className="flex h-full w-full max-w-2xl flex-col items-center justify-center text-center">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-300">Bereits freigeschaltet</div>
-              <h2 className="mt-2 text-2xl font-black sm:text-3xl">{badge.title}</h2>
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-300">{t("careerLaunch.alreadyUnlocked")}</div>
+              <h2 className="mt-2 text-2xl font-black sm:text-3xl">{t(badge.titleKey)}</h2>
               <img
                 src={badge.artwork}
-                alt={badge.title}
+                alt={t(badge.titleKey)}
                 draggable={false}
                 className="mt-5 max-h-[62dvh] w-auto max-w-full rounded-[28px] object-contain shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
               />
-              <div className="mt-4 text-xs font-semibold text-white/40">Wischen oder „Weiter“ tippen</div>
+              <div className="mt-4 text-xs font-semibold text-white/40">{t("careerLaunch.swipeHint")}</div>
             </div>
           ) : null}
         </div>
@@ -170,7 +173,7 @@ export default function CareerBadgeLaunchModal() {
           <div className="mx-auto flex w-full max-w-xl items-center gap-3">
             {slide > 0 ? (
               <button type="button" onClick={previous} className="min-h-12 rounded-2xl border border-white/15 px-5 text-sm font-bold text-white/75">
-                Zurück
+                {t("careerLaunch.back")}
               </button>
             ) : null}
             <button
@@ -179,7 +182,7 @@ export default function CareerBadgeLaunchModal() {
               disabled={busy}
               className="min-h-12 flex-1 rounded-2xl bg-white px-5 text-sm font-black text-slate-950 disabled:opacity-60"
             >
-              {busy ? "Speichere…" : isLast ? "Fertig" : isIntro ? "Meine Badges ansehen" : "Weiter"}
+              {busy ? t("careerLaunch.saving") : isLast ? t("careerLaunch.done") : isIntro ? t("careerLaunch.view") : t("careerLaunch.next")}
             </button>
           </div>
         </div>
