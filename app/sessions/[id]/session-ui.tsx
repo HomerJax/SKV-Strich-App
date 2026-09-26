@@ -20,7 +20,7 @@ export function positionLabel(pos: Player["preferred_position"], locale: AppLoca
   if (pos === "defense") return translate(locale, "sessionUi.positionDefense");
   if (pos === "attack") return translate(locale, "sessionUi.positionAttack");
   if (pos === "goalkeeper") return translate(locale, "sessionUi.positionGoalkeeper");
-  return translate(locale, "common.unknown");
+  return translate(locale, "sessionUi.positionUnknown");
 }
 
 export function badgeColor(pos: Player["preferred_position"]) {
