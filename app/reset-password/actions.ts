@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
+import { getServerI18n } from "@/lib/i18n/server";
 
 function buildResetPasswordRedirect(params: {
   error?: string;
@@ -18,13 +19,14 @@ function buildResetPasswordRedirect(params: {
 }
 
 export async function resetPasswordAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const password = String(formData.get("password") ?? "");
   const passwordConfirm = String(formData.get("password_confirm") ?? "");
 
   if (!password || !passwordConfirm) {
     redirect(
       buildResetPasswordRedirect({
-        error: "Bitte beide Passwort-Felder ausfüllen.",
+        error: t("resetPassword.required"),
       })
     );
   }
@@ -32,7 +34,7 @@ export async function resetPasswordAction(formData: FormData) {
   if (password.length < 8) {
     redirect(
       buildResetPasswordRedirect({
-        error: "Das Passwort muss mindestens 8 Zeichen lang sein.",
+        error: t("resetPassword.minLength"),
       })
     );
   }
@@ -40,7 +42,7 @@ export async function resetPasswordAction(formData: FormData) {
   if (password !== passwordConfirm) {
     redirect(
       buildResetPasswordRedirect({
-        error: "Die beiden Passwörter stimmen nicht überein.",
+        error: t("resetPassword.mismatch"),
       })
     );
   }
@@ -71,8 +73,7 @@ export async function resetPasswordAction(formData: FormData) {
   if (!user) {
     redirect(
       buildResetPasswordRedirect({
-        error:
-          "Dein Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an.",
+        error: t("resetPassword.invalidLink"),
       })
     );
   }
@@ -84,14 +85,13 @@ export async function resetPasswordAction(formData: FormData) {
   if (error) {
     redirect(
       buildResetPasswordRedirect({
-        error:
-          "Das Passwort konnte nicht gespeichert werden. Bitte fordere einen neuen Link an.",
+        error: t("resetPassword.saveError"),
       })
     );
   }
 
   redirect(
     "/login?message=" +
-      encodeURIComponent("Dein Passwort wurde erfolgreich geändert.")
+      encodeURIComponent(t("resetPassword.success"))
   );
 }
