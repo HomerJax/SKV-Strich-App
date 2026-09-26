@@ -198,6 +198,7 @@ function isNextRedirectError(error: unknown) {
 export default async function NewSessionPage({
   searchParams,
 }: NewSessionPageProps) {
+  const { locale, t } = await getServerI18n();
   const { clubId } = await requireClub();
   const supabase = await createClient();
   const resolvedSearchParams = await searchParams;
@@ -216,7 +217,7 @@ export default async function NewSessionPage({
 
   if (seasonsError) {
     throw new Error(
-      seasonsError.message || "Saisons konnten nicht geladen werden."
+      seasonsError.message || t("newSession.seasonsLoadFailed")
     );
   }
 
@@ -228,6 +229,7 @@ export default async function NewSessionPage({
     "use server";
 
     const { clubId: actionClubId, user: actionUser } = await requireClub();
+    const { locale: actionLocale, t: actionT } = await getServerI18n();
     const actionSupabase = await createClient();
     const actionFlags = await getFeatureFlagsForClub(actionClubId);
 
@@ -260,17 +262,18 @@ export default async function NewSessionPage({
     try {
       if (mode === "single") {
         if (!date) {
-          redirect("/sessions/new?error=Bitte%20Datum%20ausw%C3%A4hlen.");
+          redirect(`/sessions/new?error=${encodeURIComponent(actionT("newSession.selectDate"))}`);
         }
 
         if (!startTime) {
-          redirect("/sessions/new?error=Bitte%20Uhrzeit%20ausw%C3%A4hlen.");
+          redirect(`/sessions/new?error=${encodeURIComponent(actionT("newSession.selectTime"))}`);
         }
 
         const seasonId = await findSeasonIdForDate(
           actionSupabase,
           actionClubId,
-          date
+          date,
+          actionLocale,
         );
 
         const { data: created, error: insertError } = await actionSupabase
@@ -289,17 +292,21 @@ export default async function NewSessionPage({
         if (insertError) {
           redirect(
             `/sessions/new?error=${encodeURIComponent(
-              insertError.message || "Fehler beim Speichern."
+              insertError.message || actionT("newSession.saveFailed")
             )}`
           );
         }
 
         try {
-          const label = getSessionTypeLabel(sessionType);
+          const label = getSessionTypeLabel(sessionType, actionLocale);
           await sendClubPush({
             clubId: actionClubId,
-            title: `Neues ${label.toLowerCase() === "training" ? "Training" : "Termin"}`,
-            body: `${label} am ${formatDateForPush(date)} um ${startTime} Uhr wurde eingetragen.`,
+            title: actionT("newSession.pushNew", { type: label }),
+            body: actionT("newSession.pushBody", {
+              type: label,
+              date: formatDateForPush(date, actionLocale),
+              time: startTime,
+            }),
             url: `/sessions/${created.id}`,
             preference: "training_reminders",
             excludeUserIds: [actionUser.id],
@@ -312,7 +319,7 @@ export default async function NewSessionPage({
       }
 
       if (!Number.isFinite(selectedSeasonId)) {
-        redirect("/sessions/new?error=Bitte%20eine%20Saison%20ausw%C3%A4hlen.");
+        redirect(`/sessions/new?error=${encodeURIComponent(actionT("newSession.selectSeason"))}`);
       }
 
       const { data: season, error: seasonError } = await actionSupabase
@@ -325,20 +332,20 @@ export default async function NewSessionPage({
       if (seasonError) {
         redirect(
           `/sessions/new?error=${encodeURIComponent(
-            seasonError.message || "Saison konnte nicht geladen werden."
+            seasonError.message || actionT("newSession.seasonsLoadFailed")
           )}`
         );
       }
 
       if (!season?.start_date || !season?.end_date) {
         redirect(
-          "/sessions/new?error=Die%20gew%C3%A4hlte%20Saison%20hat%20keinen%20g%C3%BCltigen%20Zeitraum."
+          `/sessions/new?error=${encodeURIComponent(actionT("newSession.invalidSeasonRange"))}`
         );
       }
 
       if (!seriesStartDate) {
         redirect(
-          "/sessions/new?error=Bitte%20ein%20Startdatum%20f%C3%BCr%20die%20Serie%20w%C3%A4hlen."
+          `/sessions/new?error=${encodeURIComponent(actionT("newSession.selectSeriesStart"))}`
         );
       }
 
@@ -348,13 +355,13 @@ export default async function NewSessionPage({
 
       if (!seasonStart || !seasonEnd || !seriesStart) {
         redirect(
-          "/sessions/new?error=Die%20Datumswerte%20konnten%20nicht%20verarbeitet%20werden."
+          `/sessions/new?error=${encodeURIComponent(actionT("newSession.dateProcessingFailed"))}`
         );
       }
 
       if (seriesStart < seasonStart || seriesStart > seasonEnd) {
         redirect(
-          "/sessions/new?error=Das%20Startdatum%20muss%20innerhalb%20der%20gew%C3%A4hlten%20Saison%20liegen."
+          `/sessions/new?error=${encodeURIComponent(actionT("newSession.startWithinSeason"))}`
         );
       }
 
@@ -367,7 +374,8 @@ export default async function NewSessionPage({
       const generated = getDatesForWeekdaysInRange(
         seriesStartDate,
         season.end_date,
-        selectedWeekdays
+        selectedWeekdays,
+        actionLocale,
       );
 
       if (generated.error) {
@@ -376,7 +384,7 @@ export default async function NewSessionPage({
 
       if (generated.dates.length === 0) {
         redirect(
-          "/sessions/new?error=Im%20gew%C3%A4hlten%20Zeitraum%20wurden%20keine%20passenden%20Termine%20gefunden."
+          `/sessions/new?error=${encodeURIComponent(actionT("newSession.noMatchingDates"))}`
         );
       }
 
@@ -391,7 +399,7 @@ export default async function NewSessionPage({
         redirect(
           `/sessions/new?error=${encodeURIComponent(
             existingDatesResult.error.message ||
-              "Bestehende Termine konnten nicht geprüft werden."
+              actionT("newSession.checkExistingFailed")
           )}`
         );
       }
@@ -408,7 +416,7 @@ export default async function NewSessionPage({
 
       if (datesToCreate.length === 0) {
         redirect(
-          "/sessions/new?error=F%C3%BCr%20alle%20gew%C3%A4hlten%20Tage%20existieren%20bereits%20solche%20Termine."
+          `/sessions/new?error=${encodeURIComponent(actionT("newSession.allDatesExist"))}`
         );
       }
 
@@ -431,17 +439,20 @@ export default async function NewSessionPage({
       if (insertError) {
         redirect(
           `/sessions/new?error=${encodeURIComponent(
-            insertError.message || "Fehler beim Erstellen der Serientermine."
+            insertError.message || actionT("newSession.seriesCreateFailed")
           )}`
         );
       }
 
       try {
-        const label = getSessionTypeLabel(sessionType);
+        const pluralLabel = getSessionTypePlural(sessionType, actionLocale);
         await sendClubPush({
           clubId: actionClubId,
-          title: `${rowsToInsert.length} neue ${label === "Training" ? "Trainings" : "Termine"}`,
-          body: `Neue ${label === "Training" ? "Trainings" : "Termine"} wurden für die Saison eingetragen.`,
+          title: actionT("newSession.pushMany", {
+            count: rowsToInsert.length,
+            type: pluralLabel,
+          }),
+          body: actionT("newSession.pushManyBody", { type: pluralLabel }),
           url: "/sessions",
           preference: "training_reminders",
           excludeUserIds: [actionUser.id],
@@ -452,7 +463,7 @@ export default async function NewSessionPage({
 
       redirect(
         `/sessions?success=${encodeURIComponent(
-          formatSuccessMessage(rowsToInsert.length, sessionType)
+          formatSuccessMessage(rowsToInsert.length, sessionType, actionLocale)
         )}`
       );
     } catch (error) {
@@ -461,7 +472,7 @@ export default async function NewSessionPage({
       }
 
       const message =
-        error instanceof Error ? error.message : "Fehler beim Speichern.";
+        error instanceof Error ? error.message : actionT("newSession.saveFailed");
 
       redirect(`/sessions/new?error=${encodeURIComponent(message)}`);
     }
@@ -480,16 +491,15 @@ export default async function NewSessionPage({
         href="/sessions"
         className="text-xs text-slate-500 hover:text-slate-700"
       >
-        ← Zurück zu Trainings
+        ← {t("newSession.back")}
       </Link>
 
       <div>
         <h1 className="text-lg font-semibold text-slate-900">
-          Neuer Termin
+          {t("newSession.title")}
         </h1>
         <p className="text-xs text-slate-500">
-          Trainings oder Termine anlegen. Ein Termin kann z. B. ein Spiel,
-          Turnier oder Orga-Termin sein.
+          {t("newSession.description")}
         </p>
       </div>
 
@@ -506,11 +516,9 @@ export default async function NewSessionPage({
       ) : null}
 
       <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="text-xs font-semibold text-slate-700">Hinweis</div>
+        <div className="text-xs font-semibold text-slate-700">{t("newSession.infoTitle")}</div>
         <div className="mt-1 text-sm text-slate-600">
-          Serientermine erzeugen mehrere ganz normale Einträge. Jede einzelne
-          Session bleibt danach separat bearbeitbar. Bestehende Einträge am selben
-          Datum und selben Typ werden beim Serienlauf automatisch übersprungen.
+          {t("newSession.infoText")}
         </div>
       </div>
 
