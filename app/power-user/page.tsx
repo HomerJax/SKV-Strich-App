@@ -257,6 +257,7 @@ export default async function PowerUserPage() {
             value={String(clubsCount)}
             description={t("power.clubsBillingDesc")}
             icon={<CreditCard className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -265,6 +266,7 @@ export default async function PowerUserPage() {
             value={t("power.cleanupValue")}
             description={t("power.cleanupDesc")}
             icon={<Trash2 className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -273,6 +275,7 @@ export default async function PowerUserPage() {
             value="Live"
             description={t("power.analyticsDesc")}
             icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -281,6 +284,7 @@ export default async function PowerUserPage() {
             value={`${beerCount} 🍺`}
             description={t("power.beerDesc", { value: (beerValueCents / 100).toLocaleString(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }), paid: (paidBeerValueCents / 100).toLocaleString(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }) })}
             icon={<Beer className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -289,6 +293,7 @@ export default async function PowerUserPage() {
             value={t("power.start")}
             description={t("power.onboardingDesc")}
             icon={<Sparkles className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -297,6 +302,7 @@ export default async function PowerUserPage() {
             value={String(BADGE_DEFINITIONS.length)}
             description={t("power.badgeCatalogDesc")}
             icon={<Award className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -305,6 +311,7 @@ export default async function PowerUserPage() {
             value={String(usersCount)}
             description={t("power.usersTotalDesc")}
             icon={<Users className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -313,6 +320,7 @@ export default async function PowerUserPage() {
             value={String(acceptedInvitesCount)}
             description={t("power.invitesAcceptedDesc")}
             icon={<MailCheck className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -321,6 +329,7 @@ export default async function PowerUserPage() {
             value={String(openInvitesCount)}
             description={t("power.invitesOpenDesc")}
             icon={<MailOpen className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -329,6 +338,7 @@ export default async function PowerUserPage() {
             value={String(sessionsCount)}
             description={t("power.sessionsTotalDesc")}
             icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
 
           <KpiCard
@@ -337,6 +347,7 @@ export default async function PowerUserPage() {
             value={String(sessionsLast7DaysCount)}
             description={t("power.sessions7Desc")}
             icon={<CalendarDays className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
           />
         </div>
 
@@ -345,10 +356,10 @@ export default async function PowerUserPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Registrierungen
+                  {t("power.registrations")}
                 </div>
                 <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                  Letzte angenommene Einladungen
+                  {t("power.latestAccepted")}
                 </h2>
               </div>
 
@@ -360,7 +371,7 @@ export default async function PowerUserPage() {
             <div className="mt-5">
               {latestInviteUsages.length === 0 ? (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  Noch keine angenommenen Einladungen.
+                  {t("power.noAccepted")}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -368,7 +379,7 @@ export default async function PowerUserPage() {
                     const clubName =
                       clubNameById.get(invite.club_id) ?? t("power.unknownClub");
                     const roleLabel =
-                      invite.role === "admin" ? "Admin" : "Mitglied";
+                      invite.role === "admin" ? "Admin" : t("power.invites.member");
 
                     return (
                       <div
@@ -381,12 +392,12 @@ export default async function PowerUserPage() {
                               {clubName}
                             </div>
                             <div className="mt-1 text-xs text-slate-500">
-                              Rolle: {roleLabel}
+                              {t("power.users.role", { role: roleLabel })}
                             </div>
                           </div>
 
                           <div className="text-xs text-slate-500">
-                            Angenommen: {formatDateTime(invite.accepted_at)}
+                            {t("power.acceptedAt", { date: formatDateTime(invite.accepted_at, locale) })}
                           </div>
                         </div>
                       </div>
@@ -399,16 +410,16 @@ export default async function PowerUserPage() {
 
           <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Aktivität
+              {t("power.activity")}
             </div>
             <h2 className="mt-2 text-xl font-semibold text-slate-950">
-              Letzte Trainings
+              {t("power.latestSessions")}
             </h2>
 
             <div className="mt-5">
               {latestSessions.length === 0 ? (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  Noch keine Trainings vorhanden.
+                  {t("power.noSessions")}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -424,20 +435,20 @@ export default async function PowerUserPage() {
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div>
                             <div className="text-sm font-semibold text-slate-950">
-                              Training am {formatDate(session.date)}
+                              {t("power.sessions.trainingOn", { date: formatDate(session.date, locale) })}
                             </div>
                             <div className="mt-1 text-xs text-slate-500">
-                              Club: {clubName}
+                              {t("power.sessions.club", { club: clubName })}
                             </div>
                             {session.notes?.trim() ? (
                               <div className="mt-1 text-xs text-slate-500">
-                                Notiz: {session.notes.trim()}
+                                {t("power.note", { note: session.notes.trim() })}
                               </div>
                             ) : null}
                           </div>
 
                           <div className="text-xs text-slate-500">
-                            Erstellt: {formatDateTime(session.created_at)}
+                            {t("power.createdAt", { date: formatDateTime(session.created_at, locale) })}
                           </div>
                         </div>
                       </div>
@@ -453,14 +464,13 @@ export default async function PowerUserPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Übersicht
+                {t("power.overview")}
               </div>
               <h2 className="mt-2 text-xl font-semibold text-slate-950">
                 Clubs & Billing
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Schnellzugriff auf Clubdetails, Mitglieder, Aktivität und
-                manuelle Plan-Freischaltung.
+                {t("power.clubsOverviewDesc")}
               </p>
             </div>
 
@@ -468,14 +478,14 @@ export default async function PowerUserPage() {
               href="/power-user/clubs"
               className="text-sm font-medium text-slate-900 hover:underline"
             >
-              Alle Clubs & Billing →
+              {t("power.allClubs")}
             </Link>
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {clubs.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                Noch keine Clubs vorhanden.
+                {t("power.noClubs")}
               </div>
             ) : (
               clubs.map((club) => (
