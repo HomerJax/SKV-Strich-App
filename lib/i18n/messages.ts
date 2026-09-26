@@ -1175,6 +1175,16 @@ export const DE_MESSAGES = {
   "rsvp.inRosterCount": "{count} im Kader",
   "rsvp.notNominatedCount": "{count} nicht nominiert",
 
+  "badge.none": "Noch kein Badge",
+  "badge.noneShort": "Kein Badge",
+  "badge.copper": "Blech",
+  "badge.bronze": "Bronze",
+  "badge.silver": "Silber",
+  "badge.gold": "Gold",
+  "badge.goat": "GOAT",
+  "badge.reached": "{badge} erreicht",
+  "badge.untilNext": "Noch {count} MVP bis {badge}",
+
   "sessionHeader.photo": "Foto",
   "sessionHeader.none": "Keins",
   "sessionHeader.back": "Zurück",
@@ -2384,6 +2394,16 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "rsvp.rosterDefaultFull": "All players are included by default. You can remove individual players from the squad for this event.",
   "rsvp.inRosterCount": "{count} in squad",
   "rsvp.notNominatedCount": "{count} not nominated",
+
+  "badge.none": "No badge yet",
+  "badge.noneShort": "No badge",
+  "badge.copper": "Copper",
+  "badge.bronze": "Bronze",
+  "badge.silver": "Silver",
+  "badge.gold": "Gold",
+  "badge.goat": "GOAT",
+  "badge.reached": "{badge} reached",
+  "badge.untilNext": "{count} MVP until {badge}",
 
   "sessionHeader.photo": "Photo",
   "sessionHeader.none": "None",
