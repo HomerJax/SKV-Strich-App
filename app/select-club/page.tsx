@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type ClubRow = {
   id: string;
@@ -11,6 +12,7 @@ type ClubRow = {
 };
 
 export default async function SelectClubPage() {
+  const { t } = await getServerI18n();
   const ctx = await getAuthContext();
 
   if (!ctx.user) {
@@ -45,7 +47,7 @@ export default async function SelectClubPage() {
     : await clubsQuery.in("id", clubIds ?? []);
 
   if (clubsError) {
-    throw new Error(`Teams konnten nicht geladen werden: ${clubsError.message}`);
+    throw new Error(t("clubSelect.loadFailed", { error: clubsError.message }));
   }
 
   const clubRows = (clubs ?? []) as ClubRow[];
@@ -55,13 +57,13 @@ export default async function SelectClubPage() {
       <section className="mx-auto w-full max-w-md px-4 py-6">
         <div className="rounded-[24px] border border-black/10 bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
-            Team auswählen
+            {t("clubSelect.title")}
           </h1>
 
           <p className="mt-2 text-sm text-slate-600">
             {ctx.isPowerUser
-              ? "Power User: Wähle den Verein, den du öffnen möchtest."
-              : "Du bist Mitglied in mehreren Teams. Wähle aus, mit welchem Team du arbeiten möchtest."}
+              ? t("clubSelect.powerHint")
+              : t("clubSelect.memberHint")}
           </p>
 
           <div className="mt-5 space-y-2">
@@ -86,7 +88,7 @@ export default async function SelectClubPage() {
                     <span className="text-xs text-slate-500">
                       {ctx.isPowerUser
                         ? "Power User"
-                        : membership?.role ?? "Mitglied"}
+                        : membership?.role === "admin" ? t("members.roleAdmin") : t("members.roleMember")}
                     </span>
                   </button>
                 </form>
@@ -99,7 +101,7 @@ export default async function SelectClubPage() {
               href="/"
               className="text-xs text-slate-500 hover:text-slate-700"
             >
-              ← Zurück
+              ← {t("clubSelect.back")}
             </Link>
           </div>
         </div>
