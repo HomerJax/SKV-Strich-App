@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export type OnboardingState = {
   error: string;
@@ -96,6 +97,7 @@ export async function completeOnboarding(
   _prevState: OnboardingState,
   formData: FormData
 ): Promise<OnboardingState> {
+  const { t } = await getServerI18n();
   const supabase = await createClient();
   const adminSupabase = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -109,7 +111,7 @@ export async function completeOnboarding(
 
   if (authError || !user) {
     return {
-      error: "Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein.",
+      error: t("onboarding.error.authExpired"),
     };
   }
 
@@ -125,19 +127,19 @@ export async function completeOnboarding(
 
   if (!firstName || !lastName) {
     return {
-      error: "Bitte gib Vorname und Nachname ein.",
+      error: t("onboarding.error.nameRequired"),
     };
   }
 
   if (intention !== "create-team" && intention !== "wait-for-invite") {
     return {
-      error: "Bitte wähle aus, wie du starten möchtest.",
+      error: t("onboarding.error.intentionRequired"),
     };
   }
 
   if (intention === "create-team" && !clubName) {
     return {
-      error: "Bitte gib einen Teamnamen ein.",
+      error: t("onboarding.error.teamNameRequired"),
     };
   }
 
@@ -154,7 +156,7 @@ export async function completeOnboarding(
 
   if (existingPlayerError) {
     return {
-      error: `Spielerprofil konnte nicht geladen werden: ${existingPlayerError.message}`,
+      error: t("onboarding.error.profileLoad", { error: existingPlayerError.message }),
     };
   }
 
@@ -181,7 +183,7 @@ export async function completeOnboarding(
         return {
           error:
             insertPlayerError.message ||
-            "Spielerprofil konnte nicht erstellt werden.",
+            t("onboarding.error.profileCreate"),
         };
       }
     } else {
@@ -202,7 +204,7 @@ export async function completeOnboarding(
         return {
           error:
             updatePlayerError.message ||
-            "Spielerprofil konnte nicht aktualisiert werden.",
+            t("onboarding.error.profileUpdate"),
         };
       }
     }
@@ -225,7 +227,7 @@ export async function completeOnboarding(
 
   if (clubError || !club) {
     return {
-      error: clubError?.message || "Team konnte nicht erstellt werden.",
+      error: clubError?.message || t("onboarding.error.teamCreate"),
     };
   }
 
@@ -272,7 +274,7 @@ export async function completeOnboarding(
   if (membershipError) {
     return {
       error:
-        membershipError.message || "Mitgliedschaft konnte nicht erstellt werden.",
+        membershipError.message || t("onboarding.error.membershipCreate"),
     };
   }
 
@@ -286,7 +288,7 @@ export async function completeOnboarding(
     return {
       error:
         settingsError.message ||
-        "Team-Einstellungen konnten nicht erstellt werden.",
+        t("onboarding.error.settingsCreate"),
     };
   }
 
@@ -299,7 +301,7 @@ export async function completeOnboarding(
     return {
       error:
         defaultSeasonError ||
-        "Standard-Saison konnte nicht für das Team erstellt werden.",
+        t("onboarding.error.seasonCreate"),
     };
   }
 
@@ -325,7 +327,7 @@ export async function completeOnboarding(
     return {
       error:
         billingError.message ||
-        "Billing konnte nicht für das Team erstellt werden.",
+        t("onboarding.error.billingCreate"),
     };
   }
 
