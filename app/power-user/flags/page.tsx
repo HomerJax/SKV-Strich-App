@@ -8,6 +8,7 @@ import {
   setFeatureFlagForAllClubs,
   setFeatureFlagForClub,
 } from "@/lib/feature-flags";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type ClubRow = {
   id: string;
@@ -32,6 +33,7 @@ function getClubLabel(club: ClubRow) {
 
 export default async function PowerUserFlagsPage() {
   await requirePowerUser();
+  const { t } = await getServerI18n();
 
   const supabase = await createClient();
   const managedKeys = FEATURE_FLAG_DEFINITIONS.map((flag) => flag.key);
@@ -48,11 +50,11 @@ export default async function PowerUserFlagsPage() {
   ]);
 
   if (clubsResult.error) {
-    throw new Error(`Clubs konnten nicht geladen werden: ${clubsResult.error.message}`);
+    throw new Error(t("powerFlags.clubLoadFailed", { error: clubsResult.error.message }));
   }
 
   if (flagsResult.error) {
-    throw new Error(`Feature Flags konnten nicht geladen werden: ${flagsResult.error.message}`);
+    throw new Error(t("powerFlags.flagsLoadFailed", { error: flagsResult.error.message }));
   }
 
   const clubs = (clubsResult.data ?? []) as ClubRow[];
@@ -70,13 +72,14 @@ export default async function PowerUserFlagsPage() {
     "use server";
 
     await requirePowerUser();
+    const { t } = await getServerI18n();
 
     const clubId = String(formData.get("club_id") ?? "").trim();
     const featureKey = String(formData.get("feature_key") ?? "").trim() as FeatureFlagKey;
     const enabled = formData.get("enabled") === "1";
 
     if (!clubId || !managedKeys.includes(featureKey)) {
-      throw new Error("Ungültiger Feature-Flag-Aufruf.");
+      throw new Error(t("powerFlags.invalidCall"));
     }
 
     await setFeatureFlagForClub(clubId, featureKey, enabled);
@@ -88,12 +91,13 @@ export default async function PowerUserFlagsPage() {
     "use server";
 
     await requirePowerUser();
+    const { t } = await getServerI18n();
 
     const featureKey = String(formData.get("feature_key") ?? "").trim() as FeatureFlagKey;
     const enabled = formData.get("enabled") === "1";
 
     if (!managedKeys.includes(featureKey)) {
-      throw new Error("Ungültiger Feature-Key.");
+      throw new Error(t("powerFlags.invalidKey"));
     }
 
     await setFeatureFlagForAllClubs(featureKey, enabled);
@@ -129,7 +133,7 @@ export default async function PowerUserFlagsPage() {
             </h1>
           </div>
           <p className="text-sm text-slate-500">
-            {clubs.length} Clubs · {FEATURE_FLAG_DEFINITIONS.length} aktive Rollout-Flags
+            {t("powerFlags.summary", { clubs: clubs.length, flags: FEATURE_FLAG_DEFINITIONS.length })}
           </p>
         </div>
       </section>
@@ -168,7 +172,7 @@ export default async function PowerUserFlagsPage() {
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-400">Bei keinem Club aktiv</span>
+                  <span className="text-xs text-slate-400">{t("powerFlags.noneActive")}</span>
                 )}
               </div>
 
@@ -180,7 +184,7 @@ export default async function PowerUserFlagsPage() {
                     type="submit"
                     className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white"
                   >
-                    Alle an
+                    {t("powerFlags.allOn")}
                   </button>
                 </form>
                 <form action={toggleFlagForAllAction}>
@@ -190,7 +194,7 @@ export default async function PowerUserFlagsPage() {
                     type="submit"
                     className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"
                   >
-                    Alle aus
+                    {t("powerFlags.allOff")}
                   </button>
                 </form>
               </div>
@@ -201,14 +205,14 @@ export default async function PowerUserFlagsPage() {
 
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-4 py-3">
-          <h2 className="font-extrabold text-slate-950">Alle Clubs auf einen Blick</h2>
+          <h2 className="font-extrabold text-slate-950">{t("powerFlags.overviewTitle")}</h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Grün = aktiv. Tippen schaltet den jeweiligen Club direkt um.
+            {t("powerFlags.overviewDescription")}
           </p>
         </div>
 
         {clubs.length === 0 ? (
-          <div className="p-4 text-sm text-slate-500">Noch keine Clubs vorhanden.</div>
+          <div className="p-4 text-sm text-slate-500">{t("powerFlags.noClubs")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[620px] border-collapse text-sm">
@@ -238,7 +242,7 @@ export default async function PowerUserFlagsPage() {
                             <input type="hidden" name="enabled" value={enabled ? "0" : "1"} />
                             <button
                               type="submit"
-                              aria-label={`${flag.title} für ${getClubLabel(club)} ${enabled ? "deaktivieren" : "aktivieren"}`}
+                              aria-label={t(enabled ? "powerFlags.disableAria" : "powerFlags.enableAria", { flag: flag.title, club: getClubLabel(club) })}
                               className={[
                                 "inline-flex min-w-20 items-center justify-center rounded-full px-3 py-1.5 text-xs font-extrabold transition",
                                 enabled
@@ -246,7 +250,7 @@ export default async function PowerUserFlagsPage() {
                                   : "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
                               ].join(" ")}
                             >
-                              {enabled ? "AN" : "AUS"}
+                              {enabled ? t("powerFlags.on") : t("powerFlags.off")}
                             </button>
                           </form>
                         </td>
