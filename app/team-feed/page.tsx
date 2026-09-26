@@ -4,12 +4,14 @@ import { ArrowLeft, Medal, Trophy } from "lucide-react";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { getTeamFeedItems } from "@/lib/team-feed";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("de-DE", {
+function formatDate(value: string, locale: AppLocale) {
+  return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", {
     timeZone: "Europe/Berlin",
     weekday: "short",
     day: "2-digit",
@@ -19,6 +21,7 @@ function formatDate(value: string) {
 }
 
 export default async function TeamFeedPage() {
+  const { locale, t } = await getServerI18n();
   const { clubId } = await requireClub();
   const supabase = await createClient();
 
@@ -47,13 +50,13 @@ export default async function TeamFeedPage() {
 
         <div className="mt-4">
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-            Team-Feed
+            {t("teamFeed.eyebrow")}
           </div>
           <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
-            Neu im Team
+            {t("teamFeed.title")}
           </h1>
           <p className="mt-1 text-sm font-medium text-slate-500">
-            Ergebnisse, Badges und besondere Team-Momente.
+            {t("teamFeed.description")}
           </p>
         </div>
 
@@ -87,7 +90,7 @@ export default async function TeamFeedPage() {
                         {item.body}
                       </div>
                       <div className="mt-1.5 text-[10px] font-bold text-slate-400">
-                        {formatDate(item.occurredAt)}
+                        {formatDate(item.occurredAt, locale)}
                       </div>
                     </div>
                   </Link>
@@ -96,7 +99,7 @@ export default async function TeamFeedPage() {
             </div>
           ) : (
             <div className="p-5 text-sm font-semibold text-slate-500">
-              Noch keine Team-Ereignisse vorhanden.
+              {t("teamFeed.empty")}
             </div>
           )}
         </section>
