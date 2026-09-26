@@ -53,7 +53,7 @@ export default async function TeamFeedPage() {
             {t("teamFeed.eyebrow")}
           </div>
           <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
-            {t("teamFeed.title")}
+            {t("teamFeed.pageTitle")}
           </h1>
           <p className="mt-1 text-sm font-medium text-slate-500">
             {t("teamFeed.description")}
