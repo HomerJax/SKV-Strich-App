@@ -2721,6 +2721,16 @@ export const DE_MESSAGES = {
   "support.contact": "Support-Kontakt: {name} ·",
   "support.privacy": "Datenschutz",
   "support.imprint": "Impressum",
+  "chatApi.playerFallback": "Mitspieler",
+  "chatApi.disabled": "Teamchat ist für diesen Club noch nicht freigeschaltet.",
+  "chatApi.loadFailed": "Nachrichten konnten nicht geladen werden.",
+  "chatApi.bodyRequired": "Bitte eine Nachricht eingeben.",
+  "chatApi.bodyTooLong": "Nachrichten dürfen maximal 500 Zeichen lang sein.",
+  "chatApi.sendFailed": "Nachricht konnte nicht gesendet werden.",
+  "chatApi.invalidMessage": "Ungültige Nachricht.",
+  "chatApi.checkFailed": "Nachricht konnte nicht geprüft werden.",
+  "chatApi.deleteForbidden": "Diese Nachricht darfst du nicht löschen.",
+  "chatApi.deleteFailed": "Nachricht konnte nicht gelöscht werden.",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5463,6 +5473,17 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "support.contact": "Support contact: {name} ·",
   "support.privacy": "Privacy",
   "support.imprint": "Legal notice",
+
+  "chatApi.playerFallback": "Teammate",
+  "chatApi.disabled": "Team chat is not enabled for this club yet.",
+  "chatApi.loadFailed": "Messages could not be loaded.",
+  "chatApi.bodyRequired": "Please enter a message.",
+  "chatApi.bodyTooLong": "Messages can be no longer than 500 characters.",
+  "chatApi.sendFailed": "The message could not be sent.",
+  "chatApi.invalidMessage": "Invalid message.",
+  "chatApi.checkFailed": "The message could not be checked.",
+  "chatApi.deleteForbidden": "You are not allowed to delete this message.",
+  "chatApi.deleteFailed": "The message could not be deleted.",
 
 };
 
