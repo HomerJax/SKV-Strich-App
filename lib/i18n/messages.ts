@@ -2565,6 +2565,17 @@ export const DE_MESSAGES = {
   "sessionAction.seriesLoadFailed": "Serientermine konnten nicht geladen werden: {error}",
   "sessionAction.noTargets": "Keine passenden Termine gefunden.",
   "sessionAction.settingsSaveFailed": "Einstellungen konnten nicht gespeichert werden: {error}",
+  "sessionAction.guestAdminOnly": "Gastspieler können aktuell nur von Admins angelegt werden.",
+  "sessionAction.guestAfterResult": "Gastspieler können nicht mehr hinzugefügt werden, wenn bereits ein Ergebnis gespeichert ist.",
+  "sessionAction.guestNameRequired": "Bitte einen Namen für den Gastspieler eingeben.",
+  "sessionAction.guestStrengthInvalid": "Bitte eine gültige Stärke zwischen 1 und 5 wählen.",
+  "sessionAction.guestCreated": "Gastspieler angelegt und direkt zur Anwesenheit hinzugefügt.",
+  "sessionAction.resultInvalid": "Bitte ein gültiges, vollständiges Ergebnis eingeben.",
+  "sessionAction.gameNumberInvalid": "Ungültige Spielnummer.",
+  "sessionAction.gameOneSaved": "Spiel 1 gespeichert. Weitere Spiele kannst du direkt ergänzen.",
+  "sessionAction.gameSaved": "Spiel {game} gespeichert. Der Sieg zählt als eigener Strich.",
+  "sessionAction.resultSaveFailed": "Ergebnis konnte nicht gespeichert werden.",
+  "rsvp.reasonRequired": "Bitte gib einen kurzen echten Grund an – mindestens 4 Buchstaben, nicht nur Punkte oder einzelne Zeichen.",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5145,6 +5156,18 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "sessionAction.seriesLoadFailed": "Series sessions could not be loaded: {error}",
   "sessionAction.noTargets": "No matching sessions found.",
   "sessionAction.settingsSaveFailed": "The settings could not be saved: {error}",
+
+  "sessionAction.guestAdminOnly": "Guest players can currently only be added by admins.",
+  "sessionAction.guestAfterResult": "Guest players can no longer be added once a result has been saved.",
+  "sessionAction.guestNameRequired": "Please enter a name for the guest player.",
+  "sessionAction.guestStrengthInvalid": "Please choose a valid strength between 1 and 5.",
+  "sessionAction.guestCreated": "Guest player added and included in attendance.",
+  "sessionAction.resultInvalid": "Please enter a valid, complete result.",
+  "sessionAction.gameNumberInvalid": "Invalid game number.",
+  "sessionAction.gameOneSaved": "Game 1 saved. You can add more games right away.",
+  "sessionAction.gameSaved": "Game {game} saved. The win counts as its own point.",
+  "sessionAction.resultSaveFailed": "The result could not be saved.",
+  "rsvp.reasonRequired": "Please enter a short genuine reason – at least 4 letters, not just dots or individual characters.",
 
 };
 
