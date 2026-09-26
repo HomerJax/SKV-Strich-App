@@ -10,6 +10,7 @@ import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
 import { ExtendedResultShareData } from "../result-share.types";
 import { getResultSharePhotoLayout } from "../result-share.photo-layouts";
+import { translate } from "@/lib/i18n/messages";
 
 function pickBySessionId<T>(sessionId: number, values: T[]) {
   return values[Math.abs(sessionId) % values.length] ?? values[0];
@@ -128,14 +129,18 @@ function renderStrikrTopBadge({
 function getEditorialTitle(headline: string, sessionId: number) {
   const lower = headline.toLowerCase();
 
-  if (lower.includes("unterzahl") || lower.includes("papier")) {
+  if (lower.includes("unterzahl") || lower.includes("papier") || lower.includes("shorthanded") || lower.includes("paper")) {
     return pickBySessionId(sessionId, ["UNDERDOG.", "UPSET.", "MENTALITY."]);
   }
 
   if (
     lower.includes("diskussion") ||
     lower.includes("deutlich") ||
-    lower.includes("gewonnen")
+    lower.includes("gewonnen") ||
+    lower.includes("debate") ||
+    lower.includes("clearly") ||
+    lower.includes("won") ||
+    lower.includes("win")
   ) {
     return pickBySessionId(sessionId, [
       "STATEMENT.",
@@ -184,7 +189,7 @@ export function SportsEditorialLayout({
 }) {
   const clubName = getDisplayClubName(data);
   const clubLogoUrl = getClubLogoUrl(data);
-  const copy = buildCopy(data);
+  const copy = buildCopy(data, data.locale);
   const palette = buildPalette(data.clubPrimaryColor, "sports_editorial");
   const score = getScoreModel(data);
   const colorway = pickResultShareColorway(data.sessionId);
@@ -311,7 +316,7 @@ export function SportsEditorialLayout({
           {data.winnerPhotoUrl ? (
             <img
               src={data.winnerPhotoUrl}
-              alt="Siegerfoto"
+              alt={translate(data.locale ?? "de", "resultShare.winnerPhoto")}
               width={1040}
               height={950}
               style={{
@@ -340,7 +345,7 @@ export function SportsEditorialLayout({
                 letterSpacing: -1,
               }}
             >
-              Siegerfoto
+              {translate(data.locale ?? "de", "resultShare.winnerPhoto")}
             </div>
           )}
         </div>
