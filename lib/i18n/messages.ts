@@ -2886,6 +2886,7 @@ export const DE_MESSAGES = {
   "eventRoster.cleanupFailed": "Spieler wurde aus dem Event-Kader entfernt, aber die Rückmeldung konnte nicht vollständig bereinigt werden: {error}",
   "eventRoster.removed": "Spieler ist nicht im Event-Kader.",
 
+  "winnerPhotoFocus.invalidData": "Ungültige Fokus-Daten.",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5802,6 +5803,8 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "eventRoster.cleanupFailed": "The player was removed from the event squad, but the RSVP could not be fully cleared: {error}",
   "eventRoster.removed": "Player is not in the event squad.",
 
+
+  "winnerPhotoFocus.invalidData": "Invalid focus data.",
 
 };
 
