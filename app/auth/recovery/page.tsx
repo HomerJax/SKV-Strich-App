@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import ResetPasswordForm from "@/app/login/reset-password/ResetPasswordForm";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -12,10 +12,7 @@ function safeNext(value: string | null) {
 
 export default function RecoveryPage() {
   const { t } = useI18n();
-  const errorUrl = useMemo(
-    () => "/login/forgot-password?error=" + encodeURIComponent(t("auth.resetInvalid")),
-    [t],
-  );
+  const resetError = t("auth.resetInvalid");
   const [ready, setReady] = useState(false);
   const [next, setNext] = useState("");
 
@@ -32,14 +29,18 @@ export default function RecoveryPage() {
       const errorDescription =
         hash.get("error_description") || query.get("error_description");
       if (errorDescription) {
-        window.location.replace(errorUrl);
+        window.location.replace(
+          "/login/forgot-password?error=" + encodeURIComponent(resetError),
+        );
         return;
       }
 
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
       if (!accessToken || !refreshToken || hash.get("type") !== "recovery") {
-        window.location.replace(errorUrl);
+        window.location.replace(
+          "/login/forgot-password?error=" + encodeURIComponent(resetError),
+        );
         return;
       }
 
@@ -52,7 +53,9 @@ export default function RecoveryPage() {
         refresh_token: refreshToken,
       });
       if (error) {
-        window.location.replace(errorUrl);
+        window.location.replace(
+          "/login/forgot-password?error=" + encodeURIComponent(resetError),
+        );
         return;
       }
 
@@ -66,7 +69,7 @@ export default function RecoveryPage() {
     };
 
     void run();
-  }, [errorUrl]);
+  }, [resetError]);
 
   if (ready) {
     return <ResetPasswordForm initialNext={next} />;
