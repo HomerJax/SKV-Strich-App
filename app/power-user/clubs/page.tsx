@@ -325,7 +325,7 @@ function ClubDetailsCard({ view, locale }: { view: ClubView; locale: AppLocale }
             <div className="rounded-2xl bg-slate-50 px-3 py-2">
               <div className="flex items-center gap-1.5 text-xs text-slate-600">
                 <Users className="h-3.5 w-3.5" />
-                Mitglieder
+                {translate(locale, "powerClubs.members")}
               </div>
               <div className="mt-1 text-base font-bold text-slate-950">
                 {view.members.length}
@@ -335,7 +335,7 @@ function ClubDetailsCard({ view, locale }: { view: ClubView; locale: AppLocale }
             <div className="rounded-2xl bg-slate-50 px-3 py-2">
               <div className="flex items-center gap-1.5 text-xs text-slate-600">
                 <Mail className="h-3.5 w-3.5" />
-                Einladungen
+                {translate(locale, "powerClubs.invites")}
               </div>
               <div className="mt-1 text-base font-bold text-slate-950">
                 {view.inviteCount}
@@ -345,7 +345,7 @@ function ClubDetailsCard({ view, locale }: { view: ClubView; locale: AppLocale }
             <div className="rounded-2xl bg-slate-50 px-3 py-2">
               <div className="flex items-center gap-1.5 text-xs text-slate-600">
                 <CalendarDays className="h-3.5 w-3.5" />
-                Trainings
+                {translate(locale, "powerClubs.trainings")}
               </div>
               <div className="mt-1 text-base font-bold text-slate-950">
                 {view.sessionCount}
@@ -364,8 +364,8 @@ function ClubDetailsCard({ view, locale }: { view: ClubView; locale: AppLocale }
             </div>
             <div className="mt-1 text-xs">
               {view.lead
-                ? `${view.lead.role} seit ${formatDateTime(view.lead.created_at)}`
-                : "Keine Membership gefunden"}
+                ? translate(locale, "powerClubs.roleSince", { role: view.lead.role, date: formatDateTime(view.lead.created_at, locale) })
+                : translate(locale, "powerClubs.noMembership")}
             </div>
           </div>
 
@@ -379,52 +379,52 @@ function ClubDetailsCard({ view, locale }: { view: ClubView; locale: AppLocale }
         <div className={`rounded-2xl border p-4 ${billingTone}`}>
           <div className="flex items-center gap-2 text-sm font-semibold">
             <CreditCard className="h-4 w-4" />
-            Billing / Plan
+            {translate(locale, "powerClubs.billingPlan")}
           </div>
 
           <div className="mt-2 text-sm">
-            Aktuell:{" "}
+            {translate(locale, "powerClubs.current")}{" "}
             <span className="font-extrabold">
               {getPlanLabel(view.billing.plan_key, locale)}
             </span>{" "}
-            · Status:{" "}
+            · {translate(locale, "powerClubs.status")}{" "}
             <span className="font-semibold">{view.billing.status === "active" ? translate(locale, "powerClubs.statusActive") : view.billing.status}</span>
           </div>
 
           <div className="mt-1 text-xs">
-            Trial bis: {formatDateTime(view.billing.trial_ends_at)} · Pro bis:{" "}
-            {formatDateTime(view.billing.pro_ends_at)}
+            {translate(locale, "powerClubs.trialUntil", { date: formatDateTime(view.billing.trial_ends_at, locale) })} ·{" "}
+            {translate(locale, "powerClubs.proUntil", { date: formatDateTime(view.billing.pro_ends_at, locale) })}
           </div>
 
           <div className="mt-1 text-xs">
-            Notiz: {view.billing.billing_note ?? "–"}
+            {translate(locale, "powerClubs.note", { note: view.billing.billing_note ?? "–" })}
           </div>
 
-          <BillingActions clubId={view.club.id} />
+          <BillingActions clubId={view.club.id} locale={locale} />
         </div>
 
         <div className="rounded-2xl border border-slate-200 p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
             <Shield className="h-4 w-4" />
-            Letzte Trainingsaktivität
+            {translate(locale, "powerClubs.lastTrainingActivity")}
           </div>
 
           <div className="mt-2 text-sm text-slate-700">
-            Letzte Session erstellt: {formatDateTime(view.latestSessionCreatedAt)}
+            {translate(locale, "powerClubs.lastSessionCreated", { date: formatDateTime(view.latestSessionCreatedAt, locale) })}
           </div>
           <div className="mt-1 text-sm text-slate-700">
-            Session-Datum: {formatDate(view.latestSessionDate)}
+            {translate(locale, "powerClubs.sessionDate", { date: formatDate(view.latestSessionDate, locale) })}
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 p-4">
           <div className="mb-3 text-sm font-semibold text-slate-950">
-            Mitglieder im Club
+            {translate(locale, "powerClubs.membersInClub")}
           </div>
 
           {view.members.length === 0 ? (
             <div className="text-sm text-slate-600">
-              Keine Mitglieder gefunden.
+              {translate(locale, "powerClubs.noMembers")}
             </div>
           ) : (
             <div className="space-y-2">
@@ -444,7 +444,7 @@ function ClubDetailsCard({ view, locale }: { view: ClubView; locale: AppLocale }
 
                   <div className="text-xs text-slate-600 sm:text-right">
                     <div className="font-medium text-slate-900">
-                      Rolle: {member.role}
+                      {translate(locale, "powerClubs.role", { role: member.role })}
                     </div>
                     <div>{translate(locale, "powerClubs.since", { date: formatDateTime(member.created_at, locale) })}</div>
                   </div>
@@ -628,7 +628,7 @@ export default async function PowerUserClubsPage({
             href="/power-user"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Power User Dashboard
+            {t("powerClubs.backDashboard")}
           </Link>
         </div>
 
@@ -643,31 +643,30 @@ export default async function PowerUserClubsPage({
                 Power User / Clubs & Billing
               </div>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-                Clubs verwalten
+                {t("powerClubs.manageTitle")}
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Aktive, genutzte oder bezahlte Clubs stehen oben. Testclubs und
-                leere Clubs bleiben weiter unten. Jeder Club ist einklappbar.
+                {t("powerClubs.manageDescription")}
               </p>
             </div>
           </div>
 
           {billingSaved ? (
             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-              Billing-Status gespeichert.
+              {t("powerClubs.billingSaved")}
             </div>
           ) : null}
 
           {billingError ? (
             <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              Billing konnte nicht gespeichert werden: {billingError}
+              {t("powerClubs.billingSaveFailed", { error: billingError })}
             </div>
           ) : null}
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl bg-slate-50 px-4 py-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Clubs gesamt
+                {t("powerClubs.total")}
               </div>
               <div className="mt-1 text-2xl font-black text-slate-950">
                 {clubViews.length}
@@ -676,7 +675,7 @@ export default async function PowerUserClubsPage({
 
             <div className="rounded-2xl bg-emerald-50 px-4 py-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                Aktiv / genutzt
+                {t("powerClubs.activeUsed")}
               </div>
               <div className="mt-1 text-2xl font-black text-emerald-950">
                 {activeClubViews.length}
@@ -685,7 +684,7 @@ export default async function PowerUserClubsPage({
 
             <div className="rounded-2xl bg-slate-50 px-4 py-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Test / leer
+                {t("powerClubs.testEmpty")}
               </div>
               <div className="mt-1 text-2xl font-black text-slate-950">
                 {inactiveClubViews.length}
@@ -697,13 +696,13 @@ export default async function PowerUserClubsPage({
         <section className="space-y-3">
           <div>
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
-              Aktiv / genutzt / bezahlt
+              {t("powerClubs.activeUsedPaid")}
             </div>
           </div>
 
           {activeClubViews.length === 0 ? (
             <div className="rounded-[28px] border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
-              Noch keine aktiven Clubs erkannt.
+              {t("powerClubs.noActive")}
             </div>
           ) : (
             activeClubViews.map((view) => (
@@ -715,13 +714,13 @@ export default async function PowerUserClubsPage({
         <section className="space-y-3">
           <div>
             <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
-              Testclubs / leer / wenig genutzt
+              {t("powerClubs.testLowUsage")}
             </div>
           </div>
 
           {inactiveClubViews.length === 0 ? (
             <div className="rounded-[28px] border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
-              Keine leeren Testclubs vorhanden.
+              {t("powerClubs.noEmptyTests")}
             </div>
           ) : (
             inactiveClubViews.map((view) => (
