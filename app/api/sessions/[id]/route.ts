@@ -140,7 +140,7 @@ export async function POST(
   const sessionId = Number(resolvedParams.id);
 
   if (!Number.isFinite(sessionId)) {
-    return fail("Ungültige Session-ID.", 400);
+    return fail(t("sessionAction.invalidId"), 400);
   }
 
   const access = await requireSessionAccess(sessionId);
@@ -176,7 +176,7 @@ export async function POST(
       const requestedPlayerId = Number(String(formData.get("player_id") ?? ""));
 
       if (!Number.isFinite(requestedPlayerId)) {
-        return fail("Ungültige Spieler-ID.", 400);
+        return fail(t("sessionApi.invalidPlayerId"), 400);
       }
 
       return handleTogglePresence({
@@ -192,14 +192,14 @@ export async function POST(
 
       if (!homeSessionRsvpEnabled) {
         return fail(
-          "Die Zu-/Absage über den Homescreen ist für dieses Team noch nicht freigeschaltet.",
+          t("sessionApi.homeRsvpDisabled"),
           403
         );
       }
 
       if (session.winner_photo_path) {
         return fail(
-          "Für diese Session ist bereits alles abgeschlossen. Deine Rückmeldung kann nicht mehr geändert werden.",
+          t("sessionApi.sessionClosed"),
           400
         );
       }
@@ -208,13 +208,13 @@ export async function POST(
       const reason = String(formData.get("reason") ?? "").trim().slice(0, 80);
 
       if (status !== "in" && status !== "out" && status !== "open") {
-        return fail("Ungültiger Status.", 400);
+        return fail(t("sessionApi.invalidStatus"), 400);
       }
 
       const userEmail = currentUserEmail;
 
       if (!userEmail) {
-        return fail("Benutzer konnte nicht aufgelöst werden.", 401);
+        return fail(t("sessionApi.userResolveFailed"), 401);
       }
 
       const { data: playerData, error: playerError } = await adminSupabase
@@ -226,7 +226,7 @@ export async function POST(
 
       if (playerError) {
         return fail(
-          `Spielerprofil konnte nicht geladen werden: ${playerError.message}`,
+          t("sessionApi.playerLoadFailed", { error: playerError.message }),
           500
         );
       }
@@ -235,7 +235,7 @@ export async function POST(
 
       if (!Number.isFinite(playerId) || !playerData) {
         return fail(
-          "Dein Spielerprofil konnte nicht gefunden werden. Bitte wende dich an einen Admin.",
+          t("sessionApi.playerNotFound"),
           404
         );
       }
@@ -250,11 +250,11 @@ export async function POST(
           .maybeSingle();
 
         if (exclusionError) {
-          return fail("Event-Kader konnte nicht geprüft werden.", 500);
+          return fail(t("sessionApi.rosterCheckFailed"), 500);
         }
 
         if (exclusion) {
-          return fail("Du bist für diesen Termin aktuell nicht nominiert.", 403);
+          return fail(t("sessionApi.notNominated"), 403);
         }
       }
 
@@ -288,17 +288,17 @@ export async function POST(
 
       if (existingRsvpError) {
         return fail(
-          `Rückmeldung konnte nicht geprüft werden: ${existingRsvpError.message}`,
+          t("sessionApi.rsvpCheckFailed", { error: existingRsvpError.message }),
           500,
         );
       }
 
       if (deadlineSettingsError) {
-        return fail("Anmeldeschluss konnte nicht geprüft werden.", 500);
+        return fail(t("sessionApi.deadlineCheckFailed"), 500);
       }
 
       if (firstInHistoryError) {
-        return fail("Bisherige Zusage konnte nicht geprüft werden.", 500);
+        return fail(t("sessionApi.previousRsvpCheckFailed"), 500);
       }
 
       const previousStatus = existingRsvp?.status ?? null;
@@ -329,8 +329,8 @@ export async function POST(
       ) {
         return fail(
           deadlineLabel
-            ? `Der Anmeldeschluss war ${deadlineLabel} Uhr. Eine bestehende Zusage kann danach nicht mehr selbst abgesagt werden. Bitte wende dich an einen Admin.`
-            : "Der Anmeldeschluss ist vorbei. Eine bestehende Zusage kann danach nicht mehr selbst abgesagt werden. Bitte wende dich an einen Admin.",
+            ? t("sessionApi.deadlineLockedAt", { time: deadlineLabel })
+            : t("sessionApi.deadlineLocked"),
           409,
         );
       }
@@ -370,7 +370,7 @@ export async function POST(
 
         if (insertError) {
           return fail(
-            `Zusage konnte nicht gespeichert werden: ${insertError.message}`,
+            t("sessionApi.confirmSaveFailed", { error: insertError.message }),
             500
           );
         }
@@ -393,7 +393,7 @@ export async function POST(
 
         if (rsvpError) {
           return fail(
-            `Zusage konnte nicht gespeichert werden: ${rsvpError.message}`,
+            t("sessionApi.confirmSaveFailed", { error: rsvpError.message }),
             500
           );
         }
@@ -507,7 +507,7 @@ export async function POST(
 
       if (deleteError) {
         return fail(
-          `Rückmeldung konnte nicht gespeichert werden: ${deleteError.message}`,
+          t("sessionApi.rsvpSaveFailed", { error: deleteError.message }),
           500
         );
       }
@@ -521,13 +521,13 @@ export async function POST(
 
         if (clearRsvpError) {
           return fail(
-            `Rückmeldung konnte nicht zurückgesetzt werden: ${clearRsvpError.message}`,
+            t("sessionApi.rsvpResetFailed", { error: clearRsvpError.message }),
             500
           );
         }
 
         return ok({
-          message: "Deine Rückmeldung wurde zurückgesetzt.",
+          message: t("sessionApi.rsvpReset"),
           status: "open",
         });
       }
@@ -550,7 +550,7 @@ export async function POST(
 
       if (rsvpError) {
         return fail(
-          `Absage konnte nicht gespeichert werden: ${rsvpError.message}`,
+          t("sessionApi.declineSaveFailed", { error: rsvpError.message }),
           500
         );
       }
@@ -567,7 +567,7 @@ export async function POST(
       });
 
       return ok({
-        message: "Deine Rückmeldung wurde aktualisiert.",
+        message: t("sessionApi.rsvpUpdated"),
         status: "out",
       });
     }
@@ -597,13 +597,13 @@ export async function POST(
       });
 
       if (!hasAdminAccess) {
-        return fail("Nur Admins dürfen Gastspieler löschen.", 403);
+        return fail(t("sessionApi.guestDeleteAdminOnly"), 403);
       }
 
       const requestedPlayerId = Number(String(formData.get("player_id") ?? ""));
 
       if (!Number.isFinite(requestedPlayerId)) {
-        return fail("Ungültige Spieler-ID.", 400);
+        return fail(t("sessionApi.invalidPlayerId"), 400);
       }
 
       const { data: resultData, error: resultError } = await supabase
@@ -615,14 +615,14 @@ export async function POST(
 
       if (resultError) {
         return fail(
-          `Ergebnisstatus konnte nicht geprüft werden: ${resultError.message}`,
+          t("sessionApi.resultStatusCheckFailed", { error: resultError.message }),
           500
         );
       }
 
       if (resultData) {
         return fail(
-          "Gastspieler können nicht mehr gelöscht werden, wenn bereits ein Ergebnis gespeichert ist.",
+          t("sessionApi.guestDeleteAfterResult"),
           400
         );
       }
@@ -636,17 +636,17 @@ export async function POST(
 
       if (playerError) {
         return fail(
-          `Gastspieler konnte nicht geladen werden: ${playerError.message}`,
+          t("sessionApi.guestLoadFailed", { error: playerError.message }),
           500
         );
       }
 
       if (!playerData) {
-        return fail("Gastspieler nicht gefunden.", 404);
+        return fail(t("sessionApi.guestNotFound"), 404);
       }
 
       if (playerData.is_guest !== true) {
-        return fail("Nur Gastspieler können hier gelöscht werden.", 400);
+        return fail(t("sessionApi.guestOnlyDelete"), 400);
       }
 
       const { data: teamsData, error: teamsError } = await supabase
@@ -656,7 +656,7 @@ export async function POST(
 
       if (teamsError) {
         return fail(
-          `Teams konnten nicht geladen werden: ${teamsError.message}`,
+          t("sessionApi.teamsLoadFailed", { error: teamsError.message }),
           500
         );
       }
@@ -674,7 +674,7 @@ export async function POST(
 
         if (teamPlayersDeleteError) {
           return fail(
-            `Team-Zuordnungen des Gastspielers konnten nicht gelöscht werden: ${teamPlayersDeleteError.message}`,
+            t("sessionApi.guestTeamDeleteFailed", { error: teamPlayersDeleteError.message }),
             500
           );
         }
@@ -688,7 +688,7 @@ export async function POST(
 
       if (sessionPlayerDeleteError) {
         return fail(
-          `Anwesenheit des Gastspielers konnten nicht gelöscht werden: ${sessionPlayerDeleteError.message}`,
+          t("sessionApi.guestAttendanceDeleteFailed", { error: sessionPlayerDeleteError.message }),
           500
         );
       }
@@ -702,7 +702,7 @@ export async function POST(
 
       if (playerDeleteError) {
         return fail(
-          `Gastspieler konnte nicht gelöscht werden: ${playerDeleteError.message}`,
+          t("sessionApi.guestDeleteFailed", { error: playerDeleteError.message }),
           500
         );
       }
@@ -716,7 +716,7 @@ export async function POST(
     if (intent === "save_teams") {
       if (!allowTeams) {
         return fail(
-          "Für diesen Termin ist keine Teamaufteilung aktiv.",
+          t("sessionApi.teamsDisabled"),
           400
         );
       }
@@ -733,13 +733,13 @@ export async function POST(
         });
 
         return ok({
-          message: "Teams gespeichert.",
+          message: t("sessionApi.teamsSaved"),
         });
       } catch (error) {
         const message =
           error instanceof Error && error.message
             ? error.message
-            : "Teams konnten nicht gespeichert werden.";
+            : t("sessionApi.teamsSaveFailed");
 
         return fail(message, 500);
       }
@@ -748,7 +748,7 @@ export async function POST(
     if (intent === "save_result") {
       if (!allowResult) {
         return fail(
-          "Für diesen Termin kann kein Ergebnis gespeichert werden.",
+          t("sessionApi.resultDisabled"),
           400
         );
       }
@@ -774,7 +774,7 @@ export async function POST(
     if (intent === "delete_result") {
       if (!allowResult) {
         return fail(
-          "Für diesen Termin gibt es kein Ergebnis.",
+          t("sessionApi.noResult"),
           400
         );
       }
@@ -793,7 +793,7 @@ export async function POST(
     if (intent === "delete_winner_photo") {
       if (!allowWinnerPhoto) {
         return fail(
-          "Für diesen Termin gibt es kein Siegerfoto.",
+          t("sessionApi.noWinnerPhoto"),
           400
         );
       }
@@ -813,7 +813,7 @@ export async function POST(
       });
 
       if (!hasAdminAccess) {
-        return fail("Nur Admins dürfen eine Session löschen.", 403);
+        return fail(t("sessionApi.sessionDeleteAdminOnly"), 403);
       }
 
       const { data: teamsData, error: teamsError } = await supabase
@@ -823,7 +823,7 @@ export async function POST(
 
       if (teamsError) {
         return fail(
-          `Teams konnten nicht geladen werden: ${teamsError.message}`,
+          t("sessionApi.teamsLoadFailed", { error: teamsError.message }),
           500
         );
       }
@@ -840,7 +840,7 @@ export async function POST(
 
         if (teamPlayersDeleteError) {
           return fail(
-            `Team-Zuordnungen konnten nicht gelöscht werden: ${teamPlayersDeleteError.message}`,
+            t("sessionApi.teamAssignmentsDeleteFailed", { error: teamPlayersDeleteError.message }),
             500
           );
         }
@@ -853,7 +853,7 @@ export async function POST(
 
       if (mvpVotesDeleteError) {
         return fail(
-          `MVP-Stimmen konnten nicht gelöscht werden: ${mvpVotesDeleteError.message}`,
+          t("sessionApi.mvpVotesDeleteFailed", { error: mvpVotesDeleteError.message }),
           500
         );
       }
@@ -865,7 +865,7 @@ export async function POST(
 
       if (resultsDeleteError) {
         return fail(
-          `Ergebnis konnte nicht gelöscht werden: ${resultsDeleteError.message}`,
+          t("sessionApi.resultDeleteFailed", { error: resultsDeleteError.message }),
           500
         );
       }
@@ -877,7 +877,7 @@ export async function POST(
 
       if (teamsDeleteError) {
         return fail(
-          `Teams konnten nicht gelöscht werden: ${teamsDeleteError.message}`,
+          t("sessionApi.teamsDeleteFailed", { error: teamsDeleteError.message }),
           500
         );
       }
@@ -889,7 +889,7 @@ export async function POST(
 
       if (sessionPlayersDeleteError) {
         return fail(
-          `Anwesenheiten konnten nicht gelöscht werden: ${sessionPlayersDeleteError.message}`,
+          t("sessionApi.attendanceDeleteFailed", { error: sessionPlayersDeleteError.message }),
           500
         );
       }
@@ -908,7 +908,7 @@ export async function POST(
 
       if (sessionDeleteError) {
         return fail(
-          `Session konnte nicht gelöscht werden: ${sessionDeleteError.message}`,
+          t("sessionApi.sessionDeleteFailed", { error: sessionDeleteError.message }),
           500
         );
       }
@@ -928,7 +928,7 @@ export async function POST(
       }
 
       return ok({
-        message: "Session wurde gelöscht.",
+        message: t("sessionApi.sessionDeleted"),
         deleted: true,
       });
     }
@@ -936,7 +936,7 @@ export async function POST(
     if (intent === "upload_winner_photo") {
       if (!allowWinnerPhoto) {
         return fail(
-          "Für diesen Termin gibt es kein Siegerfoto.",
+          t("sessionApi.noWinnerPhoto"),
           400
         );
       }
@@ -947,7 +947,7 @@ export async function POST(
         .eq("session_id", sessionId);
 
       if (resultRowsError) {
-        return fail("Tagessieger konnte nicht geprüft werden.", 500);
+        return fail(t("sessionApi.winnerCheckFailed"), 500);
       }
 
       let winsA = 0;
@@ -964,12 +964,12 @@ export async function POST(
       }
 
       if ((resultRows ?? []).length === 0) {
-        return fail("Bitte zuerst mindestens ein Ergebnis speichern.", 400);
+        return fail(t("sessionApi.resultFirst"), 400);
       }
 
       if (winsA === winsB) {
         return fail(
-          "Aktuell gibt es keinen eindeutigen Tagessieger. Bei Gleichstand gibt es kein Siegerfoto.",
+          t("sessionApi.noClearWinner"),
           400
         );
       }
@@ -977,15 +977,15 @@ export async function POST(
       const file = formData.get("file");
 
       if (!(file instanceof File)) {
-        return fail("Bitte ein Bild auswählen.");
+        return fail(t("sessionApi.imageRequired"));
       }
 
       if (!file.type.startsWith("image/")) {
-        return fail("Bitte ein Bild auswählen.");
+        return fail(t("sessionApi.imageRequired"));
       }
 
       if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-        return fail("Das Bild ist zu groß. Bitte maximal 10 MB verwenden.");
+        return fail(t("sessionApi.imageTooLarge"));
       }
 
       let normalizedPhoto: {
@@ -999,7 +999,7 @@ export async function POST(
       } catch (error) {
         console.error("normalizeWinnerPhoto failed", error);
         return fail(
-          "Das Bild konnte nicht verarbeitet werden. Bitte ein anderes Foto versuchen.",
+          t("sessionApi.imageProcessFailed"),
           400
         );
       }
@@ -1037,13 +1037,13 @@ export async function POST(
       const winnerPhotoUrl = await createSignedPhotoUrl(adminSupabase, newPath);
 
       return ok({
-        message: "Siegerfoto hochgeladen. Jetzt noch Ergebnis eintragen.",
+        message: t("sessionApi.winnerPhotoUploaded"),
         winner_photo_path: newPath,
         winnerPhotoUrl,
       });
     }
 
-    return fail("Ungültige Aktion.", 400);
+    return fail(t("sessionApi.invalidAction"), 400);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unbekannter Fehler.";
