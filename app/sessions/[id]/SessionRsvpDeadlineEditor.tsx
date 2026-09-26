@@ -8,6 +8,8 @@ import {
   getSessionDeadlineEpochMs,
 } from "@/lib/session-rsvp-deadline";
 import { updateSessionRsvpSettingsAction } from "./session-rsvp-settings-actions";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type Props = {
   sessionId: number;
@@ -19,8 +21,13 @@ type Props = {
   isSeries?: boolean;
 };
 
-function startLabel(value: string | null) {
-  return value ? `${value.slice(0, 5)} Uhr` : "keine Startzeit";
+function startLabel(
+  value: string | null,
+  locale: AppLocale,
+  timeSuffix: (time: string) => string,
+  noStart: string,
+) {
+  return value ? timeSuffix(value.slice(0, 5)) : noStart;
 }
 
 export default function SessionRsvpDeadlineEditor({
@@ -32,6 +39,7 @@ export default function SessionRsvpDeadlineEditor({
   isAdmin,
   isSeries = false,
 }: Props) {
+  const { locale, t } = useI18n();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [time, setTime] = useState(startTime?.slice(0, 5) ?? "");
@@ -65,7 +73,10 @@ export default function SessionRsvpDeadlineEditor({
       }),
     [clubDefaultMinutes, date, sessionOverrideMinutes, startTime],
   );
-  const deadlineLabel = formatDeadlineForDisplay(deadlineAt);
+  const deadlineLabel = formatDeadlineForDisplay(
+    deadlineAt,
+    locale === "de" ? "de-DE" : "en-GB",
+  );
 
   function save() {
     setError(null);
@@ -86,7 +97,7 @@ export default function SessionRsvpDeadlineEditor({
         setError(
           saveError instanceof Error
             ? saveError.message
-            : "Einstellungen konnten nicht gespeichert werden.",
+            : t("deadline.saveFailed"),
         );
       }
     });
@@ -96,12 +107,12 @@ export default function SessionRsvpDeadlineEditor({
     return (
       <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.07] p-3">
         <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/48">
-          Trainingszeit & Anmeldeschluss
+          {t("deadline.title")}
         </div>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-semibold text-white/72">
-            Trainingsbeginn
+            {t("deadline.trainingStart")}
             <input
               type="time"
               value={time}
@@ -111,7 +122,7 @@ export default function SessionRsvpDeadlineEditor({
           </label>
 
           <label className="text-xs font-semibold text-white/72">
-            Anmeldeschluss
+            {t("deadline.deadline")}
             <div className="mt-1.5 flex items-center gap-2">
               <input
                 type="number"
@@ -123,7 +134,7 @@ export default function SessionRsvpDeadlineEditor({
                 onChange={(event) => setMinutes(event.target.value)}
                 className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none disabled:opacity-45"
               />
-              <span className="text-[11px] text-white/50">Min. vorher</span>
+              <span className="text-[11px] text-white/50">{t("deadline.minutesBefore")}</span>
             </div>
           </label>
         </div>
@@ -134,19 +145,19 @@ export default function SessionRsvpDeadlineEditor({
             checked={useClubDefault}
             onChange={(event) => setUseClubDefault(event.target.checked)}
           />
-          Club-Standard verwenden ({clubDefaultMinutes} Min. vorher)
+          {t("deadline.clubDefault", { minutes: clubDefaultMinutes })}
         </label>
 
         {isSeries ? (
           <div className="mt-3">
             <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/48">
-              Änderung anwenden auf
+              {t("deadline.applyTo")}
             </div>
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
               {[
-                ["single", "Nur diesen Termin"],
-                ["future", "Ab diesem Termin"],
-                ["series", "Ganze Serie"],
+                ["single", t("deadline.single")],
+                ["future", t("deadline.future")],
+                ["series", t("deadline.series")],
               ].map(([value, label]) => (
                 <button
                   key={value}
@@ -175,7 +186,7 @@ export default function SessionRsvpDeadlineEditor({
             disabled={pending}
             className="rounded-full bg-white px-3.5 py-2 text-xs font-bold text-slate-950 disabled:opacity-60"
           >
-            {pending ? "Speichert…" : "Speichern"}
+            {pending ? t("profile.savingShort") : t("deadline.save")}
           </button>
           <button
             type="button"
@@ -186,7 +197,7 @@ export default function SessionRsvpDeadlineEditor({
             disabled={pending}
             className="rounded-full bg-white/8 px-3.5 py-2 text-xs font-semibold text-white/74 ring-1 ring-white/10"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
         </div>
       </div>
@@ -196,13 +207,25 @@ export default function SessionRsvpDeadlineEditor({
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-white/68">
       <span className="rounded-full bg-white/8 px-3 py-1.5 ring-1 ring-white/10">
-        Start {startLabel(startTime)}
+        {t("deadline.start", {
+          time: startLabel(
+            startTime,
+            locale,
+            (value) => t("deadline.timeSuffix", { time: value }),
+            t("deadline.noStart"),
+          ),
+        })}
       </span>
       <span className="rounded-full bg-white/8 px-3 py-1.5 ring-1 ring-white/10">
-        Anmeldeschluss {deadlineLabel ? `${deadlineLabel} Uhr` : "nicht verfügbar"}
+        {t("deadline.deadlineValue", {
+          value: deadlineLabel
+            ? t("deadline.timeSuffix", { time: deadlineLabel })
+            : t("deadline.unavailable"),
+        })}
       </span>
       <span className="text-white/38">
-        {effectiveMinutes} Min. vorher{sessionOverrideMinutes == null ? " · Club-Standard" : ""}
+        {t("deadline.beforeValue", { minutes: effectiveMinutes })}
+        {sessionOverrideMinutes == null ? ` · ${t("deadline.clubDefaultShort")}` : ""}
       </span>
       {isAdmin ? (
         <button
@@ -210,7 +233,7 @@ export default function SessionRsvpDeadlineEditor({
           onClick={() => setEditing(true)}
           className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] font-semibold text-white/70 ring-1 ring-white/10"
         >
-          Ändern
+          {t("deadline.edit")}
         </button>
       ) : null}
     </div>
