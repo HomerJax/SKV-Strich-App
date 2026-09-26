@@ -2867,6 +2867,25 @@ export const DE_MESSAGES = {
   "adminRsvp.saveFailed": "Absage konnte nicht gespeichert werden: {error}",
   "adminRsvp.playerFallback": "Spieler",
   "adminRsvp.saved": "{name} wurde für diese Session abgesagt.",
+  "sessionCommon.unknownError": "Unbekannter Fehler.",
+  "rsvpReason.userResolveFailed": "Benutzer konnte nicht aufgelöst werden.",
+  "rsvpReason.playerProfileMissing": "Spielerprofil konnte nicht gefunden werden.",
+  "rsvpReason.loadFailed": "Rückmeldung konnte nicht geladen werden: {error}",
+  "rsvpReason.outOnly": "Ein Absagegrund kann nur zu einer Absage gespeichert werden.",
+  "rsvpReason.saveFailed": "Absagegrund konnte nicht gespeichert werden: {error}",
+  "winnerPhotoFocus.saved": "Foto-Fokus gespeichert.",
+  "winnerPhotoFocus.saveFailed": "Foto-Fokus konnte nicht gespeichert werden.",
+  "eventRoster.loadFailed": "Event-Kader konnte nicht geladen werden: {error}",
+  "eventRoster.adminOnly": "Nur Admins dürfen den Event-Kader festlegen.",
+  "eventRoster.eventOnly": "Ein Event-Kader kann nur bei Terminen gepflegt werden.",
+  "eventRoster.invalidPlayerId": "Ungültige Spieler-ID.",
+  "eventRoster.playerLoadFailed": "Spieler konnte nicht geladen werden: {error}",
+  "eventRoster.playerUnavailable": "Spieler ist für den Event-Kader nicht verfügbar.",
+  "eventRoster.updateFailed": "Event-Kader konnte nicht aktualisiert werden: {error}",
+  "eventRoster.restored": "Spieler ist wieder im Event-Kader.",
+  "eventRoster.cleanupFailed": "Spieler wurde aus dem Event-Kader entfernt, aber die Rückmeldung konnte nicht vollständig bereinigt werden: {error}",
+  "eventRoster.removed": "Spieler ist nicht im Event-Kader.",
+
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5763,6 +5782,26 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "adminRsvp.saveFailed": "Decline could not be saved: {error}",
   "adminRsvp.playerFallback": "Player",
   "adminRsvp.saved": "{name} was marked as unavailable for this session.",
+
+  "sessionCommon.unknownError": "Unknown error.",
+  "rsvpReason.userResolveFailed": "User could not be resolved.",
+  "rsvpReason.playerProfileMissing": "Player profile could not be found.",
+  "rsvpReason.loadFailed": "RSVP could not be loaded: {error}",
+  "rsvpReason.outOnly": "A decline reason can only be saved for a decline.",
+  "rsvpReason.saveFailed": "Decline reason could not be saved: {error}",
+  "winnerPhotoFocus.saved": "Photo focus saved.",
+  "winnerPhotoFocus.saveFailed": "Photo focus could not be saved.",
+  "eventRoster.loadFailed": "Event squad could not be loaded: {error}",
+  "eventRoster.adminOnly": "Only admins can manage the event squad.",
+  "eventRoster.eventOnly": "An event squad can only be managed for events.",
+  "eventRoster.invalidPlayerId": "Invalid player ID.",
+  "eventRoster.playerLoadFailed": "Player could not be loaded: {error}",
+  "eventRoster.playerUnavailable": "Player is not available for the event squad.",
+  "eventRoster.updateFailed": "Event squad could not be updated: {error}",
+  "eventRoster.restored": "Player is back in the event squad.",
+  "eventRoster.cleanupFailed": "The player was removed from the event squad, but the RSVP could not be fully cleared: {error}",
+  "eventRoster.removed": "Player is not in the event squad.",
+
 
 };
 
