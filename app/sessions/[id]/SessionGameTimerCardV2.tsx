@@ -398,7 +398,7 @@ export default function SessionGameTimerCard({
   }, [persistRuntime, runtime, remainingMs]);
 
   const displayTime = useMemo(() => {
-    if (runtime.phase === "halftime") return "HALBZEIT";
+    if (runtime.phase === "halftime") return t("gameTimer.halftimeDisplay");
     if (runtime.phase === "finished") return "00:00";
     if (runtime.phase === "idle") {
       if (settings.mode === "duration") {
@@ -875,7 +875,7 @@ export default function SessionGameTimerCard({
               onClick={() => void stopTimer()}
               className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 transition hover:bg-red-100"
             >
-              {t("gameTimer.title")} stoppen
+              {t("gameTimer.stopTimer")}
             </button>
           ) : null}
 
