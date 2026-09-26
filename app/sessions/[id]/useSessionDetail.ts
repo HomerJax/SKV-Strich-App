@@ -714,7 +714,8 @@ export function useSessionDetail({
         session,
         displayTeamA,
         displayTeamB,
-        useNicknames
+        useNicknames,
+        locale
       );
 
       try {
