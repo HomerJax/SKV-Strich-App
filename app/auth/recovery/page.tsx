@@ -3,12 +3,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import ResetPasswordForm from "@/app/login/reset-password/ResetPasswordForm";
-
-const ERROR_URL =
-  "/login/forgot-password?error=" +
-  encodeURIComponent(
-    "Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an."
-  );
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 function safeNext(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return "";
@@ -16,6 +11,8 @@ function safeNext(value: string | null) {
 }
 
 export default function RecoveryPage() {
+  const { t } = useI18n();
+  const errorUrl = "/login/forgot-password?error=" + encodeURIComponent(t("auth.resetInvalid"));
   const [ready, setReady] = useState(false);
   const [next, setNext] = useState("");
 
@@ -32,14 +29,14 @@ export default function RecoveryPage() {
       const errorDescription =
         hash.get("error_description") || query.get("error_description");
       if (errorDescription) {
-        window.location.replace(ERROR_URL);
+        window.location.replace(errorUrl);
         return;
       }
 
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
       if (!accessToken || !refreshToken || hash.get("type") !== "recovery") {
-        window.location.replace(ERROR_URL);
+        window.location.replace(errorUrl);
         return;
       }
 
@@ -52,7 +49,7 @@ export default function RecoveryPage() {
         refresh_token: refreshToken,
       });
       if (error) {
-        window.location.replace(ERROR_URL);
+        window.location.replace(errorUrl);
         return;
       }
 
@@ -66,7 +63,7 @@ export default function RecoveryPage() {
     };
 
     void run();
-  }, []);
+  }, [errorUrl]);
 
   if (ready) {
     return <ResetPasswordForm initialNext={next} />;
@@ -77,7 +74,7 @@ export default function RecoveryPage() {
       <div className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-8 text-center shadow-sm">
         <div className="text-2xl font-black">strikr</div>
         <p className="mt-4 text-sm font-semibold text-zinc-600">
-          Reset-Link wird geprüft …
+          {t("auth.resetChecking")}
         </p>
       </div>
     </main>
