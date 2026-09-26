@@ -1,3 +1,5 @@
+import type { AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
 import type { MemberRole } from "./members-types";
 
 export function getBaseUrl() {
@@ -21,7 +23,10 @@ export function buildInviteUrl(token: string) {
   return baseUrl ? `${baseUrl}${path}` : path;
 }
 
-export function formatDate(dateString: string | null | undefined) {
+export function formatDate(
+  dateString: string | null | undefined,
+  locale: AppLocale = "de",
+) {
   if (!dateString) return "—";
 
   const date = new Date(dateString);
@@ -30,52 +35,62 @@ export function formatDate(dateString: string | null | undefined) {
     return "—";
   }
 
-  return new Intl.DateTimeFormat("de-DE", {
+  return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
 }
 
 export function getMemberRoleLabel(
-  role: MemberRole | string | null | undefined
+  role: MemberRole | string | null | undefined,
+  locale: AppLocale = "de",
 ) {
-  if (role === "admin") return "Administrator";
-  if (role === "power_user") return "Power User";
-  return "Mitglied";
+  if (role === "admin") return translate(locale, "members.roleAdministrator");
+  if (role === "power_user") return translate(locale, "members.rolePowerUser");
+  return translate(locale, "members.roleMember");
 }
 
-export function getErrorText(code?: string) {
+export function getErrorText(code: string | undefined, locale: AppLocale = "de") {
   if (!code) return null;
 
-  return code === "invite_create_failed"
-    ? "Die Einladung konnte nicht erstellt werden."
-    : code === "invite_delete_failed"
-      ? "Die Einladung konnte nicht gelöscht werden."
-      : code === "member_role_update_failed"
-        ? "Die Rolle konnte nicht geändert werden."
-        : code === "member_remove_failed"
-          ? "Das Mitglied konnte nicht entfernt werden."
-          : code === "cannot_change_own_role"
-            ? "Du kannst deine eigene Rolle nicht ändern."
-            : code === "cannot_remove_yourself"
-              ? "Du kannst dich nicht selbst entfernen."
-              : code === "last_admin_must_remain"
-                ? "Mindestens ein Administrator muss im Club verbleiben."
-                : code === "member_not_in_club"
-                  ? "Dieses Mitglied gehört nicht zu deinem Club."
-                  : code === "not_allowed"
-                    ? "Diese Aktion ist nicht erlaubt."
-                    : "Es ist ein Fehler aufgetreten.";
+  const key =
+    code === "invite_create_failed"
+      ? "members.errorInviteCreate"
+      : code === "invite_delete_failed"
+        ? "members.errorInviteDelete"
+        : code === "member_role_update_failed"
+          ? "members.errorRoleUpdate"
+          : code === "member_remove_failed"
+            ? "members.errorRemove"
+            : code === "cannot_change_own_role"
+              ? "members.errorOwnRole"
+              : code === "cannot_remove_yourself"
+                ? "members.errorRemoveSelf"
+                : code === "last_admin_must_remain"
+                  ? "members.errorLastAdmin"
+                  : code === "member_not_in_club"
+                    ? "members.errorNotInClub"
+                    : code === "not_allowed"
+                      ? "members.errorNotAllowed"
+                      : "members.errorGeneric";
+
+  return translate(locale, key);
 }
 
-export function getSuccessText(action?: string) {
+export function getSuccessText(
+  action: string | undefined,
+  locale: AppLocale = "de",
+) {
   if (!action) return null;
 
-  return action === "role_updated"
-    ? "Die Rolle wurde erfolgreich geändert."
-    : action === "member_removed"
-      ? "Das Mitglied wurde erfolgreich entfernt."
-      : action === "beer_permission_updated"
-        ? "Bierkassen-Berechtigung wurde aktualisiert."
-        : null;
+  const key =
+    action === "role_updated"
+      ? "members.successRoleUpdated"
+      : action === "member_removed"
+        ? "members.successRemoved"
+        : action === "beer_permission_updated"
+          ? "members.successBeerPermission"
+          : null;
+
+  return key ? translate(locale, key) : null;
 }
