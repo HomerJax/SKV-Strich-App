@@ -2749,6 +2749,15 @@ export const DE_MESSAGES = {
   "timerApi.sessionLoadFailed": "Trainings-Spieluhr konnte nicht geladen werden.",
   "timerApi.trainingOnly": "Die Spieluhr ist nur für Trainings verfügbar.",
   "timerApi.resetFailed": "Club-Standard konnte nicht wiederhergestellt werden.",
+  "scheduleApi.adminOnly": "Nur Admins dürfen Termine ändern.",
+  "scheduleApi.notFound": "Termin nicht gefunden.",
+  "scheduleApi.invalidDateTime": "Bitte gültiges Datum und Uhrzeit angeben.",
+  "scheduleApi.updatedOne": "Termin aktualisiert.",
+  "scheduleApi.updatedMany": "{count} Termine der Serie aktualisiert.",
+  "scheduleApi.updateFailed": "Termin konnte nicht geändert werden.",
+  "scheduleApi.deletedOne": "Termin gelöscht.",
+  "scheduleApi.deletedMany": "{count} Termine der Serie gelöscht.",
+  "scheduleApi.deleteFailed": "Termin konnte nicht gelöscht werden.",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5521,6 +5530,16 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "timerApi.sessionLoadFailed": "The training game timer could not be loaded.",
   "timerApi.trainingOnly": "The game timer is only available for training sessions.",
   "timerApi.resetFailed": "The club default could not be restored.",
+
+  "scheduleApi.adminOnly": "Only admins can change session dates.",
+  "scheduleApi.notFound": "Session date not found.",
+  "scheduleApi.invalidDateTime": "Please enter a valid date and time.",
+  "scheduleApi.updatedOne": "Session date updated.",
+  "scheduleApi.updatedMany": "{count} dates in the series updated.",
+  "scheduleApi.updateFailed": "The session date could not be changed.",
+  "scheduleApi.deletedOne": "Session date deleted.",
+  "scheduleApi.deletedMany": "{count} dates in the series deleted.",
+  "scheduleApi.deleteFailed": "The session date could not be deleted.",
 
 };
 
