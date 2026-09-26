@@ -53,6 +53,8 @@ async function requireAdminClubContext() {
 }
 
 export async function POST(request: NextRequest) {
+  const { t } = await getServerI18n();
+
   try {
     const access = await requireAdminClubContext();
 
