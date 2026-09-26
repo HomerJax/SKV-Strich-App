@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type NotificationItem = {
   id: number;
@@ -47,6 +48,7 @@ function buildNotificationShareText(notification: NotificationItem) {
 }
 
 export default function InAppNotificationCenter() {
+  const { t } = useI18n();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -144,17 +146,17 @@ export default function InAppNotificationCenter() {
 
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(fullText);
-        setShareMessage("Share-Text wurde kopiert.");
+        setShareMessage(t("notifications.shareCopied"));
         return;
       }
 
-      setShareMessage("Teilen wird auf diesem Gerät nicht unterstützt.");
+      setShareMessage(t("notifications.shareUnsupported"));
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
 
-      setShareMessage("Teilen konnte nicht gestartet werden.");
+      setShareMessage(t("notifications.shareFailed"));
     } finally {
       setShareBusy(false);
     }
@@ -180,7 +182,7 @@ export default function InAppNotificationCenter() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">
-                  Neu bei strikr
+                  {t("notifications.newAtStrikr")}
                 </div>
                 <h2 className="mt-2 text-2xl font-black tracking-tight">
                   {notification.title}
@@ -196,7 +198,7 @@ export default function InAppNotificationCenter() {
                 onClick={() => markSeen(notification.id)}
                 disabled={busyId === notification.id}
                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 text-white/60 transition hover:bg-white/10 hover:text-white disabled:opacity-60"
-                aria-label="Notification schließen"
+                aria-label={t("notifications.close")}
               >
                 ✕
               </button>
@@ -210,7 +212,7 @@ export default function InAppNotificationCenter() {
                 onClick={() => markSeen(notification.id)}
                 className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800"
               >
-                {notification.cta_label ?? "Badges ansehen"}
+                {notification.cta_label ?? t("notifications.viewBadges")}
               </Link>
             ) : null}
             <button
@@ -219,7 +221,7 @@ export default function InAppNotificationCenter() {
               disabled={busyId === notification.id}
               className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
             >
-              Weiter
+              {t("notifications.next")}
             </button>
           </div>
         </div>
@@ -237,13 +239,13 @@ export default function InAppNotificationCenter() {
               onClick={() => markSeen(notification.id)}
               disabled={busyId === notification.id}
               className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/55 transition hover:bg-white/10 hover:text-white disabled:opacity-60"
-              aria-label="Notification schließen"
+              aria-label={t("notifications.close")}
             >
               ✕
             </button>
 
             <div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">
-              Badge freigeschaltet
+              {t("notifications.badgeUnlocked")}
             </div>
 
             {badgeKey ? (
@@ -263,7 +265,7 @@ export default function InAppNotificationCenter() {
 
             {notifications.length > 1 ? (
               <div className="mt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-white/35">
-                Noch {notifications.length - 1} Meldung{notifications.length - 1 === 1 ? "" : "en"}
+                {notifications.length - 1 === 1 ? t("notifications.remainingOne") : t("notifications.remaining", { count: notifications.length - 1 })}
               </div>
             ) : null}
           </div>
@@ -275,7 +277,7 @@ export default function InAppNotificationCenter() {
               disabled={busyId === notification.id}
               className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-60"
             >
-              {notifications.length > 1 ? "Weiter" : "Fertig"}
+              {notifications.length > 1 ? t("notifications.next") : t("notifications.done")}
             </button>
             {notification.cta_href ? (
               <Link
@@ -283,7 +285,7 @@ export default function InAppNotificationCenter() {
                 onClick={() => markSeen(notification.id)}
                 className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
               >
-                Badges ansehen
+                {t("notifications.viewBadges")}
               </Link>
             ) : null}
           </div>
@@ -298,7 +300,7 @@ export default function InAppNotificationCenter() {
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {isWinner ? "Dein Moment" : isMvpNotification ? "Im Verein" : "Neuigkeit"}
+              {isWinner ? t("notifications.yourMoment") : isMvpNotification ? t("notifications.inClub") : t("notifications.news")}
             </div>
             <h2 className="mt-1 text-lg font-bold text-slate-950">
               {notification.title}
@@ -315,7 +317,7 @@ export default function InAppNotificationCenter() {
             onClick={() => markSeen(notification.id)}
             disabled={busyId === notification.id}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-800 disabled:opacity-60"
-            aria-label="Notification schließen"
+            aria-label={t("notifications.close")}
           >
             ✕
           </button>
@@ -326,21 +328,19 @@ export default function InAppNotificationCenter() {
             isWinner ? (
               <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
                 <div className="text-sm font-semibold text-amber-900">
-                  Glückwunsch 🎉
+                  {t("notifications.congrats")}
                 </div>
                 <div className="mt-1 text-sm text-amber-800">
-                  Du wurdest zum MVP gewählt. Schau dir jetzt das Voting an und
-                  teile deinen Moment mit dem Team.
+                  {t("notifications.mvpWinnerText")}
                 </div>
               </div>
             ) : (
               <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4">
                 <div className="text-sm font-semibold text-sky-900">
-                  Voting abgeschlossen
+                  {t("notifications.votingDone")}
                 </div>
                 <div className="mt-1 text-sm text-sky-800">
-                  Das Ergebnis des MVP Votings ist da. Öffne die Session, schau
-                  dir die Bewertung an und teile den Moment weiter.
+                  {t("notifications.mvpResultText")}
                 </div>
               </div>
             )
@@ -371,10 +371,10 @@ export default function InAppNotificationCenter() {
                 className="inline-flex min-h-[52px] flex-1 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
               >
                 {shareBusy
-                  ? "Öffne Teilen…"
+                  ? t("notifications.openingShare")
                   : isWinner
-                    ? "MVP teilen"
-                    : "Ergebnis teilen"}
+                    ? t("notifications.shareMvp")
+                    : t("notifications.shareResult")}
               </button>
             ) : null}
 
