@@ -286,7 +286,8 @@ export function buildLineupShareText(
   session: SessionRow | null,
   teamA: Player[],
   teamB: Player[],
-  useNicknames: boolean = false
+  useNicknames: boolean = false,
+  locale: AppLocale = "de"
 ) {
   const header = session
     ? translate(locale, "sessionUi.lineupDated", { date: formatGermanDate(session.date) })
