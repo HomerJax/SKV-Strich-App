@@ -181,7 +181,7 @@ export default function NextSessionAttendanceCard({
     if (readOnly || busy || status === nextStatus || notNominated) return;
 
     if (nextStatus === "out" && requireAbsenceReason) {
-      const reasonError = getRequiredRsvpReasonError(absenceReason);
+      const reasonError = getRequiredRsvpReasonError(absenceReason, t("rsvp.reasonRequired"));
       if (reasonError) {
         setErrorMessage(reasonError);
         return;
