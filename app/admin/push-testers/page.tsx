@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthContext } from "@/lib/auth/context";
 import { sendPushToUsers } from "@/lib/push/send-push";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type SearchParams = Promise<{
   sent?: string;
@@ -12,6 +14,8 @@ type SearchParams = Promise<{
 type PageProps = {
   searchParams?: SearchParams;
 };
+
+type Translate = (key: MessageKey, params?: Record<string, string | number | null | undefined>) => string;
 
 type AndroidSubscriptionRow = {
   user_id: string;
@@ -32,7 +36,7 @@ async function requirePowerUser() {
   return ctx;
 }
 
-async function getAndroidRecipients() {
+async function getAndroidRecipients(t: Translate) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("push_subscriptions")
@@ -42,7 +46,7 @@ async function getAndroidRecipients() {
 
   if (error) {
     throw new Error(
-      `Android Push-Empfänger konnten nicht geladen werden: ${error.message}`,
+      t("pushTesters.loadFailed", { error: error.message }),
     );
   }
 
@@ -61,6 +65,7 @@ async function sendAndroidTesterPush(formData: FormData) {
   "use server";
 
   await requirePowerUser();
+  const { t } = await getServerI18n();
 
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
@@ -73,7 +78,7 @@ async function sendAndroidTesterPush(formData: FormData) {
     redirect("/admin/push-testers?error=text-too-long");
   }
 
-  const recipients = await getAndroidRecipients();
+  const recipients = await getAndroidRecipients(t);
 
   if (recipients.userIds.length === 0) {
     redirect("/admin/push-testers?error=no-recipients");
@@ -97,16 +102,16 @@ async function sendAndroidTesterPush(formData: FormData) {
   redirect(`/admin/push-testers?sent=${result.sent}&failed=${result.failed}`);
 }
 
-function getErrorMessage(error: string | undefined) {
+function getErrorMessage(error: string | undefined, t: Translate) {
   switch (error) {
     case "missing-text":
-      return "Titel und Nachricht müssen ausgefüllt sein.";
+      return t("pushTesters.missingText");
     case "text-too-long":
-      return "Titel oder Nachricht sind zu lang.";
+      return t("pushTesters.textTooLong");
     case "no-recipients":
-      return "Noch kein Android-Gerät hat sich für Push registriert.";
+      return t("pushTesters.noRecipients");
     case "send-failed":
-      return "Die Nachricht konnte nicht gesendet werden.";
+      return t("pushTesters.sendFailed");
     default:
       return null;
   }
@@ -114,10 +119,11 @@ function getErrorMessage(error: string | undefined) {
 
 export default async function PushTestersPage({ searchParams }: PageProps) {
   await requirePowerUser();
+  const { t } = await getServerI18n();
 
   const params = await searchParams;
-  const recipients = await getAndroidRecipients();
-  const errorMessage = getErrorMessage(params?.error);
+  const recipients = await getAndroidRecipients(t);
+  const errorMessage = getErrorMessage(params?.error, t);
   const sent = Number(params?.sent ?? NaN);
   const failed = Number(params?.failed ?? NaN);
   const hasResult = Number.isFinite(sent) && Number.isFinite(failed);
@@ -129,12 +135,10 @@ export default async function PushTestersPage({ searchParams }: PageProps) {
           strikr power user
         </p>
         <h1 className="mt-2 text-2xl font-black tracking-tight text-neutral-950">
-          Android Test-Push
+          {t("pushTesters.title")}
         </h1>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Sendet eine Push-Nachricht ausschließlich an aktuell registrierte
-          Android-Geräte. Tester müssen Release 6 installiert und strikr danach
-          mindestens einmal geöffnet haben.
+          {t("pushTesters.description")}
         </p>
       </div>
 
@@ -144,7 +148,7 @@ export default async function PushTestersPage({ searchParams }: PageProps) {
             {recipients.userCount}
           </div>
           <div className="mt-1 text-xs font-semibold text-neutral-500">
-            registrierte Nutzer
+            {t("pushTesters.registeredUsers")}
           </div>
         </div>
         <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
@@ -152,14 +156,14 @@ export default async function PushTestersPage({ searchParams }: PageProps) {
             {recipients.deviceCount}
           </div>
           <div className="mt-1 text-xs font-semibold text-neutral-500">
-            Android-Geräte
+            {t("pushTesters.devices")}
           </div>
         </div>
       </div>
 
       {hasResult ? (
         <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
-          Gesendet: {sent} · Fehlgeschlagen: {failed}
+          {t("pushTesters.result", { sent, failed })}
         </div>
       ) : null}
 
@@ -176,13 +180,13 @@ export default async function PushTestersPage({ searchParams }: PageProps) {
               htmlFor="title"
               className="text-sm font-semibold text-neutral-900"
             >
-              Titel
+              {t("pushTesters.titleLabel")}
             </label>
             <input
               id="title"
               name="title"
               maxLength={80}
-              defaultValue="strikr Android Test"
+              defaultValue={t("pushTesters.defaultTitle")}
               className="mt-2 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-900"
             />
           </div>
@@ -192,14 +196,14 @@ export default async function PushTestersPage({ searchParams }: PageProps) {
               htmlFor="body"
               className="text-sm font-semibold text-neutral-900"
             >
-              Nachricht
+              {t("pushTesters.messageLabel")}
             </label>
             <textarea
               id="body"
               name="body"
               maxLength={240}
               rows={5}
-              defaultValue="Push ist jetzt aktiv 🎉 Bitte kurz testen, ob die Nachricht bei euch angekommen ist."
+              defaultValue={t("pushTesters.defaultBody")}
               className="mt-2 w-full resize-none rounded-2xl border border-neutral-200 px-4 py-3 text-sm leading-6 outline-none focus:border-neutral-900"
             />
           </div>
@@ -209,15 +213,13 @@ export default async function PushTestersPage({ searchParams }: PageProps) {
             disabled={recipients.deviceCount === 0}
             className="inline-flex w-full items-center justify-center rounded-2xl bg-neutral-950 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
-            An Android-Tester senden
+            {t("pushTesters.send")}
           </button>
         </form>
       </div>
 
       <div className="rounded-2xl bg-neutral-950 p-4 text-sm leading-6 text-neutral-300">
-        Die 14 Google-Play-Tester sind nicht automatisch Push-Empfänger. Hier
-        erscheinen nur Geräte, die den neuen Build installiert, geöffnet und
-        Benachrichtigungen erlaubt haben.
+        {t("pushTesters.note")}
       </div>
     </main>
   );
