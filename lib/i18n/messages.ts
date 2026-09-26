@@ -2526,6 +2526,18 @@ export const DE_MESSAGES = {
   "power.clubsOverviewDesc": "Schnellzugriff auf Clubdetails, Mitglieder, Aktivität und manuelle Plan-Freischaltung.",
   "power.allClubs": "Alle Clubs & Billing →",
   "power.noClubs": "Noch keine Clubs vorhanden.",
+  "power.badges.heroDescription": "Visuelle Abnahme nach denselben sechs Bereichen wie in der Hall of Fame.",
+  "power.badges.sections": "Bereiche",
+  "power.badges.difficulty": "Schwierigkeit = Eskalation",
+  "power.badges.difficultyDesc": "Je exklusiver das Achievement, desto stärker Material, Rahmen, Aura und Zusatzmotive.",
+  "power.badges.motif": "Motiv = Kategorie",
+  "power.badges.motifDesc": "Einsätze, Siege, Disziplin, Serien, Pech und Specials müssen auf den ersten Blick unterscheidbar sein.",
+  "power.badges.center": "Zentrum bleibt strikr",
+  "power.badges.centerDesc": "Das quadratische 3D-strikr-Badge bleibt immer das Zentrum.",
+  "power.badges.secretDesc": "Secret-Badges sind intern vollständig sichtbar, beim Nutzer vor Freischaltung verborgen.",
+  "power.badges.career": "Karriere",
+  "power.badges.seasonSeries": "Saison / Serie",
+  "cashSetup.beerLockedTitle": "{name}+ ist für diesen Club noch nicht freigeschaltet.",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5063,6 +5075,19 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "power.clubsOverviewDesc": "Quick access to club details, members, activity and manual plan activation.",
   "power.allClubs": "All Clubs & Billing →",
   "power.noClubs": "No clubs yet.",
+
+  "power.badges.heroDescription": "Visual review using the same six sections as the Hall of Fame.",
+  "power.badges.sections": "Sections",
+  "power.badges.difficulty": "Difficulty = escalation",
+  "power.badges.difficultyDesc": "The more exclusive the achievement, the stronger its material, frame, aura and additional motifs.",
+  "power.badges.motif": "Motif = category",
+  "power.badges.motifDesc": "Appearances, wins, discipline, streaks, bad luck and specials should be distinguishable at a glance.",
+  "power.badges.center": "strikr stays at the center",
+  "power.badges.centerDesc": "The square 3D strikr badge always remains the centerpiece.",
+  "power.badges.secretDesc": "Secret badges are fully visible internally but hidden from users until unlocked.",
+  "power.badges.career": "Career",
+  "power.badges.seasonSeries": "Season / streak",
+  "cashSetup.beerLockedTitle": "{name}+ is not enabled for this club yet.",
 
 };
 
