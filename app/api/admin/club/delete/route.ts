@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const confirmation = String(formData.get("confirmation") ?? "").trim();
     const acknowledgement = formData.get("acknowledgement") === "1";
 
-    if (confirmation !== "CLUB LÖSCHEN" || !acknowledgement) {
+    if (!["CLUB LÖSCHEN", "DELETE CLUB"].includes(confirmation.toUpperCase()) || !acknowledgement) {
       return redirectToDeleteSource(request, redirectTo, "confirmation");
     }
 
