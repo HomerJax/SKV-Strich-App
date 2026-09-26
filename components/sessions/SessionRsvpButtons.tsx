@@ -67,7 +67,7 @@ export default function SessionRsvpButtons({
     const target: PresenceStatus = status === nextStatus ? "open" : nextStatus;
 
     if (target === "out" && requireAbsenceReason) {
-      const reasonError = getRequiredRsvpReasonError(absenceReason);
+      const reasonError = getRequiredRsvpReasonError(absenceReason, t("rsvp.reasonRequired"));
       if (reasonError) {
         setError(reasonError);
         return;
