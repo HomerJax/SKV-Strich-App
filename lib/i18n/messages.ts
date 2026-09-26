@@ -3048,6 +3048,9 @@ export const DE_MESSAGES = {
 
   "sessionUi.positionUnknown": "Unbekannt",
 
+  "standingsApi.loadFailed": "Fehler beim Laden der Tabelle.",
+  "statsApi.playerFallback": "Spieler {id}",
+
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -6133,6 +6136,10 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
 
 
   "sessionUi.positionUnknown": "Unknown",
+
+
+  "standingsApi.loadFailed": "Could not load the standings.",
+  "statsApi.playerFallback": "Player {id}",
 
 
 };
