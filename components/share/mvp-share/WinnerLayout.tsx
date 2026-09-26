@@ -4,6 +4,9 @@ import type { MvpShareImageProps } from "./mvp-share.types";
 import PremiumBadge from "./PremiumBadge";
 import ShareTopBar from "@/components/share/ShareTopBar";
 import { buildPalette } from "@/components/share/result-share/result-share.palette";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type WinnerLayoutProps = Omit<MvpShareImageProps, "mode" | "leaderboard">;
 
@@ -16,7 +19,7 @@ type TierMeta = {
   sub: string;
 };
 
-function getTierMeta(label: string): TierMeta {
+function getTierMeta(label: string, locale: AppLocale): TierMeta {
   const lower = label.toLowerCase();
 
   if (lower.includes("goat")) {
@@ -26,7 +29,7 @@ function getTierMeta(label: string): TierMeta {
       top: "linear-gradient(135deg,#312e81 0%,#db2777 42%,#facc15 72%,#22d3ee 100%)",
       glow: "rgba(217,70,239,0.70)",
       text: "#f0abfc",
-      sub: "Legendenstatus.",
+      sub: translate(locale, "mvpShare.legendStatus"),
     };
   }
 
@@ -37,18 +40,18 @@ function getTierMeta(label: string): TierMeta {
       top: "linear-gradient(135deg,#78350f 0%,#f59e0b 46%,#fde68a 100%)",
       glow: "rgba(245,158,11,0.56)",
       text: "#fde68a",
-      sub: "Statement gesetzt.",
+      sub: translate(locale, "mvpShare.goldSub"),
     };
   }
 
-  if (lower.includes("silber")) {
+  if (lower.includes("silber") || lower.includes("silver")) {
     return {
-      label: "Silber",
+      label: translate(locale, "badge.silver"),
       key: "silber",
       top: "linear-gradient(135deg,#0f172a 0%,#94a3b8 52%,#f8fafc 100%)",
       glow: "rgba(203,213,225,0.42)",
       text: "#f1f5f9",
-      sub: "Jetzt wird’s ernst.",
+      sub: translate(locale, "mvpShare.silverSub"),
     };
   }
 
@@ -59,17 +62,17 @@ function getTierMeta(label: string): TierMeta {
       top: "linear-gradient(135deg,#7c2d12 0%,#ea580c 46%,#fed7aa 100%)",
       glow: "rgba(249,115,22,0.42)",
       text: "#fed7aa",
-      sub: "Kein Zufall mehr.",
+      sub: translate(locale, "mvpShare.bronzeSub"),
     };
   }
 
   return {
-    label: "Blech",
+    label: translate(locale, "badge.copper"),
     key: "blech",
     top: "linear-gradient(135deg,#18181b 0%,#3f3f46 42%,#09090b 100%)",
     glow: "rgba(82,82,91,0.42)",
     text: "#a1a1aa",
-    sub: "Ab jetzt zählt’s.",
+    sub: translate(locale, "mvpShare.copperSub"),
   };
 }
 
@@ -82,8 +85,9 @@ export default function WinnerLayout({
   winner,
   sharePerspective = "self",
 }: WinnerLayoutProps) {
+  const { locale, t } = useI18n();
   const palette = buildPalette(null, "floodlight");
-  const tier = getTierMeta(winner.badgeLabel);
+  const tier = getTierMeta(winner.badgeLabel, locale);
 
   const nextTarget =
     tier.key === "blech"
@@ -98,13 +102,13 @@ export default function WinnerLayout({
 
   const nextLabel =
     tier.key === "blech"
-      ? "Bronze"
+      ? t("badge.bronze")
       : tier.key === "bronze"
-        ? "Silber"
+        ? t("badge.silver")
         : tier.key === "silber"
-          ? "Gold"
+          ? t("badge.gold")
           : tier.key === "gold"
-            ? "GOAT"
+            ? t("badge.goat")
             : null;
 
   const progressBase =
@@ -131,8 +135,12 @@ export default function WinnerLayout({
 
   const progressText =
     nextTarget === null
-      ? "Höchstes Badge erreicht"
-      : `${winner.current} / ${nextTarget} MVPs bis ${nextLabel}`;
+      ? t("mvpShare.highestBadge")
+      : t("mvpShare.progressTo", {
+          current: winner.current,
+          target: nextTarget,
+          badge: nextLabel ?? "",
+        });
 
   return (
     <div
@@ -230,7 +238,7 @@ export default function WinnerLayout({
               textTransform: "uppercase",
             }}
           >
-            {sharePerspective === "self" ? "Ich wurde" : winner.name}
+            {sharePerspective === "self" ? t("mvpShare.iWas") : winner.name}
           </div>
 
           <div
@@ -359,7 +367,7 @@ export default function WinnerLayout({
                   color: "rgba(255,255,255,0.52)",
                 }}
               >
-                Badge-Fortschritt
+                {t("mvpShare.badgeProgress")}
               </div>
 
               <div
