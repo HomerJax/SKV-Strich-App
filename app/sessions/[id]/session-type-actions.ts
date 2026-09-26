@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { isFeatureEnabledForClub } from "@/lib/feature-flags";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export type SessionType = "training" | "event";
 
@@ -13,33 +14,34 @@ function normalizeSessionType(value: FormDataEntryValue | null): SessionType | n
 }
 
 export async function updateSessionTypeAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { clubId, membership, isPowerUser } = await requireClub();
 
   if (!isPowerUser && membership.role !== "admin") {
-    throw new Error("Nur Admins dürfen den Session-Typ ändern.");
+    throw new Error(t("sessionEdit.adminTypeOnly"));
   }
 
   const sessionIdRaw = String(formData.get("sessionId") ?? "").trim();
   const nextType = normalizeSessionType(formData.get("type"));
 
   if (!sessionIdRaw) {
-    throw new Error("Session-ID fehlt.");
+    throw new Error(t("sessionEdit.idMissing"));
   }
 
   if (!nextType) {
-    throw new Error("Ungültiger Session-Typ.");
+    throw new Error(t("sessionEdit.invalidType"));
   }
 
   const sessionId = Number(sessionIdRaw);
 
   if (!Number.isFinite(sessionId)) {
-    throw new Error("Ungültige Session-ID.");
+    throw new Error(t("sessionAction.invalidId"));
   }
 
   const sessionTypesEnabled = await isFeatureEnabledForClub(clubId, "session_types");
 
   if (!sessionTypesEnabled) {
-    throw new Error("Session Types sind für diesen Club noch nicht aktiviert.");
+    throw new Error(t("sessionEdit.typesDisabled"));
   }
 
   const supabase = await createClient();
@@ -52,11 +54,11 @@ export async function updateSessionTypeAction(formData: FormData) {
     .maybeSingle<{ id: number; club_id: string; type: SessionType | null }>();
 
   if (sessionLoadError) {
-    throw new Error(`Session konnte nicht geladen werden: ${sessionLoadError.message}`);
+    throw new Error(t("sessionEdit.loadFailed", { error: sessionLoadError.message }));
   }
 
   if (!sessionRow) {
-    throw new Error("Session nicht gefunden.");
+    throw new Error(t("sessionEdit.notFound"));
   }
 
   const currentType: SessionType = sessionRow.type === "event" ? "event" : "training";
@@ -77,7 +79,7 @@ export async function updateSessionTypeAction(formData: FormData) {
     .eq("club_id", clubId);
 
   if (updateError) {
-    throw new Error(`Session-Typ konnte nicht gespeichert werden: ${updateError.message}`);
+    throw new Error(t("sessionEdit.typeSaveFailed", { error: updateError.message }));
   }
 
   revalidatePath(`/sessions/${sessionId}`);
