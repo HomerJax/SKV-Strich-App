@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 const PENDING_TIMEOUT_MS = 15000;
 const FEEDBACK_VISIBLE_MS = 1800;
@@ -19,29 +21,44 @@ function clearPendingState(form: HTMLFormElement) {
   });
 }
 
-function getPendingLabel(submitter: HTMLElement | null) {
+function getPendingLabel(
+  submitter: HTMLElement | null,
+  t: (key: MessageKey) => string,
+) {
   const text = submitter?.textContent?.trim().toLowerCase() ?? "";
 
-  if (text.includes("anlegen") || text.includes("erstellen")) {
-    return "Wird angelegt…";
+  if (
+    text.includes("anlegen") ||
+    text.includes("erstellen") ||
+    text.includes("create") ||
+    text.includes("add")
+  ) {
+    return t("actionFeedback.creating");
   }
 
-  if (text.includes("speichern")) {
-    return "Wird gespeichert…";
+  if (text.includes("speichern") || text.includes("save")) {
+    return t("actionFeedback.saving");
   }
 
-  if (text.includes("löschen")) {
-    return "Wird gelöscht…";
+  if (text.includes("löschen") || text.includes("delete") || text.includes("remove")) {
+    return t("actionFeedback.deleting");
   }
 
-  if (text.includes("senden") || text.includes("einladen")) {
-    return "Wird gesendet…";
+  if (
+    text.includes("senden") ||
+    text.includes("einladen") ||
+    text.includes("send") ||
+    text.includes("invite") ||
+    text.includes("share")
+  ) {
+    return t("actionFeedback.sending");
   }
 
-  return "Wird ausgeführt…";
+  return t("actionFeedback.running");
 }
 
 export default function GlobalActionFeedback() {
+  const { t } = useI18n();
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,7 +97,7 @@ export default function GlobalActionFeedback() {
         submitter.setAttribute("aria-busy", "true");
       }
 
-      showFeedback(getPendingLabel(submitter));
+      showFeedback(getPendingLabel(submitter, t));
 
       const previousTimer = timers.get(form);
       if (previousTimer) {
@@ -110,7 +127,7 @@ export default function GlobalActionFeedback() {
       window.removeEventListener("pageshow", handlePageShow);
       if (feedbackTimer) window.clearTimeout(feedbackTimer);
     };
-  }, []);
+  }, [t]);
 
   if (!message) return null;
 
