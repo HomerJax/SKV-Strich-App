@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type RequestBody = {
   first_name?: string;
@@ -42,12 +43,13 @@ function buildError(error: string, detail?: string, status = 500) {
 }
 
 export async function POST(request: NextRequest) {
+  const { t } = await getServerI18n();
   try {
     const token = getBearerToken(request);
 
     if (!token) {
       return buildError(
-        "Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein.",
+        t("onboardingApi.sessionExpired"),
         "Kein Bearer-Token vorhanden.",
         401
       );
@@ -62,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     if (!firstName || !lastName) {
       return buildError(
-        "Vorname und Nachname sind erforderlich.",
+        t("onboardingApi.nameRequired"),
         undefined,
         400
       );
@@ -91,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (userError || !user) {
       return buildError(
-        "Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein.",
+        t("onboardingApi.sessionExpired"),
         userError?.message ?? "User konnte nicht aus dem Token gelesen werden.",
         401
       );
@@ -101,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     if (!activeClubId) {
       return buildError(
-        "Kein aktives Team gefunden.",
+        t("onboardingApi.noActiveTeam"),
         "active_club_id Cookie fehlt.",
         400
       );
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     if (membershipError || !membership) {
       return buildError(
-        "Dein aktives Team konnte nicht geprüft werden.",
+        t("onboardingApi.teamCheckFailed"),
         membershipError?.message ?? "Keine Membership für aktiven Club gefunden.",
         403
       );
@@ -147,7 +149,7 @@ export async function POST(request: NextRequest) {
 
     if (existingByUserError) {
       return buildError(
-        "Spielerprofil konnte nicht geladen werden.",
+        t("onboardingApi.playerLoadFailed"),
         existingByUserError.message
       );
     }
@@ -169,7 +171,7 @@ export async function POST(request: NextRequest) {
 
       if (updateError) {
         return buildError(
-          "Profil konnte nicht aktualisiert werden.",
+          t("onboardingApi.profileUpdateFailed"),
           updateError.message
         );
       }
@@ -192,7 +194,7 @@ export async function POST(request: NextRequest) {
 
     if (existingByMailError) {
       return buildError(
-        "Spielerprofil konnte nicht geladen werden.",
+        t("onboardingApi.playerLoadFailed"),
         existingByMailError.message
       );
     }
@@ -214,7 +216,7 @@ export async function POST(request: NextRequest) {
 
       if (updateByMailError) {
         return buildError(
-          "Profil konnte nicht verknüpft werden.",
+          t("onboardingApi.profileLinkFailed"),
           updateByMailError.message
         );
       }
@@ -239,7 +241,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       return buildError(
-        "Spielerprofil konnte nicht erstellt werden.",
+        t("onboardingApi.profileCreateFailed"),
         insertError.message
       );
     }
@@ -250,7 +252,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     return buildError(
-      "Onboarding konnte nicht gespeichert werden.",
+      t("onboardingApi.saveFailed"),
       error instanceof Error ? error.message : "Unbekannter Serverfehler."
     );
   }
