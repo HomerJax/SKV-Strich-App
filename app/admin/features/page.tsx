@@ -4,16 +4,11 @@ import { CheckCircle2 } from "lucide-react";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { canManageClub } from "@/lib/auth/access";
-
-const standardFeatures = [
-  "Persönliche Stats & Form",
-  "Team Impact",
-  "Spielfeldansicht",
-  "Zu-/Absage auf dem Homescreen",
-  "Training, Spiel & Orga-Termin als Session-Typen",
-];
+import { getServerI18n } from "@/lib/i18n/server";
 
 export default async function AdminFeaturesPage() {
+  const { t } = await getServerI18n();
+  const standardFeatures = [t("adminFeatures.stats"), t("adminFeatures.teamImpact"), t("adminFeatures.pitch"), t("adminFeatures.rsvp"), t("adminFeatures.sessionTypes")];
   const { membership, isPowerUser } = await requireClub();
 
   const hasAdminAccess = canManageClub({
@@ -32,7 +27,7 @@ export default async function AdminFeaturesPage() {
           href="/admin"
           className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
         >
-          ← Zurück zum Adminbereich
+          ← {t("adminFeatures.back")}
         </Link>
       </div>
 
@@ -44,8 +39,7 @@ export default async function AdminFeaturesPage() {
           Features
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Die wichtigsten strikr-Funktionen sind inzwischen Produktstandard und
-          müssen nicht mehr pro Club aktiviert werden.
+          {t("adminFeatures.description")}
         </p>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -61,10 +55,7 @@ export default async function AdminFeaturesPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
-          Noch nicht allgemein fertige Module wie <strong>Strafen</strong> sowie
-          der aktuelle Rollout der <strong>Hall of Fame</strong> bleiben intern
-          steuerbar. Das alte MVP-pro-Training-Voting ist deaktiviert und wird
-          später als Halbserien-/Saison-Voting neu gedacht.
+          {t("adminFeatures.internalHint")}
         </div>
       </section>
     </main>
