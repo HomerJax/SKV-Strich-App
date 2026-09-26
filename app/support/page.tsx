@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { getServerI18n } from "@/lib/i18n/server";
 
-export default function SupportPage() {
-  const supportMail =
-    "mailto:mb1607@gmx.de?subject=strikr%20Supportanfrage";
+export default async function SupportPage() {
+  const { t } = await getServerI18n();
+  const supportMail = `mailto:mb1607@gmx.de?subject=${encodeURIComponent(t("support.mailSubject"))}`;
 
   return (
     <main className="min-h-screen bg-neutral-100 text-slate-950">
@@ -11,72 +12,65 @@ export default function SupportPage() {
           href="/"
           className="inline-flex items-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
         >
-          ← Zurück
+          {t("support.back")}
         </Link>
 
         <div className="mt-5 rounded-[28px] border border-black/10 bg-white p-6 shadow-sm sm:p-8">
           <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-            Hilfe & Kontakt
+            {t("support.eyebrow")}
           </div>
 
           <h1 className="mt-3 text-3xl font-black tracking-tight">
-            strikr Support
+            {t("support.title")}
           </h1>
 
           <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">
-            Du hast ein Problem mit deinem Konto, einem Club, einer Session oder
-            einer Funktion in strikr? Schreib eine E-Mail mit einer kurzen
-            Beschreibung. Screenshots helfen bei technischen Problemen.
+            {t("support.intro")}
           </p>
 
           <a
             href={supportMail}
             className="mt-6 inline-flex items-center justify-center rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
           >
-            Support per E-Mail kontaktieren
+            {t("support.emailCta")}
           </a>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <h2 className="font-extrabold text-slate-950">
-                Technische Probleme
+                {t("support.techTitle")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Bitte nenne Gerät, Betriebssystem, betroffene Seite und die
-                Schritte, nach denen der Fehler auftritt.
+                {t("support.techText")}
               </p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <h2 className="font-extrabold text-slate-950">
-                Konto & Datenschutz
+                {t("support.privacyTitle")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Für Auskunft, Berichtigung oder Löschfragen kannst du dieselbe
-                Support-Adresse verwenden.
+                {t("support.privacyText")}
               </p>
             </div>
           </div>
 
           <div className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-7 text-blue-950">
-            <h2 className="font-extrabold">Konto dauerhaft löschen</h2>
+            <h2 className="font-extrabold">{t("support.deleteTitle")}</h2>
             <p className="mt-2">
-              Angemeldete Nutzer können ihr Konto direkt unter
-              <span className="font-semibold"> Profil → Konto dauerhaft löschen</span>
-              {" "}entfernen. Eine öffentliche Schritt-für-Schritt-Anleitung
-              findest du auf der Löschseite.
+              {t("support.deleteText")}
             </p>
             <Link
               href="/account-loeschen"
               className="mt-3 inline-flex font-bold underline underline-offset-4"
             >
-              Anleitung zur Kontolöschung
+              {t("support.deleteGuide")}
             </Link>
           </div>
 
           <div className="mt-8 border-t border-slate-200 pt-5 text-sm text-slate-600">
             <p>
-              Support-Kontakt: Marcus Bofinger ·{" "}
+              {t("support.contact", { name: "Marcus Bofinger" })}{" "}
               <a
                 href="mailto:mb1607@gmx.de"
                 className="font-semibold text-slate-950 underline underline-offset-4"
@@ -90,13 +84,13 @@ export default function SupportPage() {
                 href="/datenschutz"
                 className="font-semibold text-slate-950 underline underline-offset-4"
               >
-                Datenschutz
+                {t("support.privacy")}
               </Link>
               <Link
                 href="/impressum"
                 className="font-semibold text-slate-950 underline underline-offset-4"
               >
-                Impressum
+                {t("support.imprint")}
               </Link>
             </div>
           </div>
