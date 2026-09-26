@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type PlayerSettingsCardProps = {
   useStrength: boolean;
@@ -69,7 +70,7 @@ function ReadinessRow({
   );
 }
 
-export default function PlayerSettingsCard({
+export default async function PlayerSettingsCard({
   useStrength,
   strengthDefault,
   useCategories,
@@ -83,6 +84,7 @@ export default function PlayerSettingsCard({
   balanceGroupCount = 0,
   className = "",
 }: PlayerSettingsCardProps) {
+  const { t } = await getServerI18n();
   const normalCategories = categoryLabels.filter(
     (label) => label !== strongCategoryLabel
   );
@@ -94,16 +96,13 @@ export default function PlayerSettingsCard({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
           <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600">
-            Teamgenerator zuerst
+            {t("playerSettings.eyebrow")}
           </div>
           <h2 className="mt-1 text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
-            Sind die Grundlagen für faire Teams sauber?
+            {t("playerSettings.title")}
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Der Generator nutzt nur anwesende Spieler. Teamgröße und Torhüter
-            werden zuerst abgesichert; danach optimiert strikr Gesamtstärke,
-            Balance-Gruppen sowie Kategorie- und Positionsmix. Die Teamgrößen
-            unterscheiden sich dabei höchstens um einen Spieler.
+            {t("playerSettings.description")}
           </p>
         </div>
 
@@ -112,39 +111,39 @@ export default function PlayerSettingsCard({
             href="/admin/settings"
             className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            Generator-Regeln
+            {t("playerSettings.rules")}
           </Link>
           <Link
             href="/admin/settings"
             className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Kategorien einstellen
+            {t("playerSettings.categoriesSetup")}
           </Link>
         </div>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <StatusCard
-          label="Generator-Spieler"
+          label={t("playerSettings.generatorPlayers")}
           value={String(activePlayerCount)}
-          hint="Aktiv und als Spieler geführt; Staff landet nicht im Generator."
+          hint={t("playerSettings.generatorPlayersHint")}
         />
         <StatusCard
-          label="Kategorien"
-          value={useCategories ? `${categoryCount} aktiv` : "Aus"}
+          label={t("playerSettings.categories")}
+          value={useCategories ? t("playerSettings.activeCount", { count: categoryCount }) : t("playerSettings.off")}
           hint={
             useCategories
-              ? "Eine Kategorie kann als stärkeres Grundniveau markiert werden; alle anderen bleiben auf normalem Grundniveau."
-              : "Der Generator arbeitet ohne Kategoriegewichtung."
+              ? t("playerSettings.categoriesActiveHint")
+              : t("playerSettings.categoriesOffHint")
           }
         />
         <StatusCard
-          label="Stärke"
-          value={useStrength ? "Aktiv" : "Aus"}
+          label={t("playerSettings.strength")}
+          value={useStrength ? t("playerSettings.active") : t("playerSettings.off")}
           hint={
             useStrength
-              ? `Spieler ohne Einzelwert nutzen den Standard ${strengthDefault ?? 3}.`
-              : "Die individuelle Spielstärke fließt nicht ein."
+              ? t("playerSettings.strengthActiveHint", { value: strengthDefault ?? 3 })
+              : t("playerSettings.strengthOffHint")
           }
         />
       </div>
@@ -152,22 +151,20 @@ export default function PlayerSettingsCard({
       {useCategories ? (
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
           <div className="text-sm font-bold text-blue-950">
-            Kategoriegewichtung
+            {t("playerSettings.categoryWeight")}
           </div>
           <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
             <div className="rounded-xl bg-white/80 px-3 py-2 text-blue-950 ring-1 ring-blue-100">
-              <span className="font-bold">Stärkere Kategorie:</span>{" "}
-              {strongCategoryLabel ?? "noch nicht festgelegt"}
+              <span className="font-bold">{t("playerSettings.strongCategory")}</span>{" "}
+              {strongCategoryLabel ?? t("playerSettings.notSet")}
             </div>
             <div className="rounded-xl bg-white/80 px-3 py-2 text-blue-950 ring-1 ring-blue-100">
-              <span className="font-bold">Normales Grundniveau:</span>{" "}
-              {normalCategories.join(", ") || "keine"}
+              <span className="font-bold">{t("playerSettings.normalLevel")}</span>{" "}
+              {normalCategories.join(", ") || t("playerSettings.none")}
             </div>
           </div>
           <p className="mt-2 text-xs leading-5 text-blue-900">
-            Die Markierung entscheidet – nicht die Reihenfolge. Die stärkere
-            Kategorie erhält einen festen Grundbonus; die individuelle Stärke
-            1–5 kommt zusätzlich dazu.
+            {t("playerSettings.categoryWeightHint")}
           </p>
         </div>
       ) : null}
@@ -175,34 +172,34 @@ export default function PlayerSettingsCard({
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {useCategories ? (
           <ReadinessRow
-            label="Kategorie gepflegt"
+            label={t("playerSettings.categoryReady")}
             count={missingCategoryCount}
-            okText="Alle aktiven Generator-Spieler sind zugeordnet."
-            warningText={`${missingCategoryCount} aktive Spieler haben noch keine Kategorie.`}
+            okText={t("playerSettings.categoryReadyOk")}
+            warningText={t("playerSettings.categoryReadyWarn", { count: missingCategoryCount })}
           />
         ) : null}
 
         <ReadinessRow
-          label="Position gepflegt"
+          label={t("playerSettings.positionReady")}
           count={missingPositionCount}
-          okText="Alle aktiven Generator-Spieler haben eine Position."
-          warningText={`${missingPositionCount} aktive Spieler stehen noch auf „Offen“.`}
+          okText={t("playerSettings.positionReadyOk")}
+          warningText={t("playerSettings.positionReadyWarn", { count: missingPositionCount })}
         />
 
         {useStrength ? (
           <ReadinessRow
-            label="Individuelle Stärke"
+            label={t("playerSettings.strengthReady")}
             count={defaultStrengthCount}
-            okText="Alle aktiven Generator-Spieler haben einen Einzelwert."
-            warningText={`${defaultStrengthCount} Spieler nutzen aktuell den Standardwert ${strengthDefault ?? 3}.`}
+            okText={t("playerSettings.strengthReadyOk")}
+            warningText={t("playerSettings.strengthReadyWarn", { count: defaultStrengthCount, value: strengthDefault ?? 3 })}
           />
         ) : null}
 
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2.5 text-sm text-violet-950">
           <div>
-            <div className="font-semibold">Balance-Gruppen</div>
+            <div className="font-semibold">{t("playerSettings.balanceGroups")}</div>
             <div className="mt-0.5 text-xs opacity-80">
-              Weiche Zusatzregel: gleiche Sonderprofile möglichst auf beide Teams verteilen.
+              {t("playerSettings.balanceGroupsHint")}
             </div>
           </div>
           <div className="shrink-0 text-base font-extrabold">{balanceGroupCount}</div>
@@ -213,7 +210,7 @@ export default function PlayerSettingsCard({
         <summary className="cursor-pointer list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm font-semibold text-slate-900">
-              So arbeitet der Generator
+              {t("playerSettings.how")}
             </div>
             <div className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200 transition group-open:rotate-180">
               ⌄
@@ -223,12 +220,12 @@ export default function PlayerSettingsCard({
 
         <div className="border-t border-slate-200 px-4 py-4 text-sm leading-6 text-slate-600">
           <ol className="space-y-2">
-            <li><strong className="text-slate-900">1.</strong> Nur anwesende Spieler mit Rolle „Spieler“ kommen in die Auswahl.</li>
-            <li><strong className="text-slate-900">2.</strong> Bei ungerader Zahl entsteht automatisch z. B. 5 gegen 4 – nie ein größerer Unterschied.</li>
-            <li><strong className="text-slate-900">3.</strong> Torhüter werden möglichst gleich verteilt und haben vor dem weiteren Feinschliff hohe Priorität.</li>
-            <li><strong className="text-slate-900">4.</strong> Danach gleicht strikr vor allem die Gesamtstärke aus Kategorie und individueller Stärke aus.</li>
-            <li><strong className="text-slate-900">5.</strong> Balance-Gruppen sowie Kategorie-/Positionsmix und Positionen dienen als zusätzliche, weichere Regeln.</li>
-            <li><strong className="text-slate-900">6.</strong> Je nach Teilnehmerzahl werden mehrere tausend vollständige Aufteilungen geprüft. Anschließend testet strikr direkte Spieler-Tausche und übernimmt sie nur, wenn die Aufteilung dadurch besser wird.</li>
+            <li><strong className="text-slate-900">1.</strong>{" "}{t("playerSettings.step1")}</li>
+            <li><strong className="text-slate-900">2.</strong>{" "}{t("playerSettings.step2")}</li>
+            <li><strong className="text-slate-900">3.</strong>{" "}{t("playerSettings.step3")}</li>
+            <li><strong className="text-slate-900">4.</strong>{" "}{t("playerSettings.step4")}</li>
+            <li><strong className="text-slate-900">5.</strong>{" "}{t("playerSettings.step5")}</li>
+            <li><strong className="text-slate-900">6.</strong>{" "}{t("playerSettings.step6")}</li>
           </ol>
         </div>
       </details>
