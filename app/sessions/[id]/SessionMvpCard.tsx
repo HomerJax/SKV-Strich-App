@@ -246,7 +246,7 @@ function MergedWinnerCard({
               {winner.name}
             </div>
             <div className="mt-0.5 text-sm text-slate-500">
-              {t("mvpVoting.votesTotal", { count: winner.votes }).replace(" gesamt", "")}
+              {winner.votes === 1 ? t("mvpVoting.oneVote") : t("mvpVoting.votes", { count: winner.votes })}
             </div>
           </div>
         </div>
@@ -312,7 +312,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       if (!response.ok) {
         throw new Error(
-          payload?.error || "MVP-Daten konnten nicht geladen werden.",
+          payload?.error || t("mvpVoting.loadFailed"),
         );
       }
 
@@ -331,7 +331,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       const message =
         error instanceof Error
           ? error.message
-          : "MVP-Daten konnten nicht geladen werden.";
+          : t("mvpVoting.loadFailed");
       setErr(message);
       setLoadState("error");
     }
@@ -458,11 +458,11 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       if (!response.ok) {
         throw new Error(
-          payload?.error || "MVP-Stimme konnte nicht gespeichert werden.",
+          payload?.error || t("mvpVoting.voteSaveFailed"),
         );
       }
 
-      setMsg(`Deine Stimme wurde gezählt. Ergebnis ab ${payload.revealLabel}`);
+      setMsg(t("mvpVoting.voteSavedReveal", { reveal: payload.revealLabel }));
       await loadMvpState();
       setCollapsed(true);
       router.refresh();
@@ -470,7 +470,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       const message =
         error instanceof Error
           ? error.message
-          : "MVP-Stimme konnte nicht gespeichert werden.";
+          : t("mvpVoting.voteSaveFailed");
       setErr(message);
     } finally {
       setSaving(false);
@@ -546,20 +546,20 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
   async function handleShareMvpResult() {
     if (!shareData) {
-      setShareMsg("MVP Share Card ist noch nicht bereit.");
+      setShareMsg(t("mvpVoting.shareNotReady"));
       return;
     }
 
     const preparedFile = mvpShareFileRef.current;
 
     if (!preparedFile) {
-      setShareMsg("MVP Share Card wird noch vorbereitet. Bitte kurz warten.");
+      setShareMsg(t("mvpVoting.sharePreparing"));
       return;
     }
 
     try {
       setSharingResult(true);
-      setShareMsg("Teilen…");
+      setShareMsg(t("mvpVoting.sharing"));
 
       const hasSingleWinner = shareData.winners.length <= 1;
 
@@ -569,20 +569,18 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           ? `strikr-mvp-winner-team-${sessionId}-${shareData.winner.playerId}.png`
           : `strikr-mvp-result-${sessionId}.png`,
         title: hasSingleWinner
-          ? `${shareData.winner.name} wurde zum MVP gewählt`
-          : "MVP Ergebnis",
+          ? t("mvpVoting.winnerTitle", { name: shareData.winner.name })
+          : t("mvpVoting.resultTitle"),
         text: hasSingleWinner
-          ? `MVP Card von ${shareData.winner.name} aus strikr.`
-          : "Das MVP Ergebnis aus strikr.",
+          ? t("mvpVoting.winnerShareText", { name: shareData.winner.name })
+          : t("mvpVoting.resultShareText"),
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
 
-      setShareMsg(
-        "Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.",
-      );
+      setShareMsg(t("mvpVoting.shareFailed"));
     } finally {
       setSharingResult(false);
     }
@@ -590,7 +588,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
   async function handleShareWinnerCard(playerId: number) {
     if (!shareData) {
-      setShareMsg("MVP Share Card ist noch nicht bereit.");
+      setShareMsg(t("mvpVoting.shareNotReady"));
       return;
     }
 
@@ -599,35 +597,33 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     );
 
     if (!card) {
-      setShareMsg("MVP Gewinner-Card ist noch nicht bereit.");
+      setShareMsg(t("mvpVoting.winnerCardNotReady"));
       return;
     }
 
     const preparedFile = winnerShareFilesRef.current[playerId];
 
     if (!preparedFile) {
-      setShareMsg(
-        "MVP Gewinner-Card wird noch vorbereitet. Bitte kurz warten.",
-      );
+      setShareMsg(t("mvpVoting.winnerCardPreparing"));
       return;
     }
 
     try {
       setSharingWinnerPlayerId(playerId);
-      setShareMsg("Teilen…");
+      setShareMsg(t("mvpVoting.sharing"));
 
       await sharePreparedMvpFile({
         file: preparedFile,
         fileName: `strikr-mvp-${sessionId}-${playerId}.png`,
-        title: `${card.winner.name} wurde zum MVP gewählt`,
-        text: `MVP Card von ${card.winner.name} aus strikr.`,
+        title: t("mvpVoting.winnerTitle", { name: card.winner.name }),
+        text: t("mvpVoting.winnerShareText", { name: card.winner.name }),
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
 
-      setShareMsg("MVP Gewinner-Card konnte nicht geteilt werden.");
+      setShareMsg(t("mvpVoting.winnerCardFailed"));
     } finally {
       setSharingWinnerPlayerId(null);
     }
@@ -646,9 +642,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           : `/sessions/${sessionId}`;
 
       const text = [
-        "MVP-Voting läuft 🗳️",
+        t("mvpVoting.reminderTitle"),
         "",
-        "Jungs, denkt dran abzustimmen:",
+        t("mvpVoting.reminderLine"),
         sessionUrl,
         "",
         "made with strikr",
@@ -656,7 +652,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({
-          title: "MVP-Voting läuft",
+          title: t("mvpVoting.reminderShareTitle"),
           text,
           url: sessionUrl,
         });
@@ -666,17 +662,17 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
-        setShareMsg("Voting-Erinnerung wurde in die Zwischenablage kopiert.");
+        setShareMsg(t("mvpVoting.reminderCopied"));
         return;
       }
 
-      setShareMsg("Teilen ist auf diesem Gerät leider nicht verfügbar.");
+      setShareMsg(t("mvpVoting.shareUnavailable"));
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
 
-      setShareMsg("Voting-Erinnerung konnte nicht geteilt werden.");
+      setShareMsg(t("mvpVoting.reminderFailed"));
     } finally {
       setSharingVotingReminder(false);
     }
@@ -686,9 +682,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     return (
       <section className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm">
         <div className="text-sm font-semibold text-amber-700">
-          ⭐ MVP Voting
+          ⭐ {t("mvpVoting.title")}
         </div>
-        <div className="mt-2 text-sm text-slate-600">Lade MVP-Bereich…</div>
+        <div className="mt-2 text-sm text-slate-600">{t("mvpVoting.loading")}</div>
       </section>
     );
   }
@@ -696,9 +692,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
   if (loadState === "error" || !state) {
     return (
       <section className="rounded-[24px] border border-red-200 bg-red-50 p-4 shadow-sm">
-        <div className="text-sm font-semibold text-red-700">MVP Voting</div>
+        <div className="text-sm font-semibold text-red-700">{t("mvpVoting.title")}</div>
         <div className="mt-2 text-sm text-red-700">
-          {err ?? "MVP-Bereich konnte nicht geladen werden."}
+          {err ?? t("mvpVoting.areaLoadFailed")}
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
@@ -706,7 +702,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             onClick={loadMvpState}
             className="inline-flex items-center justify-center rounded-2xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
           >
-            Erneut laden
+            {t("mvpVoting.retry")}
           </button>
         </div>
       </section>
@@ -742,17 +738,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
   const collapsedSummary = !votingOpen
     ? state.results?.winners && state.results.winners.length > 0
-      ? `Ergebnis verfügbar${
-          state.results.winners.length === 1
-            ? ` · MVP: ${state.results.winners[0].name}`
-            : ""
-        }`
-      : "Voting beendet"
+      ? state.results.winners.length === 1
+        ? t("mvpVoting.resultAvailableWinner", { name: state.results.winners[0].name })
+        : t("mvpVoting.resultAvailable")
+      : t("mvpVoting.ended")
     : state.userHasVoted
       ? selectedPlayerName
-        ? `Deine Stimme ist abgegeben · gewählt: ${selectedPlayerName}`
-        : "Deine Stimme ist abgegeben"
-      : `${state.voteCount} von ${state.eligibleVoterCount} haben abgestimmt`;
+        ? t("mvpVoting.yourVoteChosen", { name: selectedPlayerName })
+        : t("mvpVoting.yourVoteDone")
+      : t("mvpVoting.castCount", { count: state.voteCount, total: state.eligibleVoterCount });
 
   return (
     <>
@@ -843,7 +837,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                     userDone ? "text-emerald-950" : "text-slate-950"
                   }`}
                 >
-                  {userDone ? "MVP erledigt" : "MVP Voting"}
+                  {userDone ? t("mvpVoting.done") : t("mvpVoting.title")}
                 </div>
                 <div className="mt-1 text-sm text-slate-600">
                   {collapsedSummary}
@@ -852,7 +846,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             </div>
 
             <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-              Bearbeiten
+              {t("teams.edit")}
             </div>
           </button>
         </section>
@@ -868,20 +862,20 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
               }`}
             >
-              Kompakt anzeigen
+              {t("score.compact")}
             </button>
 
             <div className="pr-28">
               <div className={`text-sm font-semibold ${titleColorClass}`}>
-                ⭐ MVP Voting
+                ⭐ {t("mvpVoting.title")}
               </div>
 
               <h2 className="mt-1 text-lg font-extrabold tracking-tight text-slate-950">
-                Spieler des Trainings wählen
+                {t("mvpVoting.choosePlayerTitle")}
               </h2>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Alle anwesenden Teilnehmer können hier direkt ihren MVP wählen.
+                {t("mvpVoting.choosePlayerHint")}
               </p>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -894,24 +888,23 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 <ResultPill
                   text={
                     votingOpen
-                      ? `Offen bis ${state.revealLabel}`
-                      : `Ergebnis seit ${state.revealLabel}`
+                      ? t("mvpVoting.openUntil", { reveal: state.revealLabel })
+                      : t("mvpVoting.resultSince", { reveal: state.revealLabel })
                   }
                   tone={pillTone}
                 />
 
                 {mvpAccess?.reason === "free_launch" ? (
                   <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
-                    Zum Start kostenlos: MVP unbegrenzt
+                    {t("mvpVoting.freeLaunch")}
                   </span>
                 ) : mvpAccess && !mvpAccess.isPro ? (
                   <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
-                    Free: {mvpAccess.usedThisSeason}/{mvpAccess.freeLimit}{" "}
-                    MVP-Abstimmungen genutzt
+                    {t("mvpVoting.freeUsage", { used: mvpAccess.usedThisSeason, limit: mvpAccess.freeLimit })}
                   </span>
                 ) : mvpAccess?.isPro ? (
                   <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    Pro: MVP unbegrenzt
+                    {t("mvpVoting.proUnlimited")}
                   </span>
                 ) : null}
               </div>
@@ -940,13 +933,13 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             <div className="mt-4">
               <ProFeatureLock
                 clubName={state.clubName}
-                title="4 kostenlose MVP-Abstimmungen genutzt"
-                description={`Ihr habt die ${mvpAccess?.freeLimit ?? 4} kostenlosen MVP-Abstimmungen dieser Saison ausgeschöpft. Mit strikr Pro bleibt MVP Voting für euer Team unbegrenzt aktiv.`}
+                title={t("mvpVoting.lockTitle")}
+                description={t("mvpVoting.lockDescription", { limit: mvpAccess?.freeLimit ?? 4 })}
                 featureList={[
-                  "Unbegrenztes MVP Voting pro Saison",
-                  "MVP-Badges und Fortschritt",
-                  "MVP- und Ergebnis-Share-Cards",
-                  "Awards, Serien und Trophäenraum",
+                  t("mvpVoting.featureUnlimited"),
+                  t("mvpVoting.featureBadges"),
+                  t("mvpVoting.featureShare"),
+                  t("mvpVoting.featureAwards"),
                 ]}
                 compact
               />
@@ -965,8 +958,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                     state.userHasVoted ? "text-emerald-800" : "text-amber-800"
                   }`}
                 >
-                  {state.voteCount} von {state.eligibleVoterCount} haben
-                  abgestimmt
+                  {t("mvpVoting.castCount", { count: state.voteCount, total: state.eligibleVoterCount })}
                 </div>
 
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
@@ -979,7 +971,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 </div>
 
                 <div className="mt-3 text-xs text-slate-500">
-                  Sichtbar ist nur, wer bereits abgestimmt hat — nicht, für wen.
+                  {t("mvpVoting.privacy")}
                 </div>
 
                 <div className="mt-4">
@@ -990,11 +982,11 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                     className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                   >
                     {sharingVotingReminder
-                      ? "Bereite Teilen vor…"
-                      : "Voting teilen"}
+                      ? t("mvpVoting.prepareShare")
+                      : t("mvpVoting.shareVoting")}
                   </button>
                   <p className="mt-2 text-xs leading-5 text-slate-500">
-                    Teilt eine kurze Erinnerung mit Link zur Session.
+                    {t("mvpVoting.shareReminderHint")}
                   </p>
                 </div>
 
@@ -1014,7 +1006,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                     ))
                   ) : (
                     <div className="text-sm text-slate-500">
-                      Bisher hat noch niemand abgestimmt.
+                      {t("mvpVoting.nobodyVoted")}
                     </div>
                   )}
                 </div>
@@ -1024,21 +1016,20 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 <div className="mt-4">
                   <div className="mb-3 text-sm font-semibold text-slate-900">
                     {state.userHasVoted
-                      ? "Stimme ändern"
-                      : "Wer war heute euer Spieler des Trainings?"}
+                      ? t("mvpVoting.changeVote")
+                      : t("mvpVoting.whoToday")}
                   </div>
 
                   {state.userHasVoted ? (
                     <div className="mb-3 rounded-2xl border border-emerald-200 bg-white px-4 py-4">
                       <div className="text-sm font-semibold text-emerald-800">
-                        Deine Stimme wurde gezählt
+                        {t("mvpVoting.voteCounted")}
                       </div>
                       <div className="mt-1 text-sm text-slate-600">
                         {selectedPlayerName
-                          ? `Aktuell gewählt: ${selectedPlayerName}.`
-                          : "Du hast bereits abgestimmt."}{" "}
-                        Du kannst deine Stimme bis {state.revealLabel} noch
-                        ändern.
+                          ? t("mvpVoting.currentSelected", { name: selectedPlayerName })
+                          : t("mvpVoting.alreadyVoted")}{" "}
+                        {t("mvpVoting.canChangeUntil", { reveal: state.revealLabel })}
                       </div>
                     </div>
                   ) : null}
@@ -1046,7 +1037,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   <div className="grid gap-2 sm:grid-cols-2">
                     {state.participants.map((player) => {
                       const active = selectedPlayerId === player.id;
-                      const badge = getBadgeMetaFromMvpCount(player.mvpCount);
+                      const badge = getBadgeMetaFromMvpCount(player.mvpCount, locale);
 
                       return (
                         <button
@@ -1084,21 +1075,20 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                       className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {saving
-                        ? "Speichere…"
+                        ? t("mvpVoting.saving")
                         : state.userHasVoted
-                          ? "Stimme ändern"
-                          : "Stimme abgeben"}
+                          ? t("mvpVoting.changeVote")
+                          : t("mvpVoting.submit")}
                     </button>
 
                     <div className="text-xs text-slate-500">
-                      Ergebnis ab {state.revealLabel}
+                      {t("mvpVoting.resultAt", { reveal: state.revealLabel })}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
-                  Abstimmen können nur anwesende Teilnehmer mit verknüpftem
-                  Spielerprofil.
+                  {t("mvpVoting.eligibleOnly")}
                 </div>
               )}
             </>
@@ -1114,11 +1104,10 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   <div className="space-y-3">
                     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
                       <div className="text-sm font-semibold text-slate-700">
-                        MVP Ergebnis
+                        {t("mvpVoting.resultTitle")}
                       </div>
                       <div className="mt-1 text-sm text-slate-600">
-                        Gleichstand mit je {state.results.winners[0].votes}{" "}
-                        Stimmen
+                        {t("mvpVoting.tie", { count: state.results.winners[0].votes })}
                       </div>
                     </div>
 
@@ -1137,7 +1126,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 )
               ) : (
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
-                  Noch keine Stimmen abgegeben.
+                  {t("mvpVoting.noVotes")}
                 </div>
               )}
 
@@ -1146,17 +1135,17 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                        Share Moment
+                        {t("mvpVoting.shareMoment")}
                       </div>
                       <div className="mt-1 text-base font-extrabold tracking-tight text-slate-950">
                         {shareData?.mode === "winner"
-                          ? "Deine MVP Card ist bereit"
-                          : "Das MVP Ergebnis ist bereit"}
+                          ? t("mvpVoting.yourCardReady")
+                          : t("mvpVoting.teamResultReady")}
                       </div>
                       <div className="mt-1 text-sm text-slate-600">
                         {shareData?.mode === "winner"
-                          ? "Teile deinen MVP-Moment direkt mit Team und Gruppe."
-                          : "Teile das finale MVP-Ergebnis direkt mit deinem Team."}
+                          ? t("mvpVoting.shareYourMoment")
+                          : t("mvpVoting.shareFinal")}
                       </div>
                     </div>
 
@@ -1173,16 +1162,16 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                       className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3.5 text-base font-extrabold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {sharingResult
-                        ? "Bereite Card vor…"
+                        ? t("mvpVoting.preparingCard")
                         : shareData?.mode === "winner"
-                          ? "Meinen MVP teilen"
-                          : "MVP Ergebnis teilen"}
+                          ? t("mvpVoting.shareMine")
+                          : t("mvpVoting.shareResult")}
                     </button>
 
                     {shareData && shareData.winners.length > 1 ? (
                       <div className="rounded-2xl border border-slate-200 bg-white p-3">
                         <div className="px-1 pb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                          Einzelne MVP Cards
+                          {t("mvpVoting.individualCards")}
                         </div>
                         <div className="space-y-2">
                           {shareData.winnerCards.map((winnerCard) => (
@@ -1208,12 +1197,12 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                               <span className="shrink-0 text-xs font-extrabold text-slate-500">
                                 {sharingWinnerPlayerId ===
                                 winnerCard.winner.playerId
-                                  ? "Teile…"
+                                  ? t("mvpVoting.shareInProgress")
                                   : readyWinnerPlayerIds.has(
                                         winnerCard.winner.playerId,
                                       )
-                                    ? "teilen"
-                                    : "wird vorbereitet…"}
+                                    ? t("mvpVoting.shareLower")
+                                    : t("mvpVoting.preparingLower")}
                               </span>
                             </button>
                           ))}
@@ -1229,16 +1218,15 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-slate-900">
-                        Abgestimmt haben
+                        {t("mvpVoting.voters")}
                       </div>
                       <div className="mt-1 text-xs font-semibold text-slate-500">
-                        {state.votedByNames.length} von{" "}
-                        {state.eligibleVoterCount} Stimmen wurden abgegeben.
+                        {t("mvpVoting.votersCount", { count: state.votedByNames.length, total: state.eligibleVoterCount })}
                       </div>
                     </div>
 
                     <div className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                      Voting beendet
+                      {t("mvpVoting.ended")}
                     </div>
                   </div>
 
@@ -1260,7 +1248,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-semibold text-slate-900">
-                      Voting-Ergebnis
+                      {t("mvpVoting.votingResult")}
                     </div>
                     <div className="text-xs font-semibold text-slate-500">
                       {state.voteCount}{" "}
@@ -1270,7 +1258,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
                   <div className="mt-3 space-y-2">
                     {state.results.leaderboard.map((entry, index) => {
-                      const badge = getBadgeMetaFromMvpCount(entry.mvpCount);
+                      const badge = getBadgeMetaFromMvpCount(entry.mvpCount, locale);
 
                       return (
                         <div
@@ -1296,8 +1284,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                           </div>
 
                           <div className="shrink-0 text-sm font-semibold text-slate-600">
-                            {entry.votes}{" "}
-                            {entry.votes === 1 ? "Stimme" : "Stimmen"}
+                            {entry.votes === 1
+                              ? t("mvpVoting.oneVote")
+                              : t("mvpVoting.votes", { count: entry.votes })}
                           </div>
                         </div>
                       );
