@@ -11,6 +11,7 @@ import {
   type GameTimerAlarmSound,
   type GameTimerMode,
 } from "@/lib/game-timer";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type TimerSettingsRow = {
   game_timer_enabled: boolean | null;
@@ -31,6 +32,7 @@ function normalizeAlarm(value: string | null): GameTimerAlarmSound {
 }
 
 export default async function AdminGameTimerPage() {
+  const { t } = await getServerI18n();
   const { clubId, membership, isPowerUser } = await requireClub();
   const hasAdminAccess = canManageClub({
     isPowerUser,
@@ -51,7 +53,7 @@ export default async function AdminGameTimerPage() {
     .maybeSingle<TimerSettingsRow>();
 
   if (error) {
-    throw new Error(`Spieluhr-Einstellungen konnten nicht geladen werden: ${error.message}`);
+    throw new Error(t("settings.gameTimer.loadFailed", { error: error.message }));
   }
 
   return (
@@ -62,20 +64,19 @@ export default async function AdminGameTimerPage() {
             href="/admin"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Adminbereich
+            ← {t("settings.page.backAdmin")}
           </Link>
         </div>
 
         <div className="rounded-[24px] border border-black/10 bg-white px-5 py-5 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Optionales Trainings-Tool
+            {t("settings.gameTimer.pageEyebrow")}
           </div>
           <h1 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
-            Spieluhr & Alarm
+            {t("settings.gameTimer.pageTitle")}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Lege fest, ob dein Club die Spieluhr nutzt und welche Werte bei einem Training vorgeschlagen werden.
-            Vor jedem Spiel können diese Werte für genau dieses Training angepasst werden.
+            {t("settings.gameTimer.pageDescription")}
           </p>
         </div>
 
