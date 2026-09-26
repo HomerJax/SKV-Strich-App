@@ -2483,6 +2483,8 @@ export const DE_MESSAGES = {
   "power.invites.createdBy": "Erstellt von",
   "power.invites.expires": "Läuft ab",
   "power.invites.acceptedAt": "Angenommen am",
+  "gameTimer.stopTimer": "Timer stoppen",
+  "gameTimer.halftimeDisplay": "HALBZEIT",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -4975,6 +4977,9 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "power.invites.createdBy": "Created by",
   "power.invites.expires": "Expires",
   "power.invites.acceptedAt": "Accepted on",
+
+  "gameTimer.stopTimer": "Stop timer",
+  "gameTimer.halftimeDisplay": "HALFTIME",
 
 };
 
