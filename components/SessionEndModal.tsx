@@ -174,7 +174,7 @@ export default function SessionEndModal({
         setPreparingWinnerShare(true);
         setWinnerShareMessage(null);
 
-        const imageUrl = `/api/share/result/${sessionId}/image?modal_prepare_ts=${Date.now()}`;
+        const imageUrl = `/api/share/result/${sessionId}/image?lang=${locale}&modal_prepare_ts=${Date.now()}`;
         const file = await fetchImageAsFile(
           imageUrl,
           `strikr-result-${sessionId}.png`
