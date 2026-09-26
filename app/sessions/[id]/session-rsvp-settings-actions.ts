@@ -5,6 +5,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_RSVP_DEADLINE_MINUTES } from "@/lib/session-rsvp-deadline";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type Scope = "single" | "future" | "series";
 
@@ -16,9 +17,10 @@ function normalizeScope(value: FormDataEntryValue | null): Scope {
 
 export async function updateSessionRsvpSettingsAction(formData: FormData) {
   const { clubId, membership, isPowerUser } = await requireClub();
+  const { t } = await getServerI18n();
 
   if (!canManageClub({ isPowerUser, role: membership.role })) {
-    throw new Error("Nur Admins dürfen Trainingszeit und Anmeldeschluss ändern.");
+    throw new Error(t("sessionAction.adminOnlySettings"));
   }
 
   const sessionId = Number(String(formData.get("sessionId") ?? "").trim());
@@ -27,7 +29,7 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
   const requestedScope = normalizeScope(formData.get("scope"));
 
   if (!Number.isFinite(sessionId)) {
-    throw new Error("Ungültige Session-ID.");
+    throw new Error(t("sessionAction.invalidId"));
   }
 
   const startTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(startTimeRaw)
@@ -35,7 +37,7 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
     : null;
 
   if (!startTime) {
-    throw new Error("Bitte eine gültige Startzeit angeben.");
+    throw new Error(t("sessionAction.invalidStartTime"));
   }
 
   let deadlineOverride: number | null = null;
@@ -46,7 +48,7 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
       parsed < 0 ||
       parsed > MAX_RSVP_DEADLINE_MINUTES
     ) {
-      throw new Error("Ungültiger Anmeldeschluss.");
+      throw new Error(t("sessionAction.invalidDeadline"));
     }
     deadlineOverride = parsed;
   }
@@ -60,10 +62,10 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
     .maybeSingle<{ id: number; date: string; series_id: string | null }>();
 
   if (sessionError) {
-    throw new Error(`Session konnte nicht geprüft werden: ${sessionError.message}`);
+    throw new Error(t("sessionAction.checkFailed", { error: sessionError.message }));
   }
   if (!session) {
-    throw new Error("Session nicht gefunden.");
+    throw new Error(t("sessionAction.notFound"));
   }
 
   const scope: Scope = session.series_id ? requestedScope : "single";
@@ -83,12 +85,12 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
 
   const { data: targets, error: targetsError } = await targetQuery;
   if (targetsError) {
-    throw new Error(`Serientermine konnten nicht geladen werden: ${targetsError.message}`);
+    throw new Error(t("sessionAction.seriesLoadFailed", { error: targetsError.message }));
   }
 
   const targetIds = (targets ?? []).map((row) => Number(row.id));
   if (targetIds.length === 0) {
-    throw new Error("Keine passenden Termine gefunden.");
+    throw new Error(t("sessionAction.noTargets"));
   }
 
   const { error } = await supabase
@@ -101,7 +103,7 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
     .in("id", targetIds);
 
   if (error) {
-    throw new Error(`Einstellungen konnten nicht gespeichert werden: ${error.message}`);
+    throw new Error(t("sessionAction.settingsSaveFailed", { error: error.message }));
   }
 
   for (const targetId of targetIds) {
