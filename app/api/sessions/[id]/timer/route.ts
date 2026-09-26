@@ -83,7 +83,7 @@ export async function GET(
   const sessionId = Number(id);
 
   if (!Number.isFinite(sessionId)) {
-    return NextResponse.json({ error: "Ungültige Session-ID." }, { status: 400 });
+    return NextResponse.json({ error: t("sessionAction.invalidId") }, { status: 400 });
   }
 
   const access = await requireSessionAccess(sessionId);
@@ -179,7 +179,7 @@ export async function POST(
   const sessionId = Number(id);
 
   if (!Number.isFinite(sessionId)) {
-    return NextResponse.json({ error: "Ungültige Session-ID." }, { status: 400 });
+    return NextResponse.json({ error: t("sessionAction.invalidId") }, { status: 400 });
   }
 
   const access = await requireSessionAccess(sessionId);
