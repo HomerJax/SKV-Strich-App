@@ -2,6 +2,7 @@
 
 import { isFreeLaunchEnabled } from "@/lib/env";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type ProFeatureLockProps = {
   clubName?: string | null;
@@ -26,7 +27,7 @@ const STRIKR_WHATSAPP_NUMBER =
   process.env.NEXT_PUBLIC_STRIKR_WHATSAPP_NUMBER?.replace(/[^\d]/g, "") ||
   "491772685717";
 
-function buildContactMessage(clubName: string | null | undefined, t: ReturnType<typeof useI18n>["t"]) {
+function buildContactMessage(clubName: string | null | undefined, t: (key: MessageKey, params?: Record<string, string | number | null | undefined>) => string) {
   const teamName = clubName?.trim() || t("pro.teamFallback");
 
   return [
@@ -38,7 +39,7 @@ function buildContactMessage(clubName: string | null | undefined, t: ReturnType<
   ].join("\n");
 }
 
-function buildWhatsAppHref(clubName: string | null | undefined, t: ReturnType<typeof useI18n>["t"]) {
+function buildWhatsAppHref(clubName: string | null | undefined, t: (key: MessageKey, params?: Record<string, string | number | null | undefined>) => string) {
   const text = buildContactMessage(clubName, t);
 
   return `https://wa.me/${STRIKR_WHATSAPP_NUMBER}?text=${encodeURIComponent(
@@ -46,7 +47,7 @@ function buildWhatsAppHref(clubName: string | null | undefined, t: ReturnType<ty
   )}`;
 }
 
-function buildMailHref(clubName: string | null | undefined, t: ReturnType<typeof useI18n>["t"]) {
+function buildMailHref(clubName: string | null | undefined, t: (key: MessageKey, params?: Record<string, string | number | null | undefined>) => string) {
   return `mailto:${STRIKR_CONTACT_EMAIL}?subject=${encodeURIComponent(
     t("pro.mailSubject")
   )}&body=${encodeURIComponent(buildContactMessage(clubName, t))}`;
