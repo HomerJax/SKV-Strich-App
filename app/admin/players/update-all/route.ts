@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     if (playerIds.length === 0) {
       return redirectToAdminPlayers(request, {
-        error: "Keine Spieler zum Speichern gefunden.",
+        error: t("adminPlayer.noneToSave"),
       });
     }
 
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     if (existingError || (existingPlayers ?? []).length !== playerIds.length) {
       return redirectToAdminPlayers(request, {
-        error: "Kader konnte nicht vollständig geprüft werden.",
+        error: t("adminPlayer.squadCheckFailed"),
       });
     }
 
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     const updates = playerIds.map((playerId) => {
       const existing = existingById.get(playerId);
-      if (!existing) throw new Error("Spieler nicht gefunden.");
+      if (!existing) throw new Error(t("adminPlayer.notFound"));
 
       const firstName = toNullableText(formData.get(`first_name_${playerId}`));
       const lastName = toNullableText(formData.get(`last_name_${playerId}`));
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
       if (email) {
         const existingPlayerId = seenEmails.get(email);
         if (existingPlayerId && existingPlayerId !== playerId) {
-          throw new Error(`Doppelte E-Mail im Kader: ${email}`);
+          throw new Error(t("adminPlayer.duplicateEmail", { email }));
         }
         seenEmails.set(email, playerId);
       }
@@ -167,19 +168,19 @@ export async function POST(request: NextRequest) {
     if (failed?.error) {
       console.error("Bulk roster update failed", failed.error);
       return redirectToAdminPlayers(request, {
-        error: "Kader konnte nicht vollständig gespeichert werden.",
+        error: t("adminPlayer.squadSaveFailed"),
       });
     }
 
     return redirectToAdminPlayers(request, {
-      message: `${playerIds.length} Kader-Einträge gespeichert.`,
+      message: t("adminPlayer.squadSaved", { count: playerIds.length }),
     });
   } catch (error) {
     console.error("POST /admin/players/update-all failed", error);
     const message =
       error instanceof Error && error.message.startsWith("Doppelte E-Mail")
         ? error.message
-        : "Kader konnte nicht gespeichert werden.";
+        : t("adminPlayer.squadSaveGeneric");
     return redirectToAdminPlayers(request, { error: message });
   }
 }
