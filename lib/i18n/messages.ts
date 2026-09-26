@@ -2965,6 +2965,24 @@ export const DE_MESSAGES = {
   "powerClubs.testLowUsage": "Testclubs / leer / wenig genutzt",
   "powerClubs.noEmptyTests": "Keine leeren Testclubs vorhanden.",
 
+  "mvpApi.playerFallback": "Spieler",
+  "mvpApi.notSignedIn": "Nicht eingeloggt.",
+  "mvpApi.powerRoleCheckFailed": "Power-User-Rolle konnte nicht geprüft werden.",
+  "mvpApi.sessionNotFound": "Session nicht gefunden.",
+  "mvpApi.noClubAccess": "Kein Zugriff auf diesen Club.",
+  "mvpApi.disabled": "MVP Voting ist für diesen Club nicht aktiviert.",
+  "mvpApi.forceDisabled": "Manuelles MVP-Finalisieren ist in dieser Umgebung nicht aktiviert.",
+  "mvpApi.forcePowerOnly": "Nur Power User dürfen MVP Voting manuell finalisieren.",
+  "mvpApi.loadFailed": "MVP-Daten konnten nicht geladen werden.",
+  "mvpApi.invalidPlayer": "Ungültiger Spieler für die Abstimmung.",
+  "mvpApi.resultRequired": "MVP Voting startet erst, sobald ein Ergebnis gespeichert wurde.",
+  "mvpApi.freeLimit": "Die 4 kostenlosen MVP-Abstimmungen dieser Saison sind aufgebraucht. Mit strikr Pro ist MVP Voting unbegrenzt.",
+  "mvpApi.votingEnded": "Das MVP Voting ist bereits beendet.",
+  "mvpApi.voterNotEligible": "Abstimmen können nur anwesende Teilnehmer mit verknüpftem Spielerprofil.",
+  "mvpApi.playerNotEligible": "Für diesen Spieler kann nicht abgestimmt werden.",
+  "mvpApi.voteSaveFailed": "MVP-Stimme konnte nicht gespeichert werden.",
+  "mvpApi.clubLoadFailed": "Clubdaten konnten nicht geladen werden: {error}",
+
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5963,6 +5981,25 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "powerClubs.noActive": "No active clubs detected yet.",
   "powerClubs.testLowUsage": "Test clubs / empty / low usage",
   "powerClubs.noEmptyTests": "No empty test clubs.",
+
+
+  "mvpApi.playerFallback": "Player",
+  "mvpApi.notSignedIn": "Not signed in.",
+  "mvpApi.powerRoleCheckFailed": "Power User role could not be checked.",
+  "mvpApi.sessionNotFound": "Session not found.",
+  "mvpApi.noClubAccess": "No access to this club.",
+  "mvpApi.disabled": "MVP voting is not enabled for this club.",
+  "mvpApi.forceDisabled": "Manual MVP finalization is not enabled in this environment.",
+  "mvpApi.forcePowerOnly": "Only Power Users can finalize MVP voting manually.",
+  "mvpApi.loadFailed": "MVP data could not be loaded.",
+  "mvpApi.invalidPlayer": "Invalid player for this vote.",
+  "mvpApi.resultRequired": "MVP voting starts after a result has been saved.",
+  "mvpApi.freeLimit": "The 4 free MVP votes for this season have been used. With strikr Pro, MVP voting is unlimited.",
+  "mvpApi.votingEnded": "MVP voting has already ended.",
+  "mvpApi.voterNotEligible": "Only present participants with a linked player profile can vote.",
+  "mvpApi.playerNotEligible": "This player cannot be selected for the vote.",
+  "mvpApi.voteSaveFailed": "MVP vote could not be saved.",
+  "mvpApi.clubLoadFailed": "Club data could not be loaded: {error}",
 
 
 };
