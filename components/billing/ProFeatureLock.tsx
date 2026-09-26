@@ -1,4 +1,7 @@
+"use client";
+
 import { isFreeLaunchEnabled } from "@/lib/env";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type ProFeatureLockProps = {
   clubName?: string | null;
@@ -23,39 +26,43 @@ const STRIKR_WHATSAPP_NUMBER =
   process.env.NEXT_PUBLIC_STRIKR_WHATSAPP_NUMBER?.replace(/[^\d]/g, "") ||
   "491772685717";
 
-function buildContactMessage(clubName?: string | null) {
-  const teamName = clubName?.trim() || "unser Team";
+function buildContactMessage(clubName: string | null | undefined, t: ReturnType<typeof useI18n>["t"]) {
+  const teamName = clubName?.trim() || t("pro.teamFallback");
 
   return [
-    "Hi, wir möchten strikr Pro für unser Team freischalten.",
+    t("pro.contactIntro"),
     "",
-    `Team: ${teamName}`,
+    t("pro.contactTeam", { name: teamName }),
     "",
-    "Bitte schick mir kurz die Infos zum aktuellen Angebot.",
+    t("pro.contactOffer"),
   ].join("\n");
 }
 
-function buildWhatsAppHref(clubName?: string | null) {
-  const text = buildContactMessage(clubName);
+function buildWhatsAppHref(clubName: string | null | undefined, t: ReturnType<typeof useI18n>["t"]) {
+  const text = buildContactMessage(clubName, t);
 
   return `https://wa.me/${STRIKR_WHATSAPP_NUMBER}?text=${encodeURIComponent(
     text
   )}`;
 }
 
-function buildMailHref(clubName?: string | null) {
+function buildMailHref(clubName: string | null | undefined, t: ReturnType<typeof useI18n>["t"]) {
   return `mailto:${STRIKR_CONTACT_EMAIL}?subject=${encodeURIComponent(
-    "strikr Pro Anfrage"
-  )}&body=${encodeURIComponent(buildContactMessage(clubName))}`;
+    t("pro.mailSubject")
+  )}&body=${encodeURIComponent(buildContactMessage(clubName, t))}`;
 }
 
 export default function ProFeatureLock({
   clubName,
-  title = "Mehr Team-Momente mit strikr Pro",
-  description = "Free ist zum Ausprobieren da. Mit Pro nutzt ihr die starken Team-Features dauerhaft und ohne Limit.",
+  title,
+  description,
   featureList = [],
   compact = false,
 }: ProFeatureLockProps) {
+  const { t } = useI18n();
+  const resolvedTitle = title ?? t("pro.defaultTitle");
+  const resolvedDescription = description ?? t("pro.defaultDescription");
+
   if (isFreeLaunchEnabled()) {
     return (
       <div
@@ -64,23 +71,22 @@ export default function ProFeatureLock({
         }`}
       >
         <div className="inline-flex rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-bold text-sky-800">
-          Zum Start kostenlos
+          {t("pro.launchBadge")}
         </div>
 
         <h3 className="mt-3 text-lg font-extrabold tracking-tight text-slate-950">
-          Alle aktuellen Funktionen sind freigeschaltet
+          {t("pro.launchTitle")}
         </h3>
 
         <p className="mt-2 text-sm leading-6 text-slate-700">
-          strikr startet ohne Funktionslimit. Ihr könnt die App vollständig
-          nutzen. Weitere Funktionen folgen später.
+          {t("pro.launchDescription")}
         </p>
       </div>
     );
   }
 
-  const whatsappHref = buildWhatsAppHref(clubName);
-  const mailHref = buildMailHref(clubName);
+  const whatsappHref = buildWhatsAppHref(clubName, t);
+  const mailHref = buildMailHref(clubName, t);
 
   return (
     <div
@@ -93,10 +99,10 @@ export default function ProFeatureLock({
       </div>
 
       <h3 className="mt-3 text-lg font-extrabold tracking-tight text-slate-950">
-        {title}
+        {resolvedTitle}
       </h3>
 
-      <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{resolvedDescription}</p>
 
       {featureList.length > 0 ? (
         <div className="mt-4 grid gap-2">
@@ -121,19 +127,19 @@ export default function ProFeatureLock({
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
         >
-          Pro-Angebot per WhatsApp anfragen
+          {t("pro.whatsappCta")}
         </a>
 
         <a
           href={mailHref}
           className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
         >
-          Per E-Mail anfragen
+          {t("pro.emailCta")}
         </a>
       </div>
 
       <p className="mt-3 text-center text-xs font-medium text-slate-400">
-        Aktuell: Supercup-Angebot und manuelle Freischaltung.
+        {t("pro.manualNote")}
       </p>
     </div>
   );
