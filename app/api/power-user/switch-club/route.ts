@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type RequestBody = {
   clubId?: string;
@@ -19,16 +20,17 @@ function normalizeRedirectTo(value: unknown) {
 }
 
 export async function POST(request: Request) {
+  const { t } = await getServerI18n();
   try {
     const ctx = await getAuthContext();
 
     if (!ctx.user) {
-      return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 });
+      return NextResponse.json({ error: t("powerSwitch.notSignedIn") }, { status: 401 });
     }
 
     if (!ctx.isPowerUser) {
       return NextResponse.json(
-        { error: "Keine Berechtigung" },
+        { error: t("powerSwitch.forbidden") },
         { status: 403 }
       );
     }
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
     const redirectTo = normalizeRedirectTo(body?.redirectTo);
 
     if (!clubId) {
-      return NextResponse.json({ error: "clubId fehlt" }, { status: 400 });
+      return NextResponse.json({ error: t("powerSwitch.clubIdMissing") }, { status: 400 });
     }
 
     const supabase = await createClient();
@@ -52,14 +54,14 @@ export async function POST(request: Request) {
     if (error) {
       console.error("switch-club: club lookup failed", error);
       return NextResponse.json(
-        { error: "Verein konnte nicht geprüft werden" },
+        { error: t("powerSwitch.clubCheckFailed") },
         { status: 500 }
       );
     }
 
     if (!club) {
       return NextResponse.json(
-        { error: "Verein nicht gefunden" },
+        { error: t("powerSwitch.clubNotFound") },
         { status: 404 }
       );
     }
@@ -82,7 +84,7 @@ export async function POST(request: Request) {
     console.error("switch-club unexpected error", error);
 
     return NextResponse.json(
-      { error: "Unerwarteter Fehler" },
+      { error: t("powerSwitch.unexpected") },
       { status: 500 }
     );
   }
