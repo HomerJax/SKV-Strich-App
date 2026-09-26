@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import { getServerI18n } from "@/lib/i18n/server";
 
 function buildForgotPasswordRedirect(params: {
   error?: string;
@@ -19,12 +20,13 @@ function buildForgotPasswordRedirect(params: {
 }
 
 export async function forgotPasswordAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const email = String(formData.get("email") ?? "").trim();
 
   if (!email) {
     redirect(
       buildForgotPasswordRedirect({
-        error: "Bitte gib deine E-Mail-Adresse ein.",
+        error: t("forgotPassword.emailRequired"),
       })
     );
   }
@@ -50,7 +52,7 @@ export async function forgotPasswordAction(formData: FormData) {
   if (error) {
     redirect(
       buildForgotPasswordRedirect({
-        error: "Der Reset-Link konnte nicht gesendet werden. Bitte versuche es erneut.",
+        error: t("forgotPassword.sendFailed"),
         email,
       })
     );
@@ -59,7 +61,7 @@ export async function forgotPasswordAction(formData: FormData) {
   redirect(
     buildForgotPasswordRedirect({
       message:
-        "Wenn ein Konto mit dieser E-Mail existiert, wurde ein Reset-Link versendet.",
+        t("forgotPassword.sent"),
       email,
     })
   );
