@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { canManageClub } from "@/lib/auth/access";
 import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type Scope = "single" | "future" | "series";
 
@@ -66,6 +67,7 @@ async function getTargetSessions(params: {
 }
 
 async function requireAdminSession(sessionId: number) {
+  const { t } = await getServerI18n();
   const ctx = await requireClub();
   if (
     !canManageClub({
@@ -73,7 +75,7 @@ async function requireAdminSession(sessionId: number) {
       role: ctx.membership.role,
     })
   ) {
-    return { error: "Nur Admins dürfen Termine ändern.", status: 403 as const };
+    return { error: t("scheduleApi.adminOnly"), status: 403 as const };
   }
 
   const admin = createAdminClient();
@@ -89,7 +91,7 @@ async function requireAdminSession(sessionId: number) {
   }
 
   if (!data) {
-    return { error: "Termin nicht gefunden.", status: 404 as const };
+    return { error: t("scheduleApi.notFound"), status: 404 as const };
   }
 
   return { ctx, admin, session: data };
@@ -99,10 +101,11 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const { t } = await getServerI18n();
   const { id } = await context.params;
   const sessionId = Number(id);
   if (!Number.isFinite(sessionId)) {
-    return NextResponse.json({ error: "Ungültige Session-ID." }, { status: 400 });
+    return NextResponse.json({ error: t("sessionAction.invalidId") }, { status: 400 });
   }
 
   const access = await requireAdminSession(sessionId);
@@ -119,7 +122,7 @@ export async function PATCH(
 
   if (!isDate(date) || !isTime(startTime)) {
     return NextResponse.json(
-      { error: "Bitte gültiges Datum und Uhrzeit angeben." },
+      { error: t("scheduleApi.invalidDateTime") },
       { status: 400 },
     );
   }
@@ -164,14 +167,14 @@ export async function PATCH(
       updated: updates.length,
       message:
         updates.length === 1
-          ? "Termin aktualisiert."
-          : `${updates.length} Termine der Serie aktualisiert.`,
+          ? t("scheduleApi.updatedOne")
+          : t("scheduleApi.updatedMany", { count: updates.length }),
     });
   } catch (error) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Termin konnte nicht geändert werden.",
+          error instanceof Error ? error.message : t("scheduleApi.updateFailed"),
       },
       { status: 500 },
     );
@@ -185,7 +188,7 @@ export async function DELETE(
   const { id } = await context.params;
   const sessionId = Number(id);
   if (!Number.isFinite(sessionId)) {
-    return NextResponse.json({ error: "Ungültige Session-ID." }, { status: 400 });
+    return NextResponse.json({ error: t("sessionAction.invalidId") }, { status: 400 });
   }
 
   const access = await requireAdminSession(sessionId);
@@ -227,14 +230,14 @@ export async function DELETE(
       deleted: ids.length,
       message:
         ids.length === 1
-          ? "Termin gelöscht."
-          : `${ids.length} Termine der Serie gelöscht.`,
+          ? t("scheduleApi.deletedOne")
+          : t("scheduleApi.deletedMany", { count: ids.length }),
     });
   } catch (error) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Termin konnte nicht gelöscht werden.",
+          error instanceof Error ? error.message : t("scheduleApi.deleteFailed"),
       },
       { status: 500 },
     );
