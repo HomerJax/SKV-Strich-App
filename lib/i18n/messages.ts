@@ -1187,6 +1187,8 @@ export const DE_MESSAGES = {
 
   "mvpVoting.votesOfTotal": "{count} von {total} Stimmen",
   "mvpVoting.votesTotal": "{count} Stimmen gesamt",
+  "mvpVoting.oneVote": "1 Stimme",
+  "mvpVoting.votes": "{count} Stimmen",
   "mvpVoting.trainingMvp": "MVP des Trainings",
   "mvpVoting.newBadge": "Neues Badge erreicht",
   "mvpVoting.badgeProgress": "Badge-Fortschritt",
@@ -2489,6 +2491,8 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
 
   "mvpVoting.votesOfTotal": "{count} of {total} votes",
   "mvpVoting.votesTotal": "{count} votes total",
+  "mvpVoting.oneVote": "1 vote",
+  "mvpVoting.votes": "{count} votes",
   "mvpVoting.trainingMvp": "Training MVP",
   "mvpVoting.newBadge": "New badge unlocked",
   "mvpVoting.badgeProgress": "Badge progress",
