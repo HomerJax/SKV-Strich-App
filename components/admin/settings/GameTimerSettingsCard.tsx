@@ -9,6 +9,7 @@ import {
   type GameTimerMode,
 } from "@/lib/game-timer";
 import { playTimerAlarm, primeTimerAudio } from "@/lib/game-timer-audio";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type GameTimerSettingsCardProps = {
   initialEnabled: boolean;
@@ -29,6 +30,7 @@ export default function GameTimerSettingsCard({
   initialHalftimeBehavior,
   initialAlarmSound,
 }: GameTimerSettingsCardProps) {
+  const { t } = useI18n();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [mode, setMode] = useState<GameTimerMode>(initialMode);
   const [durationMinutes, setDurationMinutes] = useState(initialDurationMinutes);
@@ -48,7 +50,7 @@ export default function GameTimerSettingsCard({
     const played = await playTimerAlarm(alarmSound, { preview: true });
 
     if (!played) {
-      setError("Der Alarmton konnte auf diesem Gerät nicht abgespielt werden.");
+      setError(t("gameTimer.soundPlaybackFailed"));
     }
   }
 
@@ -75,15 +77,15 @@ export default function GameTimerSettingsCard({
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload?.error ?? "Spieluhr-Einstellungen konnten nicht gespeichert werden.");
+        throw new Error(payload?.error ?? t("settings.gameTimer.saveFailed"));
       }
 
-      setMessage("Spieluhr-Einstellungen gespeichert.");
+      setMessage(t("settings.gameTimer.saved"));
     } catch (saveError) {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Spieluhr-Einstellungen konnten nicht gespeichert werden.",
+          : t("settings.gameTimer.saveFailed"),
       );
     } finally {
       setSaving(false);
@@ -95,11 +97,10 @@ export default function GameTimerSettingsCard({
       <label className="flex items-start justify-between gap-4 rounded-[20px] border border-black/10 bg-neutral-50 p-4">
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-slate-950">
-            Spieluhr im Training verwenden
+            {t("settings.gameTimer.enable")}
           </span>
           <span className="mt-1 block text-sm leading-6 text-slate-600">
-            Wenn aktiv, erscheint in Trainings eine große Spieluhr. Die Werte hier
-            sind nur der Club-Standard und können für jedes Training separat geändert werden.
+            {t("settings.gameTimer.enableHint")}
           </span>
         </span>
         <input
@@ -113,28 +114,28 @@ export default function GameTimerSettingsCard({
       <div className="grid gap-4 md:grid-cols-2">
         <label className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
           <span className="block text-sm font-semibold text-slate-950">
-            Standard-Ziel
+            {t("settings.gameTimer.target")}
           </span>
           <span className="mt-1 block text-xs leading-5 text-slate-500">
-            Entweder feste Spielzeit oder eine Uhrzeit, zu der Schluss sein soll.
+            {t("settings.gameTimer.targetHint")}
           </span>
           <select
             value={mode}
             onChange={(event) => setMode(event.target.value as GameTimerMode)}
             className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
           >
-            <option value="duration">Spielzeit in Minuten</option>
-            <option value="end_time">Feste Endzeit</option>
+            <option value="duration">{t("gameTimer.durationMode")}</option>
+            <option value="end_time">{t("gameTimer.endTimeMode")}</option>
           </select>
         </label>
 
         {mode === "duration" ? (
           <label className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
             <span className="block text-sm font-semibold text-slate-950">
-              Standard-Spielzeit
+              {t("settings.gameTimer.duration")}
             </span>
             <span className="mt-1 block text-xs leading-5 text-slate-500">
-              Gesamtspielzeit. Bei echter Halbzeitpause zählt die Pause nicht mit.
+              {t("settings.gameTimer.durationHint")}
             </span>
             <div className="mt-3 flex items-center gap-2">
               <input
@@ -148,16 +149,16 @@ export default function GameTimerSettingsCard({
                 }
                 className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-900"
               />
-              <span className="text-sm font-semibold text-slate-500">Min.</span>
+              <span className="text-sm font-semibold text-slate-500">{t("gameTimer.minutesShort")}</span>
             </div>
           </label>
         ) : (
           <label className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
             <span className="block text-sm font-semibold text-slate-950">
-              Standard-Endzeit
+              {t("settings.gameTimer.endTime")}
             </span>
             <span className="mt-1 block text-xs leading-5 text-slate-500">
-              Beispiel: Das Spiel soll spätestens um 20:30 Uhr enden.
+              {t("settings.gameTimer.endTimeHint")}
             </span>
             <input
               type="time"
@@ -172,9 +173,9 @@ export default function GameTimerSettingsCard({
       <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
         <label className="flex items-start justify-between gap-4">
           <span className="min-w-0">
-            <span className="block text-sm font-semibold text-slate-950">Mit Halbzeit</span>
+            <span className="block text-sm font-semibold text-slate-950">{t("gameTimer.withHalftime")}</span>
             <span className="mt-1 block text-sm leading-6 text-slate-600">
-              Aus = komplett durchspielen. An = zur Spielhälfte gibt es einen Alarm.
+              {t("settings.gameTimer.halftimeHint")}
             </span>
           </span>
           <input
@@ -187,7 +188,7 @@ export default function GameTimerSettingsCard({
 
         {halftimeEnabled ? (
           <div className="mt-4 border-t border-slate-200 pt-4">
-            <div className="text-sm font-semibold text-slate-950">Was soll zur Halbzeit passieren?</div>
+            <div className="text-sm font-semibold text-slate-950">{t("settings.gameTimer.halftimeQuestion")}</div>
             <div className="mt-3 grid gap-2">
               {GAME_TIMER_HALFTIME_BEHAVIOR_OPTIONS.map((option) => (
                 <label
@@ -203,8 +204,8 @@ export default function GameTimerSettingsCard({
                     className="mt-1 h-4 w-4 border-slate-300 text-slate-950 focus:ring-slate-500"
                   />
                   <span>
-                    <span className="block text-sm font-bold text-slate-900">{option.label}</span>
-                    <span className="mt-0.5 block text-xs leading-5 text-slate-500">{option.description}</span>
+                    <span className="block text-sm font-bold text-slate-900">{option.value === "pause" ? t("gameTimer.pauseOption") : t("gameTimer.signalOption")}</span>
+                    <span className="mt-0.5 block text-xs leading-5 text-slate-500">{option.value === "pause" ? t("gameTimer.pauseOptionHint") : t("gameTimer.signalOptionHint")}</span>
                   </span>
                 </label>
               ))}
@@ -214,10 +215,9 @@ export default function GameTimerSettingsCard({
       </div>
 
       <label className="block rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-        <span className="block text-sm font-semibold text-slate-950">Alarmton</span>
+        <span className="block text-sm font-semibold text-slate-950">{t("gameTimer.alarmSound")}</span>
         <span className="mt-1 block text-sm leading-6 text-slate-600">
-          Pfeife, Hupe oder Buzzer. Beim Abpfiff läuft der Alarm bis er gestoppt wird.
-          Beim reinen Halbzeit-Signal klingelt er nur etwa 10 Sekunden.
+          {t("settings.gameTimer.alarmHint")}
         </span>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <select
@@ -229,7 +229,11 @@ export default function GameTimerSettingsCard({
           >
             {GAME_TIMER_ALARM_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {option.value === "whistle"
+                  ? t("settings.gameTimer.whistle")
+                  : option.value === "horn"
+                    ? t("settings.gameTimer.horn")
+                    : t("settings.gameTimer.buzzer")}
               </option>
             ))}
           </select>
@@ -238,14 +242,13 @@ export default function GameTimerSettingsCard({
             onClick={() => void testSound()}
             className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Ton testen
+            {t("gameTimer.testSound")}
           </button>
         </div>
       </label>
 
       <div className="rounded-[20px] border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">
-        Der Timer bleibt lokal auf dem Gerät, das ihn startet. In den nativen Apps werden Halbzeit und Abpfiff so geplant,
-        dass der Bildschirm gesperrt werden kann; gekoppelte Smartwatches können die Systemmeldung übernehmen.
+        {t("settings.gameTimer.info")}
       </div>
 
       {error ? (
@@ -266,7 +269,7 @@ export default function GameTimerSettingsCard({
         disabled={saving}
         className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {saving ? "Speichert…" : "Spieluhr speichern"}
+        {saving ? t("profile.savingShort") : t("settings.gameTimer.save")}
       </button>
     </div>
   );
