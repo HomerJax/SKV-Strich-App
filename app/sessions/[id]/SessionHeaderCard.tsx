@@ -129,7 +129,7 @@ function WinnerPhotoPreview({
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/28 via-transparent to-transparent" />
       <div className="absolute bottom-1.5 left-1.5 rounded-full bg-black/40 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm">
-        Foto
+        {t("sessionHeader.photo")}
       </div>
     </div>
   );
@@ -165,7 +165,6 @@ export default function SessionHeaderCard({
   seriesId = null,
   resultCount = 0,
 }: Props) {
-  const { t } = useI18n();
   const { locale, t } = useI18n();
   const isEvent = sessionType === "event";
   const hasTeams = teamACount > 0 || teamBCount > 0;
