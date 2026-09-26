@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { getServerI18n } from "@/lib/i18n/server";
 
 function getSafeNext(next: string | null) {
   if (!next) return "/";
@@ -16,6 +17,7 @@ function getRedirectOrigin(requestOrigin: string) {
 }
 
 export async function GET(request: Request) {
+  const { t } = await getServerI18n();
   const { searchParams, origin: requestOrigin } = new URL(request.url);
   const origin = getRedirectOrigin(requestOrigin);
 
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
     if (error) {
       return NextResponse.redirect(
         `${origin}/login/forgot-password?error=${encodeURIComponent(
-          "Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an."
+          t("auth.resetInvalid")
         )}`
       );
     }
@@ -61,7 +63,7 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.redirect(
       `${origin}/login/forgot-password?error=${encodeURIComponent(
-        "Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen Link an."
+        t("auth.resetInvalid")
       )}`
     );
   }
