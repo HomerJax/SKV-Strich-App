@@ -2705,6 +2705,22 @@ export const DE_MESSAGES = {
   "power.badges.section.special.title": "Specials & Secret",
   "power.badges.section.special.eyebrow": "Besondere Badges",
   "power.badges.section.special.description": "Seltene Geschichten und versteckte Achievements. Diese dürfen am individuellsten und überraschendsten aussehen.",
+  "support.mailSubject": "strikr Supportanfrage",
+  "support.back": "← Zurück",
+  "support.eyebrow": "Hilfe & Kontakt",
+  "support.title": "strikr Support",
+  "support.intro": "Du hast ein Problem mit deinem Konto, einem Club, einer Session oder einer Funktion in strikr? Schreib eine E-Mail mit einer kurzen Beschreibung. Screenshots helfen bei technischen Problemen.",
+  "support.emailCta": "Support per E-Mail kontaktieren",
+  "support.techTitle": "Technische Probleme",
+  "support.techText": "Bitte nenne Gerät, Betriebssystem, betroffene Seite und die Schritte, nach denen der Fehler auftritt.",
+  "support.privacyTitle": "Konto & Datenschutz",
+  "support.privacyText": "Für Auskunft, Berichtigung oder Löschfragen kannst du dieselbe Support-Adresse verwenden.",
+  "support.deleteTitle": "Konto dauerhaft löschen",
+  "support.deleteText": "Angemeldete Nutzer können ihr Konto direkt unter Profil → Konto dauerhaft löschen entfernen. Eine öffentliche Schritt-für-Schritt-Anleitung findest du auf der Löschseite.",
+  "support.deleteGuide": "Anleitung zur Kontolöschung",
+  "support.contact": "Support-Kontakt: {name} ·",
+  "support.privacy": "Datenschutz",
+  "support.imprint": "Impressum",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5430,6 +5446,23 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "power.badges.section.special.title": "Specials & Secret",
   "power.badges.section.special.eyebrow": "Special badges",
   "power.badges.section.special.description": "Rare stories and hidden achievements. These can look the most individual and surprising.",
+
+  "support.mailSubject": "strikr support request",
+  "support.back": "← Back",
+  "support.eyebrow": "Help & contact",
+  "support.title": "strikr Support",
+  "support.intro": "Having a problem with your account, a club, a session or a feature in strikr? Send us an email with a short description. Screenshots are helpful for technical issues.",
+  "support.emailCta": "Contact support by email",
+  "support.techTitle": "Technical issues",
+  "support.techText": "Please include your device, operating system, affected page and the steps that lead to the issue.",
+  "support.privacyTitle": "Account & privacy",
+  "support.privacyText": "You can use the same support address for access, correction or deletion requests.",
+  "support.deleteTitle": "Permanently delete account",
+  "support.deleteText": "Signed-in users can delete their account directly under Profile → Permanently delete account. A public step-by-step guide is available on the deletion page.",
+  "support.deleteGuide": "Account deletion guide",
+  "support.contact": "Support contact: {name} ·",
+  "support.privacy": "Privacy",
+  "support.imprint": "Legal notice",
 
 };
 
