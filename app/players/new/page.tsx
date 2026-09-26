@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type PreferredPosition = "defense" | "attack" | "goalkeeper" | null;
 type AgeGroup = "AH" | "Ü32" | null;
@@ -34,6 +35,7 @@ type PageProps = {
 };
 
 export default async function NewPlayerPage({ searchParams }: PageProps) {
+  const { t } = await getServerI18n();
   await requireClub();
   const resolvedSearchParams = await searchParams;
   const errorMsg = resolvedSearchParams?.error ?? "";
@@ -42,6 +44,7 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
     "use server";
 
     const { clubId } = await requireClub();
+    const { t: actionT } = await getServerI18n();
     const supabase = await createClient();
 
     const firstName = clean(String(formData.get("first_name") ?? ""));
@@ -54,7 +57,7 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
 
     if (!nickname && !firstName && !lastName) {
       redirect(
-        "/players/new?error=Bitte%20mindestens%20Spitzname%20oder%20Vorname/Nachname%20eingeben."
+        `/players/new?error=${encodeURIComponent(actionT("players.nameRequired"))}`
       );
     }
 
@@ -65,7 +68,7 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
     });
 
     if (!legacyName) {
-      redirect("/players/new?error=Der%20Spielername%20konnte%20nicht%20erstellt%20werden.");
+      redirect(`/players/new?error=${encodeURIComponent(actionT("players.nameCreateFailed"))}`);
     }
 
     const { error } = await supabase.from("players").insert({
@@ -94,14 +97,14 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
           href="/players"
           className="text-xs text-slate-500 hover:text-slate-700"
         >
-          ← Zurück zur Übersicht
+          ← {t("players.backOverview")}
         </Link>
 
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Neuen Spieler anlegen
+          {t("players.createTitle")}
         </h1>
         <p className="text-sm text-slate-500">
-          Anzeige in der App: Spitzname, sonst Vorname + Nachname.
+          {t("players.createHint")}
         </p>
       </div>
 
@@ -112,7 +115,7 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1">
             <label className="block text-sm font-medium text-slate-700">
-              Vorname
+              {t("players.firstName")}
             </label>
             <input
               name="first_name"
@@ -123,7 +126,7 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
 
           <div className="space-y-1">
             <label className="block text-sm font-medium text-slate-700">
-              Nachname
+              {t("players.lastName")}
             </label>
             <input
               name="last_name"
@@ -135,7 +138,7 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
 
         <div className="space-y-1">
           <label className="block text-sm font-medium text-slate-700">
-            Spitzname (optional)
+            {t("players.nicknameOptional")}
           </label>
           <input
             name="nickname"
@@ -147,7 +150,7 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1">
             <label className="block text-sm font-medium text-slate-700">
-              Altersgruppe
+              {t("players.ageGroup")}
             </label>
             <select
               name="age_group"
@@ -161,16 +164,16 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
 
           <div className="space-y-1">
             <label className="block text-sm font-medium text-slate-700">
-              Position
+              {t("players.position")}
             </label>
             <select
               name="preferred_position"
               defaultValue="attack"
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400"
             >
-              <option value="defense">Hinten (Abwehr)</option>
-              <option value="attack">Mittelfeld/Vorne</option>
-              <option value="goalkeeper">Torwart</option>
+              <option value="defense">{t("players.positionDefenseLong")}</option>
+              <option value="attack">{t("players.positionAttack")}</option>
+              <option value="goalkeeper">{t("players.positionGoalkeeper")}</option>
             </select>
           </div>
         </div>
@@ -186,14 +189,14 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
             type="submit"
             className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
           >
-            Spieler anlegen
+            {t("players.create")}
           </button>
 
           <Link
             href="/players"
             className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
-            Abbrechen
+            {t("common.cancel")}
           </Link>
         </div>
       </form>
