@@ -7,6 +7,8 @@ import {
   requestPasswordResetAction,
   type ForgotPasswordState,
 } from "./actions";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type ForgotPasswordFormProps = {
   initialEmail?: string;
@@ -20,23 +22,18 @@ const INITIAL_STATE: ForgotPasswordState = {
   success: "",
 };
 
-function getErrorMessage(error: string) {
+function getErrorMessage(error: string, t: (key: MessageKey) => string) {
   switch (error) {
-    case "missing-email":
-      return "Bitte gib deine E-Mail-Adresse ein.";
-    case "reset-failed":
-      return "Die E-Mail zum Zurücksetzen konnte nicht versendet werden.";
-    default:
-      return error || "";
+    case "missing-email": return t("passwordForgot.errorEmail");
+    case "reset-failed": return t("passwordForgot.errorSend");
+    default: return error || "";
   }
 }
 
-function getSuccessMessage(success: string) {
+function getSuccessMessage(success: string, t: (key: MessageKey) => string) {
   switch (success) {
-    case "reset-sent":
-      return "Wir haben dir eine E-Mail zum Zurücksetzen deines Passworts geschickt.";
-    default:
-      return success || "";
+    case "reset-sent": return t("passwordForgot.success");
+    default: return success || "";
   }
 }
 
@@ -46,6 +43,7 @@ export default function ForgotPasswordForm({
   initialSuccess = "",
   initialNext = "",
 }: ForgotPasswordFormProps) {
+  const { t } = useI18n();
   const [email, setEmail] = useState(initialEmail);
   const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
 
@@ -59,10 +57,10 @@ export default function ForgotPasswordForm({
     ? ""
     : state.success || initialSuccess;
 
-  const errorMessage = useMemo(() => getErrorMessage(activeError), [activeError]);
+  const errorMessage = useMemo(() => getErrorMessage(activeError, t), [activeError, t]);
   const successMessage = useMemo(
-    () => getSuccessMessage(activeSuccess),
-    [activeSuccess]
+    () => getSuccessMessage(activeSuccess, t),
+    [activeSuccess, t]
   );
 
   const backToLoginHref = initialNext
@@ -88,11 +86,10 @@ export default function ForgotPasswordForm({
 
         <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-2xl font-semibold text-neutral-950">
-            Passwort vergessen
+            {t("passwordForgot.title")}
           </h1>
           <p className="mt-1 text-sm text-neutral-600">
-            Gib deine E-Mail ein. Wir senden dir einen Link, mit dem du dein
-            Passwort neu setzen kannst.
+            {t("passwordForgot.description")}
           </p>
 
           {errorMessage ? (
@@ -116,7 +113,7 @@ export default function ForgotPasswordForm({
 
             <div>
               <label className="mb-1 block text-sm font-medium text-neutral-800">
-                E-Mail
+                {t("passwordForgot.email")}
               </label>
               <input
                 name="email"
@@ -139,7 +136,7 @@ export default function ForgotPasswordForm({
               disabled={isPending}
               className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isPending ? "Senden..." : "Reset-Link senden"}
+              {isPending ? t("passwordForgot.sending") : t("passwordForgot.send")}
             </button>
           </form>
 
@@ -148,7 +145,7 @@ export default function ForgotPasswordForm({
               href={backToLoginHref}
               className="font-medium text-neutral-900 hover:underline"
             >
-              Zurück zum Login
+              {t("passwordForgot.back")}
             </Link>
           </div>
         </div>
