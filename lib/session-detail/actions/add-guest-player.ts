@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { fail, ok } from "@/lib/session-detail/response";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -43,11 +44,12 @@ export async function handleAddGuestPlayer({
   guestAgeGroup,
   guestStrength,
 }: AddGuestPlayerInput) {
+  const { t } = await getServerI18n();
   const role = membership.role;
 
   if (!canAddGuestPlayer(role)) {
     return fail(
-      "Gastspieler können aktuell nur von Admins angelegt werden.",
+      t("sessionAction.guestAdminOnly"),
       403
     );
   }
@@ -65,12 +67,12 @@ export async function handleAddGuestPlayer({
 
   if (existingResult?.id) {
     return fail(
-      "Gastspieler können nicht mehr hinzugefügt werden, wenn bereits ein Ergebnis gespeichert ist."
+      t("sessionAction.guestAfterResult")
     );
   }
 
   if (!guestName.trim()) {
-    return fail("Bitte einen Namen für den Gastspieler eingeben.");
+    return fail(t("sessionAction.guestNameRequired"));
   }
 
   const cleanStrength = guestStrength.trim();
@@ -80,7 +82,7 @@ export async function handleAddGuestPlayer({
     parsedStrength !== null &&
     (!Number.isInteger(parsedStrength) || parsedStrength < 1 || parsedStrength > 5)
   ) {
-    return fail("Bitte eine gültige Stärke zwischen 1 und 5 wählen.");
+    return fail(t("sessionAction.guestStrengthInvalid"));
   }
 
   const payload = {
@@ -120,7 +122,7 @@ export async function handleAddGuestPlayer({
   }
 
   return ok({
-    message: "Gastspieler angelegt und direkt zur Anwesenheit hinzugefügt.",
+    message: t("sessionAction.guestCreated"),
     player: typedCreatedPlayer,
   });
 }
