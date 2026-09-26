@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requirePowerUser } from "@/lib/auth/power-user";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
 import {
   PowerUserAuthUser,
   listAllAuthUsers,
@@ -27,13 +29,14 @@ type UserClubAssignment = {
   created_at: string;
 };
 
-function formatDateTime(value: string | null | undefined) {
+function formatDateTime(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleString("de-DE");
+  return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-GB");
 }
 
 export default async function PowerUserUsersPage() {
   await requirePowerUser();
+  const { locale, t } = await getServerI18n();
 
   const supabase = await createClient();
 
@@ -55,7 +58,7 @@ export default async function PowerUserUsersPage() {
   const clubNameById = new Map(
     clubs.map((club) => [
       club.id,
-      club.display_name?.trim() || club.name?.trim() || "Unbenannter Club",
+      club.display_name?.trim() || club.name?.trim() || t("power.unnamedClub"),
     ])
   );
 
@@ -64,7 +67,7 @@ export default async function PowerUserUsersPage() {
   for (const membership of memberships) {
     const current = assignmentsByUserId.get(membership.user_id) ?? [];
     current.push({
-      clubName: clubNameById.get(membership.club_id) ?? "Unbekannter Club",
+      clubName: clubNameById.get(membership.club_id) ?? t("power.unknownClub"),
       role: membership.role,
       created_at: membership.created_at,
     });
@@ -85,7 +88,7 @@ export default async function PowerUserUsersPage() {
             href="/power-user"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Power User Dashboard
+            ← {t("power.backDashboard")}
           </Link>
         </div>
 
@@ -100,10 +103,10 @@ export default async function PowerUserUsersPage() {
                 Power User / Users
               </div>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-                Alle User
+                {t("power.users.title")}
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Liste aller Auth-User inklusive Club-Zuordnungen und Rollen.
+                {t("power.users.description")}
               </p>
             </div>
           </div>
@@ -111,7 +114,7 @@ export default async function PowerUserUsersPage() {
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           {sortedUsers.length === 0 ? (
-            <div className="text-sm text-slate-600">Keine User gefunden.</div>
+            <div className="text-sm text-slate-600">{t("power.users.empty")}</div>
           ) : (
             <div className="space-y-3">
               {sortedUsers.map((user: PowerUserAuthUser) => {
@@ -131,19 +134,19 @@ export default async function PowerUserUsersPage() {
                           User ID: {user.id}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">
-                          Registriert: {formatDateTime(user.created_at)}
+                          {t("power.users.registered", { date: formatDateTime(user.created_at, locale) })}
                         </div>
                       </div>
 
                       <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
-                        Clubs: {assignments.length}
+                        {t("power.users.clubs", { count: assignments.length })}
                       </div>
                     </div>
 
                     <div className="mt-4">
                       {assignments.length === 0 ? (
                         <div className="text-sm text-slate-600">
-                          Noch keinem Club zugeordnet.
+                          {t("power.users.unassigned")}
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -156,10 +159,10 @@ export default async function PowerUserUsersPage() {
                                 {assignment.clubName}
                               </div>
                               <div className="mt-1 text-xs text-slate-600">
-                                Rolle: {assignment.role}
+                                {t("power.users.role", { role: assignment.role })}
                               </div>
                               <div className="mt-1 text-xs text-slate-500">
-                                seit {formatDateTime(assignment.created_at)}
+                                {t("power.users.since", { date: formatDateTime(assignment.created_at, locale) })}
                               </div>
                             </div>
                           ))}
