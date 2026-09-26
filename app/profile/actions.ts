@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export type ProfileState = {
   error: string;
@@ -15,6 +16,7 @@ export async function updateProfileAction(
   _prevState: ProfileState,
   formData: FormData
 ): Promise<ProfileState> {
+  const { t } = await getServerI18n();
   const firstName = normalizeText(formData.get("first_name"));
   const lastName = normalizeText(formData.get("last_name"));
   const nickname = normalizeText(formData.get("nickname"));
@@ -22,7 +24,7 @@ export async function updateProfileAction(
 
   if (!firstName || !lastName) {
     return {
-      error: "Vorname und Nachname sind erforderlich.",
+      error: t("profileAction.nameRequired"),
       success: "",
     };
   }
@@ -36,7 +38,7 @@ export async function updateProfileAction(
 
   if (userError || !user) {
     return {
-      error: "Du musst eingeloggt sein.",
+      error: t("profileAction.signInRequired"),
       success: "",
     };
   }
@@ -50,7 +52,7 @@ export async function updateProfileAction(
 
   if (playerLoadError) {
     return {
-      error: "Spielerprofil konnte nicht geladen werden.",
+      error: t("profileAction.playerLoadFailed"),
       success: "",
     };
   }
@@ -68,7 +70,7 @@ export async function updateProfileAction(
 
     if (playerUpdateError) {
       return {
-        error: "Profil konnte nicht aktualisiert werden.",
+        error: t("profileAction.updateFailed"),
         success: "",
       };
     }
@@ -85,7 +87,7 @@ export async function updateProfileAction(
 
     if (playerInsertError) {
       return {
-        error: "Profil konnte nicht angelegt werden.",
+        error: t("profileAction.createFailed"),
         success: "",
       };
     }
@@ -99,7 +101,7 @@ export async function updateProfileAction(
     if (emailUpdateError) {
       return {
         error:
-          "Profil gespeichert, aber die E-Mail-Adresse konnte nicht geändert werden.",
+          t("profileAction.emailUpdateFailed"),
         success: "",
       };
     }
@@ -107,6 +109,6 @@ export async function updateProfileAction(
 
   return {
     error: "",
-    success: "Profil erfolgreich gespeichert.",
+    success: t("profileAction.saved"),
   };
 }
