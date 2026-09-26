@@ -14,8 +14,6 @@ export function isMeaningfulRsvpReason(value: string) {
   return uniqueLetters.size >= 2;
 }
 
-export function getRequiredRsvpReasonError(value: string) {
-  return isMeaningfulRsvpReason(value)
-    ? null
-    : "Bitte gib einen kurzen echten Grund an – mindestens 4 Buchstaben, nicht nur Punkte oder einzelne Zeichen.";
+export function getRequiredRsvpReasonError(value: string, errorMessage: string) {
+  return isMeaningfulRsvpReason(value) ? null : errorMessage;
 }
