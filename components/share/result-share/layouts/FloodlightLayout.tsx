@@ -10,6 +10,7 @@ import {
 import { pickResultShareColorway } from "../result-share.colorways";
 import { buildPalette } from "../result-share.palette";
 import { ExtendedResultShareData } from "../result-share.types";
+import { translate } from "@/lib/i18n/messages";
 
 function renderStrikrTopBadge({
   strikrLogoUrl,
@@ -133,7 +134,7 @@ function renderStrikrTopBadge({
 export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
   const clubName = getDisplayClubName(data);
   const clubLogoUrl = getClubLogoUrl(data);
-  const copy = buildCopy(data);
+  const copy = buildCopy(data, data.locale);
   const palette = buildPalette(data.clubPrimaryColor, "floodlight");
   const score = getScoreModel(data);
   const colorway = pickResultShareColorway(data.sessionId);
@@ -322,7 +323,7 @@ export function FloodlightLayout({ data }: { data: ExtendedResultShareData }) {
                 textTransform: "uppercase",
               }}
             >
-              Endstand
+              {translate(data.locale ?? "de", "resultShare.finalScore")}
             </div>
 
             <div
