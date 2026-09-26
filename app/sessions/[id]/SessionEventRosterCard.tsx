@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import type { Player } from "./session-types";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
   sessionId: number;
@@ -17,6 +18,7 @@ function isNominated(player: Player) {
 }
 
 export default function SessionEventRosterCard({ sessionId, players, isAdmin }: Props) {
+  const { t } = useI18n();
   const eligiblePlayers = useMemo(
     () => players.filter((player) => !player.is_guest),
     [players],
@@ -47,7 +49,7 @@ export default function SessionEventRosterCard({ sessionId, players, isAdmin }: 
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
 
       if (!response.ok) {
-        throw new Error(payload?.error || "Event-Kader konnte nicht aktualisiert werden.");
+        throw new Error(payload?.error || t("rsvp.rosterUpdateFailed"));
       }
 
       if (typeof window !== "undefined") {
@@ -55,7 +57,7 @@ export default function SessionEventRosterCard({ sessionId, players, isAdmin }: 
         window.location.reload();
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Event-Kader konnte nicht aktualisiert werden.");
+      setError(e instanceof Error ? e.message : t("rsvp.rosterUpdateFailed"));
       setBusyPlayerId(null);
     }
   }
@@ -64,17 +66,17 @@ export default function SessionEventRosterCard({ sessionId, players, isAdmin }: 
     <section className="rounded-[20px] border border-violet-200 bg-violet-50/60 p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-black text-slate-950">Event-Kader</div>
+          <div className="text-sm font-black text-slate-950">{t("rsvp.eventRoster")}</div>
           <p className="mt-1 text-[11px] leading-5 text-slate-600">
-            Standardmäßig sind alle Spieler dabei. Hier kannst du einzelne Spieler für diesen Termin aus dem Kader nehmen.
+            {t("rsvp.rosterDefaultFull")}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">
-              {nominatedCount} im Kader
+              {t("rsvp.inRosterCount", { count: nominatedCount })}
             </span>
             {excludedCount > 0 ? (
               <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200">
-                {excludedCount} nicht nominiert
+                {t("rsvp.notNominatedCount", { count: excludedCount })}
               </span>
             ) : null}
           </div>
@@ -85,7 +87,7 @@ export default function SessionEventRosterCard({ sessionId, players, isAdmin }: 
           onClick={() => setOpen((value) => !value)}
           className="shrink-0 rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white"
         >
-          {open ? "Schließen" : "Kader festlegen"}
+          {open ? t("rsvp.close") : t("rsvp.setRoster")}
         </button>
       </div>
 
@@ -112,7 +114,7 @@ export default function SessionEventRosterCard({ sessionId, players, isAdmin }: 
                 <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${
                   nominated ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
                 }`}>
-                  {busy ? "…" : nominated ? "IM KADER" : "NICHT IM KADER"}
+                  {busy ? "…" : nominated ? t("rsvp.inRoster") : t("rsvp.notInRoster")}
                 </span>
               </button>
             );
