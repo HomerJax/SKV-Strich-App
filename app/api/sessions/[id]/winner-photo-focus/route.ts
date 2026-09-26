@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { fail, ok } from "@/lib/session-detail/response";
 import { requireSessionAccess } from "@/lib/session-detail/access";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,16 +14,17 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const { t } = await getServerI18n();
   const { id } = await context.params;
   const sessionId = Number(id);
 
   if (!Number.isFinite(sessionId)) {
-    return fail("Ungültige Session-ID.", 400);
+    return fail(t("sessionAction.invalidId"), 400);
   }
 
   const access = await requireSessionAccess(sessionId);
   if ("error" in access) {
-    return fail(access.error ?? "Unbekannter Fehler.", access.status);
+    return fail(access.error ?? t("sessionCommon.unknownError"), access.status);
   }
 
   try {
@@ -37,7 +39,7 @@ export async function POST(
     const rawZoom = Number(payload.zoom);
 
     if (![rawX, rawY, rawZoom].every(Number.isFinite)) {
-      return fail("Ungültige Fokus-Daten.", 400);
+      return fail(t("winnerPhotoFocus.invalidData"), 400);
     }
 
     const focusX = clamp(rawX, 0, 1);
@@ -59,14 +61,14 @@ export async function POST(
     }
 
     return ok({
-      message: "Foto-Fokus gespeichert.",
+      message: t("winnerPhotoFocus.saved"),
       focusX,
       focusY,
       zoom,
     });
   } catch (error) {
     return fail(
-      error instanceof Error ? error.message : "Foto-Fokus konnte nicht gespeichert werden.",
+      error instanceof Error ? error.message : t("winnerPhotoFocus.saveFailed"),
       400
     );
   }
