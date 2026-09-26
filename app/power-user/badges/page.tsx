@@ -4,6 +4,7 @@ import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { BADGE_DEFINITIONS, getLocalizedBadgeDefinition } from "@/lib/badges/catalog";
 import { getServerI18n } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { getBadgeVisualMeta } from "@/lib/badges/visual-catalog";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,9 @@ type BadgeSectionKey =
   | "losses"
   | "special";
 
-function getSections(t: Awaited<ReturnType<typeof getServerI18n>>["t"]) {
+type Translate = (key: MessageKey, params?: Record<string, string | number | null | undefined>) => string;
+
+function getSections(t: Translate) {
   return [
     { key: "career-appearances" as const, title: t("power.badges.section.careerAppearances.title"), eyebrow: t("power.badges.section.careerAppearances.eyebrow"), description: t("power.badges.section.careerAppearances.description") },
     { key: "career-wins" as const, title: t("power.badges.section.careerWins.title"), eyebrow: t("power.badges.section.careerWins.eyebrow"), description: t("power.badges.section.careerWins.description") },
