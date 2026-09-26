@@ -7,6 +7,7 @@ import { Capacitor } from "@capacitor/core";
 import { Directory, Filesystem } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { fetchImageAsFile } from "@/lib/share/utils";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 const TABLE_ID = "export-standings";
 const PORTAL_ID = "standings-top10-share-portal";
@@ -25,6 +26,7 @@ async function fileToBase64(file: File) {
 }
 
 export default function StandingsTop10Share() {
+  const { locale, t } = useI18n();
   const searchParams = useSearchParams();
   const season = searchParams.get("season");
   const [preparedFile, setPreparedFile] = useState<File | null>(null);
@@ -77,8 +79,11 @@ export default function StandingsTop10Share() {
         setPreparedFile(null);
         setMessage(null);
 
-        const query = season ? `?season=${encodeURIComponent(season)}` : "";
-        const imageUrl = `/api/share/standings/image${query}${query ? "&" : "?"}ts=${Date.now()}`;
+        const params = new URLSearchParams();
+        if (season) params.set("season", season);
+        params.set("lang", locale);
+        params.set("ts", String(Date.now()));
+        const imageUrl = `/api/share/standings/image?${params.toString()}`;
         const file = await fetchImageAsFile(imageUrl, "strikr-top-10.png");
 
         if (cancelled) return;
@@ -89,7 +94,7 @@ export default function StandingsTop10Share() {
         setMessage(
           error instanceof Error
             ? error.message
-            : "Top-10-Sharecard konnte nicht vorbereitet werden."
+            : t("standings.top10PrepareFailed")
         );
       } finally {
         if (!cancelled) setPreparing(false);
@@ -101,7 +106,7 @@ export default function StandingsTop10Share() {
     return () => {
       cancelled = true;
     };
-  }, [season]);
+  }, [season, locale, t]);
 
   async function shareNative(file: File) {
     if (!Capacitor.isPluginAvailable("Share") || !Capacitor.isPluginAvailable("Filesystem")) {
@@ -118,9 +123,9 @@ export default function StandingsTop10Share() {
     });
 
     await Share.share({
-      title: "strikr Top 10",
+      title: t("standings.top10ShareTitle"),
       files: [written.uri],
-      dialogTitle: "Top 10 teilen",
+      dialogTitle: t("standings.top10DialogTitle"),
     });
   }
 
@@ -133,12 +138,12 @@ export default function StandingsTop10Share() {
     try {
       if (Capacitor.isNativePlatform()) {
         await shareNative(preparedFile);
-        setMessage("Top 10 erfolgreich geteilt.");
+        setMessage(t("standings.top10Shared"));
         return;
       }
 
       if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-        setMessage("Dieser Browser unterstützt das direkte Teilen der Top 10 nicht.");
+        setMessage(t("standings.top10Unsupported"));
         return;
       }
 
@@ -149,7 +154,7 @@ export default function StandingsTop10Share() {
 
         if (!canShareFiles) {
           throw new Error(
-            "Dieser Browser unterstützt das direkte Teilen der Top 10 nicht."
+            t("standings.top10Unsupported")
           );
         }
       }
@@ -158,10 +163,10 @@ export default function StandingsTop10Share() {
         files: [preparedFile],
       });
 
-      setMessage("Top 10 erfolgreich geteilt.");
+      setMessage(t("standings.top10Shared"));
     } catch (error: unknown) {
       if (error instanceof Error && error.message === "NATIVE_SHARE_UPDATE_REQUIRED") {
-        setMessage("Für das native Teilen ist ein App-Update erforderlich.");
+        setMessage(t("standings.nativeShareUpdate"));
         return;
       }
 
@@ -177,7 +182,7 @@ export default function StandingsTop10Share() {
       setMessage(
         error instanceof Error
           ? `${error.name}: ${error.message}`
-          : "Top 10 konnte nicht geteilt werden."
+          : t("standings.top10ShareFailed")
       );
     } finally {
       setSharing(false);
@@ -188,9 +193,9 @@ export default function StandingsTop10Share() {
     <section className="standings-top10-share rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_10px_32px_rgba(15,23,42,0.045)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-sm font-bold text-slate-900">Tabelle teilen</div>
+          <div className="text-sm font-bold text-slate-900">{t("standings.shareSection")}</div>
           <div className="mt-1 text-[11px] leading-5 text-slate-500">
-            Teile die aktuellen Top 10 als strikr Sharecard.
+            {t("standings.top10ShareHint")}
           </div>
         </div>
 
@@ -201,10 +206,10 @@ export default function StandingsTop10Share() {
           className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-55"
         >
           {preparing || !preparedFile
-            ? "Top 10 wird vorbereitet…"
+            ? t("standings.top10Preparing")
             : sharing
-              ? "Teile…"
-              : "Top 10 teilen"}
+              ? t("standings.sharing")
+              : t("standings.shareTop10")}
         </button>
       </div>
 
