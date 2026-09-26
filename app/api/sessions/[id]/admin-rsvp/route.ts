@@ -13,6 +13,7 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const { t } = await getServerI18n();
   const { id } = await context.params;
   const sessionId = Number(id);
 
