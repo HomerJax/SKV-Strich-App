@@ -2446,6 +2446,9 @@ export const DE_MESSAGES = {
   "toast.shareWinnerTitle": "Ich wurde zum MVP gewählt",
   "toast.shareWinnerText": "Meine MVP Card aus strikr.",
   "toast.shareResultText": "Das MVP Ergebnis aus strikr.",
+  "sessionHeader.back": "Zurück",
+  "members.saveRole": "Rolle speichern",
+  "power.backDashboard": "Zurück zum Power User Dashboard",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -4899,6 +4902,10 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "toast.shareWinnerTitle": "I was voted MVP",
   "toast.shareWinnerText": "My MVP card from strikr.",
   "toast.shareResultText": "The MVP result from strikr.",
+
+  "sessionHeader.back": "Back",
+  "members.saveRole": "Save role",
+  "power.backDashboard": "Back to Power User Dashboard",
 
 };
 
