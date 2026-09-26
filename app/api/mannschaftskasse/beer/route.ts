@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { notifyBeerManagers } from "@/lib/cashbox/beer-notifications";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export async function POST(request: Request) {
   const { t } = await getServerI18n();
