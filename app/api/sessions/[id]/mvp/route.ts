@@ -3,6 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { getMvpVotingAccessForSession } from "@/lib/billing/mvp-access";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/messages";
+
+type Translate = (
+  key: MessageKey,
+  params?: Record<string, string | number | null | undefined>,
+) => string;
 
 type RouteContext = {
   params: Promise<{
@@ -93,8 +100,8 @@ function normalizePlayerRelation(
   return player;
 }
 
-function getPlayerName(player: PlayerRow | null) {
-  if (!player) return "Spieler";
+function getPlayerName(player: PlayerRow | null, playerFallback: string) {
+  if (!player) return playerFallback;
 
   const fullName = [player.first_name, player.last_name]
     .map((value) => value?.trim())
@@ -102,7 +109,7 @@ function getPlayerName(player: PlayerRow | null) {
     .join(" ")
     .trim();
 
-  return fullName || "Spieler";
+  return fullName || playerFallback;
 }
 
 function safeMvpCount(value: number | null | undefined) {
@@ -208,7 +215,7 @@ async function isPowerUser(userId: string) {
   return data?.is_power_user === true;
 }
 
-async function loadSessionBase(sessionId: number) {
+async function loadSessionBase(sessionId: number, t: Translate) {
   const supabase = await createClient();
 
   const {
@@ -217,7 +224,7 @@ async function loadSessionBase(sessionId: number) {
 
   if (!user) {
     return {
-      error: NextResponse.json({ error: "Nicht eingeloggt." }, { status: 401 }),
+      error: NextResponse.json({ error: t("mvpApi.notSignedIn") }, { status: 401 }),
     };
   }
 
@@ -229,7 +236,7 @@ async function loadSessionBase(sessionId: number) {
     const message =
       error instanceof Error
         ? error.message
-        : "Power-User-Rolle konnte nicht geprüft werden.";
+        : t("mvpApi.powerRoleCheckFailed");
 
     return {
       error: NextResponse.json({ error: message }, { status: 500 }),
@@ -253,7 +260,7 @@ async function loadSessionBase(sessionId: number) {
   if (!sessionData) {
     return {
       error: NextResponse.json(
-        { error: "Session nicht gefunden." },
+        { error: t("mvpApi.sessionNotFound") },
         { status: 404 }
       ),
     };
@@ -279,7 +286,7 @@ async function loadSessionBase(sessionId: number) {
     if (!membership) {
       return {
         error: NextResponse.json(
-          { error: "Kein Zugriff auf diesen Club." },
+          { error: t("mvpApi.noClubAccess") },
           { status: 403 }
         ),
       };
@@ -291,7 +298,7 @@ async function loadSessionBase(sessionId: number) {
   if (flags.session_mvp_voting !== true) {
     return {
       error: NextResponse.json(
-        { error: "MVP Voting ist für diesen Club nicht aktiviert." },
+        { error: t("mvpApi.disabled") },
         { status: 404 }
       ),
     };
@@ -308,11 +315,12 @@ async function loadSessionBase(sessionId: number) {
 async function loadParticipantsAndVotes(params: {
   sessionId: number;
   userId: string;
+  playerFallback: string;
   supabase:
     | Awaited<ReturnType<typeof createClient>>
     | ReturnType<typeof createAdminClient>;
 }) {
-  const { sessionId, userId, supabase } = params;
+  const { sessionId, userId, playerFallback, supabase } = params;
 
   const [
     { data: sessionPlayerData, error: sessionPlayerError },
@@ -370,7 +378,7 @@ async function loadParticipantsAndVotes(params: {
 
       return {
         id: row.player_id,
-        name: getPlayerName(player),
+        name: getPlayerName(player, playerFallback),
         userId: player.user_id ?? null,
         mvpCount: safeMvpCount(player.mvp_count),
       };
@@ -421,8 +429,9 @@ async function loadParticipantsAndVotes(params: {
 function buildResults(params: {
   participants: Participant[];
   voteRows: VoteRow[];
+  playerFallback: string;
 }): MvpResults {
-  const { participants, voteRows } = params;
+  const { participants, voteRows, playerFallback } = params;
 
   if (voteRows.length === 0) {
     return {
@@ -451,7 +460,7 @@ function buildResults(params: {
 
       return {
         playerId,
-        name: participant?.name ?? "Spieler",
+        name: participant?.name ?? playerFallback,
         votes,
         mvpCount: safeMvpCount(participant?.mvpCount),
       };
@@ -510,7 +519,7 @@ function buildResultsAfterFreshFinalization(results: MvpResults): MvpResults {
 }
 
 
-async function getClubShareBranding(clubId: string) {
+async function getClubShareBranding(clubId: string, t: Translate) {
   const admin = createAdminClient();
 
   const { data: clubData, error: clubError } = await admin
@@ -520,7 +529,7 @@ async function getClubShareBranding(clubId: string) {
     .maybeSingle();
 
   if (clubError) {
-    throw new Error(`Clubdaten konnten nicht geladen werden: ${clubError.message}`);
+    throw new Error(t("mvpApi.clubLoadFailed", { error: clubError.message }));
   }
 
   let clubLogoUrl: string | null = null;
@@ -553,11 +562,12 @@ async function ensureResultNotifications(params: {
   winners: Array<{ playerId: number; name: string; votes: number }>;
   participants: Participant[];
   results: MvpResults;
+  t: Translate;
 }) {
-  const { clubId, sessionId, winners, participants, results } = params;
+  const { clubId, sessionId, winners, participants, results, t } = params;
 
   const admin = createAdminClient();
-  const clubBranding = await getClubShareBranding(clubId);
+  const clubBranding = await getClubShareBranding(clubId, t);
 
   const hasSingleWinner = winners.length === 1;
   const winnerNames = winners.map((entry) => entry.name).join(", ") || "Der MVP";
@@ -647,8 +657,9 @@ async function finalizeMvpIfNeeded(params: {
   session: SessionRow;
   results: MvpResults;
   participants: Participant[];
+  t: Translate;
 }) {
-  const { session, results, participants } = params;
+  const { session, results, participants, t } = params;
 
   if (session.mvp_voting_finalized_at) {
     return results;
@@ -713,30 +724,32 @@ async function finalizeMvpIfNeeded(params: {
     winners: finalizedResults.winners,
     participants,
     results: finalizedResults,
+    t,
   });
 
   return finalizedResults;
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
+  const { t } = await getServerI18n();
   const { id } = await context.params;
   const sessionId = Number(id);
 
   if (!Number.isFinite(sessionId)) {
     return NextResponse.json(
-      { error: "Ungültige Session-ID." },
+      { error: t("sessionAction.invalidId") },
       { status: 400 }
     );
   }
 
-  const base = await loadSessionBase(sessionId);
+  const base = await loadSessionBase(sessionId, t);
 
   if ("error" in base) {
     return base.error;
   }
 
   const { supabase, user, session, isPowerUser } = base;
-  const clubBranding = await getClubShareBranding(session.club_id);
+  const clubBranding = await getClubShareBranding(session.club_id, t);
   const mvpAccess = await getMvpVotingAccessForSession({
     supabase,
     clubId: session.club_id,
@@ -754,7 +767,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json(
       {
         error:
-          "Manuelles MVP-Finalisieren ist in dieser Umgebung nicht aktiviert.",
+          t("mvpApi.forceDisabled"),
       },
       { status: 403 }
     );
@@ -762,7 +775,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   if (forceFinalize && !isPowerUser) {
     return NextResponse.json(
-      { error: "Nur Power User dürfen MVP Voting manuell finalisieren." },
+      { error: t("mvpApi.forcePowerOnly") },
       { status: 403 }
     );
   }
@@ -820,6 +833,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       sessionId,
       userId: user.id,
       supabase,
+      playerFallback: t("mvpApi.playerFallback"),
     });
 
     const currentUserParticipant =
@@ -832,6 +846,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       ? buildResults({
           participants,
           voteRows,
+          playerFallback: t("mvpApi.playerFallback"),
         })
       : null;
 
@@ -840,6 +855,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         session,
         results,
         participants,
+        t,
       });
     }
 
@@ -869,24 +885,25 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const message =
       error instanceof Error
         ? error.message
-        : "MVP-Daten konnten nicht geladen werden.";
+        : t("mvpApi.loadFailed");
 
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  const { t } = await getServerI18n();
   const { id } = await context.params;
   const sessionId = Number(id);
 
   if (!Number.isFinite(sessionId)) {
     return NextResponse.json(
-      { error: "Ungültige Session-ID." },
+      { error: t("sessionAction.invalidId") },
       { status: 400 }
     );
   }
 
-  const base = await loadSessionBase(sessionId);
+  const base = await loadSessionBase(sessionId, t);
 
   if ("error" in base) {
     return base.error;
@@ -899,7 +916,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   if (!Number.isFinite(votedPlayerId)) {
     return NextResponse.json(
-      { error: "Ungültiger Spieler für die Abstimmung." },
+      { error: t("mvpApi.invalidPlayer") },
       { status: 400 }
     );
   }
@@ -917,7 +934,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   if (!resultData) {
     return NextResponse.json(
-      { error: "MVP Voting startet erst, sobald ein Ergebnis gespeichert wurde." },
+      { error: t("mvpApi.resultRequired") },
       { status: 400 }
     );
   }
@@ -933,7 +950,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json(
       {
         error:
-          "Die 4 kostenlosen MVP-Abstimmungen dieser Saison sind aufgebraucht. Mit strikr Pro ist MVP Voting unbegrenzt.",
+          t("mvpApi.freeLimit"),
         mvpAccess,
       },
       { status: 403 }
@@ -942,7 +959,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   if (session.mvp_voting_finalized_at || !isVotingOpen(session.date)) {
     return NextResponse.json(
-      { error: "Das MVP Voting ist bereits beendet." },
+      { error: t("mvpApi.votingEnded") },
       { status: 400 }
     );
   }
@@ -954,6 +971,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       sessionId,
       userId: user.id,
       supabase,
+      playerFallback: t("mvpApi.playerFallback"),
     });
 
     const currentUserParticipant = participants.find(
@@ -964,7 +982,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json(
         {
           error:
-            "Abstimmen können nur anwesende Teilnehmer mit verknüpftem Spielerprofil.",
+            t("mvpApi.voterNotEligible"),
         },
         { status: 403 }
       );
@@ -976,7 +994,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!votedParticipant) {
       return NextResponse.json(
-        { error: "Für diesen Spieler kann nicht abgestimmt werden." },
+        { error: t("mvpApi.playerNotEligible") },
         { status: 400 }
       );
     }
@@ -1017,7 +1035,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const message =
       error instanceof Error
         ? error.message
-        : "MVP-Stimme konnte nicht gespeichert werden.";
+        : t("mvpApi.voteSaveFailed");
 
     return NextResponse.json({ error: message }, { status: 500 });
   }
