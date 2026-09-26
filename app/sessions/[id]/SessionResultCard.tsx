@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { ChangeEvent, RefObject } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
   hasResult: boolean;
@@ -60,6 +61,7 @@ export default function SessionResultCard({
   showPhotoSection = true,
   showShareSection = true,
 }: Props) {
+  const { t } = useI18n();
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,48 +97,48 @@ export default function SessionResultCard({
         <div>
           <div className="text-sm font-semibold text-slate-500">
             {showResultSection && !showPhotoSection
-              ? "Ergebnis"
+              ? t("legacyResult.result")
               : !showResultSection && showPhotoSection
-                ? "Siegerfoto"
-                : "Session-Abschluss"}
+                ? t("legacyResult.photo")
+                : t("legacyResult.complete")}
           </div>
 
           <h2 className="mt-1 text-xl font-bold text-slate-950">
             {title ??
               (showResultSection && !showPhotoSection
-                ? "Ergebnis eintragen"
+                ? t("legacyResult.enterResult")
                 : !showResultSection && showPhotoSection
-                  ? "Siegerfoto hochladen"
-                  : "Ergebnis & Siegerfoto")}
+                  ? t("legacyResult.uploadPhoto")
+                  : t("legacyResult.resultAndPhoto"))}
           </h2>
 
           <p className="mt-1 text-sm text-slate-600">
             {description ??
               (showResultSection && !showPhotoSection
-                ? "Trage das Endergebnis ein und speichere es."
+                ? t("legacyResult.finalScoreHint")
                 : !showResultSection && showPhotoSection
-                  ? "Optional: Lade direkt nach dem Training ein Siegerfoto hoch."
-                  : "Trage das Ergebnis ein und ergänze optional ein Siegerfoto.")}
+                  ? t("legacyResult.photoHint")
+                  : t("legacyResult.resultHint"))}
           </p>
         </div>
 
         {showResultSection ? (
           hasResult ? (
             <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-              Gespeichert
+              {t("legacyResult.saved")}
             </div>
           ) : (
             <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-              Offen
+              {t("legacyResult.open")}
             </div>
           )
         ) : hasWinnerPhoto || previewUrl ? (
           <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-            Foto vorhanden
+            {t("legacyResult.photoAvailable")}
           </div>
         ) : (
           <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-            Optional
+            {t("legacyResult.optional")}
           </div>
         )}
       </div>
@@ -146,7 +148,7 @@ export default function SessionResultCard({
           <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:max-w-xs">
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-500">
-                Team A
+                {t("legacyResult.teamA")}
               </label>
               <input
                 inputMode="numeric"
@@ -162,7 +164,7 @@ export default function SessionResultCard({
 
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-500">
-                Team B
+                {t("legacyResult.teamB")}
               </label>
               <input
                 inputMode="numeric"
@@ -183,10 +185,10 @@ export default function SessionResultCard({
               className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving
-                ? "Speichert..."
+                ? t("legacyResult.saving")
                 : hasResult
-                  ? "Ergebnis aktualisieren"
-                  : "Ergebnis speichern"}
+                  ? t("legacyResult.update")
+                  : t("legacyResult.save")}
             </button>
 
             {hasResult ? (
@@ -196,7 +198,7 @@ export default function SessionResultCard({
                 disabled={saving}
                 className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Ergebnis löschen
+                {t("legacyResult.delete")}
               </button>
             ) : null}
           </div>
@@ -207,18 +209,18 @@ export default function SessionResultCard({
         <div className={showResultSection ? "mt-6 border-t border-slate-200 pt-5" : "mt-5"}>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-sm font-semibold text-slate-500">Siegerfoto</div>
+              <div className="text-sm font-semibold text-slate-500">{t("legacyResult.photo")}</div>
               <h3 className="mt-1 text-base font-bold text-slate-950">
-                Foto hochladen
+                {t("legacyResult.upload")}
               </h3>
               <p className="mt-1 text-sm text-slate-600">
-                Optional: Ein kleines Siegerfoto ergänzen.
+                {t("legacyResult.optional")}: Ein kleines Siegerfoto ergänzen.
               </p>
             </div>
 
             {hasWinnerPhoto || previewUrl ? (
               <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                Vorhanden
+                {t("legacyResult.available")}
               </div>
             ) : null}
           </div>
@@ -230,14 +232,14 @@ export default function SessionResultCard({
                   <Image
                     key={previewUrl}
                     src={previewUrl}
-                    alt="Siegerfoto"
+                    alt={t("legacyResult.photo")}
                     fill
                     sizes="64px"
                     className="object-cover"
                   />
                 ) : (
                   <div className="text-[10px] font-medium text-slate-400">
-                    Kein Foto
+                    {t("legacyResult.noPhoto")}
                   </div>
                 )}
               </div>
@@ -259,7 +261,7 @@ export default function SessionResultCard({
                     disabled={photoBusy || saving}
                     className="inline-flex w-fit items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {photoBusy ? "Löscht..." : "Foto löschen"}
+                    {photoBusy ? t("legacyResult.deleting") : t("legacyResult.deletePhoto")}
                   </button>
                 ) : null}
               </div>
@@ -274,8 +276,8 @@ export default function SessionResultCard({
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {sharingResult
-                    ? "Teilt SiegerCard..."
-                    : "📸 SiegerCard auf Social Media teilen"}
+                    ? t("legacyResult.sharingCard")
+                    : t("legacyResult.shareCard")}
                 </button>
 
                 <button
@@ -285,14 +287,12 @@ export default function SessionResultCard({
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {sharingInternal
-                    ? "Postet Ergebnis..."
-                    : "💬 Ergebnis in Gruppe posten"}
+                    ? t("legacyResult.posting")
+                    : t("legacyResult.postGroup")}
                 </button>
 
                 <div className="max-w-[300px] text-right text-[11px] text-slate-400">
-                  Social Media teilen = fertige SiegerCard als Bild. In Gruppe
-                  posten = kurzer Teaser mit Ergebnis, Emotion und Link zurück in
-                  die App.
+                  {t("legacyResult.shareExplain")}
                 </div>
               </div>
             ) : null}
