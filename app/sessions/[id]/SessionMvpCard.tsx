@@ -482,8 +482,8 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
 
     const hasSingleWinner = shareData.winners.length <= 1;
     const imageUrl = hasSingleWinner
-      ? `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${shareData.winner.playerId}&perspective=team`
-      : `/api/share/mvp/${sessionId}/image?variant=team`;
+      ? `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${shareData.winner.playerId}&perspective=team&lang=${locale}`
+      : `/api/share/mvp/${sessionId}/image?variant=team&lang=${locale}`;
     const fileName = hasSingleWinner
       ? `strikr-mvp-winner-team-${sessionId}-${shareData.winner.playerId}.png`
       : `strikr-mvp-result-${sessionId}.png`;
@@ -515,7 +515,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
     for (const winnerCard of shareData.winnerCards) {
       const playerId = winnerCard.winner.playerId;
       const fileName = `strikr-mvp-${sessionId}-${playerId}.png`;
-      const imageUrl = `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${playerId}&perspective=team`;
+      const imageUrl = `/api/share/mvp/${sessionId}/image?variant=winner&playerId=${playerId}&perspective=team&lang=${locale}`;
 
       void preloadMvpShareImage({
         imageUrl: winnerCard.badgeImageUrl,
