@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import type { Player, SessionRow } from "./session-types";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 import {
   ageBadgeColor,
   badgeColor,
@@ -24,6 +26,7 @@ type LineupExportCardProps = {
   teamB: Player[];
   metaA: TeamMeta;
   metaB: TeamMeta;
+  locale?: AppLocale;
 };
 
 type ResultExportCardProps = {
@@ -33,13 +36,14 @@ type ResultExportCardProps = {
   goalsA: string;
   goalsB: string;
   winnerPhotoUrl: string | null;
+  locale?: AppLocale;
 };
 
-function sessionLabel(session: SessionRow | null) {
-  return session ? formatGermanDate(session.date) : "Training";
+function sessionLabel(session: SessionRow | null, locale: AppLocale) {
+  return session ? formatGermanDate(session.date) : translate(locale, "sessionExport.training");
 }
 
-function PlayerLineupRow({ player }: { player: Player }) {
+function PlayerLineupRow({ player, locale }: { player: Player; locale: AppLocale }) {
   return (
     <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-2.5 py-2">
       <span className="min-w-0 truncate text-xs font-medium text-slate-900">
@@ -59,14 +63,14 @@ function PlayerLineupRow({ player }: { player: Player }) {
             player.preferred_position
           )}`}
         >
-          {positionLabel(player.preferred_position)}
+          {positionLabel(player.preferred_position, locale)}
         </span>
       </span>
     </div>
   );
 }
 
-function PlayerResultRow({ player }: { player: Player }) {
+function PlayerResultRow({ player, locale }: { player: Player; locale: AppLocale }) {
   return (
     <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-2.5 py-2">
       <span className="min-w-0 truncate text-xs font-medium text-slate-900">
@@ -78,7 +82,7 @@ function PlayerResultRow({ player }: { player: Player }) {
           player.preferred_position
         )}`}
       >
-        {positionLabel(player.preferred_position)}
+        {positionLabel(player.preferred_position, locale)}
       </span>
     </div>
   );
@@ -88,10 +92,12 @@ function TeamMetaCard({
   title,
   count,
   meta,
+  locale,
 }: {
   title: string;
   count: number;
   meta: TeamMeta;
+  locale: AppLocale;
 }) {
   return (
     <div className="text-center">
@@ -100,7 +106,7 @@ function TeamMetaCard({
       </div>
       <div className="mt-2 text-4xl font-semibold leading-none">{count}</div>
       <div className="mt-2 text-[11px] text-slate-300">
-        GK {meta.gk} · Hinten {meta.def} · Vorne {meta.att}
+        {translate(locale, "sessionExport.meta", { gk: meta.gk, def: meta.def, att: meta.att })}
       </div>
       <div className="mt-1 text-[10px] text-slate-400">
         AH {meta.ah} · Ü32 {meta.u32}
@@ -113,31 +119,33 @@ function TeamListCard({
   title,
   players,
   variant,
+  locale,
 }: {
   title: string;
   players: Player[];
   variant: "lineup" | "result";
+  locale: AppLocale;
 }) {
   return (
     <div className="rounded-[20px] border border-slate-200 bg-white p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-semibold text-slate-900">{title}</div>
         <div className="text-[10px] text-slate-500">
-          {players.length} Spieler
+          {translate(locale, "sessionExport.playersCount", { count: players.length })}
         </div>
       </div>
 
       {players.length === 0 ? (
         <div className="mt-3 text-xs text-slate-400">
-          Noch keine Spieler zugewiesen.
+          {translate(locale, "sessionExport.noPlayersAssigned")}
         </div>
       ) : (
         <div className="mt-3 space-y-1.5">
           {players.map((player) =>
             variant === "lineup" ? (
-              <PlayerLineupRow key={`${title}-${player.id}`} player={player} />
+              <PlayerLineupRow key={`${title}-${player.id}`} player={player} locale={locale} />
             ) : (
-              <PlayerResultRow key={`${title}-${player.id}`} player={player} />
+              <PlayerResultRow key={`${title}-${player.id}`} player={player} locale={locale} />
             )
           )}
         </div>
@@ -152,6 +160,7 @@ export function LineupExportCard({
   teamB,
   metaA,
   metaB,
+  locale = "de",
 }: LineupExportCardProps) {
   return (
     <div
@@ -165,10 +174,10 @@ export function LineupExportCard({
               strikr
             </div>
             <div className="mt-2 text-2xl font-semibold leading-tight">
-              Aufstellung
+              {translate(locale, "sessionExport.lineup")}
             </div>
             <div className="mt-1 text-sm text-slate-300">
-              {sessionLabel(session)}
+              {sessionLabel(session, locale)}
             </div>
           </div>
 
@@ -188,16 +197,16 @@ export function LineupExportCard({
 
         <div className="mt-5 rounded-[24px] border border-white/10 bg-white/10 px-4 py-5 backdrop-blur-sm">
           <div className="grid grid-cols-2 gap-4">
-            <TeamMetaCard title="Team 1" count={teamA.length} meta={metaA} />
-            <TeamMetaCard title="Team 2" count={teamB.length} meta={metaB} />
+            <TeamMetaCard title="Team 1" count={teamA.length} meta={metaA} locale={locale} />
+            <TeamMetaCard title="Team 2" count={teamB.length} meta={metaB} locale={locale} />
           </div>
         </div>
       </div>
 
       <div className="bg-slate-50 p-4">
         <div className="grid grid-cols-2 gap-3">
-          <TeamListCard title="Team 1" players={teamA} variant="lineup" />
-          <TeamListCard title="Team 2" players={teamB} variant="lineup" />
+          <TeamListCard title="Team 1" players={teamA} variant="lineup" locale={locale} />
+          <TeamListCard title="Team 2" players={teamB} variant="lineup" locale={locale} />
         </div>
 
         <div className="mt-4 flex items-end justify-between gap-4">
@@ -224,6 +233,7 @@ export function ResultExportCard({
   goalsA,
   goalsB,
   winnerPhotoUrl,
+  locale = "de",
 }: ResultExportCardProps) {
   return (
     <div
@@ -237,7 +247,7 @@ export function ResultExportCard({
               strikr
             </div>
             <div className="mt-2 text-2xl font-semibold leading-tight">
-              Ergebnis
+              {translate(locale, "sessionExport.result")}
             </div>
             <div className="mt-1 text-sm text-slate-300">
               {sessionLabel(session)}
@@ -264,7 +274,7 @@ export function ResultExportCard({
           <div className="mb-4 overflow-hidden rounded-[24px] border border-slate-200 bg-white">
             <Image
               src={winnerPhotoUrl}
-              alt="Siegerfoto"
+              alt={translate(locale, "sessionExport.winnerPhotoAlt")}
               width={1200}
               height={800}
               unoptimized
@@ -283,7 +293,7 @@ export function ResultExportCard({
                 {goalsA.trim() === "" ? "?" : goalsA}
               </div>
               <div className="mt-2 text-[11px] text-slate-300">
-                {teamA.length} Spieler
+                {translate(locale, "sessionExport.playersCount", { count: teamA.length })}
               </div>
             </div>
 
@@ -297,7 +307,7 @@ export function ResultExportCard({
                 {goalsB.trim() === "" ? "?" : goalsB}
               </div>
               <div className="mt-2 text-[11px] text-slate-300">
-                {teamB.length} Spieler
+                {translate(locale, "sessionExport.playersCount", { count: teamB.length })}
               </div>
             </div>
           </div>
@@ -309,14 +319,14 @@ export function ResultExportCard({
                 goalsB
               )}`}
             >
-              {winnerLabel(goalsA, goalsB)}
+              {winnerLabel(goalsA, goalsB, locale)}
             </div>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <TeamListCard title="Team 1" players={teamA} variant="result" />
-          <TeamListCard title="Team 2" players={teamB} variant="result" />
+          <TeamListCard title="Team 1" players={teamA} variant="result" locale={locale} />
+          <TeamListCard title="Team 2" players={teamB} variant="result" locale={locale} />
         </div>
 
         <div className="mt-4 flex items-end justify-between gap-4">
