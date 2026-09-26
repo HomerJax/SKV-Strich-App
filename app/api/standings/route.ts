@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { addRanks } from "@/app/standings/standings-ui";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -593,6 +594,7 @@ function mergeWithPreviousRanks(
 }
 
 export async function GET(request: NextRequest) {
+  const { t } = await getServerI18n();
   try {
     const { clubId } = await requireClub();
     const supabase = await createClient();
@@ -697,7 +699,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Fehler beim Laden der Tabelle.";
+      error instanceof Error ? error.message : t("standingsApi.loadFailed");
 
     return NextResponse.json({ error: message }, { status: 500 });
   }
