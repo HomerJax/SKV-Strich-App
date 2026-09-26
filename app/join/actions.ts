@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { getServerI18n } from "@/lib/i18n/server";
 
 function normalizeText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
@@ -30,10 +31,11 @@ function buildJoinRedirect(params: {
 }
 
 export async function acceptInviteAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const token = normalizeText(formData.get("token"));
 
   if (!token) {
-    redirect("/join?error=Einladungstoken fehlt.");
+    redirect(`/join?error=${encodeURIComponent(t("joinAction.tokenMissing"))}`);
   }
 
   const cookieStore = await cookies();
@@ -81,7 +83,7 @@ export async function acceptInviteAction(formData: FormData) {
     redirect(
       buildJoinRedirect({
         token,
-        error: "Spielerprofil konnte nicht geladen werden.",
+        error: t("joinAction.playerLoadFailed"),
       })
     );
   }
@@ -100,7 +102,7 @@ export async function acceptInviteAction(formData: FormData) {
     redirect(
       buildJoinRedirect({
         token,
-        error: "Diese Einladung ist ungültig.",
+        error: t("joinAction.invalid"),
       })
     );
   }
@@ -109,7 +111,7 @@ export async function acceptInviteAction(formData: FormData) {
     redirect(
       buildJoinRedirect({
         token,
-        error: "Diese Einladung ist abgelaufen.",
+        error: t("joinAction.expired"),
       })
     );
   }
@@ -121,14 +123,14 @@ export async function acceptInviteAction(formData: FormData) {
   if (error) {
     const raw = error.message?.toLowerCase() ?? "";
 
-    let message = "Einladung konnte nicht angenommen werden.";
+    let message = t("joinAction.acceptFailed");
 
     if (raw.includes("expired") || raw.includes("abgelaufen")) {
-      message = "Diese Einladung ist abgelaufen.";
+      message = t("joinAction.expired");
     } else if (raw.includes("not found") || raw.includes("invalid")) {
-      message = "Diese Einladung ist ungültig.";
+      message = t("joinAction.invalid");
     } else if (raw.includes("nicht gefunden")) {
-      message = "Diese Einladung ist ungültig.";
+      message = t("joinAction.invalid");
     } else if (raw.includes("already a member")) {
       cookieStore.set("active_club_id", invite.club_id, {
         httpOnly: true,
@@ -138,7 +140,7 @@ export async function acceptInviteAction(formData: FormData) {
         maxAge: 60 * 60 * 24 * 30,
       });
 
-      redirect("/?message=Du bist bereits Mitglied dieses Clubs.");
+      redirect(`/?message=${encodeURIComponent(t("joinAction.alreadyMember"))}`);
     }
 
     redirect(
@@ -157,5 +159,5 @@ export async function acceptInviteAction(formData: FormData) {
     maxAge: 60 * 60 * 24 * 30,
   });
 
-  redirect("/?message=Club erfolgreich beigetreten.");
+  redirect(`/?message=${encodeURIComponent(t("joinAction.joined"))}`);
 }
