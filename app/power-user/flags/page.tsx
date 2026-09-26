@@ -35,6 +35,11 @@ export default async function PowerUserFlagsPage() {
   await requirePowerUser();
   const { t } = await getServerI18n();
 
+  const getFlagTitle = (key: FeatureFlagKey, fallback: string) =>
+    key === "hall_of_fame_badges" ? t("powerFlags.badgesTitle") : fallback;
+  const getFlagDescription = (key: FeatureFlagKey, fallback: string) =>
+    key === "hall_of_fame_badges" ? t("powerFlags.badgesDescription") : fallback;
+
   const supabase = await createClient();
   const managedKeys = FEATURE_FLAG_DEFINITIONS.map((flag) => flag.key);
 
@@ -151,9 +156,9 @@ export default async function PowerUserFlagsPage() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="font-extrabold text-slate-950">{flag.title}</h2>
+                  <h2 className="font-extrabold text-slate-950">{getFlagTitle(flag.key, flag.title)}</h2>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    {flag.description}
+                    {getFlagDescription(flag.key, flag.description)}
                   </p>
                 </div>
                 <span className="shrink-0 rounded-full bg-slate-950 px-2.5 py-1 text-xs font-bold text-white">
@@ -221,7 +226,7 @@ export default async function PowerUserFlagsPage() {
                   <th className="px-4 py-3">Club</th>
                   {FEATURE_FLAG_DEFINITIONS.map((flag) => (
                     <th key={flag.key} className="px-3 py-3 text-center">
-                      {flag.title}
+                      {getFlagTitle(flag.key, flag.title)}
                     </th>
                   ))}
                 </tr>
@@ -242,7 +247,7 @@ export default async function PowerUserFlagsPage() {
                             <input type="hidden" name="enabled" value={enabled ? "0" : "1"} />
                             <button
                               type="submit"
-                              aria-label={t(enabled ? "powerFlags.disableAria" : "powerFlags.enableAria", { flag: flag.title, club: getClubLabel(club) })}
+                              aria-label={t(enabled ? "powerFlags.disableAria" : "powerFlags.enableAria", { flag: getFlagTitle(flag.key, flag.title), club: getClubLabel(club) })}
                               className={[
                                 "inline-flex min-w-20 items-center justify-center rounded-full px-3 py-1.5 text-xs font-extrabold transition",
                                 enabled
