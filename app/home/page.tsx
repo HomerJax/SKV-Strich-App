@@ -17,6 +17,7 @@ import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.ty
 import { getAchievementFeedItem, getTeamFeedItems } from "@/lib/team-feed";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -233,8 +234,8 @@ function isVotingOpen(sessionDate: string) {
   );
 }
 
-function getPlayerName(player: MvpPlayerRow | null | undefined) {
-  if (!player) return "Spieler";
+function getPlayerName(player: MvpPlayerRow | null | undefined, locale: AppLocale) {
+  if (!player) return translate(locale, "home.playerFallback");
 
   const name = [player.first_name, player.last_name]
     .map((value) => value?.trim())
@@ -242,16 +243,17 @@ function getPlayerName(player: MvpPlayerRow | null | undefined) {
     .join(" ")
     .trim();
 
-  return name || "Spieler";
+  return name || translate(locale, "home.playerFallback");
 }
 
 function getSimplePlayerName(
   player:
     | { first_name: string | null; last_name: string | null }
     | null
-    | undefined
+    | undefined,
+  locale: AppLocale,
 ) {
-  if (!player) return "Spieler";
+  if (!player) return translate(locale, "home.playerFallback");
 
   const name = [player.first_name, player.last_name]
     .map((value) => value?.trim())
@@ -259,7 +261,7 @@ function getSimplePlayerName(
     .join(" ")
     .trim();
 
-  return name || "Spieler";
+  return name || translate(locale, "home.playerFallback");
 }
 
 function normalizePlayerRelation(
@@ -282,12 +284,12 @@ function safeMvpCount(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-function getBadgeLabel(count: number) {
-  if (count >= 10) return "GOAT";
-  if (count >= 7) return "Gold";
-  if (count >= 5) return "Silber";
-  if (count >= 3) return "Bronze";
-  return "Blech";
+function getBadgeLabel(count: number, locale: AppLocale) {
+  if (count >= 10) return translate(locale, "badge.goat");
+  if (count >= 7) return translate(locale, "badge.gold");
+  if (count >= 5) return translate(locale, "badge.silver");
+  if (count >= 3) return translate(locale, "badge.bronze");
+  return translate(locale, "badge.copper");
 }
 
 function getBadgeKey(count: number) {
@@ -303,10 +305,11 @@ function toLeaderboardEntry(params: {
   name: string;
   votes: number;
   current: number;
+  locale: AppLocale;
 }): LeaderboardEntry {
-  const { playerId, name, votes, current } = params;
+  const { playerId, name, votes, current, locale } = params;
   const previous = Math.max(current - 1, 0);
-  const badgeLabel = getBadgeLabel(current);
+  const badgeLabel = getBadgeLabel(current, locale);
 
   return {
     playerId,
@@ -638,7 +641,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
           return {
             playerId: row.player_id,
-            name: getPlayerName(mvpPlayer),
+            name: getPlayerName(mvpPlayer, locale),
             userId: mvpPlayer.user_id,
             current: safeMvpCount(mvpPlayer.mvp_count),
           };
@@ -670,14 +673,15 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           return toLeaderboardEntry({
             playerId,
             votes,
-            name: participant?.name ?? "Spieler",
+            name: participant?.name ?? t("home.playerFallback"),
             current: Math.max(participant?.current ?? 1, 1),
+            locale,
           });
         })
         .sort((a, b) =>
           b.votes !== a.votes
             ? b.votes - a.votes
-            : a.name.localeCompare(b.name, "de")
+            : a.name.localeCompare(b.name, locale === "de" ? "de" : "en")
         );
 
       const winner = leaderboard[0] ?? null;
@@ -772,17 +776,17 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     nextSessionAbsentCount = absences.length;
 
     nextSessionParticipantNames = participants
-      .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players)))
+      .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players), locale))
       .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b, "de"));
+      .sort((a, b) => a.localeCompare(b, locale === "de" ? "de" : "en"));
 
     nextSessionAbsentPlayers = absences
       .map((row) => ({
-        name: getSimplePlayerName(normalizeSimplePlayerRelation(row.players)),
+        name: getSimplePlayerName(normalizeSimplePlayerRelation(row.players), locale),
         reason: row.reason?.trim() || null,
       }))
       .filter((row) => Boolean(row.name))
-      .sort((a, b) => a.name.localeCompare(b.name, "de"));
+      .sort((a, b) => a.name.localeCompare(b.name, locale === "de" ? "de" : "en"));
 
     const selfPresence = currentPlayerId
       ? participants.some((row) => row.player_id === currentPlayerId)
@@ -905,18 +909,18 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           <section className="rounded-[32px] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.09)] ring-1 ring-slate-950/5">
             {isSupportView && supportViewLabel ? (
               <div className="mb-3 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-[11px] font-bold text-violet-800">
-                Supportansicht · Admin {supportViewLabel} · nur persönliche Aktionen sind gesperrt
+                {t("home.supportView", { name: supportViewLabel })}
               </div>
             ) : null}
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
-              Meine Kurzinfo
+              {t("home.quickInfo")}
             </div>
 
             {currentPlayerId ? (
               <HomeQuickStats />
             ) : (
               <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 text-sm font-medium text-slate-600">
-                Dein Profil ist noch nicht mit einem Spieler verknüpft.
+                {t("home.profileUnlinked")}
               </div>
             )}
           </section>
@@ -932,7 +936,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             />
             {q?.beer_saved === "cash" ? (
               <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
-                🍺 Eingetragen · Zahlung wartet auf Bestätigung.
+                {t("home.beerPending")}
               </div>
             ) : null}
             {q?.beer_error ? (
@@ -956,14 +960,16 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-800">
-                  MVP Voting läuft
+                  {t("home.mvpVotingRunning")}
                 </div>
                 <div className="mt-1 text-sm font-black text-slate-950">
-                  Abstimmung offen
+                  {t("home.voteOpen")}
                 </div>
                 <div className="mt-1 text-xs font-semibold text-slate-600">
-                  {activeVotingSession.voteCount}/
-                  {activeVotingSession.eligibleVoterCount} Stimmen
+                  {t("home.voteCount", {
+                    count: activeVotingSession.voteCount,
+                    total: activeVotingSession.eligibleVoterCount,
+                  })}
                 </div>
               </div>
 
@@ -971,7 +977,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                 href={`/sessions/${activeVotingSession.id}`}
                 className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-slate-950 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800"
               >
-                Abstimmen
+                {t("home.vote")}
               </Link>
             </div>
           </section>
@@ -997,10 +1003,10 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         {showGettingStarted ? (
           <section className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm">
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-              Admin Setup
+              {t("home.adminSetup")}
             </div>
             <h2 className="mt-1 text-lg font-black text-slate-950">
-              Club fertig einrichten
+              {t("home.finishClubSetup")}
             </h2>
             <div className="mt-3 grid gap-2">
               {(sessionsCount ?? 0) === 0 ? (
@@ -1008,7 +1014,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                   href="/sessions/new"
                   className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800"
                 >
-                  Erstes Training anlegen
+                  {t("home.createFirstTraining")}
                 </Link>
               ) : null}
 
@@ -1017,7 +1023,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                   href="/admin/invites"
                   className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800"
                 >
-                  Mitglieder einladen
+                  {t("home.inviteMembers")}
                 </Link>
               ) : null}
             </div>
