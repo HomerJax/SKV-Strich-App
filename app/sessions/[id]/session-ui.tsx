@@ -1,5 +1,7 @@
 import { getPlayerDisplayName } from "@/lib/player-display";
 import type { Player, SessionRow } from "./session-types";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export function getErrorMessage(e: unknown, fallback: string) {
   if (
@@ -14,11 +16,11 @@ export function getErrorMessage(e: unknown, fallback: string) {
   return fallback;
 }
 
-export function positionLabel(pos: Player["preferred_position"]) {
-  if (pos === "defense") return "Hinten";
-  if (pos === "attack") return "Mittelfeld/Vorne";
-  if (pos === "goalkeeper") return "Torwart";
-  return "Unbekannt";
+export function positionLabel(pos: Player["preferred_position"], locale: AppLocale = "de") {
+  if (pos === "defense") return translate(locale, "sessionUi.positionDefense");
+  if (pos === "attack") return translate(locale, "sessionUi.positionAttack");
+  if (pos === "goalkeeper") return translate(locale, "sessionUi.positionGoalkeeper");
+  return translate(locale, "common.unknown");
 }
 
 export function badgeColor(pos: Player["preferred_position"]) {
@@ -251,7 +253,8 @@ function getFirstName(name: string) {
 export function sortForTeamView(
   a: Player,
   b: Player,
-  useNicknames: boolean = false
+  useNicknames: boolean = false,
+  locale: AppLocale = "de"
 ) {
   const ra = positionRank(a.preferred_position);
   const rb = positionRank(b.preferred_position);
@@ -286,8 +289,8 @@ export function buildLineupShareText(
   useNicknames: boolean = false
 ) {
   const header = session
-    ? `Aufstellung vom ${formatGermanDate(session.date)}`
-    : "Aufstellung";
+    ? translate(locale, "sessionUi.lineupDated", { date: formatGermanDate(session.date) })
+    : translate(locale, "sessionUi.lineup");
 
   const teamALines =
     teamA.length > 0
@@ -296,9 +299,9 @@ export function buildLineupShareText(
             `${index + 1}. ${sharePlayerLabel(
               player,
               useNicknames
-            )} (${positionLabel(player.preferred_position)})`
+            )} (${positionLabel(player.preferred_position, locale)})`
         )
-      : ["Noch keine Spieler zugewiesen."];
+      : [translate(locale, "sessionUi.noPlayersAssigned")];
 
   const teamBLines =
     teamB.length > 0
@@ -307,9 +310,9 @@ export function buildLineupShareText(
             `${index + 1}. ${sharePlayerLabel(
               player,
               useNicknames
-            )} (${positionLabel(player.preferred_position)})`
+            )} (${positionLabel(player.preferred_position, locale)})`
         )
-      : ["Noch keine Spieler zugewiesen."];
+      : [translate(locale, "sessionUi.noPlayersAssigned")];
 
   return [
     `${header}`,
@@ -331,11 +334,12 @@ export function buildResultShareText(
   goalsB: string,
   teamA: Player[],
   teamB: Player[],
-  _useNicknames: boolean = false
+  _useNicknames: boolean = false,
+  locale: AppLocale = "de"
 ) {
   const header = session
-    ? `Ergebnis vom ${formatGermanDate(session.date)}`
-    : "Ergebnis";
+    ? translate(locale, "sessionUi.resultDated", { date: formatGermanDate(session.date) })
+    : translate(locale, "sessionUi.result");
 
   const scoreA = goalsA.trim() === "" ? "?" : goalsA.trim();
   const scoreB = goalsB.trim() === "" ? "?" : goalsB.trim();
@@ -343,11 +347,11 @@ export function buildResultShareText(
   const winnerLine =
     goalsA.trim() !== "" && goalsB.trim() !== ""
       ? Number(goalsA) === Number(goalsB)
-        ? "Unentschieden"
+        ? translate(locale, "sessionUi.draw")
         : Number(goalsA) > Number(goalsB)
-          ? "Sieger: Team 1"
-          : "Sieger: Team 2"
-      : "Ergebnis noch unvollständig";
+          ? translate(locale, "sessionUi.winnerTeam1")
+          : translate(locale, "sessionUi.winnerTeam2")
+      : translate(locale, "sessionUi.resultIncomplete");
 
   return [
     `${header}`,
@@ -355,28 +359,28 @@ export function buildResultShareText(
     `Team 1 ${scoreA}:${scoreB} Team 2`,
     winnerLine,
     "",
-    `Team 1 (${teamA.length} Spieler)`,
-    `Team 2 (${teamB.length} Spieler)`,
+    `Team 1 (${translate(locale, "sessionUi.playersCount", { count: teamA.length })})`,
+    `Team 2 (${translate(locale, "sessionUi.playersCount", { count: teamB.length })})`,
     "",
     "made with strikr",
     "#strikr",
   ].join("\n");
 }
 
-export function winnerLabel(goalsA: string, goalsB: string) {
+export function winnerLabel(goalsA: string, goalsB: string, locale: AppLocale = "de") {
   if (goalsA.trim() === "" || goalsB.trim() === "") {
-    return "Noch kein vollständiges Ergebnis";
+    return translate(locale, "sessionUi.noCompleteResult");
   }
 
   const a = Number(goalsA);
   const b = Number(goalsB);
 
   if (Number.isNaN(a) || Number.isNaN(b)) {
-    return "Noch kein vollständiges Ergebnis";
+    return translate(locale, "sessionUi.noCompleteResult");
   }
 
-  if (a === b) return "Unentschieden";
-  return a > b ? "Team 1 gewinnt" : "Team 2 gewinnt";
+  if (a === b) return translate(locale, "sessionUi.draw");
+  return a > b ? translate(locale, "sessionUi.team1Wins") : translate(locale, "sessionUi.team2Wins");
 }
 
 export function winnerBadgeClass(goalsA: string, goalsB: string) {
