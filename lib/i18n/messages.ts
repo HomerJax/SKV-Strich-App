@@ -2556,6 +2556,15 @@ export const DE_MESSAGES = {
   "onboarding.error.settingsCreate": "Team-Einstellungen konnten nicht erstellt werden.",
   "onboarding.error.seasonCreate": "Standard-Saison konnte nicht für das Team erstellt werden.",
   "onboarding.error.billingCreate": "Billing konnte nicht für das Team erstellt werden.",
+  "sessionAction.adminOnlySettings": "Nur Admins dürfen Trainingszeit und Anmeldeschluss ändern.",
+  "sessionAction.invalidId": "Ungültige Session-ID.",
+  "sessionAction.invalidStartTime": "Bitte eine gültige Startzeit angeben.",
+  "sessionAction.invalidDeadline": "Ungültiger Anmeldeschluss.",
+  "sessionAction.checkFailed": "Session konnte nicht geprüft werden: {error}",
+  "sessionAction.notFound": "Session nicht gefunden.",
+  "sessionAction.seriesLoadFailed": "Serientermine konnten nicht geladen werden: {error}",
+  "sessionAction.noTargets": "Keine passenden Termine gefunden.",
+  "sessionAction.settingsSaveFailed": "Einstellungen konnten nicht gespeichert werden: {error}",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5126,6 +5135,16 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "onboarding.error.settingsCreate": "The team settings could not be created.",
   "onboarding.error.seasonCreate": "The default season could not be created for the team.",
   "onboarding.error.billingCreate": "Billing could not be created for the team.",
+
+  "sessionAction.adminOnlySettings": "Only admins can change the training time and RSVP deadline.",
+  "sessionAction.invalidId": "Invalid session ID.",
+  "sessionAction.invalidStartTime": "Please enter a valid start time.",
+  "sessionAction.invalidDeadline": "Invalid RSVP deadline.",
+  "sessionAction.checkFailed": "The session could not be checked: {error}",
+  "sessionAction.notFound": "Session not found.",
+  "sessionAction.seriesLoadFailed": "Series sessions could not be loaded: {error}",
+  "sessionAction.noTargets": "No matching sessions found.",
+  "sessionAction.settingsSaveFailed": "The settings could not be saved: {error}",
 
 };
 
