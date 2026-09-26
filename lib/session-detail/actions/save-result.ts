@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { syncClubAchievements } from "@/lib/badges/engine";
 import { fail, ok } from "@/lib/session-detail/response";
+import { getServerI18n } from "@/lib/i18n/server";
 import { sendClubPush } from "@/lib/push/club-events";
 import { persistSessionTeams } from "./persist-teams";
 
@@ -37,15 +38,16 @@ export async function handleSaveResult({
   winnerPhotoPath = null,
 }: SaveResultInput) {
   try {
+    const { t } = await getServerI18n();
     const cleanA = normalizeGoalValue(goalsA);
     const cleanB = normalizeGoalValue(goalsB);
 
     if (cleanA === null || cleanB === null || cleanA === "" || cleanB === "") {
-      return fail("Bitte ein gültiges, vollständiges Ergebnis eingeben.");
+      return fail(t("sessionAction.resultInvalid"));
     }
 
     if (!Number.isInteger(gameNo) || gameNo < 1 || gameNo > 99) {
-      return fail("Ungültige Spielnummer.");
+      return fail(t("sessionAction.gameNumberInvalid"));
     }
 
     const [{ data: existingResult, error: existingResultError }, { data: anyResult, error: anyResultError }] =
@@ -138,8 +140,8 @@ export async function handleSaveResult({
     return ok({
       message:
         gameNo === 1
-          ? "Spiel 1 gespeichert. Weitere Spiele kannst du direkt ergänzen."
-          : `Spiel ${gameNo} gespeichert. Der Sieg zählt als eigener Strich.`,
+          ? t("sessionAction.gameOneSaved")
+          : t("sessionAction.gameSaved", { game: gameNo }),
       hasResult: true,
       goalsA: cleanA,
       goalsB: cleanB,
@@ -150,7 +152,7 @@ export async function handleSaveResult({
     return fail(
       error instanceof Error && error.message
         ? error.message
-        : "Ergebnis konnte nicht gespeichert werden.",
+        : t("sessionAction.resultSaveFailed"),
       500,
     );
   }
