@@ -9,7 +9,6 @@ import {
 } from "@/lib/session-rsvp-deadline";
 import { updateSessionRsvpSettingsAction } from "./session-rsvp-settings-actions";
 import { useI18n } from "@/components/i18n/I18nProvider";
-import type { AppLocale } from "@/lib/i18n/config";
 
 type Props = {
   sessionId: number;
@@ -23,7 +22,6 @@ type Props = {
 
 function startLabel(
   value: string | null,
-  locale: AppLocale,
   timeSuffix: (time: string) => string,
   noStart: string,
 ) {
@@ -210,7 +208,6 @@ export default function SessionRsvpDeadlineEditor({
         {t("deadline.start", {
           time: startLabel(
             startTime,
-            locale,
             (value) => t("deadline.timeSuffix", { time: value }),
             t("deadline.noStart"),
           ),
