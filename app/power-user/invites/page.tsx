@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Mail, MailCheck, MailOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requirePowerUser } from "@/lib/auth/power-user";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
 import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
 
 type InviteRow = {
@@ -26,15 +28,16 @@ type PageProps = {
   }>;
 };
 
-function formatDateTime(value: string | null | undefined) {
+function formatDateTime(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleString("de-DE");
+  return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-GB");
 }
 
 export default async function PowerUserInvitesPage({
   searchParams,
 }: PageProps) {
   await requirePowerUser();
+  const { locale, t } = await getServerI18n();
   const resolvedSearchParams = await searchParams;
 
   const status =
@@ -66,7 +69,7 @@ export default async function PowerUserInvitesPage({
   const clubNameById = new Map(
     clubs.map((club) => [
       club.id,
-      club.display_name?.trim() || club.name?.trim() || "Unbenannter Club",
+      club.display_name?.trim() || club.name?.trim() || t("power.unnamedClub"),
     ])
   );
 
@@ -88,7 +91,7 @@ export default async function PowerUserInvitesPage({
             href="/power-user"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Power User Dashboard
+            ← {t("power.backDashboard")}
           </Link>
         </div>
 
@@ -103,11 +106,10 @@ export default async function PowerUserInvitesPage({
                 Power User / Invites
               </div>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-                Einladungen
+                {t("power.invites.title")}
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Überblick über offene und angenommene Einladungen inklusive
-                Ersteller.
+                {t("power.invites.description")}
               </p>
             </div>
           </div>
@@ -122,7 +124,7 @@ export default async function PowerUserInvitesPage({
                 : "border border-slate-300 bg-white text-slate-700"
             }`}
           >
-            Alle
+            {t("power.sessions.all")}
           </Link>
 
           <Link
@@ -134,7 +136,7 @@ export default async function PowerUserInvitesPage({
             }`}
           >
             <MailOpen className="h-4 w-4" />
-            Offen
+            {t("power.invites.open")}
           </Link>
 
           <Link
@@ -146,23 +148,23 @@ export default async function PowerUserInvitesPage({
             }`}
           >
             <MailCheck className="h-4 w-4" />
-            Angenommen
+            {t("power.invites.accepted")}
           </Link>
         </div>
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           {filteredInvites.length === 0 ? (
             <div className="text-sm text-slate-600">
-              Keine Einladungen für diese Auswahl gefunden.
+              {t("power.invites.empty")}
             </div>
           ) : (
             <div className="space-y-3">
               {filteredInvites.map((invite) => {
                 const clubName =
-                  clubNameById.get(invite.club_id) ?? "Unbekannter Club";
-                const roleLabel = invite.role === "admin" ? "Admin" : "Mitglied";
+                  clubNameById.get(invite.club_id) ?? t("power.unknownClub");
+                const roleLabel = invite.role === "admin" ? "Admin" : t("power.invites.member");
 
-                const statusLabel = invite.accepted_at ? "angenommen" : "offen";
+                const statusLabel = invite.accepted_at ? t("power.invites.statusAccepted") : t("power.invites.statusOpen");
 
                 const createdBy =
                   invite.invited_by && emailByUserId.has(invite.invited_by)
@@ -180,10 +182,10 @@ export default async function PowerUserInvitesPage({
                           {clubName}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">
-                          Rolle: {roleLabel}
+                          {t("power.users.role", { role: roleLabel })}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">
-                          Status: {statusLabel}
+                          {t("power.invites.status", { status: statusLabel })}
                         </div>
                       </div>
 
@@ -195,16 +197,16 @@ export default async function PowerUserInvitesPage({
                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       <div className="rounded-xl bg-slate-50 px-3 py-3">
                         <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Erstellt am
+                          {t("power.invites.created")}
                         </div>
                         <div className="mt-1 text-sm text-slate-950">
-                          {formatDateTime(invite.created_at)}
+                          {formatDateTime(invite.created_at, locale)}
                         </div>
                       </div>
 
                       <div className="rounded-xl bg-slate-50 px-3 py-3">
                         <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Erstellt von
+                          {t("power.invites.createdBy")}
                         </div>
                         <div className="mt-1 text-sm text-slate-950">
                           {createdBy}
@@ -213,19 +215,19 @@ export default async function PowerUserInvitesPage({
 
                       <div className="rounded-xl bg-slate-50 px-3 py-3">
                         <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Läuft ab
+                          {t("power.invites.expires")}
                         </div>
                         <div className="mt-1 text-sm text-slate-950">
-                          {formatDateTime(invite.expires_at)}
+                          {formatDateTime(invite.expires_at, locale)}
                         </div>
                       </div>
 
                       <div className="rounded-xl bg-slate-50 px-3 py-3 md:col-span-2 xl:col-span-3">
                         <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Angenommen am
+                          {t("power.invites.acceptedAt")}
                         </div>
                         <div className="mt-1 text-sm text-slate-950">
-                          {formatDateTime(invite.accepted_at)}
+                          {formatDateTime(invite.accepted_at, locale)}
                         </div>
                       </div>
                     </div>
