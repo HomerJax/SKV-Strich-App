@@ -6,6 +6,7 @@ import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { canManageClub } from "@/lib/auth/access";
 import PlayerSettingsCard from "@/components/admin/PlayerSettingsCard";
 import RosterBulkEditor from "@/components/admin/RosterBulkEditor";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type PlayerRow = {
   id: number;
@@ -51,6 +52,7 @@ type PageProps = {
 
 export default async function AdminPlayersPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
+  const { t } = await getServerI18n();
   const { clubId, membership, isPowerUser } = await requireClub();
 
   if (!canManageClub({ isPowerUser, role: membership.role })) {
@@ -94,7 +96,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
       settingsError?.message ||
         categoriesError?.message ||
         playersError?.message ||
-        "Daten konnten nicht geladen werden."
+        t("adminPlayers.loadFailed")
     );
   }
 
@@ -129,18 +131,16 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
           href="/admin"
           className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
         >
-          ← Zurück zum Adminbereich
+          ← {t("settings.page.backAdmin")}
         </Link>
       </div>
 
       <div className="mb-5">
         <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">
-          Kader & Teamgenerator
+          {t("adminPlayers.title")}
         </h1>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Erst Generator-Grundlagen prüfen, danach den Kader gesammelt pflegen.
-          Änderungen an mehreren Spielern kannst du anschließend mit einem Klick
-          speichern.
+          {t("adminPlayers.description")}
         </p>
       </div>
 
@@ -162,18 +162,17 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
       <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-sm font-semibold text-slate-900">
-            Saison & Tabelle
+            {t("adminPlayers.seasonTitle")}
           </div>
           <div className="mt-1 text-sm leading-6 text-slate-600">
-            Saisons sind für Trainingszuordnung und Tabelle wichtig, aber keine
-            Generator-Regel.
+            {t("adminPlayers.seasonHint")}
           </div>
         </div>
         <Link
           href="/admin/seasons"
           className="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
         >
-          Saisons öffnen
+          {t("adminPlayers.openSeasons")}
         </Link>
       </div>
 
@@ -190,10 +189,8 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
 
       {players.length > 0 ? (
         <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-          <span className="font-semibold text-slate-900">Kader bearbeiten:</span>{" "}
-          {players.length} Personen sind hinterlegt. Öffne beliebig viele Spieler,
-          ändere Position, Kategorie, Stärke, Balance-Gruppe oder Status und
-          speichere den gesamten Kader anschließend einmal.
+          <span className="font-semibold text-slate-900">{t("adminPlayers.editRoster")}</span>{" "}
+          {t("adminPlayers.rosterHint", { count: players.length })}
         </div>
       ) : null}
 
