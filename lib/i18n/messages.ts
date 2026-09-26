@@ -637,6 +637,15 @@ export const DE_MESSAGES = {
   "settings.club.errorDeleteUnauthorized": "Nur ein echter Club-Admin darf den Club löschen.",
   "settings.club.errorDeleteFailed": "Der Club konnte nicht in den Papierkorb verschoben werden. Bitte versuche es erneut.",
 
+  "adminPlayers.loadFailed": "Daten konnten nicht geladen werden.",
+  "adminPlayers.title": "Kader & Teamgenerator",
+  "adminPlayers.description": "Erst Generator-Grundlagen prüfen, danach den Kader gesammelt pflegen. Änderungen an mehreren Spielern kannst du anschließend mit einem Klick speichern.",
+  "adminPlayers.seasonTitle": "Saison & Tabelle",
+  "adminPlayers.seasonHint": "Saisons sind für Trainingszuordnung und Tabelle wichtig, aber keine Generator-Regel.",
+  "adminPlayers.openSeasons": "Saisons öffnen",
+  "adminPlayers.editRoster": "Kader bearbeiten:",
+  "adminPlayers.rosterHint": "{count} Personen sind hinterlegt. Öffne beliebig viele Spieler, ändere Position, Kategorie, Stärke, Balance-Gruppe oder Status und speichere den gesamten Kader anschließend einmal.",
+
   "admin.roleMember": "Mitglied",
   "admin.open": "Öffnen",
   "admin.proTitle": "strikr Pro für dein Team",
@@ -2450,6 +2459,15 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "settings.club.errorDeleteConfirm": "To delete the club, type the exact confirmation phrase and tick the checkbox.",
   "settings.club.errorDeleteUnauthorized": "Only a real club admin can delete the club.",
   "settings.club.errorDeleteFailed": "The club could not be moved to the recycle bin. Please try again.",
+
+  "adminPlayers.loadFailed": "The data could not be loaded.",
+  "adminPlayers.title": "Squad & team generator",
+  "adminPlayers.description": "Check the generator basics first, then manage the squad in one place. You can edit several players and save the entire squad with one click.",
+  "adminPlayers.seasonTitle": "Season & standings",
+  "adminPlayers.seasonHint": "Seasons matter for assigning training sessions and standings, but they are not a team-generator rule.",
+  "adminPlayers.openSeasons": "Open seasons",
+  "adminPlayers.editRoster": "Edit squad:",
+  "adminPlayers.rosterHint": "{count} people are stored. Open as many players as you need, change position, category, strength, balance group or status, then save the whole squad once.",
 
   "admin.roleMember": "Member",
   "admin.open": "Open",
