@@ -2758,6 +2758,16 @@ export const DE_MESSAGES = {
   "scheduleApi.deletedOne": "Termin gelöscht.",
   "scheduleApi.deletedMany": "{count} Termine der Serie gelöscht.",
   "scheduleApi.deleteFailed": "Termin konnte nicht gelöscht werden.",
+  "onboardingApi.sessionExpired": "Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein.",
+  "onboardingApi.nameRequired": "Vorname und Nachname sind erforderlich.",
+  "onboardingApi.noActiveTeam": "Kein aktives Team gefunden.",
+  "onboardingApi.teamCheckFailed": "Dein aktives Team konnte nicht geprüft werden.",
+  "onboardingApi.playerLoadFailed": "Spielerprofil konnte nicht geladen werden.",
+  "onboardingApi.profileUpdateFailed": "Profil konnte nicht aktualisiert werden.",
+  "onboardingApi.profileLinkFailed": "Profil konnte nicht verknüpft werden.",
+  "onboardingApi.profileCreateFailed": "Spielerprofil konnte nicht erstellt werden.",
+  "onboardingApi.saveFailed": "Onboarding konnte nicht gespeichert werden.",
+  "notificationApi.rsvpFallback": "Bitte kurz zu- oder absagen.",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5540,6 +5550,17 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "scheduleApi.deletedOne": "Session date deleted.",
   "scheduleApi.deletedMany": "{count} dates in the series deleted.",
   "scheduleApi.deleteFailed": "The session date could not be deleted.",
+
+  "onboardingApi.sessionExpired": "Your sign-in is no longer valid. Please sign in again.",
+  "onboardingApi.nameRequired": "First name and last name are required.",
+  "onboardingApi.noActiveTeam": "No active team found.",
+  "onboardingApi.teamCheckFailed": "Your active team could not be verified.",
+  "onboardingApi.playerLoadFailed": "Player profile could not be loaded.",
+  "onboardingApi.profileUpdateFailed": "Profile could not be updated.",
+  "onboardingApi.profileLinkFailed": "Profile could not be linked.",
+  "onboardingApi.profileCreateFailed": "Player profile could not be created.",
+  "onboardingApi.saveFailed": "Onboarding could not be saved.",
+  "notificationApi.rsvpFallback": "Please RSVP.",
 
 };
 
