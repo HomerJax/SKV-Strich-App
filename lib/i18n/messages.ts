@@ -2919,6 +2919,9 @@ export const DE_MESSAGES = {
   "pushTesters.send": "An Android-Tester senden",
   "pushTesters.note": "Die 14 Google-Play-Tester sind nicht automatisch Push-Empfänger. Hier erscheinen nur Geräte, die den neuen Build installiert, geöffnet und Benachrichtigungen erlaubt haben.",
 
+  "powerFlags.badgesTitle": "Hall of Fame & Trophäen",
+  "powerFlags.badgesDescription": "Kontrollierter Rollout der Hall of Fame und automatischen Karriere-Trophäen. Sobald stabil, wird auch das zum Standard.",
+
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5869,6 +5872,10 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "pushTesters.defaultBody": "Push is active now 🎉 Please test briefly whether the notification arrived.",
   "pushTesters.send": "Send to Android testers",
   "pushTesters.note": "The 14 Google Play testers are not automatically push recipients. Only devices that installed and opened the new build and allowed notifications appear here.",
+
+
+  "powerFlags.badgesTitle": "Hall of Fame & Trophies",
+  "powerFlags.badgesDescription": "Controlled rollout of the Hall of Fame and automatic career trophies. Once stable, this will become the standard too.",
 
 
 };
