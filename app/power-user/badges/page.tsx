@@ -16,55 +16,16 @@ type BadgeSectionKey =
   | "losses"
   | "special";
 
-const SECTION_ORDER: Array<{
-  key: BadgeSectionKey;
-  title: string;
-  eyebrow: string;
-  description: string;
-}> = [
-  {
-    key: "career-appearances",
-    title: "Karriere · Einsätze",
-    eyebrow: "Karriere",
-    description:
-      "Die langfristige Teilnahme-Leiter von 10 bis 500 Einsätzen. Hier muss die optische Eskalation besonders klar erkennbar sein.",
-  },
-  {
-    key: "career-wins",
-    title: "Karriere · Siege",
-    eyebrow: "Karriere",
-    description:
-      "Karrieresiege als eigene Sieger-Familie mit Pokal-, Stern- und Champion-Elementen – klar getrennt von Einsätzen.",
-  },
-  {
-    key: "attendance",
-    title: "Teilnahme & Disziplin",
-    eyebrow: "Aktuelle Saison",
-    description:
-      "Saisonauftakt und Teilnahme-Serien. Je länger die Serie, desto stärker Bewegung, Energie und Auszeichnung.",
-  },
-  {
-    key: "wins",
-    title: "Siege & Serien",
-    eyebrow: "Aktuelle Saison",
-    description:
-      "Vom ersten Dreier bis zum Seriensieger. Feuer, Dynamik und Sieger-Aura sollen mit der Schwierigkeit sichtbar zunehmen.",
-  },
-  {
-    key: "losses",
-    title: "Pech & Niederlagen",
-    eyebrow: "Aktuelle Saison",
-    description:
-      "Die dunkle Badge-Familie: Niederlagenserien mit zunehmend dramatischer Pech-, Sturm- und Raben-Optik.",
-  },
-  {
-    key: "special",
-    title: "Specials & Secret",
-    eyebrow: "Besondere Badges",
-    description:
-      "Seltene Geschichten und versteckte Achievements. Diese dürfen am individuellsten und überraschendsten aussehen.",
-  },
-];
+function getSections(t: Awaited<ReturnType<typeof getServerI18n>>["t"]) {
+  return [
+    { key: "career-appearances" as const, title: t("power.badges.section.careerAppearances.title"), eyebrow: t("power.badges.section.careerAppearances.eyebrow"), description: t("power.badges.section.careerAppearances.description") },
+    { key: "career-wins" as const, title: t("power.badges.section.careerWins.title"), eyebrow: t("power.badges.section.careerWins.eyebrow"), description: t("power.badges.section.careerWins.description") },
+    { key: "attendance" as const, title: t("power.badges.section.attendance.title"), eyebrow: t("power.badges.section.attendance.eyebrow"), description: t("power.badges.section.attendance.description") },
+    { key: "wins" as const, title: t("power.badges.section.wins.title"), eyebrow: t("power.badges.section.wins.eyebrow"), description: t("power.badges.section.wins.description") },
+    { key: "losses" as const, title: t("power.badges.section.losses.title"), eyebrow: t("power.badges.section.losses.eyebrow"), description: t("power.badges.section.losses.description") },
+    { key: "special" as const, title: t("power.badges.section.special.title"), eyebrow: t("power.badges.section.special.eyebrow"), description: t("power.badges.section.special.description") },
+  ];
+}
 
 function getBadgeSectionKey(badgeKey: string): BadgeSectionKey {
   if (badgeKey.startsWith("career_appearances_")) return "career-appearances";
@@ -78,6 +39,7 @@ function getBadgeSectionKey(badgeKey: string): BadgeSectionKey {
 export default async function PowerUserBadgesPage() {
   await requirePowerUser();
   const { locale, t } = await getServerI18n();
+  const sections = getSections(t);
 
   const badges = BADGE_DEFINITIONS.map((badge) => ({
     ...(getLocalizedBadgeDefinition(badge.key, locale) ?? badge),
@@ -103,7 +65,7 @@ export default async function PowerUserBadgesPage() {
             </div>
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 sm:px-4"><div className="text-2xl font-black">{badges.length}</div><div className="text-[10px] text-slate-400 sm:text-xs">Badges</div></div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 sm:px-4"><div className="text-2xl font-black">{SECTION_ORDER.length}</div><div className="text-[10px] text-slate-400 sm:text-xs">{t("power.badges.sections")}</div></div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 sm:px-4"><div className="text-2xl font-black">{sections.length}</div><div className="text-[10px] text-slate-400 sm:text-xs">{t("power.badges.sections")}</div></div>
               <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 sm:px-4"><div className="text-2xl font-black">{badges.filter((badge) => badge.visual.secret).length}</div><div className="text-[10px] text-slate-400 sm:text-xs">Secret</div></div>
             </div>
           </div>
@@ -117,13 +79,13 @@ export default async function PowerUserBadgesPage() {
         </section>
 
         <nav className="sticky top-[calc(3.5rem+env(safe-area-inset-top)+8px)] z-20 -mx-1 flex gap-2 overflow-x-auto bg-neutral-100/95 px-1 py-2 backdrop-blur sm:top-[calc(4.5rem+env(safe-area-inset-top)+8px)]">
-          {SECTION_ORDER.map((section) => {
+          {sections.map((section) => {
             const count = badges.filter((badge) => badge.sectionKey === section.key).length;
             return <a key={section.key} href={`#${section.key}`} className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm">{section.title} · {count}</a>;
           })}
         </nav>
 
-        {SECTION_ORDER.map((section) => {
+        {sections.map((section) => {
           const sectionBadges = badges.filter((badge) => badge.sectionKey === section.key);
           return (
             <section id={section.key} key={section.key} className="scroll-mt-28 overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
