@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type InviteActionsProps = {
   inviteUrl: string;
 };
 
 export default function InviteActions({ inviteUrl }: InviteActionsProps) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -16,18 +18,18 @@ export default function InviteActions({ inviteUrl }: InviteActionsProps) {
       window.setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Copy failed:", error);
-      alert("Link konnte nicht kopiert werden.");
+      alert(t("members.copyFailed"));
     }
   }
 
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(
-    `Hier ist unser strikr Einladungslink:\n\n${inviteUrl}\n\nDer Link ist mehrfach nutzbar.`
+    t("members.whatsappText", { url: inviteUrl }),
   )}`;
 
   const mailHref = `mailto:?subject=${encodeURIComponent(
-    "Euer strikr Einladungslink"
+    t("members.mailSubject"),
   )}&body=${encodeURIComponent(
-    `Hi,\n\nhier ist unser Einladungslink für strikr:\n\n${inviteUrl}\n\nDer Link kann von mehreren Personen genutzt werden, bis wir ihn im Adminbereich löschen.\n\nViele Grüße`
+    t("members.mailBody", { url: inviteUrl }),
   )}`;
 
   return (
@@ -38,7 +40,7 @@ export default function InviteActions({ inviteUrl }: InviteActionsProps) {
           onClick={handleCopy}
           className="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
-          {copied ? "Kopiert" : "Link kopieren"}
+          {copied ? t("members.copied") : t("members.copyLink")}
         </button>
 
         <a
@@ -54,13 +56,12 @@ export default function InviteActions({ inviteUrl }: InviteActionsProps) {
           href={mailHref}
           className="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
-          E-Mail
+          {t("members.email")}
         </a>
       </div>
 
       <p className="text-xs text-slate-500">
-        Diesen Link kannst du direkt in eure Mannschaftsgruppe schicken. Er ist
-        mehrfach nutzbar und bleibt gültig, bis du ihn im Adminbereich löschst.
+        {t("members.inviteLinkHint")}
       </p>
     </div>
   );
