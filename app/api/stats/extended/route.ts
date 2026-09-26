@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type Scope = "season" | "career";
 type TeamRow = { id: number; session_id: number };
@@ -16,11 +18,11 @@ function getCurrentSeason(seasons: SeasonRow[]) {
   const today = getTodayIsoDate();
   return seasons.find((season) => season.start_date && season.end_date && today >= season.start_date && today <= season.end_date) ?? seasons[0] ?? null;
 }
-function displayName(player: PlayerRow) {
+function displayName(player: PlayerRow, fallback: string) {
   const nickname = player.nickname?.trim();
   if (nickname) return nickname;
   const combined = [player.first_name?.trim(), player.last_name?.trim()].filter(Boolean).join(" ");
-  return combined || player.name?.trim() || `Spieler ${player.id}`;
+  return combined || player.name?.trim() || fallback;
 }
 function getOutcome(result: ResultRow, myTeamId: number) {
   const isA = result.team_a_id === myTeamId;
@@ -30,13 +32,14 @@ function getOutcome(result: ResultRow, myTeamId: number) {
   if ((isA && goalsA > goalsB) || (!isA && goalsB > goalsA)) return "win" as const;
   return "loss" as const;
 }
-function monthLabel(monthKey: string) {
+function monthLabel(monthKey: string, locale: AppLocale) {
   const [year, month] = monthKey.split("-").map(Number);
   if (!year || !month) return monthKey;
-  return new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-DE", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
 }
 
 export async function GET(request: Request) {
+  const { locale, t } = await getServerI18n();
   const { clubId, player } = await requireClub();
   const supabase = await createClient();
   if (!player) return NextResponse.json({ enabled: false });
@@ -86,7 +89,7 @@ export async function GET(request: Request) {
     : { data: [] as PlayerRow[], error: null };
   if (playersError) return NextResponse.json({ error: playersError.message }, { status: 500 });
 
-  const playerNameById = new Map<number, string>(((playersData ?? []) as PlayerRow[]).map((row) => [row.id, displayName(row)]));
+  const playerNameById = new Map<number, string>(((playersData ?? []) as PlayerRow[]).map((row) => [row.id, displayName(row, t("statsApi.playerFallback", { id: row.id }))]));
   const sessionById = new Map(scopedSessions.map((session) => [session.id, session]));
   const myTeamBySession = new Map<number, number>();
   for (const team of scopedTeams) myTeamBySession.set(team.session_id, team.id);
@@ -94,7 +97,7 @@ export async function GET(request: Request) {
   const teammateStats = new Map<number, TeammateStats>();
   for (const row of teammateRows) {
     if (row.player_id === player.id) continue;
-    const entry = teammateStats.get(row.player_id) ?? { playerId: row.player_id, name: playerNameById.get(row.player_id) ?? `Spieler ${row.player_id}`, games: 0, wins: 0, losses: 0, draws: 0 };
+    const entry = teammateStats.get(row.player_id) ?? { playerId: row.player_id, name: playerNameById.get(row.player_id) ?? t("statsApi.playerFallback", { id: row.player_id }), games: 0, wins: 0, losses: 0, draws: 0 };
     entry.games += 1;
     teammateStats.set(row.player_id, entry);
   }
@@ -132,11 +135,11 @@ export async function GET(request: Request) {
 
   const months = Array.from(monthStats.values()).sort((a, b) => b.wins - a.wins || (b.games ? b.wins / b.games : 0) - (a.games ? a.wins / a.games : 0) || b.games - a.games || b.month.localeCompare(a.month));
   const bestMonthRaw = months[0] ?? null;
-  const bestMonth = bestMonthRaw ? { label: monthLabel(bestMonthRaw.month), wins: bestMonthRaw.wins, losses: bestMonthRaw.losses, draws: bestMonthRaw.draws, games: bestMonthRaw.games } : null;
+  const bestMonth = bestMonthRaw ? { label: monthLabel(bestMonthRaw.month, locale), wins: bestMonthRaw.wins, losses: bestMonthRaw.losses, draws: bestMonthRaw.draws, games: bestMonthRaw.games } : null;
 
   const teammateList = Array.from(teammateStats.values());
   const top3 = (key: "games" | "wins" | "losses") => [...teammateList]
-    .sort((a, b) => b[key] - a[key] || b.games - a.games || a.name.localeCompare(b.name, "de"))
+    .sort((a, b) => b[key] - a[key] || b.games - a.games || a.name.localeCompare(b.name, locale === "en" ? "en" : "de"))
     .filter((item) => item[key] > 0)
     .slice(0, 3);
 
