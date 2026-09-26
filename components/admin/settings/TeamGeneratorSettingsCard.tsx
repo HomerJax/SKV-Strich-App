@@ -29,13 +29,14 @@ export default async function TeamGeneratorSettingsCard({
   useStrength,
   useCategories,
   redirectTo = "/admin/settings",
-  submitLabel = "Einstellungen speichern",
+  submitLabel,
   saved = false,
   error = "",
   variant = "default",
 }: TeamGeneratorSettingsCardProps) {
   const { locale, t } = await getServerI18n();
   const errorMessage = getErrorMessage(error, locale);
+  const resolvedSubmitLabel = submitLabel ?? t("teamGenerator.save");
 
   return (
     <div className="space-y-5">
@@ -129,7 +130,7 @@ export default async function TeamGeneratorSettingsCard({
         </div>
 
         <button type="submit" className={variant === "onboarding" ? "flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(15,23,42,.14)] transition hover:-translate-y-0.5 hover:bg-slate-900" : "inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"}>
-          {submitLabel}
+          {resolvedSubmitLabel}
         </button>
       </form>
     </div>
