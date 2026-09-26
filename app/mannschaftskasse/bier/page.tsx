@@ -7,6 +7,9 @@ import {
   markBeerCashPaidAction,
   updateBeerConsumptionAction,
 } from "../actions";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
 
 type Props = {
   searchParams?: Promise<{ saved?: string; error?: string }>;
@@ -32,26 +35,29 @@ type BeerRow = {
   created_at: string;
 };
 
-function playerName(player: Player) {
+function playerName(player: Player, locale: AppLocale) {
   return (
     player.nickname?.trim() ||
     [player.first_name, player.last_name].filter(Boolean).join(" ") ||
     player.name ||
-    `Spieler ${player.id}`
+    translate(locale, "beerManage.playerFallback", { id: player.id })
   );
 }
 
-function dateTime(value: string) {
-  return new Date(value).toLocaleString("de-DE");
+function dateTime(value: string, locale: AppLocale) {
+  return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-GB");
 }
 
-function statusLabel(row: BeerRow) {
-  if (row.payment_status === "cancelled") return "Storniert";
-  if (row.payment_status === "paid") return "✓ Bezahlt";
-  return row.payment_method === "cash" ? "Bar offen" : "PayPal offen";
+function statusLabel(row: BeerRow, locale: AppLocale) {
+  if (row.payment_status === "cancelled") return translate(locale, "beerManage.statusCancelled");
+  if (row.payment_status === "paid") return translate(locale, "beerManage.statusPaid");
+  return row.payment_method === "cash"
+    ? translate(locale, "beerManage.statusCashOpen")
+    : translate(locale, "beerManage.statusPaypalOpen");
 }
 
 export default async function BeerManagementPage({ searchParams }: Props) {
+  const { locale, t } = await getServerI18n();
   const q = await searchParams;
   const { clubId, isClubAdmin } = await requireBeerManagementAccess();
   const admin = createAdminClient();
@@ -71,7 +77,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
 
   const players = (playersData ?? []) as Player[];
   const rows = (rowsData ?? []) as BeerRow[];
-  const names = new Map(players.map((player) => [player.id, playerName(player)]));
+  const names = new Map(players.map((player) => [player.id, playerName(player, locale)]));
   const activeRows = rows.filter((row) => row.payment_status !== "cancelled");
   const pendingRows = activeRows.filter((row) => row.payment_status === "pending");
   const pendingCash = pendingRows.filter((row) => row.payment_method === "cash");
@@ -88,15 +94,15 @@ export default async function BeerManagementPage({ searchParams }: Props) {
       <section className="mx-auto max-w-5xl space-y-4 px-4 py-5 pb-24">
         <div className="flex items-center justify-between gap-3">
           <Link href="/mannschaftskasse" className="text-sm font-semibold text-slate-600">
-            ← Mannschaftskasse
+            ← {t("beerManage.back")}
           </Link>
           {isClubAdmin ? (
             <Link href="/admin/members" className="text-xs font-black text-slate-500">
-              Berechtigungen →
+              {t("beerManage.permissions")}
             </Link>
           ) : (
             <span className="text-[10px] font-black uppercase tracking-[.14em] text-amber-700">
-              Bierkassen-Verwalter
+              {t("beerManage.manager")}
             </span>
           )}
         </div>
@@ -104,16 +110,16 @@ export default async function BeerManagementPage({ searchParams }: Props) {
         <div className="relative overflow-hidden rounded-[28px] bg-slate-950 p-5 text-white">
           <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-amber-400/20 blur-3xl" />
           <div className="relative">
-            <div className="text-[10px] font-black uppercase tracking-[.2em] text-amber-300">🍺 Bierkasse+</div>
-            <h1 className="mt-1 text-2xl font-black">Bierkonto verwalten</h1>
+            <div className="text-[10px] font-black uppercase tracking-[.2em] text-amber-300">{t("beerManage.brand")}</div>
+            <h1 className="mt-1 text-2xl font-black">{t("beerManage.title")}</h1>
             <p className="mt-2 max-w-xl text-sm font-medium text-white/60">
-              Verbrauch ist Verbrauch. Grün bedeutet bezahlt, gelb bedeutet noch offen. Bier-Anzahl und Zahlungsstatus könnt ihr hier jederzeit sauber korrigieren.
+              {t("beerManage.description")}
             </p>
           </div>
         </div>
 
         {q?.saved ? (
-          <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">✓ Gespeichert</div>
+          <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">{t("beerManage.saved")}</div>
         ) : null}
         {q?.error ? (
           <div className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-800">{q.error}</div>
@@ -121,10 +127,10 @@ export default async function BeerManagementPage({ searchParams }: Props) {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
-            ["Bier erfasst", `${totalBeers} 🍺`, "Konsum ohne Stornos"],
-            ["Bar offen", formatCents(pendingCashCents), `${pendingCash.length} Einträge`],
-            ["Bar bestätigt", formatCents(paidCashCents), "in Teamkasse verbucht"],
-            ["PayPal ungeklärt", formatCents(pendingPaypalCents), "Webhook folgt später"],
+            [t("beerManage.recorded"), `${totalBeers} 🍺`, t("beerManage.consumptionNoCancellations")],
+            [t("beerManage.cashOpen"), formatCents(pendingCashCents), t("beerManage.entries", { count: pendingCash.length })],
+            [t("beerManage.cashConfirmed"), formatCents(paidCashCents), t("beerManage.bookedToFund")],
+            [t("beerManage.paypalUnclear"), formatCents(pendingPaypalCents), t("beerManage.webhookLater")],
           ].map(([label, value, hint]) => (
             <div key={label} className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
               <div className="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{label}</div>
@@ -137,11 +143,11 @@ export default async function BeerManagementPage({ searchParams }: Props) {
         <section className="rounded-[26px] border border-amber-200 bg-white p-5 shadow-sm">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">Zahlungen</div>
-              <h2 className="mt-1 text-lg font-black text-slate-950">Offen / noch zu bestätigen</h2>
+              <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">{t("beerManage.payments")}</div>
+              <h2 className="mt-1 text-lg font-black text-slate-950">{t("beerManage.openToConfirm")}</h2>
             </div>
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">
-              {pendingRows.length} offen
+              {t("beerManage.openCount", { count: pendingRows.length })}
             </span>
           </div>
 
@@ -150,9 +156,9 @@ export default async function BeerManagementPage({ searchParams }: Props) {
               <div key={row.id} className="rounded-2xl border border-slate-200 p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <div className="font-black text-slate-950">{names.get(row.player_id) ?? `Spieler ${row.player_id}`}</div>
+                    <div className="font-black text-slate-950">{names.get(row.player_id) ?? t("beerManage.playerFallback", { id: row.player_id })}</div>
                     <div className="mt-1 text-xs font-medium text-slate-500">
-                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {row.payment_method === "cash" ? "Bar" : "PayPal"} · {dateTime(row.created_at)}
+                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {row.payment_method === "cash" ? t("beerManage.cash") : "PayPal"} · {dateTime(row.created_at, locale)}
                     </div>
                   </div>
 
@@ -168,21 +174,21 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                         className="w-16 rounded-xl border border-slate-200 px-2 py-2 text-center text-xs font-black"
                       />
                       <button className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs font-black text-slate-700">
-                        Korrigieren
+                        {t("beerManage.correct")}
                       </button>
                     </form>
 
                     <form action={markBeerCashPaidAction}>
                       <input type="hidden" name="consumption_id" value={row.id} />
                       <button className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white">
-                        {row.payment_method === "cash" ? "✓ Bar bezahlt" : "✓ PayPal bezahlt"}
+                        {row.payment_method === "cash" ? t("beerManage.cashPaid") : t("beerManage.paypalPaid")}
                       </button>
                     </form>
 
                     <form action={cancelBeerConsumptionAction}>
                       <input type="hidden" name="consumption_id" value={row.id} />
                       <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700">
-                        Storno
+                        {t("beerManage.cancel")}
                       </button>
                     </form>
                   </div>
@@ -191,17 +197,17 @@ export default async function BeerManagementPage({ searchParams }: Props) {
             ))}
             {pendingRows.length === 0 ? (
               <div className="rounded-2xl bg-emerald-50 px-4 py-4 text-sm font-bold text-emerald-800">
-                Alles sauber – keine offene Zahlung. 🍻
+                {t("beerManage.allClear")}
               </div>
             ) : null}
           </div>
           <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2.5 text-[11px] font-medium leading-5 text-slate-600">
-            PayPal-Zahlungen werden aktuell nicht automatisch von PayPal bestätigt. Sobald das Geld angekommen ist, tippt der Kassenwart auf „PayPal bezahlt“. Erst dann wird der Betrag grün und in den Kassenstand übernommen.
+            {t("beerManage.paypalHint")}
           </p>
         </section>
 
         <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-slate-950">Letzte Bier-Einträge</h2>
+          <h2 className="text-lg font-black text-slate-950">{t("beerManage.latest")}</h2>
           <div className="mt-4 space-y-2">
             {rows.slice(0, 30).map((row) => (
               <div
@@ -211,10 +217,10 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-black text-slate-900">
-                      {names.get(row.player_id) ?? `Spieler ${row.player_id}`} · {row.quantity} 🍺
+                      {names.get(row.player_id) ?? t("beerManage.playerFallback", { id: row.player_id })} · {row.quantity} 🍺
                     </div>
                     <div className="mt-0.5 text-[10px] font-medium text-slate-500">
-                      {row.payment_method === "cash" ? "Bar" : "PayPal"} · {formatCents(row.total_cents)} · {dateTime(row.created_at)}
+                      {row.payment_method === "cash" ? t("beerManage.cash") : "PayPal"} · {formatCents(row.total_cents)} · {dateTime(row.created_at, locale)}
                     </div>
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black ${
@@ -224,7 +230,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                         ? "bg-slate-200 text-slate-600"
                         : "bg-amber-100 text-amber-900"
                   }`}>
-                    {statusLabel(row)}
+                    {statusLabel(row, locale)}
                   </span>
                 </div>
 
@@ -241,13 +247,13 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                         className="w-16 rounded-xl border border-slate-200 bg-white px-2 py-2 text-center text-xs font-black"
                       />
                       <button className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700">
-                        Korrigieren
+                        {t("beerManage.correct")}
                       </button>
                     </form>
                     <form action={cancelBeerConsumptionAction}>
                       <input type="hidden" name="consumption_id" value={row.id} />
                       <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700">
-                        Storno
+                        {t("beerManage.cancel")}
                       </button>
                     </form>
                   </div>
