@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import {
   GAME_TIMER_HALFTIME_BEHAVIOR_OPTIONS,
   type GameTimerAlarmSound,
@@ -119,6 +120,7 @@ export default function SessionGameTimerCard({
   clubDefaultSettings,
   initialUsesOverride,
 }: SessionGameTimerCardProps) {
+  const { t } = useI18n();
   const [settings, setSettings] = useState<GameTimerSettings>(() =>
     normalizeSettings(initialSettings),
   );
@@ -337,7 +339,7 @@ export default function SessionGameTimerCard({
       savedAt: Date.now(),
     };
     persistRuntime(nextRuntime);
-    setMessage("Halbzeit-Signal. Die Spieluhr läuft weiter.");
+    setMessage(t("gameTimer.signalRunning"));
 
     if (!runtime.nativeHalftimeScheduled) {
       void startRepeatingTimerAlarm(runtime.settings.alarmSound).then((started) => {
@@ -378,7 +380,7 @@ export default function SessionGameTimerCard({
         savedAt: Date.now(),
       });
       setRemainingMs(0);
-      setMessage("Halbzeit. Die Uhr ist gestoppt – 2. Halbzeit manuell starten.");
+      setMessage(t("gameTimer.halftimePaused"));
       return;
     }
 
@@ -392,7 +394,7 @@ export default function SessionGameTimerCard({
       savedAt: Date.now(),
     });
     setRemainingMs(0);
-    setMessage("Abpfiff. Alarm läuft bis du ihn stoppst.");
+    setMessage(t("gameTimer.finalAlarmRunning"));
   }, [persistRuntime, runtime, remainingMs]);
 
   const displayTime = useMemo(() => {
@@ -406,32 +408,32 @@ export default function SessionGameTimerCard({
             : settings.durationMinutes * 60 * 1000;
         return formatRemaining(milliseconds);
       }
-      return settings.endTime ? `bis ${settings.endTime}` : "–";
+      return settings.endTime ? t("gameTimer.until", { time: settings.endTime }) : "–";
     }
     return formatRemaining(remainingMs);
-  }, [remainingMs, runtime.phase, settings]);
+  }, [remainingMs, runtime.phase, settings, t]);
 
   const phaseLabel = useMemo(() => {
-    if (runtime.phase === "idle") return "Bereit";
-    if (runtime.phase === "halftime") return "Pause";
-    if (runtime.phase === "finished") return "Abpfiff";
-    if (runtime.segment === "first") return "1. Halbzeit";
-    if (runtime.segment === "second") return "2. Halbzeit";
-    return "Spiel läuft";
-  }, [runtime.phase, runtime.segment]);
+    if (runtime.phase === "idle") return t("gameTimer.ready");
+    if (runtime.phase === "halftime") return t("gameTimer.pause");
+    if (runtime.phase === "finished") return t("gameTimer.finalWhistle");
+    if (runtime.segment === "first") return t("gameTimer.firstHalf");
+    if (runtime.segment === "second") return t("gameTimer.secondHalf");
+    return t("gameTimer.running");
+  }, [runtime.phase, runtime.segment, t]);
 
   const settingsSummary = useMemo(() => {
     const target =
       settings.mode === "duration"
-        ? `${settings.durationMinutes} Min.`
-        : `Ende ${formatEndTime(settings.endTime)}`;
+        ? t("gameTimer.minutes", { minutes: settings.durationMinutes })
+        : t("gameTimer.endsAt", { time: formatEndTime(settings.endTime) });
     const halftime = !settings.halftimeEnabled
-      ? "durchspielen"
+      ? t("gameTimer.playThrough")
       : settings.halftimeBehavior === "signal"
-        ? "Halbzeit-Signal"
-        : "echte Halbzeitpause";
-    return `${target} · ${halftime} · System-Alarmton`;
-  }, [settings]);
+        ? t("gameTimer.halftimeSignal")
+        : t("gameTimer.realHalftime");
+    return `${target} · ${halftime} · ${t("gameTimer.systemAlarm")}`;
+  }, [settings, t]);
 
   async function ensureNativeAlarmReady() {
     if (!nativeAlarmSupported) {
@@ -444,17 +446,11 @@ export default function SessionGameTimerCard({
     }
 
     if (authorization.reason === "alarm_volume_zero") {
-      setError(
-        "Deine Wecker-/Alarmlautstärke ist auf 0. Bitte am Handy die Alarmlautstärke erhöhen und danach erneut starten.",
-      );
+      setError(t("gameTimer.alarmVolumeZero"));
     } else if (authorization.needsSettings) {
-      setError(
-        "Bitte erlaube strikr unter „Alarme & Erinnerungen“ exakte Alarme und tippe danach erneut auf Spiel starten.",
-      );
+      setError(t("gameTimer.exactAlarmPermission"));
     } else {
-      setError(
-        "Für einen zuverlässigen Alarm bei gesperrtem Bildschirm braucht strikr die Alarm-/Benachrichtigungs-Berechtigung.",
-      );
+      setError(t("gameTimer.alarmPermission"));
     }
 
     return { useNative: false, blocked: true } as const;
@@ -479,9 +475,7 @@ export default function SessionGameTimerCard({
 
     const audioReady = await primeTimerAudio();
     if (!nativeAlarmSupported && !audioReady) {
-      setError(
-        "Der Alarmton konnte auf diesem Gerät nicht aktiviert werden. Bitte Lautstärke prüfen und „Ton testen“ verwenden.",
-      );
+      setError(t("gameTimer.alarmActivateFailed"));
       return;
     }
 
@@ -512,9 +506,7 @@ export default function SessionGameTimerCard({
     } else {
       endAt = getFutureEndTimestamp(activeSettings.endTime);
       if (!endAt) {
-        setError(
-          "Die gewählte Endzeit liegt bereits zurück. Bitte die Endzeit für dieses Training anpassen.",
-        );
+        setError(t("gameTimer.endTimePast"));
         return;
       }
 
@@ -551,7 +543,7 @@ export default function SessionGameTimerCard({
         });
 
         if (!nativeHalftimeScheduled) {
-          setError("Der Halbzeit-Alarm konnte nicht geplant werden. Spieluhr wurde nicht gestartet.");
+          setError(t("gameTimer.halftimeScheduleFailed"));
           return;
         }
       }
@@ -567,7 +559,7 @@ export default function SessionGameTimerCard({
 
         if (!nativeFinalScheduled) {
           await cancelNativeGameTimerAlarm(halftimeAlarmKey);
-          setError("Der Abpfiff-Alarm konnte nicht geplant werden. Spieluhr wurde nicht gestartet.");
+          setError(t("gameTimer.finalScheduleStartFailed"));
           return;
         }
       }
@@ -589,13 +581,13 @@ export default function SessionGameTimerCard({
     setRemainingMs(Math.max(0, targetAt - now));
 
     if (nativeReady.useNative) {
-      setMessage("Spieluhr läuft. Du kannst den Bildschirm sperren.");
+      setMessage(t("gameTimer.runningLock"));
     } else {
       const wakeLockActive = await acquireBrowserWakeLock();
       setMessage(
         wakeLockActive
-          ? "Spieluhr läuft. Bildschirm bleibt nach Möglichkeit aktiv."
-          : "Spieluhr läuft. Bitte App geöffnet und Bildschirm eingeschaltet lassen.",
+          ? t("gameTimer.runningWake")
+          : t("gameTimer.runningKeepOpen"),
       );
     }
   }
@@ -607,7 +599,7 @@ export default function SessionGameTimerCard({
     } else if (runtime.phase === "finished") {
       await cancelNativeGameTimerAlarm(finalAlarmKey);
     }
-    setMessage(runtime.phase === "halftime" ? "Halbzeit-Alarm gestoppt." : "Abpfiff-Alarm gestoppt.");
+    setMessage(runtime.phase === "halftime" ? t("gameTimer.halftimeAlarmStopped") : t("gameTimer.finalAlarmStopped"));
   }
 
   async function startSecondHalf() {
@@ -619,9 +611,7 @@ export default function SessionGameTimerCard({
 
     const audioReady = await primeTimerAudio();
     if (!nativeAlarmSupported && !audioReady) {
-      setError(
-        "Der Alarmton konnte auf diesem Gerät nicht aktiviert werden. Bitte Lautstärke prüfen und „Ton testen“ verwenden.",
-      );
+      setError(t("gameTimer.alarmActivateFailed"));
       return;
     }
 
@@ -644,7 +634,7 @@ export default function SessionGameTimerCard({
           finalAt: endAt,
           savedAt: Date.now(),
         });
-        setError("Die feste Endzeit ist bereits erreicht.");
+        setError(t("gameTimer.fixedEndReached"));
         return;
       }
       targetAt = endAt;
@@ -664,7 +654,7 @@ export default function SessionGameTimerCard({
           persistent: true,
         });
         if (!nativeFinalScheduled) {
-          setError("Der Abpfiff-Alarm konnte nicht geplant werden.");
+          setError(t("gameTimer.finalScheduleFailed"));
           return;
         }
       }
@@ -680,14 +670,14 @@ export default function SessionGameTimerCard({
       savedAt: Date.now(),
     });
     setRemainingMs(Math.max(0, targetAt - now));
-    setMessage("2. Halbzeit läuft.");
+    setMessage(t("gameTimer.secondHalfRunning"));
   }
 
   async function stopTimer() {
     stopBrowserAlarm();
     await releaseBrowserWakeLock();
     await cancelAllNativeAlarms();
-    setMessage("Spieluhr gestoppt.");
+    setMessage(t("gameTimer.stopped"));
     setError(null);
     const nextRuntime = getInitialRuntime(settings);
     persistRuntime(nextRuntime);
@@ -705,7 +695,7 @@ export default function SessionGameTimerCard({
       const nativeReady = await ensureNativeAlarmReady();
       if ("blocked" in nativeReady && nativeReady.blocked) return;
       if (!nativeReady.useNative) {
-        setError("Der native Alarm ist auf diesem Gerät nicht verfügbar.");
+        setError(t("gameTimer.nativeUnavailable"));
         return;
       }
 
@@ -718,13 +708,11 @@ export default function SessionGameTimerCard({
       });
 
       if (!scheduled) {
-        setError("Der Testalarm konnte nicht geplant werden.");
+        setError(t("gameTimer.testScheduleFailed"));
         return;
       }
 
-      setMessage(
-        "Testalarm kommt in 10 Sekunden. Sperr jetzt ruhig das Handy – genau das wird getestet.",
-      );
+      setMessage(t("gameTimer.testIn10"));
 
       if (typeof window !== "undefined") {
         if (testMessageTimeoutRef.current !== null) {
@@ -732,7 +720,7 @@ export default function SessionGameTimerCard({
         }
         testMessageTimeoutRef.current = window.setTimeout(() => {
           setMessage((current) =>
-            current?.startsWith("Testalarm kommt in 10 Sekunden") ? null : current,
+            current === t("gameTimer.testIn10") ? null : current,
           );
           testMessageTimeoutRef.current = null;
         }, 12_000);
@@ -743,7 +731,7 @@ export default function SessionGameTimerCard({
     await primeTimerAudio();
     const played = await playTimerAlarm(settings.alarmSound, { preview: true });
     if (!played) {
-      setError("Der Alarmton konnte auf diesem Gerät nicht abgespielt werden.");
+      setError(t("gameTimer.soundPlaybackFailed"));
     }
   }
 
@@ -763,19 +751,19 @@ export default function SessionGameTimerCard({
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload?.error ?? "Spieluhr konnte nicht gespeichert werden.");
+        throw new Error(payload?.error ?? t("gameTimer.saveFailed"));
       }
 
       setSettings(normalized);
       setUsesOverride(true);
       setEditing(false);
       resetRuntime(normalized);
-      setMessage("Spieluhr für dieses Training angepasst.");
+      setMessage(t("gameTimer.savedOverride"));
     } catch (saveError) {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Spieluhr konnte nicht gespeichert werden.",
+          : t("gameTimer.saveFailed"),
       );
     } finally {
       setSaving(false);
@@ -797,7 +785,7 @@ export default function SessionGameTimerCard({
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload?.error ?? "Club-Standard konnte nicht geladen werden.");
+        throw new Error(payload?.error ?? t("gameTimer.defaultLoadFailed"));
       }
 
       const normalizedDefault = normalizeSettings(clubDefaultSettings);
@@ -805,12 +793,12 @@ export default function SessionGameTimerCard({
       setUsesOverride(false);
       setEditing(false);
       resetRuntime(normalizedDefault);
-      setMessage("Club-Standard für dieses Training wiederhergestellt.");
+      setMessage(t("gameTimer.defaultRestored"));
     } catch (resetError) {
       setError(
         resetError instanceof Error
           ? resetError.message
-          : "Club-Standard konnte nicht wiederhergestellt werden.",
+          : t("gameTimer.defaultRestoreFailed"),
       );
     } finally {
       setSaving(false);
@@ -823,10 +811,10 @@ export default function SessionGameTimerCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-extrabold tracking-tight text-slate-950">
-              Spieluhr
+              {t("gameTimer.title")}
             </h2>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-              {usesOverride ? "für dieses Training angepasst" : "Club-Standard"}
+              {usesOverride ? t("gameTimer.overrideAdjusted") : t("gameTimer.clubDefault")}
             </span>
           </div>
           <p className="mt-1 text-xs leading-5 text-slate-500">{settingsSummary}</p>
@@ -838,7 +826,7 @@ export default function SessionGameTimerCard({
             onClick={() => setEditing((current) => !current)}
             className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
           >
-            {editing ? "Schließen" : "Für heute anpassen"}
+            {editing ? t("gameTimer.close") : t("gameTimer.adjustToday")}
           </button>
         ) : null}
       </div>
@@ -859,12 +847,12 @@ export default function SessionGameTimerCard({
           </div>
           {runtime.phase === "halftime" && runtime.settings.mode === "end_time" ? (
             <div className="mt-3 text-sm font-semibold text-white/70">
-              Feste Endzeit: {runtime.settings.endTime} Uhr
+              {t("gameTimer.fixedEnd", { time: runtime.settings.endTime ?? "–" })}
             </div>
           ) : null}
           {runtime.phase === "halftime" && runtime.settings.mode === "duration" ? (
             <div className="mt-3 text-sm font-semibold text-white/70">
-              2. Halbzeit: {formatRemaining((runtime.settings.durationMinutes * 60 * 1000) / 2)}
+              {t("gameTimer.secondHalfRemaining", { time: formatRemaining((runtime.settings.durationMinutes * 60 * 1000) / 2) })}
             </div>
           ) : null}
         </div>
@@ -877,7 +865,7 @@ export default function SessionGameTimerCard({
               disabled={!hydrated}
               className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-50"
             >
-              Spiel starten
+              {t("gameTimer.startGame")}
             </button>
           ) : null}
 
@@ -887,7 +875,7 @@ export default function SessionGameTimerCard({
               onClick={() => void stopTimer()}
               className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 transition hover:bg-red-100"
             >
-              Spieluhr stoppen
+              {t("gameTimer.title")} stoppen
             </button>
           ) : null}
 
@@ -898,21 +886,21 @@ export default function SessionGameTimerCard({
                 onClick={() => void stopCurrentAlarm()}
                 className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-extrabold text-amber-800 transition hover:bg-amber-100"
               >
-                Alarm stoppen
+                {t("gameTimer.stopAlarm")}
               </button>
               <button
                 type="button"
                 onClick={() => void startSecondHalf()}
                 className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800"
               >
-                2. Halbzeit starten
+                {t("gameTimer.startSecondHalf")}
               </button>
               <button
                 type="button"
                 onClick={() => void stopTimer()}
                 className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
               >
-                Beenden
+                {t("gameTimer.end")}
               </button>
             </>
           ) : null}
@@ -924,14 +912,14 @@ export default function SessionGameTimerCard({
                 onClick={() => void stopCurrentAlarm()}
                 className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-extrabold text-amber-800 transition hover:bg-amber-100"
               >
-                Alarm stoppen
+                {t("gameTimer.stopAlarm")}
               </button>
               <button
                 type="button"
                 onClick={() => resetRuntime(settings)}
                 className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800"
               >
-                Spieluhr zurücksetzen
+                {t("gameTimer.title")} zurücksetzen
               </button>
             </>
           ) : null}
@@ -941,15 +929,15 @@ export default function SessionGameTimerCard({
           <div className="mt-5 space-y-4 rounded-[22px] border border-slate-200 bg-slate-50 p-4">
             <div>
               <div className="text-sm font-extrabold text-slate-950">
-                Nur für dieses Training
+                {t("gameTimer.onlyThisTraining")}
               </div>
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                Weniger Leute, kürzer spielen oder heute eine feste Schlusszeit? Hier überschreibst du den Club-Standard nur für diese Session.
+                {t("gameTimer.overrideHint")}
               </p>
             </div>
 
             <label className="block">
-              <span className="text-xs font-bold text-slate-700">Ziel</span>
+              <span className="text-xs font-bold text-slate-700">{t("gameTimer.target")}</span>
               <select
                 value={settings.mode}
                 onChange={(event) =>
@@ -960,14 +948,14 @@ export default function SessionGameTimerCard({
                 }
                 className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-900"
               >
-                <option value="duration">Spielzeit in Minuten</option>
-                <option value="end_time">Feste Endzeit</option>
+                <option value="duration">{t("gameTimer.durationMode")}</option>
+                <option value="end_time">{t("gameTimer.endTimeMode")}</option>
               </select>
             </label>
 
             {settings.mode === "duration" ? (
               <label className="block">
-                <span className="text-xs font-bold text-slate-700">Spielzeit gesamt</span>
+                <span className="text-xs font-bold text-slate-700">{t("gameTimer.totalDuration")}</span>
                 <div className="mt-1.5 flex items-center gap-2">
                   <input
                     type="number"
@@ -983,12 +971,12 @@ export default function SessionGameTimerCard({
                     }
                     className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-900"
                   />
-                  <span className="text-sm font-semibold text-slate-500">Min.</span>
+                  <span className="text-sm font-semibold text-slate-500">{t("gameTimer.minutesShort")}</span>
                 </div>
               </label>
             ) : (
               <label className="block">
-                <span className="text-xs font-bold text-slate-700">Spiel endet um</span>
+                <span className="text-xs font-bold text-slate-700">{t("gameTimer.gameEndsAt")}</span>
                 <input
                   type="time"
                   value={settings.endTime ?? ""}
@@ -1005,9 +993,9 @@ export default function SessionGameTimerCard({
 
             <label className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-3.5">
               <span>
-                <span className="block text-sm font-bold text-slate-900">Mit Halbzeit</span>
+                <span className="block text-sm font-bold text-slate-900">{t("gameTimer.withHalftime")}</span>
                 <span className="mt-1 block text-xs leading-5 text-slate-500">
-                  Aus = ohne Halbzeit-Signal durchspielen.
+                  {t("gameTimer.withoutHalftimeHint")}
                 </span>
               </span>
               <input
@@ -1025,7 +1013,7 @@ export default function SessionGameTimerCard({
 
             {settings.halftimeEnabled ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-3.5">
-                <div className="text-xs font-bold text-slate-700">Halbzeit-Verhalten</div>
+                <div className="text-xs font-bold text-slate-700">{t("gameTimer.halftimeBehavior")}</div>
                 <div className="mt-2 grid gap-2">
                   {GAME_TIMER_HALFTIME_BEHAVIOR_OPTIONS.map((option) => (
                     <label key={option.value} className="flex items-start gap-3 rounded-xl border border-slate-100 p-2.5">
@@ -1042,8 +1030,8 @@ export default function SessionGameTimerCard({
                         className="mt-1 h-4 w-4 border-slate-300 text-slate-950 focus:ring-slate-500"
                       />
                       <span>
-                        <span className="block text-sm font-bold text-slate-900">{option.label}</span>
-                        <span className="mt-0.5 block text-xs leading-5 text-slate-500">{option.description}</span>
+                        <span className="block text-sm font-bold text-slate-900">{option.value === "pause" ? t("gameTimer.pauseOption") : t("gameTimer.signalOption")}</span>
+                        <span className="mt-0.5 block text-xs leading-5 text-slate-500">{option.value === "pause" ? t("gameTimer.pauseOptionHint") : t("gameTimer.signalOptionHint")}</span>
                       </span>
                     </label>
                   ))}
@@ -1052,12 +1040,12 @@ export default function SessionGameTimerCard({
             ) : null}
 
             <div className="rounded-2xl border border-slate-200 bg-white p-3.5">
-              <div className="text-xs font-bold text-slate-700">Alarmton</div>
+              <div className="text-xs font-bold text-slate-700">{t("gameTimer.alarmSound")}</div>
               <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <div className="text-sm font-bold text-slate-900">System-Alarmton</div>
+                  <div className="text-sm font-bold text-slate-900">{t("gameTimer.systemAlarmTitle")}</div>
                   <div className="mt-0.5 text-xs leading-5 text-slate-500">
-                    strikr nutzt den zuverlässigen Alarmton deines iPhones bzw. Android-Handys.
+                    {t("gameTimer.systemAlarmHint")}
                   </div>
                 </div>
                 <button
@@ -1065,7 +1053,7 @@ export default function SessionGameTimerCard({
                   onClick={() => void testSound()}
                   className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                 >
-                  {nativeAlarmSupported ? "Alarm testen · 10 Sek." : "Ton testen"}
+                  {nativeAlarmSupported ? t("gameTimer.testAlarm10") : t("gameTimer.testSound")}
                 </button>
               </div>
             </div>
@@ -1077,7 +1065,7 @@ export default function SessionGameTimerCard({
                 disabled={saving}
                 className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-50"
               >
-                {saving ? "Speichert…" : "Für dieses Training speichern"}
+                {saving ? t("profile.savingShort") : t("gameTimer.saveForTraining")}
               </button>
 
               {usesOverride ? (
@@ -1087,7 +1075,7 @@ export default function SessionGameTimerCard({
                   disabled={saving}
                   className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Club-Standard verwenden
+                  {t("gameTimer.useClubDefault")}
                 </button>
               ) : null}
             </div>
@@ -1107,9 +1095,7 @@ export default function SessionGameTimerCard({
         ) : null}
 
         <p className="mt-4 text-[11px] leading-5 text-slate-400">
-          Der Timer läuft nur auf diesem Gerät. In der App werden Halbzeit und Abpfiff lokal geplant,
-          damit das Display gesperrt werden kann. Bei gesperrtem Handy nutzt strikr aus Zuverlässigkeitsgründen
-          den System-Alarmton. Mit „Alarm testen · 10 Sek.“ kannst du das direkt mit gesperrtem Bildschirm prüfen.
+          {t("gameTimer.footerInfo")}
         </p>
       </div>
     </section>
