@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import ResetPasswordForm from "@/app/login/reset-password/ResetPasswordForm";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -12,7 +12,10 @@ function safeNext(value: string | null) {
 
 export default function RecoveryPage() {
   const { t } = useI18n();
-  const errorUrl = "/login/forgot-password?error=" + encodeURIComponent(t("auth.resetInvalid"));
+  const errorUrl = useMemo(
+    () => "/login/forgot-password?error=" + encodeURIComponent(t("auth.resetInvalid")),
+    [t],
+  );
   const [ready, setReady] = useState(false);
   const [next, setNext] = useState("");
 
