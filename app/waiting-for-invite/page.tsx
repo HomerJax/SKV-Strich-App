@@ -3,8 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export default async function WaitingForInvitePage() {
+  const { t } = await getServerI18n();
   const ctx = await getAuthContext();
 
   if (!ctx.user) {
@@ -44,18 +46,16 @@ export default async function WaitingForInvitePage() {
                 strikr
               </div>
               <div className="mt-3 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-                Noch keinem Team zugeordnet
+                {t("waiting.title")}
               </div>
             </div>
 
             <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">
-              Dein Profil ist bereits angelegt. Du kannst jetzt entweder auf eine
-              Einladung warten oder direkt dein eigenes Team erstellen.
+              {t("waiting.description")}
             </p>
 
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-6 text-slate-600">
-              Sobald dich ein Admin eingeladen hat, kommst du nach dem nächsten
-              Login oder Seitenaufruf automatisch weiter.
+              {t("waiting.hint")}
             </div>
 
             <div className="mt-8 flex flex-col gap-3">
@@ -63,14 +63,14 @@ export default async function WaitingForInvitePage() {
                 href="/club-setup"
                 className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Eigenes Team erstellen
+                {t("waiting.create")}
               </Link>
 
               <Link
                 href="/login"
                 className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
-                Später erneut anmelden
+                {t("waiting.loginLater")}
               </Link>
             </div>
           </div>
