@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type PushPlatform = "ios" | "android" | "web" | "unknown";
 
@@ -13,10 +14,11 @@ function normalizePlatform(value: unknown): PushPlatform {
 }
 
 export async function POST(request: Request) {
+  const { t } = await getServerI18n();
   const ctx = await getAuthContext();
 
   if (!ctx.user) {
-    return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+    return NextResponse.json({ error: t("pushApi.notSignedIn") }, { status: 401 });
   }
 
   let body: unknown;
@@ -24,7 +26,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return NextResponse.json({ error: t("pushApi.invalidRequest") }, { status: 400 });
   }
 
   const payload = body as {
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
 
   if (!token || token.length < 20) {
     return NextResponse.json(
-      { error: "Push Token fehlt oder ist ungültig." },
+      { error: t("pushApi.tokenInvalid") },
       { status: 400 },
     );
   }
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
   if (error) {
     console.error("Failed to register push token", error);
     return NextResponse.json(
-      { error: "Push Token konnte nicht gespeichert werden." },
+      { error: t("pushApi.tokenSaveFailed") },
       { status: 500 },
     );
   }
