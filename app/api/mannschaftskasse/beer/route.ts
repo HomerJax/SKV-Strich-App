@@ -4,6 +4,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { notifyBeerManagers } from "@/lib/cashbox/beer-notifications";
 
 export async function POST(request: Request) {
+  const { t } = await getServerI18n();
   try {
     const { clubId, player, user } = await requireClub();
 
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
       String(formData.get("payment_method") ?? "") === "cash" ? "cash" : "paypal";
 
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
-      return NextResponse.json({ error: "Ungültige Anzahl." }, { status: 400 });
+      return NextResponse.json({ error: t("beerApi.invalidQuantity") }, { status: 400 });
     }
 
     const supabase = await createClient();
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (settingsError) {
-      return NextResponse.json({ error: "Bierkasse konnte nicht geladen werden." }, { status: 500 });
+      return NextResponse.json({ error: t("beerApi.loadFailed") }, { status: 500 });
     }
 
     const premiumEnabled = settings?.beerkasse_premium_enabled === true;
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     if (!Number.isInteger(unitPriceCents) || unitPriceCents < 1) {
-      return NextResponse.json({ error: "Ungültiger Bierpreis." }, { status: 400 });
+      return NextResponse.json({ error: t("beerApi.invalidPrice") }, { status: 400 });
     }
 
     const totalCents = unitPriceCents * quantity;
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      return NextResponse.json({ error: "Bier konnte nicht eingetragen werden." }, { status: 500 });
+      return NextResponse.json({ error: t("beerApi.addFailed") }, { status: 500 });
     }
 
     try {
@@ -82,6 +83,6 @@ export async function POST(request: Request) {
 
     return new NextResponse(null, { status: 204 });
   } catch {
-    return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+    return NextResponse.json({ error: t("pushApi.notSignedIn") }, { status: 401 });
   }
 }
