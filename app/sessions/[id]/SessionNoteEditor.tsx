@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateSessionNotesAction } from "./session-notes-actions";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
   sessionId: number;
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) {
+  const { t } = useI18n();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(notes ?? "");
@@ -36,7 +38,7 @@ export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) 
         setError(
           saveError instanceof Error
             ? saveError.message
-            : "Hinweis konnte nicht gespeichert werden.",
+            : t("sessionNote.saveFailed"),
         );
       }
     });
@@ -47,7 +49,7 @@ export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) 
       <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.07] p-3">
         <div className="flex items-center justify-between gap-3">
           <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/48">
-            Hinweis bearbeiten
+            {t("sessionNote.edit")}
           </div>
           <div className="text-[10px] text-white/38">{value.length}/280</div>
         </div>
@@ -57,7 +59,7 @@ export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) 
           onChange={(event) => setValue(event.target.value.slice(0, 280))}
           rows={3}
           autoFocus
-          placeholder="z. B. Training heute in der Halle"
+          placeholder={t("sessionNote.placeholder")}
           className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm leading-5 text-white outline-none placeholder:text-white/28 focus:border-white/25"
         />
 
@@ -70,7 +72,7 @@ export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) 
             disabled={pending}
             className="rounded-full bg-white px-3.5 py-2 text-xs font-bold text-slate-950 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {pending ? "Speichert…" : "Speichern"}
+            {pending ? t("profile.savingShort") : t("sessionNote.save")}
           </button>
           <button
             type="button"
@@ -82,7 +84,7 @@ export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) 
             disabled={pending}
             className="rounded-full bg-white/8 px-3.5 py-2 text-xs font-semibold text-white/74 ring-1 ring-white/10 transition hover:bg-white/12 disabled:opacity-60"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
           {notes ? (
             <button
@@ -94,7 +96,7 @@ export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) 
               disabled={pending}
               className="ml-auto text-xs font-semibold text-white/42 transition hover:text-white/68 disabled:opacity-60"
             >
-              Hinweis entfernen
+              {t("sessionNote.remove")}
             </button>
           ) : null}
         </div>
@@ -110,7 +112,7 @@ export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) 
         className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1.5 text-xs font-semibold text-white/66 ring-1 ring-white/10 transition hover:bg-white/12 hover:text-white"
       >
         <span aria-hidden="true">＋</span>
-        Hinweis hinzufügen
+        {t("sessionNote.add")}
       </button>
     ) : null;
   }
@@ -122,7 +124,7 @@ export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) 
       </span>
       <div className="min-w-0 flex-1">
         <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-100/55">
-          Hinweis
+          {t("sessionNote.label")}
         </div>
         <div className="mt-0.5 whitespace-pre-wrap text-sm leading-5 text-white/84">
           {notes}
@@ -134,7 +136,7 @@ export default function SessionNoteEditor({ sessionId, notes, isAdmin }: Props) 
           onClick={() => setEditing(true)}
           className="shrink-0 rounded-full bg-white/8 px-2.5 py-1 text-[11px] font-semibold text-white/70 ring-1 ring-white/10 transition hover:bg-white/12 hover:text-white"
         >
-          Bearbeiten
+          {t("sessionNote.editShort")}
         </button>
       ) : null}
     </div>
