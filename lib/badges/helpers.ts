@@ -1,3 +1,6 @@
+import type { AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
+
 export type BadgeKey = "none" | "copper" | "bronze" | "silver" | "gold" | "goat";
 
 export type BadgeMeta = {
@@ -7,44 +10,34 @@ export type BadgeMeta = {
   minMvpCount: number;
 };
 
-const BADGE_TIERS: BadgeMeta[] = [
-  {
-    key: "none",
-    label: "Noch kein Badge",
-    shortLabel: "Kein Badge",
-    minMvpCount: 0,
-  },
-  {
-    key: "copper",
-    label: "Blech",
-    shortLabel: "Blech",
-    minMvpCount: 1,
-  },
-  {
-    key: "bronze",
-    label: "Bronze",
-    shortLabel: "Bronze",
-    minMvpCount: 3,
-  },
-  {
-    key: "silver",
-    label: "Silber",
-    shortLabel: "Silber",
-    minMvpCount: 5,
-  },
-  {
-    key: "gold",
-    label: "Gold",
-    shortLabel: "Gold",
-    minMvpCount: 7,
-  },
-  {
-    key: "goat",
-    label: "GOAT",
-    shortLabel: "GOAT",
-    minMvpCount: 10,
-  },
+const BADGE_TIERS: Array<Pick<BadgeMeta, "key" | "minMvpCount">> = [
+  { key: "none", minMvpCount: 0 },
+  { key: "copper", minMvpCount: 1 },
+  { key: "bronze", minMvpCount: 3 },
+  { key: "silver", minMvpCount: 5 },
+  { key: "gold", minMvpCount: 7 },
+  { key: "goat", minMvpCount: 10 },
 ];
+
+function localizeBadgeMeta(
+  tier: Pick<BadgeMeta, "key" | "minMvpCount">,
+  locale: AppLocale,
+): BadgeMeta {
+  const keyMap = {
+    none: "badge.none",
+    copper: "badge.copper",
+    bronze: "badge.bronze",
+    silver: "badge.silver",
+    gold: "badge.gold",
+    goat: "badge.goat",
+  } as const;
+  const shortKey = tier.key === "none" ? "badge.noneShort" : keyMap[tier.key];
+  return {
+    ...tier,
+    label: translate(locale, keyMap[tier.key]),
+    shortLabel: translate(locale, shortKey),
+  };
+}
 
 export function normalizeMvpCount(value: number | null | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -55,37 +48,42 @@ export function normalizeMvpCount(value: number | null | undefined): number {
 }
 
 export function getBadgeMetaFromMvpCount(
-  value: number | null | undefined
+  value: number | null | undefined,
+  locale: AppLocale = "de",
 ): BadgeMeta {
   const mvpCount = normalizeMvpCount(value);
 
-  if (mvpCount >= 10) return BADGE_TIERS[5];
-  if (mvpCount >= 7) return BADGE_TIERS[4];
-  if (mvpCount >= 5) return BADGE_TIERS[3];
-  if (mvpCount >= 3) return BADGE_TIERS[2];
-  if (mvpCount >= 1) return BADGE_TIERS[1];
+  if (mvpCount >= 10) return localizeBadgeMeta(BADGE_TIERS[5], locale);
+  if (mvpCount >= 7) return localizeBadgeMeta(BADGE_TIERS[4], locale);
+  if (mvpCount >= 5) return localizeBadgeMeta(BADGE_TIERS[3], locale);
+  if (mvpCount >= 3) return localizeBadgeMeta(BADGE_TIERS[2], locale);
+  if (mvpCount >= 1) return localizeBadgeMeta(BADGE_TIERS[1], locale);
 
-  return BADGE_TIERS[0];
+  return localizeBadgeMeta(BADGE_TIERS[0], locale);
 }
 
 export function getNextBadgeMeta(
-  value: number | null | undefined
+  value: number | null | undefined,
+  locale: AppLocale = "de",
 ): BadgeMeta | null {
   const mvpCount = normalizeMvpCount(value);
 
   for (const tier of BADGE_TIERS) {
     if (tier.minMvpCount > mvpCount) {
-      return tier;
+      return localizeBadgeMeta(tier, locale);
     }
   }
 
   return null;
 }
 
-export function getBadgeProgress(value: number | null | undefined) {
+export function getBadgeProgress(
+  value: number | null | undefined,
+  locale: AppLocale = "de",
+) {
   const mvpCount = normalizeMvpCount(value);
-  const current = getBadgeMetaFromMvpCount(mvpCount);
-  const next = getNextBadgeMeta(mvpCount);
+  const current = getBadgeMetaFromMvpCount(mvpCount, locale);
+  const next = getNextBadgeMeta(mvpCount, locale);
 
   if (!next) {
     return {
@@ -94,7 +92,7 @@ export function getBadgeProgress(value: number | null | undefined) {
       currentCount: mvpCount,
       missing: 0,
       progressPercent: 100,
-      progressLabel: `${current.label} erreicht`,
+      progressLabel: translate(locale, "badge.reached", { badge: current.label }),
     };
   }
 
@@ -114,6 +112,9 @@ export function getBadgeProgress(value: number | null | undefined) {
     currentCount: mvpCount,
     missing,
     progressPercent,
-    progressLabel: `Noch ${missing} MVP bis ${next.label}`,
+    progressLabel: translate(locale, "badge.untilNext", {
+      count: missing,
+      badge: next.label,
+    }),
   };
 }
