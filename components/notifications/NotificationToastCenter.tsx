@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
 import type { LeaderboardEntry as ShareLeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 import { preloadMvpShareImage, shareMvpResult } from "@/lib/share/mvp-share";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type PayloadLeaderboardEntry = {
   playerId: number;
@@ -52,32 +53,32 @@ type NotificationItem = {
   seen_at: string | null;
 };
 
-function getTypeLabel(type: string) {
+function getTypeLabel(type: string, t: ReturnType<typeof useI18n>["t"]) {
   switch (type) {
     case "badge_awarded":
       return "Badge";
     case "mvp_winner":
       return "MVP";
     case "mvp_result":
-      return "MVP Ergebnis";
+      return t("toast.mvpResult");
     default:
       return "Info";
   }
 }
 
-function formatRelativeTime(dateString: string) {
+function formatRelativeTime(dateString: string, t: ReturnType<typeof useI18n>["t"]) {
   const date = new Date(dateString);
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 1000 / 60);
 
-  if (diffMin < 1) return "Gerade eben";
-  if (diffMin < 60) return `Vor ${diffMin} Min.`;
+  if (diffMin < 1) return t("toast.justNow");
+  if (diffMin < 60) return t("toast.minutesAgo", { count: diffMin });
 
   const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `Vor ${diffHours} Std.`;
+  if (diffHours < 24) return t("toast.hoursAgo", { count: diffHours });
 
   const diffDays = Math.floor(diffHours / 24);
-  return `Vor ${diffDays} Tag${diffDays === 1 ? "" : "en"}`;
+  return diffDays === 1 ? t("toast.dayAgo") : t("toast.daysAgo", { count: diffDays });
 }
 
 function isMvpNotification(notification: NotificationItem) {
@@ -88,12 +89,12 @@ function safeNumber(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-function getBadgeLabel(count: number) {
+function getBadgeLabel(count: number, t: ReturnType<typeof useI18n>["t"]) {
   if (count >= 10) return "GOAT";
   if (count >= 7) return "Gold";
-  if (count >= 5) return "Silber";
+  if (count >= 5) return t("toast.silver");
   if (count >= 3) return "Bronze";
-  return "Blech";
+  return t("toast.tin");
 }
 
 function getBadgeKey(count: number) {
@@ -124,7 +125,8 @@ function toAbsoluteAssetUrl(url: string | null | undefined) {
 
 function toShareEntry(
   entry: PayloadLeaderboardEntry | PayloadWinnerEntry,
-  badgeUpgrade?: BadgeUpgrade | null
+  badgeUpgrade: BadgeUpgrade | null | undefined,
+  t: ReturnType<typeof useI18n>["t"]
 ): ShareLeaderboardEntry {
   const fallbackCurrent = Math.max(safeNumber(entry.mvpCount), 1);
 
@@ -138,7 +140,7 @@ function toShareEntry(
       ? Math.max(safeNumber(badgeUpgrade.previousMvpCount), 0)
       : Math.max(current - 1, 0);
 
-  const label = getBadgeLabel(current);
+  const label = getBadgeLabel(current, t);
 
   return {
     playerId: entry.playerId,
@@ -195,7 +197,7 @@ function pickNotificationWinnerSource(
   return winners[0] ?? leaderboard[0] ?? null;
 }
 
-function buildShareData(notification: NotificationItem) {
+function buildShareData(notification: NotificationItem, t: ReturnType<typeof useI18n>["t"]) {
   const payload = notification.payload;
   if (!payload) return null;
 
@@ -208,7 +210,8 @@ function buildShareData(notification: NotificationItem) {
       entry,
       payload.badgeUpgrade?.playerId === entry.playerId
         ? payload.badgeUpgrade
-        : null
+        : null,
+      t
     )
   );
 
@@ -217,7 +220,8 @@ function buildShareData(notification: NotificationItem) {
       entry,
       payload.badgeUpgrade?.playerId === entry.playerId
         ? payload.badgeUpgrade
-        : null
+        : null,
+      t
     )
   );
 
@@ -226,15 +230,15 @@ function buildShareData(notification: NotificationItem) {
       ? payload.badgeUpgrade
       : null;
 
-  const winner = toShareEntry(winnerSource, winnerBadgeUpgrade);
+  const winner = toShareEntry(winnerSource, winnerBadgeUpgrade, t);
   const badgeKey = getBadgeKey(winner.current);
   const strikrLogoUrl =
     toAbsoluteAssetUrl("/brand/strikr-mark.png") ?? "/brand/strikr-mark.png";
 
   return {
     mode: isWinner ? "winner" : "team",
-    clubName: payload.clubName ?? "strikr Team",
-    sessionDateLabel: "MVP Ergebnis",
+    clubName: payload.clubName ?? t("toast.team"),
+    sessionDateLabel: t("toast.mvpResult"),
     strikrLogoUrl,
     clubLogoUrl: toAbsoluteAssetUrl(payload.clubLogoUrl) ?? strikrLogoUrl,
     badgeImageUrl:
@@ -246,30 +250,30 @@ function buildShareData(notification: NotificationItem) {
   } as const;
 }
 
-function getDisplayText(notification: NotificationItem) {
+function getDisplayText(notification: NotificationItem, t: ReturnType<typeof useI18n>["t"]) {
   const payload = notification.payload;
-  const shareData = buildShareData(notification);
-  const badgeLabel = shareData ? getBadgeLabel(shareData.winner.current) : null;
+  const shareData = buildShareData(notification, t);
+  const badgeLabel = shareData ? getBadgeLabel(shareData.winner.current, t) : null;
   const winnerName =
     payload?.winnerName ?? payload?.winners?.[0]?.name ?? payload?.leaderboard?.[0]?.name;
 
   if (notification.type === "mvp_winner") {
     return {
-      title: "Du wurdest zum MVP gewählt.",
+      title: t("toast.winnerTitle"),
       body: badgeLabel
-        ? `Du hast das ${badgeLabel} Badge freigeschaltet.`
-        : "Deine MVP Card ist bereit.",
-      cta: "Teilen",
+        ? t("toast.badgeUnlocked", { badge: badgeLabel })
+        : t("toast.cardReady"),
+      cta: t("toast.share"),
     };
   }
 
   if (notification.type === "mvp_result") {
     return {
-      title: winnerName ? `${winnerName} wurde MVP.` : "MVP Ergebnis ist da.",
+      title: winnerName ? t("toast.resultWinner", { name: winnerName }) : t("toast.resultReadyTitle"),
       body: badgeLabel
-        ? `${badgeLabel} Badge freigeschaltet.`
-        : "Das MVP Ergebnis ist bereit.",
-      cta: "Ergebnis ansehen",
+        ? t("toast.badgeUnlockedShort", { badge: badgeLabel })
+        : t("toast.resultReady"),
+      cta: t("toast.viewResult"),
     };
   }
 
@@ -281,6 +285,7 @@ function getDisplayText(notification: NotificationItem) {
 }
 
 export function NotificationToastCenter() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const shareRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const dismissedIdsRef = useRef<Set<number>>(new Set());
@@ -410,10 +415,10 @@ export function NotificationToastCenter() {
         const element = shareRefs.current[notification.id];
 
         if (!element) {
-          throw new Error("MVP Share Card ist noch nicht bereit.");
+          throw new Error(t("toast.shareNotReady"));
         }
 
-        const shareData = buildShareData(notification);
+        const shareData = buildShareData(notification, t);
         const sessionId = notification.payload?.sessionId ?? null;
         const playerSpecificWinnerImageUrl =
           isWinner && sessionId && shareData?.winner.playerId
@@ -428,10 +433,10 @@ export function NotificationToastCenter() {
           fileName: isWinner
             ? `strikr-mvp-winner-${notification.payload?.sessionId ?? notification.id}.png`
             : `strikr-mvp-result-${notification.payload?.sessionId ?? notification.id}.png`,
-          title: isWinner ? "Ich wurde zum MVP gewählt" : "MVP Ergebnis",
+          title: isWinner ? t("toast.shareWinnerTitle") : t("toast.mvpResult"),
           text: isWinner
-            ? "Meine MVP Card aus strikr."
-            : "Das MVP Ergebnis aus strikr.",
+            ? t("toast.shareWinnerText")
+            : t("toast.shareResultText"),
         });
 
         await markSeen(notification.id);
@@ -449,7 +454,7 @@ export function NotificationToastCenter() {
 
       setErrorById((prev) => ({
         ...prev,
-        [notification.id]: "Teilen konnte nicht vorbereitet werden. Bitte erneut versuchen.",
+        [notification.id]: t("toast.shareError"),
       }));
     } finally {
       setBusyIds((prev) => prev.filter((item) => item !== notification.id));
@@ -470,8 +475,8 @@ export function NotificationToastCenter() {
         const isMvp = isMvpNotification(notification);
         const payload = notification.payload;
         const isWinner = payload?.isWinner === true;
-        const shareData = isMvp ? buildShareData(notification) : null;
-        const display = getDisplayText(notification);
+        const shareData = isMvp ? buildShareData(notification, t) : null;
+        const display = getDisplayText(notification, t);
         const toneIcon = isMvp ? (isWinner ? "⭐" : "🏅") : "•";
 
         return (
@@ -519,7 +524,7 @@ export function NotificationToastCenter() {
               onClick={() => void dismissNotification(notification.id)}
               disabled={isBusy}
               className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs font-black text-white/65 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
-              aria-label="Benachrichtigung schließen"
+              aria-label={t("toast.close")}
             >
               ×
             </button>
@@ -533,14 +538,14 @@ export function NotificationToastCenter() {
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">
-                      {getTypeLabel(notification.type)}
+                      {getTypeLabel(notification.type, t)}
                     </span>
                     <span className="text-[10px] font-semibold text-white/35">
-                      {formatRelativeTime(notification.created_at)}
+                      {formatRelativeTime(notification.created_at, t)}
                     </span>
                     {queuedCount > 0 ? (
                       <span className="text-[10px] font-semibold text-white/35">
-                        Noch {queuedCount}
+                        {t("toast.queued", { count: queuedCount })}
                       </span>
                     ) : null}
                   </div>
@@ -573,8 +578,8 @@ export function NotificationToastCenter() {
                   >
                     {isBusy
                       ? isMvp
-                        ? "Bereite Card vor…"
-                        : "Öffne…"
+                        ? t("toast.preparingCard")
+                        : t("toast.opening")
                       : display.cta}
                   </button>
                 ) : null}
@@ -583,10 +588,10 @@ export function NotificationToastCenter() {
                   type="button"
                   onClick={() => void dismissNotification(notification.id)}
                   className="mx-auto inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-white/45 transition hover:text-white/80"
-                  aria-label="Benachrichtigung schließen"
+                  aria-label={t("toast.close")}
                 >
                   <span aria-hidden="true" className="text-sm leading-none">×</span>
-                  <span>Schließen</span>
+                  <span>{t("toast.closeButton")}</span>
                 </button>
               </div>
             </div>
