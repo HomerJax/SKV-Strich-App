@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ResultShareData } from "./types";
 import { formatDate } from "./utils";
 import { getBaseShareBranding } from "./brand";
+import type { AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
 
 type SessionRow = {
   id: number;
@@ -30,6 +32,7 @@ type ResultRow = {
 };
 
 export type ResultSharePayload = ResultShareData & {
+  locale: AppLocale;
   sessionId: number;
   clubName?: string | null;
   clubLogoUrl?: string | null;
@@ -43,12 +46,14 @@ export type ResultSharePayload = ResultShareData & {
   winnerPhotoZoom?: number;
 };
 
-function buildWinnerLabel(goalsA: number, goalsB: number) {
+function buildWinnerLabel(goalsA: number, goalsB: number, locale: AppLocale) {
   if (goalsA === goalsB) {
-    return "Remis";
+    return translate(locale, "resultShare.drawWinner");
   }
 
-  return goalsA > goalsB ? "Team A gewinnt" : "Team B gewinnt";
+  return goalsA > goalsB
+    ? translate(locale, "resultShare.teamAWins")
+    : translate(locale, "resultShare.teamBWins");
 }
 
 function isAbsoluteUrl(value: string) {
@@ -190,7 +195,8 @@ function buildStoryFlags(goalsA: number, goalsB: number) {
 }
 
 export async function getResultShareData(
-  sessionIdRaw: string
+  sessionIdRaw: string,
+  locale: AppLocale = "de",
 ): Promise<ResultSharePayload> {
   const sessionId = Number(sessionIdRaw);
 
@@ -278,17 +284,18 @@ export async function getResultShareData(
 
   return {
     sessionId: session.id,
-    title: "Ergebnis",
+    locale,
+    title: translate(locale, "resultShare.resultTitle"),
     subtitle:
       results.length > 1
-        ? `${results.length} Spiele · Tagessiege · strikr`
-        : "match result by strikr",
-    date: session.date ? formatDate(session.date) : "",
+        ? translate(locale, "resultShare.multiGameSubtitle", { count: results.length })
+        : translate(locale, "resultShare.singleGameSubtitle"),
+    date: session.date ? formatDate(session.date, locale) : "",
     goalsA: String(goalsA),
     goalsB: String(goalsB),
     teamAName: "",
     teamBName: "",
-    winnerLabel: buildWinnerLabel(goalsA, goalsB),
+    winnerLabel: buildWinnerLabel(goalsA, goalsB, locale),
     winnerPhotoUrl,
     branding,
     clubName: club?.display_name ?? branding.clubName ?? null,
