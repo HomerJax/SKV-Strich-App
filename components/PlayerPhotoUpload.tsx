@@ -154,7 +154,7 @@ export default function PlayerPhotoUpload({
       setZoom(1);
       setEditorOpen(true);
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Foto konnte nicht vorbereitet werden.");
+      setError(uploadError instanceof Error ? uploadError.message : t("playerPhoto.prepareFailed"));
     } finally {
       setBusy(false);
     }
@@ -180,7 +180,7 @@ export default function PlayerPhotoUpload({
         credentials: "same-origin",
       });
       if (!response.ok || (response.redirected && new URL(response.url).searchParams.has("error"))) {
-        throw new Error("Fotoausrichtung konnte nicht gespeichert werden.");
+        throw new Error(t("playerPhoto.alignSaveFailed"));
       }
 
       resetGesture();
@@ -188,7 +188,7 @@ export default function PlayerPhotoUpload({
       setPendingFile(null);
       router.refresh();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Fotoausrichtung konnte nicht gespeichert werden.");
+      setError(saveError instanceof Error ? saveError.message : t("playerPhoto.alignSaveFailed"));
     } finally {
       setBusy(false);
     }
@@ -315,8 +315,8 @@ export default function PlayerPhotoUpload({
               onClick={openAlignmentEditor}
               disabled={busy}
               className="block h-full w-full cursor-pointer text-left disabled:cursor-default"
-              title="Foto ausrichten"
-              aria-label="Foto ausrichten"
+              title={t("playerPhoto.align")}
+              aria-label={t("playerPhoto.align")}
             >
               {children}
             </button>
@@ -330,13 +330,13 @@ export default function PlayerPhotoUpload({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={busy}
-            title="Foto ändern"
-            aria-label="Foto ändern"
+            title={t("playerPhoto.change")}
+            aria-label={t("playerPhoto.change")}
             className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-800 disabled:opacity-50"
           >
             {busy ? <span className="text-xs font-black">…</span> : <Camera className="h-3.5 w-3.5" aria-hidden="true" />}
           </button>
-          {photoUrl || previewUrl ? <div className="text-center text-[8px] leading-tight text-slate-400">Auf Bild klicken zum Ausrichten</div> : null}
+          {photoUrl || previewUrl ? <div className="text-center text-[8px] leading-tight text-slate-400">{t("playerPhoto.clickToAlign")}</div> : null}
         </div>
 
         <input
@@ -355,8 +355,8 @@ export default function PlayerPhotoUpload({
           <div className="max-h-[94vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-white p-4 shadow-2xl sm:rounded-[28px] sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-black text-slate-950">Foto ausrichten</h3>
-                <p className="mt-1 text-xs text-slate-500">Bild direkt verschieben. Mit zwei Fingern oder Mausrad zoomen.</p>
+                <h3 className="text-lg font-black text-slate-950">{t("playerPhoto.alignTitle")}</h3>
+                <p className="mt-1 text-xs text-slate-500">{t("playerPhoto.alignHint")}</p>
               </div>
               <button type="button" onClick={closeEditor} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-black text-slate-600">×</button>
             </div>
@@ -370,7 +370,7 @@ export default function PlayerPhotoUpload({
                 <div
                   ref={workspaceRef}
                   role="application"
-                  aria-label="Foto verschieben und zoomen"
+                  aria-label={t("playerPhoto.moveZoomAria")}
                   className={`relative aspect-[4/5] touch-none select-none overflow-hidden rounded-2xl border-2 border-white bg-slate-200 shadow-md ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
@@ -385,7 +385,7 @@ export default function PlayerPhotoUpload({
                 >
                   <img
                     src={previewUrl}
-                    alt="Vorschau Spielerpass"
+                    alt={t("playerPhoto.passPreviewAlt")}
                     draggable={false}
                     onDragStart={(event) => event.preventDefault()}
                     className="pointer-events-none h-full w-full object-cover will-change-transform"
@@ -398,26 +398,28 @@ export default function PlayerPhotoUpload({
                 </div>
               </div>
               <div>
-                <div className="mb-1 text-center text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Profil</div>
+                <div className="mb-1 text-center text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{t("playerPhoto.profile")}</div>
                 <div className="mx-auto h-[76px] w-[76px] rounded-full border-4 border-white bg-slate-200 shadow-md">
                   <div className="relative h-full w-full overflow-hidden rounded-full bg-slate-200">
                     <div className="pointer-events-none absolute inset-x-0 -top-[12.5%] h-[125%] overflow-hidden">
-                      <img src={previewUrl} alt="Vorschau Profilbild" draggable={false} className="block h-full w-full object-cover" style={imageStyle} />
+                      <img src={previewUrl} alt={t("playerPhoto.profilePreviewAlt")} draggable={false} className="block h-full w-full object-cover" style={imageStyle} />
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 text-center text-[9px] leading-tight text-slate-400">So wirkt es oben im Header</div>
+                <div className="mt-2 text-center text-[9px] leading-tight text-slate-400">{t("playerPhoto.headerPreview")}</div>
               </div>
             </div>
 
             <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-3">
-              <div className="text-[11px] leading-snug text-slate-500">Am Handy: <b>ziehen + zwei Finger</b><br/>Im Browser: <b>ziehen + Mausrad</b></div>
-              <button type="button" onClick={() => { setPositionX(50); setPositionY(50); setZoom(1); }} className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">Zurücksetzen</button>
+              <div className="text-[11px] leading-snug text-slate-500">
+  {t("playerPhoto.mobileHint")}<br/>{t("playerPhoto.browserHint")}
+</div>
+              <button type="button" onClick={() => { setPositionX(50); setPositionY(50); setZoom(1); }} className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">{t("playerPhoto.reset")}</button>
             </div>
 
             <div className="mt-4 flex gap-2">
-              <button type="button" onClick={closeEditor} className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600">Abbrechen</button>
-              <button type="button" onClick={savePhotoAlignment} disabled={busy} className="flex-1 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50">{busy ? "Speichert …" : "Speichern"}</button>
+              <button type="button" onClick={closeEditor} className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600">{t("common.cancel")}</button>
+              <button type="button" onClick={savePhotoAlignment} disabled={busy} className="flex-1 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50">{busy ? t("profile.savingShort") : t("sessionNote.save")}</button>
             </div>
           </div>
         </div>
