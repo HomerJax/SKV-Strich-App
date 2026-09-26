@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
   version: string;
@@ -26,6 +27,7 @@ function subscribe(callback: () => void) {
 }
 
 export default function WhatsNewModal({ version }: Props) {
+  const { t } = useI18n();
   const open = useSyncExternalStore(
     subscribe,
     () => {
@@ -45,11 +47,11 @@ export default function WhatsNewModal({ version }: Props) {
   if (!open) return null;
 
   const updates = [
-    ["📱 strikr jetzt als App", "Für iPhone und Android."],
-    ["🏆 Neue Karriere-Badges", "Für Einsätze und Siege. Badge antippen = Fullscreen."],
-    ["👑 Hall of Fame", "Auf Home und in deinen persönlichen Stats."],
-    ["👥 Spieler ansehen & vergleichen", "Spieler in der Tabelle antippen, Hall of Fame öffnen und Vergleich starten."],
-    ["🔔 Push- & In-App-Notifications", "strikr informiert dich jetzt direkt über wichtige Neuigkeiten."],
+    [t("whatsNew.appTitle"), t("whatsNew.appText")],
+    [t("whatsNew.badgesTitle"), t("whatsNew.badgesText")],
+    [t("whatsNew.hofTitle"), t("whatsNew.hofText")],
+    [t("whatsNew.compareTitle"), t("whatsNew.compareText")],
+    [t("whatsNew.notificationsTitle"), t("whatsNew.notificationsText")],
   ];
 
   return (
@@ -59,13 +61,13 @@ export default function WhatsNewModal({ version }: Props) {
           type="button"
           onClick={handleClose}
           className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-lg font-bold leading-none text-slate-500 transition hover:bg-slate-200 hover:text-slate-900"
-          aria-label="Update schließen"
+          aria-label={t("whatsNew.close")}
         >
           ×
         </button>
 
         <div className="pr-10 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-          Großes Update
+          {t("whatsNew.eyebrow")}
         </div>
 
         <h2 className="mt-1 pr-10 text-2xl font-black tracking-tight text-slate-950">
@@ -73,7 +75,7 @@ export default function WhatsNewModal({ version }: Props) {
         </h2>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          App. Badges. Hall of Fame. Spieler-Vergleich. Notifications.
+          {t("whatsNew.description")}
         </p>
 
         <div className="mt-4 space-y-2.5">
@@ -95,7 +97,7 @@ export default function WhatsNewModal({ version }: Props) {
           onClick={handleClose}
           className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
         >
-          Verstanden
+          {t("whatsNew.done")}
         </button>
       </div>
     </div>
