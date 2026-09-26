@@ -9,11 +9,12 @@ import {
 } from "../result-share.helpers";
 import { buildPalette } from "../result-share.palette";
 import { ExtendedResultShareData } from "../result-share.types";
+import { translate } from "@/lib/i18n/messages";
 
 export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
   const clubName = getDisplayClubName(data);
   const clubLogoUrl = getClubLogoUrl(data);
-  const copy = buildCopy(data);
+  const copy = buildCopy(data, data.locale);
   const palette = buildPalette(data.clubPrimaryColor, "sticker");
   const score = getScoreModel(data);
 
@@ -168,7 +169,7 @@ export function StickerLayout({ data }: { data: ExtendedResultShareData }) {
                   color: "rgba(255,255,255,0.66)",
                 }}
               >
-                Endstand
+                {translate(data.locale ?? "de", "resultShare.finalScore")}
               </div>
 
               <div
