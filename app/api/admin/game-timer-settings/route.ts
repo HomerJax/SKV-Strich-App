@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { canManageClub } from "@/lib/auth/access";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -26,14 +27,15 @@ function normalizeEndTime(value: unknown) {
 }
 
 export async function POST(request: Request) {
+  const { t } = await getServerI18n();
   const ctx = await getAuthContext();
 
   if (!ctx.user) {
-    return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+    return NextResponse.json({ error: t("timerApi.notSignedIn") }, { status: 401 });
   }
 
   if (!ctx.activeClubId) {
-    return NextResponse.json({ error: "Kein aktiver Club gewählt." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.noActiveClub") }, { status: 400 });
   }
 
   const membership =
@@ -45,7 +47,7 @@ export async function POST(request: Request) {
   });
 
   if (!hasAdminAccess) {
-    return NextResponse.json({ error: "Nur Admins dürfen die Spieluhr konfigurieren." }, { status: 403 });
+    return NextResponse.json({ error: t("timerApi.adminOnly") }, { status: 403 });
   }
 
   let payload: TimerSettingsPayload;
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
   try {
     payload = (await request.json()) as TimerSettingsPayload;
   } catch {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidRequest") }, { status: 400 });
   }
 
   const enabled = payload.enabled === true;
@@ -67,33 +69,33 @@ export async function POST(request: Request) {
     typeof payload.alarmSound === "string" ? payload.alarmSound : "";
 
   if (!TIMER_MODES.has(mode)) {
-    return NextResponse.json({ error: "Ungültiger Timer-Modus." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidMode") }, { status: 400 });
   }
 
   if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 300) {
     return NextResponse.json(
-      { error: "Die Standard-Spielzeit muss zwischen 1 und 300 Minuten liegen." },
+      { error: t("timerApi.defaultDurationInvalid") },
       { status: 400 },
     );
   }
 
   if (endTime === "invalid") {
-    return NextResponse.json({ error: "Ungültige Endzeit." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidEndTime") }, { status: 400 });
   }
 
   if (mode === "end_time" && !endTime) {
     return NextResponse.json(
-      { error: "Bitte eine Standard-Endzeit wählen." },
+      { error: t("timerApi.defaultEndTimeRequired") },
       { status: 400 },
     );
   }
 
   if (!HALFTIME_BEHAVIORS.has(halftimeBehavior)) {
-    return NextResponse.json({ error: "Ungültiger Halbzeit-Modus." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidHalftime") }, { status: 400 });
   }
 
   if (!ALARM_SOUNDS.has(alarmSound)) {
-    return NextResponse.json({ error: "Ungültiger Alarmton." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidAlarm") }, { status: 400 });
   }
 
   const supabase = createAdminClient();
@@ -115,7 +117,7 @@ export async function POST(request: Request) {
   if (error) {
     console.error("Saving game timer settings failed", error);
     return NextResponse.json(
-      { error: "Spieluhr-Einstellungen konnten nicht gespeichert werden." },
+      { error: t("timerApi.saveFailed") },
       { status: 500 },
     );
   }
