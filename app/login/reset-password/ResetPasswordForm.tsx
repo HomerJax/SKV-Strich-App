@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { updatePasswordAction, type ResetPasswordState } from "./actions";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type ResetPasswordFormProps = {
   initialError?: string;
@@ -14,18 +16,13 @@ const INITIAL_STATE: ResetPasswordState = {
   error: "",
 };
 
-function getErrorMessage(error: string) {
+function getErrorMessage(error: string, t: (key: MessageKey) => string) {
   switch (error) {
-    case "missing-password":
-      return "Bitte gib ein neues Passwort ein.";
-    case "password-too-short":
-      return "Dein neues Passwort sollte mindestens 8 Zeichen lang sein.";
-    case "password-mismatch":
-      return "Die Passwörter stimmen nicht überein.";
-    case "update-failed":
-      return "Das Passwort konnte nicht aktualisiert werden.";
-    default:
-      return error || "";
+    case "missing-password": return t("passwordReset.errorEmpty");
+    case "password-too-short": return t("passwordReset.errorShort");
+    case "password-mismatch": return t("passwordReset.errorMismatch");
+    case "update-failed": return t("passwordReset.errorSave");
+    default: return error || "";
   }
 }
 
@@ -33,6 +30,7 @@ export default function ResetPasswordForm({
   initialError = "",
   initialNext = "",
 }: ResetPasswordFormProps) {
+  const { t } = useI18n();
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [hasEditedSinceSubmit, setHasEditedSinceSubmit] = useState(false);
@@ -43,7 +41,7 @@ export default function ResetPasswordForm({
   );
 
   const activeError = hasEditedSinceSubmit ? "" : state.error || initialError;
-  const errorMessage = useMemo(() => getErrorMessage(activeError), [activeError]);
+  const errorMessage = useMemo(() => getErrorMessage(activeError, t), [activeError, t]);
 
   const loginHref = initialNext
     ? `/login?next=${encodeURIComponent(initialNext)}`
@@ -68,10 +66,10 @@ export default function ResetPasswordForm({
 
         <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-2xl font-semibold text-neutral-950">
-            Neues Passwort setzen
+            {t("passwordReset.title")}
           </h1>
           <p className="mt-1 text-sm text-neutral-600">
-            Vergib jetzt ein neues Passwort für deinen Account.
+            {t("passwordReset.description")}
           </p>
 
           {errorMessage ? (
@@ -89,7 +87,7 @@ export default function ResetPasswordForm({
 
             <div>
               <label className="mb-1 block text-sm font-medium text-neutral-800">
-                Neues Passwort
+                {t("passwordReset.new")}
               </label>
               <input
                 name="password"
@@ -108,7 +106,7 @@ export default function ResetPasswordForm({
 
             <div>
               <label className="mb-1 block text-sm font-medium text-neutral-800">
-                Passwort wiederholen
+                {t("passwordReset.repeat")}
               </label>
               <input
                 name="password_confirm"
@@ -130,7 +128,7 @@ export default function ResetPasswordForm({
               disabled={isPending}
               className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isPending ? "Speichert..." : "Passwort speichern"}
+              {isPending ? t("passwordReset.saving") : t("passwordReset.save")}
             </button>
           </form>
 
@@ -139,7 +137,7 @@ export default function ResetPasswordForm({
               href={loginHref}
               className="font-medium text-neutral-900 hover:underline"
             >
-              Zurück zum Login
+              {t("passwordReset.back")}
             </Link>
           </div>
         </div>
