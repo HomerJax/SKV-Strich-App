@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     if (!playerId || Number.isNaN(playerId)) {
       return redirectToAdminPlayers(request, {
-        error: "Ungültige Spieler-ID.",
+        error: t("adminPlayer.invalidId"),
       });
     }
 
@@ -163,13 +164,13 @@ export async function POST(request: NextRequest) {
 
     if (existingPlayerError) {
       return redirectToAdminPlayers(request, {
-        error: "Spieler konnte nicht geladen werden.",
+        error: t("adminPlayer.loadFailed"),
       });
     }
 
     if (!existingPlayer) {
       return redirectToAdminPlayers(request, {
-        error: "Spieler nicht gefunden.",
+        error: t("adminPlayer.notFound"),
       });
     }
 
@@ -185,13 +186,13 @@ export async function POST(request: NextRequest) {
 
       if (emailConflictError) {
         return redirectToAdminPlayers(request, {
-          error: "E-Mail konnte nicht geprüft werden.",
+          error: t("adminPlayer.emailCheckFailed"),
         });
       }
 
       if (emailConflict) {
         return redirectToAdminPlayers(request, {
-          error: "Diese E-Mail ist bereits einem anderen Spieler zugeordnet.",
+          error: t("adminPlayer.emailDuplicate"),
         });
       }
     }
@@ -230,18 +231,18 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       return redirectToAdminPlayers(request, {
-        error: "Spieler konnte nicht gespeichert werden.",
+        error: t("adminPlayer.saveFailed"),
       });
     }
 
     return redirectToAdminPlayers(request, {
-      message: "Spieler erfolgreich gespeichert.",
+      message: t("adminPlayer.saved"),
     });
   } catch (error) {
     console.error("POST /admin/players/update failed", error);
 
     return redirectToAdminPlayers(request, {
-      error: "Spieler konnte nicht gespeichert werden.",
+      error: t("adminPlayer.saveFailed"),
     });
   }
 }
