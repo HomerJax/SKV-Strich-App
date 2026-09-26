@@ -3,21 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { getServerI18n } from "@/lib/i18n/server";
 
 const MAX_NOTE_LENGTH = 280;
 
 export async function updateSessionNotesAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { clubId, membership, isPowerUser } = await requireClub();
 
   if (!isPowerUser && membership.role !== "admin") {
-    throw new Error("Nur Admins dürfen Session-Hinweise bearbeiten.");
+    throw new Error(t("sessionEdit.adminNotesOnly"));
   }
 
   const sessionId = Number(String(formData.get("sessionId") ?? "").trim());
   const notesRaw = String(formData.get("notes") ?? "").trim();
 
   if (!Number.isFinite(sessionId)) {
-    throw new Error("Ungültige Session-ID.");
+    throw new Error(t("sessionAction.invalidId"));
   }
 
   if (notesRaw.length > MAX_NOTE_LENGTH) {
@@ -35,11 +37,11 @@ export async function updateSessionNotesAction(formData: FormData) {
     .maybeSingle<{ id: number }>();
 
   if (sessionError) {
-    throw new Error(`Session konnte nicht geprüft werden: ${sessionError.message}`);
+    throw new Error(t("sessionEdit.checkFailed", { error: sessionError.message }));
   }
 
   if (!session) {
-    throw new Error("Session nicht gefunden.");
+    throw new Error(t("sessionEdit.notFound"));
   }
 
   const { error: updateError } = await supabase
@@ -49,7 +51,7 @@ export async function updateSessionNotesAction(formData: FormData) {
     .eq("club_id", clubId);
 
   if (updateError) {
-    throw new Error(`Hinweis konnte nicht gespeichert werden: ${updateError.message}`);
+    throw new Error(t("sessionEdit.noteSaveFailed", { error: updateError.message }));
   }
 
   revalidatePath(`/sessions/${sessionId}`);
