@@ -1,8 +1,10 @@
 import { ResultShareData } from "@/lib/share/types";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export type ResultShareLayout = "sticker" | "floodlight" | "sports_editorial";
 
 export type ExtendedResultShareData = ResultShareData & {
+  locale?: AppLocale;
   sessionId: number;
   clubLogoUrl?: string | null;
   clubName?: string | null;
