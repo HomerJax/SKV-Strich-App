@@ -3046,6 +3046,8 @@ export const DE_MESSAGES = {
   "sessionExport.winnerPhotoAlt": "Siegerfoto",
   "sessionExport.meta": "TW {gk} · Hinten {def} · Vorne {att}",
 
+  "sessionUi.positionUnknown": "Unbekannt",
+
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -6128,6 +6130,9 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "sessionExport.noPlayersAssigned": "No players assigned yet.",
   "sessionExport.winnerPhotoAlt": "Winner photo",
   "sessionExport.meta": "GK {gk} · Defense {def} · Attack {att}",
+
+
+  "sessionUi.positionUnknown": "Unknown",
 
 
 };
