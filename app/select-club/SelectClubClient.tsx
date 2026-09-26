@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 export type SelectClubOption = {
   id: string;
@@ -19,6 +20,7 @@ export default function SelectClubClient({
   clubOptions,
 }: SelectClubClientProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const [submittingClubId, setSubmittingClubId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -48,7 +50,7 @@ export default function SelectClubClient({
         | null;
 
       if (!response.ok || !payload?.ok) {
-        setErrorMessage("Dieses Team konnte nicht ausgewählt werden.");
+        setErrorMessage(t("selectClub.error"));
         setSubmittingClubId(null);
         return;
       }
@@ -56,7 +58,7 @@ export default function SelectClubClient({
       router.replace(payload.redirect_to || "/");
       router.refresh();
     } catch {
-      setErrorMessage("Dieses Team konnte nicht ausgewählt werden.");
+      setErrorMessage(t("selectClub.error"));
       setSubmittingClubId(null);
     }
   }
@@ -77,12 +79,11 @@ export default function SelectClubClient({
             </div>
 
             <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-              Wähle dein Team.
+              {t("selectClub.title")}
             </h1>
 
             <p className="text-xs leading-5 text-white/75 sm:text-sm">
-              Du bist mehreren Clubs zugeordnet. Wähle aus, mit welchem Team du
-              jetzt arbeiten möchtest.
+              {t("selectClub.description")}
             </p>
           </div>
         </div>
@@ -121,7 +122,7 @@ export default function SelectClubClient({
                       {club.display_name}
                     </div>
                     <div className="mt-1 text-sm text-slate-500">
-                      Rolle: {club.role === "admin" ? "Admin" : "Mitglied"}
+                      {t("selectClub.role", { role: club.role === "admin" ? t("selectClub.admin") : t("selectClub.member") })}
                     </div>
                   </div>
                 </div>
@@ -133,8 +134,8 @@ export default function SelectClubClient({
                   className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {submittingClubId === club.id
-                    ? "Wird geöffnet..."
-                    : "Mit diesem Team öffnen"}
+                    ? t("selectClub.opening")
+                    : t("selectClub.open")}
                 </button>
               </div>
             ))}
