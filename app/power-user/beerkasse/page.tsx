@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Beer, Building2, Clock3, CreditCard, ReceiptText } from "lucide-react";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type BeerRow = {
   id: number;
@@ -21,19 +22,20 @@ type ClubRow = {
   name: string | null;
 };
 
-function euro(cents: number) {
-  return new Intl.NumberFormat("de-DE", {
+function euro(cents: number, locale: "de" | "en") {
+  return new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", {
     style: "currency",
     currency: "EUR",
   }).format(cents / 100);
 }
 
-function dateTime(value: string) {
-  return new Date(value).toLocaleString("de-DE");
+function dateTime(value: string, locale: "de" | "en") {
+  return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-GB");
 }
 
 export default async function PowerUserBeerkassePage() {
   await requirePowerUser();
+  const { locale, t } = await getServerI18n();
   const admin = createAdminClient();
 
   const [{ data: beerData, error: beerError }, { data: clubsData }] =
@@ -50,7 +52,7 @@ export default async function PowerUserBeerkassePage() {
   const clubNames = new Map(
     clubs.map((club) => [
       club.id,
-      club.display_name?.trim() || club.name?.trim() || "Unbenannter Club",
+      club.display_name?.trim() || club.name?.trim() || t("powerBeer.unnamedClub"),
     ])
   );
 
@@ -83,7 +85,7 @@ export default async function PowerUserBeerkassePage() {
   for (const row of activeRows) {
     const current = byClub.get(row.club_id) ?? {
       clubId: row.club_id,
-      clubName: clubNames.get(row.club_id) ?? "Unbekannter Club",
+      clubName: clubNames.get(row.club_id) ?? t("powerBeer.unknownClub"),
       beers: 0,
       totalCents: 0,
       bookings: 0,
@@ -115,14 +117,13 @@ export default async function PowerUserBeerkassePage() {
           <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-amber-400/15 blur-3xl" />
           <div className="relative">
             <div className="text-[11px] font-black uppercase tracking-[.2em] text-amber-300">
-              🍺 strikr Bierkasse
+              {t("powerBeer.eyebrow")}
             </div>
             <h1 className="mt-2 text-3xl font-black tracking-[-.04em] sm:text-4xl">
-              Wie viel Bier läuft eigentlich über strikr?
+              {t("powerBeer.title")}
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/55">
-              Verbrauch und Zahlung sind jetzt getrennt. Barzahlungen werden durch einen
-              Bierkassen-Verwalter bestätigt; PayPal bleibt bis zur technischen Rückmeldung ungeklärt.
+              {t("powerBeer.description")}
             </p>
           </div>
         </div>
@@ -130,27 +131,27 @@ export default async function PowerUserBeerkassePage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
-              label: "Bier erfasst",
+              label: t("powerBeer.beersRecorded"),
               value: `${beers} 🍺`,
-              text: `${activeRows.length} aktive Einträge · 24h: ${beersToday} · 7d: ${beers7d}`,
+              text: t("powerBeer.activeEntries", { count: activeRows.length, today: beersToday, week: beers7d }),
               icon: <Beer className="h-5 w-5" />,
             },
             {
-              label: "Bestätigt bezahlt",
-              value: euro(paidCents),
-              text: "aktuell vor allem bestätigte Barzahlungen",
+              label: t("powerBeer.paidConfirmed"),
+              value: euro(paidCents, locale),
+              text: t("powerBeer.paidHint"),
               icon: <CreditCard className="h-5 w-5" />,
             },
             {
-              label: "Bar offen",
-              value: euro(openCashCents),
-              text: "wartet auf Bestätigung im Club",
+              label: t("powerBeer.cashOpen"),
+              value: euro(openCashCents, locale),
+              text: t("powerBeer.cashOpenHint"),
               icon: <Clock3 className="h-5 w-5" />,
             },
             {
-              label: "PayPal ungeklärt",
-              value: euro(pendingPaypalCents),
-              text: "bis ein PayPal-Webhook angebunden ist",
+              label: t("powerBeer.paypalPending"),
+              value: euro(pendingPaypalCents, locale),
+              text: t("powerBeer.paypalPendingHint"),
               icon: <ReceiptText className="h-5 w-5" />,
             },
           ].map((card) => (
@@ -171,9 +172,9 @@ export default async function PowerUserBeerkassePage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[.16em] text-slate-400">
-                Clubs
+                {t("powerBeer.clubs")}
               </div>
-              <h2 className="mt-1 text-xl font-black text-slate-950">Bier-Ranking</h2>
+              <h2 className="mt-1 text-xl font-black text-slate-950">{t("powerBeer.ranking")}</h2>
             </div>
             <Building2 className="h-5 w-5 text-slate-400" />
           </div>
@@ -181,7 +182,7 @@ export default async function PowerUserBeerkassePage() {
           <div className="mt-4 space-y-2">
             {clubStats.length === 0 ? (
               <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
-                Noch keine Bierbuchungen vorhanden.
+                {t("powerBeer.empty")}
               </div>
             ) : (
               clubStats.map((club, index) => (
@@ -194,7 +195,7 @@ export default async function PowerUserBeerkassePage() {
                       {index + 1}. {club.clubName}
                     </div>
                     <div className="mt-1 text-xs font-medium text-slate-500">
-                      {club.bookings} Einträge · {euro(club.totalCents)} Verbrauchswert
+                      {t("powerBeer.clubEntries", { count: club.bookings, value: euro(club.totalCents, locale) })}
                     </div>
                   </div>
                   <div className="shrink-0 text-lg font-black text-slate-950">
@@ -208,7 +209,7 @@ export default async function PowerUserBeerkassePage() {
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="text-[10px] font-black uppercase tracking-[.16em] text-slate-400">
-            Letzte Buchungen
+            {t("powerBeer.recent")}
           </div>
           <div className="mt-4 space-y-2">
             {rows.slice(0, 25).map((row) => (
@@ -218,20 +219,20 @@ export default async function PowerUserBeerkassePage() {
               >
                 <div>
                   <div className="text-sm font-black text-slate-950">
-                    {clubNames.get(row.club_id) ?? "Unbekannter Club"} · {row.quantity} 🍺
+                    {clubNames.get(row.club_id) ?? t("powerBeer.unknownClub")} · {row.quantity} 🍺
                   </div>
                   <div className="mt-1 text-xs font-medium text-slate-500">
-                    Spieler #{row.player_id} · {euro(row.total_cents)} · {row.payment_method === "cash" ? "Bar" : "PayPal"} · {
+                    {t("powerBeer.player", { id: row.player_id })} · {euro(row.total_cents, locale)} · {row.payment_method === "cash" ? t("powerBeer.cash") : "PayPal"} · {
                       row.payment_status === "paid"
-                        ? "bezahlt"
+                        ? t("powerBeer.paid")
                         : row.payment_status === "cancelled"
-                          ? "storniert"
-                          : "offen/ungeklärt"
+                          ? t("powerBeer.cancelled")
+                          : t("powerBeer.pending")
                     }
                   </div>
                 </div>
                 <div className="text-xs font-medium text-slate-400">
-                  {dateTime(row.created_at)}
+                  {dateTime(row.created_at, locale)}
                 </div>
               </div>
             ))}
