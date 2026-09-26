@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { slugifyKey } from "./helpers";
+import { getServerI18n } from "@/lib/i18n/server";
 
 function normalizeInternalRedirect(value: FormDataEntryValue | null) {
   const target = String(value ?? "/admin/settings").trim();
@@ -124,6 +125,7 @@ function revalidateSettingsPaths() {
 }
 
 export async function addCategoryAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { supabase, clubId } = await getAdminContext();
   const redirectTo = normalizeInternalRedirect(formData.get("redirect_to"));
 
@@ -133,7 +135,7 @@ export async function addCategoryAction(formData: FormData) {
   if (!label) {
     redirect(
       buildRedirectUrlWithParams(redirectTo, {
-        category_error: "Bitte Bezeichnung eingeben",
+        category_error: t("adminSettings.labelRequired"),
       })
     );
   }
@@ -143,7 +145,7 @@ export async function addCategoryAction(formData: FormData) {
   if (!key) {
     redirect(
       buildRedirectUrlWithParams(redirectTo, {
-        category_error: "Ungültiger Schlüssel",
+        category_error: t("adminSettings.invalidKey"),
       })
     );
   }
@@ -176,7 +178,7 @@ export async function addCategoryAction(formData: FormData) {
         category_error:
           error instanceof Error
             ? error.message
-            : "Aktive Kategorien konnten nicht geprüft werden",
+            : t("adminSettings.activeCheckFailed"),
       })
     );
   }
@@ -209,13 +211,14 @@ export async function addCategoryAction(formData: FormData) {
         ? {}
         : {
             category_error:
-              "Kategorie wurde angelegt, aber nicht aktiviert. Für die Team-Balance können maximal zwei Kategorien aktiv sein.",
+              t("adminSettings.createdInactive"),
           }),
     })
   );
 }
 
 export async function updateCategoryAction(formData: FormData) {
+  const { t } = await getServerI18n();
   const { supabase, clubId } = await getAdminContext();
   const redirectTo = normalizeInternalRedirect(formData.get("redirect_to"));
 
@@ -228,7 +231,7 @@ export async function updateCategoryAction(formData: FormData) {
   if (!Number.isFinite(id) || id <= 0 || !label) {
     redirect(
       buildRedirectUrlWithParams(redirectTo, {
-        category_error: "Ungültige Kategorie",
+        category_error: t("adminSettings.invalidCategory"),
       })
     );
   }
@@ -237,7 +240,7 @@ export async function updateCategoryAction(formData: FormData) {
     redirect(
       buildRedirectUrlWithParams(redirectTo, {
         category_error:
-          "Nur eine aktive Kategorie kann als stärkere Kategorie markiert werden.",
+          t("adminSettings.strongMustBeActive"),
       })
     );
   }
@@ -259,7 +262,7 @@ export async function updateCategoryAction(formData: FormData) {
           category_error:
             error instanceof Error
               ? error.message
-              : "Aktive Kategorien konnten nicht geprüft werden",
+              : t("adminSettings.activeCheckFailed"),
         })
       );
     }
@@ -268,7 +271,7 @@ export async function updateCategoryAction(formData: FormData) {
       redirect(
         buildRedirectUrlWithParams(redirectTo, {
           category_error:
-            "Maximal zwei Kategorien können gleichzeitig aktiv sein. Deaktiviere zuerst eine andere Kategorie.",
+            t("adminSettings.maxTwoActive"),
         })
       );
     }
@@ -329,7 +332,7 @@ export async function updateCategoryAction(formData: FormData) {
         category_error:
           error instanceof Error
             ? error.message
-            : "Stärkere Kategorie konnte nicht geprüft werden",
+            : t("adminSettings.strongCheckFailed"),
       })
     );
   }
