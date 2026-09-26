@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type NotificationRow = {
   id: number;
@@ -33,6 +34,7 @@ function buildClubAwareHref(clubId: string | null, href: string | null) {
 }
 
 export async function GET() {
+  const { t } = await getServerI18n();
   const supabase = await createClient();
 
   const {
@@ -99,7 +101,7 @@ export async function GET() {
 
     const body =
       notification.type === "training_rsvp_reminder" && clubName
-        ? `${clubName} · ${notification.body ?? "Bitte kurz zu- oder absagen."}`
+        ? `${clubName} · ${notification.body ?? t("notificationApi.rsvpFallback")}`
         : notification.body;
 
     return {
