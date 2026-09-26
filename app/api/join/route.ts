@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type PlayerProfileRow = {
   id: number;
@@ -45,13 +46,14 @@ function isInviteExpired(expiresAt: string | null) {
 }
 
 export async function POST(request: Request) {
+  const { t } = await getServerI18n();
   const formData = await request.formData();
   const token = String(formData.get("token") ?? "").trim();
   const requestUrl = new URL(request.url);
 
   if (!token) {
     return buildRedirect(requestUrl, "/join", {
-      error: "Einladungstoken fehlt.",
+      error: t("joinAction.tokenMissing"),
     });
   }
 
@@ -102,7 +104,7 @@ export async function POST(request: Request) {
 
     return buildRedirect(requestUrl, "/join", {
       token,
-      error: "Spielerprofil konnte nicht geladen werden.",
+      error: t("joinAction.playerLoadFailed"),
     });
   }
 
@@ -125,14 +127,14 @@ export async function POST(request: Request) {
 
     return buildRedirect(requestUrl, "/join", {
       token,
-      error: "Einladung nicht gefunden.",
+      error: t("joinAction.notFound"),
     });
   }
 
   if (isInviteExpired(invite.expires_at)) {
     return buildRedirect(requestUrl, "/join", {
       token,
-      error: "Diese Einladung ist abgelaufen.",
+      error: t("joinAction.expired"),
     });
   }
 
@@ -156,7 +158,7 @@ export async function POST(request: Request) {
 
     return buildRedirect(requestUrl, "/join", {
       token,
-      error: "Clubbeitritt konnte nicht gespeichert werden.",
+      error: t("joinAction.membershipFailed"),
     });
   }
 
@@ -176,7 +178,7 @@ export async function POST(request: Request) {
       sourceProfile.name?.trim() ||
       sourceProfile.email?.trim() ||
       user.email?.split("@")[0]?.trim() ||
-      "Spieler";
+      t("joinAction.playerFallback");
 
     let safeCategoryKey: string | null = null;
 
@@ -195,7 +197,7 @@ export async function POST(request: Request) {
         return buildRedirect(requestUrl, "/join", {
           token,
           error:
-            "Clubbeitritt gespeichert, aber Kategorien im neuen Club konnten nicht geprüft werden.",
+            t("joinAction.categoryCheckFailed"),
         });
       }
 
@@ -224,7 +226,7 @@ export async function POST(request: Request) {
       return buildRedirect(requestUrl, "/join", {
         token,
         error:
-          "Clubbeitritt gespeichert, aber Spielerprofil konnte im neuen Club nicht angelegt werden.",
+          t("joinAction.playerCreateFailed"),
       });
     }
   }
@@ -243,13 +245,13 @@ export async function POST(request: Request) {
       return buildRedirect(requestUrl, "/join", {
         token,
         error:
-          "Clubbeitritt gespeichert, aber Einladung konnte nicht finalisiert werden.",
+          t("joinAction.finalizeFailed"),
       });
     }
   }
 
   const response = buildRedirect(requestUrl, "/", {
-    message: "Club erfolgreich beigetreten.",
+    message: t("joinAction.joined"),
   });
 
   response.cookies.set("active_club_id", invite.club_id, {
