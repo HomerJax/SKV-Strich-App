@@ -11,6 +11,9 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePowerUser } from "@/lib/auth/power-user";
+import { getServerI18n } from "@/lib/i18n/server";
+import { translate } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 import {
   PowerUserAuthUser,
   listAllAuthUsers,
@@ -72,34 +75,34 @@ type ClubView = {
   activityScore: number;
 };
 
-function formatDateTime(value: string | null | undefined) {
+function formatDateTime(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleString("de-DE");
+  return new Date(value).toLocaleString(locale === "en" ? "en-GB" : "de-DE");
 }
 
-function formatDate(value: string | null | undefined) {
+function formatDate(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleDateString("de-DE");
+  return new Date(value).toLocaleDateString(locale === "en" ? "en-GB" : "de-DE");
 }
 
-function getDisplayClubName(club: ClubRow) {
-  return club.display_name?.trim() || club.name?.trim() || "Unbenannter Club";
+function getDisplayClubName(club: ClubRow, locale: AppLocale) {
+  return club.display_name?.trim() || club.name?.trim() || translate(locale, "powerClubs.unnamed");
 }
 
 function getUserEmailById(users: PowerUserAuthUser[]) {
   return new Map(users.map((user) => [user.id, user.email?.trim() || user.id]));
 }
 
-function getPlanLabel(planKey: string) {
+function getPlanLabel(planKey: string, locale: AppLocale) {
   switch (planKey) {
     case "supercup_trial":
       return "Supercup Trial";
     case "pro_monthly":
-      return "Pro monatlich";
+      return translate(locale, "powerClubs.planMonthly");
     case "pro_6_months":
-      return "Pro 6 Monate";
+      return translate(locale, "powerClubs.planSixMonths");
     case "pro_yearly":
-      return "Pro 12 Monate";
+      return translate(locale, "powerClubs.planYearly");
     case "founder":
       return "Founder";
     case "free":
@@ -152,7 +155,7 @@ function getEffectiveBilling(billing: BillingRow | null | undefined): BillingRow
     trial_ends_at: billing?.trial_ends_at ?? null,
     pro_ends_at: billing?.pro_ends_at ?? null,
     billing_note:
-      billing?.billing_note ?? "Fallback: kein Billing-Eintrag vorhanden.",
+      billing?.billing_note ?? null,
     updated_at: billing?.updated_at ?? null,
   };
 }
@@ -167,34 +170,32 @@ function isRecentlyActive(dateValue: string | null) {
   return daysDiff <= 45;
 }
 
-function getActivityLabel(view: ClubView) {
+function getActivityLabel(view: ClubView, locale: AppLocale) {
   if (view.sessionCount > 0 && isRecentlyActive(view.latestSessionCreatedAt)) {
-    return "aktiv";
+    return translate(locale, "powerClubs.activityActive");
   }
 
   if (view.sessionCount > 0) {
-    return "genutzt";
+    return translate(locale, "powerClubs.activityUsed");
   }
 
   if (view.members.length > 1 || view.inviteCount > 0) {
-    return "eingerichtet";
+    return translate(locale, "powerClubs.activitySetup");
   }
 
-  return "test/leer";
+  return translate(locale, "powerClubs.activityTestEmpty");
 }
 
 function getActivityTone(view: ClubView) {
-  const label = getActivityLabel(view);
-
-  if (label === "aktiv") {
+  if (view.sessionCount > 0 && isRecentlyActive(view.latestSessionCreatedAt)) {
     return "border-emerald-200 bg-emerald-50 text-emerald-800";
   }
 
-  if (label === "genutzt") {
+  if (view.sessionCount > 0) {
     return "border-blue-200 bg-blue-50 text-blue-800";
   }
 
-  if (label === "eingerichtet") {
+  if (view.members.length > 1 || view.inviteCount > 0) {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
 
@@ -220,7 +221,7 @@ function sortClubViews(a: ClubView, b: ClubView) {
   return a.clubName.localeCompare(b.clubName, "de");
 }
 
-function BillingActions({ clubId }: { clubId: string }) {
+function BillingActions({ clubId, locale }: { clubId: string; locale: AppLocale }) {
   return (
     <div className="mt-4 grid gap-2 sm:grid-cols-2">
       <form method="post" action="/power-user/clubs/billing">
@@ -230,7 +231,7 @@ function BillingActions({ clubId }: { clubId: string }) {
           type="submit"
           className="inline-flex w-full items-center justify-center rounded-xl bg-amber-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-amber-700"
         >
-          Pro-Trial 30 Tage
+          {translate(locale, "powerClubs.trial30Days")}
         </button>
       </form>
 
@@ -252,7 +253,7 @@ function BillingActions({ clubId }: { clubId: string }) {
           type="submit"
           className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-800"
         >
-          Pro 6 Monate
+          {translate(locale, "powerClubs.planSixMonths")}
         </button>
       </form>
 
@@ -263,7 +264,7 @@ function BillingActions({ clubId }: { clubId: string }) {
           type="submit"
           className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-900 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-950"
         >
-          Pro 12 Monate
+          {translate(locale, "powerClubs.planYearly")}
         </button>
       </form>
 
@@ -278,14 +279,14 @@ function BillingActions({ clubId }: { clubId: string }) {
           type="submit"
           className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
         >
-          Zurück auf Free
+          {translate(locale, "powerClubs.backFree")}
         </button>
       </form>
     </div>
   );
 }
 
-function ClubDetailsCard({ view }: { view: ClubView }) {
+function ClubDetailsCard({ view, locale }: { view: ClubView; locale: AppLocale }) {
   const billingTone = getBillingTone(view.billing.plan_key, view.billing.status);
 
   return (
@@ -302,7 +303,7 @@ function ClubDetailsCard({ view }: { view: ClubView }) {
                 view
               )}`}
             >
-              {getActivityLabel(view)}
+              {getActivityLabel(view, locale)}
             </span>
 
             <span
@@ -311,13 +312,13 @@ function ClubDetailsCard({ view }: { view: ClubView }) {
                 view.billing.status
               )}`}
             >
-              {getPlanLabel(view.billing.plan_key)}
+              {getPlanLabel(view.billing.plan_key, locale)}
             </span>
           </div>
 
           <div className="mt-1 text-xs text-slate-500">ID: {view.club.id}</div>
           <div className="mt-1 text-xs text-slate-500">
-            Angelegt: {formatDateTime(view.club.created_at)}
+            {translate(locale, "powerClubs.created", { date: formatDateTime(view.club.created_at, locale) })}
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -384,10 +385,10 @@ function ClubDetailsCard({ view }: { view: ClubView }) {
           <div className="mt-2 text-sm">
             Aktuell:{" "}
             <span className="font-extrabold">
-              {getPlanLabel(view.billing.plan_key)}
+              {getPlanLabel(view.billing.plan_key, locale)}
             </span>{" "}
             · Status:{" "}
-            <span className="font-semibold">{view.billing.status}</span>
+            <span className="font-semibold">{view.billing.status === "active" ? translate(locale, "powerClubs.statusActive") : view.billing.status}</span>
           </div>
 
           <div className="mt-1 text-xs">
@@ -445,7 +446,7 @@ function ClubDetailsCard({ view }: { view: ClubView }) {
                     <div className="font-medium text-slate-900">
                       Rolle: {member.role}
                     </div>
-                    <div>seit {formatDateTime(member.created_at)}</div>
+                    <div>{translate(locale, "powerClubs.since", { date: formatDateTime(member.created_at, locale) })}</div>
                   </div>
                 </div>
               ))}
@@ -463,6 +464,7 @@ export default async function PowerUserClubsPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePowerUser();
+  const { locale, t } = await getServerI18n();
 
   const resolvedSearchParams = (await searchParams) ?? {};
   const billingSaved = resolvedSearchParams.billing_saved === "1";
@@ -574,7 +576,7 @@ export default async function PowerUserClubsPage({
 
   const clubViews: ClubView[] = clubs
     .map((club) => {
-      const clubName = getDisplayClubName(club);
+      const clubName = getDisplayClubName(club, locale);
       const members = [...(membersByClub.get(club.id) ?? [])].sort((a, b) =>
         a.created_at.localeCompare(b.created_at)
       );
@@ -705,7 +707,7 @@ export default async function PowerUserClubsPage({
             </div>
           ) : (
             activeClubViews.map((view) => (
-              <ClubDetailsCard key={view.club.id} view={view} />
+              <ClubDetailsCard key={view.club.id} view={view} locale={locale} />
             ))
           )}
         </section>
@@ -723,7 +725,7 @@ export default async function PowerUserClubsPage({
             </div>
           ) : (
             inactiveClubViews.map((view) => (
-              <ClubDetailsCard key={view.club.id} view={view} />
+              <ClubDetailsCard key={view.club.id} view={view} locale={locale} />
             ))
           )}
         </section>
