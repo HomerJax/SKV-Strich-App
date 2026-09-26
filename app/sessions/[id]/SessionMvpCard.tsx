@@ -1251,8 +1251,9 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                       {t("mvpVoting.votingResult")}
                     </div>
                     <div className="text-xs font-semibold text-slate-500">
-                      {state.voteCount}{" "}
-                      {state.voteCount === 1 ? "Stimme" : "Stimmen"}
+                      {state.voteCount === 1
+                        ? t("mvpVoting.oneVote")
+                        : t("mvpVoting.votes", { count: state.voteCount })}
                     </div>
                   </div>
 
