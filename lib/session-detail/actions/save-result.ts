@@ -37,8 +37,10 @@ export async function handleSaveResult({
   actorUserId,
   winnerPhotoPath = null,
 }: SaveResultInput) {
-  const { t } = await getServerI18n();
+  let fallbackError = "Result could not be saved.";
   try {
+    const { t } = await getServerI18n();
+    fallbackError = t("sessionAction.resultSaveFailed");
     const cleanA = normalizeGoalValue(goalsA);
     const cleanB = normalizeGoalValue(goalsB);
 
@@ -152,7 +154,7 @@ export async function handleSaveResult({
     return fail(
       error instanceof Error && error.message
         ? error.message
-        : t("sessionAction.resultSaveFailed"),
+        : fallbackError,
       500,
     );
   }
