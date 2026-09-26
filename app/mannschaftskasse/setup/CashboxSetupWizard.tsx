@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { saveCashboxSetupAction } from "./actions";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type PlayerOption = {
   id: number;
@@ -72,26 +73,27 @@ function ChoiceButton({
 function ToggleQuestion({
   value,
   onChange,
-  yesTitle = "Ja, nutzen",
-  noTitle = "Nein, nicht nutzen",
+  yesTitle,
+  noTitle,
 }: {
   value: boolean;
   onChange: (value: boolean) => void;
   yesTitle?: string;
   noTitle?: string;
 }) {
+  const { t } = useI18n();
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <ChoiceButton
         active={value}
-        title={yesTitle}
-        text="Wird für euren Club aktiviert."
+        title={yesTitle ?? t("cashSetup.yes")}
+        text={t("cashSetup.enabledHint")}
         onClick={() => onChange(true)}
       />
       <ChoiceButton
         active={!value}
-        title={noTitle}
-        text="Bleibt ausgeblendet und kann später jederzeit aktiviert werden."
+        title={noTitle ?? t("cashSetup.no")}
+        text={t("cashSetup.disabledHint")}
         onClick={() => onChange(false)}
       />
     </div>
@@ -110,6 +112,7 @@ export default function CashboxSetupWizard({
   error,
   isExistingSetup,
 }: Props) {
+  const { t } = useI18n();
   const [penaltiesEnabled, setPenaltiesEnabled] = useState(initialPenaltiesEnabled);
   const [contributionsEnabled, setContributionsEnabled] = useState(
     initialContributionsEnabled,
@@ -196,14 +199,14 @@ export default function CashboxSetupWizard({
               href="/mannschaftskasse"
               className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-600 shadow-sm ring-1 ring-slate-200"
             >
-              ✕ Abbrechen
+              {t("cashSetup.cancel")}
             </Link>
             <div className="text-center">
               <div className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400">
-                Mannschaftskasse
+                {t("cashSetup.title")}
               </div>
               <div className="text-xs font-black text-slate-700">
-                Schritt {safeStepIndex + 1} von {steps.length}
+                {t("cashSetup.step", { current: safeStepIndex + 1, total: steps.length })}
               </div>
             </div>
             <div className="w-[82px]" />
@@ -231,10 +234,10 @@ export default function CashboxSetupWizard({
                 FBZG
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                Wollt ihr FBZG nutzen?
+                {t("cashSetup.fbzgTitle")}
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                FBZG steht für „Freiwilliger Beitrag zur Gemeinschaft“ – euer augenzwinkernder Sammelbegriff für Kisten, Kuchen, Geldbeträge oder andere Teamregeln. Spieler können Vorfälle selbst melden.
+                {t("cashSetup.fbzgText")}
               </p>
               <div className="mt-8">
                 <ToggleQuestion
@@ -249,13 +252,13 @@ export default function CashboxSetupWizard({
             <section>
               <div className="text-5xl">💶</div>
               <div className="mt-6 text-xs font-black uppercase tracking-[.2em] text-slate-400">
-                Beiträge
+                {t("cashSetup.contributions")}
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                Sammelt ihr gemeinsame Beiträge?
+                {t("cashSetup.contributionsTitle")}
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Zum Beispiel Jahresbeitrag, Geburtstagsgeld oder andere Umlagen. Ihr könnt mehrere Beitragsarten anlegen und pro Spieler getrennt als offen, bezahlt oder befreit führen.
+                {t("cashSetup.contributionsText")}
               </p>
               <div className="mt-8">
                 <ToggleQuestion
@@ -270,13 +273,13 @@ export default function CashboxSetupWizard({
             <section>
               <div className="text-5xl">🍺</div>
               <div className="mt-6 text-xs font-black uppercase tracking-[.2em] text-slate-400">
-                Bierkasse
+                {t("cashSetup.beerFund")}
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                Wollt ihr eine Bierkasse nutzen?
+                {t("cashSetup.beerTitle")}
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Beispiel: Donnerstags nach dem Training – 1 Bier = 1 €. Eintragen, offenen Betrag sehen und auf Wunsch direkt per PayPal-Link zahlen. Dazu gibt’s Bierstatistik und Bier-Badges.
+                {t("cashSetup.beerText")}
               </p>
 
               {premiumBeer ? (
@@ -286,10 +289,10 @@ export default function CashboxSetupWizard({
               ) : (
                 <div className="mt-8 rounded-[24px] border border-amber-200 bg-amber-50 p-5">
                   <div className="font-black text-amber-950">
-                    Bierkasse+ ist für diesen Club noch nicht freigeschaltet.
+                    {t("cashSetup.beerFund")}+ ist für diesen Club noch nicht freigeschaltet.
                   </div>
                   <p className="mt-1 text-sm font-medium leading-6 text-amber-800/70">
-                    Die restliche Mannschaftskasse kannst du trotzdem vollständig einrichten.
+                    {t("cashSetup.beerLockedHint")}
                   </p>
                 </div>
               )}
@@ -300,13 +303,13 @@ export default function CashboxSetupWizard({
             <section>
               <div className="text-5xl">💰</div>
               <div className="mt-6 text-xs font-black uppercase tracking-[.2em] text-slate-400">
-                Bierpreis
+                {t("cashSetup.beerPrice")}
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                Was kostet ein Bier?
+                {t("cashSetup.beerPriceTitle")}
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Dieser Preis wird beim Eintragen automatisch verwendet.
+                {t("cashSetup.beerPriceHint")}
               </p>
               <div className="relative mt-8 max-w-sm">
                 <input
@@ -331,10 +334,10 @@ export default function CashboxSetupWizard({
                 PayPal
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                Soll PayPal angeboten werden?
+                {t("cashSetup.paypalTitle")}
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Optional. Natürlich könnt ihr PayPal und Barzahlung nutzen. Mit paypal.me öffnet strikr PayPal direkt mit dem errechneten Betrag. Bei einem PayPal-Pool kopiert strikr den Betrag automatisch in die Zwischenablage – in PayPal müsst ihr nur noch „Beteiligen“, einfügen und zahlen. Auch bei Barzahlung lassen sich Bier-Striche später nachtragen – so bleibt die Bierstatistik vollständig.
+                {t("cashSetup.paypalText")}
               </p>
               <input
                 value={paypalUrl}
@@ -348,7 +351,7 @@ export default function CashboxSetupWizard({
                 onClick={() => setPaypalUrl("")}
                 className="mt-3 text-sm font-black text-slate-500"
               >
-                Ohne PayPal weitermachen
+                {t("cashSetup.noPaypal")}
               </button>
             </section>
           ) : null}
@@ -357,20 +360,20 @@ export default function CashboxSetupWizard({
             <section>
               <div className="text-5xl">🏠</div>
               <div className="mt-6 text-xs font-black uppercase tracking-[.2em] text-slate-400">
-                Schnellzugriff
+                {t("cashSetup.quickAccess")}
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                „Bier eintragen“ direkt auf Home?
+                {t("cashSetup.homeTitle")}
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Damit ist die häufigste Aktion ohne Umweg direkt auf der Startseite erreichbar.
+                {t("cashSetup.homeHint")}
               </p>
               <div className="mt-8">
                 <ToggleQuestion
                   value={beerHomeEnabled}
                   onChange={setBeerHomeEnabled}
-                  yesTitle="Ja, auf Home"
-                  noTitle="Nein, nur in der Kasse"
+                  yesTitle={t("cashSetup.homeYes")}
+                  noTitle={t("cashSetup.homeNo")}
                 />
               </div>
             </section>
@@ -380,13 +383,13 @@ export default function CashboxSetupWizard({
             <section>
               <div className="text-5xl">🔑</div>
               <div className="mt-6 text-xs font-black uppercase tracking-[.2em] text-slate-400">
-                Kassenwart
+                {t("cashSetup.treasurer")}
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                Wer darf die Kasse verwalten?
+                {t("cashSetup.treasurerTitle")}
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Club-Admins dürfen das immer. Weitere Kassenwarte sind optional.
+                {t("cashSetup.treasurerHint")}
               </p>
 
               <div className="mt-8 max-h-[42vh] space-y-2 overflow-y-auto pr-1">
@@ -411,7 +414,7 @@ export default function CashboxSetupWizard({
                 })}
                 {players.length === 0 ? (
                   <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-500">
-                    Noch keine verknüpften Mitglieder vorhanden. Club-Admins können die Kasse trotzdem verwalten.
+                    {t("cashSetup.noLinkedMembers")}
                   </div>
                 ) : null}
               </div>
@@ -422,46 +425,46 @@ export default function CashboxSetupWizard({
             <section>
               <div className="text-5xl">✅</div>
               <div className="mt-6 text-xs font-black uppercase tracking-[.2em] text-emerald-600">
-                Fertig
+                {t("cashSetup.done")}
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                So richtet ihr eure Mannschaftskasse ein.
+                {t("cashSetup.reviewTitle")}
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                Du kannst den Wizard später jederzeit erneut öffnen und alles ändern.
+                {t("cashSetup.reviewHint")}
               </p>
 
               <div className="mt-8 space-y-2">
                 <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
                   <span className="font-bold">FBZG</span>
-                  <b>{penaltiesEnabled ? "An" : "Aus"}</b>
+                  <b>{penaltiesEnabled ? t("cashSetup.on") : t("cashSetup.off")}</b>
                 </div>
                 <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
-                  <span className="font-bold">Beiträge</span>
-                  <b>{contributionsEnabled ? "An" : "Aus"}</b>
+                  <span className="font-bold">{t("cashSetup.contributions")}</span>
+                  <b>{contributionsEnabled ? t("cashSetup.on") : t("cashSetup.off")}</b>
                 </div>
                 <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
-                  <span className="font-bold">Bierkasse</span>
-                  <b>{premiumBeer && beerEnabled ? "An" : "Aus"}</b>
+                  <span className="font-bold">{t("cashSetup.beerFund")}</span>
+                  <b>{premiumBeer && beerEnabled ? t("cashSetup.on") : t("cashSetup.off")}</b>
                 </div>
                 {premiumBeer && beerEnabled ? (
                   <>
                     <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
-                      <span className="font-bold">Bierpreis</span>
+                      <span className="font-bold">{t("cashSetup.beerPrice")}</span>
                       <b>{beerPrice || "–"} €</b>
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
                       <span className="font-bold">PayPal</span>
-                      <b>{paypalUrl.trim() ? "An" : "Aus"}</b>
+                      <b>{paypalUrl.trim() ? t("cashSetup.on") : t("cashSetup.off")}</b>
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
-                      <span className="font-bold">Home-Button</span>
-                      <b>{beerHomeEnabled ? "An" : "Aus"}</b>
+                      <span className="font-bold">{t("cashSetup.homeButton")}</span>
+                      <b>{beerHomeEnabled ? t("cashSetup.on") : t("cashSetup.off")}</b>
                     </div>
                   </>
                 ) : null}
                 <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
-                  <span className="font-bold">Zusätzliche Kassenwarte</span>
+                  <span className="font-bold">{t("cashSetup.additionalTreasurers")}</span>
                   <b>{managerIds.length}</b>
                 </div>
               </div>
@@ -477,7 +480,7 @@ export default function CashboxSetupWizard({
               disabled={safeStepIndex === 0}
               className="min-h-12 flex-1 rounded-2xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              Zurück
+              {t("cashSetup.back")}
             </button>
 
             {safeStepId === "review" ? (
@@ -485,7 +488,7 @@ export default function CashboxSetupWizard({
                 type="submit"
                 className="min-h-12 flex-[1.7] rounded-2xl bg-emerald-500 px-4 text-sm font-black text-white shadow-lg shadow-emerald-500/20"
               >
-                {isExistingSetup ? "Änderungen speichern" : "Mannschaftskasse starten"}
+                {isExistingSetup ? t("cashSetup.saveChanges") : t("cashSetup.start")}
               </button>
             ) : (
               <button
@@ -494,7 +497,7 @@ export default function CashboxSetupWizard({
                 disabled={!canContinue}
                 className="min-h-12 flex-[1.7] rounded-2xl bg-slate-950 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Weiter
+                {t("cashSetup.next")}
               </button>
             )}
           </div>
