@@ -11,6 +11,7 @@ import InviteActions from "./InviteActions";
 import { getAuthContext } from "@/lib/auth/context";
 import { buildAbsoluteInviteUrl } from "@/lib/invites/url";
 import { setMemberPermissionAction } from "./permission-actions";
+import { getServerI18n } from "@/lib/i18n/server";
 
 function getAdminSupabase() {
   return createAdminClient(
@@ -66,7 +67,7 @@ function buildFullName(player: {
   nickname: string | null;
   email: string | null;
   user_id: string | null;
-}) {
+}, fallback: string) {
   const first = player.first_name?.trim() ?? "";
   const last = player.last_name?.trim() ?? "";
   const nickname = player.nickname?.trim() ?? "";
@@ -75,7 +76,7 @@ function buildFullName(player: {
   if (nickname) return nickname;
   if (fullName) return fullName;
   if (player.email?.trim()) return player.email.trim();
-  return player.user_id ?? "Unbekannter User";
+  return player.user_id ?? fallback;
 }
 
 export default async function AdminMembersPage({
@@ -83,6 +84,7 @@ export default async function AdminMembersPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const { locale, t } = await getServerI18n();
   const params = (await searchParams) || {};
   const created =
     typeof params.created === "string" ? params.created : undefined;
@@ -146,23 +148,23 @@ export default async function AdminMembersPage({
 
   if (membershipsError) {
     throw new Error(
-      `Mitgliedschaften konnten nicht geladen werden: ${membershipsError.message}`
+      t("members.loadMembershipsFailed", { error: membershipsError.message })
     );
   }
 
   if (playersError) {
-    throw new Error(`Spieler konnten nicht geladen werden: ${playersError.message}`);
+    throw new Error(t("members.loadPlayersFailed", { error: playersError.message }));
   }
 
   if (invitesError) {
     throw new Error(
-      `Einladungen konnten nicht geladen werden: ${invitesError.message}`
+      t("members.loadInvitesFailed", { error: invitesError.message })
     );
   }
 
   if (memberPermissionsError) {
     throw new Error(
-      `Zusatzrechte konnten nicht geladen werden: ${memberPermissionsError.message}`
+      t("members.loadPermissionsFailed", { error: memberPermissionsError.message })
     );
   }
 
@@ -196,8 +198,8 @@ export default async function AdminMembersPage({
       email: player?.email ?? "",
       full_name:
         player != null
-          ? buildFullName(player)
-          : membership.user_id ?? "Unbekannter User",
+          ? buildFullName(player, t("members.unknownUser"))
+          : membership.user_id ?? t("members.unknownUser"),
     };
   });
 
@@ -213,31 +215,31 @@ export default async function AdminMembersPage({
           href="/admin"
           className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
         >
-          ← Zurück zum Adminbereich
+          ← {t("members.backAdmin")}
         </Link>
       </div>
 
       <div className="flex flex-col gap-2">
         <div className="text-sm text-slate-500">
           <Link href="/admin" className="hover:text-slate-700">
-            Admin
+            {t("members.breadcrumbAdmin")}
           </Link>
           <span className="mx-2">/</span>
-          <span>Mitglieder</span>
+          <span>{t("members.title")}</span>
         </div>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-              Mitglieder
+              {t("members.title")}
             </h1>
             <p className="mt-1 text-sm text-slate-600">
-              Verwalte Mitglieder, Rollen und Einladungen.
+              {t("members.description")}
             </p>
 
             {ctx.isPowerUser ? (
               <div className="mt-2 inline-flex rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-800">
-                Power User Ansicht für diesen Verein
+                {t("members.powerUserView")}
               </div>
             ) : null}
           </div>
@@ -249,7 +251,7 @@ export default async function AdminMembersPage({
                 type="submit"
                 className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
               >
-                + Einladung erstellen
+                {t("members.createInvite")}
               </button>
             </form>
 
@@ -259,27 +261,27 @@ export default async function AdminMembersPage({
                 type="submit"
                 className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
-                + Admin einladen
+                {t("members.inviteAdmin")}
               </button>
             </form>
           </div>
         </div>
       </div>
 
-      <SuccessMessage inviteUrl={createdInviteUrl} action={success} />
-      <ErrorMessage code={error} />
+      <SuccessMessage inviteUrl={createdInviteUrl} action={success} locale={locale} />
+      <ErrorMessage code={error} locale={locale} />
 
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4">
           <h2 className="text-base font-semibold text-slate-900">
-            Club-Mitglieder
+            {t("members.clubMembers")}
           </h2>
         </div>
 
         <div className="divide-y divide-slate-100">
           {memberRows.length === 0 ? (
             <div className="px-5 py-8 text-sm text-slate-500">
-              Keine Mitglieder gefunden.
+              {t("members.none")}
             </div>
           ) : (
             memberRows.map((member) => {
@@ -303,18 +305,18 @@ export default async function AdminMembersPage({
                           member.role
                         )}`}
                       >
-                        {getMemberRoleLabel(member.role)}
+                        {getMemberRoleLabel(member.role, locale)}
                       </span>
 
                       {member.role === "admin" || beerManagerUserIds.has(member.user_id) ? (
                         <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                          🍺 Bierkasse
+                          {t("members.beerFund")}
                         </span>
                       ) : null}
 
                       {isCurrentUser ? (
                         <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                          Du
+                          {t("members.you")}
                         </span>
                       ) : null}
                     </div>
@@ -326,13 +328,13 @@ export default async function AdminMembersPage({
 
                   <div className="mt-2 rounded-2xl bg-slate-50 p-3">
                     <div className="mb-3 text-sm text-slate-500">
-                      {member.email || "Keine E-Mail hinterlegt"}
+                      {member.email || t("members.noEmail")}
                     </div>
 
                     <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
                       <div className="rounded-2xl bg-white p-3">
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Rolle
+                          {t("members.role")}
                         </div>
 
                         {canChangeRole ? (
@@ -352,39 +354,39 @@ export default async function AdminMembersPage({
                               defaultValue={member.role ?? "member"}
                               className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-slate-400"
                             >
-                              <option value="member">Mitglied</option>
-                              <option value="admin">Admin</option>
+                              <option value="member">{t("members.roleMember")}</option>
+                              <option value="admin">{t("members.roleAdmin")}</option>
                             </select>
 
                             <button
                               type="submit"
                               className="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                             >
-                              Rolle speichern
+                              {t("members.role")} speichern
                             </button>
                           </form>
                         ) : (
                           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                            Deine eigene Rolle kannst du hier nicht ändern.
+                            {t("members.cannotChangeOwnRole")}
                           </div>
                         )}
                       </div>
 
                       <div className="rounded-2xl bg-white p-3">
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Zusatzrechte
+                          {t("members.extraRights")}
                         </div>
 
                         {member.role === "admin" ? (
                           <div className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
-                            🍺 Bierkasse verwalten · automatisch als Admin
+                            {t("members.beerFund")} verwalten · automatisch als Admin
                           </div>
                         ) : (
                           <form action={setMemberPermissionAction} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <div className="text-sm font-semibold text-slate-900">Bierkasse verwalten</div>
+                              <div className="text-sm font-semibold text-slate-900">{t("members.manageBeer")}</div>
                               <div className="mt-0.5 text-xs text-slate-500">
-                                Barzahlungen bestätigen, Einträge korrigieren und stornieren.
+                                {t("members.manageBeerHint")}
                               </div>
                             </div>
                             <input type="hidden" name="user_id" value={member.user_id} />
@@ -401,7 +403,7 @@ export default async function AdminMembersPage({
                                   : "bg-slate-950 text-white"
                               }`}
                             >
-                              {beerManagerUserIds.has(member.user_id) ? "Recht entfernen" : "Recht geben"}
+                              {beerManagerUserIds.has(member.user_id) ? t("members.removeRight") : t("members.grantRight")}
                             </button>
                           </form>
                         )}
@@ -409,7 +411,7 @@ export default async function AdminMembersPage({
 
                       <div className="rounded-2xl bg-white p-3 lg:col-span-2">
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Mitgliedschaft
+                          {t("members.membership")}
                         </div>
 
                         {canRemoveMember ? (
@@ -423,12 +425,12 @@ export default async function AdminMembersPage({
                               type="submit"
                               className="inline-flex items-center justify-center rounded-2xl border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
                             >
-                              Mitglied entfernen
+                              {t("members.removeMember")}
                             </button>
                           </form>
                         ) : (
                           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                            Du kannst dich nicht selbst entfernen.
+                            {t("members.you")} kannst dich nicht selbst entfernen.
                           </div>
                         )}
                       </div>
@@ -445,14 +447,14 @@ export default async function AdminMembersPage({
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 marker:hidden">
           <div>
             <h2 className="text-base font-semibold text-slate-900">
-              Offene Einladungen
+              {t("members.openInvites")}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {inviteRows.length === 0
-                ? "Aktuell gibt es keine offenen Einladungen."
-                : `${inviteRows.length} offene ${
-                    inviteRows.length === 1 ? "Einladung" : "Einladungen"
-                  }`}
+                ? t("members.noOpenInvites")
+                : inviteRows.length === 1
+                  ? t("members.openInviteCount", { count: inviteRows.length })
+                  : t("members.openInvitesCount", { count: inviteRows.length })}
             </p>
           </div>
 
@@ -464,7 +466,7 @@ export default async function AdminMembersPage({
         <div className="border-t border-slate-200">
           {inviteRows.length === 0 ? (
             <div className="px-5 py-8 text-sm text-slate-500">
-              Aktuell gibt es keine offenen Einladungen.
+              {t("members.noOpenInvites")}
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
@@ -476,15 +478,13 @@ export default async function AdminMembersPage({
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                          {invite.role === "admin"
-                            ? "Admin-Invite"
-                            : "Member-Invite"}
+                          {invite.role === "admin" ? t("members.adminInvite") : t("members.memberInvite")}
                         </span>
                         <span className="text-xs text-slate-500">
-                          Erstellt: {formatDate(invite.created_at)}
+                          {t("members.createdAt", { date: formatDate(invite.created_at, locale) })}
                         </span>
                         <span className="text-xs text-slate-500">
-                          Läuft ab: {formatDate(invite.expires_at)}
+                          {t("members.expiresAt", { date: formatDate(invite.expires_at, locale) })}
                         </span>
                       </div>
 
@@ -502,7 +502,7 @@ export default async function AdminMembersPage({
                           type="submit"
                           className="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                         >
-                          Einladung löschen
+                          {t("members.deleteInvite")}
                         </button>
                       </form>
                     </div>
