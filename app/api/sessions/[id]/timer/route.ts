@@ -8,6 +8,7 @@ import {
   type GameTimerMode,
   type GameTimerSettings,
 } from "@/lib/game-timer";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -77,6 +78,7 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const { t } = await getServerI18n();
   const { id } = await context.params;
   const sessionId = Number(id);
 
@@ -88,7 +90,7 @@ export async function GET(
 
   if ("error" in access) {
     return NextResponse.json(
-      { error: access.error ?? "Kein Zugriff auf diese Session." },
+      { error: access.error ?? t("timerApi.noAccess") },
       { status: access.status },
     );
   }
@@ -117,14 +119,14 @@ export async function GET(
 
   if (clubResult.error) {
     return NextResponse.json(
-      { error: "Club-Spieluhr konnte nicht geladen werden." },
+      { error: t("timerApi.clubLoadFailed") },
       { status: 500 },
     );
   }
 
   if (sessionResult.error) {
     return NextResponse.json(
-      { error: "Trainings-Spieluhr konnte nicht geladen werden." },
+      { error: t("timerApi.sessionLoadFailed") },
       { status: 500 },
     );
   }
@@ -184,14 +186,14 @@ export async function POST(
 
   if ("error" in access) {
     return NextResponse.json(
-      { error: access.error ?? "Kein Zugriff auf diese Session." },
+      { error: access.error ?? t("timerApi.noAccess") },
       { status: access.status },
     );
   }
 
   if (access.session.type === "event") {
     return NextResponse.json(
-      { error: "Die Spieluhr ist nur für Trainings verfügbar." },
+      { error: t("timerApi.trainingOnly") },
       { status: 400 },
     );
   }
@@ -201,7 +203,7 @@ export async function POST(
   try {
     payload = (await request.json()) as TimerPayload;
   } catch {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidRequest") }, { status: 400 });
   }
 
   if (payload.reset === true) {
@@ -220,7 +222,7 @@ export async function POST(
 
     if (error) {
       return NextResponse.json(
-        { error: "Club-Standard konnte nicht wiederhergestellt werden." },
+        { error: t("timerApi.resetFailed") },
         { status: 500 },
       );
     }
@@ -238,30 +240,30 @@ export async function POST(
     typeof payload.alarmSound === "string" ? payload.alarmSound : "";
 
   if (!TIMER_MODES.has(mode)) {
-    return NextResponse.json({ error: "Ungültiger Timer-Modus." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidMode") }, { status: 400 });
   }
 
   if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 300) {
     return NextResponse.json(
-      { error: "Die Spielzeit muss zwischen 1 und 300 Minuten liegen." },
+      { error: t("timerApi.durationInvalid") },
       { status: 400 },
     );
   }
 
   if (endTime === "invalid") {
-    return NextResponse.json({ error: "Ungültige Endzeit." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidEndTime") }, { status: 400 });
   }
 
   if (mode === "end_time" && !endTime) {
-    return NextResponse.json({ error: "Bitte eine Endzeit wählen." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.endTimeRequired") }, { status: 400 });
   }
 
   if (!HALFTIME_BEHAVIORS.has(halftimeBehavior)) {
-    return NextResponse.json({ error: "Ungültiger Halbzeit-Modus." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidHalftime") }, { status: 400 });
   }
 
   if (!ALARM_SOUNDS.has(alarmSound)) {
-    return NextResponse.json({ error: "Ungültiger Alarmton." }, { status: 400 });
+    return NextResponse.json({ error: t("timerApi.invalidAlarm") }, { status: 400 });
   }
 
   const { error } = await access.adminSupabase
@@ -280,7 +282,7 @@ export async function POST(
   if (error) {
     console.error("Saving session timer settings failed", error);
     return NextResponse.json(
-      { error: "Spieluhr-Einstellungen konnten nicht gespeichert werden." },
+      { error: t("timerApi.saveFailed") },
       { status: 500 },
     );
   }
