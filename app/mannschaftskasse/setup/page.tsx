@@ -3,6 +3,9 @@ import { canManageClub } from "@/lib/auth/access";
 import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import CashboxSetupWizard from "./CashboxSetupWizard";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
 
 type Props = {
   searchParams?: Promise<{ error?: string }>;
@@ -17,25 +20,26 @@ type PlayerRow = {
   name: string | null;
 };
 
-function playerName(player: PlayerRow) {
+function playerName(player: PlayerRow, locale: AppLocale) {
   return (
     player.nickname?.trim() ||
     [player.first_name, player.last_name].filter(Boolean).join(" ") ||
     player.name ||
-    `Spieler ${player.id}`
+    translate(locale, "cashbox.playerFallback", { id: player.id })
   );
 }
 
-function errorText(value?: string) {
-  if (value === "module") return "Bitte mindestens einen Bereich aktivieren.";
-  if (value === "price") return "Bitte einen gültigen Preis pro Bier eintragen.";
-  if (value === "paypal") return "Bitte einen gültigen https-PayPal-Link eintragen.";
-  if (value === "manager") return "Der Kassenwart konnte nicht gespeichert werden.";
-  if (value) return "Das Setup konnte nicht gespeichert werden.";
+function errorText(value: string | undefined, locale: AppLocale) {
+  if (value === "module") return translate(locale, "cashSetup.errorModule");
+  if (value === "price") return translate(locale, "cashSetup.errorPrice");
+  if (value === "paypal") return translate(locale, "cashSetup.errorPaypal");
+  if (value === "manager") return translate(locale, "cashSetup.errorManager");
+  if (value) return translate(locale, "cashSetup.errorGeneric");
   return "";
 }
 
 export default async function Page({ searchParams }: Props) {
+  const { locale } = await getServerI18n();
   const q = await searchParams;
   const ctx = await requireClub();
 
@@ -75,7 +79,7 @@ export default async function Page({ searchParams }: Props) {
     .map((player) => ({
       id: player.id,
       userId: player.user_id as string,
-      name: playerName(player),
+      name: playerName(player, locale),
       selected: managers.has(player.user_id as string),
     }));
 
@@ -91,7 +95,7 @@ export default async function Page({ searchParams }: Props) {
       initialPaypalUrl={settings?.beerkasse_paypal_url ?? ""}
       initialBeerHomeEnabled={settings?.beerkasse_home_enabled === true}
       players={players}
-      error={errorText(q?.error)}
+      error={errorText(q?.error, locale)}
       isExistingSetup={settings?.cashbox_setup_completed === true}
     />
   );
