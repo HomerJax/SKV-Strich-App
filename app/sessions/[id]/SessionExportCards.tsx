@@ -211,7 +211,7 @@ export function LineupExportCard({
 
         <div className="mt-4 flex items-end justify-between gap-4">
           <div className="text-[10px] text-slate-500">
-            {sessionLabel(session)}
+            {sessionLabel(session, locale)}
           </div>
 
           <div className="text-right">
@@ -250,7 +250,7 @@ export function ResultExportCard({
               {translate(locale, "sessionExport.result")}
             </div>
             <div className="mt-1 text-sm text-slate-300">
-              {sessionLabel(session)}
+              {sessionLabel(session, locale)}
             </div>
           </div>
 
@@ -331,7 +331,7 @@ export function ResultExportCard({
 
         <div className="mt-4 flex items-end justify-between gap-4">
           <div className="text-[10px] text-slate-500">
-            {sessionLabel(session)}
+            {sessionLabel(session, locale)}
           </div>
 
           <div className="text-right">
