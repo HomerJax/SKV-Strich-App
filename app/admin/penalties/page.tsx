@@ -18,6 +18,7 @@ import {
   setContributionStatusAction,
 } from "./cashbox-actions";
 import { saveBeerkasseAction, setBeerkassePremiumAction } from "./beerkasse-actions";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type Props = {
   searchParams?: Promise<{
@@ -101,18 +102,20 @@ type CashboxManager = {
   user_id: string;
 };
 
-function playerName(player: Player) {
+function playerName(player: Player, fallback: string) {
   return (
     player.nickname?.trim() ||
     [player.first_name, player.last_name].filter(Boolean).join(" ") ||
     player.name ||
-    `Spieler ${player.id}`
+    fallback
   );
 }
 
-function fmtDate(value: string | null | undefined) {
+function fmtDate(value: string | null | undefined, locale: "de" | "en") {
   if (!value) return "–";
-  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString("de-DE");
+  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString(
+    locale === "de" ? "de-DE" : "en-GB",
+  );
 }
 
 function isEscalated(entry: Penalty) {
@@ -150,7 +153,13 @@ function StatCard({
   );
 }
 
-function StatusBadge({ status }: { status: ContributionMember["status"] }) {
+function StatusBadge({
+  status,
+  label,
+}: {
+  status: ContributionMember["status"];
+  label: string;
+}) {
   const classes =
     status === "paid"
       ? "bg-emerald-50 text-emerald-700"
@@ -160,12 +169,13 @@ function StatusBadge({ status }: { status: ContributionMember["status"] }) {
 
   return (
     <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${classes}`}>
-      {status === "paid" ? "Bezahlt" : status === "exempt" ? "Befreit" : "Offen"}
+      {label}
     </span>
   );
 }
 
 export default async function Page({ searchParams }: Props) {
+  const { locale, t } = await getServerI18n();
   const q = await searchParams;
   const activeTab = ["overview", "transactions", "contributions", "penalties", "rules", "settings"].includes(
     q?.tab ?? "",
@@ -244,11 +254,11 @@ export default async function Page({ searchParams }: Props) {
   const contributionMembers = (contributionMembersData ?? []) as ContributionMember[];
   const managers = (managersData ?? []) as CashboxManager[];
 
-  const names = new Map(players.map((player) => [player.id, playerName(player)]));
+  const names = new Map(players.map((player) => [player.id, playerName(player, t("cashAdmin.playerFallback", { id: player.id }))]));
   const namesByUserId = new Map(
     players
       .filter((player) => player.user_id)
-      .map((player) => [player.user_id as string, playerName(player)]),
+      .map((player) => [player.user_id as string, playerName(player, t("cashAdmin.playerFallback", { id: player.id }))]),
   );
 
   const openPenalties = penalties.filter((entry) => !entry.resolved_at);
@@ -318,12 +328,12 @@ export default async function Page({ searchParams }: Props) {
   const penaltiesEnabled = settings?.cashbox_penalties_enabled === true;
   const contributionsEnabled = settings?.cashbox_contributions_enabled === true;
   const tabs = ([
-    ["overview", "Übersicht"],
-    ["transactions", "Umsätze"],
-    ["contributions", "Beiträge"],
-    ["penalties", "FBZG"],
-    ["rules", "Regeln"],
-    ["settings", "Einstellungen"],
+    ["overview", t("cashAdmin.tabOverview")],
+    ["transactions", t("cashAdmin.tabTransactions")],
+    ["contributions", t("cashAdmin.tabContributions")],
+    ["penalties", t("cashAdmin.tabFbzg")],
+    ["rules", t("cashAdmin.tabRules")],
+    ["settings", t("cashAdmin.tabSettings")],
   ] as const).filter(([key]) =>
     key === "contributions"
       ? contributionsEnabled
@@ -338,21 +348,21 @@ export default async function Page({ searchParams }: Props) {
       <section className="mx-auto max-w-6xl space-y-4 px-4 py-5 pb-24">
         <div className="flex items-center justify-between gap-3">
           <Link href={isClubAdmin ? "/admin" : "/mannschaftskasse"} className="text-sm font-semibold text-slate-600">
-            ← Zurück
+            ← {t("cashAdmin.back")}
           </Link>
-          <div className="flex items-center gap-2"><Link href="/mannschaftskasse/setup?edit=1" className="text-xs font-bold text-slate-500">Setup ändern</Link><Link href="/mannschaftskasse" className="text-xs font-bold text-slate-500">Spieleransicht</Link></div>
+          <div className="flex items-center gap-2"><Link href="/mannschaftskasse/setup?edit=1" className="text-xs font-bold text-slate-500">{t("cashAdmin.editSetup")}</Link><Link href="/mannschaftskasse" className="text-xs font-bold text-slate-500">{t("cashAdmin.playerView")}</Link></div>
         </div>
 
         <div className="rounded-[28px] bg-slate-950 p-5 text-white">
           <div className="text-[11px] font-black uppercase tracking-[.2em] text-white/45">
-            Teamleben · Finanzen
+            {t("cashAdmin.eyebrow")}
           </div>
-          <h1 className="mt-1 text-2xl font-black">💰 Mannschaftskasse</h1>
+          <h1 className="mt-1 text-2xl font-black">{t("cashAdmin.title")}</h1>
           <p className="mt-2 max-w-2xl text-sm text-white/65">
-            Kassenstand, Beiträge, FBZG und echte Umsätze in einem System. FBZG steht für „Freiwilliger Beitrag zur Gemeinschaft“ – Kisten, Kuchen, Geldbeträge & Co. mit einem Augenzwinkern.
+            {t("cashAdmin.description")}
           </p>
           <div className="mt-4 text-3xl font-black">{formatCents(balanceCents)}</div>
-          <div className="mt-1 text-xs font-semibold text-white/45">aktueller Kassenstand</div>
+          <div className="mt-1 text-xs font-semibold text-white/45">{t("cashAdmin.currentBalance")}</div>
         </div>
 
         <nav className="flex gap-2 overflow-x-auto pb-1">
@@ -374,7 +384,7 @@ export default async function Page({ searchParams }: Props) {
 
         {q?.saved ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
-            ✓ Gespeichert
+            {t("cashAdmin.saved")}
           </div>
         ) : null}
         {q?.error ? (
@@ -386,32 +396,32 @@ export default async function Page({ searchParams }: Props) {
         {visibleTab === "overview" ? (
           <>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <StatCard label="Kassenstand" value={formatCents(balanceCents)} />
+              <StatCard label={t("cashAdmin.balance")} value={formatCents(balanceCents)} />
               <StatCard
-                label="Offen"
+                label={t("cashAdmin.open")}
                 value={formatCents(openPenaltyCents + openContributionCents)}
-                hint="FBZG + Beiträge"
+                hint={t("cashAdmin.openHint")}
               />
-              <StatCard label="Einnahmen Monat" value={formatCents(monthIncome)} />
-              <StatCard label="Ausgaben Monat" value={formatCents(monthExpense)} />
+              <StatCard label={t("cashAdmin.monthIncome")} value={formatCents(monthIncome)} />
+              <StatCard label={t("cashAdmin.monthExpense")} value={formatCents(monthExpense)} />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
               <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="text-xs font-black uppercase tracking-[.16em] text-slate-400">
-                  Forderungen
+                  {t("cashAdmin.claims")}
                 </div>
-                <h2 className="mt-1 text-lg font-black">Was noch offen ist</h2>
+                <h2 className="mt-1 text-lg font-black">{t("cashAdmin.whatOpen")}</h2>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl bg-amber-50 p-4">
                     <div className="text-2xl font-black text-amber-950">{openPenalties.length}</div>
-                    <div className="text-xs font-bold text-amber-700">offene FBZG</div>
+                    <div className="text-xs font-bold text-amber-700">{t("cashAdmin.openFbzg")}</div>
                   </div>
                   <div className="rounded-2xl bg-blue-50 p-4">
                     <div className="text-2xl font-black text-blue-950">
                       {activeContributionMembers.filter((member) => member.status === "open").length}
                     </div>
-                    <div className="text-xs font-bold text-blue-700">offene Beiträge</div>
+                    <div className="text-xs font-bold text-blue-700">{t("cashAdmin.openContributions")}</div>
                   </div>
                 </div>
               </section>
@@ -420,12 +430,12 @@ export default async function Page({ searchParams }: Props) {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-xs font-black uppercase tracking-[.16em] text-slate-400">
-                      Letzte Bewegungen
+                      {t("cashAdmin.recentMovements")}
                     </div>
-                    <h2 className="mt-1 text-lg font-black">Umsatzbuch</h2>
+                    <h2 className="mt-1 text-lg font-black">{t("cashAdmin.ledger")}</h2>
                   </div>
                   <Link href={tabHref("transactions")} className="text-xs font-black text-slate-600">
-                    Alle →
+                    {t("cashAdmin.all")}
                   </Link>
                 </div>
                 <div className="mt-4 space-y-2">
@@ -434,7 +444,7 @@ export default async function Page({ searchParams }: Props) {
                       <div className="min-w-0">
                         <div className="truncate text-sm font-bold text-slate-900">{transaction.title}</div>
                         <div className="text-[11px] text-slate-500">
-                          {fmtDate(transaction.occurred_on)} · {transaction.category === "Strafen" ? "FBZG" : transaction.category}
+                          {fmtDate(transaction.occurred_on, locale)} · {transaction.category === "Strafen" ? "FBZG" : transaction.category}
                         </div>
                       </div>
                       <div className={`shrink-0 text-sm font-black ${transaction.amount_cents >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
@@ -445,7 +455,7 @@ export default async function Page({ searchParams }: Props) {
                   ))}
                   {transactions.length === 0 ? (
                     <p className="text-sm text-slate-500">
-                      Noch keine Buchungen. Lege unter „Umsätze“ euren Startbestand an.
+                      {t("cashAdmin.noTransactionsOverview")}
                     </p>
                   ) : null}
                 </div>
@@ -457,37 +467,37 @@ export default async function Page({ searchParams }: Props) {
         {visibleTab === "transactions" ? (
           <>
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-black">Neue Buchung</h2>
+              <h2 className="text-lg font-black">{t("cashAdmin.newTransaction")}</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Für Umsteiger: den aktuellen SpielerPlus-Kassenstand einmalig als „Startbestand“ eintragen.
+                {t("cashAdmin.migrationHint")}
               </p>
               <form action={addCashTransactionAction} className="mt-4 grid gap-3 sm:grid-cols-2">
                 <select name="direction" className="rounded-xl border px-3 py-2.5 text-sm">
-                  <option value="income">+ Einnahme</option>
-                  <option value="expense">− Ausgabe</option>
+                  <option value="income">{t("cashAdmin.income")}</option>
+                  <option value="expense">{t("cashAdmin.expense")}</option>
                 </select>
-                <input name="amount" inputMode="decimal" placeholder="Betrag, z. B. 125,50" required className="rounded-xl border px-3 py-2.5 text-sm" />
-                <input name="title" placeholder="Beschreibung, z. B. Startbestand" required className="rounded-xl border px-3 py-2.5 text-sm" />
+                <input name="amount" inputMode="decimal" placeholder={t("cashAdmin.amountPlaceholder")} required className="rounded-xl border px-3 py-2.5 text-sm" />
+                <input name="title" placeholder={t("cashAdmin.descriptionPlaceholder")} required className="rounded-xl border px-3 py-2.5 text-sm" />
                 <select name="category" className="rounded-xl border px-3 py-2.5 text-sm">
-                  <option>Startbestand</option>
-                  <option>Beiträge</option>
+                  <option value="Startbestand">{t("cashAdmin.categoryOpening")}</option>
+                  <option value="Beiträge">{t("cashAdmin.categoryContributions")}</option>
                   <option value="Strafen">FBZG</option>
-                  <option>Getränke</option>
-                  <option>Feier</option>
-                  <option>Ausrüstung</option>
-                  <option>Sonstiges</option>
+                  <option value="Getränke">{t("cashAdmin.categoryDrinks")}</option>
+                  <option value="Feier">{t("cashAdmin.categoryParty")}</option>
+                  <option value="Ausrüstung">{t("cashAdmin.categoryEquipment")}</option>
+                  <option value="Sonstiges">{t("cashAdmin.categoryOther")}</option>
                 </select>
                 <input name="occurred_on" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="rounded-xl border px-3 py-2.5 text-sm" />
-                <input name="notes" placeholder="Notiz (optional)" className="rounded-xl border px-3 py-2.5 text-sm" />
+                <input name="notes" placeholder={t("cashAdmin.noteOptional")} className="rounded-xl border px-3 py-2.5 text-sm" />
                 <button className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white sm:col-span-2">
-                  Buchung speichern
+                  {t("cashAdmin.saveTransaction")}
                 </button>
               </form>
             </section>
 
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black">Umsätze</h2>
+                <h2 className="text-lg font-black">{t("cashAdmin.transactions")}</h2>
                 <div className="text-sm font-black text-slate-900">{formatCents(balanceCents)}</div>
               </div>
 
@@ -498,23 +508,23 @@ export default async function Page({ searchParams }: Props) {
                   defaultValue={transactionKindFilter}
                   className="rounded-xl border bg-white px-3 py-2 text-sm"
                 >
-                  <option value="all">Alle Buchungen</option>
-                  <option value="income">Einnahmen</option>
-                  <option value="expense">Ausgaben</option>
-                  <option value="reversal">Stornos</option>
+                  <option value="all">{t("cashAdmin.allTransactions")}</option>
+                  <option value="income">{t("cashAdmin.incomes")}</option>
+                  <option value="expense">{t("cashAdmin.expenses")}</option>
+                  <option value="reversal">{t("cashAdmin.reversals")}</option>
                 </select>
                 <select
                   name="category"
                   defaultValue={transactionCategoryFilter}
                   className="rounded-xl border bg-white px-3 py-2 text-sm"
                 >
-                  <option value="">Alle Kategorien</option>
+                  <option value="">{t("cashAdmin.allCategories")}</option>
                   {transactionCategories.map((category) => (
                     <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
                 <button className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 text-xs font-black text-slate-700">
-                  Filtern
+                  {t("cashAdmin.filter")}
                 </button>
               </form>
 
@@ -528,16 +538,16 @@ export default async function Page({ searchParams }: Props) {
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="font-black text-slate-950">{transaction.title}</div>
                             {reversed ? (
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">storniert</span>
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">{t("cashAdmin.reversed")}</span>
                             ) : null}
                             {transaction.kind === "reversal" ? (
-                              <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-black text-rose-700">Storno</span>
+                              <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-black text-rose-700">{t("cashAdmin.reversal")}</span>
                             ) : null}
                           </div>
                           <div className="mt-1 text-xs text-slate-500">
-                            {fmtDate(transaction.occurred_on)} · {transaction.category === "Strafen" ? "FBZG" : transaction.category}
+                            {fmtDate(transaction.occurred_on, locale)} · {transaction.category === "Strafen" ? "FBZG" : transaction.category}
                             {transaction.source_type && transaction.source_type !== "manual"
-                              ? ` · automatisch: ${transaction.source_type}`
+                              ? ` · ${t("cashAdmin.automaticSource", { source: transaction.source_type })}`
                               : ""}
                           </div>
                           {transaction.notes ? <div className="mt-1 text-xs text-slate-500">{transaction.notes}</div> : null}
@@ -551,7 +561,7 @@ export default async function Page({ searchParams }: Props) {
                             <form action={reverseCashTransactionAction} className="mt-2">
                               <input type="hidden" name="transaction_id" value={transaction.id} />
                               <button className="text-[10px] font-black text-slate-500 hover:text-rose-700">
-                                Stornieren
+                                {t("cashAdmin.reverse")}
                               </button>
                             </form>
                           ) : null}
@@ -562,7 +572,7 @@ export default async function Page({ searchParams }: Props) {
                 })}
                 {filteredTransactions.length === 0 ? (
                   <p className="text-sm text-slate-500">
-                    Keine Umsätze für diesen Filter.
+                    {t("cashAdmin.noTransactionsFilter")}
                   </p>
                 ) : null}
               </div>
@@ -573,36 +583,36 @@ export default async function Page({ searchParams }: Props) {
         {visibleTab === "contributions" ? (
           <>
             <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-black">Neuer Beitrag</h2>
+              <h2 className="text-lg font-black">{t("cashAdmin.newContribution")}</h2>
               <p className="mt-1 text-xs text-slate-500">
-                Zum Beispiel „Jahresbeitrag 2026“. Jeder ausgewählte Spieler startet automatisch als „Offen“. Sobald du bei einem Spieler „Bezahlt“ wählst, wird der Betrag als Einnahme in den Kassenstand gebucht.
+                {t("cashAdmin.contributionHint")}
               </p>
               <form action={addContributionAction} className="mt-4 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <input name="title" placeholder="z. B. Saisonbeitrag 2026/27" required className="rounded-xl border px-3 py-2.5 text-sm" />
-                  <input name="amount" inputMode="decimal" placeholder="Betrag, z. B. 25,00" required className="rounded-xl border px-3 py-2.5 text-sm" />
+                  <input name="title" placeholder={t("cashAdmin.contributionTitlePlaceholder")} required className="rounded-xl border px-3 py-2.5 text-sm" />
+                  <input name="amount" inputMode="decimal" placeholder={t("cashAdmin.contributionAmountPlaceholder")} required className="rounded-xl border px-3 py-2.5 text-sm" />
                   <input name="due_date" type="date" className="rounded-xl border px-3 py-2.5 text-sm" />
-                  <input name="notes" placeholder="Notiz (optional)" className="rounded-xl border px-3 py-2.5 text-sm" />
+                  <input name="notes" placeholder={t("cashAdmin.noteOptional")} className="rounded-xl border px-3 py-2.5 text-sm" />
                 </div>
                 <label className="flex items-center gap-2 text-sm font-bold">
                   <input type="checkbox" name="all_players" defaultChecked />
-                  Alle aktiven Spieler
+                  {t("cashAdmin.allActivePlayers")}
                 </label>
                 <details className="rounded-xl border bg-slate-50 p-3">
                   <summary className="cursor-pointer text-xs font-black text-slate-700">
-                    Stattdessen einzelne Spieler auswählen
+                    {t("cashAdmin.selectPlayersInstead")}
                   </summary>
                   <select name="player_ids" multiple size={Math.min(8, Math.max(3, players.length))} className="mt-3 w-full rounded-xl border bg-white px-3 py-2 text-sm">
                     {players.map((player) => (
-                      <option key={player.id} value={player.id}>{playerName(player)}</option>
+                      <option key={player.id} value={player.id}>{playerName(player, t("cashAdmin.playerFallback", { id: player.id }))}</option>
                     ))}
                   </select>
                   <p className="mt-2 text-[11px] text-slate-500">
-                    Dafür oben „Alle aktiven Spieler“ abwählen.
+                    {t("cashAdmin.uncheckAllPlayers")}
                   </p>
                 </details>
                 <button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
-                  Beitrag anlegen
+                  {t("cashAdmin.createContribution")}
                 </button>
               </form>
             </section>
@@ -623,13 +633,13 @@ export default async function Page({ searchParams }: Props) {
                         <div>
                           <div className="text-lg font-black text-slate-950">{contribution.title}</div>
                           <div className="mt-1 text-xs text-slate-500">
-                            {formatCents(contribution.amount_cents)} pro Spieler
-                            {contribution.due_date ? ` · fällig ${fmtDate(contribution.due_date)}` : ""}
+                            {t("cashAdmin.perPlayer", { amount: formatCents(contribution.amount_cents) })}
+                            {contribution.due_date ? ` · ${t("cashAdmin.due", { date: fmtDate(contribution.due_date, locale) })}` : ""}
                           </div>
                         </div>
                         <div className="text-right text-xs font-bold text-slate-500">
-                          <div><span className="text-emerald-700">✓ {paid} bezahlt</span> · <span className="text-amber-700">{open} offen</span></div>
-                          {exempt ? <div>{exempt} befreit</div> : null}
+                          <div><span className="text-emerald-700">{t("cashAdmin.paidCount", { count: paid })}</span> · <span className="text-amber-700">{t("cashAdmin.openCount", { count: open })}</span></div>
+                          {exempt ? <div>{t("cashAdmin.exemptCount", { count: exempt })}</div> : null}
                         </div>
                       </div>
                     </summary>
@@ -639,7 +649,7 @@ export default async function Page({ searchParams }: Props) {
                         <div key={member.player_id} className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex items-center gap-2">
                             <b className="text-sm">{names.get(member.player_id) ?? member.player_id}</b>
-                            <StatusBadge status={member.status} />
+                            <StatusBadge status={member.status} label={member.status === "paid" ? t("cashAdmin.statusPaid") : member.status === "exempt" ? t("cashAdmin.statusExempt") : t("cashAdmin.statusOpen")} />
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {(["open", "paid", "exempt"] as const).map((status) => (
@@ -651,7 +661,7 @@ export default async function Page({ searchParams }: Props) {
                                   disabled={member.status === status}
                                   className="rounded-lg border bg-white px-2.5 py-1.5 text-[10px] font-black text-slate-600 disabled:bg-slate-900 disabled:text-white"
                                 >
-                                  {status === "open" ? "Offen" : status === "paid" ? "Bezahlt" : "Befreit"}
+                                  {status === "open" ? t("cashAdmin.statusOpen") : status === "paid" ? t("cashAdmin.statusPaid") : t("cashAdmin.statusExempt")}
                                 </button>
                               </form>
                             ))}
@@ -663,7 +673,7 @@ export default async function Page({ searchParams }: Props) {
                     <form action={archiveContributionAction} className="mt-4 border-t border-slate-100 pt-3 text-right">
                       <input type="hidden" name="contribution_id" value={contribution.id} />
                       <input type="hidden" name="archived" value="1" />
-                      <button className="text-xs font-black text-slate-500">Beitrag archivieren</button>
+                      <button className="text-xs font-black text-slate-500">{t("cashAdmin.archiveContribution")}</button>
                     </form>
                   </details>
                 );
@@ -671,7 +681,7 @@ export default async function Page({ searchParams }: Props) {
 
               {activeContributions.length === 0 ? (
                 <div className="rounded-[24px] border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">
-                  Noch keine aktiven Beiträge.
+                  {t("cashAdmin.noActiveContributions")}
                 </div>
               ) : null}
             </div>
@@ -679,7 +689,7 @@ export default async function Page({ searchParams }: Props) {
             {archivedContributions.length ? (
               <details className="rounded-[24px] border border-slate-200 bg-white p-5">
                 <summary className="cursor-pointer font-black">
-                  Archivierte Beiträge ({archivedContributions.length})
+                  {t("cashAdmin.archivedContributions", { count: archivedContributions.length })}
                 </summary>
                 <div className="mt-3 space-y-2">
                   {archivedContributions.map((contribution) => (
@@ -688,7 +698,7 @@ export default async function Page({ searchParams }: Props) {
                       <form action={archiveContributionAction}>
                         <input type="hidden" name="contribution_id" value={contribution.id} />
                         <input type="hidden" name="archived" value="0" />
-                        <button className="text-xs font-black text-slate-600">Reaktivieren</button>
+                        <button className="text-xs font-black text-slate-600">{t("cashAdmin.reactivate")}</button>
                       </form>
                     </div>
                   ))}
@@ -706,7 +716,7 @@ export default async function Page({ searchParams }: Props) {
                 <select name="player_id" required className="w-full rounded-xl border px-3 py-2.5 text-sm">
                   <option value="">Spieler wählen</option>
                   {players.map((player) => (
-                    <option key={player.id} value={player.id}>{playerName(player)}</option>
+                    <option key={player.id} value={player.id}>{playerName(player, t("cashAdmin.playerFallback", { id: player.id }))}</option>
                   ))}
                 </select>
                 <select name="preset" defaultValue="" className="w-full rounded-xl border px-3 py-2.5 text-sm">
@@ -726,7 +736,7 @@ export default async function Page({ searchParams }: Props) {
                   </select>
                   <input name="value" placeholder="z. B. Kuchen / 2 €" className="rounded-xl border px-3 py-2.5 text-sm" />
                 </div>
-                <input name="notes" placeholder="Notiz (optional)" className="w-full rounded-xl border px-3 py-2.5 text-sm" />
+                <input name="notes" placeholder={t("cashAdmin.noteOptional")} className="w-full rounded-xl border px-3 py-2.5 text-sm" />
                 <button className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
                   FBZG eintragen
                 </button>
@@ -895,7 +905,7 @@ export default async function Page({ searchParams }: Props) {
                       .filter((player) => player.user_id && !managers.some((manager) => manager.user_id === player.user_id))
                       .map((player) => (
                         <option key={player.id} value={player.user_id ?? ""}>
-                          {playerName(player)}
+                          {playerName(player, t("cashAdmin.playerFallback", { id: player.id }))}
                         </option>
                       ))}
                   </select>
