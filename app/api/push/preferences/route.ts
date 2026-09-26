@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -45,10 +46,11 @@ function isBoolean(value: unknown): value is boolean {
 }
 
 export async function GET() {
+  const { t } = await getServerI18n();
   const ctx = await getAuthContext();
 
   if (!ctx.user) {
-    return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+    return NextResponse.json({ error: t("pushApi.notSignedIn") }, { status: 401 });
   }
 
   const supabase = createAdminClient();
@@ -69,10 +71,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const { t } = await getServerI18n();
   const ctx = await getAuthContext();
 
   if (!ctx.user) {
-    return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+    return NextResponse.json({ error: t("pushApi.notSignedIn") }, { status: 401 });
   }
 
   let payload: PushPreferencePayload;
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
   try {
     payload = (await request.json()) as PushPreferencePayload;
   } catch {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+    return NextResponse.json({ error: t("pushApi.invalidRequest") }, { status: 400 });
   }
 
   const values = [
@@ -93,7 +96,7 @@ export async function POST(request: Request) {
 
   if (!values.every(isBoolean)) {
     return NextResponse.json(
-      { error: "Ungültige Benachrichtigungseinstellungen." },
+      { error: t("pushApi.invalidPreferences") },
       { status: 400 },
     );
   }
