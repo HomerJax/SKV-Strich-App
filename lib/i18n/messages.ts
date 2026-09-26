@@ -2544,6 +2544,18 @@ export const DE_MESSAGES = {
   "notifications.shareMvpResultFallback": "Das MVP Voting ist beendet.",
   "notifications.shareMvpWinnerText": "🏆 Ich bin MVP!\n\n{body}\n\nMarkiere dein Team + @getstrikr\n#strikr",
   "notifications.shareMvpResultText": "🏆 MVP Ergebnis ist da!\n\n{body}\n\nMarkiere dein Team + @getstrikr\n#strikr",
+  "onboarding.error.authExpired": "Deine Anmeldung ist nicht mehr gültig. Bitte logge dich erneut ein.",
+  "onboarding.error.nameRequired": "Bitte gib Vorname und Nachname ein.",
+  "onboarding.error.intentionRequired": "Bitte wähle aus, wie du starten möchtest.",
+  "onboarding.error.teamNameRequired": "Bitte gib einen Teamnamen ein.",
+  "onboarding.error.profileLoad": "Spielerprofil konnte nicht geladen werden: {error}",
+  "onboarding.error.profileCreate": "Spielerprofil konnte nicht erstellt werden.",
+  "onboarding.error.profileUpdate": "Spielerprofil konnte nicht aktualisiert werden.",
+  "onboarding.error.teamCreate": "Team konnte nicht erstellt werden.",
+  "onboarding.error.membershipCreate": "Mitgliedschaft konnte nicht erstellt werden.",
+  "onboarding.error.settingsCreate": "Team-Einstellungen konnten nicht erstellt werden.",
+  "onboarding.error.seasonCreate": "Standard-Saison konnte nicht für das Team erstellt werden.",
+  "onboarding.error.billingCreate": "Billing konnte nicht für das Team erstellt werden.",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5101,6 +5113,19 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "notifications.shareMvpResultFallback": "MVP voting has ended.",
   "notifications.shareMvpWinnerText": "🏆 I’m the MVP!\n\n{body}\n\nTag your team + @getstrikr\n#strikr",
   "notifications.shareMvpResultText": "🏆 MVP result is in!\n\n{body}\n\nTag your team + @getstrikr\n#strikr",
+
+  "onboarding.error.authExpired": "Your sign-in is no longer valid. Please log in again.",
+  "onboarding.error.nameRequired": "Please enter your first and last name.",
+  "onboarding.error.intentionRequired": "Please choose how you want to get started.",
+  "onboarding.error.teamNameRequired": "Please enter a team name.",
+  "onboarding.error.profileLoad": "The player profile could not be loaded: {error}",
+  "onboarding.error.profileCreate": "The player profile could not be created.",
+  "onboarding.error.profileUpdate": "The player profile could not be updated.",
+  "onboarding.error.teamCreate": "The team could not be created.",
+  "onboarding.error.membershipCreate": "The membership could not be created.",
+  "onboarding.error.settingsCreate": "The team settings could not be created.",
+  "onboarding.error.seasonCreate": "The default season could not be created for the team.",
+  "onboarding.error.billingCreate": "Billing could not be created for the team.",
 
 };
 
