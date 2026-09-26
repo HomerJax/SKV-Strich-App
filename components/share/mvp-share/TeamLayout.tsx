@@ -2,6 +2,8 @@ import type { MvpShareImageProps } from "./mvp-share.types";
 import PremiumBadge from "./PremiumBadge";
 import ShareTopBar from "@/components/share/ShareTopBar";
 import { buildPalette } from "@/components/share/result-share/result-share.palette";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type TeamLayoutProps = Omit<MvpShareImageProps, "mode">;
 
@@ -13,7 +15,7 @@ type TierMeta = {
   text: string;
 };
 
-function getTierMeta(label: string): TierMeta {
+function getTierMeta(label: string, locale: AppLocale): TierMeta {
   const lower = label.toLowerCase();
 
   if (lower.includes("goat")) {
@@ -36,9 +38,9 @@ function getTierMeta(label: string): TierMeta {
     };
   }
 
-  if (lower.includes("silber")) {
+  if (lower.includes("silber") || lower.includes("silver")) {
     return {
-      label: "Silber",
+      label: locale === "de" ? "Silber" : "Silver",
       key: "silber",
       top: "linear-gradient(135deg,#0f172a 0%,#94a3b8 52%,#f8fafc 100%)",
       glow: "rgba(203,213,225,0.42)",
@@ -57,7 +59,7 @@ function getTierMeta(label: string): TierMeta {
   }
 
   return {
-    label: "Blech",
+    label: locale === "de" ? "Blech" : "Copper",
     key: "blech",
     top: "linear-gradient(135deg,#18181b 0%,#3f3f46 42%,#09090b 100%)",
     glow: "rgba(82,82,91,0.42)",
@@ -76,6 +78,7 @@ function VoteLine({
   votes: number;
   muted?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div
       style={{
@@ -136,7 +139,7 @@ function VoteLine({
           color: muted ? "rgba(15,23,42,0.42)" : "rgba(15,23,42,0.56)",
         }}
       >
-        {votes} {votes === 1 ? "Stimme" : "Stimmen"}
+        {votes === 1 ? t("mvpVoting.oneVote") : t("mvpVoting.votes", { count: votes })}
       </div>
     </div>
   );
@@ -152,8 +155,9 @@ export default function TeamLayout({
   winners = [],
   leaderboard,
 }: TeamLayoutProps) {
+  const { locale, t } = useI18n();
   const palette = buildPalette(null, "floodlight");
-  const tier = getTierMeta(winner.badgeLabel);
+  const tier = getTierMeta(winner.badgeLabel, locale);
   const topThree = leaderboard.slice(0, 3);
   const displayWinners =
     winners.length > 0
@@ -279,7 +283,7 @@ export default function TeamLayout({
               color: "#ffffff",
             }}
           >
-            {hasMultipleWinners ? `${winnerCount} Gewinner` : tier.label}
+            {hasMultipleWinners ? t("mvpShare.winnersCount", { count: winnerCount }) : tier.label}
           </div>
         </div>
 
@@ -333,7 +337,7 @@ export default function TeamLayout({
               color: "rgba(15,23,42,0.34)",
             }}
           >
-            Glückwunsch
+            {t("mvpShare.congrats")}
           </div>
 
           <div
@@ -347,7 +351,7 @@ export default function TeamLayout({
               color: "#020617",
             }}
           >
-            {hasMultipleWinners ? `${winnerCount} MVPs gewählt` : winner.name}
+            {hasMultipleWinners ? t("mvpShare.mvpsChosen", { count: winnerCount }) : winner.name}
           </div>
 
           {hasMultipleWinners ? (
@@ -387,8 +391,8 @@ export default function TeamLayout({
             }}
           >
             {hasMultipleWinners
-              ? "wurden gemeinsam zum MVP gewählt."
-              : "wurde zum MVP gewählt."}
+              ? t("mvpShare.chosenTogether")
+              : t("mvpShare.chosen")}
           </div>
 
           {topThree.length > 0 && !hasMultipleWinners ? (
@@ -412,7 +416,7 @@ export default function TeamLayout({
                   color: "rgba(15,23,42,0.34)",
                 }}
               >
-                Voting Ergebnis
+                {t("mvpShare.votingResult")}
               </div>
 
               {topThree.map((entry, index) => (
