@@ -1613,6 +1613,13 @@ export const DE_MESSAGES = {
   "home.createFirstTraining": "Erstes Training anlegen",
   "home.inviteMembers": "Mitglieder einladen",
 
+  "teamFeed.eyebrow": "Team-Feed",
+  "teamFeed.title": "Neu im Team",
+  "teamFeed.description": "Ergebnisse, Badges und besondere Team-Momente.",
+  "teamFeed.empty": "Noch keine Team-Ereignisse vorhanden.",
+  "chat.teamFallback": "Dein Team",
+  "chat.brandLabel": "strikr Teamchat",
+
   "sessionHeader.photo": "Foto",
   "sessionHeader.none": "Keins",
   "sessionHeader.back": "Zurück",
@@ -3260,6 +3267,13 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "home.finishClubSetup": "Finish setting up your club",
   "home.createFirstTraining": "Create first training",
   "home.inviteMembers": "Invite members",
+
+  "teamFeed.eyebrow": "Team feed",
+  "teamFeed.title": "New in the team",
+  "teamFeed.description": "Results, badges and special team moments.",
+  "teamFeed.empty": "No team events yet.",
+  "chat.teamFallback": "Your team",
+  "chat.brandLabel": "strikr team chat",
 
   "sessionHeader.photo": "Photo",
   "sessionHeader.none": "None",
