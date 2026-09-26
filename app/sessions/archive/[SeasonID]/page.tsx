@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import PageHero from "@/components/PageHero";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
+import { translate } from "@/lib/i18n/messages";
 
 type PageProps = {
   params: Promise<{
@@ -31,8 +34,8 @@ type ClubRow = {
   primary_color: string | null;
 };
 
-function fmtDateDE(iso: string) {
-  return new Date(iso).toLocaleDateString("de-DE", {
+function fmtDate(iso: string, locale: AppLocale) {
+  return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
@@ -40,16 +43,17 @@ function fmtDateDE(iso: string) {
   });
 }
 
-function fmtDateRangeDE(startIso: string | null, endIso: string | null) {
-  if (!startIso || !endIso) return "Kein Zeitraum hinterlegt";
+function fmtDateRange(startIso: string | null, endIso: string | null, locale: AppLocale) {
+  if (!startIso || !endIso) return translate(locale, "archive.noRange");
 
-  const start = new Date(startIso).toLocaleDateString("de-DE", {
+  const dateLocale = locale === "de" ? "de-DE" : "en-GB";
+  const start = new Date(startIso).toLocaleDateString(dateLocale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 
-  const end = new Date(endIso).toLocaleDateString("de-DE", {
+  const end = new Date(endIso).toLocaleDateString(dateLocale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -67,6 +71,7 @@ function getTodayIsoDate() {
 }
 
 export default async function ArchivedSeasonDetailPage({ params }: PageProps) {
+  const { locale, t } = await getServerI18n();
   const { clubId } = await requireClub();
   const { seasonId } = await params;
   const parsedSeasonId = Number(seasonId);
@@ -105,7 +110,7 @@ export default async function ArchivedSeasonDetailPage({ params }: PageProps) {
     throw new Error(
       seasonError?.message ??
         sessionsError?.message ??
-        "Archiv-Saisondaten konnten nicht geladen werden."
+        t("archive.detailLoadFailed")
     );
   }
 
@@ -132,28 +137,27 @@ export default async function ArchivedSeasonDetailPage({ params }: PageProps) {
             href="/sessions/archive"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Archiv
+            ← {t("archive.backArchive")}
           </Link>
 
           <Link
             href="/sessions"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            Aktuelle Trainings
+            {t("archive.currentTrainings")}
           </Link>
         </div>
 
         <PageHero
-          eyebrow="Archiv"
+          eyebrow={t("archive.eyebrow")}
           title={season.name}
-          description={`Archivierte Einheiten dieser Saison · ${fmtDateRangeDE(
-            season.start_date,
-            season.end_date
-          )}`}
+          description={t("archive.detailDescription", {
+            range: fmtDateRange(season.start_date, season.end_date, locale),
+          })}
           primaryColorKey={club?.primary_color}
           action={
             <div className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm">
-              {sessions.length} {sessions.length === 1 ? "Einheit" : "Einheiten"}
+              {sessions.length} {t(sessions.length === 1 ? "archive.unit" : "archive.units")}
             </div>
           }
         />
@@ -161,13 +165,12 @@ export default async function ArchivedSeasonDetailPage({ params }: PageProps) {
         {sessions.length === 0 ? (
           <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="max-w-xl">
-              <div className="text-sm font-semibold text-slate-500">Leer</div>
+              <div className="text-sm font-semibold text-slate-500">{t("archive.emptyDetailLabel")}</div>
               <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950">
-                In dieser Saison wurden keine Einheiten gefunden.
+                {t("archive.emptyDetailTitle")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Die Saison existiert bereits, enthält aber aktuell keine
-                archivierten Trainings.
+                {t("archive.emptyDetailText")}
               </p>
             </div>
           </div>
@@ -175,10 +178,10 @@ export default async function ArchivedSeasonDetailPage({ params }: PageProps) {
           <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="text-sm font-semibold text-slate-900">
-                Einheiten dieser Saison
+                {t("archive.unitsThisSeason")}
               </div>
               <div className="text-xs text-slate-500">
-                Neueste vergangene zuerst
+                {t("archive.newestFirst")}
               </div>
             </div>
 
@@ -190,7 +193,7 @@ export default async function ArchivedSeasonDetailPage({ params }: PageProps) {
                   className="block rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:bg-slate-50"
                 >
                   <div className="text-xl font-bold tracking-tight text-slate-950">
-                    {fmtDateDE(session.date)}
+                    {fmtDate(session.date, locale)}
                   </div>
                   {session.notes ? (
                     <div className="mt-1 text-sm text-slate-500">
@@ -198,7 +201,7 @@ export default async function ArchivedSeasonDetailPage({ params }: PageProps) {
                     </div>
                   ) : (
                     <div className="mt-1 text-sm text-slate-400">
-                      Keine Notiz hinterlegt
+                      {t("archive.noNote")}
                     </div>
                   )}
                 </Link>
