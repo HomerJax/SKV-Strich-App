@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export type ChatMessage = {
   id: number;
@@ -18,16 +20,16 @@ type Props = {
   canManage: boolean;
 };
 
-function formatDay(value: string) {
-  return new Date(value).toLocaleDateString("de-DE", {
+function formatDay(value: string, locale: AppLocale) {
+  return new Date(value).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
   });
 }
 
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString("de-DE", {
+function formatTime(value: string, locale: AppLocale) {
+  return new Date(value).toLocaleTimeString(locale === "de" ? "de-DE" : "en-GB", {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -48,6 +50,7 @@ export default function ChatClient({
   currentUserId,
   canManage,
 }: Props) {
+  const { locale, t } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -157,7 +160,7 @@ export default function ChatClient({
         | null;
 
       if (!response.ok || !payload?.message) {
-        throw new Error(payload?.error || "Nachricht konnte nicht gesendet werden.");
+        throw new Error(payload?.error || t("chat.sendFailed"));
       }
 
       setMessages((current) => {
@@ -176,7 +179,7 @@ export default function ChatClient({
       setError(
         sendError instanceof Error
           ? sendError.message
-          : "Nachricht konnte nicht gesendet werden.",
+          : t("chat.sendFailed"),
       );
     } finally {
       setSending(false);
@@ -194,7 +197,7 @@ export default function ChatClient({
     const allowed = canManage || message.user_id === currentUserId;
     if (!allowed) return;
 
-    if (!window.confirm("Nachricht wirklich löschen?")) return;
+    if (!window.confirm(t("chat.deleteConfirm"))) return;
 
     setError(null);
 
@@ -209,7 +212,7 @@ export default function ChatClient({
         | null;
 
       if (!response.ok) {
-        throw new Error(payload?.error || "Nachricht konnte nicht gelöscht werden.");
+        throw new Error(payload?.error || t("chat.deleteFailed"));
       }
 
       setMessages((current) =>
@@ -219,7 +222,7 @@ export default function ChatClient({
       setError(
         deleteError instanceof Error
           ? deleteError.message
-          : "Nachricht konnte nicht gelöscht werden.",
+          : t("chat.deleteFailed"),
       );
     }
   }
@@ -228,13 +231,13 @@ export default function ChatClient({
     <div className="flex min-h-[calc(100dvh-150px)] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <div>
-          <div className="text-sm font-black text-slate-950">Teamchat</div>
+          <div className="text-sm font-black text-slate-950">{t("chat.title")}</div>
           <div className="text-[11px] font-medium text-slate-500">
-            Für alle Mitglieder eures Clubs
+            {t("chat.clubMembers")}
           </div>
         </div>
         <div className="text-[10px] font-bold text-slate-400">
-          {loading ? "aktualisiert…" : "live"}
+          {loading ? t("chat.refreshing") : t("chat.live")}
         </div>
       </div>
 
@@ -246,10 +249,10 @@ export default function ChatClient({
           <div className="mx-auto mt-10 max-w-sm rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center">
             <div className="text-3xl">💬</div>
             <div className="mt-2 text-sm font-black text-slate-900">
-              Noch keine Nachrichten
+              {t("chat.emptyTitle")}
             </div>
             <div className="mt-1 text-xs leading-5 text-slate-500">
-              Schreib die erste Nachricht an dein Team.
+              {t("chat.emptyHint")}
             </div>
           </div>
         ) : null}
@@ -267,7 +270,7 @@ export default function ChatClient({
                 <div className="my-4 flex items-center gap-3">
                   <div className="h-px flex-1 bg-slate-200" />
                   <span className="text-[10px] font-bold uppercase tracking-[.12em] text-slate-400">
-                    {formatDay(message.created_at)}
+                    {formatDay(message.created_at, locale)}
                   </span>
                   <div className="h-px flex-1 bg-slate-200" />
                 </div>
@@ -298,14 +301,14 @@ export default function ChatClient({
                         mine ? "text-white/45" : "text-slate-400",
                       ].join(" ")}
                     >
-                      <span>{formatTime(message.created_at)}</span>
+                      <span>{formatTime(message.created_at, locale)}</span>
                       {canDelete ? (
                         <button
                           type="button"
                           onClick={() => void deleteMessage(message)}
                           className={mine ? "text-white/45 hover:text-white" : "text-slate-400 hover:text-rose-600"}
                         >
-                          Löschen
+                          {t("chat.delete")}
                         </button>
                       ) : null}
                     </div>
@@ -336,7 +339,7 @@ export default function ChatClient({
             onKeyDown={handleKeyDown}
             maxLength={500}
             rows={1}
-            placeholder="Nachricht ans Team…"
+            placeholder={t("chat.placeholder")}
             className="max-h-28 min-h-12 flex-1 resize-none rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:bg-white"
           />
           <button
@@ -344,7 +347,7 @@ export default function ChatClient({
             disabled={sending || !draft.trim()}
             className="inline-flex h-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {sending ? "…" : "Senden"}
+            {sending ? "…" : t("chat.send")}
           </button>
         </div>
         <div className="mt-1 px-1 text-right text-[9px] font-medium text-slate-400">
