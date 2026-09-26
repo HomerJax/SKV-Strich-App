@@ -12,6 +12,8 @@ import {
 } from "@/lib/share/mvp-share";
 import MvpShareImage from "@/components/share/mvp-share/MvpShareImage";
 import type { LeaderboardEntry as ShareLeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type Participant = {
   id: number;
@@ -102,9 +104,10 @@ function VoteCountPill({
   eligibleVoterCount: number;
   votingOpen: boolean;
 }) {
+  const { t } = useI18n();
   const text = votingOpen
-    ? `${voteCount} von ${eligibleVoterCount} Stimmen`
-    : `${voteCount} ${voteCount === 1 ? "Stimme" : "Stimmen"} gesamt`;
+    ? t("mvpVoting.votesOfTotal", { count: voteCount, total: eligibleVoterCount })
+    : t("mvpVoting.votesTotal", { count: voteCount });
 
   return (
     <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-black/10">
@@ -125,16 +128,16 @@ function getBadgeAssetKeyFromMvpCount(count: number) {
   return "blech";
 }
 
-function getShareBadgeLabel(count: number) {
-  if (count >= 10) return "GOAT";
-  if (count >= 7) return "Gold";
-  if (count >= 5) return "Silber";
-  if (count >= 3) return "Bronze";
-  return "Blech";
+function getShareBadgeLabel(count: number, locale: AppLocale) {
+  if (count >= 10) return locale === "de" ? "GOAT" : "GOAT";
+  if (count >= 7) return locale === "de" ? "Gold" : "Gold";
+  if (count >= 5) return locale === "de" ? "Silber" : "Silver";
+  if (count >= 3) return locale === "de" ? "Bronze" : "Bronze";
+  return locale === "de" ? "Blech" : "Copper";
 }
 
-function getShareEarnedBadgeText(count: number) {
-  return `${getShareBadgeLabel(count)} strikr badge`;
+function getShareEarnedBadgeText(count: number, locale: AppLocale) {
+  return `${getShareBadgeLabel(count, locale)} strikr badge`;
 }
 
 function toAbsoluteAssetUrl(url: string | null | undefined) {
@@ -169,6 +172,7 @@ function getBadgeUpgradeForPlayer(
 function toShareEntry(
   entry: ResultEntry,
   badgeUpgrade: BadgeUpgrade | null,
+  locale: AppLocale,
 ): ShareLeaderboardEntry {
   const fallbackCurrent = Math.max(safeMvpCount(entry.mvpCount), 1);
 
@@ -188,8 +192,8 @@ function toShareEntry(
     votes: entry.votes,
     previous,
     current,
-    badgeLabel: getShareBadgeLabel(current),
-    earnedBadgeText: getShareEarnedBadgeText(current),
+    badgeLabel: getShareBadgeLabel(current, locale),
+    earnedBadgeText: getShareEarnedBadgeText(current, locale),
   };
 }
 
@@ -200,6 +204,7 @@ function MergedWinnerCard({
   winner: ResultEntry;
   badgeUpgrade: BadgeUpgrade | null;
 }) {
+  const { locale, t } = useI18n();
   const winnerCount = safeMvpCount(winner.mvpCount);
 
   const rawPreviousCount =
@@ -217,8 +222,8 @@ function MergedWinnerCard({
     ? Math.max(rawNextCount, previousCount + 1)
     : Math.max(rawNextCount, previousCount + 1);
 
-  const previousBadge = getBadgeMetaFromMvpCount(previousCount);
-  const nextBadge = getBadgeMetaFromMvpCount(nextCount);
+  const previousBadge = getBadgeMetaFromMvpCount(previousCount, locale);
+  const nextBadge = getBadgeMetaFromMvpCount(nextCount, locale);
   const tierChanged = previousBadge.key !== nextBadge.key;
 
   return (
@@ -235,13 +240,13 @@ function MergedWinnerCard({
 
           <div className="min-w-0">
             <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              MVP des Trainings
+              {t("mvpVoting.trainingMvp")}
             </div>
             <div className="mt-1 truncate text-lg font-extrabold tracking-tight text-slate-950">
               {winner.name}
             </div>
             <div className="mt-0.5 text-sm text-slate-500">
-              {winner.votes} {winner.votes === 1 ? "Stimme" : "Stimmen"}
+              {t("mvpVoting.votesTotal", { count: winner.votes }).replace(" gesamt", "")}
             </div>
           </div>
         </div>
@@ -251,7 +256,7 @@ function MergedWinnerCard({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-sm font-bold text-slate-900">
-              {tierChanged ? "Neues Badge erreicht" : "Badge-Fortschritt"}
+              {tierChanged ? t("mvpVoting.newBadge") : t("mvpVoting.badgeProgress")}
             </div>
             <div className="mt-0.5 text-xs text-slate-500">
               {previousBadge.label} → {nextBadge.label}
@@ -268,6 +273,7 @@ function MergedWinnerCard({
 }
 
 export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
+  const { locale, t } = useI18n();
   const router = useRouter();
   const shareCardRef = useRef<HTMLDivElement>(null);
   const winnerShareRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -372,7 +378,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       fallbackBadgeUpgrade,
     );
 
-    const shareWinner = toShareEntry(winner, winnerBadgeUpgrade);
+    const shareWinner = toShareEntry(winner, winnerBadgeUpgrade, locale);
 
     const shareWinners = state.results.winners.map((entry) =>
       toShareEntry(
@@ -382,6 +388,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           entry.playerId,
           fallbackBadgeUpgrade,
         ),
+        locale,
       ),
     );
 
@@ -393,6 +400,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
           entry.playerId,
           fallbackBadgeUpgrade,
         ),
+        locale,
       ),
     );
 
@@ -425,7 +433,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
       clubName: state.clubName ?? "strikr Team",
       sessionDateLabel: state.revealLabel,
     };
-  }, [state]);
+  }, [state, locale]);
 
   async function handleVoteSubmit() {
     if (!selectedPlayerId || saving) return;
