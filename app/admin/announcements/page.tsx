@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/auth/context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClubMemberUserIds } from "@/lib/push/club-events";
 import { sendPushToUsers } from "@/lib/push/send-push";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ function hasAdminAccess(role: string | null | undefined, isPowerUser: boolean) {
 }
 
 export default async function ClubAnnouncementsPage({ searchParams }: PageProps) {
+  const { t } = await getServerI18n();
   const ctx = await getAuthContext();
 
   if (!ctx.user) redirect("/login");
@@ -39,6 +41,7 @@ export default async function ClubAnnouncementsPage({ searchParams }: PageProps)
   async function sendAnnouncement(formData: FormData) {
     "use server";
 
+    const { t: actionT } = await getServerI18n();
     const actionCtx = await getAuthContext();
 
     if (!actionCtx.user || !actionCtx.activeClubId) {
@@ -58,13 +61,13 @@ export default async function ClubAnnouncementsPage({ searchParams }: PageProps)
 
     if (message.length < 3) {
       redirect(
-        "/admin/announcements?error=Bitte%20eine%20Nachricht%20eingeben.",
+        `/admin/announcements?error=${encodeURIComponent(actionT("announcements.errorRequired"))}`,
       );
     }
 
     if (message.length > 280) {
       redirect(
-        "/admin/announcements?error=Die%20Nachricht%20darf%20maximal%20280%20Zeichen%20lang%20sein.",
+        `/admin/announcements?error=${encodeURIComponent(actionT("announcements.errorMax"))}`,
       );
     }
 
@@ -75,13 +78,13 @@ export default async function ClubAnnouncementsPage({ searchParams }: PageProps)
 
     if (!recipientUserIds.length) {
       redirect(
-        "/admin/announcements?error=Es%20gibt%20keine%20weiteren%20Mitglieder%20mit%20Account.",
+        `/admin/announcements?error=${encodeURIComponent(actionT("announcements.errorNoRecipients"))}`,
       );
     }
 
     const admin = createAdminClient();
     const announcementId = randomUUID();
-    const title = "Club-Ankündigung 📣";
+    const title = actionT("announcements.notificationTitle");
 
     const notificationRows = recipientUserIds.map((userId) => ({
       user_id: userId,
@@ -90,7 +93,7 @@ export default async function ClubAnnouncementsPage({ searchParams }: PageProps)
       title,
       body: message,
       cta_href: "/home",
-      cta_label: "Öffnen",
+      cta_label: actionT("announcements.open"),
       dedupe_key: `club_announcement:${clubId}:${announcementId}:${userId}`,
     }));
 
@@ -113,13 +116,13 @@ export default async function ClubAnnouncementsPage({ searchParams }: PageProps)
     } catch (error) {
       console.error("Club announcement push failed", error);
       redirect(
-        "/admin/announcements?error=Die%20Ankündigung%20konnte%20nicht%20als%20Push%20gesendet%20werden.",
+        `/admin/announcements?error=${encodeURIComponent(actionT("announcements.errorPush"))}`,
       );
     }
 
     redirect(
       `/admin/announcements?success=${encodeURIComponent(
-        `Ankündigung an ${recipientUserIds.length} Mitglieder versendet.`,
+        actionT("announcements.success", { count: recipientUserIds.length }),
       )}`,
     );
   }
@@ -130,20 +133,18 @@ export default async function ClubAnnouncementsPage({ searchParams }: PageProps)
         href="/admin"
         className="text-xs font-semibold text-slate-500 hover:text-slate-800"
       >
-        ← Zurück zum Adminbereich
+        ← {t("announcements.back")}
       </Link>
 
       <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Kommunikation
+          {t("announcements.section")}
         </div>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-          Club-Ankündigung senden
+          {t("announcements.title")}
         </h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Schicke eine wichtige Nachricht an alle Mitglieder mit strikr-Account.
-          Mitglieder können Club-Ankündigungen in ihren Push-Einstellungen
-          deaktivieren.
+          {t("announcements.description")}
         </p>
 
         {errorMessage ? (
@@ -164,7 +165,7 @@ export default async function ClubAnnouncementsPage({ searchParams }: PageProps)
               htmlFor="message"
               className="block text-sm font-semibold text-slate-900"
             >
-              Nachricht
+              {t("announcements.message")}
             </label>
             <textarea
               id="message"
@@ -172,17 +173,17 @@ export default async function ClubAnnouncementsPage({ searchParams }: PageProps)
               required
               maxLength={280}
               rows={5}
-              placeholder="z. B. Training morgen beginnt ausnahmsweise um 19:30 Uhr."
+              placeholder={t("announcements.placeholder")}
               className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
             />
-            <p className="mt-1 text-xs text-slate-500">Maximal 280 Zeichen.</p>
+            <p className="mt-1 text-xs text-slate-500">{t("announcements.max")}</p>
           </div>
 
           <button
             type="submit"
             className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
           >
-            Ankündigung senden
+            {t("announcements.send")}
           </button>
         </form>
       </section>
