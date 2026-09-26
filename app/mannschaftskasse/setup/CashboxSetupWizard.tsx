@@ -289,7 +289,7 @@ export default function CashboxSetupWizard({
               ) : (
                 <div className="mt-8 rounded-[24px] border border-amber-200 bg-amber-50 p-5">
                   <div className="font-black text-amber-950">
-                    {t("cashSetup.beerFund")}+ ist für diesen Club noch nicht freigeschaltet.
+                    {t("cashSetup.beerLockedTitle", { name: t("cashSetup.beerFund") })}
                   </div>
                   <p className="mt-1 text-sm font-medium leading-6 text-amber-800/70">
                     {t("cashSetup.beerLockedHint")}
