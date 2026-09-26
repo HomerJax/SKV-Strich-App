@@ -6,6 +6,7 @@ import { canManageClub } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import PlayerPhotoUpload from "@/components/PlayerPhotoUpload";
+import { getServerI18n } from "@/lib/i18n/server";
 
 type Props = { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string; error?: string }> };
 type PlayerPass = {
@@ -17,15 +18,10 @@ type PlayerPass = {
   created_at: string | null;
 };
 
-function positionLabel(value: PlayerPass["preferred_position"]) {
-  if (value === "goalkeeper") return "Torwart";
-  if (value === "defense") return "Hinten";
-  if (value === "attack") return "Mittelfeld/Vorne";
-  return "—";
-}
-function dateLabel(value: string | null) { return value ? new Date(`${value}T12:00:00`).toLocaleDateString("de-DE") : "—"; }
+function dateLabel(value: string | null, locale: "de" | "en") { return value ? new Date(`${value}T12:00:00`).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB") : "—"; }
 
 export default async function PlayerPassPage({ params, searchParams }: Props) {
+  const { locale, t } = await getServerI18n();
   const { id } = await params;
   const query = await searchParams;
   const playerId = Number(id);
@@ -46,27 +42,33 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
 
   return <main className="min-h-screen bg-neutral-100 px-4 py-5">
     <section className="mx-auto max-w-2xl space-y-4">
-      <Link href="/players" className="text-sm font-semibold text-slate-600">← Kader</Link>
-      {query?.saved === "1" ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Spielerpass gespeichert.</div> : null}
-      {query?.error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Spielerpass konnte nicht gespeichert werden.</div> : null}
+      <Link href="/players" className="text-sm font-semibold text-slate-600">← {t("players.backRoster")}</Link>
+      {query?.saved === "1" ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{t("players.passSaved")}</div> : null}
+      {query?.error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{t("players.passSaveFailed")}</div> : null}
 
       <div className="overflow-hidden rounded-[26px] border border-slate-300 bg-[#f6f0d8] shadow-sm">
         <div className="border-b border-slate-300 bg-white/60 px-5 py-3">
           <div className="flex items-center justify-between gap-4">
-            <div><div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">strikr</div><h1 className="text-xl font-black tracking-tight text-slate-950">Spielerpass</h1></div>
-            <div className="text-right text-[10px] font-mono text-slate-500">PASS-NR.<br/><span className="text-sm font-bold text-slate-800">STR-{String(pass.id).padStart(5,"0")}</span></div>
+            <div><div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">strikr</div><h1 className="text-xl font-black tracking-tight text-slate-950">{t("players.passTitle")}</h1></div>
+            <div className="text-right text-[10px] font-mono text-slate-500">{t("players.passNumber")}<br/><span className="text-sm font-bold text-slate-800">STR-{String(pass.id).padStart(5,"0")}</span></div>
           </div>
         </div>
         <div className="grid gap-5 p-5 sm:grid-cols-[1fr_150px]">
           <div className="order-2 space-y-3 text-sm sm:order-1">
-            <div><div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Name</div><div className="text-xl font-black text-slate-950">{displayName}</div></div>
+            <div><div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t("players.name")}</div><div className="text-xl font-black text-slate-950">{displayName}</div></div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-300 pt-3">
-              <div><div className="text-[10px] uppercase text-slate-500">Geboren</div><b>{dateLabel(pass.birth_date)}</b></div>
-              <div><div className="text-[10px] uppercase text-slate-500">Rückennummer</div><b>{pass.jersey_number || "—"}</b></div>
-              <div><div className="text-[10px] uppercase text-slate-500">Position</div><b>{positionLabel(pass.preferred_position)}</b></div>
-              <div><div className="text-[10px] uppercase text-slate-500">Verein</div><b>{club?.display_name || "strikr Club"}</b></div>
+              <div><div className="text-[10px] uppercase text-slate-500">{t("players.born")}</div><b>{dateLabel(pass.birth_date, locale)}</b></div>
+              <div><div className="text-[10px] uppercase text-slate-500">{t("players.jerseyNumber")}</div><b>{pass.jersey_number || "—"}</b></div>
+              <div><div className="text-[10px] uppercase text-slate-500">{t("players.position")}</div><b>{pass.preferred_position === "goalkeeper"
+  ? t("players.positionGoalkeeper")
+  : pass.preferred_position === "defense"
+    ? t("players.positionDefense")
+    : pass.preferred_position === "attack"
+      ? t("players.positionAttack")
+      : "—"}</b></div>
+              <div><div className="text-[10px] uppercase text-slate-500">{t("players.club")}</div><b>{club?.display_name || "strikr Club"}</b></div>
             </div>
-            <div className="pt-4 text-[10px] uppercase tracking-[0.18em] text-slate-400">Digitaler Spielerpass · strikr</div>
+            <div className="pt-4 text-[10px] uppercase tracking-[0.18em] text-slate-400">{t("players.digitalPass")}</div>
           </div>
           <div className="order-1 sm:order-2">
             {canEdit ? <PlayerPhotoUpload playerId={pass.id} birthDate={pass.birth_date} jerseyNumber={pass.jersey_number} photoUrl={photoUrl} initialPositionX={pass.photo_position_x} initialPositionY={pass.photo_position_y} initialZoom={pass.photo_zoom} className="aspect-[4/5] overflow-hidden border-2 border-white bg-slate-200 shadow-md">{photo}</PlayerPhotoUpload> : <div className="aspect-[4/5] overflow-hidden border-2 border-white bg-slate-200 shadow-md">{photo}</div>}
@@ -75,22 +77,22 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
       </div>
 
       {canEdit ? <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="font-bold text-slate-950">Spielerpass pflegen</h2>
-        <p className="mt-1 text-xs text-slate-500">Geburtstag wird später auch für eure Mannschaftskasse genutzt. Stärke und Statistiken gehören bewusst nicht in den Spielerpass.</p>
+        <h2 className="font-bold text-slate-950">{t("players.managePass")}</h2>
+        <p className="mt-1 text-xs text-slate-500">{t("players.managePassHint")}</p>
         <form action="/api/player-pass" method="post" encType="multipart/form-data" className="mt-4 space-y-4">
           <input type="hidden" name="player_id" value={pass.id}/>
           <input type="hidden" name="photo_position_x" value={pass.photo_position_x ?? 50}/>
           <input type="hidden" name="photo_position_y" value={pass.photo_position_y ?? 50}/>
           <input type="hidden" name="photo_zoom" value={pass.photo_zoom ?? 1}/>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm font-medium">Geburtsdatum<input type="date" name="birth_date" defaultValue={pass.birth_date ?? ""} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"/></label>
-            <label className="text-sm font-medium">Rückennummer<input name="jersey_number" maxLength={8} defaultValue={pass.jersey_number ?? ""} placeholder="z. B. 8" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"/></label>
+            <label className="text-sm font-medium">{t("players.birthDate")}<input type="date" name="birth_date" defaultValue={pass.birth_date ?? ""} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"/></label>
+            <label className="text-sm font-medium">{t("players.jerseyNumber")}<input name="jersey_number" maxLength={8} defaultValue={pass.jersey_number ?? ""} placeholder={t("players.jerseyPlaceholder")} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5"/></label>
           </div>
-          <p className="text-xs text-slate-500">Foto direkt oben im Spielerpass ändern und anschließend ausrichten.</p>
-          <button className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white">Spielerpass speichern</button>
+          <p className="text-xs text-slate-500">{t("players.photoHint")}</p>
+          <button className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white">{t("players.savePass")}</button>
         </form>
       </div> : null}
-      <div className="flex gap-2"><Link href="/stats" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">Meine Stats →</Link><Link href={`/badges?player=${pass.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">Hall of Fame →</Link></div>
+      <div className="flex gap-2"><Link href="/stats" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">{t("players.myStats")}</Link><Link href={`/badges?player=${pass.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">{t("players.hallOfFame")}</Link></div>
     </section>
   </main>;
 }
