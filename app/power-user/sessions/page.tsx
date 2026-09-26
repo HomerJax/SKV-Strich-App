@@ -2,6 +2,8 @@ import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requirePowerUser } from "@/lib/auth/power-user";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type SessionRow = {
   id: number;
@@ -25,20 +27,21 @@ type PageProps = {
   }>;
 };
 
-function formatDateTime(value: string | null | undefined) {
+function formatDateTime(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleString("de-DE");
+  return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-GB");
 }
 
-function formatDate(value: string | null | undefined) {
+function formatDate(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleDateString("de-DE");
+  return new Date(value).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB");
 }
 
 export default async function PowerUserSessionsPage({
   searchParams,
 }: PageProps) {
   await requirePowerUser();
+  const { locale, t } = await getServerI18n();
   const resolvedSearchParams = await searchParams;
 
   const range = resolvedSearchParams?.range === "7d" ? "7d" : "all";
@@ -71,7 +74,7 @@ export default async function PowerUserSessionsPage({
   const clubNameById = new Map(
     clubs.map((club) => [
       club.id,
-      club.display_name?.trim() || club.name?.trim() || "Unbenannter Club",
+      club.display_name?.trim() || club.name?.trim() || t("power.unnamedClub"),
     ])
   );
 
@@ -83,7 +86,7 @@ export default async function PowerUserSessionsPage({
             href="/power-user"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-900/20"
           >
-            ← Zurück zum Power User Dashboard
+            ← {t("power.backDashboard")}
           </Link>
         </div>
 
@@ -98,10 +101,10 @@ export default async function PowerUserSessionsPage({
                 Power User / Sessions
               </div>
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-                Trainings
+                {t("power.sessions.title")}
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Alle bisher angelegten Trainings im System.
+                {t("power.sessions.description")}
               </p>
             </div>
           </div>
@@ -116,7 +119,7 @@ export default async function PowerUserSessionsPage({
                 : "border border-slate-300 bg-white text-slate-700"
             }`}
           >
-            Alle
+            {t("power.sessions.all")}
           </Link>
 
           <Link
@@ -127,14 +130,14 @@ export default async function PowerUserSessionsPage({
                 : "border border-slate-300 bg-white text-slate-700"
             }`}
           >
-            Letzte 7 Tage
+            {t("power.sessions.last7")}
           </Link>
         </div>
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
           {sessions.length === 0 ? (
             <div className="text-sm text-slate-600">
-              Keine Trainings gefunden.
+              {t("power.sessions.empty")}
             </div>
           ) : (
             <div className="space-y-3">
@@ -146,11 +149,10 @@ export default async function PowerUserSessionsPage({
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <div className="text-sm font-semibold text-slate-950">
-                        Training am {formatDate(session.date)}
+                        {t("power.sessions.trainingOn", { date: formatDate(session.date, locale) })}
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
-                        Club:{" "}
-                        {clubNameById.get(session.club_id) ?? "Unbekannter Club"}
+                        {t("power.sessions.club", { club: clubNameById.get(session.club_id) ?? t("power.unknownClub") })}
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
                         Season ID: {session.season_id ?? "–"}
@@ -165,28 +167,28 @@ export default async function PowerUserSessionsPage({
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
                     <div className="rounded-xl bg-slate-50 px-3 py-3">
                       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Session-Datum
+                        {t("power.sessions.date")}
                       </div>
                       <div className="mt-1 text-sm text-slate-950">
-                        {formatDate(session.date)}
+                        {formatDate(session.date, locale)}
                       </div>
                     </div>
 
                     <div className="rounded-xl bg-slate-50 px-3 py-3">
                       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Erstellt am
+                        {t("power.sessions.created")}
                       </div>
                       <div className="mt-1 text-sm text-slate-950">
-                        {formatDateTime(session.created_at)}
+                        {formatDateTime(session.created_at, locale)}
                       </div>
                     </div>
 
                     <div className="rounded-xl bg-slate-50 px-3 py-3">
                       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Siegerfoto
+                        {t("power.sessions.winnerPhoto")}
                       </div>
                       <div className="mt-1 text-sm text-slate-950">
-                        {session.winner_photo_path ? "Ja" : "Nein"}
+                        {session.winner_photo_path ? t("power.sessions.yes") : t("power.sessions.no")}
                       </div>
                     </div>
                   </div>
@@ -194,7 +196,7 @@ export default async function PowerUserSessionsPage({
                   {session.notes?.trim() ? (
                     <div className="mt-4 rounded-xl bg-slate-50 px-3 py-3">
                       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Notizen
+                        {t("power.sessions.notes")}
                       </div>
                       <div className="mt-1 text-sm text-slate-950">
                         {session.notes.trim()}
