@@ -1,3 +1,5 @@
+import type { AppLocale } from "@/lib/i18n/config";
+
 export type ShareImageFromUrlParams = {
   imageUrl: string;
   fileName?: string;
@@ -47,15 +49,18 @@ export function buildPlayerDisplayName(player: ShareNameLike) {
   return "Unbekannt";
 }
 
-export function formatDate(date: string | null | undefined) {
-  if (!date) return "Unbekanntes Datum";
+export function formatDate(
+  date: string | null | undefined,
+  locale: AppLocale = "de",
+) {
+  if (!date) return locale === "de" ? "Unbekanntes Datum" : "Unknown date";
 
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) {
     return date;
   }
 
-  return parsed.toLocaleDateString("de-DE", {
+  return parsed.toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
