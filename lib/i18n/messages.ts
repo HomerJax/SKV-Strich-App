@@ -2537,6 +2537,13 @@ export const DE_MESSAGES = {
   "power.badges.career": "Karriere",
   "power.badges.seasonSeries": "Saison / Serie",
   "cashSetup.beerLockedTitle": "{name}+ ist für diesen Club noch nicht freigeschaltet.",
+  "forgotPassword.emailRequired": "Bitte gib deine E-Mail-Adresse ein.",
+  "forgotPassword.sendFailed": "Der Reset-Link konnte nicht gesendet werden. Bitte versuche es erneut.",
+  "forgotPassword.sent": "Wenn ein Konto mit dieser E-Mail existiert, wurde ein Reset-Link versendet.",
+  "notifications.shareMvpWinnerFallback": "MVP des Trainings bei strikr.",
+  "notifications.shareMvpResultFallback": "Das MVP Voting ist beendet.",
+  "notifications.shareMvpWinnerText": "🏆 Ich bin MVP!\n\n{body}\n\nMarkiere dein Team + @getstrikr\n#strikr",
+  "notifications.shareMvpResultText": "🏆 MVP Ergebnis ist da!\n\n{body}\n\nMarkiere dein Team + @getstrikr\n#strikr",
 } as const;
 
 export type MessageKey = keyof typeof DE_MESSAGES;
@@ -5086,6 +5093,14 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "power.badges.career": "Career",
   "power.badges.seasonSeries": "Season / streak",
   "cashSetup.beerLockedTitle": "{name}+ is not enabled for this club yet.",
+
+  "forgotPassword.emailRequired": "Please enter your email address.",
+  "forgotPassword.sendFailed": "The reset link could not be sent. Please try again.",
+  "forgotPassword.sent": "If an account exists for this email address, a reset link has been sent.",
+  "notifications.shareMvpWinnerFallback": "Training MVP on strikr.",
+  "notifications.shareMvpResultFallback": "MVP voting has ended.",
+  "notifications.shareMvpWinnerText": "🏆 I’m the MVP!\n\n{body}\n\nTag your team + @getstrikr\n#strikr",
+  "notifications.shareMvpResultText": "🏆 MVP result is in!\n\n{body}\n\nTag your team + @getstrikr\n#strikr",
 
 };
 
