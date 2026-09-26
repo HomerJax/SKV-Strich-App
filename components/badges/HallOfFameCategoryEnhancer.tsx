@@ -1,45 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type CategoryMeta = {
   key: string;
   title: string;
   subtitle: string;
 };
-
-const CATEGORIES: CategoryMeta[] = [
-  {
-    key: "career-appearances",
-    title: "Karriere · Einsätze",
-    subtitle: "250 als Gold+ · 500 als GOAT – bis zur Club-Legende.",
-  },
-  {
-    key: "career-wins",
-    title: "Karriere · Siege",
-    subtitle: "Deine gewonnenen Spiele über alle Saisons.",
-  },
-  {
-    key: "attendance",
-    title: "Teilnahme & Disziplin",
-    subtitle: "Dranbleiben, wiederkommen, keine Einheit verpassen.",
-  },
-  {
-    key: "wins",
-    title: "Siege & Serien",
-    subtitle: "Vom ersten Dreier bis zur legendären Siegesserie.",
-  },
-  {
-    key: "losses",
-    title: "Pech & Niederlagen",
-    subtitle: "Auch schlechte Läufe schreiben Geschichten.",
-  },
-  {
-    key: "special",
-    title: "Specials & Secret",
-    subtitle: "Seltene Momente und versteckte Achievements.",
-  },
-];
 
 const SPECIAL_KEYS = new Set([
   "curse_broken",
@@ -99,17 +67,22 @@ function buildCategoryHeader(meta: CategoryMeta, tone: "earned" | "open") {
   return header;
 }
 
-function categorizeGrid(grid: Element, tone: "earned" | "open") {
+function categorizeGrid(
+  grid: Element,
+  tone: "earned" | "open",
+  categories: CategoryMeta[],
+) {
   if (grid.getAttribute("data-hof-categorized") === "true") return true;
 
   const articles = Array.from(grid.children).filter(
-    (child): child is HTMLElement => child instanceof HTMLElement && child.tagName === "ARTICLE",
+    (child): child is HTMLElement =>
+      child instanceof HTMLElement && child.tagName === "ARTICLE",
   );
 
   if (articles.length === 0) return false;
 
   const buckets = new Map<string, HTMLElement[]>();
-  for (const meta of CATEGORIES) buckets.set(meta.key, []);
+  for (const meta of categories) buckets.set(meta.key, []);
 
   for (const article of articles) {
     const badgeKey = badgeKeyFromArticle(article);
@@ -120,7 +93,7 @@ function categorizeGrid(grid: Element, tone: "earned" | "open") {
   grid.setAttribute("data-hof-categorized", "true");
   grid.classList.add("hof-categorized-root");
 
-  for (const meta of CATEGORIES) {
+  for (const meta of categories) {
     const categoryArticles = buckets.get(meta.key) ?? [];
     if (categoryArticles.length === 0) continue;
 
@@ -146,26 +119,64 @@ function categorizeGrid(grid: Element, tone: "earned" | "open") {
 }
 
 export default function HallOfFameCategoryEnhancer() {
+  const { t, locale } = useI18n();
+
+  const categories = useMemo<CategoryMeta[]>(
+    () => [
+      {
+        key: "career-appearances",
+        title: t("badges.categoryCareerAppearances"),
+        subtitle: t("badges.categoryCareerAppearancesHint"),
+      },
+      {
+        key: "career-wins",
+        title: t("badges.categoryCareerWins"),
+        subtitle: t("badges.categoryCareerWinsHint"),
+      },
+      {
+        key: "attendance",
+        title: t("badges.categoryAttendance"),
+        subtitle: t("badges.categoryAttendanceHint"),
+      },
+      {
+        key: "wins",
+        title: t("badges.categoryWins"),
+        subtitle: t("badges.categoryWinsHint"),
+      },
+      {
+        key: "losses",
+        title: t("badges.categoryLosses"),
+        subtitle: t("badges.categoryLossesHint"),
+      },
+      {
+        key: "special",
+        title: t("badges.categorySpecial"),
+        subtitle: t("badges.categorySpecialHint"),
+      },
+    ],
+    [t, locale],
+  );
+
   useEffect(() => {
     let observer: MutationObserver | null = null;
 
     const enhance = () => {
       const earnedSection =
-        findSectionByHeading("Mein Trophäenschrank") ??
-        findSectionByHeading("Trophäenschrank");
-      const openSection = findSectionByHeading("Was geht noch?");
+        findSectionByHeading(t("badges.myTrophyCase")) ??
+        findSectionByHeading(t("badges.trophyCase"));
+      const openSection = findSectionByHeading(t("badges.whatNext"));
 
       let earnedDone = false;
       let openDone = false;
 
       if (earnedSection) {
         const grid = findBadgeGrid(earnedSection);
-        if (grid) earnedDone = categorizeGrid(grid, "earned");
+        if (grid) earnedDone = categorizeGrid(grid, "earned", categories);
       }
 
       if (openSection) {
         const grid = findBadgeGrid(openSection);
-        if (grid) openDone = categorizeGrid(grid, "open");
+        if (grid) openDone = categorizeGrid(grid, "open", categories);
       }
 
       if (earnedDone && openDone) observer?.disconnect();
@@ -182,7 +193,7 @@ export default function HallOfFameCategoryEnhancer() {
       window.clearTimeout(timeout);
       observer?.disconnect();
     };
-  }, []);
+  }, [categories, locale, t]);
 
   return null;
 }
