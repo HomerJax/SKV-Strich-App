@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { getClubHeroStyles } from "@/lib/ui/hero";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type PageHeroProps = {
   primaryColorKey?: string | null;
@@ -29,6 +30,8 @@ function BackControl({
   backHref?: string;
   onBack?: () => void;
 }) {
+  const { t } = useI18n();
+
   if (backHref) {
     return (
       <Link
@@ -36,7 +39,7 @@ function BackControl({
         className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/72 transition hover:text-white"
       >
         <span aria-hidden="true">←</span>
-        <span>{backLabel ?? "Zurück"}</span>
+        <span>{backLabel ?? t("common.back")}</span>
       </Link>
     );
   }
@@ -49,7 +52,7 @@ function BackControl({
         className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/72 transition hover:text-white"
       >
         <span aria-hidden="true">←</span>
-        <span>{backLabel ?? "Zurück"}</span>
+        <span>{backLabel ?? t("common.back")}</span>
       </button>
     );
   }
