@@ -304,7 +304,7 @@ export function useSessionDetail({
         payload = JSON.parse(raw) as ApiSuccess | ApiError;
       } catch {
         throw new Error(
-          `Server hat keine gültige JSON-Antwort geliefert (HTTP ${response.status}).`
+          t("sessionHook.invalidJson", { status: response.status })
         );
       }
     }
@@ -314,11 +314,11 @@ export function useSessionDetail({
         throw new Error(payload.error);
       }
 
-      throw new Error(raw || `Unbekannter Fehler (HTTP ${response.status}).`);
+      throw new Error(raw || t("sessionHook.unknownHttpError", { status: response.status }));
     }
 
     if (!payload) {
-      throw new Error("Server hat keine Antwort geliefert.");
+      throw new Error(t("sessionHook.noServerResponse"));
     }
 
     if ("error" in payload) {
