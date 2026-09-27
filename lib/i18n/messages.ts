@@ -3274,6 +3274,11 @@ export const DE_MESSAGES = {
   "updateModal.notificationsText": "Wichtige Neuigkeiten kommen jetzt direkt zu dir.",
   "updateModal.continueBadges": "Weiter zu meinen Karriere-Badges",
   "me.noData": "Keine Daten gefunden.",
+  "languageSwitch.label": "Sprache",
+  "languageSwitch.de": "DE",
+  "languageSwitch.en": "EN",
+  "languageSwitch.auto": "Auto",
+  "languageSwitch.title": "Sprache zum Testen umstellen",
 
 } as const;
 
@@ -6588,6 +6593,11 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "updateModal.notificationsText": "Important updates now reach you directly.",
   "updateModal.continueBadges": "Continue to my career badges",
   "me.noData": "No data found.",
+  "languageSwitch.label": "Language",
+  "languageSwitch.de": "DE",
+  "languageSwitch.en": "EN",
+  "languageSwitch.auto": "Auto",
+  "languageSwitch.title": "Switch language for testing",
 
 
 };
