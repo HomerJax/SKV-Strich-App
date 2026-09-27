@@ -3246,6 +3246,18 @@ export const DE_MESSAGES = {
   "lateRsvp.subtitle": "Leider einen Tick zu spät dran 😄",
   "lateRsvp.fbzg": "Danke für deinen FBZG – deinen freiwilligen Beitrag zur Gemeinschaft. 😉",
   "lateRsvp.ok": "Alles klar",
+  "updateModal.kicker": "Großes Update",
+  "updateModal.title": "Das ist neu bei strikr",
+  "updateModal.description": "Drei Bereiche sind jetzt direkt in der App verfügbar.",
+  "updateModal.teamChat": "Teamchat",
+  "updateModal.teamChatText": "Direkt im Team schreiben – ohne extra Messenger.",
+  "updateModal.teamFund": "Mannschaftskasse",
+  "updateModal.teamFundText": "Beiträge, FBZG und Kassenstatus zentral im Blick.",
+  "updateModal.beerFund": "Bierkasse",
+  "updateModal.beerFundText": "Bierstriche, Bezahlung und Statistik direkt in strikr.",
+  "updateModal.close": "Schließen",
+  "updateModal.open": "Jetzt ansehen",
+  "me.noData": "Keine Daten gefunden.",
 
 } as const;
 
@@ -6532,6 +6544,18 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "lateRsvp.subtitle": "Just a little too late 😄",
   "lateRsvp.fbzg": "Thanks for your FBZG – your voluntary contribution to the community. 😉",
   "lateRsvp.ok": "Got it",
+  "updateModal.kicker": "Big update",
+  "updateModal.title": "What's new in strikr",
+  "updateModal.description": "Three areas are now available directly in the app.",
+  "updateModal.teamChat": "Team chat",
+  "updateModal.teamChatText": "Chat directly with your team – no extra messenger needed.",
+  "updateModal.teamFund": "Team fund",
+  "updateModal.teamFundText": "Keep contributions, FBZG and fund status in one place.",
+  "updateModal.beerFund": "Beer fund",
+  "updateModal.beerFundText": "Beer tallies, payments and stats directly in strikr.",
+  "updateModal.close": "Close",
+  "updateModal.open": "View now",
+  "me.noData": "No data found.",
 
 
 };
