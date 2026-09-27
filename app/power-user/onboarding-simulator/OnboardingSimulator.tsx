@@ -77,8 +77,7 @@ export default function OnboardingSimulator() {
           </div>
 
           <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/55">
-            Das ist eine lokale Simulation des neuen Starts. Du kannst klicken, Werte ändern
-            und den kompletten Flow prüfen, ohne einen Club oder Einstellungen zu verändern.
+            {t("powerOnboarding.description")}
           </p>
 
           <div className="mt-6 grid grid-cols-6 gap-1.5">
