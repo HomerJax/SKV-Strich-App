@@ -38,18 +38,17 @@ function missingLabel(item: ProgressItem, t: (key: MessageKey, params?: Record<s
         ? t("achievement.appearance")
         : item.unit === "Trainings" && item.remaining === 1
           ? t("achievement.training")
-          : item.unit;
+          : item.unit === "Siege"
+            ? t("extendedStats.wins", { count: item.remaining }).replace(/^\\d+\\s*/, "")
+            : item.unit === "Teilnahmen"
+              ? "appearances"
+              : "trainings";
 
   return t("achievement.remaining", { count: item.remaining, unit });
 }
 
 function findQuickInfoSection() {
-  const labels = Array.from(document.querySelectorAll("div"));
-  const label = labels.find(
-    (item) => item.textContent?.trim() === "Meine Kurzinfo",
-  );
-
-  return label?.closest("section") ?? null;
+  return document.querySelector("section[data-home-quick-info=\"true\"]");
 }
 
 export default function HomeAchievementTeaser() {
