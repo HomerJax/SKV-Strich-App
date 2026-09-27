@@ -6,6 +6,8 @@ import { ArrowRight, Sparkles, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type ProgressItem = {
   badgeKey: string;
@@ -26,19 +28,19 @@ type ProgressResponse = {
   items?: ProgressItem[];
 };
 
-function missingLabel(item: ProgressItem) {
-  if (item.remaining <= 0) return "Fast geschafft";
+function missingLabel(item: ProgressItem, t: (key: MessageKey, params?: Record<string, string | number>) => string) {
+  if (item.remaining <= 0) return t("achievement.almost");
 
   const unit =
     item.unit === "Siege" && item.remaining === 1
-      ? "Sieg"
+      ? t("achievement.win")
       : item.unit === "Teilnahmen" && item.remaining === 1
-        ? "Teilnahme"
+        ? t("achievement.appearance")
         : item.unit === "Trainings" && item.remaining === 1
-          ? "Training"
+          ? t("achievement.training")
           : item.unit;
 
-  return `Noch ${item.remaining} ${unit}`;
+  return t("achievement.remaining", { count: item.remaining, unit });
 }
 
 function findQuickInfoSection() {
@@ -51,6 +53,7 @@ function findQuickInfoSection() {
 }
 
 export default function HomeAchievementTeaser() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [data, setData] = useState<ProgressResponse | null>(null);
   const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
@@ -145,7 +148,7 @@ export default function HomeAchievementTeaser() {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-600">
                 <Sparkles className="h-3 w-3" />
-                Nächstes Achievement
+                {t("achievement.next")}
               </div>
 
               <div className="mt-1 flex min-w-0 items-baseline gap-2">
@@ -158,7 +161,7 @@ export default function HomeAchievementTeaser() {
               </div>
 
               <div className="mt-0.5 text-[11px] font-semibold text-slate-500">
-                {missingLabel(primary)} bis zum Badge
+                {t("achievement.untilBadge", { remaining: missingLabel(primary, t) })}
               </div>
 
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200/80">
@@ -177,9 +180,9 @@ export default function HomeAchievementTeaser() {
           {secondary ? (
             <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-slate-200/70 pt-2 text-[10px] font-semibold text-slate-400">
               <span className="truncate">
-                Danach: <span className="font-black text-slate-600">{secondary.title}</span>
+                {t("achievement.afterwards", { title: secondary.title })}
               </span>
-              <span className="shrink-0">{missingLabel(secondary)}</span>
+              <span className="shrink-0">{missingLabel(secondary, t)}</span>
             </div>
           ) : null}
         </>
@@ -190,13 +193,13 @@ export default function HomeAchievementTeaser() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-600">
-              Hall of Fame
+              {t("achievement.hallOfFame")}
             </div>
             <div className="mt-1 text-sm font-black text-slate-950">
-              Deine Badges & nächsten Ziele
+              {t("achievement.badgesGoals")}
             </div>
             <div className="mt-0.5 text-[11px] font-semibold text-slate-500">
-              {data.earnedCount ?? 0} Achievements freigeschaltet
+              {t("achievement.unlocked", { count: data.earnedCount ?? 0 })}
             </div>
           </div>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white transition group-hover:bg-amber-500">
