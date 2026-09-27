@@ -13,6 +13,8 @@ import {
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -68,9 +70,9 @@ type ClubRow = {
   name: string | null;
 };
 
-function formatDateTime(value: string | null | undefined) {
+function formatDateTime(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleString("de-DE");
+  return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-GB");
 }
 
 function getRange(value: string | undefined): RangeKey {
@@ -92,12 +94,12 @@ function getRangeStart(range: RangeKey) {
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
-function rangeLabel(range: RangeKey) {
-  if (range === "today") return "Heute";
-  if (range === "7d") return "7 Tage";
-  if (range === "90d") return "90 Tage";
-  if (range === "all") return "Gesamt";
-  return "30 Tage";
+function rangeLabel(range: RangeKey, t: (key: MessageKey, vars?: Record<string, string | number>) => string) {
+  if (range === "today") return t("powerStats.today");
+  if (range === "7d") return t("powerStats.days", { count: 7 });
+  if (range === "90d") return t("powerStats.days", { count: 90 });
+  if (range === "all") return t("powerStats.all");
+  return t("powerStats.days", { count: 30 });
 }
 
 function countEvent(rows: LandingEventRow[], eventName: string) {
@@ -126,10 +128,10 @@ function getTopCounts<T>(
     .slice(0, limit);
 }
 
-function getDailyCounts(rows: LandingVisitRow[], limit = 30) {
+function getDailyCounts(rows: LandingVisitRow[], locale: AppLocale, limit = 30) {
   const counts = new Map<string, number>();
   for (const row of rows) {
-    const key = new Date(row.created_at).toLocaleDateString("de-DE", {
+    const key = new Date(row.created_at).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
       day: "2-digit",
       month: "2-digit",
     });
@@ -153,13 +155,13 @@ function MetricCard({ label, value, hint, icon }: { label: string; value: string
   );
 }
 
-function BreakdownCard({ title, items }: { title: string; items: { label: string; count: number }[] }) {
+function BreakdownCard({ title, items, emptyText }: { title: string; items: { label: string; count: number }[]; emptyText: string }) {
   const max = Math.max(...items.map((item) => item.count), 0);
   return (
     <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="font-black text-slate-950">{title}</h2>
       <div className="mt-4 space-y-3">
-        {items.length === 0 ? <div className="text-sm text-slate-500">Noch keine Daten.</div> : items.map((item) => (
+        {items.length === 0 ? <div className="text-sm text-slate-500">{emptyText}</div> : items.map((item) => (
           <div key={item.label}>
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="truncate font-semibold text-slate-700">{item.label}</span>
@@ -177,6 +179,7 @@ function BreakdownCard({ title, items }: { title: string; items: { label: string
 
 export default async function LandingStatsPage({ searchParams }: { searchParams?: Promise<{ range?: string }> }) {
   await requirePowerUser();
+  const { locale, t } = await getServerI18n();
   const params = (await searchParams) ?? {};
   const range = getRange(params.range);
   const rangeStart = getRangeStart(range);
@@ -215,7 +218,7 @@ export default async function LandingStatsPage({ searchParams }: { searchParams?
   const events = eventsResult.error ? [] : (eventsResult.data ?? []) as LandingEventRow[];
   const online = onlineResult.error ? [] : (onlineResult.data ?? []) as PresenceRow[];
   const clubs = clubsResult.error ? [] : (clubsResult.data ?? []) as ClubRow[];
-  const clubNameById = new Map(clubs.map((club) => [club.id, club.display_name?.trim() || club.name?.trim() || "Unbenannter Club"]));
+  const clubNameById = new Map(clubs.map((club) => [club.id, club.display_name?.trim() || club.name?.trim() || t("powerStats.unnamedClub")]));
   const emailByUserId = new Map(authUsers.map((user) => [user.id, user.email?.trim() || user.id]));
   const onlineIds = online.map((row) => row.user_id);
 
@@ -239,70 +242,70 @@ export default async function LandingStatsPage({ searchParams }: { searchParams?
   const signupRate = visits.length > 0 ? (signupClicks / visits.length) * 100 : 0;
   const mobileVisits = visits.filter((row) => row.device_type === "mobile").length;
   const sourceItems = getTopCounts(visits, (row) => row.utm_source, "direct");
-  const campaignItems = getTopCounts(visits, (row) => row.utm_campaign, "ohne Kampagne");
-  const deviceItems = getTopCounts(visits, (row) => row.device_type, "unbekannt");
+  const campaignItems = getTopCounts(visits, (row) => row.utm_campaign, t("powerStats.noCampaign"));
+  const deviceItems = getTopCounts(visits, (row) => row.device_type, t("powerStats.unknown"));
   const referrerItems = getTopCounts(visits, (row) => row.referrer_host, "direct");
-  const eventItems = getTopCounts(events, (row) => row.event_name, "unbekannt");
-  const dailyItems = getDailyCounts(visits, 30);
+  const eventItems = getTopCounts(events, (row) => row.event_name, t("powerStats.unknown"));
+  const dailyItems = getDailyCounts(visits, locale, 30);
 
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <div><Link href="/power-user" className="inline-flex rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold">← Power User Dashboard</Link></div>
+        <div><Link href="/power-user" className="inline-flex rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold">{t("powerStats.dashboard")}</Link></div>
 
         <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <div className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">Traffic & Live</div>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Was passiert gerade in strikr?</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Landingpage-Traffic, Kampagnen, CTA-Klicks und echte Online-Aktivität der eingeloggten Nutzer.</p>
+              <div className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">{t("powerStats.eyebrow")}</div>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">{t("powerStats.title")}</h1>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t("powerStats.description")}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {(["today", "7d", "30d", "90d", "all"] as RangeKey[]).map((item) => (
-                <Link key={item} href={`/power-user/landing-stats?range=${item}`} className={`rounded-full px-3 py-2 text-xs font-bold ${range === item ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>{rangeLabel(item)}</Link>
+                <Link key={item} href={`/power-user/landing-stats?range=${item}`} className={`rounded-full px-3 py-2 text-xs font-bold ${range === item ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-700"}`}>{rangeLabel(item, t)}</Link>
               ))}
             </div>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label={`Visits · ${rangeLabel(range)}`} value={String(visits.length)} hint="Erfasste Landingpage-Aufrufe im gewählten Zeitraum." icon={<MousePointerClick className="h-5 w-5" />} />
-          <MetricCard label="Online jetzt" value={String(online.length)} hint="Heartbeat innerhalb der letzten 2 Minuten." icon={<Radio className="h-5 w-5" />} />
-          <MetricCard label="Aktiv letzte 24h" value={String(active24hResult.count ?? 0)} hint="Eingeloggte Nutzer mit App-Aktivität." icon={<Activity className="h-5 w-5" />} />
-          <MetricCard label="Signup-Rate" value={formatPercent(signupRate)} hint={`${signupClicks} Signup-Klicks bei ${visits.length} Visits.`} icon={<UserPlus className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.visits", { range: rangeLabel(range, t) })} value={String(visits.length)} hint="{t("powerStats.visitsHint")}" icon={<MousePointerClick className="h-5 w-5" />} />
+          <MetricCard label="{t("powerStats.onlineNow")}" value={String(online.length)} hint="{t("powerStats.onlineHint")}" icon={<Radio className="h-5 w-5" />} />
+          <MetricCard label="{t("powerStats.active24h")}" value={String(active24hResult.count ?? 0)} hint="{t("powerStats.activeHint")}" icon={<Activity className="h-5 w-5" />} />
+          <MetricCard label="{t("powerStats.signupRate")}" value={formatPercent(signupRate)} hint={t("powerStats.signupRateHint", { clicks: signupClicks, visits: visits.length })} icon={<UserPlus className="h-5 w-5" />} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Signup-Klicks" value={String(signupClicks)} hint="Klicks auf Team starten / Registrierung." icon={<UserPlus className="h-5 w-5" />} />
-          <MetricCard label="Login-Klicks" value={String(loginClicks)} hint="Klicks auf Login von der Landingpage." icon={<LogIn className="h-5 w-5" />} />
-          <MetricCard label="Mobile Visits" value={String(mobileVisits)} hint="Landingpage-Aufrufe von Smartphones." icon={<Smartphone className="h-5 w-5" />} />
-          <MetricCard label="Events" value={String(events.length)} hint="Erfasste CTA- und Landingpage-Events." icon={<BarChart3 className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.signupClicks")} value={String(signupClicks)} hint="{t("powerStats.signupClicksHint")}" icon={<UserPlus className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.loginClicks")} value={String(loginClicks)} hint="{t("powerStats.loginClicksHint")}" icon={<LogIn className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.mobileVisits")} value={String(mobileVisits)} hint="{t("powerStats.mobileVisitsHint")}" icon={<Smartphone className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.events")} value={String(events.length)} hint="{t("powerStats.eventsHint")}" icon={<BarChart3 className="h-5 w-5" />} />
         </div>
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-4"><div><div className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">Live</div><h2 className="mt-1 text-xl font-black">Gerade in strikr online</h2></div><Users className="h-6 w-6 text-slate-400" /></div>
+          <div className="flex items-center justify-between gap-4"><div><div className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-600">{t("powerStats.live")}</div><h2 className="mt-1 text-xl font-black">{t("powerStats.onlineTitle")}</h2></div><Users className="h-6 w-6 text-slate-400" /></div>
           <div className="mt-4 overflow-x-auto">
-            {online.length === 0 ? <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Aktuell niemand erkannt. Die Anzeige füllt sich ab jetzt mit dem neuen Heartbeat.</div> : (
+            {online.length === 0 ? <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">{t("powerStats.onlineEmpty")}</div> : (
               <table className="min-w-full text-left text-sm">
-                <thead className="text-[11px] uppercase tracking-wide text-slate-400"><tr><th className="py-2 pr-4">Wer</th><th className="py-2 pr-4">Club</th><th className="py-2 pr-4">Seite</th><th className="py-2">Zuletzt</th></tr></thead>
-                <tbody className="divide-y divide-slate-100">{online.map((row) => <tr key={row.user_id}><td className="py-3 pr-4 font-bold">{onlineName(row)}<div className="text-[11px] font-normal text-slate-400">{emailByUserId.get(row.user_id) ?? ""}</div></td><td className="py-3 pr-4">{row.club_id ? clubNameById.get(row.club_id) ?? row.club_id : "–"}</td><td className="py-3 pr-4 font-mono text-xs text-slate-500">{row.path ?? "–"}</td><td className="py-3 whitespace-nowrap">{formatDateTime(row.last_seen_at)}</td></tr>)}</tbody>
+                <thead className="text-[11px] uppercase tracking-wide text-slate-400"><tr><th className="py-2 pr-4">{t("powerStats.who")}</th><th className="py-2 pr-4">{t("powerStats.club")}</th><th className="py-2 pr-4">{t("powerStats.page")}</th><th className="py-2">{t("powerStats.lastSeen")}</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">{online.map((row) => <tr key={row.user_id}><td className="py-3 pr-4 font-bold">{onlineName(row)}<div className="text-[11px] font-normal text-slate-400">{emailByUserId.get(row.user_id) ?? ""}</div></td><td className="py-3 pr-4">{row.club_id ? clubNameById.get(row.club_id) ?? row.club_id : "–"}</td><td className="py-3 pr-4 font-mono text-xs text-slate-500">{row.path ?? "–"}</td><td className="py-3 whitespace-nowrap">{formatDateTime(row.last_seen_at, locale)}</td></tr>)}</tbody>
               </table>
             )}
           </div>
         </section>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <BreakdownCard title="Quellen" items={sourceItems} />
-          <BreakdownCard title="Kampagnen" items={campaignItems} />
-          <BreakdownCard title="Geräte" items={deviceItems} />
-          <BreakdownCard title="Referrer" items={referrerItems} />
-          <BreakdownCard title="CTA Events" items={eventItems} />
-          <BreakdownCard title="Visits pro Tag" items={dailyItems} />
+          <BreakdownCard title={t("powerStats.sources")} items={sourceItems} emptyText={t("powerStats.noData")} />
+          <BreakdownCard title={t("powerStats.campaigns")} items={campaignItems} emptyText={t("powerStats.noData")} />
+          <BreakdownCard title={t("powerStats.devices")} items={deviceItems} emptyText={t("powerStats.noData")} />
+          <BreakdownCard title={t("powerStats.referrer")} items={referrerItems} emptyText={t("powerStats.noData")} />
+          <BreakdownCard title={t("powerStats.ctaEvents")} items={eventItems} emptyText={t("powerStats.noData")} />
+          <BreakdownCard title={t("powerStats.visitsPerDay")} items={dailyItems} emptyText={t("powerStats.noData")} />
         </div>
 
         <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 p-5"><div className="flex items-center gap-2"><Globe2 className="h-5 w-5 text-slate-400" /><h2 className="text-lg font-black">Letzte Landingpage-Besuche</h2></div></div>
-          <div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-400"><tr><th className="px-5 py-3">Zeit</th><th className="px-5 py-3">Quelle</th><th className="px-5 py-3">Kampagne</th><th className="px-5 py-3">Referrer</th><th className="px-5 py-3">Gerät</th><th className="px-5 py-3">Land</th></tr></thead><tbody className="divide-y divide-slate-100">{visits.slice(0, 40).map((visit) => <tr key={visit.id}><td className="whitespace-nowrap px-5 py-3 font-semibold">{formatDateTime(visit.created_at)}</td><td className="px-5 py-3">{visit.utm_source || "direct"}</td><td className="px-5 py-3">{visit.utm_campaign || "–"}</td><td className="px-5 py-3">{visit.referrer_host || "direct"}</td><td className="px-5 py-3">{visit.device_type || "–"}</td><td className="px-5 py-3">{visit.country_code || "–"}</td></tr>)}</tbody></table></div>
+          <div className="border-b border-slate-100 p-5"><div className="flex items-center gap-2"><Globe2 className="h-5 w-5 text-slate-400" /><h2 className="text-lg font-black">{t("powerStats.recentVisits")}</h2></div></div>
+          <div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-400"><tr><th className="px-5 py-3">{t("powerStats.time")}</th><th className="px-5 py-3">{t("powerStats.source")}</th><th className="px-5 py-3">{t("powerStats.campaign")}</th><th className="px-5 py-3">Referrer</th><th className="px-5 py-3">{t("powerStats.device")}</th><th className="px-5 py-3">{t("powerStats.country")}</th></tr></thead><tbody className="divide-y divide-slate-100">{visits.slice(0, 40).map((visit) => <tr key={visit.id}><td className="whitespace-nowrap px-5 py-3 font-semibold">{formatDateTime(visit.created_at, locale)}</td><td className="px-5 py-3">{visit.utm_source || "direct"}</td><td className="px-5 py-3">{visit.utm_campaign || "–"}</td><td className="px-5 py-3">{visit.referrer_host || "direct"}</td><td className="px-5 py-3">{visit.device_type || "–"}</td><td className="px-5 py-3">{visit.country_code || "–"}</td></tr>)}</tbody></table></div>
         </section>
       </section>
     </main>
