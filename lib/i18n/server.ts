@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -16,6 +16,12 @@ type LocaleResult = {
 };
 
 export const getLocaleResult = cache(async (): Promise<LocaleResult> => {
+  const cookieStore = await cookies();
+  const manualLocale = cookieStore.get("strikr_locale")?.value;
+  if (manualLocale === "de" || manualLocale === "en") {
+    return { locale: manualLocale, clubLocaleMode: "auto" };
+  }
+
   const headerStore = await headers();
   const browserLocale = localeFromAcceptLanguage(
     headerStore.get("accept-language"),
