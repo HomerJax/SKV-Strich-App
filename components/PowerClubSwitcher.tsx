@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 export type ClubSwitcherClub = {
   id: string;
@@ -43,6 +44,7 @@ export default function ClubSwitcher({
   supportViewLabel = null,
   supportViewRole = null,
 }: ClubSwitcherProps) {
+  const { locale, t } = useI18n();
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const [open, setOpen] = useState(false);
@@ -142,9 +144,9 @@ export default function ClubSwitcher({
     }
 
     return Array.from(uniqueByVisibleName.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, "de", { sensitivity: "base" })
+      a.name.localeCompare(b.name, locale === "de" ? "de" : "en", { sensitivity: "base" })
     );
-  }, [clubs, activeClubId, activeClubName, activeLogoSrc]);
+  }, [clubs, activeClubId, activeClubName, activeLogoSrc, locale]);
 
   const visibleOtherClubs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -180,7 +182,7 @@ export default function ClubSwitcher({
 
   const shouldShowSearch = normalizedClubs.length > 1;
   const titleLabel =
-    normalizedClubs.length > 1 ? "Verein wechseln" : "Aktiver Verein";
+    normalizedClubs.length > 1 ? t("clubSwitcher.switch") : t("clubSwitcher.active");
 
   const activeClub = normalizedClubs.find((club) => club.id === activeClubId) ?? null;
 
@@ -188,7 +190,7 @@ export default function ClubSwitcher({
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        aria-label="Vereinsauswahl öffnen"
+        aria-label={t("clubSwitcher.open")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
@@ -230,23 +232,23 @@ export default function ClubSwitcher({
         >
           <div className="border-b border-slate-100 px-4 py-3">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              {normalizedClubs.length > 1 ? "Vereine" : "Verein"}
+              {normalizedClubs.length > 1 ? t("clubSwitcher.clubs") : t("clubSwitcher.club")}
             </div>
             <div className="mt-1 text-sm font-semibold text-slate-900">
               {titleLabel}
             </div>
             <div className="mt-1 text-xs text-slate-500">
-              Aktuell: {activeClubName ?? "Kein Verein gewählt"}
+              {t("clubSwitcher.current", { club: activeClubName ?? t("clubSwitcher.noneSelected") })}
             </div>
             {isPowerUser ? (
               <div className="mt-2 rounded-xl border border-violet-200 bg-violet-50 px-2.5 py-2 text-[11px] font-semibold text-violet-800">
                 {supportViewLabel
-                  ? `Supportansicht · ${supportViewRole === "owner" ? "Owner" : supportViewRole === "admin" ? "Admin" : "Spieler"} ${supportViewLabel} · persönliche Aktionen nur ansehen`
-                  : "Power User: Du siehst alle Vereine."}
+                  ? t("clubSwitcher.support", { role: supportViewRole === "owner" ? "Owner" : supportViewRole === "admin" ? "Admin" : t("clubSwitcher.player"), label: supportViewLabel })
+                  : t("clubSwitcher.powerAll")}
               </div>
             ) : (
               <div className="mt-2 text-[11px] text-slate-500">
-                Du siehst nur Vereine, in denen du eine Rolle hast.
+                {t("clubSwitcher.roleOnly")}
               </div>
             )}
           </div>
@@ -257,7 +259,7 @@ export default function ClubSwitcher({
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Verein suchen..."
+                placeholder={t("clubSwitcher.search")}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-300"
               />
             </div>
@@ -300,7 +302,7 @@ export default function ClubSwitcher({
                       {activeClub.name}
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      Aktiver Verein
+                      {t("clubSwitcher.active")}
                     </div>
                   </div>
 
@@ -314,8 +316,8 @@ export default function ClubSwitcher({
             {visibleOtherClubs.length === 0 ? (
               <div className="rounded-xl px-3 py-6 text-center text-sm text-slate-500">
                 {normalizedClubs.length <= 1
-                  ? "Kein weiterer Verein verfügbar."
-                  : "Kein Verein gefunden."}
+                  ? t("clubSwitcher.noMore")
+                  : t("clubSwitcher.notFound")}
               </div>
             ) : (
               visibleOtherClubs.map((club) => (
@@ -354,7 +356,7 @@ export default function ClubSwitcher({
                       {club.name}
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      Als Verein öffnen
+                      {t("clubSwitcher.openClub")}
                     </div>
                   </div>
                 </button>
@@ -375,10 +377,10 @@ export default function ClubSwitcher({
 
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-slate-900">
-                    Club erstellen
+                    {t("clubSwitcher.create")}
                   </div>
                   <div className="text-[11px] text-slate-500">
-                    Neuen Verein anlegen und direkt öffnen
+                    {t("clubSwitcher.createHint")}
                   </div>
                 </div>
               </Link>
