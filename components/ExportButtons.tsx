@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import * as htmlToImage from "html-to-image";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = {
   targetId: string;
@@ -34,9 +35,9 @@ function sanitizeFileBaseName(value: string) {
   return normalized || "strikr-export";
 }
 
-function getTargetEl(targetId: string) {
+function getTargetEl(targetId: string, missingMessage: string) {
   const el = document.getElementById(targetId);
-  if (!el) throw new Error(`Export-Bereich nicht gefunden: #${targetId}`);
+  if (!el) throw new Error(missingMessage);
   return el;
 }
 
@@ -74,8 +75,8 @@ function getExportFileName(fileBaseName: string, extension: "png" | "pdf") {
   return `${sanitizeFileBaseName(fileBaseName)}_${stamp()}.${extension}`;
 }
 
-async function createPngDataUrl(targetId: string) {
-  const el = getTargetEl(targetId);
+async function createPngDataUrl(targetId: string, missingMessage: string) {
+  const el = getTargetEl(targetId, missingMessage);
 
   return await htmlToImage.toPng(el, {
     cacheBust: true,
@@ -90,6 +91,7 @@ export default function ExportButtons({
   fileBaseName = "strikr-export",
   className = "",
 }: Props) {
+  const { t } = useI18n();
   const [busy, setBusy] = useState<null | "png" | "pdf">(null);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -100,7 +102,7 @@ export default function ExportButtons({
       setMsg(null);
       setBusy("png");
 
-      const dataUrl = await createPngDataUrl(targetId);
+      const dataUrl = await createPngDataUrl(targetId, t("export.targetMissing", { id: targetId }));
       const blob = await blobFromDataUrl(dataUrl);
 
       const result = await shareOrDownloadBlob(
@@ -109,12 +111,12 @@ export default function ExportButtons({
       );
 
       if (result === "shared") {
-        setMsg("PNG erfolgreich geteilt.");
+        setMsg(t("export.pngShared"));
       } else {
-        setMsg("PNG erfolgreich heruntergeladen.");
+        setMsg(t("export.pngDownloaded"));
       }
     } catch (e: any) {
-      setErr(e?.message ?? "Export PNG fehlgeschlagen.");
+      setErr(e?.message ?? t("export.pngFailed"));
     } finally {
       setBusy(null);
     }
@@ -126,7 +128,7 @@ export default function ExportButtons({
       setMsg(null);
       setBusy("pdf");
 
-      const dataUrl = await createPngDataUrl(targetId);
+      const dataUrl = await createPngDataUrl(targetId, t("export.targetMissing", { id: targetId }));
 
       const img = new Image();
       img.src = dataUrl;
@@ -134,7 +136,7 @@ export default function ExportButtons({
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
         img.onerror = () =>
-          reject(new Error("Konnte Export-Bild nicht laden."));
+          reject(new Error(t("export.imageLoadFailed")));
       });
 
       const jspdfModule = await import("jspdf/dist/jspdf.es.min.js");
@@ -175,9 +177,9 @@ export default function ExportButtons({
       }
 
       pdf.save(getExportFileName(fileBaseName, "pdf"));
-      setMsg("PDF erfolgreich heruntergeladen.");
+      setMsg(t("export.pdfDownloaded"));
     } catch (e: any) {
-      setErr(e?.message ?? "Export PDF fehlgeschlagen.");
+      setErr(e?.message ?? t("export.pdfFailed"));
     } finally {
       setBusy(null);
     }
@@ -194,7 +196,7 @@ export default function ExportButtons({
           className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           type="button"
         >
-          {busy === "png" ? "Exportiere PNG…" : "Export PNG"}
+          {busy === "png" ? t("export.exportingPng") : "Export PNG"}
         </button>
 
         <button
@@ -203,7 +205,7 @@ export default function ExportButtons({
           className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           type="button"
         >
-          {busy === "pdf" ? "Exportiere PDF…" : "Export PDF"}
+          {busy === "pdf" ? t("export.exportingPdf") : "Export PDF"}
         </button>
       </div>
 
@@ -215,7 +217,7 @@ export default function ExportButtons({
 
       {err && (
         <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-          Export-Fehler: {err}
+          {t("export.error", { error: err })}
         </div>
       )}
     </div>
