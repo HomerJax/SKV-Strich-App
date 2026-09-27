@@ -11,6 +11,8 @@ import {
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
 
 type ClubRow = {
   id: string;
@@ -59,22 +61,22 @@ type ClubCleanupView = {
   latestMemberLoginEmail: string | null;
   lastActivityAt: string;
   daysSinceActivity: number;
-  status: "test/leer" | "kaum genutzt" | "genutzt";
+  status: "{t("powerCleanup.statusTest")}" | "{t("powerCleanup.statusLow")}" | "genutzt";
   riskScore: number;
 };
 
-function getClubName(club: ClubRow) {
-  return club.display_name?.trim() || club.name?.trim() || "Unbenannter Club";
+function getClubName(club: ClubRow, unnamedClub: string) {
+  return club.display_name?.trim() || club.name?.trim() || unnamedClub;
 }
 
-function formatDateTime(value: string | null | undefined) {
+function formatDateTime(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(value).toLocaleString("de-DE");
+  return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-GB");
 }
 
-function formatDate(value: string | null | undefined) {
+function formatDate(value: string | null | undefined, locale: AppLocale) {
   if (!value) return "–";
-  return new Date(`${value}T12:00:00`).toLocaleDateString("de-DE");
+  return new Date(`${value}T12:00:00`).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB");
 }
 
 function newestIso(values: Array<string | null | undefined>, fallback: string) {
@@ -113,14 +115,14 @@ function statusTone(status: ClubCleanupView["status"]) {
   return "border-emerald-200 bg-emerald-50 text-emerald-800";
 }
 
-function deleteErrorMessage(error: string) {
+function deleteErrorMessage(error: string, t: (key: MessageKey) => string) {
   switch (error) {
     case "confirmation":
-      return "Der eingegebene Clubname stimmt nicht exakt.";
+      return t("powerCleanup.confirmationError");
     case "not_found":
-      return "Der Club wurde nicht gefunden oder konnte nicht geladen werden.";
+      return t("powerCleanup.notFoundError");
     case "delete_failed":
-      return "Der Club konnte nicht in den Papierkorb verschoben werden.";
+      return t("powerCleanup.deleteFailedError");
     default:
       return "";
   }
@@ -132,6 +134,7 @@ export default async function PowerUserClubCleanupPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePowerUser();
+  const { locale, t } = await getServerI18n();
 
   const params = (await searchParams) ?? {};
   const admin = createAdminClient();
@@ -183,7 +186,7 @@ export default async function PowerUserClubCleanupPage({
     const clubMemberships = memberships.filter((row) => row.club_id === club.id);
     const clubPlayers = players.filter((row) => row.club_id === club.id);
     const clubSessions = sessions.filter((row) => row.club_id === club.id);
-    const clubInvites = invites.filter((row) => row.club_id === club.id);
+    const club{t("powerCleanup.invites")} = invites.filter((row) => row.club_id === club.id);
 
     const lead =
       [...clubMemberships]
@@ -239,7 +242,7 @@ export default async function PowerUserClubCleanupPage({
 
     return {
       club,
-      clubName: getClubName(club),
+      clubName: getClubName(club, t("powerCleanup.unnamedClub")),
       memberCount,
       playerCount,
       sessionCount,
@@ -263,7 +266,7 @@ export default async function PowerUserClubCleanupPage({
       if (b.daysSinceActivity !== a.daysSinceActivity) {
         return b.daysSinceActivity - a.daysSinceActivity;
       }
-      return a.clubName.localeCompare(b.clubName, "de");
+      return a.clubName.localeCompare(b.clubName, locale === "de" ? "de" : "en");
     });
 
   const trashViews = views
@@ -282,7 +285,7 @@ export default async function PowerUserClubCleanupPage({
   ).length;
   const deleteError =
     typeof params.delete_error === "string"
-      ? deleteErrorMessage(params.delete_error)
+      ? deleteErrorMessage(params.delete_error, t)
       : "";
   const deleted = params.deleted === "1";
   const deletedName =
@@ -300,13 +303,13 @@ export default async function PowerUserClubCleanupPage({
             href="/power-user/clubs"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900"
           >
-            ← Clubs & Billing
+            {t("powerCleanup.backClubs")}
           </Link>
           <Link
             href="/power-user"
             className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900"
           >
-            Power User Dashboard
+            {t("powerCleanup.dashboard")}
           </Link>
         </div>
 
@@ -320,10 +323,10 @@ export default async function PowerUserClubCleanupPage({
                 Power User
               </div>
               <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
-                Club-Cleanup
+                {t("powerCleanup.title")}
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Datenleichen stehen oben. Neben Trainings und Einladungen siehst
+                Datenleichen stehen oben. Neben {t("powerCleanup.trainings")} und Einladungen siehst
                 du jetzt auch, wann zuletzt ein Mitglied des Clubs eingeloggt war.
               </p>
             </div>
@@ -335,7 +338,7 @@ export default async function PowerUserClubCleanupPage({
                 {activeViews.length}
               </div>
               <div className="mt-1 text-xs font-semibold text-slate-500">
-                aktive Clubs
+                {t("powerCleanup.activeClubs")}
               </div>
             </div>
             <div className="rounded-2xl bg-rose-50 p-4">
@@ -359,7 +362,7 @@ export default async function PowerUserClubCleanupPage({
                 {trashViews.length}
               </div>
               <div className="mt-1 text-xs font-semibold text-violet-700">
-                im Papierkorb
+                {t("powerCleanup.inTrash")}
               </div>
             </div>
           </div>
@@ -367,21 +370,20 @@ export default async function PowerUserClubCleanupPage({
 
         {deleted ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            {deletedName ? `„${deletedName}“` : "Club"} wurde in den Papierkorb
+            {deletedName ? `„${deletedName}“` : "Club"} wurde in den {t("powerCleanup.trash")}
             verschoben und kann 14 Tage wiederhergestellt werden.
           </div>
         ) : null}
 
         {restored ? (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            {restoredName ? `„${restoredName}“` : "Club"} wurde vollständig
-            wiederhergestellt.
+            {t("powerCleanup.restoredNotice", { club: restoredName ? `„${restoredName}“` : t("powerCleanup.clubFallback") })}
           </div>
         ) : null}
 
         {deleteError || restoreError ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
-            {deleteError || "Der Club konnte nicht wiederhergestellt werden."}
+            {deleteError || t("powerCleanup.restoreFailedError")}
           </div>
         ) : null}
 
@@ -421,11 +423,10 @@ export default async function PowerUserClubCleanupPage({
                         {view.clubName}
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
-                        Gelöscht: {formatDateTime(view.club.deleted_at)} · endgültig
-                        ab {formatDateTime(view.club.purge_after)} · noch ca. {daysUntil(view.club.purge_after)} Tage
+                        {t("powerCleanup.deletedMeta", { deleted: formatDateTime(view.club.deleted_at, locale), purge: formatDateTime(view.club.purge_after, locale), days: daysUntil(view.club.purge_after) })}
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
-                        {view.memberCount} Mitglieder · {view.playerCount} Spieler · {view.sessionCount} Trainings
+                        {view.memberCount} {t("powerCleanup.members")} · {view.playerCount} {t("powerCleanup.players")} · {view.sessionCount} Trainings
                       </div>
                     </div>
 
@@ -436,7 +437,7 @@ export default async function PowerUserClubCleanupPage({
                         className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-800"
                       >
                         <RotateCcw className="h-4 w-4" />
-                        Wiederherstellen
+                        {t("powerCleanup.restore")}
                       </button>
                     </form>
                   </div>
@@ -470,14 +471,13 @@ export default async function PowerUserClubCleanupPage({
                       </span>
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
-                      Angelegt {formatDateTime(view.club.created_at)} · letzte
-                      Aktivität {formatDateTime(view.lastActivityAt)} ({view.daysSinceActivity} Tage)
+                      {t("powerCleanup.createdActivity", { created: formatDateTime(view.club.created_at, locale), activity: formatDateTime(view.lastActivityAt, locale), days: view.daysSinceActivity })}
                     </div>
                     <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
                       <LogIn className="h-3.5 w-3.5" />
-                      Letzter Login: {view.latestMemberLoginAt
-                        ? `${formatDateTime(view.latestMemberLoginAt)} · ${view.latestMemberLoginEmail ?? "User unbekannt"}`
-                        : "kein Login erfasst"}
+                      {t("powerCleanup.lastLogin")} {view.latestMemberLoginAt
+                        ? `${formatDateTime(view.latestMemberLoginAt, locale)} · ${view.latestMemberLoginEmail ?? t("powerCleanup.unknownUser")}`
+                        : t("powerCleanup.noLogin")}
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
                       Lead: {view.leadEmail ?? "–"}
@@ -522,19 +522,16 @@ export default async function PowerUserClubCleanupPage({
                   <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
                     <div className="font-bold text-slate-950">Aktivität</div>
                     <div className="mt-3">
-                      <strong>Letzter User-Login:</strong>{" "}
-                      {formatDateTime(view.latestMemberLoginAt)}
+                      <strong>{t("powerCleanup.lastUserLogin")}</strong>{" "}\n                      {formatDateTime(view.latestMemberLoginAt, locale)}
                     </div>
                     <div className="mt-1 break-all text-xs text-slate-500">
-                      {view.latestMemberLoginEmail ?? "Kein Login erfasst"}
+                      {view.latestMemberLoginEmail ?? t("powerCleanup.noLoginRecorded")}
                     </div>
                     <div className="mt-3">
-                      <strong>Letztes Training:</strong>{" "}
-                      {formatDate(view.latestSessionDate)}
+                      <strong>{t("powerCleanup.lastTraining")}</strong>{" "}\n                      {formatDate(view.latestSessionDate, locale)}
                     </div>
                     <div className="mt-3">
-                      <strong>Letzte Einladung angenommen:</strong>{" "}
-                      {formatDateTime(view.latestInviteAcceptedAt)}
+                      <strong>{t("powerCleanup.lastInviteAccepted")}</strong>{" "}\n                      {formatDateTime(view.latestInviteAcceptedAt, locale)}
                     </div>
                     <div className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">
                       Club-ID: {view.club.id}
@@ -543,7 +540,7 @@ export default async function PowerUserClubCleanupPage({
 
                   <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
                     <div className="text-sm font-black text-rose-900">
-                      In Papierkorb verschieben
+                      {t("powerCleanup.moveToTrash")}
                     </div>
                     <p className="mt-1 text-xs leading-5 text-rose-800">
                       Der Club ist danach sofort für Nutzer deaktiviert. Alle Daten
@@ -557,7 +554,7 @@ export default async function PowerUserClubCleanupPage({
                     >
                       <input type="hidden" name="club_id" value={view.club.id} />
                       <label className="block text-xs font-semibold text-rose-900">
-                        Exakten Clubnamen eingeben: {view.clubName}
+                        {t("powerCleanup.enterExactName", { club: view.clubName })}
                       </label>
                       <input
                         name="confirmation"
@@ -569,7 +566,7 @@ export default async function PowerUserClubCleanupPage({
                         type="submit"
                         className="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-rose-700"
                       >
-                        Club löschen · 14 Tage Papierkorb
+                        {t("powerCleanup.deleteButton")}
                       </button>
                     </form>
                   </div>
