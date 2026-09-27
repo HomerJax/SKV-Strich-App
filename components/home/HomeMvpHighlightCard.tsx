@@ -109,7 +109,7 @@ export default function HomeMvpHighlightCard({
           ? `strikr-mvp-winner-team-${sessionId}-${winner.playerId}.png`
           : `strikr-mvp-result-${sessionId}.png`,
         title: hasSingleWinner
-          ? `${winner.name} wurde zum MVP gewählt`
+          ? t("mvp.playerWon", { name: winner.name })
           : t("mvp.result"),
         text: hasSingleWinner
           ? t("mvp.shareText", { name: winner.name })
