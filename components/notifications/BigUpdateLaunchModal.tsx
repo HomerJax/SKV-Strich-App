@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 export const BIG_UPDATE_STORAGE_KEY = "strikr-big-update-fullscreen-2026-09-11-v2";
 export const BIG_UPDATE_SEEN_EVENT = "strikr-big-update-seen";
 
-const updates = [
-  ["📱", "strikr jetzt als App", "Für iPhone und Android."],
-  ["🏆", "Neue Karriere-Badges", "Für Einsätze und Siege. Badge antippen = Fullscreen."],
-  ["👑", "Hall of Fame", "Auf Home und in deinen persönlichen Stats."],
-  ["👥", "Spieler ansehen & vergleichen", "Spieler in der Tabelle antippen, Hall of Fame öffnen und direkt vergleichen."],
-  ["🔔", "Push- & In-App-Notifications", "Wichtige Neuigkeiten kommen jetzt direkt zu dir."],
-];
-
 export default function BigUpdateLaunchModal() {
+  const { t } = useI18n();
+  const updates = [
+    ["📱", t("updateModal.appTitle"), t("updateModal.appText")],
+    ["🏆", t("updateModal.badgesTitle"), t("updateModal.badgesText")],
+    ["👑", t("updateModal.hofTitle"), t("updateModal.hofText")],
+    ["👥", t("updateModal.compareTitle"), t("updateModal.compareText")],
+    ["🔔", t("updateModal.notificationsTitle"), t("updateModal.notificationsText")],
+  ];
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -45,10 +46,10 @@ export default function BigUpdateLaunchModal() {
         <div className="shrink-0 text-lg font-black tracking-tight">strikr</div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-8">
-          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300">Großes Update</div>
-          <h1 className="mt-3 text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-6xl">strikr ist ein gutes Stück größer geworden.</h1>
+          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300">{t("updateModal.kicker")}</div>
+          <h1 className="mt-3 text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-6xl">{t("updateModal.hero")}</h1>
           <p className="mt-4 max-w-xl text-base font-medium leading-7 text-white/60 sm:text-lg">
-            Das Wichtigste der letzten Wochen – kurz und auf einen Blick.
+            {t("updateModal.intro")}
           </p>
 
           <div className="mt-7 space-y-3">
@@ -70,7 +71,7 @@ export default function BigUpdateLaunchModal() {
             onClick={finish}
             className="min-h-14 w-full rounded-2xl bg-white px-5 text-sm font-black text-slate-950"
           >
-            Weiter zu meinen Karriere-Badges
+            {t("updateModal.continueBadges")}
           </button>
         </div>
       </div>
