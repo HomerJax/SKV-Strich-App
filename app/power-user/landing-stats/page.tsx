@@ -14,7 +14,8 @@ import { requirePowerUser } from "@/lib/auth/power-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listAllAuthUsers } from "@/lib/supabase/power-user-admin";
 import { getServerI18n } from "@/lib/i18n/server";
-import type { AppLocale, MessageKey } from "@/lib/i18n/messages";
+import type { MessageKey } from "@/lib/i18n/messages";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
