@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,16 +17,20 @@ import {
 
 type Step = "account" | "team" | "club" | "balance" | "groups" | "done";
 
-const steps: Array<{ key: Step; label: string }> = [
-  { key: "account", label: "Account" },
-  { key: "team", label: "Teamname" },
-  { key: "club", label: "Club-Look" },
-  { key: "balance", label: "Faire Teams" },
-  { key: "groups", label: "Spielergruppen" },
-  { key: "done", label: "Startklar" },
-];
+const stepKeys: Step[] = ["account", "team", "club", "balance", "groups", "done"];
 
 export default function OnboardingSimulator() {
+  const { t } = useI18n();
+  const steps: Array<{ key: Step; label: string }> = stepKeys.map((key) => ({
+    key,
+    label: t(`powerOnboarding.step${key.charAt(0).toUpperCase() + key.slice(1)}` as
+      | "powerOnboarding.step{t("powerOnboarding.account")}"
+      | "powerOnboarding.step{t("powerOnboarding.team")}"
+      | "powerOnboarding.stepClub"
+      | "powerOnboarding.stepBalance"
+      | "powerOnboarding.stepGroups"
+      | "powerOnboarding.stepDone"),
+  }));
   const [index, setIndex] = useState(0);
   const [teamName, setTeamName] = useState("SKV Rutesheim AH");
   const [strength, setStrength] = useState(true);
@@ -60,14 +65,14 @@ export default function OnboardingSimulator() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[.2em] text-cyan-300">
-                Power User · Simulation
+                {t("powerOnboarding.simulation")}
               </div>
               <h1 className="mt-1 text-2xl font-black tracking-[-.035em] sm:text-3xl">
-                Admin-Onboarding durchspielen
+                {t("powerOnboarding.title")}
               </h1>
             </div>
             <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-black text-emerald-200">
-              KEINE ECHTEN ÄNDERUNGEN
+              {t("powerOnboarding.noRealChanges")}
             </div>
           </div>
 
@@ -132,16 +137,16 @@ export default function OnboardingSimulator() {
             <div className="rounded-[28px] bg-[#070b12] p-6 text-white">
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.18em] text-cyan-200">
                 <Sparkles className="h-3.5 w-3.5" />
-                Dein Team startet hier
+                {t("powerOnboarding.accountBadge")}
               </div>
               <h2 className="mt-5 text-4xl font-black leading-[.98] tracking-[-.05em]">
-                Noch ein Account.
+                {t("powerOnboarding.accountHero1")}
                 <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
-                  Dann wird&apos;s gut.
+                  {t("powerOnboarding.accountHero2")}
                 </span>
               </h2>
               <p className="mt-4 text-sm font-medium leading-6 text-white/55">
-                Danach direkt Club anlegen, faire Teams einstellen und Mannschaft reinholen.
+                {t("powerOnboarding.accountDescription")}
               </p>
             </div>
 
@@ -149,10 +154,10 @@ export default function OnboardingSimulator() {
               <div className="text-[10px] font-black uppercase tracking-[.16em] text-violet-600">
                 Account
               </div>
-              <div className="mt-2 text-2xl font-black text-slate-950">Kurz registrieren.</div>
+              <div className="mt-2 text-2xl font-black text-slate-950">{t("powerOnboarding.register")}</div>
               <div className="mt-5 space-y-3">
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-400">
-                  du@beispiel.de
+                  {t("powerOnboarding.emailPlaceholder")}
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-400">
                   ••••••••
@@ -165,13 +170,13 @@ export default function OnboardingSimulator() {
         {step === "team" ? (
           <div className="mx-auto max-w-xl">
             <div className="text-[10px] font-black uppercase tracking-[.18em] text-violet-600">
-              Los geht&apos;s
+              {t("powerOnboarding.letsGo")}
             </div>
             <h2 className="mt-2 text-3xl font-black tracking-[-.04em] text-slate-950">
-              Wie heißt euer Team?
+              {t("powerOnboarding.teamQuestion")}
             </h2>
             <p className="mt-2 text-sm font-medium text-slate-500">
-              Mehr brauchen wir für den Start noch nicht.
+              {t("powerOnboarding.teamHint")}
             </p>
             <input
               value={teamName}
@@ -189,34 +194,34 @@ export default function OnboardingSimulator() {
               </div>
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[.18em] text-violet-600">
-                  Euer Auftritt
+                  {t("powerOnboarding.clubAppearance")}
                 </div>
                 <h2 className="mt-1 text-2xl font-black text-slate-950">
-                  Mach strikr zu eurem Club.
+                  {t("powerOnboarding.clubTitle")}
                 </h2>
               </div>
             </div>
 
             <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
               <div className="rounded-[22px] border border-slate-200 border-t-4 border-t-slate-950 bg-white p-4">
-                <div className="text-lg font-black text-slate-950">{teamName || "Dein Team"}</div>
-                <div className="mt-1 text-sm text-slate-500">{sport} · euer Club in strikr</div>
+                <div className="text-lg font-black text-slate-950">{teamName || t("powerOnboarding.teamFallback")}</div>
+                <div className="mt-1 text-sm text-slate-500">{t("powerOnboarding.clubSubtitle", { sport })}</div>
               </div>
             </div>
 
             <div className="mt-4">
               <label className="text-xs font-black uppercase tracking-[.12em] text-slate-500">
-                Sportart
+                {t("powerOnboarding.sport")}
               </label>
               <select
                 value={sport}
                 onChange={(event) => setSport(event.target.value)}
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold"
               >
-                <option>Fußball</option>
-                <option>Handball</option>
-                <option>Basketball</option>
-                <option>Volleyball</option>
+                <option value="Fußball">{t("powerOnboarding.sportFootball")}</option>
+                <option value="Handball">{t("powerOnboarding.sportHandball")}</option>
+                <option value="Basketball">{t("powerOnboarding.sportBasketball")}</option>
+                <option value="Volleyball">{t("powerOnboarding.sportVolleyball")}</option>
               </select>
             </div>
           </div>
@@ -230,10 +235,10 @@ export default function OnboardingSimulator() {
               </div>
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
-                  Faire Teams
+                  {t("powerOnboarding.fairTeams")}
                 </div>
                 <h2 className="mt-1 text-2xl font-black text-slate-950">
-                  Sag strikr nur, was zählen soll.
+                  {t("powerOnboarding.balanceTitle")}
                 </h2>
               </div>
             </div>
@@ -248,10 +253,10 @@ export default function OnboardingSimulator() {
                 />
                 <div>
                   <div className="text-sm font-black text-slate-950">
-                    Individuelle Stärke <span className="ml-1 rounded-full bg-slate-950 px-2 py-0.5 text-[9px] text-white">EMPFOHLEN</span>
+                    {t("powerOnboarding.strength")} <span className="ml-1 rounded-full bg-slate-950 px-2 py-0.5 text-[9px] text-white">{t("powerOnboarding.recommended")}</span>
                   </div>
                   <div className="mt-1 text-sm text-slate-600">
-                    Stärke 1–5 sorgt für feinere Balance.
+                    {t("powerOnboarding.strengthHint")}
                   </div>
                 </div>
               </label>
@@ -264,9 +269,9 @@ export default function OnboardingSimulator() {
                   className="mt-1 h-5 w-5 accent-slate-950"
                 />
                 <div>
-                  <div className="text-sm font-black text-slate-950">Spielergruppen / Kategorien</div>
+                  <div className="text-sm font-black text-slate-950">{t("powerOnboarding.groups")}</div>
                   <div className="mt-1 text-sm text-slate-600">
-                    Sinnvoll bei AH, Ü32 oder klar unterschiedlichen Gruppen.
+                    {t("powerOnboarding.groupsHint")}
                   </div>
                 </div>
               </label>
@@ -282,28 +287,28 @@ export default function OnboardingSimulator() {
               </div>
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
-                  Spielergruppen
+                  {t("powerOnboarding.groupsEyebrow")}
                 </div>
                 <h2 className="mt-1 text-2xl font-black text-slate-950">
-                  Nur so viel Struktur wie ihr braucht.
+                  {t("powerOnboarding.groupsTitle")}
                 </h2>
               </div>
             </div>
 
             <div className="mt-6 rounded-[22px] border border-cyan-100 bg-cyan-50 p-4 text-sm leading-6 text-slate-700">
               {groups
-                ? "Kategorien sind aktiv. Beispiel: AH als stärkere Gruppe und Ü32 als normale Gruppe."
-                : "Kategorien sind ausgeschaltet. strikr arbeitet nur mit individueller Stärke und Positionen."}
+                ? t("powerOnboarding.groupsActive")
+                : t("powerOnboarding.groupsInactive")}
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                 <div className="text-sm font-black text-amber-950">★ AH</div>
-                <div className="mt-1 text-xs text-amber-800">Stärkere Kategorie</div>
+                <div className="mt-1 text-xs text-amber-800">{t("powerOnboarding.strongCategory")}</div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="text-sm font-black text-slate-950">Ü32</div>
-                <div className="mt-1 text-xs text-slate-500">Normale Kategorie</div>
+                <div className="mt-1 text-xs text-slate-500">{t("powerOnboarding.normalCategory")}</div>
               </div>
             </div>
           </div>
@@ -317,13 +322,13 @@ export default function OnboardingSimulator() {
                 <Trophy className="h-7 w-7 text-cyan-200" />
               </div>
               <div className="relative mt-5 text-[10px] font-black uppercase tracking-[.22em] text-cyan-300">
-                Setup geschafft
+                {t("powerOnboarding.setupDone")}
               </div>
               <h2 className="relative mt-2 text-3xl font-black tracking-[-.04em]">
-                {teamName || "Dein Team"} ist startklar.
+                {t("powerOnboarding.ready", { team: teamName || t("powerOnboarding.teamFallback") })}
               </h2>
               <p className="relative mx-auto mt-3 max-w-xl text-sm font-medium leading-6 text-white/55">
-                Faire Teams, Ergebnisse, Tabelle, Stats und Trophäen können starten.
+                {t("powerOnboarding.readyHint")}
               </p>
             </div>
 
@@ -331,9 +336,9 @@ export default function OnboardingSimulator() {
               <div className="flex items-center justify-between rounded-[22px] bg-slate-950 p-4 text-white">
                 <div>
                   <div className="text-[9px] font-black uppercase tracking-[.16em] text-cyan-300">
-                    Empfohlen
+                    {t("powerOnboarding.recommendedAction")}
                   </div>
-                  <div className="mt-1 text-sm font-black">Erstes Training anlegen</div>
+                  <div className="mt-1 text-sm font-black">{t("powerOnboarding.createTraining")}</div>
                 </div>
                 <Rocket className="h-5 w-5" />
               </div>
@@ -342,7 +347,7 @@ export default function OnboardingSimulator() {
                   <div className="text-[9px] font-black uppercase tracking-[.16em] text-slate-400">
                     Team
                   </div>
-                  <div className="mt-1 text-sm font-black text-slate-950">Invite-Link teilen</div>
+                  <div className="mt-1 text-sm font-black text-slate-950">{t("powerOnboarding.shareInvite")}</div>
                 </div>
                 <Share2 className="h-5 w-5 text-violet-600" />
               </div>
@@ -352,7 +357,7 @@ export default function OnboardingSimulator() {
 
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
           <div className="text-xs font-bold text-slate-400">
-            Schritt {index + 1} von {steps.length} · {progress}%
+            {t("powerOnboarding.progress", { current: index + 1, total: steps.length, progress })}
           </div>
 
           <div className="flex gap-2">
@@ -363,7 +368,7 @@ export default function OnboardingSimulator() {
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Zurück
+                {t("powerOnboarding.back")}
               </button>
             ) : null}
 
@@ -373,7 +378,7 @@ export default function OnboardingSimulator() {
                 onClick={next}
                 className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white"
               >
-                Weiter
+                {t("powerOnboarding.next")}
                 <ArrowRight className="h-4 w-4" />
               </button>
             ) : (
@@ -383,7 +388,7 @@ export default function OnboardingSimulator() {
                 className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white"
               >
                 <Rocket className="h-4 w-4" />
-                Nochmal starten
+                {t("powerOnboarding.restart")}
               </button>
             )}
           </div>
