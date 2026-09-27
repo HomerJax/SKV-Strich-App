@@ -186,7 +186,7 @@ export default async function PowerUserClubCleanupPage({
     const clubMemberships = memberships.filter((row) => row.club_id === club.id);
     const clubPlayers = players.filter((row) => row.club_id === club.id);
     const clubSessions = sessions.filter((row) => row.club_id === club.id);
-    const club{t("powerCleanup.invites")} = invites.filter((row) => row.club_id === club.id);
+    const clubInvites = invites.filter((row) => row.club_id === club.id);
 
     const lead =
       [...clubMemberships]
@@ -369,8 +369,7 @@ export default async function PowerUserClubCleanupPage({
 
         {deleted ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            {deletedName ? `„${deletedName}“` : "Club"} wurde in den {t("powerCleanup.trash")}
-            verschoben und kann 14 Tage wiederhergestellt werden.
+            {t("powerCleanup.deletedNotice", { club: deletedName ? `„${deletedName}“` : t("powerCleanup.clubFallback") })}
           </div>
         ) : null}
 
@@ -463,7 +462,7 @@ export default async function PowerUserClubCleanupPage({
                       <span
                         className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(view.status)}`}
                       >
-                        {view.status}
+                        {view.status === "test/leer" ? t("powerCleanup.statusTest") : view.status === "kaum genutzt" ? t("powerCleanup.statusLow") : t("powerCleanup.statusUsed")}
                       </span>
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
@@ -507,7 +506,7 @@ export default async function PowerUserClubCleanupPage({
                       <div className="mt-1 font-black text-slate-950">
                         {view.inviteCount}
                       </div>
-                      <div className="text-[11px] text-slate-500">Invites</div>
+                      <div className="text-[11px] text-slate-500">{t("powerCleanup.invites")}</div>
                     </div>
                   </div>
                 </div>
@@ -518,16 +517,19 @@ export default async function PowerUserClubCleanupPage({
                   <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
                     <div className="font-bold text-slate-950">{t("powerCleanup.activity")}</div>
                     <div className="mt-3">
-                      <strong>{t("powerCleanup.lastUserLogin")}</strong>{" "}\n                      {formatDateTime(view.latestMemberLoginAt, locale)}
+                      <strong>{t("powerCleanup.lastUserLogin")}</strong>{" "}
+                      {formatDateTime(view.latestMemberLoginAt, locale)}
                     </div>
                     <div className="mt-1 break-all text-xs text-slate-500">
                       {view.latestMemberLoginEmail ?? t("powerCleanup.noLoginRecorded")}
                     </div>
                     <div className="mt-3">
-                      <strong>{t("powerCleanup.lastTraining")}</strong>{" "}\n                      {formatDate(view.latestSessionDate, locale)}
+                      <strong>{t("powerCleanup.lastTraining")}</strong>{" "}
+                      {formatDate(view.latestSessionDate, locale)}
                     </div>
                     <div className="mt-3">
-                      <strong>{t("powerCleanup.lastInviteAccepted")}</strong>{" "}\n                      {formatDateTime(view.latestInviteAcceptedAt, locale)}
+                      <strong>{t("powerCleanup.lastInviteAccepted")}</strong>{" "}
+                      {formatDateTime(view.latestInviteAcceptedAt, locale)}
                     </div>
                     <div className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">
                       Club-ID: {view.club.id}
