@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Frown, Trophy, UsersRound } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 type TeammateStat = {
   playerId: number;
@@ -34,11 +35,15 @@ function TeammateRanking({
   stats,
   valueLabel,
   icon,
+  recordLabel,
+  emptyText,
 }: {
   eyebrow: string;
   stats: TeammateStat[];
   valueLabel: (stat: TeammateStat) => string;
   icon: React.ReactNode;
+  recordLabel: (stat: TeammateStat) => string;
+  emptyText: string;
 }) {
   return (
     <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
@@ -65,19 +70,20 @@ function TeammateRanking({
                 </div>
               </div>
               <div className="mt-1 text-[11px] text-slate-500">
-                {stat.games} Spiele · {stat.wins} S · {stat.draws} U · {stat.losses} N
+                {recordLabel(stat)}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="mt-4 text-sm text-slate-500">Noch nicht genug Daten.</div>
+        <div className="mt-4 text-sm text-slate-500">{emptyText}</div>
       )}
     </div>
   );
 }
 
 export default function ExtendedPersonalStats() {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const scope = searchParams.get("scope") === "career" ? "career" : "season";
   const [data, setData] = useState<ExtendedStatsResponse | null>(null);
@@ -130,13 +136,13 @@ export default function ExtendedPersonalStats() {
       <div className="mx-auto max-w-6xl rounded-[28px] border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-1">
           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-            Persönliche Auswertung
+            {t("extendedStats.eyebrow")}
           </div>
           <h2 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">
-            Erweiterte persönliche Stats
+            {t("extendedStats.title")}
           </h2>
           <p className="text-sm leading-6 text-slate-600">
-            Dein stärkster Monat und jeweils die Top 3 Mitspieler, mit denen du am meisten gespielt, gewonnen oder verloren hast.
+            {t("extendedStats.description")}
           </p>
         </div>
 
@@ -144,7 +150,7 @@ export default function ExtendedPersonalStats() {
           <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
-                Stärkster Monat
+                {t("extendedStats.bestMonth")}
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-950 text-white">
                 <CalendarDays className="h-4 w-4" />
@@ -157,36 +163,42 @@ export default function ExtendedPersonalStats() {
                   {bestMonth.label}
                 </div>
                 <div className="mt-1 text-sm font-semibold text-slate-700">
-                  {bestMonth.wins} Siege aus {bestMonth.games} Ergebnissen
+                  {t("extendedStats.bestMonthResult", { wins: bestMonth.wins, games: bestMonth.games })}
                 </div>
                 <div className="mt-3 text-xs text-slate-500">
                   {bestMonth.wins} S · {bestMonth.draws} U · {bestMonth.losses} N
                 </div>
               </>
             ) : (
-              <div className="mt-4 text-sm text-slate-500">Noch nicht genug Ergebnisse.</div>
+              <div className="mt-4 text-sm text-slate-500">{t("extendedStats.notEnoughResults")}</div>
             )}
           </div>
 
           <TeammateRanking
-            eyebrow="Am meisten zusammen"
+            eyebrow={t("extendedStats.mostTogether")}
             stats={teammates?.mostPlayed ?? []}
-            valueLabel={(stat) => `${stat.games} Spiele`}
+            valueLabel={(stat) => t("extendedStats.games", { count: stat.games })}
             icon={<UsersRound className="h-4 w-4" />}
+            recordLabel={(stat) => t("extendedStats.record", { games: stat.games, wins: stat.wins, draws: stat.draws, losses: stat.losses })}
+            emptyText={t("extendedStats.notEnough")}
           />
 
           <TeammateRanking
-            eyebrow="Am meisten gewonnen"
+            eyebrow={t("extendedStats.mostWins")}
             stats={teammates?.mostWins ?? []}
-            valueLabel={(stat) => `${stat.wins} Siege`}
+            valueLabel={(stat) => t("extendedStats.wins", { count: stat.wins })}
             icon={<Trophy className="h-4 w-4" />}
+            recordLabel={(stat) => t("extendedStats.record", { games: stat.games, wins: stat.wins, draws: stat.draws, losses: stat.losses })}
+            emptyText={t("extendedStats.notEnough")}
           />
 
           <TeammateRanking
-            eyebrow="Am meisten verloren"
+            eyebrow={t("extendedStats.mostLosses")}
             stats={teammates?.mostLosses ?? []}
-            valueLabel={(stat) => `${stat.losses} Niederlagen`}
+            valueLabel={(stat) => t("extendedStats.losses", { count: stat.losses })}
             icon={<Frown className="h-4 w-4" />}
+            recordLabel={(stat) => t("extendedStats.record", { games: stat.games, wins: stat.wins, draws: stat.draws, losses: stat.losses })}
+            emptyText={t("extendedStats.notEnough")}
           />
         </div>
       </div>
