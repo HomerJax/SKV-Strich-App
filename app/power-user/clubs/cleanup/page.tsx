@@ -61,7 +61,7 @@ type ClubCleanupView = {
   latestMemberLoginEmail: string | null;
   lastActivityAt: string;
   daysSinceActivity: number;
-  status: "{t("powerCleanup.statusTest")}" | "{t("powerCleanup.statusLow")}" | "genutzt";
+  status: "test/leer" | "kaum genutzt" | "genutzt";
   riskScore: number;
 };
 
@@ -326,8 +326,7 @@ export default async function PowerUserClubCleanupPage({
                 {t("powerCleanup.title")}
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Datenleichen stehen oben. Neben {t("powerCleanup.trainings")} und Einladungen siehst
-                du jetzt auch, wann zuletzt ein Mitglied des Clubs eingeloggt war.
+                {t("powerCleanup.description")}
               </p>
             </div>
           </div>
@@ -346,7 +345,7 @@ export default async function PowerUserClubCleanupPage({
                 {likelyTestCount}
               </div>
               <div className="mt-1 text-xs font-semibold text-rose-700">
-                test/leer
+                {t("powerCleanup.statusTest")}
               </div>
             </div>
             <div className="rounded-2xl bg-amber-50 p-4">
@@ -354,7 +353,7 @@ export default async function PowerUserClubCleanupPage({
                 {lowUsageCount}
               </div>
               <div className="mt-1 text-xs font-semibold text-amber-700">
-                kaum genutzt
+                {t("powerCleanup.statusLow")}
               </div>
             </div>
             <div className="rounded-2xl bg-violet-50 p-4">
@@ -391,9 +390,7 @@ export default async function PowerUserClubCleanupPage({
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              <strong>test/leer</strong> bedeutet: höchstens ein Mitglied, kein
-              Training und keine Einladung. Das ist nur eine Hilfe – nichts wird
-              automatisch in den Papierkorb verschoben.
+              {t("powerCleanup.testExplanation")}
             </span>
           </div>
         </div>
@@ -403,10 +400,9 @@ export default async function PowerUserClubCleanupPage({
             <div className="flex items-center gap-3">
               <RotateCcw className="h-5 w-5 text-violet-700" />
               <div>
-                <h2 className="text-xl font-black text-slate-950">Papierkorb</h2>
+                <h2 className="text-xl font-black text-slate-950">{t("powerCleanup.trash")}</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Nach Ablauf der Frist werden die Daten beim täglichen Cleanup
-                  endgültig entfernt.
+                  {t("powerCleanup.trashHint")}
                 </p>
               </div>
             </div>
@@ -426,7 +422,7 @@ export default async function PowerUserClubCleanupPage({
                         {t("powerCleanup.deletedMeta", { deleted: formatDateTime(view.club.deleted_at, locale), purge: formatDateTime(view.club.purge_after, locale), days: daysUntil(view.club.purge_after) })}
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
-                        {view.memberCount} {t("powerCleanup.members")} · {view.playerCount} {t("powerCleanup.players")} · {view.sessionCount} Trainings
+                        {t("powerCleanup.counts", { members: view.memberCount, players: view.playerCount, sessions: view.sessionCount })}
                       </div>
                     </div>
 
@@ -490,21 +486,21 @@ export default async function PowerUserClubCleanupPage({
                       <div className="mt-1 font-black text-slate-950">
                         {view.memberCount}
                       </div>
-                      <div className="text-[11px] text-slate-500">Mitglieder</div>
+                      <div className="text-[11px] text-slate-500">{t("powerCleanup.members")}</div>
                     </div>
                     <div className="rounded-xl bg-slate-50 px-3 py-2 text-center">
                       <UserRound className="mx-auto h-4 w-4 text-slate-500" />
                       <div className="mt-1 font-black text-slate-950">
                         {view.playerCount}
                       </div>
-                      <div className="text-[11px] text-slate-500">Spieler</div>
+                      <div className="text-[11px] text-slate-500">{t("powerCleanup.players")}</div>
                     </div>
                     <div className="rounded-xl bg-slate-50 px-3 py-2 text-center">
                       <CalendarDays className="mx-auto h-4 w-4 text-slate-500" />
                       <div className="mt-1 font-black text-slate-950">
                         {view.sessionCount}
                       </div>
-                      <div className="text-[11px] text-slate-500">Trainings</div>
+                      <div className="text-[11px] text-slate-500">{t("powerCleanup.trainings")}</div>
                     </div>
                     <div className="rounded-xl bg-slate-50 px-3 py-2 text-center">
                       <div className="text-sm font-bold text-slate-500">✉</div>
@@ -520,7 +516,7 @@ export default async function PowerUserClubCleanupPage({
               <div className="border-t border-slate-100 p-5">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-                    <div className="font-bold text-slate-950">Aktivität</div>
+                    <div className="font-bold text-slate-950">{t("powerCleanup.activity")}</div>
                     <div className="mt-3">
                       <strong>{t("powerCleanup.lastUserLogin")}</strong>{" "}\n                      {formatDateTime(view.latestMemberLoginAt, locale)}
                     </div>
@@ -543,8 +539,7 @@ export default async function PowerUserClubCleanupPage({
                       {t("powerCleanup.moveToTrash")}
                     </div>
                     <p className="mt-1 text-xs leading-5 text-rose-800">
-                      Der Club ist danach sofort für Nutzer deaktiviert. Alle Daten
-                      bleiben 14 Tage erhalten und können wiederhergestellt werden.
+                      {t("powerCleanup.moveHint")}
                     </p>
 
                     <form
