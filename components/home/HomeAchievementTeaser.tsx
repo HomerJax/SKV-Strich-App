@@ -39,10 +39,10 @@ function missingLabel(item: ProgressItem, t: (key: MessageKey, params?: Record<s
         : item.unit === "Trainings" && item.remaining === 1
           ? t("achievement.training")
           : item.unit === "Siege"
-            ? t("extendedStats.wins", { count: item.remaining }).replace(/^\\d+\\s*/, "")
+            ? t("achievement.wins")
             : item.unit === "Teilnahmen"
-              ? "appearances"
-              : "trainings";
+              ? t("achievement.appearances")
+              : t("achievement.trainings");
 
   return t("achievement.remaining", { count: item.remaining, unit });
 }
