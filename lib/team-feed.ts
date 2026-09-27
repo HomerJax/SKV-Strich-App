@@ -87,8 +87,8 @@ function badgeNewsCopy(params: {
   if (winsMatch?.[1]) {
     return {
       title: locale === "de"
-        ? `${winsMatch[1]} Karrieresiege erreicht`
-        : `${winsMatch[1]} career wins reached`,
+        ? `${params.actorName} · ${winsMatch[1]} Karrieresiege erreicht`
+        : `${params.actorName} · ${winsMatch[1]} career wins reached`,
       body: badgeNewsLabel(params, locale),
       detailText: locale === "de"
         ? `${params.actorName} hat ${winsMatch[1]} Siege in seiner Karriere erreicht.`
@@ -100,8 +100,8 @@ function badgeNewsCopy(params: {
   if (appearancesMatch?.[1]) {
     return {
       title: locale === "de"
-        ? `${appearancesMatch[1]} Karriere-Einsätze erreicht`
-        : `${appearancesMatch[1]} career appearances reached`,
+        ? `${params.actorName} · ${appearancesMatch[1]} Karriere-Einsätze erreicht`
+        : `${params.actorName} · ${appearancesMatch[1]} career appearances reached`,
       body: badgeNewsLabel(params, locale),
       detailText: locale === "de"
         ? `${params.actorName} hat ${appearancesMatch[1]} Einsätze in seiner Karriere erreicht.`
@@ -110,7 +110,7 @@ function badgeNewsCopy(params: {
   }
 
   return {
-    title: params.fallbackTitle,
+    title: `${params.actorName} · ${params.fallbackTitle}`,
     body: badgeNewsLabel(params, locale),
     detailText: locale === "de"
       ? `${params.actorName} hat „${params.fallbackTitle}“ erreicht.`
