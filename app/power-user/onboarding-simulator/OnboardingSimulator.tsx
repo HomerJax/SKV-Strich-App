@@ -24,8 +24,8 @@ export default function OnboardingSimulator() {
   const steps: Array<{ key: Step; label: string }> = stepKeys.map((key) => ({
     key,
     label: t(`powerOnboarding.step${key.charAt(0).toUpperCase() + key.slice(1)}` as
-      | "powerOnboarding.step{t("powerOnboarding.account")}"
-      | "powerOnboarding.step{t("powerOnboarding.team")}"
+      | "powerOnboarding.stepAccount"
+      | "powerOnboarding.stepTeam"
       | "powerOnboarding.stepClub"
       | "powerOnboarding.stepBalance"
       | "powerOnboarding.stepGroups"
@@ -152,7 +152,7 @@ export default function OnboardingSimulator() {
 
             <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
               <div className="text-[10px] font-black uppercase tracking-[.16em] text-violet-600">
-                Account
+                {t("powerOnboarding.account")}
               </div>
               <div className="mt-2 text-2xl font-black text-slate-950">{t("powerOnboarding.register")}</div>
               <div className="mt-5 space-y-3">
@@ -345,7 +345,7 @@ export default function OnboardingSimulator() {
               <div className="flex items-center justify-between rounded-[22px] border border-slate-200 bg-white p-4">
                 <div>
                   <div className="text-[9px] font-black uppercase tracking-[.16em] text-slate-400">
-                    Team
+                    {t("powerOnboarding.team")}
                   </div>
                   <div className="mt-1 text-sm font-black text-slate-950">{t("powerOnboarding.shareInvite")}</div>
                 </div>
