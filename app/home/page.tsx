@@ -906,7 +906,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         )}
 
         {currentPlayerId || !isPowerUser ? (
-          <section className="rounded-[32px] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.09)] ring-1 ring-slate-950/5">
+          <section data-home-quick-info="true" className="rounded-[32px] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.09)] ring-1 ring-slate-950/5">
             {isSupportView && supportViewLabel ? (
               <div className="mb-3 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-[11px] font-bold text-violet-800">
                 {t("home.supportView", { name: supportViewLabel })}
