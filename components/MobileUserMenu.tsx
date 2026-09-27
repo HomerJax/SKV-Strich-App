@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Banknote, Languages, LogOut, MessageCircle, PlayCircle, UserRound } from "lucide-react";
+import { Banknote, LogOut, MessageCircle, PlayCircle, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import LogoutButton from "@/components/LogoutButton";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -30,16 +30,7 @@ export default function MobileUserMenu({
 }: P) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement | null>(null);
-  const { locale, t } = useI18n();
-
-  const setLocale = (value: "auto" | "de" | "en") => {
-    if (value === "auto") {
-      document.cookie = "strikr_locale=; path=/; max-age=0; samesite=lax";
-    } else {
-      document.cookie = `strikr_locale=${value}; path=/; max-age=31536000; samesite=lax`;
-    }
-    window.location.reload();
-  };
+  const { t } = useI18n();
 
   useEffect(() => {
     const click = (event: MouseEvent) => {
@@ -124,19 +115,6 @@ export default function MobileUserMenu({
               <div className="text-[11px] text-slate-500">{t("menu.demoHint")}</div>
             </div>
           </Link>
-          <div className="mx-2 my-1 border-t border-slate-100 pt-2">
-            <div className="mb-1.5 flex items-center gap-2 px-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              <Languages className="h-4 w-4" />
-              {t("languageSwitch.label")}
-            </div>
-            <div className="grid grid-cols-3 gap-1" title={t("languageSwitch.title")}>
-              {(["de", "en", "auto"] as const).map((value) => (
-                <button key={value} type="button" onClick={() => setLocale(value)} className={`rounded-lg px-2 py-1.5 text-xs font-black ${value === locale ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-700"}`}>
-                  {value === "de" ? t("languageSwitch.de") : value === "en" ? t("languageSwitch.en") : t("languageSwitch.auto")}
-                </button>
-              ))}
-            </div>
-          </div>
           <LogoutButton className={item}>
             <>
               <LogOut className="h-5 w-5" />
