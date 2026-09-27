@@ -269,17 +269,17 @@ export default async function LandingStatsPage({ searchParams }: { searchParams?
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label={t("powerStats.visits", { range: rangeLabel(range, t) })} value={String(visits.length)} hint="{t("powerStats.visitsHint")}" icon={<MousePointerClick className="h-5 w-5" />} />
-          <MetricCard label="{t("powerStats.onlineNow")}" value={String(online.length)} hint="{t("powerStats.onlineHint")}" icon={<Radio className="h-5 w-5" />} />
-          <MetricCard label="{t("powerStats.active24h")}" value={String(active24hResult.count ?? 0)} hint="{t("powerStats.activeHint")}" icon={<Activity className="h-5 w-5" />} />
-          <MetricCard label="{t("powerStats.signupRate")}" value={formatPercent(signupRate)} hint={t("powerStats.signupRateHint", { clicks: signupClicks, visits: visits.length })} icon={<UserPlus className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.visits", { range: rangeLabel(range, t) })} value={String(visits.length)} hint={t("powerStats.visitsHint")} icon={<MousePointerClick className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.onlineNow")} value={String(online.length)} hint={t("powerStats.onlineHint")} icon={<Radio className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.active24h")} value={String(active24hResult.count ?? 0)} hint={t("powerStats.activeHint")} icon={<Activity className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.signupRate")} value={formatPercent(signupRate)} hint={t("powerStats.signupRateHint", { clicks: signupClicks, visits: visits.length })} icon={<UserPlus className="h-5 w-5" />} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label={t("powerStats.signupClicks")} value={String(signupClicks)} hint="{t("powerStats.signupClicksHint")}" icon={<UserPlus className="h-5 w-5" />} />
-          <MetricCard label={t("powerStats.loginClicks")} value={String(loginClicks)} hint="{t("powerStats.loginClicksHint")}" icon={<LogIn className="h-5 w-5" />} />
-          <MetricCard label={t("powerStats.mobileVisits")} value={String(mobileVisits)} hint="{t("powerStats.mobileVisitsHint")}" icon={<Smartphone className="h-5 w-5" />} />
-          <MetricCard label={t("powerStats.events")} value={String(events.length)} hint="{t("powerStats.eventsHint")}" icon={<BarChart3 className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.signupClicks")} value={String(signupClicks)} hint={t("powerStats.signupClicksHint")} icon={<UserPlus className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.loginClicks")} value={String(loginClicks)} hint={t("powerStats.loginClicksHint")} icon={<LogIn className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.mobileVisits")} value={String(mobileVisits)} hint={t("powerStats.mobileVisitsHint")} icon={<Smartphone className="h-5 w-5" />} />
+          <MetricCard label={t("powerStats.events")} value={String(events.length)} hint={t("powerStats.eventsHint")} icon={<BarChart3 className="h-5 w-5" />} />
         </div>
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
