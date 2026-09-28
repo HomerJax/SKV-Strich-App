@@ -804,10 +804,10 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
   return (
     <HomePullToRefresh>
-      <main className="min-h-screen bg-neutral-100 pb-24">
+      <main className="min-h-screen bg-slate-50 pb-24">
       <WhatsNewModal version="v0.2" />
 
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <PageHero
           primaryColorKey={club?.primary_color ?? "black"}
           title={clubName}
@@ -906,13 +906,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         )}
 
         {currentPlayerId || !isPowerUser ? (
-          <section data-home-quick-info="true" className="rounded-[32px] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.09)] ring-1 ring-slate-950/5">
+          <section data-home-quick-info="true" className="rounded-[26px] border border-slate-200/80 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
             {isSupportView && supportViewLabel ? (
               <div className="mb-3 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-[11px] font-bold text-violet-800">
                 {t("home.supportView", { name: supportViewLabel })}
               </div>
             ) : null}
-            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-600">
               {t("home.quickInfo")}
             </div>
 
