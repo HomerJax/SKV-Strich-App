@@ -235,14 +235,14 @@ export default function NextSessionAttendanceCard({
     !requireAbsenceReason || isMeaningfulRsvpReason(reason);
 
   return (
-    <section className="relative overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_20px_52px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5">
-      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-200/50 blur-3xl" />
-      <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-rose-100/50 blur-3xl" />
+    <section className="relative overflow-hidden rounded-[26px] border border-slate-200/80 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-cyan-100/55 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-slate-100/60 blur-3xl" />
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-600">{t("session.nextTraining")}</div>
-          <h2 className="mt-2 text-[18px] font-semibold leading-tight tracking-[-0.045em] text-slate-950 sm:text-[22px]">{title}</h2>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-600">{t("session.nextTraining")}</div>
+          <h2 className="mt-1.5 text-[18px] font-semibold leading-tight tracking-[-0.035em] text-slate-950 sm:text-[21px]">{title}</h2>
           {text?.trim() ? <p className="mt-1.5 line-clamp-2 text-xs font-medium leading-5 text-slate-500">{text.trim()}</p> : null}
           {deadlineText ? (
             <div className={`mt-3 flex max-w-full items-start gap-1.5 text-[11px] font-semibold leading-4 ${deadlineTextClasses(deadlineTone)}`}>
@@ -251,7 +251,7 @@ export default function NextSessionAttendanceCard({
             </div>
           ) : null}
         </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.08)] ring-1 ring-slate-950/5"><CalendarDays className="h-4 w-4" /></div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 ring-1 ring-cyan-100"><CalendarDays className="h-4 w-4" /></div>
       </div>
 
       {notNominated ? (
@@ -267,12 +267,12 @@ export default function NextSessionAttendanceCard({
       ) : null}
 
       {!notNominated ? (
-        <div className="relative mt-4 rounded-[28px] bg-cyan-100/85 p-1.5 shadow-[0_12px_30px_rgba(34,211,238,0.14)] ring-1 ring-cyan-300/80">
+        <div className="relative mt-4 rounded-[22px] bg-slate-50 p-1.5 ring-1 ring-slate-200">
           <div className="grid grid-cols-2 gap-1.5">
-            <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", inActive ? "bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-500 text-white shadow-[0_16px_34px_rgba(56,189,248,0.24)]" : "bg-white text-slate-950 shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-blue-50"].join(" ")}>
-              <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-blue-50 text-blue-600 ring-1 ring-blue-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? t("session.saving") : inActive ? t("session.going") : t("session.imGoing")}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{t("session.goingCount", { count: presentCount })}</span></span></div>
+            <button type="button" onClick={() => void updateStatus(inActive ? "open" : "in", "in")} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[68px] rounded-[18px] px-3 py-2.5 text-left transition disabled:opacity-60", inActive ? "bg-cyan-500 text-white shadow-[0_8px_18px_rgba(6,182,212,0.18)]" : "bg-white text-slate-950 ring-1 ring-slate-200 hover:bg-cyan-50"].join(" ")}>
+              <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-cyan-50 text-cyan-600 ring-1 ring-cyan-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? t("session.saving") : inActive ? t("session.going") : t("session.imGoing")}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{t("session.goingCount", { count: presentCount })}</span></span></div>
             </button>
-            <button type="button" onClick={() => { if (outActive) void updateStatus("open", "out"); else setReasonOpen(true); }} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "out"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", outActive ? "bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-[0_18px_36px_rgba(244,63,94,0.24)]" : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70"].join(" ")}>
+            <button type="button" onClick={() => { if (outActive) void updateStatus("open", "out"); else setReasonOpen(true); }} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "out"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", outActive ? "bg-rose-500 text-white shadow-[0_8px_18px_rgba(244,63,94,0.16)]" : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70"].join(" ")}>
               <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", outActive ? "bg-white/15 text-white ring-1 ring-white/20" : "bg-white text-rose-500 ring-1 ring-rose-100"].join(" ")}><UserX className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "out" ? t("session.saving") : deadlineTone === "passed" && inActive ? t("session.cantCancel") : outActive ? t("session.notGoing") : t("session.imOut")}</span><span className={["mt-0.5 block text-xs font-medium", outActive ? "text-white/75" : "text-rose-500"].join(" ")}>{t("session.outCount", { count: absentCount })}</span></span></div>
             </button>
           </div>
@@ -305,34 +305,34 @@ export default function NextSessionAttendanceCard({
         </div>
       ) : null}
 
-      <div className="relative mt-4 grid gap-2">
-        <div className="overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50/60">
+      <div className="relative mt-3 grid grid-cols-2 gap-2">
+        <div className="overflow-hidden rounded-[18px] border border-cyan-100 bg-cyan-50/45">
           <button
             type="button"
             onClick={() => setShowParticipants((value) => !value)}
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
           >
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500 text-xs font-black text-white">
                 {presentCount}
               </span>
               <div>
                 <div className="text-sm font-black text-slate-950">{t("session.in")}</div>
-                <div className="text-[11px] font-medium text-emerald-700">
+                <div className="text-[11px] font-medium text-cyan-700">
                   {presentCount === 1 ? t("session.oneGoing") : t("session.manyGoing", { count: presentCount })}
                 </div>
               </div>
             </div>
-            <ChevronDown className={`h-4 w-4 text-emerald-700 transition ${showParticipants ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-4 w-4 text-cyan-700 transition ${showParticipants ? "rotate-180" : ""}`} />
           </button>
 
           {showParticipants ? (
-            <div className="border-t border-emerald-100 bg-white/70 px-3 py-3">
+            <div className="border-t border-cyan-100 bg-white/80 px-3 py-3">
               {participantNames.length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {participantNames.map((name, index) => (
                     <div key={`participant-${name}-${index}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-black uppercase text-emerald-800">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-[10px] font-black uppercase text-cyan-800">
                         {name.trim().charAt(0) || "?"}
                       </span>
                       <span className="min-w-0 truncate text-xs font-bold text-slate-800">{name}</span>
