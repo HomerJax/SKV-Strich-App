@@ -51,6 +51,11 @@ export async function recordBeerAction(formData: FormData) {
     redirect(url({ beer_error: t("cashAction.invalidQuantity") }, returnTo));
   }
 
+  const donationCents = Number(String(formData.get("donation_cents") ?? "0"));
+  if (!Number.isInteger(donationCents) || donationCents < 0 || donationCents > 100000) {
+    redirect(url({ beer_error: "Ungültige Bierspende." }, returnTo));
+  }
+
   const paymentMethod =
     String(formData.get("payment_method") ?? "") === "cash" ? "cash" : "paypal";
 
@@ -84,12 +89,15 @@ export async function recordBeerAction(formData: FormData) {
     redirect(url({ beer_error: t("cashAction.invalidBeerPrice") }, returnTo));
   }
 
-  const totalCents = unitPriceCents * quantity;
+  const beerAmountCents = unitPriceCents * quantity;
+  const totalCents = beerAmountCents + donationCents;
   const { error } = await supabase.from("beer_consumptions").insert({
     club_id: clubId,
     player_id: player.id,
     quantity,
     unit_price_cents: unitPriceCents,
+    beer_amount_cents: beerAmountCents,
+    donation_cents: donationCents,
     total_cents: totalCents,
     payment_method: paymentMethod,
     payment_status: "pending",
@@ -149,14 +157,16 @@ export async function markBeerCashPaidAction(formData: FormData) {
   const admin = createAdminClient();
   const { data: entry, error: entryError } = await admin
     .from("beer_consumptions")
-    .select("id,quantity,total_cents,payment_method,payment_status,cash_transaction_id")
+    .select("id,quantity,beer_amount_cents,donation_cents,total_cents,payment_method,payment_status,cash_transaction_id")
     .eq("club_id", clubId)
     .eq("id", consumptionId)
     .maybeSingle<{
       id: number;
       quantity: number;
+      beer_amount_cents: number;
+      donation_cents: number;
       total_cents: number;
-      payment_method: "paypal" | "cash";
+      payment_method: "paypal" | "cash" | "sumup";
       payment_status: "pending" | "paid" | "cancelled";
       cash_transaction_id: number | null;
     }>();
@@ -180,7 +190,7 @@ export async function markBeerCashPaidAction(formData: FormData) {
         amount_cents: entry.total_cents,
         kind: "income",
         category: "Getränke",
-        title: `Bierkasse · ${entry.quantity} Bier · ${entry.payment_method === "cash" ? "Bar" : "PayPal"}`,
+        title: `Bierkasse · ${entry.quantity} Bier${entry.donation_cents > 0 ? ` + ${(entry.donation_cents / 100).toFixed(2)} € Spende` : ""} · ${entry.payment_method === "cash" ? "Bar" : entry.payment_method === "sumup" ? "SumUp" : "PayPal"}`,
         source_type: "beer",
         source_id: entry.id,
         source_key: sourceKey,
@@ -248,15 +258,17 @@ export async function updateBeerConsumptionAction(formData: FormData) {
   const admin = createAdminClient();
   const { data: entry, error: entryError } = await admin
     .from("beer_consumptions")
-    .select("id,quantity,unit_price_cents,total_cents,payment_method,payment_status,cash_transaction_id")
+    .select("id,quantity,unit_price_cents,beer_amount_cents,donation_cents,total_cents,payment_method,payment_status,cash_transaction_id")
     .eq("club_id", clubId)
     .eq("id", consumptionId)
     .maybeSingle<{
       id: number;
       quantity: number;
       unit_price_cents: number;
+      beer_amount_cents: number;
+      donation_cents: number;
       total_cents: number;
-      payment_method: "paypal" | "cash";
+      payment_method: "paypal" | "cash" | "sumup";
       payment_status: "pending" | "paid" | "cancelled";
       cash_transaction_id: number | null;
     }>();
@@ -269,7 +281,8 @@ export async function updateBeerConsumptionAction(formData: FormData) {
     redirect(beerManageUrl({ error: t("cashAction.cancelledImmutable") }));
   }
 
-  const nextTotalCents = quantity * entry.unit_price_cents;
+  const nextBeerAmountCents = quantity * entry.unit_price_cents;
+  const nextTotalCents = nextBeerAmountCents + entry.donation_cents;
   const deltaCents = nextTotalCents - entry.total_cents;
 
   if (entry.payment_status === "paid" && deltaCents !== 0) {
@@ -298,6 +311,7 @@ export async function updateBeerConsumptionAction(formData: FormData) {
     .from("beer_consumptions")
     .update({
       quantity,
+      beer_amount_cents: nextBeerAmountCents,
       total_cents: nextTotalCents,
       updated_at: new Date().toISOString(),
     })
@@ -323,14 +337,16 @@ export async function cancelBeerConsumptionAction(formData: FormData) {
   const admin = createAdminClient();
   const { data: entry, error: entryError } = await admin
     .from("beer_consumptions")
-    .select("id,quantity,total_cents,payment_method,payment_status,cash_transaction_id")
+    .select("id,quantity,beer_amount_cents,donation_cents,total_cents,payment_method,payment_status,cash_transaction_id")
     .eq("club_id", clubId)
     .eq("id", consumptionId)
     .maybeSingle<{
       id: number;
       quantity: number;
+      beer_amount_cents: number;
+      donation_cents: number;
       total_cents: number;
-      payment_method: "paypal" | "cash";
+      payment_method: "paypal" | "cash" | "sumup";
       payment_status: "pending" | "paid" | "cancelled";
       cash_transaction_id: number | null;
     }>();
