@@ -5,6 +5,7 @@ import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { createClient } from "@/lib/supabase/server";
 import {
   addWorkDutyShift,
+  adjustWorkDutyCredit,
   completeWorkDutySignup,
   createWorkDutyEvent,
   joinWorkDutyShift,
@@ -90,6 +91,7 @@ function message(error?: string, saved?: string) {
       signup: "Du bist eingetragen.",
       left: "Eintragung entfernt.",
       completed: "Arbeitsdienst bestätigt.",
+      credit: "Arbeitsstunden korrigiert.",
       target: "Saison-Soll gespeichert.",
     };
     return { ok: true, text: map[saved] ?? "Gespeichert." };
@@ -331,13 +333,29 @@ export default async function WorkDutiesPage({ searchParams }: Props) {
                         {shiftSignups.length > 0 ? (
                           <div className="mt-3 flex flex-wrap gap-2">
                             {shiftSignups.map((signup) => (
-                              <div key={signup.id} className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700">
+                              <div key={signup.id} className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
                                 <span>{playerLabel(playersById.get(signup.player_id))}{signup.completed ? " ✓" : ""}</span>
                                 {isAdmin && !signup.completed ? (
                                   <form action={completeWorkDutySignup}>
                                     <input type="hidden" name="signup_id" value={signup.id} />
                                     <input type="hidden" name="shift_minutes" value={shiftMinutes} />
                                     <button className="text-emerald-700 underline underline-offset-2">erledigt</button>
+                                  </form>
+                                ) : null}
+                                {isAdmin && billingAccess.isPro && signup.completed ? (
+                                  <form action={adjustWorkDutyCredit} className="flex items-center gap-1">
+                                    <input type="hidden" name="signup_id" value={signup.id} />
+                                    <input
+                                      name="credited_hours"
+                                      type="number"
+                                      min="0"
+                                      max="24"
+                                      step="0.25"
+                                      defaultValue={(signup.credited_minutes ?? shiftMinutes) / 60}
+                                      aria-label="Gutgeschriebene Stunden"
+                                      className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                                    />
+                                    <button className="text-cyan-700 underline underline-offset-2">ändern</button>
                                   </form>
                                 ) : null}
                               </div>
