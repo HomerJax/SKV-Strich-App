@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Banknote, LogOut, MessageCircle, PlayCircle, UserRound } from "lucide-react";
+import { Banknote, ClipboardList, LogOut, MessageCircle, PlayCircle, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import LogoutButton from "@/components/LogoutButton";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -97,6 +97,13 @@ export default function MobileUserMenu({
             <div>
               <div>{t("menu.teamFund")}</div>
               <div className="text-[11px] text-slate-500">{t("menu.teamFundHint")}</div>
+            </div>
+          </Link>
+          <Link href="/arbeitsdienste" onClick={() => setOpen(false)} className={item}>
+            <ClipboardList className="h-5 w-5 text-cyan-700" />
+            <div>
+              <div>Arbeitsdienste</div>
+              <div className="text-[11px] text-slate-500">Schichten & Arbeitsstunden</div>
             </div>
           </Link>
           {showTeamChatLink ? (
