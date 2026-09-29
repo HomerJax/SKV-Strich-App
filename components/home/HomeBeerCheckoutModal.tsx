@@ -156,6 +156,23 @@ export default function HomeBeerCheckoutModal({
               </div>
 
               <div className="mt-4 grid gap-2">
+                <button
+                  type="button"
+                  disabled
+                  className="flex w-full cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-slate-100 px-4 py-4 text-left text-slate-400 shadow-sm"
+                  aria-label="SumUp – Apple Pay, Google Pay und Kartenzahlung – in Arbeit"
+                >
+                  <span className="flex items-center gap-3">
+                    <CreditCard className="h-5 w-5" />
+                    <span>
+                      <span className="block text-[10px] font-black uppercase tracking-[.16em] text-slate-400">SumUp</span>
+                      <span className="block text-base font-black">Apple Pay · Google Pay · Karte</span>
+                      <span className="mt-0.5 block text-[11px] font-semibold text-slate-400">Digitale Zahlung direkt in strikr – in Arbeit</span>
+                    </span>
+                  </span>
+                  <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-500">kommt</span>
+                </button>
+
                 {paypalEnabled ? (
                   <button name="payment_method" value="paypal" type={paypalPool ? "button" : "submit"} onClick={handlePaypalClick} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
                     <span className="flex items-center gap-3">
