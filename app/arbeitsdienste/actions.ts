@@ -230,6 +230,36 @@ export async function completeWorkDutySignup(formData: FormData) {
   redirect(dutyUrl({ saved: "completed" }));
 }
 
+
+export async function adjustWorkDutyCredit(formData: FormData) {
+  const ctx = await requireClub();
+  if (!isAdmin(ctx.membership.role, ctx.isPowerUser)) redirect("/arbeitsdienste");
+
+  const signupId = Math.floor(numberValue(formData.get("signup_id")));
+  const hours = numberValue(formData.get("credited_hours"));
+  if (!Number.isFinite(signupId) || !Number.isFinite(hours) || hours < 0 || hours > 24) {
+    redirect(dutyUrl({ error: "invalid_credit" }));
+  }
+
+  const supabase = await createClient();
+  const billing = await getClubBillingAccess(supabase, ctx.clubId);
+  if (!billing.isPro) redirect(dutyUrl({ error: "pro_required" }));
+
+  const { error } = await supabase
+    .from("work_duty_signups")
+    .update({
+      completed: true,
+      credited_minutes: Math.round(hours * 60),
+    })
+    .eq("id", signupId)
+    .eq("club_id", ctx.clubId);
+
+  if (error) redirect(dutyUrl({ error: "save_failed" }));
+
+  revalidatePath("/arbeitsdienste");
+  redirect(dutyUrl({ saved: "credit" }));
+}
+
 export async function setWorkDutyTarget(formData: FormData) {
   const ctx = await requireClub();
   if (!isAdmin(ctx.membership.role, ctx.isPowerUser)) redirect("/arbeitsdienste");
