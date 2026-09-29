@@ -36,11 +36,13 @@ export default function HomeBeerCheckoutModal({
   paypalEnabled,
   paypalPool,
   paypalUrl,
+  sumupEnabled,
 }: {
   priceCents: number;
   paypalEnabled: boolean;
   paypalPool: boolean;
   paypalUrl: string;
+  sumupEnabled: boolean;
 }) {
   const { locale, t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -194,6 +196,24 @@ export default function HomeBeerCheckoutModal({
               </div>
 
               <div className="mt-4 grid gap-2">
+                {sumupEnabled ? (
+                  <button
+                    name="payment_method"
+                    value="sumup"
+                    type="submit"
+                    className="flex w-full items-center justify-between rounded-2xl bg-slate-950 px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]"
+                  >
+                    <span className="flex items-center gap-3">
+                      <CreditCard className="h-5 w-5" />
+                      <span>
+                        <span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/60">SumUp</span>
+                        <span className="block text-base font-black">{formatEuro(totalCents, locale)} · Karte / Apple Pay</span>
+                      </span>
+                    </span>
+                    <span className="font-black">→</span>
+                  </button>
+                ) : null}
+
                 {paypalEnabled ? (
                   <button name="payment_method" value="paypal" type={paypalPool ? "button" : "submit"} onClick={handlePaypalClick} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
                     <span className="flex items-center gap-3">
