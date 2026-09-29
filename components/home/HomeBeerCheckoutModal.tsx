@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Banknote, CreditCard, X } from "lucide-react";
+import { Banknote, CreditCard, Heart, X } from "lucide-react";
 import { recordBeerAction } from "@/app/mannschaftskasse/actions";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { AppLocale } from "@/lib/i18n/config";
@@ -13,9 +13,10 @@ function formatEuro(cents: number, locale: AppLocale) {
   }).format(cents / 100);
 }
 
-function recordPoolBeer(quantity: number) {
+function recordPoolBeer(quantity: number, donationCents: number) {
   const body = new FormData();
   body.set("quantity", String(quantity));
+  body.set("donation_cents", String(donationCents));
   body.set("payment_method", "paypal");
 
   if (navigator.sendBeacon("/api/mannschaftskasse/beer", body)) {
@@ -44,9 +45,11 @@ export default function HomeBeerCheckoutModal({
   const { locale, t } = useI18n();
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [donationCents, setDonationCents] = useState(0);
   const [poolOpening, setPoolOpening] = useState(false);
   const [poolConfirmOpen, setPoolConfirmOpen] = useState(false);
-  const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
+  const beerCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
+  const totalCents = beerCents + donationCents;
 
   function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
     if (!paypalPool || poolOpening) return;
@@ -62,7 +65,7 @@ export default function HomeBeerCheckoutModal({
     }
 
     setPoolOpening(true);
-    recordPoolBeer(quantity);
+    recordPoolBeer(quantity, donationCents);
   }
 
   useEffect(() => {
@@ -85,6 +88,7 @@ export default function HomeBeerCheckoutModal({
         type="button"
         onClick={() => {
           setQuantity(1);
+          setDonationCents(0);
           setPoolOpening(false);
           setPoolConfirmOpen(false);
           setOpen(true);
@@ -139,6 +143,7 @@ export default function HomeBeerCheckoutModal({
 
             <form action={recordBeerAction} className="mt-6">
               <input type="hidden" name="quantity" value={quantity} />
+              <input type="hidden" name="donation_cents" value={donationCents} />
               <input type="hidden" name="return_to" value="/home" />
 
               <div className="flex items-center justify-between rounded-[24px] border border-amber-200 bg-amber-50/60 p-4">
@@ -150,9 +155,42 @@ export default function HomeBeerCheckoutModal({
                 <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-3xl font-black text-white shadow-sm" aria-label={t("beer.more")}>+</button>
               </div>
 
-              <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="text-sm font-bold text-slate-500">{t("beer.value")}</span>
-                <span className="text-2xl font-black text-slate-950">{formatEuro(totalCents, locale)}</span>
+              <div className="mt-4 rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-rose-500" />
+                  <div>
+                    <div className="text-sm font-black text-slate-950">Noch was für die Bierkasse?</div>
+                    <div className="text-[11px] font-medium text-slate-500">Freiwillige Bierspende – wird separat vom Bierverbrauch gebucht.</div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {[0, 100, 200, 500].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setDonationCents(value)}
+                      className={`rounded-xl px-2 py-2 text-xs font-black transition ${
+                        donationCents === value
+                          ? "bg-slate-950 text-white"
+                          : "border border-slate-200 bg-white text-slate-700"
+                      }`}
+                    >
+                      {value === 0 ? "Nein" : `+${formatEuro(value, locale)}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-slate-500">{t("beer.value")}</span>
+                  <span className="text-2xl font-black text-slate-950">{formatEuro(totalCents, locale)}</span>
+                </div>
+                {donationCents > 0 ? (
+                  <div className="mt-1 text-right text-[11px] font-bold text-rose-600">
+                    {formatEuro(beerCents, locale)} Bier + {formatEuro(donationCents, locale)} Bierspende
+                  </div>
+                ) : null}
               </div>
 
               <div className="mt-4 grid gap-2">
@@ -204,6 +242,11 @@ export default function HomeBeerCheckoutModal({
             <h3 id="paypal-pool-hint-title" className="mt-1 text-2xl font-black text-slate-950">
               🍺 {quantity} {t("beer.beer")} · {formatEuro(totalCents, locale)}
             </h3>
+            {donationCents > 0 ? (
+              <div className="mt-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700">
+                ❤️ davon {formatEuro(donationCents, locale)} freiwillige Bierspende
+              </div>
+            ) : null}
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
               {t("beer.poolText", { price: formatEuro(totalCents, locale) })}
             </p>
