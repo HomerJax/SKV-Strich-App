@@ -213,7 +213,7 @@ export default async function Page({ searchParams }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("club_settings")
-      .select("cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_home_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
+      .select("cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_home_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled,beerkasse_sumup_enabled,beerkasse_sumup_merchant_code")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -985,6 +985,27 @@ export default async function Page({ searchParams }: Props) {
                           {t("cashAdmin.paypalAdminHint")}
                         </span>
                       </label>
+
+                      <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-3">
+                        <div className="text-xs font-black text-sky-900">Kartenzahlung mit SumUp</div>
+                        <p className="mt-1 text-[11px] font-medium leading-5 text-sky-700">
+                          Spieler zahlen per SumUp-Checkout (z. B. Karte/Apple Pay). Erfolgreiche Zahlungen werden automatisch bestätigt; Gebühren trägt die Mannschaftskasse.
+                        </p>
+                        <label className="mt-3 flex items-center justify-between gap-3 text-sm font-bold">
+                          <span>SumUp aktivieren</span>
+                          <input type="checkbox" name="sumup_enabled" defaultChecked={settings?.beerkasse_sumup_enabled === true} className="h-5 w-5" />
+                        </label>
+                        <label className="mt-3 block">
+                          <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-sky-700">Merchant Code</span>
+                          <input
+                            name="sumup_merchant_code"
+                            defaultValue={settings?.beerkasse_sumup_merchant_code ?? ""}
+                            placeholder="z. B. MH4H92C7"
+                            className="w-full rounded-xl border border-sky-200 bg-white px-3 py-2.5 text-sm"
+                          />
+                          <span className="mt-1 block text-[10px] font-medium text-slate-500">Der API-Key bleibt sicher als Server-Environment-Variable gespeichert.</span>
+                        </label>
+                      </div>
 
                       <div className="space-y-2 rounded-2xl border border-amber-100 bg-white/80 p-3">
                         <label className="flex items-center justify-between gap-3 text-sm font-bold">

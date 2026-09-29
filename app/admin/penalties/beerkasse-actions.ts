@@ -42,6 +42,12 @@ export async function saveBeerkasseAction(fd: FormData) {
   const home = fd.get("home_enabled") === "on";
   const stats = fd.get("stats_enabled") === "on";
   const badges = fd.get("badges_enabled") === "on";
+  const sumupEnabled = fd.get("sumup_enabled") === "on";
+  const sumupMerchantCode = String(fd.get("sumup_merchant_code") ?? "").trim();
+
+  if (sumupEnabled && !sumupMerchantCode) {
+    redirect(settingsUrl({ beerkasse_error: "sumup" }));
+  }
 
   const { error } = await supabase.from("club_settings").upsert(
     {
@@ -52,6 +58,8 @@ export async function saveBeerkasseAction(fd: FormData) {
       beerkasse_price_cents: priceCents,
       beerkasse_stats_enabled: stats,
       beerkasse_badges_enabled: badges,
+      beerkasse_sumup_enabled: sumupEnabled,
+      beerkasse_sumup_merchant_code: sumupMerchantCode || null,
     },
     { onConflict: "club_id" },
   );
