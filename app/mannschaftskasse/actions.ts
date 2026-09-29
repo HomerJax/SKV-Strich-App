@@ -8,6 +8,8 @@ import { requireClub } from "@/lib/auth/guards";
 import { requireBeerManagementAccess } from "@/lib/cashbox/access";
 import { notifyBeerManagers } from "@/lib/cashbox/beer-notifications";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getAppUrl } from "@/lib/env";
+import { createSumUpCheckout } from "@/lib/cashbox/sumup";
 
 function url(params: Record<string, string>, base = "/mannschaftskasse") {
   return `${base}?${new URLSearchParams(params)}`;
@@ -56,14 +58,17 @@ export async function recordBeerAction(formData: FormData) {
     redirect(url({ beer_error: "Ungültige Bierspende." }, returnTo));
   }
 
-  const paymentMethod =
-    String(formData.get("payment_method") ?? "") === "cash" ? "cash" : "paypal";
+  const rawPaymentMethod = String(formData.get("payment_method") ?? "");
+  const paymentMethod: "paypal" | "cash" | "sumup" =
+    rawPaymentMethod === "cash" || rawPaymentMethod === "sumup"
+      ? rawPaymentMethod
+      : "paypal";
 
   const supabase = await createClient();
   const { data: settings, error: settingsError } = await supabase
     .from("club_settings")
     .select(
-      "beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_price_cents",
+      "beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_price_cents,beerkasse_sumup_enabled,beerkasse_sumup_merchant_code",
     )
     .eq("club_id", clubId)
     .maybeSingle();
@@ -76,6 +81,8 @@ export async function recordBeerAction(formData: FormData) {
   const featureEnabled = settings?.beerkasse_enabled === true;
   const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
   const unitPriceCents = Number(settings?.beerkasse_price_cents ?? 0);
+  const sumupEnabled = settings?.beerkasse_sumup_enabled === true;
+  const sumupMerchantCode = settings?.beerkasse_sumup_merchant_code?.trim() ?? "";
 
   if (!premiumEnabled || !featureEnabled) {
     redirect(url({ beer_error: t("cashAction.beerDisabled") }, returnTo));
@@ -85,27 +92,35 @@ export async function recordBeerAction(formData: FormData) {
     redirect(url({ beer_error: t("cashAction.paypalMissing") }, returnTo));
   }
 
+  if (paymentMethod === "sumup" && (!sumupEnabled || !sumupMerchantCode || !process.env.SUMUP_API_KEY)) {
+    redirect(url({ beer_error: "SumUp ist noch nicht vollständig eingerichtet." }, returnTo));
+  }
+
   if (!Number.isInteger(unitPriceCents) || unitPriceCents < 1) {
     redirect(url({ beer_error: t("cashAction.invalidBeerPrice") }, returnTo));
   }
 
   const beerAmountCents = unitPriceCents * quantity;
   const totalCents = beerAmountCents + donationCents;
-  const { error } = await supabase.from("beer_consumptions").insert({
-    club_id: clubId,
-    player_id: player.id,
-    quantity,
-    unit_price_cents: unitPriceCents,
-    beer_amount_cents: beerAmountCents,
-    donation_cents: donationCents,
-    total_cents: totalCents,
-    payment_method: paymentMethod,
-    payment_status: "pending",
-    created_by: user.id,
-    updated_at: new Date().toISOString(),
-  });
+  const { data: createdConsumption, error } = await supabase
+    .from("beer_consumptions")
+    .insert({
+      club_id: clubId,
+      player_id: player.id,
+      quantity,
+      unit_price_cents: unitPriceCents,
+      beer_amount_cents: beerAmountCents,
+      donation_cents: donationCents,
+      total_cents: totalCents,
+      payment_method: paymentMethod,
+      payment_status: "pending",
+      created_by: user.id,
+      updated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single<{ id: number }>();
 
-  if (error) {
+  if (error || !createdConsumption) {
     redirect(url({ beer_error: t("cashAction.beerRecordFailed") }, returnTo));
   }
 
@@ -129,6 +144,45 @@ export async function recordBeerAction(formData: FormData) {
 
   if (paymentMethod === "cash") {
     redirect(url({ beer_saved: "cash" }, returnTo));
+  }
+
+  if (paymentMethod === "sumup") {
+    const appUrl = getAppUrl();
+    try {
+      const checkout = await createSumUpCheckout({
+        reference: `beer-${clubId.slice(0, 8)}-${createdConsumption.id}`,
+        amountCents: totalCents,
+        merchantCode: sumupMerchantCode,
+        description: `strikr Bierkasse · ${quantity} Bier${donationCents > 0 ? " + Bierspende" : ""}`,
+        returnUrl: `${appUrl}/api/mannschaftskasse/beer/sumup/callback?consumption_id=${createdConsumption.id}`,
+        redirectUrl: `${appUrl}/api/mannschaftskasse/beer/sumup/return?consumption_id=${createdConsumption.id}`,
+      });
+
+      await supabase
+        .from("beer_consumptions")
+        .update({
+          payment_external_id: checkout.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("club_id", clubId)
+        .eq("id", createdConsumption.id);
+
+      redirect(checkout.hosted_checkout_url as string);
+    } catch (sumupError) {
+      console.error("SumUp checkout failed", sumupError);
+      await supabase
+        .from("beer_consumptions")
+        .update({
+          payment_status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: user.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("club_id", clubId)
+        .eq("id", createdConsumption.id);
+
+      redirect(url({ beer_error: "SumUp-Zahlung konnte nicht gestartet werden." }, returnTo));
+    }
   }
 
   redirect(buildPaypalUrl(paypalUrl, totalCents));
