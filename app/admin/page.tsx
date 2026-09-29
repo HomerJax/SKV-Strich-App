@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Award, Users, UserRound, Settings, Shield, ToggleLeft, Megaphone, Timer, WalletCards } from "lucide-react";
+import { Award, Users, UserRound, Settings, Shield, ToggleLeft, Megaphone, Timer, WalletCards, ClipboardList } from "lucide-react";
 import ProFeatureLock from "@/components/billing/ProFeatureLock";
 import PageHero from "@/components/ui/PageHero";
 import { createClient } from "@/lib/supabase/server";
@@ -31,6 +31,7 @@ export default async function AdminPage(){
    <AdminCard href="/admin/game-timer" eyebrow={t("admin.trainingEyebrow")} title={t("admin.timerTitle")} description={t("admin.timerDescription")} openLabel={t("admin.open")} icon={<Timer className="h-6 w-6" strokeWidth={2.1}/>}/>
    <AdminCard href="/admin/announcements" eyebrow={t("admin.communicationEyebrow")} title={t("admin.announcementTitle")} description={t("admin.announcementDescription")} openLabel={t("admin.open")} icon={<Megaphone className="h-6 w-6" strokeWidth={2.1}/>}/>
    <AdminCard href="/mannschaftskasse" eyebrow={t("admin.teamLifeEyebrow")} title={t("admin.cashboxTitle")} description={t("admin.cashboxDescription")} openLabel={t("admin.open")} icon={<WalletCards className="h-6 w-6" strokeWidth={2.1}/>}/>
+   <AdminCard href="/arbeitsdienste" eyebrow="Teamleben" title="Arbeitsdienste" description="Schichten besetzen und mit Pro die geleisteten Stunden fair über die Saison verteilen." openLabel={t("admin.open")} icon={<ClipboardList className="h-6 w-6" strokeWidth={2.1}/>}/>
    <AdminCard href="/admin/settings" eyebrow={t("admin.settingsEyebrow")} title={t("admin.settingsTitle")} description={t("admin.settingsDescription")} openLabel={t("admin.open")} icon={<Settings className="h-6 w-6" strokeWidth={2.1}/>}/>
    {ctx.isPowerUser?<><AdminCard href="/power-user" eyebrow="Power User" title="Power User Dashboard" description={t("admin.powerDashboardDescription")} openLabel={t("admin.open")} icon={<Shield className="h-6 w-6" strokeWidth={2.1}/>}/><AdminCard href="/power-user/badges" eyebrow="Power User" title={t("admin.badgeCatalog")} description={t("admin.badgeCatalogDescription")} openLabel={t("admin.open")} icon={<Award className="h-6 w-6" strokeWidth={2.1}/>}/><AdminCard href="/power-user/flags" eyebrow="Power User" title={t("admin.featureFlags")} description={t("admin.featureFlagsDescription")} openLabel={t("admin.open")} icon={<ToggleLeft className="h-6 w-6" strokeWidth={2.1}/>}/></>:null}
   </div>
