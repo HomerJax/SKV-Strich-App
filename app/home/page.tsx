@@ -497,6 +497,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     homeSettings?.beerkasse_sumup_enabled === true &&
     Boolean(homeSettings?.beerkasse_sumup_merchant_code?.trim()) &&
     Boolean(process.env.SUMUP_API_KEY);
+  const bierkasseSumupConfigured =
+    Boolean(homeSettings?.beerkasse_sumup_merchant_code?.trim()) &&
+    Boolean(process.env.SUMUP_API_KEY);
   const bierkassePriceCents = Math.max(
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
@@ -940,6 +943,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               paypalPool={bierkassePaypalPool}
               paypalUrl={bierkassePaypalUrl}
               sumupEnabled={bierkasseSumupEnabled}
+              sumupConfigured={bierkasseSumupConfigured}
             />
             {q?.beer_saved === "cash" ? (
               <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
