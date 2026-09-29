@@ -52,6 +52,7 @@ export default function SessionAdminRsvpCard({ sessionId, players, hasResult, is
   const [isEvent, setIsEvent] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
   const [rosterPlayers, setRosterPlayers] = useState<EventRosterPlayer[]>([]);
+  const [savedRosterPlayers, setSavedRosterPlayers] = useState<EventRosterPlayer[]>([]);
   const [rosterLoading, setRosterLoading] = useState(false);
 
   useEffect(() => {
@@ -64,7 +65,9 @@ export default function SessionAdminRsvpCard({ sessionId, players, hasResult, is
         if (!response.ok) throw new Error(payload?.error || t("rsvp.rosterLoadFailed"));
         if (!active) return;
         setIsEvent(payload?.isEvent === true);
-        setRosterPlayers(Array.isArray(payload?.players) ? payload!.players! : []);
+        const nextPlayers = Array.isArray(payload?.players) ? payload!.players! : [];
+        setRosterPlayers(nextPlayers);
+        setSavedRosterPlayers(nextPlayers);
       })
       .catch((e: unknown) => {
         if (active) setError(e instanceof Error ? e.message : t("rsvp.rosterLoadFailed"));
@@ -102,20 +105,40 @@ export default function SessionAdminRsvpCard({ sessionId, players, hasResult, is
     }
   }
 
-  async function toggleRoster(player: EventRosterPlayer) {
-    if (busyPlayerId) return;
+  function toggleRoster(player: EventRosterPlayer) {
+    if (busyPlayerId !== null) return;
+    setError(null);
+    setRosterPlayers((current) =>
+      current.map((item) =>
+        item.id === player.id ? { ...item, nominated: !item.nominated } : item,
+      ),
+    );
+  }
+
+  const rosterChanges = rosterPlayers.filter((player) => {
+    const saved = savedRosterPlayers.find((item) => item.id === player.id);
+    return saved ? saved.nominated !== player.nominated : false;
+  });
+
+  async function saveRosterChanges() {
+    if (busyPlayerId !== null || rosterChanges.length === 0) return;
     try {
-      setBusyPlayerId(player.id);
+      setBusyPlayerId(-1);
       setError(null);
-      const response = await fetch(`/api/sessions/${sessionId}/event-roster`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId: player.id, nominated: !player.nominated }),
-      });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      if (!response.ok) throw new Error(payload?.error || t("rsvp.rosterUpdateFailed"));
-      if (typeof window !== "undefined") {
+      const responses = await Promise.all(
+        rosterChanges.map(async (player) => {
+          const response = await fetch(`/api/sessions/${sessionId}/event-roster`, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playerId: player.id, nominated: player.nominated }),
+          });
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+          if (!response.ok) throw new Error(payload?.error || t("rsvp.rosterUpdateFailed"));
+          return player.id;
+        }),
+      );
+      if (responses.length > 0 && typeof window !== "undefined") {
         window.sessionStorage.setItem(ATTENDANCE_SCROLL_KEY, String(window.scrollY));
         window.location.reload();
       }
@@ -167,15 +190,25 @@ export default function SessionAdminRsvpCard({ sessionId, players, hasResult, is
             </button>
           </div>
           {rosterOpen ? (
-            <div className="mt-4 grid gap-2 border-t border-violet-200 pt-4 sm:grid-cols-2">
-              {rosterPlayers.map((player) => (
-                <button key={player.id} type="button" disabled={busyPlayerId !== null} onClick={() => void toggleRoster(player)} className={`flex min-h-11 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left disabled:opacity-60 ${player.nominated ? "border-emerald-200 bg-white" : "border-slate-200 bg-slate-100"}`}>
-                  <span className="min-w-0 truncate text-sm font-semibold text-slate-900">{rosterName(player, t("rsvp.playerFallback"))}</span>
-                  <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${player.nominated ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
-                    {busyPlayerId === player.id ? "…" : player.nominated ? t("rsvp.inRoster") : t("rsvp.notInRoster")}
-                  </span>
+            <div className="mt-4 border-t border-violet-200 pt-4">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {rosterPlayers.map((player) => (
+                  <button key={player.id} type="button" disabled={busyPlayerId !== null} onClick={() => toggleRoster(player)} className={`flex min-h-11 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left disabled:opacity-60 ${player.nominated ? "border-emerald-200 bg-white" : "border-slate-200 bg-slate-100"}`}>
+                    <span className="min-w-0 truncate text-sm font-semibold text-slate-900">{rosterName(player, t("rsvp.playerFallback"))}</span>
+                    <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${player.nominated ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                      {player.nominated ? t("rsvp.inRoster") : t("rsvp.notInRoster")}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3 border-t border-violet-200 pt-3">
+                <span className="text-[11px] font-semibold text-slate-500">
+                  {rosterChanges.length > 0 ? `${rosterChanges.length} Änderung${rosterChanges.length === 1 ? "" : "en"}` : ""}
+                </span>
+                <button type="button" disabled={busyPlayerId !== null || rosterChanges.length === 0} onClick={() => void saveRosterChanges()} className="rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40">
+                  {busyPlayerId === -1 ? t("rsvp.saving") : t("rsvp.setRoster")}
                 </button>
-              ))}
+              </div>
             </div>
           ) : null}
         </section>
