@@ -17,7 +17,10 @@ export async function POST(request: Request) {
     const quantity = Number(String(formData.get("quantity") ?? "1"));
     const donationCentsRaw = Number(String(formData.get("donation_cents") ?? "0"));
     const requestedMethod = String(formData.get("payment_method") ?? "paypal");
-    const paymentMethod = ["cash", "paypal", "paypal_me", "sumup"].includes(requestedMethod) ? requestedMethod : "paypal";
+    const paymentMethod: "cash" | "paypal" | "paypal_me" | "sumup" =
+      requestedMethod === "cash" || requestedMethod === "paypal_me" || requestedMethod === "sumup"
+        ? requestedMethod
+        : "paypal";
 
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
       return NextResponse.json({ error: t("beerApi.invalidQuantity") }, { status: 400 });
@@ -49,8 +52,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Bierkasse ist nicht aktiv." }, { status: 403 });
     }
 
-    if (paymentMethod === "paypal" && !paypalUrl) {
-      return NextResponse.json({ error: "PayPal ist nicht eingerichtet." }, { status: 400 });
+    if (
+      (paymentMethod === "paypal" && !paypalUrl) ||
+      (paymentMethod === "paypal_me" && !paypalMeUrl) ||
+      (paymentMethod === "sumup" && !sumupUrl) ||
+      (paymentMethod === "cash" && settings?.beerkasse_cash_enabled === false)
+    ) {
+      return NextResponse.json({ error: "Diese Zahlungsart ist nicht eingerichtet." }, { status: 400 });
     }
 
     if (!Number.isInteger(unitPriceCents) || unitPriceCents < 1) {
