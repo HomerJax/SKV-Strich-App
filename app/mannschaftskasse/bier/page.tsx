@@ -146,7 +146,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
           <div className="flex items-end justify-between gap-3">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">{t("beerManage.payments")}</div>
-              <h2 className="mt-1 text-lg font-black text-slate-950">{t("beerManage.openToConfirm")}</h2>
+              <h2 className="mt-1 text-lg font-black text-slate-950">Zahlungen prüfen</h2>
             </div>
             <div className="flex items-center gap-2">
               {paypalUrl ? <a href={paypalUrl} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-[#0070ba]/20 bg-[#0070ba]/10 px-3 py-2 text-xs font-black text-[#0070ba]">PayPal öffnen ↗</a> : null}
@@ -161,7 +161,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                   <div>
                     <div className="font-black text-slate-950">{names.get(row.player_id) ?? t("beerManage.playerFallback", { id: row.player_id })}</div>
                     <div className="mt-1 text-xs font-medium text-slate-500">
-                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {row.payment_method === "cash" ? t("beerManage.cash") : "PayPal"} · {dateTime(row.created_at, locale)}
+                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {row.payment_method === "cash" ? t("beerManage.cash") : "PayPal"} · {dateTime(row.created_at, locale)}\n                      <span className="mt-2 block text-sm font-bold text-slate-900">Ist die Zahlung eingegangen?</span>
                     </div>
                   </div>
 
@@ -176,21 +176,21 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                         defaultValue={row.quantity}
                         className="w-16 rounded-xl border border-slate-200 px-2 py-2 text-center text-xs font-black"
                       />
-                      <button className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs font-black text-slate-700">
+                      <button className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-500">
                         {t("beerManage.correct")}
                       </button>
                     </form>
 
                     <form action={markBeerCashPaidAction}>
                       <input type="hidden" name="consumption_id" value={row.id} />
-                      <button className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white">
-                        {row.payment_method === "cash" ? t("beerManage.cashPaid") : t("beerManage.paypalPaid")}
+                      <button className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-sm">
+                        ✓ Geprüft & bestätigt
                       </button>
                     </form>
 
                     <form action={cancelBeerConsumptionAction}>
                       <input type="hidden" name="consumption_id" value={row.id} />
-                      <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700">
+                      <button className="rounded-xl px-2 py-2 text-[11px] font-semibold text-slate-400">
                         {t("beerManage.cancel")}
                       </button>
                     </form>
