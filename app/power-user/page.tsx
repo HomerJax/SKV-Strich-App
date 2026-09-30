@@ -283,7 +283,7 @@ export default async function PowerUserPage() {
             href="/power-user/product-analytics"
             label="Product Analytics"
             value="Live"
-            description="Sieh, welche Bereiche, Seiten und Features die Teams wirklich nutzen."
+            description="Sieh live, welche Bereiche, Seiten und Features die Teams wirklich nutzen."
             icon={<MousePointerClick className="h-6 w-6" strokeWidth={2.1} />}
             detailsLabel={detailsLabel}
           />
