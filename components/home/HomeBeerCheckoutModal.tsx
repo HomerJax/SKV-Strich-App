@@ -13,10 +13,11 @@ function formatEuro(cents: number, locale: AppLocale) {
   }).format(cents / 100);
 }
 
-function recordPoolBeer(quantity: number) {
+function recordPoolBeer(quantity: number, donationCents: number) {
   const body = new FormData();
   body.set("quantity", String(quantity));
   body.set("payment_method", "paypal");
+  body.set("donation_cents", String(donationCents));
 
   if (navigator.sendBeacon("/api/mannschaftskasse/beer", body)) {
     return;
@@ -46,6 +47,7 @@ export default function HomeBeerCheckoutModal({
   const [quantity, setQuantity] = useState(1);
   const [poolOpening, setPoolOpening] = useState(false);
   const [poolConfirmOpen, setPoolConfirmOpen] = useState(false);
+  const [donationCents, setDonationCents] = useState(0);
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
 
   function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
@@ -62,7 +64,7 @@ export default function HomeBeerCheckoutModal({
     }
 
     setPoolOpening(true);
-    recordPoolBeer(quantity);
+    recordPoolBeer(quantity, donationCents);
   }
 
   useEffect(() => {
@@ -87,6 +89,7 @@ export default function HomeBeerCheckoutModal({
           setQuantity(1);
           setPoolOpening(false);
           setPoolConfirmOpen(false);
+          setDonationCents(0);
           setOpen(true);
         }}
         className="flex w-full items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left shadow-sm transition active:scale-[0.99]"
@@ -226,6 +229,18 @@ export default function HomeBeerCheckoutModal({
             <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
               {t("beer.poolWarning")}
             </div>
+            <div className="mt-4">
+              <div className="text-sm font-black text-slate-950">Mannschaftskasse freiwillig unterstützen?</div>
+              <div className="mt-1 text-xs font-medium text-slate-500">Optional – kommt zusätzlich in eure Mannschaftskasse.</div>
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {[0, 100, 200, 500].map((value) => (
+                  <button key={value} type="button" onClick={() => setDonationCents(value)} className={"rounded-xl border px-2 py-2.5 text-xs font-black " + (donationCents === value ? "border-cyan-500 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600")}>
+                    {value === 0 ? "Nein danke" : "+" + formatEuro(value, locale)}
+                  </button>
+                ))}
+              </div>
+              {donationCents > 0 ? <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">Zu zahlen: {formatEuro(totalCents + donationCents, locale)} · davon {formatEuro(donationCents, locale)} freiwillig 💚</div> : null}
+            </div>
             <a
               href={paypalUrl}
               target="_blank"
@@ -233,7 +248,7 @@ export default function HomeBeerCheckoutModal({
               onClick={preparePaypalPoolOpen}
               className="mt-4 block w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-center text-sm font-black text-white shadow-sm"
             >
-              {t("beer.rememberPaypal", { price: formatEuro(totalCents, locale) })}
+              {t("beer.rememberPaypal", { price: formatEuro(totalCents + donationCents, locale) })}
             </a>
             <button
               type="button"
