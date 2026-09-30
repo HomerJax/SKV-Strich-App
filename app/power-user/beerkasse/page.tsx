@@ -11,7 +11,7 @@ type BeerRow = {
   quantity: number;
   unit_price_cents: number;
   total_cents: number;
-  payment_method: "paypal" | "cash";
+  payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
   payment_status: "pending" | "paid" | "cancelled";
   created_at: string;
 };
