@@ -167,7 +167,7 @@ export default function HomeBeerCheckoutModal({
               <div className="mt-4 grid gap-2">
                 {sumupEnabled ? (
                   <button name="payment_method" value="sumup" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-sky-200 bg-white px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
-                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5 text-sky-700" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-sky-700">SumUp</span><span className="block text-base font-black">${formatEuro(totalCents, locale)} · Link öffnen</span></span></span><span className="font-black">→</span>
+                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5 text-sky-700" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-sky-700">SumUp</span><span className="block text-base font-black">{formatEuro(totalCents, locale)} · Link öffnen</span></span></span><span className="font-black">→</span>
                   </button>
                 ) : null}
 
