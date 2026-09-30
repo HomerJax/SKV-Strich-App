@@ -8,6 +8,7 @@ import {
   CreditCard,
   MailCheck,
   MailOpen,
+  MousePointerClick,
   Shield,
   Sparkles,
   Trash2,
@@ -275,6 +276,15 @@ export default async function PowerUserPage() {
             value="Live"
             description={t("power.analyticsDesc")}
             icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
+          />
+
+          <KpiCard
+            href="/power-user/product-analytics"
+            label="Product Analytics"
+            value="Live"
+            description="Sieh, welche Bereiche, Seiten und Features die Teams wirklich nutzen."
+            icon={<MousePointerClick className="h-6 w-6" strokeWidth={2.1} />}
             detailsLabel={detailsLabel}
           />
 
