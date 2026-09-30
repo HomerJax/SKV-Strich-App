@@ -30,7 +30,7 @@ type BeerRow = {
   unit_price_cents: number;
   total_cents: number;
   donation_cents: number;
-  payment_method: "paypal" | "cash";
+  payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
   payment_status: "pending" | "paid" | "cancelled";
   paid_at: string | null;
   created_at: string;
@@ -47,6 +47,16 @@ function playerName(player: Player, locale: AppLocale) {
 
 function dateTime(value: string, locale: AppLocale) {
   return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-GB");
+}
+
+function paymentLabel(method: BeerRow["payment_method"], locale: AppLocale) {
+  return method === "cash"
+    ? translate(locale, "beerManage.cash")
+    : method === "paypal_me"
+      ? "PayPal.Me"
+      : method === "sumup"
+        ? "SumUp"
+        : "PayPal Pool";
 }
 
 function statusLabel(row: BeerRow, locale: AppLocale) {
@@ -84,13 +94,13 @@ export default async function BeerManagementPage({ searchParams }: Props) {
   const activeRows = rows.filter((row) => row.payment_status !== "cancelled");
   const pendingRows = activeRows.filter((row) => row.payment_status === "pending");
   const pendingCash = pendingRows.filter((row) => row.payment_method === "cash");
-  const pendingPaypal = pendingRows.filter((row) => row.payment_method === "paypal");
+  const pendingDigital = pendingRows.filter((row) => row.payment_method !== "cash");
   const totalBeers = activeRows.reduce((sum, row) => sum + row.quantity, 0);
   const pendingCashCents = pendingCash.reduce((sum, row) => sum + row.total_cents, 0);
   const paidCashCents = activeRows
     .filter((row) => row.payment_method === "cash" && row.payment_status === "paid")
     .reduce((sum, row) => sum + row.total_cents, 0);
-  const pendingPaypalCents = pendingPaypal.reduce((sum, row) => sum + row.total_cents, 0);
+  const pendingDigitalCents = pendingDigital.reduce((sum, row) => sum + row.total_cents, 0);
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -133,7 +143,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
             [t("beerManage.recorded"), `${totalBeers} 🍺`, t("beerManage.consumptionNoCancellations")],
             [t("beerManage.cashOpen"), formatCents(pendingCashCents), t("beerManage.entries", { count: pendingCash.length })],
             [t("beerManage.cashConfirmed"), formatCents(paidCashCents), t("beerManage.bookedToFund")],
-            [t("beerManage.paypalUnclear"), formatCents(pendingPaypalCents), t("beerManage.webhookLater")],
+            [t("beerManage.paypalUnclear"), formatCents(pendingDigitalCents), t("beerManage.webhookLater")],
           ].map(([label, value, hint]) => (
             <div key={label} className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
               <div className="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{label}</div>
@@ -162,7 +172,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                   <div>
                     <div className="font-black text-slate-950">{names.get(row.player_id) ?? t("beerManage.playerFallback", { id: row.player_id })}</div>
                     <div className="mt-1 text-xs font-medium text-slate-500">
-                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {row.payment_method === "cash" ? t("beerManage.cash") : "PayPal"} · {dateTime(row.created_at, locale)}
+                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {paymentLabel(row.payment_method, locale)} · {dateTime(row.created_at, locale)}
                       {row.donation_cents > 0 ? <span className="mt-1 block font-bold text-emerald-700">inkl. {formatCents(row.donation_cents)} freiwillig für die Mannschaftskasse 💚</span> : null}\n                      <span className="mt-2 block text-sm font-bold text-slate-900">Ist die Zahlung eingegangen?</span>
                     </div>
                   </div>
@@ -226,7 +236,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                       {names.get(row.player_id) ?? t("beerManage.playerFallback", { id: row.player_id })} · {row.quantity} 🍺
                     </div>
                     <div className="mt-0.5 text-[10px] font-medium text-slate-500">
-                      {row.payment_method === "cash" ? t("beerManage.cash") : "PayPal"} · {formatCents(row.total_cents)} · {dateTime(row.created_at, locale)}
+                      {paymentLabel(row.payment_method, locale)} · {formatCents(row.total_cents)} · {dateTime(row.created_at, locale)}
                     </div>
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black ${
