@@ -52,6 +52,7 @@ export default function HomeBeerCheckoutModal({
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [poolOpening, setPoolOpening] = useState(false);
+  const [poolReminderOpen, setPoolReminderOpen] = useState(false);
   const [donationCents, setDonationCents] = useState(0);
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
 
@@ -102,6 +103,7 @@ export default function HomeBeerCheckoutModal({
         onClick={() => {
           setQuantity(1);
           setPoolOpening(false);
+          setPoolReminderOpen(false);
           setDonationCents(0);
           setOpen(true);
         }}
@@ -161,28 +163,28 @@ export default function HomeBeerCheckoutModal({
               <input type="hidden" name="quantity" value={quantity} />
               <input type="hidden" name="return_to" value="/home" />
 
-              <div className="flex items-center justify-between rounded-[24px] border border-amber-200 bg-amber-50/60 p-4">
-                <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl font-black text-slate-900 shadow-sm ring-1 ring-slate-200" aria-label={t("beer.less")}>−</button>
+              <div className="flex items-center justify-between rounded-[20px] border border-amber-200 bg-amber-50/60 px-3 py-2.5">
+                <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-2xl font-black text-slate-900 shadow-sm ring-1 ring-slate-200" aria-label={t("beer.less")}>−</button>
                 <div className="min-w-0 text-center">
-                  <div className="text-5xl font-black tracking-tight text-slate-950">{quantity}</div>
-                  <div className="mt-1 text-xs font-black uppercase tracking-[.14em] text-slate-500">{t("beer.beer")}</div>
+                  <div className="text-3xl font-black tracking-tight text-slate-950">{quantity}</div>
+                  <div className="text-[10px] font-black uppercase tracking-[.14em] text-slate-500">{t("beer.beer")}</div>
                 </div>
-                <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-3xl font-black text-white shadow-sm" aria-label={t("beer.more")}>+</button>
+                <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-2xl font-black text-white shadow-sm" aria-label={t("beer.more")}>+</button>
               </div>
 
-              <div className="mt-4">
+              <div className="mt-3">
                 <div className="text-sm font-black text-slate-950">Mannschaftskasse unterstützen?</div>
                 <div className="mt-1 text-xs font-medium text-slate-500">Optional – einfach zum Bierbetrag dazu.</div>
-                <div className="mt-3 grid grid-cols-4 gap-2">
+                <div className="mt-2 grid grid-cols-4 gap-2">
                   {[0, 100, 200, 500].map((value) => (
-                    <button key={value} type="button" onClick={() => setDonationCents(value)} className={"rounded-xl border px-2 py-2.5 text-xs font-black transition " + (donationCents === value ? "border-cyan-500 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600")}>
+                    <button key={value} type="button" onClick={() => setDonationCents(value)} className={"rounded-xl border px-2 py-2 text-xs font-black transition " + (donationCents === value ? "border-cyan-500 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600")}>
                       {value === 0 ? "Nein" : "+" + formatEuro(value, locale)}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-950 px-4 py-3 text-white">
+              <div className="mt-3 flex items-center justify-between rounded-2xl bg-slate-950 px-4 py-3 text-white">
                 <span className="text-xs font-black uppercase tracking-[.16em] text-white/55">Gesamt</span>
                 <span className="text-2xl font-black">{formatEuro(totalCents + donationCents, locale)}</span>
               </div>
@@ -201,10 +203,10 @@ export default function HomeBeerCheckoutModal({
 
                 {paypalEnabled ? (
                   paypalPool ? (
-                    <a href={paypalUrl} onClick={preparePaypalPoolOpen} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
+                    <button type="button" onClick={() => setPoolReminderOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
                       <span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal Pool</span><span className="block text-base font-black">{formatEuro(totalCents + donationCents, locale)} zahlen</span></span>
                       <span className="font-black">→</span>
-                    </a>
+                    </button>
                   ) : (
                     <button name="payment_method" value="paypal" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
                       <span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span><span className="block text-base font-black">{formatEuro(totalCents, locale)} zahlen</span></span>
@@ -243,6 +245,20 @@ export default function HomeBeerCheckoutModal({
         </div>
       ) : null}
 
+      {poolReminderOpen ? (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-950/35 p-5 backdrop-blur-[2px]" onMouseDown={(event) => { if (event.target === event.currentTarget) setPoolReminderOpen(false); }}>
+          <div role="dialog" aria-modal="true" className="w-full max-w-xs rounded-[24px] bg-white p-5 text-center shadow-2xl">
+            <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0070ba]">PayPal Pool</div>
+            <div className="mt-2 text-sm font-bold text-slate-500">Merk dir den Betrag</div>
+            <div className="mt-1 text-4xl font-black tracking-tight text-slate-950">{formatEuro(totalCents + donationCents, locale)}</div>
+            <div className="mt-1 text-xs font-medium text-slate-500">Diesen Betrag gleich im Pool eingeben.</div>
+            <a href={paypalUrl} onClick={preparePaypalPoolOpen} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0070ba] px-4 py-3.5 text-base font-black text-white active:scale-[0.99]">
+              Zu PayPal <span>→</span>
+            </a>
+            <button type="button" onClick={() => setPoolReminderOpen(false)} className="mt-2 px-4 py-2 text-xs font-black text-slate-400">Abbrechen</button>
+          </div>
+        </div>
+      ) : null}
 
     </>
   );
