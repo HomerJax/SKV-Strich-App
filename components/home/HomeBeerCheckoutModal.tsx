@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Browser } from "@capacitor/browser";
 import { Banknote, CreditCard, X } from "lucide-react";
 import { recordBeerAction } from "@/app/mannschaftskasse/actions";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -67,11 +66,7 @@ export default function HomeBeerCheckoutModal({
     event.preventDefault();
     setPoolOpening(true);
     recordPoolBeer(quantity, donationCents);
-    try {
-      await Browser.open({ url: paypalUrl, presentationStyle: "popover" });
-    } catch {
-      window.open(paypalUrl, "_blank", "noopener,noreferrer");
-    }
+    window.open(paypalUrl, "_blank", "noopener,noreferrer");
   }
 
   useEffect(() => {
