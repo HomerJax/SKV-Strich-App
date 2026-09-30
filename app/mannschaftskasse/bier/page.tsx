@@ -29,6 +29,7 @@ type BeerRow = {
   quantity: number;
   unit_price_cents: number;
   total_cents: number;
+  donation_cents: number;
   payment_method: "paypal" | "cash";
   payment_status: "pending" | "paid" | "cancelled";
   paid_at: string | null;
@@ -70,7 +71,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
       .eq("is_guest", false),
     admin
       .from("beer_consumptions")
-      .select("id,player_id,quantity,unit_price_cents,total_cents,payment_method,payment_status,paid_at,created_at")
+      .select("id,player_id,quantity,unit_price_cents,total_cents,donation_cents,payment_method,payment_status,paid_at,created_at")
       .eq("club_id", clubId)
       .order("created_at", { ascending: false }),
     admin.from("club_settings").select("beerkasse_paypal_url").eq("club_id", clubId).maybeSingle<{ beerkasse_paypal_url: string | null }>(),
@@ -161,7 +162,8 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                   <div>
                     <div className="font-black text-slate-950">{names.get(row.player_id) ?? t("beerManage.playerFallback", { id: row.player_id })}</div>
                     <div className="mt-1 text-xs font-medium text-slate-500">
-                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {row.payment_method === "cash" ? t("beerManage.cash") : "PayPal"} · {dateTime(row.created_at, locale)}\n                      <span className="mt-2 block text-sm font-bold text-slate-900">Ist die Zahlung eingegangen?</span>
+                      {row.quantity} 🍺 · {formatCents(row.total_cents)} · {row.payment_method === "cash" ? t("beerManage.cash") : "PayPal"} · {dateTime(row.created_at, locale)}
+                      {row.donation_cents > 0 ? <span className="mt-1 block font-bold text-emerald-700">inkl. {formatCents(row.donation_cents)} freiwillig für die Mannschaftskasse 💚</span> : null}\n                      <span className="mt-2 block text-sm font-bold text-slate-900">Ist die Zahlung eingegangen?</span>
                     </div>
                   </div>
 
