@@ -869,17 +869,17 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         />
 
         {canManageCashbox && homeSettings?.beerkasse_enabled === true ? (
-          <section className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <section className={"rounded-2xl border px-4 py-3 " + (pendingBeerCount > 0 ? "border-amber-300 bg-amber-50/70 shadow-sm" : "border-slate-200 bg-white")}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700">Kassenwart</div>
+                <div className={"text-[10px] font-bold uppercase tracking-[0.18em] " + (pendingBeerCount > 0 ? "text-amber-700" : "text-cyan-700")}>{pendingBeerCount > 0 ? "Offen · Kassenwart" : "Kassenwart"}</div>
                 <div className="mt-0.5 text-sm font-semibold text-slate-950">
                   {pendingBeerCount > 0
                     ? pendingBeerCount + " Bierzahlung" + (pendingBeerCount === 1 ? "" : "en") + " zu bestätigen · " + new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }).format(pendingBeerTotalCents / 100)
                     : "Keine offenen Bierzahlungen"}
                 </div>
               </div>
-              <Link href="/mannschaftskasse/bier" className="shrink-0 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white">
+              <Link href="/mannschaftskasse/bier?review=1#offen" className="shrink-0 rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-slate-950 shadow-sm">
                 {pendingBeerCount > 0 ? "Prüfen" : "Bierkasse"}
               </Link>
             </div>
