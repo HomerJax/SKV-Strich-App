@@ -3,7 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToUsers } from "@/lib/push/send-push";
 
-type PaymentMethod = "paypal" | "cash";
+type PaymentMethod = "paypal" | "paypal_me" | "sumup" | "cash";
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("de-DE", {
@@ -82,7 +82,14 @@ export async function notifyBeerManagers(params: {
     player?.name?.trim() ||
     "Ein Spieler";
 
-  const methodLabel = paymentMethod === "cash" ? "bar" : "per PayPal";
+  const methodLabel =
+    paymentMethod === "cash"
+      ? "bar"
+      : paymentMethod === "paypal_me"
+        ? "per PayPal.Me"
+        : paymentMethod === "sumup"
+          ? "per SumUp"
+          : "per PayPal Pool";
 
   await sendPushToUsers({
     userIds,
