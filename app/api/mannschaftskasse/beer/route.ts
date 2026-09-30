@@ -16,20 +16,20 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const quantity = Number(String(formData.get("quantity") ?? "1"));
     const donationCentsRaw = Number(String(formData.get("donation_cents") ?? "0"));
-    const paymentMethod =
-      String(formData.get("payment_method") ?? "") === "cash" ? "cash" : "paypal";
+    const requestedMethod = String(formData.get("payment_method") ?? "paypal");
+    const paymentMethod = ["cash", "paypal", "paypal_me", "sumup"].includes(requestedMethod) ? requestedMethod : "paypal";
 
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
       return NextResponse.json({ error: t("beerApi.invalidQuantity") }, { status: 400 });
     }
 
-    const donationCents = paymentMethod === "paypal" && Number.isInteger(donationCentsRaw) && donationCentsRaw >= 0 && donationCentsRaw <= 10000 ? donationCentsRaw : 0;
+    const donationCents = paymentMethod !== "cash" && Number.isInteger(donationCentsRaw) && donationCentsRaw >= 0 && donationCentsRaw <= 10000 ? donationCentsRaw : 0;
 
     const supabase = await createClient();
     const { data: settings, error: settingsError } = await supabase
       .from("club_settings")
       .select(
-        "beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_price_cents",
+        "beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents",
       )
       .eq("club_id", clubId)
       .maybeSingle();
@@ -41,6 +41,8 @@ export async function POST(request: Request) {
     const premiumEnabled = settings?.beerkasse_premium_enabled === true;
     const featureEnabled = settings?.beerkasse_enabled === true;
     const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
+    const paypalMeUrl = settings?.beerkasse_paypal_me_url?.trim() ?? "";
+    const sumupUrl = settings?.beerkasse_sumup_url?.trim() ?? "";
     const unitPriceCents = Number(settings?.beerkasse_price_cents ?? 0);
 
     if (!premiumEnabled || !featureEnabled) {
