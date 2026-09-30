@@ -132,20 +132,20 @@ export default function HomeBeerCheckoutModal({
 
       {open ? (
         <div
-          className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] top-[calc(5.75rem+env(safe-area-inset-top))] z-[100] flex justify-center bg-slate-950/45 p-0 backdrop-blur-[3px] sm:inset-0 sm:items-center sm:p-4"
+          className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] top-[calc(5.75rem+env(safe-area-inset-top))] z-[100] flex justify-center overflow-hidden bg-white p-0 sm:inset-0 sm:items-center sm:bg-slate-950/55 sm:p-4 sm:backdrop-blur-[2px]"
           role="presentation"
           onMouseDown={(event) => {
             if (!poolConfirmOpen && event.target === event.currentTarget) setOpen(false);
           }}
           onTouchMove={(event) => {
-            if (poolConfirmOpen) event.preventDefault();
+            if (event.target === event.currentTarget || poolConfirmOpen) event.preventDefault();
           }}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="beer-checkout-title"
-            className="mt-3 h-[calc(100%-0.75rem)] w-full touch-pan-y overflow-y-auto overscroll-contain rounded-t-[30px] bg-white p-5 pb-6 shadow-2xl [-webkit-overflow-scrolling:touch] sm:mt-0 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-md sm:rounded-[30px] sm:p-6"
+            className="h-full w-full touch-pan-y overflow-y-auto overscroll-none bg-white p-5 pb-6 [-webkit-overflow-scrolling:touch] sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-md sm:overscroll-contain sm:rounded-[30px] sm:p-6 sm:shadow-2xl"
           >
 
             <div className="flex items-start justify-between gap-4">
