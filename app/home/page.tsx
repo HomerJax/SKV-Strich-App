@@ -495,6 +495,20 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
   );
+  let canManageCashbox = isAdmin;
+  if (!canManageCashbox && user?.id) {
+    const { data: managerRow } = await supabase.from("cashbox_managers").select("user_id").eq("club_id", clubId).eq("user_id", user.id).maybeSingle();
+    canManageCashbox = Boolean(managerRow);
+  }
+
+  let pendingBeerCount = 0;
+  let pendingBeerTotalCents = 0;
+  if (canManageCashbox && homeSettings?.beerkasse_enabled === true) {
+    const { data: pendingBeerRows } = await supabase.from("beer_consumptions").select("total_cents").eq("club_id", clubId).eq("payment_status", "pending");
+    pendingBeerCount = pendingBeerRows?.length ?? 0;
+    pendingBeerTotalCents = (pendingBeerRows ?? []).reduce((sum, row) => sum + Number(row.total_cents ?? 0), 0);
+  }
+
   const teamFeedPageSize = 8;
   const baseTeamFeedItems = teamFeedEnabled
     ? await getTeamFeedItems(clubId, teamFeedPageSize)
@@ -853,6 +867,29 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           }
           compact
         />
+
+        {canManageCashbox && homeSettings?.beerkasse_enabled === true ? (
+          <section className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700">Kassenwart</div>
+                <div className="mt-0.5 text-sm font-semibold text-slate-950">
+                  {pendingBeerCount > 0
+                    ? pendingBeerCount + " Bierzahlung" + (pendingBeerCount === 1 ? "" : "en") + " zu bestätigen · " + new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }).format(pendingBeerTotalCents / 100)
+                    : "Keine offenen Bierzahlungen"}
+                </div>
+              </div>
+              <Link href="/mannschaftskasse/bier" className="shrink-0 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white">
+                {pendingBeerCount > 0 ? "Prüfen" : "Bierkasse"}
+              </Link>
+            </div>
+            {bierkassePaypalUrl ? (
+              <a href={bierkassePaypalUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex text-xs font-semibold text-cyan-700">
+                PayPal-Pool öffnen →
+              </a>
+            ) : null}
+          </section>
+        ) : null}
 
         {nextSession ? (
           homeSessionRsvpEnabled ? (
