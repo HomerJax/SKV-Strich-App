@@ -12,7 +12,7 @@ import type { AppLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/messages";
 
 type Props = {
-  searchParams?: Promise<{ saved?: string; error?: string }>;
+  searchParams?: Promise<{ saved?: string; error?: string; review?: string }>;
 };
 
 type Player = {
@@ -62,7 +62,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
   const { clubId, isClubAdmin } = await requireBeerManagementAccess();
   const admin = createAdminClient();
 
-  const [{ data: playersData }, { data: rowsData }] = await Promise.all([
+  const [{ data: playersData }, { data: rowsData }, { data: settingsData }] = await Promise.all([
     admin
       .from("players")
       .select("id,name,first_name,last_name,nickname")
@@ -73,7 +73,9 @@ export default async function BeerManagementPage({ searchParams }: Props) {
       .select("id,player_id,quantity,unit_price_cents,total_cents,payment_method,payment_status,paid_at,created_at")
       .eq("club_id", clubId)
       .order("created_at", { ascending: false }),
+    admin.from("club_settings").select("beerkasse_paypal_url").eq("club_id", clubId).maybeSingle<{ beerkasse_paypal_url: string | null }>(),
   ]);
+  const paypalUrl = settingsData?.beerkasse_paypal_url?.trim() ?? "";
 
   const players = (playersData ?? []) as Player[];
   const rows = (rowsData ?? []) as BeerRow[];
@@ -140,15 +142,16 @@ export default async function BeerManagementPage({ searchParams }: Props) {
           ))}
         </div>
 
-        <section className="rounded-[26px] border border-amber-200 bg-white p-5 shadow-sm">
+        <section id="offen" className={"rounded-[26px] border bg-white p-5 shadow-sm " + (q?.review === "1" ? "border-amber-400 ring-2 ring-amber-100" : "border-amber-200")}>
           <div className="flex items-end justify-between gap-3">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">{t("beerManage.payments")}</div>
               <h2 className="mt-1 text-lg font-black text-slate-950">{t("beerManage.openToConfirm")}</h2>
             </div>
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">
-              {t("beerManage.openCount", { count: pendingRows.length })}
-            </span>
+            <div className="flex items-center gap-2">
+              {paypalUrl ? <a href={paypalUrl} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-[#0070ba]/20 bg-[#0070ba]/10 px-3 py-2 text-xs font-black text-[#0070ba]">PayPal öffnen ↗</a> : null}
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">{t("beerManage.openCount", { count: pendingRows.length })}</span>
+            </div>
           </div>
 
           <div className="mt-4 space-y-3">
@@ -205,6 +208,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
             {t("beerManage.paypalHint")}
           </p>
         </section>
+        {q?.review === "1" ? <script dangerouslySetInnerHTML={{ __html: 'document.getElementById("offen")?.scrollIntoView({block:"start"})' }} /> : null}
 
         <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black text-slate-950">{t("beerManage.latest")}</h2>
