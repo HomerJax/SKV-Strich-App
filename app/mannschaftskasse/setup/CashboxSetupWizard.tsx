@@ -389,7 +389,7 @@ export default function CashboxSetupWizard({
                 {t("cashSetup.treasurerTitle")}
               </h1>
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
-                {t("cashSetup.treasurerHint")}
+                {t("cashSetup.treasurerHint")}<br/><span className="text-sm text-slate-400">Mehrere Kassenwarte sind möglich. Sie verwalten Beiträge, FBZG und – falls aktiviert – auch die Bierkasse.</span>
               </p>
 
               <div className="mt-8 max-h-[42vh] space-y-2 overflow-y-auto pr-1">
@@ -464,7 +464,7 @@ export default function CashboxSetupWizard({
                   </>
                 ) : null}
                 <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
-                  <span className="font-bold">{t("cashSetup.additionalTreasurers")}</span>
+                  <span className="font-bold">Kassenwarte</span>
                   <b>{managerIds.length}</b>
                 </div>
               </div>
