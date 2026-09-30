@@ -242,13 +242,13 @@ export default function HomeBeerCheckoutModal({
 
       {poolConfirmOpen ? (
         <div
-          className="fixed inset-0 z-[120] flex items-end justify-center overflow-hidden bg-slate-950/60 p-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-[1100] flex items-end justify-center overflow-hidden bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
           onWheel={(event) => event.preventDefault()}
           onTouchMove={(event) => {
             if (event.target === event.currentTarget) event.preventDefault();
           }}
         >
-          <div role="dialog" aria-modal="true" aria-labelledby="paypal-pool-hint-title" className="max-h-[calc(100dvh-6.5rem-env(safe-area-inset-bottom))] w-full touch-pan-y overflow-y-auto overscroll-contain rounded-t-[32px] bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl [-webkit-overflow-scrolling:touch] sm:max-h-[calc(100dvh-2rem)] sm:max-w-sm sm:rounded-[30px] sm:p-6">
+          <div role="dialog" aria-modal="true" aria-labelledby="paypal-pool-hint-title" className="max-h-[calc(100dvh-env(safe-area-inset-top))] w-full touch-pan-y overflow-y-auto overscroll-contain rounded-t-[32px] bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl [-webkit-overflow-scrolling:touch] sm:max-h-[calc(100dvh-2rem)] sm:max-w-sm sm:rounded-[30px] sm:p-6">
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
             <div className="flex items-start justify-between gap-4">
               <div>
