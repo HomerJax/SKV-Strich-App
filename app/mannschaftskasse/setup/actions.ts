@@ -48,6 +48,9 @@ export async function saveCashboxSetupAction(formData: FormData) {
   }
 
   const paypalUrl = String(formData.get("paypal_url") ?? "").trim();
+  const paypalMeUrl = String(formData.get("paypal_me_url") ?? "").trim();
+  const sumupUrl = String(formData.get("sumup_url") ?? "").trim();
+  const cashEnabled = formData.get("cash_enabled") === "on";
   const priceCents = parseEuroToCents(String(formData.get("beer_price") ?? "").trim());
   const beerHomeEnabled = formData.get("beer_home_enabled") === "on";
 
@@ -56,7 +59,7 @@ export async function saveCashboxSetupAction(formData: FormData) {
       redirect(setupUrl({ error: "price" }));
     }
 
-    if (paypalUrl && !/^https:\/\//i.test(paypalUrl)) {
+    if ([paypalUrl, paypalMeUrl, sumupUrl].some((value) => value && !/^https:\/\//i.test(value))) {
       redirect(setupUrl({ error: "paypal" }));
     }
   }
@@ -74,6 +77,9 @@ export async function saveCashboxSetupAction(formData: FormData) {
   if (beerEnabled) {
     settingsPayload.beerkasse_price_cents = priceCents;
     settingsPayload.beerkasse_paypal_url = paypalUrl || null;
+    settingsPayload.beerkasse_paypal_me_url = paypalMeUrl || null;
+    settingsPayload.beerkasse_sumup_url = sumupUrl || null;
+    settingsPayload.beerkasse_cash_enabled = cashEnabled;
   }
 
   const { error: saveError } = await admin
