@@ -37,6 +37,9 @@ export default function BeerCheckoutCard({
   paypalEnabled,
   paypalPool,
   paypalUrl,
+  paypalMeEnabled,
+  sumupEnabled,
+  cashEnabled,
 }: {
   priceCents: number;
   myTotal: number;
@@ -44,6 +47,9 @@ export default function BeerCheckoutCard({
   paypalEnabled: boolean;
   paypalPool: boolean;
   paypalUrl: string;
+  paypalMeEnabled: boolean;
+  sumupEnabled: boolean;
+  cashEnabled: boolean;
 }) {
   const { locale, t } = useI18n();
   const [quantity, setQuantity] = useState(1);
@@ -120,16 +126,28 @@ export default function BeerCheckoutCard({
             </button>
           ) : null}
 
-          <button name="payment_method" value="cash" className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-white px-4 py-3.5 text-left text-slate-950 shadow-sm">
-            <span className="flex items-center gap-2">
-              <Banknote className="h-4 w-4 text-emerald-700" />
-              <span>
-                <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">{t("cashbox.cash")}</span>
-                <span className="block text-sm font-black">{t("cashbox.cashOpen", { price: formatEuro(totalCents, locale) })}</span>
+          {paypalMeEnabled ? (
+            <button name="payment_method" value="paypal_me" className="flex items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-3.5 text-left text-white shadow-sm">
+              <span className="flex items-center gap-2"><CreditCard className="h-4 w-4" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal.Me</span><span className="block text-sm font-black">{formatEuro(totalCents, locale)}</span></span></span><span className="font-black">→</span>
+            </button>
+          ) : null}
+          {sumupEnabled ? (
+            <button name="payment_method" value="sumup" className="flex items-center justify-between rounded-2xl border border-sky-200 bg-white px-4 py-3.5 text-left text-slate-950 shadow-sm">
+              <span className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-sky-700" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-sky-700">SumUp</span><span className="block text-sm font-black">{formatEuro(totalCents, locale)} · Link öffnen</span></span></span><span className="font-black">→</span>
+            </button>
+          ) : null}
+          {cashEnabled ? (
+            <button name="payment_method" value="cash" className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-white px-4 py-3.5 text-left text-slate-950 shadow-sm">
+              <span className="flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-emerald-700" />
+                <span>
+                  <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">{t("cashbox.cash")}</span>
+                  <span className="block text-sm font-black">{t("cashbox.cashOpen", { price: formatEuro(totalCents, locale) })}</span>
+                </span>
               </span>
-            </span>
-            <span className="font-black">→</span>
-          </button>
+              <span className="font-black">→</span>
+            </button>
+          ) : null}
         </div>
 
         <p className="mt-2 text-[11px] font-medium leading-4 text-slate-500">
