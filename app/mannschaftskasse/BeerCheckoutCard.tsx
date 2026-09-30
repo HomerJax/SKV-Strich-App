@@ -155,7 +155,7 @@ export default function BeerCheckoutCard({
             </div>
             <div className="mt-4">
               <div className="text-sm font-black text-slate-950">Mannschaftskasse freiwillig unterstützen?</div>
-              <div className="mt-1 text-xs font-medium text-slate-500">Optional – kommt zusätzlich in eure Mannschaftskasse.</div>
+              <div className="mt-1 text-xs font-medium text-slate-500">Optional – kommt zusätzlich in eure Mannschaftskasse. </div>
               <div className="mt-3 grid grid-cols-4 gap-2">
                 {[0, 100, 200, 500].map((value) => (
                   <button key={value} type="button" onClick={() => setDonationCents(value)} className={"rounded-xl border px-2 py-2.5 text-xs font-black " + (donationCents === value ? "border-cyan-500 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600")}>
