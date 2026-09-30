@@ -78,11 +78,27 @@ export default function HomeBeerCheckoutModal({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previous = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+    };
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
     window.addEventListener("keydown", onKeyDown);
+
     return () => {
-      document.body.style.overflow = previousOverflow;
+      body.style.overflow = previous.overflow;
+      body.style.position = previous.position;
+      body.style.top = previous.top;
+      body.style.width = previous.width;
+      window.scrollTo(0, scrollY);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [open, poolConfirmOpen]);
@@ -226,11 +242,13 @@ export default function HomeBeerCheckoutModal({
 
       {poolConfirmOpen ? (
         <div
-          className="fixed inset-0 z-[120] flex items-end justify-center overflow-hidden bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-          onWheel={(event) => event.stopPropagation()}
-          onTouchMove={(event) => event.stopPropagation()}
+          className="fixed inset-0 z-[120] flex items-end justify-center overflow-hidden bg-slate-950/60 p-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] backdrop-blur-sm sm:items-center sm:p-4"
+          onWheel={(event) => event.preventDefault()}
+          onTouchMove={(event) => {
+            if (event.target === event.currentTarget) event.preventDefault();
+          }}
         >
-          <div role="dialog" aria-modal="true" aria-labelledby="paypal-pool-hint-title" className="w-full overscroll-contain rounded-t-[32px] bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl sm:max-w-sm sm:rounded-[30px] sm:p-6">
+          <div role="dialog" aria-modal="true" aria-labelledby="paypal-pool-hint-title" className="max-h-[calc(100dvh-6.5rem-env(safe-area-inset-bottom))] w-full touch-pan-y overflow-y-auto overscroll-contain rounded-t-[32px] bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl [-webkit-overflow-scrolling:touch] sm:max-h-[calc(100dvh-2rem)] sm:max-w-sm sm:rounded-[30px] sm:p-6">
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -244,7 +262,7 @@ export default function HomeBeerCheckoutModal({
               </button>
             </div>
 
-            <div className="mt-5">
+            <div className="mt-4">
               <div className="text-sm font-black text-slate-950">Mannschaftskasse unterstützen?</div>
               <div className="mt-1 text-xs font-medium text-slate-500">Optional – einfach zum Bierbetrag dazu.</div>
               <div className="mt-3 grid grid-cols-4 gap-2">
@@ -256,16 +274,16 @@ export default function HomeBeerCheckoutModal({
               </div>
             </div>
 
-            <div className="mt-5 rounded-[22px] bg-slate-950 px-5 py-4 text-white">
+            <div className="mt-4 rounded-[20px] bg-slate-950 px-4 py-3 text-white">
               <div className="text-[10px] font-black uppercase tracking-[.18em] text-white/55">Merk dir diesen Betrag</div>
-              <div className="mt-1 text-4xl font-black tracking-tight">{formatEuro(totalCents + donationCents, locale)}</div>
+              <div className="mt-1 text-3xl font-black tracking-tight">{formatEuro(totalCents + donationCents, locale)}</div>
               <div className="mt-1 text-xs font-semibold text-white/65">Gleich im PayPal-Pool eingeben.</div>
             </div>
 
             <a
               href={paypalUrl}
               onClick={preparePaypalPoolOpen}
-              className="mt-3 flex min-h-[76px] w-full items-center justify-between rounded-[22px] bg-[#0070ba] px-5 py-4 text-white shadow-lg shadow-sky-900/10 active:scale-[0.99]"
+              className="mt-3 flex min-h-[64px] w-full items-center justify-between rounded-[20px] bg-[#0070ba] px-5 py-3.5 text-white shadow-lg shadow-sky-900/10 active:scale-[0.99]"
             >
               <span>
                 <span className="block text-[11px] font-black uppercase tracking-[.16em] text-white/70">Jetzt zu PayPal</span>
