@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Banknote, CreditCard, X } from "lucide-react";
 import { recordBeerAction } from "@/app/mannschaftskasse/actions";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -49,11 +50,13 @@ export default function HomeBeerCheckoutModal({
   cashEnabled: boolean;
 }) {
   const { locale, t } = useI18n();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [poolOpening, setPoolOpening] = useState(false);
   const [poolReminderOpen, setPoolReminderOpen] = useState(false);
   const [donationCents, setDonationCents] = useState(0);
+  const [successOpen, setSuccessOpen] = useState(false);
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
 
   function preparePaypalPoolOpen(event: React.MouseEvent<HTMLAnchorElement>) {
@@ -65,6 +68,13 @@ export default function HomeBeerCheckoutModal({
     setPoolOpening(true);
     recordPoolBeer(quantity, donationCents);
   }
+
+  useEffect(() => {
+    if (searchParams.get("beer_saved") !== "cash") return;
+    setOpen(false);
+    setSuccessOpen(true);
+    window.history.replaceState({}, "", window.location.pathname);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!open) return;
@@ -109,6 +119,13 @@ export default function HomeBeerCheckoutModal({
     document.addEventListener("touchmove", preventBackgroundTouch, { passive: false });
     return () => document.removeEventListener("touchmove", preventBackgroundTouch);
   }, [open, poolReminderOpen]);
+
+  useEffect(() => {
+    if (!successOpen) return;
+    const preventTouch = (event: TouchEvent) => event.preventDefault();
+    document.addEventListener("touchmove", preventTouch, { passive: false });
+    return () => document.removeEventListener("touchmove", preventTouch);
+  }, [successOpen]);
 
   return (
     <>
@@ -260,6 +277,24 @@ export default function HomeBeerCheckoutModal({
         </div>
       ) : null}
 
+      {successOpen ? (
+        <div className="fixed inset-0 z-[1200] flex touch-none items-center justify-center overscroll-none bg-slate-950/55 p-5 backdrop-blur-md" onTouchMove={(event) => event.preventDefault()}>
+          <div role="dialog" aria-modal="true" className="w-full max-w-xs rounded-[28px] border border-white/60 bg-white/80 p-5 text-center shadow-2xl shadow-slate-950/25 backdrop-blur-2xl">
+            <div className="text-4xl">🍻</div>
+            <div className="mt-2 text-xl font-black text-slate-950">Danke!</div>
+            <div className="mt-2 text-sm font-semibold leading-5 text-slate-600">
+              Dein Bier wurde eingetragen.
+            </div>
+            <div className="mt-3 rounded-2xl bg-white/60 px-4 py-3 text-xs font-semibold leading-5 text-slate-600">
+              Dein Kassenwart bestätigt die Zahlung noch. Erst danach wird sie in deiner Statistik als bezahlt gewertet.
+            </div>
+            <button type="button" onClick={() => setSuccessOpen(false)} className="mt-4 w-full rounded-2xl bg-slate-950 px-4 py-3.5 text-sm font-black text-white active:scale-[0.99]">
+              Fertig
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {poolReminderOpen ? (
         <div className="fixed inset-0 z-[1100] flex touch-none items-center justify-center overscroll-none bg-slate-950/55 p-5 backdrop-blur-md" onMouseDown={(event) => { if (event.target === event.currentTarget) setPoolReminderOpen(false); }} onTouchMove={(event) => event.preventDefault()}>
           <div role="dialog" aria-modal="true" className="w-full max-w-xs rounded-[28px] border border-white/60 bg-white/80 p-5 text-center shadow-2xl shadow-slate-950/25 backdrop-blur-2xl">
@@ -267,6 +302,7 @@ export default function HomeBeerCheckoutModal({
             <div className="mt-2 text-sm font-bold text-slate-500">Merk dir den Betrag</div>
             <div className="mt-1 text-4xl font-black tracking-tight text-slate-950">{formatEuro(totalCents + donationCents, locale)}</div>
             <div className="mt-1 text-xs font-medium text-slate-500">Diesen Betrag gleich im Pool eingeben.</div>
+            <div className="mt-3 rounded-2xl bg-white/55 px-3 py-2.5 text-[11px] font-semibold leading-4 text-slate-600">Der Eintrag wird in strikr vorgemerkt. Dein Kassenwart bestätigt die Zahlung anschließend – erst dann zählt sie in deiner Statistik als bezahlt.</div>
             <a href={paypalUrl} onClick={preparePaypalPoolOpen} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0070ba] px-4 py-3.5 text-base font-black text-white active:scale-[0.99]">
               Zu PayPal <span>→</span>
             </a>
