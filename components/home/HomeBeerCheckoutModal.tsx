@@ -97,12 +97,18 @@ export default function HomeBeerCheckoutModal({
   }, [open]);
 
   useEffect(() => {
-    if (!poolReminderOpen) return;
+    if (!open) return;
 
-    const preventTouch = (event: TouchEvent) => event.preventDefault();
-    document.addEventListener("touchmove", preventTouch, { passive: false });
-    return () => document.removeEventListener("touchmove", preventTouch);
-  }, [poolReminderOpen]);
+    const preventBackgroundTouch = (event: TouchEvent) => {
+      const target = event.target as Element | null;
+      if (poolReminderOpen || !target?.closest("[data-beer-checkout-scroll]")) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchmove", preventBackgroundTouch, { passive: false });
+    return () => document.removeEventListener("touchmove", preventBackgroundTouch);
+  }, [open, poolReminderOpen]);
 
   return (
     <>
@@ -133,7 +139,7 @@ export default function HomeBeerCheckoutModal({
 
       {open ? (
         <div
-          className="fixed inset-0 z-[1000] flex items-end justify-center overflow-hidden bg-slate-950/55 p-0 backdrop-blur-[3px] sm:items-center sm:p-4"
+          className="fixed inset-0 z-[1000] flex items-end justify-center overflow-hidden bg-slate-950/35 p-0 backdrop-blur-md sm:items-center sm:p-4"
           role="presentation"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setOpen(false);
@@ -146,7 +152,8 @@ export default function HomeBeerCheckoutModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="beer-checkout-title"
-            className="max-h-[calc(100dvh-2rem)] w-full touch-pan-y overflow-y-auto overscroll-contain rounded-t-[30px] bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl [-webkit-overflow-scrolling:touch] sm:max-w-md sm:rounded-[30px] sm:p-6"
+            data-beer-checkout-scroll
+            className="max-h-[calc(100dvh-2rem)] w-full touch-pan-y overflow-y-auto overscroll-contain rounded-t-[30px] border border-white/60 bg-white/80 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl shadow-slate-950/20 backdrop-blur-2xl [-webkit-overflow-scrolling:touch] sm:max-w-md sm:rounded-[30px] sm:p-6"
           >
 
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
@@ -171,7 +178,7 @@ export default function HomeBeerCheckoutModal({
               <input type="hidden" name="quantity" value={quantity} />
               <input type="hidden" name="return_to" value="/home" />
 
-              <div className="flex items-center justify-between rounded-[20px] border border-amber-200 bg-amber-50/60 px-3 py-2.5">
+              <div className="flex items-center justify-between rounded-[20px] border border-amber-200 bg-amber-50/70 px-3 py-2.5">
                 <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-2xl font-black text-slate-900 shadow-sm ring-1 ring-slate-200" aria-label={t("beer.less")}>−</button>
                 <div className="min-w-0 text-center">
                   <div className="text-3xl font-black tracking-tight text-slate-950">{quantity}</div>
@@ -185,7 +192,7 @@ export default function HomeBeerCheckoutModal({
                 <div className="mt-1 text-xs font-medium text-slate-500">Optional – einfach zum Bierbetrag dazu.</div>
                 <div className="mt-2 grid grid-cols-4 gap-2">
                   {[0, 100, 200, 500].map((value) => (
-                    <button key={value} type="button" onClick={() => setDonationCents(value)} className={"rounded-xl border px-2 py-2 text-xs font-black transition " + (donationCents === value ? "border-cyan-500 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600")}>
+                    <button key={value} type="button" onClick={() => setDonationCents(value)} className={"rounded-xl border px-2 py-2 text-xs font-black transition " + (donationCents === value ? "border-cyan-500 bg-cyan-50 text-cyan-800" : "border-white/70 bg-white/65 text-slate-600")}>
                       {value === 0 ? "Nein" : "+" + formatEuro(value, locale)}
                     </button>
                   ))}
@@ -199,7 +206,7 @@ export default function HomeBeerCheckoutModal({
 
               <div className="mt-4 grid gap-2">
                 {sumupEnabled ? (
-                  <button name="payment_method" value="sumup" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-sky-200 bg-white px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
+                  <button name="payment_method" value="sumup" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-white/70 bg-white/65 px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
                     <span className="flex items-center gap-3"><CreditCard className="h-5 w-5 text-sky-700" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-sky-700">SumUp</span><span className="block text-base font-black">{formatEuro(totalCents, locale)} · Link öffnen</span></span></span><span className="font-black">→</span>
                   </button>
                 ) : (
@@ -230,7 +237,7 @@ export default function HomeBeerCheckoutModal({
                 ) : null}
 
                 {cashEnabled ? (
-                <button name="payment_method" value="cash" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
+                <button name="payment_method" value="cash" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-white/70 bg-white/65 px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
                   <span className="flex items-center gap-3">
                     <Banknote className="h-5 w-5 text-emerald-700" />
                     <span>
