@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Banknote, CreditCard } from "lucide-react";
 import { recordBeerAction } from "./actions";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -57,6 +57,32 @@ export default function BeerCheckoutCard({
   const [poolConfirmOpen, setPoolConfirmOpen] = useState(false);
   const [donationCents, setDonationCents] = useState(0);
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
+
+  useEffect(() => {
+    if (!poolConfirmOpen) return;
+
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previous = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+    };
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+
+    return () => {
+      body.style.overflow = previous.overflow;
+      body.style.position = previous.position;
+      body.style.top = previous.top;
+      body.style.width = previous.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, [poolConfirmOpen]);
 
   function handlePaypalClick(event: React.MouseEvent<HTMLButtonElement>) {
     if (!paypalPool || poolOpening) return;
@@ -161,8 +187,8 @@ export default function BeerCheckoutCard({
         </p>
       </form>
       {poolConfirmOpen ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-[2px]">
-          <div role="dialog" aria-modal="true" aria-labelledby="cashbox-paypal-pool-hint-title" className="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-2xl">
+        <div className="fixed inset-0 z-[120] flex items-end justify-center overflow-hidden bg-slate-950/65 p-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:items-center sm:p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="cashbox-paypal-pool-hint-title" className="max-h-[calc(100dvh-6.5rem-env(safe-area-inset-bottom))] w-full touch-pan-y overflow-y-auto overscroll-contain rounded-t-[28px] bg-white p-5 shadow-2xl [-webkit-overflow-scrolling:touch] sm:max-h-[calc(100dvh-2rem)] sm:max-w-sm sm:rounded-[28px]">
             <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0070ba]">
               {t("cashbox.paypalPool")}
             </div>
