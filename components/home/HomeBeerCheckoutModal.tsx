@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Banknote, CreditCard, X } from "lucide-react";
+import { ArrowLeft, Banknote, CreditCard, X } from "lucide-react";
 import { recordBeerAction } from "@/app/mannschaftskasse/actions";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { AppLocale } from "@/lib/i18n/config";
@@ -241,28 +241,34 @@ export default function HomeBeerCheckoutModal({
       ) : null}
 
       {poolConfirmOpen ? (
-        <div
-          className="fixed inset-0 z-[1100] flex items-end justify-center overflow-hidden bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-          onWheel={(event) => event.preventDefault()}
-          onTouchMove={(event) => {
-            if (event.target === event.currentTarget) event.preventDefault();
-          }}
-        >
-          <div role="dialog" aria-modal="true" aria-labelledby="paypal-pool-hint-title" className="max-h-[calc(100dvh-env(safe-area-inset-top))] w-full touch-pan-y overflow-y-auto overscroll-contain rounded-t-[32px] bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl [-webkit-overflow-scrolling:touch] sm:max-h-[calc(100dvh-2rem)] sm:max-w-sm sm:rounded-[30px] sm:p-6">
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
+        <div className="fixed inset-0 z-[1100] overflow-hidden bg-white sm:flex sm:items-center sm:justify-center sm:bg-slate-950/55 sm:p-4 sm:backdrop-blur-[2px]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="paypal-pool-hint-title"
+            className="h-full w-full touch-pan-y overflow-y-auto overscroll-none bg-white px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] [-webkit-overflow-scrolling:touch] sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-md sm:overscroll-contain sm:rounded-[30px] sm:p-6 sm:shadow-2xl"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
+                <button
+                  type="button"
+                  onClick={() => { setPoolConfirmOpen(false); setPoolOpening(false); }}
+                  className="mb-3 inline-flex items-center gap-1.5 text-xs font-black text-slate-500"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Zurück
+                </button>
                 <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0070ba]">PayPal Pool</div>
                 <h3 id="paypal-pool-hint-title" className="mt-1 text-2xl font-black tracking-tight text-slate-950">
                   {quantity} {t("beer.beer")} · {formatEuro(totalCents, locale)}
                 </h3>
               </div>
-              <button type="button" onClick={() => { setPoolConfirmOpen(false); setPoolOpening(false); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500" aria-label={t("common.cancel")}>
-                <X className="h-4 w-4" />
+              <button type="button" onClick={() => { setPoolConfirmOpen(false); setOpen(false); setPoolOpening(false); }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600" aria-label={t("beer.close")}>
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-6">
               <div className="text-sm font-black text-slate-950">Mannschaftskasse unterstützen?</div>
               <div className="mt-1 text-xs font-medium text-slate-500">Optional – einfach zum Bierbetrag dazu.</div>
               <div className="mt-3 grid grid-cols-4 gap-2">
@@ -274,23 +280,21 @@ export default function HomeBeerCheckoutModal({
               </div>
             </div>
 
-            <div className="mt-4 rounded-[20px] bg-slate-950 px-4 py-3 text-white">
+            <div className="mt-5 rounded-[24px] bg-slate-950 px-5 py-4 text-white">
               <div className="text-[10px] font-black uppercase tracking-[.18em] text-white/55">Merk dir diesen Betrag</div>
-              <div className="mt-1 text-3xl font-black tracking-tight">{formatEuro(totalCents + donationCents, locale)}</div>
+              <div className="mt-1 text-4xl font-black tracking-tight">{formatEuro(totalCents + donationCents, locale)}</div>
               <div className="mt-1 text-xs font-semibold text-white/65">Gleich im PayPal-Pool eingeben.</div>
             </div>
 
             <a
               href={paypalUrl}
               onClick={preparePaypalPoolOpen}
-              className="mt-3 flex min-h-[64px] w-full items-center justify-between rounded-[20px] bg-[#0070ba] px-5 py-3.5 text-white shadow-lg shadow-sky-900/10 active:scale-[0.99]"
+              className="mt-4 flex min-h-[72px] w-full items-center justify-between rounded-[24px] bg-[#0070ba] px-5 py-4 text-white shadow-lg shadow-sky-900/10 active:scale-[0.99]"
             >
-              <span>
-                <span className="block text-lg font-black">PayPal öffnen</span>
-              </span>
+              <span className="text-xl font-black">PayPal öffnen</span>
               <span className="text-2xl font-black">→</span>
             </a>
-            <p className="mt-3 text-center text-[11px] font-medium leading-4 text-slate-400">
+            <p className="mt-4 text-center text-[11px] font-medium leading-4 text-slate-400">
               Der Kassenwart bestätigt die Zahlung anschließend in strikr.
             </p>
           </div>
