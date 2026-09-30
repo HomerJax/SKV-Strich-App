@@ -55,6 +55,9 @@ type HomeClubSettingsRow = {
   beerkasse_enabled: boolean | null;
   beerkasse_home_enabled: boolean | null;
   beerkasse_paypal_url: string | null;
+  beerkasse_paypal_me_url: string | null;
+  beerkasse_sumup_url: string | null;
+  beerkasse_cash_enabled: boolean | null;
   beerkasse_price_cents: number | null;
   home_team_feed_enabled: boolean | null;
 };
@@ -441,7 +444,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     supabase
       .from("club_settings")
       .select(
-        "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_price_cents, home_team_feed_enabled"
+        "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_paypal_me_url, beerkasse_sumup_url, beerkasse_cash_enabled, beerkasse_price_cents, home_team_feed_enabled"
       )
       .eq("club_id", clubId)
       .maybeSingle<HomeClubSettingsRow>(),
@@ -491,6 +494,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const bierkassePaypalUrl = homeSettings?.beerkasse_paypal_url?.trim() ?? "";
   const bierkassePaypalEnabled = Boolean(bierkassePaypalUrl);
   const bierkassePaypalPool = /paypal\.com\/pools?\//i.test(bierkassePaypalUrl);
+  const bierkassePaypalMeEnabled = Boolean(homeSettings?.beerkasse_paypal_me_url?.trim());
+  const bierkasseSumupEnabled = Boolean(homeSettings?.beerkasse_sumup_url?.trim());
+  const bierkasseCashEnabled = homeSettings?.beerkasse_cash_enabled !== false;
   const bierkassePriceCents = Math.max(
     1,
     Number(homeSettings?.beerkasse_price_cents ?? 200),
@@ -970,6 +976,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               paypalEnabled={bierkassePaypalEnabled}
               paypalPool={bierkassePaypalPool}
               paypalUrl={bierkassePaypalUrl}
+              paypalMeEnabled={bierkassePaypalMeEnabled}
+              sumupEnabled={bierkasseSumupEnabled}
+              cashEnabled={bierkasseCashEnabled}
             />
             {q?.beer_saved === "cash" ? (
               <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
