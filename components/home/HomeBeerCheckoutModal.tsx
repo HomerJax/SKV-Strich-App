@@ -169,7 +169,12 @@ export default function HomeBeerCheckoutModal({
                   <button name="payment_method" value="sumup" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-sky-200 bg-white px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
                     <span className="flex items-center gap-3"><CreditCard className="h-5 w-5 text-sky-700" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-sky-700">SumUp</span><span className="block text-base font-black">{formatEuro(totalCents, locale)} · Link öffnen</span></span></span><span className="font-black">→</span>
                   </button>
-                ) : null}
+                ) : (
+                  <button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-slate-100 px-4 py-4 text-left text-slate-400 opacity-70">
+                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em]">SumUp</span><span className="block text-base font-black">Demnächst</span></span></span>
+                    <span className="rounded-full bg-slate-200 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500">Coming soon</span>
+                  </button>
+                )}
 
                 {paypalEnabled ? (
                   <button name="payment_method" value="paypal" type={paypalPool ? "button" : "submit"} onClick={handlePaypalClick} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
@@ -227,31 +232,31 @@ export default function HomeBeerCheckoutModal({
             <h3 id="paypal-pool-hint-title" className="mt-1 text-2xl font-black text-slate-950">
               🍺 {quantity} {t("beer.beer")} · {formatEuro(totalCents, locale)}
             </h3>
-            <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
-              {t("beer.poolText", { price: formatEuro(totalCents, locale) })}
-            </p>
-            <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-900">
-              {t("beer.poolWarning")}
-            </div>
             <div className="mt-4">
               <div className="text-sm font-black text-slate-950">Mannschaftskasse freiwillig unterstützen?</div>
               <div className="mt-1 text-xs font-medium text-slate-500">Optional – kommt zusätzlich in eure Mannschaftskasse.</div>
               <div className="mt-3 grid grid-cols-4 gap-2">
                 {[0, 100, 200, 500].map((value) => (
                   <button key={value} type="button" onClick={() => setDonationCents(value)} className={"rounded-xl border px-2 py-2.5 text-xs font-black " + (donationCents === value ? "border-cyan-500 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600")}>
-                    {value === 0 ? "Nein danke" : "+" + formatEuro(value, locale)}
+                    {value === 0 ? "Nein" : "+" + formatEuro(value, locale)}
                   </button>
                 ))}
               </div>
-              <div className="mt-4 rounded-2xl border-2 border-slate-950 bg-slate-50 px-4 py-4 text-center">\n                <div className="text-[10px] font-black uppercase tracking-[.18em] text-slate-500">Zahlbetrag</div>\n                <div className="mt-1 text-4xl font-black tracking-tight text-slate-950">{formatEuro(totalCents + donationCents, locale)}</div>\n                <div className="mt-1 text-xs font-bold text-slate-600">Diesen Betrag gleich im PayPal-Pool eingeben.</div>\n                <div className="mt-2 text-[11px] font-medium text-slate-500">{formatEuro(totalCents, locale)} Bier{donationCents > 0 ? ` + ${formatEuro(donationCents, locale)} freiwillig 💚` : ""}</div>\n              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+              <span className="text-xs font-black uppercase tracking-[.14em] text-slate-500">Zu zahlen</span>
+              <span className="text-2xl font-black text-slate-950">{formatEuro(totalCents + donationCents, locale)}</span>
             </div>
             <a
               href={paypalUrl}
               onClick={preparePaypalPoolOpen}
               className="mt-4 block w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-center text-sm font-black text-white shadow-sm"
             >
-              PayPal öffnen →
+              PayPal öffnen · {formatEuro(totalCents + donationCents, locale)} →
             </a>
+            <p className="mt-2 text-center text-[11px] font-medium leading-4 text-slate-500">
+              Betrag im PayPal-Pool eingeben. Der Kassenwart bestätigt die Zahlung anschließend.
+            </p>
             <button
               type="button"
               onClick={() => {
