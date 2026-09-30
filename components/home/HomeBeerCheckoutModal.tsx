@@ -57,16 +57,14 @@ export default function HomeBeerCheckoutModal({
     setPoolConfirmOpen(true);
   }
 
-  async function preparePaypalPoolOpen(event: React.MouseEvent<HTMLAnchorElement>) {
+  function preparePaypalPoolOpen(event: React.MouseEvent<HTMLAnchorElement>) {
     if (poolOpening) {
       event.preventDefault();
       return;
     }
 
-    event.preventDefault();
     setPoolOpening(true);
     recordPoolBeer(quantity, donationCents);
-    window.open(paypalUrl, "_blank", "noopener,noreferrer");
   }
 
   useEffect(() => {
@@ -241,14 +239,14 @@ export default function HomeBeerCheckoutModal({
                   </button>
                 ))}
               </div>
-              {donationCents > 0 ? <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">Zu zahlen: {formatEuro(totalCents + donationCents, locale)} · davon {formatEuro(donationCents, locale)} freiwillig 💚</div> : null}
+              <div className="mt-4 rounded-2xl border-2 border-slate-950 bg-slate-50 px-4 py-4 text-center">\n                <div className="text-[10px] font-black uppercase tracking-[.18em] text-slate-500">Zahlbetrag</div>\n                <div className="mt-1 text-4xl font-black tracking-tight text-slate-950">{formatEuro(totalCents + donationCents, locale)}</div>\n                <div className="mt-1 text-xs font-bold text-slate-600">Diesen Betrag gleich im PayPal-Pool eingeben.</div>\n                <div className="mt-2 text-[11px] font-medium text-slate-500">{formatEuro(totalCents, locale)} Bier{donationCents > 0 ? ` + ${formatEuro(donationCents, locale)} freiwillig 💚` : ""}</div>\n              </div>
             </div>
             <a
               href={paypalUrl}
               onClick={preparePaypalPoolOpen}
               className="mt-4 block w-full rounded-2xl bg-[#0070ba] px-4 py-4 text-center text-sm font-black text-white shadow-sm"
             >
-              {t("beer.rememberPaypal", { price: formatEuro(totalCents + donationCents, locale) })}
+              PayPal öffnen →
             </a>
             <button
               type="button"
