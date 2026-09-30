@@ -109,24 +109,24 @@ export default function HomeTeamFeedPreview({
 
   return (
     <>
-      <section className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
+      <section className="rounded-2xl border border-slate-200/90 bg-white px-4 py-4">
         <div>
-          <h2 className="text-base font-black tracking-tight text-slate-950">
+          <h2 className="text-base font-bold tracking-tight text-slate-900">
             {t("teamFeed.title")}
           </h2>
-          <div className="mt-0.5 text-[10px] font-bold text-slate-400">
+          <div className="mt-0.5 text-[10px] font-medium text-slate-400">
             {t("teamFeed.subtitle")}
           </div>
         </div>
 
         {items.length > 0 ? (
-          <div className="mt-2 space-y-1">
+          <div className="mt-2 divide-y divide-slate-100">
             {items.map((item) => {
               if (item.kind === "badge" && item.badgeKey) {
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center gap-3 rounded-xl px-1 py-3 transition hover:bg-slate-50"
+                    className="flex items-center gap-3 px-1 py-3 transition hover:bg-slate-50/70"
                   >
                     <button
                       type="button"
@@ -150,15 +150,15 @@ export default function HomeTeamFeedPreview({
                     >
                       <div className="min-w-0 flex-1">
                         {item.body ? (
-                          <div className="text-[10px] font-black leading-4 text-amber-600">
+                          <div className="text-[10px] font-semibold leading-4 text-amber-600">
                             {item.body}
                           </div>
                         ) : null}
-                        <div className="mt-0.5 line-clamp-2 text-[13px] font-black leading-4 text-slate-950">
+                        <div className="mt-0.5 line-clamp-2 text-[13px] font-semibold leading-5 text-slate-900">
                           {item.title}
                         </div>
                         {item.actorName ? (
-                          <div className="mt-1 text-[10px] font-black text-violet-600">
+                          <div className="mt-1 text-[10px] font-semibold text-cyan-700">
                             {t("teamFeed.compare", { name: item.actorName })}
                           </div>
                         ) : null}
@@ -177,17 +177,17 @@ export default function HomeTeamFeedPreview({
                   key={item.id}
                   href={item.href}
                   onClick={() => trackProductEvent("team_feed_open", { kind: item.kind })}
-                  className="flex items-center gap-3 rounded-xl px-1 py-3 transition hover:bg-slate-50"
+                  className="flex items-center gap-3 px-1 py-3 transition hover:bg-slate-50/70"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                     <Medal className="h-4 w-4" />
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-black text-slate-950">
+                    <div className="truncate text-sm font-semibold text-slate-900">
                       {item.title}
                     </div>
-                    <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
+                    <div className="mt-0.5 truncate text-[11px] font-normal text-slate-500">
                       {item.body}
                     </div>
                   </div>
