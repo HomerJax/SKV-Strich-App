@@ -132,7 +132,7 @@ export default function HomeBeerCheckoutModal({
 
       {open ? (
         <div
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/55 p-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:items-center sm:p-4"
+          className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] top-[calc(7.15rem+env(safe-area-inset-top))] z-[100] flex justify-center bg-white p-0 sm:inset-0 sm:items-center sm:bg-slate-950/55 sm:p-4 sm:backdrop-blur-[2px]"
           role="presentation"
           onMouseDown={(event) => {
             if (!poolConfirmOpen && event.target === event.currentTarget) setOpen(false);
@@ -145,9 +145,9 @@ export default function HomeBeerCheckoutModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="beer-checkout-title"
-            className="max-h-[calc(100dvh-6.5rem-env(safe-area-inset-bottom))] w-full touch-pan-y overflow-y-auto overscroll-contain rounded-t-[30px] bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl [-webkit-overflow-scrolling:touch] sm:max-h-[calc(100dvh-2rem)] sm:max-w-md sm:rounded-[30px] sm:p-6"
+            className="h-full w-full touch-pan-y overflow-y-auto overscroll-contain bg-white p-5 pb-6 [-webkit-overflow-scrolling:touch] sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-md sm:rounded-[30px] sm:p-6 sm:shadow-2xl"
           >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
+
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
@@ -286,8 +286,7 @@ export default function HomeBeerCheckoutModal({
               className="mt-3 flex min-h-[64px] w-full items-center justify-between rounded-[20px] bg-[#0070ba] px-5 py-3.5 text-white shadow-lg shadow-sky-900/10 active:scale-[0.99]"
             >
               <span>
-                <span className="block text-[11px] font-black uppercase tracking-[.16em] text-white/70">Jetzt zu PayPal</span>
-                <span className="mt-0.5 block text-xl font-black">{formatEuro(totalCents + donationCents, locale)} eingeben</span>
+                <span className="block text-lg font-black">PayPal öffnen</span>
               </span>
               <span className="text-2xl font-black">→</span>
             </a>
