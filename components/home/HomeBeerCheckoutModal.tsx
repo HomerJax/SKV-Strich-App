@@ -57,7 +57,38 @@ export default function HomeBeerCheckoutModal({
   const [poolReminderOpen, setPoolReminderOpen] = useState(false);
   const [donationCents, setDonationCents] = useState(0);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [cashSaving, setCashSaving] = useState(false);
+  const [cashError, setCashError] = useState("");
   const totalCents = useMemo(() => quantity * priceCents, [quantity, priceCents]);
+
+  async function handleCashPayment() {
+    if (cashSaving) return;
+    setCashSaving(true);
+    setCashError("");
+
+    const body = new FormData();
+    body.set("quantity", String(quantity));
+    body.set("payment_method", "cash");
+
+    try {
+      const response = await fetch("/api/mannschaftskasse/beer", {
+        method: "POST",
+        body,
+        credentials: "same-origin",
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error || "Bier konnte nicht eingetragen werden.");
+      }
+
+      setOpen(false);
+      setSuccessOpen(true);
+    } catch (error) {
+      setCashError(error instanceof Error ? error.message : "Bier konnte nicht eingetragen werden.");
+    } finally {
+      setCashSaving(false);
+    }
+  }
 
   function preparePaypalPoolOpen(event: React.MouseEvent<HTMLAnchorElement>) {
     if (poolOpening) {
@@ -136,6 +167,8 @@ export default function HomeBeerCheckoutModal({
           setPoolOpening(false);
           setPoolReminderOpen(false);
           setDonationCents(0);
+          setCashError("");
+          setCashSaving(false);
           setOpen(true);
         }}
         className="flex w-full items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left shadow-sm transition active:scale-[0.99]"
@@ -254,18 +287,20 @@ export default function HomeBeerCheckoutModal({
                 ) : null}
 
                 {cashEnabled ? (
-                <button name="payment_method" value="cash" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-white/70 bg-white/65 px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
+                <button type="button" onClick={handleCashPayment} disabled={cashSaving} className="flex w-full items-center justify-between rounded-2xl border border-white/70 bg-white/65 px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99] disabled:opacity-60">
                   <span className="flex items-center gap-3">
                     <Banknote className="h-5 w-5 text-emerald-700" />
                     <span>
                       <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">{t("beer.cash")}</span>
-                      <span className="block text-base font-black">{t("beer.cashOpen")}</span>
+                      <span className="block text-base font-black">{cashSaving ? "Wird eingetragen …" : t("beer.cashOpen")}</span>
                     </span>
                   </span>
                   <span className="font-black">→</span>
                 </button>
                 ) : null}
               </div>
+
+              {cashError ? <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-700">{cashError}</p> : null}
 
               <p className="mt-3 text-center text-[11px] font-medium leading-4 text-slate-500">
                 {paypalPool
