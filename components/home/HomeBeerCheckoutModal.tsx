@@ -96,6 +96,14 @@ export default function HomeBeerCheckoutModal({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!poolReminderOpen) return;
+
+    const preventTouch = (event: TouchEvent) => event.preventDefault();
+    document.addEventListener("touchmove", preventTouch, { passive: false });
+    return () => document.removeEventListener("touchmove", preventTouch);
+  }, [poolReminderOpen]);
+
   return (
     <>
       <button
@@ -246,8 +254,8 @@ export default function HomeBeerCheckoutModal({
       ) : null}
 
       {poolReminderOpen ? (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-950/35 p-5 backdrop-blur-[2px]" onMouseDown={(event) => { if (event.target === event.currentTarget) setPoolReminderOpen(false); }}>
-          <div role="dialog" aria-modal="true" className="w-full max-w-xs rounded-[24px] bg-white p-5 text-center shadow-2xl">
+        <div className="fixed inset-0 z-[1100] flex touch-none items-center justify-center overscroll-none bg-slate-950/55 p-5 backdrop-blur-md" onMouseDown={(event) => { if (event.target === event.currentTarget) setPoolReminderOpen(false); }} onTouchMove={(event) => event.preventDefault()}>
+          <div role="dialog" aria-modal="true" className="w-full max-w-xs rounded-[28px] border border-white/60 bg-white/80 p-5 text-center shadow-2xl shadow-slate-950/25 backdrop-blur-2xl">
             <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0070ba]">PayPal Pool</div>
             <div className="mt-2 text-sm font-bold text-slate-500">Merk dir den Betrag</div>
             <div className="mt-1 text-4xl font-black tracking-tight text-slate-950">{formatEuro(totalCents + donationCents, locale)}</div>
@@ -255,7 +263,7 @@ export default function HomeBeerCheckoutModal({
             <a href={paypalUrl} onClick={preparePaypalPoolOpen} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0070ba] px-4 py-3.5 text-base font-black text-white active:scale-[0.99]">
               Zu PayPal <span>→</span>
             </a>
-            <button type="button" onClick={() => setPoolReminderOpen(false)} className="mt-2 px-4 py-2 text-xs font-black text-slate-400">Abbrechen</button>
+            <button type="button" onClick={() => setPoolReminderOpen(false)} className="mt-2 px-4 py-2 text-xs font-black text-slate-500">Abbrechen</button>
           </div>
         </div>
       ) : null}
