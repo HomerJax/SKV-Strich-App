@@ -139,7 +139,7 @@ export default function BeerCheckoutCard({
             <button type="button" disabled className="flex cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3.5 text-left text-slate-400 opacity-70">
               <span className="flex items-center gap-2"><CreditCard className="h-4 w-4" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em]">SumUp</span><span className="block text-sm font-black">Demnächst</span></span></span>
             </button>
-          )
+          )}
           {cashEnabled ? (
             <button name="payment_method" value="cash" className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-white px-4 py-3.5 text-left text-slate-950 shadow-sm">
               <span className="flex items-center gap-2">
