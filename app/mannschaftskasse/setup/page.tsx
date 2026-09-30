@@ -53,7 +53,7 @@ export default async function Page({ searchParams }: Props) {
       admin
         .from("club_settings")
         .select(
-          "cashbox_setup_completed,cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_home_enabled,beerkasse_paypal_url,beerkasse_price_cents",
+          "cashbox_setup_completed,cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_home_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents",
         )
         .eq("club_id", ctx.clubId)
         .maybeSingle(),
@@ -93,6 +93,9 @@ export default async function Page({ searchParams }: Props) {
         .toFixed(2)
         .replace(".", ",")}
       initialPaypalUrl={settings?.beerkasse_paypal_url ?? ""}
+      initialPaypalMeUrl={settings?.beerkasse_paypal_me_url ?? ""}
+      initialSumupUrl={settings?.beerkasse_sumup_url ?? ""}
+      initialCashEnabled={settings?.beerkasse_cash_enabled !== false}
       initialBeerHomeEnabled={settings?.beerkasse_home_enabled === true}
       players={players}
       error={errorText(q?.error, locale)}
