@@ -198,7 +198,7 @@ export default async function PowerUserPage() {
         quantity: number;
         total_cents: number;
         club_id: string;
-        payment_method: "paypal" | "cash";
+        payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
         payment_status: "pending" | "paid" | "cancelled";
       }[]);
   const activeBeerRows = beerRows.filter(
