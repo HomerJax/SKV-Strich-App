@@ -13,6 +13,7 @@ import NativeLastRouteTracker from "@/components/native/NativeLastRouteTracker";
 import GlobalActionFeedback from "@/components/ui/GlobalActionFeedback";
 import PublicDemoLauncher from "@/components/demo/PublicDemoLauncher";
 import I18nProvider from "@/components/i18n/I18nProvider";
+import ProductAnalyticsTracker from "@/components/ProductAnalyticsTracker";
 import { getServerI18n } from "@/lib/i18n/server";
 
 const marketingTitle = "strikr – Jedes Training zählt. | Training redefined.";
@@ -75,6 +76,7 @@ export default async function RootLayout({
         <NativeLastPathTracker />
         <NativeLastRouteTracker />
         <GlobalActionFeedback />
+        <ProductAnalyticsTracker />
         <PublicDemoLauncher />
 
         <RouteAwareAppShell
