@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { TeamFeedItem } from "@/lib/team-feed";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { AppLocale } from "@/lib/i18n/config";
+import { trackProductEvent } from "@/components/ProductAnalyticsTracker";
 
 function formatDate(value: string, locale: AppLocale) {
   return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-GB", {
@@ -132,6 +133,7 @@ export default function HomeTeamFeedPreview({
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
+                        trackProductEvent("badge_open", { badgeKey: item.badgeKey });
                         setOpenBadge(item);
                       }}
                       aria-label={t("teamFeed.viewDetails", { title: item.title })}
@@ -143,6 +145,7 @@ export default function HomeTeamFeedPreview({
 
                     <Link
                       href={item.href}
+                      onClick={() => trackProductEvent(item.actorName ? "compare_open" : "team_feed_open", { kind: item.kind })}
                       className="flex min-w-0 flex-1 items-center gap-3"
                     >
                       <div className="min-w-0 flex-1">
@@ -173,6 +176,7 @@ export default function HomeTeamFeedPreview({
                 <Link
                   key={item.id}
                   href={item.href}
+                  onClick={() => trackProductEvent("team_feed_open", { kind: item.kind })}
                   className="flex items-center gap-3 rounded-xl px-1 py-3 transition hover:bg-slate-50"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
