@@ -36,11 +36,17 @@ export default function HomeBeerCheckoutModal({
   paypalEnabled,
   paypalPool,
   paypalUrl,
+  paypalMeEnabled,
+  sumupEnabled,
+  cashEnabled,
 }: {
   priceCents: number;
   paypalEnabled: boolean;
   paypalPool: boolean;
   paypalUrl: string;
+  paypalMeEnabled: boolean;
+  sumupEnabled: boolean;
+  cashEnabled: boolean;
 }) {
   const { locale, t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -159,21 +165,11 @@ export default function HomeBeerCheckoutModal({
               </div>
 
               <div className="mt-4 grid gap-2">
-                <button
-                  type="button"
-                  disabled
-                  className="flex w-full cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left text-slate-400 shadow-sm"
-                  aria-label="SumUp – Apple Pay, Google Pay und Kartenzahlung – in Arbeit"
-                >
-                  <span className="flex items-center gap-3">
-                    <CreditCard className="h-5 w-5" />
-                    <span>
-                      <span className="block text-[10px] font-black uppercase tracking-[.16em] text-slate-400">SumUp</span>
-                      <span className="block text-base font-black">Apple Pay · Google Pay · Karte</span>
-                    </span>
-                  </span>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-black text-slate-400 ring-1 ring-slate-200">kommt</span>
-                </button>
+                {sumupEnabled ? (
+                  <button name="payment_method" value="sumup" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-sky-200 bg-white px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
+                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5 text-sky-700" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-sky-700">SumUp</span><span className="block text-base font-black">${formatEuro(totalCents, locale)} · Link öffnen</span></span></span><span className="font-black">→</span>
+                  </button>
+                ) : null}
 
                 {paypalEnabled ? (
                   <button name="payment_method" value="paypal" type={paypalPool ? "button" : "submit"} onClick={handlePaypalClick} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
@@ -192,6 +188,13 @@ export default function HomeBeerCheckoutModal({
                   </button>
                 ) : null}
 
+                {paypalMeEnabled ? (
+                  <button name="payment_method" value="paypal_me" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
+                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal.Me</span><span className="block text-base font-black">{formatEuro(totalCents, locale)}</span></span></span><span className="font-black">→</span>
+                  </button>
+                ) : null}
+
+                {cashEnabled ? (
                 <button name="payment_method" value="cash" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
                   <span className="flex items-center gap-3">
                     <Banknote className="h-5 w-5 text-emerald-700" />
@@ -202,6 +205,7 @@ export default function HomeBeerCheckoutModal({
                   </span>
                   <span className="font-black">→</span>
                 </button>
+                ) : null}
               </div>
 
               <p className="mt-3 text-center text-[11px] font-medium leading-4 text-slate-500">
