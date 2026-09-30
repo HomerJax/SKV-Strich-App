@@ -869,18 +869,18 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         />
 
         {canManageCashbox && homeSettings?.beerkasse_enabled === true ? (
-          <section className={"rounded-2xl border px-4 py-3 " + (pendingBeerCount > 0 ? "border-amber-300 bg-amber-50/70 shadow-sm" : "border-slate-200 bg-white")}>
+          <section className={"rounded-2xl border px-4 py-4 " + (pendingBeerCount > 0 ? "border-amber-400 bg-amber-100 shadow-[0_8px_24px_rgba(245,158,11,0.18)] ring-2 ring-amber-300/40" : "border-slate-200 bg-white")}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className={"text-[10px] font-bold uppercase tracking-[0.18em] " + (pendingBeerCount > 0 ? "text-amber-700" : "text-cyan-700")}>{pendingBeerCount > 0 ? "Offen · Kassenwart" : "Kassenwart"}</div>
+                <div className={"text-[10px] font-bold uppercase tracking-[0.18em] " + (pendingBeerCount > 0 ? "text-amber-700" : "text-cyan-700")}>{pendingBeerCount > 0 ? "⚠️ Aktion nötig · Kassenwart" : "Kassenwart"}</div>
                 <div className="mt-0.5 text-sm font-semibold text-slate-950">
                   {pendingBeerCount > 0
-                    ? pendingBeerCount + " Bierzahlung" + (pendingBeerCount === 1 ? "" : "en") + " zu bestätigen · " + new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }).format(pendingBeerTotalCents / 100)
+                    ? pendingBeerCount + " ZAHLUNG" + (pendingBeerCount === 1 ? "" : "EN") + " WART" + (pendingBeerCount === 1 ? "ET" : "EN") + " AUF DICH · " + new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }).format(pendingBeerTotalCents / 100)
                     : "Keine offenen Bierzahlungen"}
                 </div>
               </div>
-              <Link href="/mannschaftskasse/bier?review=1#offen" className="shrink-0 rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-slate-950 shadow-sm">
-                {pendingBeerCount > 0 ? "Prüfen" : "Bierkasse"}
+              <Link href="/mannschaftskasse/bier?review=1#offen" className="shrink-0 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm">
+                {pendingBeerCount > 0 ? "Jetzt prüfen →" : "Bierkasse"}
               </Link>
             </div>
             {bierkassePaypalUrl ? (
