@@ -68,7 +68,7 @@ type BeerConsumption = {
   quantity: number;
   unit_price_cents: number;
   total_cents: number;
-  payment_method: "paypal" | "cash";
+  payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
   payment_status: "pending" | "paid" | "cancelled";
   created_at: string;
 };
@@ -129,7 +129,7 @@ export default async function Page({ searchParams }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("club_settings")
-      .select("cashbox_setup_completed,cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
+      .select("cashbox_setup_completed,cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -211,6 +211,9 @@ export default async function Page({ searchParams }: Props) {
   const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
   const paypalEnabled = beerFeatureEnabled && Boolean(paypalUrl);
   const paypalPool = /paypal\.com\/pools?\//i.test(paypalUrl);
+  const paypalMeUrl = settings?.beerkasse_paypal_me_url?.trim() ?? "";
+  const sumupUrl = settings?.beerkasse_sumup_url?.trim() ?? "";
+  const cashEnabled = settings?.beerkasse_cash_enabled !== false;
   const today = new Date().toISOString().slice(0, 10);
   const teamBalance = transactions.reduce(
     (sum, transaction) => sum + transaction.amount_cents,
@@ -336,6 +339,9 @@ export default async function Page({ searchParams }: Props) {
             paypalEnabled={paypalEnabled}
             paypalPool={paypalPool}
             paypalUrl={paypalUrl}
+            paypalMeEnabled={Boolean(paypalMeUrl)}
+            sumupEnabled={Boolean(sumupUrl)}
+            cashEnabled={cashEnabled}
           />
         ) : null}
 
@@ -381,7 +387,7 @@ export default async function Page({ searchParams }: Props) {
                   <div>
                     <div className="text-sm font-black text-slate-900">{entry.quantity} 🍺 · {formatCents(entry.total_cents, locale)}</div>
                     <div className="mt-0.5 text-[10px] font-bold text-slate-500">
-                      {entry.payment_method === "cash" ? t("cashbox.cash") : "PayPal"} · {fmtDate(entry.created_at, locale)}
+                      {entry.payment_method === "cash" ? t("cashbox.cash") : entry.payment_method === "paypal_me" ? "PayPal.Me" : entry.payment_method === "sumup" ? "SumUp" : "PayPal Pool"} · {fmtDate(entry.created_at, locale)}
                     </div>
                   </div>
                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
