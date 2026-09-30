@@ -19,6 +19,9 @@ type Props = {
   initialBeerEnabled: boolean;
   initialBeerPrice: string;
   initialPaypalUrl: string;
+  initialPaypalMeUrl: string;
+  initialSumupUrl: string;
+  initialCashEnabled: boolean;
   initialBeerHomeEnabled: boolean;
   players: PlayerOption[];
   error?: string;
@@ -107,6 +110,9 @@ export default function CashboxSetupWizard({
   initialBeerEnabled,
   initialBeerPrice,
   initialPaypalUrl,
+  initialPaypalMeUrl,
+  initialSumupUrl,
+  initialCashEnabled,
   initialBeerHomeEnabled,
   players,
   error,
@@ -122,6 +128,9 @@ export default function CashboxSetupWizard({
   );
   const [beerPrice, setBeerPrice] = useState(initialBeerPrice);
   const [paypalUrl, setPaypalUrl] = useState(initialPaypalUrl);
+  const [paypalMeUrl, setPaypalMeUrl] = useState(initialPaypalMeUrl);
+  const [sumupUrl, setSumupUrl] = useState(initialSumupUrl);
+  const [cashEnabled, setCashEnabled] = useState(initialCashEnabled);
   const [beerHomeEnabled, setBeerHomeEnabled] = useState(
     initialBeerHomeEnabled,
   );
@@ -181,6 +190,9 @@ export default function CashboxSetupWizard({
         ) : null}
         <input type="hidden" name="beer_price" value={beerPrice} />
         <input type="hidden" name="paypal_url" value={paypalUrl} />
+        <input type="hidden" name="paypal_me_url" value={paypalMeUrl} />
+        <input type="hidden" name="sumup_url" value={sumupUrl} />
+        {cashEnabled ? <input type="hidden" name="cash_enabled" value="on" /> : null}
         {premiumBeer && beerEnabled && beerHomeEnabled ? (
           <input type="hidden" name="beer_home_enabled" value="on" />
         ) : null}
@@ -346,6 +358,18 @@ export default function CashboxSetupWizard({
                 className="mt-8 w-full rounded-[24px] border-2 border-slate-200 bg-white px-5 py-5 text-base font-bold outline-none transition focus:border-slate-950"
                 placeholder="https://paypal.me/euername"
               />
+              <div className="mt-5 space-y-4">
+                <label className="block text-sm font-black">PayPal.Me-Link (optional)
+                  <input value={paypalMeUrl} onChange={(event) => setPaypalMeUrl(event.target.value)} inputMode="url" placeholder="https://paypal.me/euername" className="mt-2 w-full rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-semibold" />
+                </label>
+                <label className="block text-sm font-black">SumUp-Zahlungslink (optional)
+                  <input value={sumupUrl} onChange={(event) => setSumupUrl(event.target.value)} inputMode="url" placeholder="https://pay.sumup.com/..." className="mt-2 w-full rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-semibold" />
+                </label>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <label className="flex items-center gap-3 text-sm font-bold"><input type="checkbox" checked={cashEnabled} onChange={(event) => setCashEnabled(event.target.checked)} /> Barzahlung anbieten</label>
+                </div>
+                <p className="text-xs leading-5 text-slate-500">Aktivierte Zahlungsarten erscheinen beim Bierkauf. Digitale Zahlungen müssen bis zur automatischen Schnittstelle weiterhin vom Kassenwart geprüft werden.</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setPaypalUrl("")}
@@ -455,7 +479,7 @@ export default function CashboxSetupWizard({
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
                       <span className="font-bold">PayPal</span>
-                      <b>{paypalUrl.trim() ? t("cashSetup.on") : t("cashSetup.off")}</b>
+                      <b>{[paypalUrl, paypalMeUrl, sumupUrl].filter((value) => value.trim()).length + (cashEnabled ? 1 : 0)} Zahlungsarten</b>
                     </div>
                     <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
                       <span className="font-bold">{t("cashSetup.homeButton")}</span>
