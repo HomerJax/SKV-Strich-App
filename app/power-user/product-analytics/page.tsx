@@ -25,9 +25,16 @@ export default async function ProductAnalyticsPage({searchParams}:{searchParams:
  const admin=createAdminClient();
  let query=admin.from("product_analytics_events").select("created_at,user_id,club_id,event_name,path").gte("created_at",startIso).lt("created_at",end.toISOString()).order("created_at",{ascending:false}).limit(50000);
  if(q.club) query=query.eq("club_id",q.club);
- const [{data:clubsData},{data:eventsData,error}]=await Promise.all([admin.from("clubs").select("id,display_name,name").order("display_name"),query]);
+ const [{data:clubsData},{data:eventsData,error},{data:powerUsersData,error:powerUsersError}]=await Promise.all([
+  admin.from("clubs").select("id,display_name,name").order("display_name"),
+  query,
+  admin.from("user_roles").select("user_id").eq("is_power_user",true)
+ ]);
  if(error) throw new Error("Product Analytics konnten nicht geladen werden: "+error.message);
- const clubs=(clubsData??[]) as ClubRow[]; const events=(eventsData??[]) as EventRow[];
+ if(powerUsersError) throw new Error("Power User konnten nicht geladen werden: "+powerUsersError.message);
+ const powerUserIds=new Set((powerUsersData??[]).map(row=>row.user_id).filter(Boolean));
+ const clubs=(clubsData??[]) as ClubRow[];
+ const events=((eventsData??[]) as EventRow[]).filter(event=>!event.user_id||!powerUserIds.has(event.user_id));
  const clubMap=new Map(clubs.map(c=>[c.id,c.display_name?.trim()||c.name?.trim()||"Ohne Namen"]));
  const stats=new Map<string,{clicks:number;users:Set<string>;clubs:Set<string>}>();
  for(const e of events){const s=stats.get(e.event_name)??{clicks:0,users:new Set<string>(),clubs:new Set<string>()};s.clicks++;if(e.user_id)s.users.add(e.user_id);if(e.club_id)s.clubs.add(e.club_id);stats.set(e.event_name,s)}
@@ -51,7 +58,7 @@ export default async function ProductAnalyticsPage({searchParams}:{searchParams:
    <div className="flex items-center gap-2 border-b border-slate-100 p-5"><BarChart3 className="h-5 w-5"/><div><h2 className="font-black">Nutzung nach Funktion</h2><p className="text-xs text-slate-500">{from} bis {to}{q.club?" · "+(clubMap.get(q.club)??"Verein"):" · alle Vereine"}</p></div></div>
    {ranking.length?<div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Bereich / Aktion</th><th className="px-5 py-3 text-right">Aufrufe / Klicks</th><th className="px-5 py-3 text-right">Eindeutige Nutzer</th><th className="px-5 py-3 text-right">Vereine</th></tr></thead><tbody className="divide-y divide-slate-100">{ranking.map(([name,s])=><tr key={name}><td className="px-5 py-3.5 font-bold text-slate-900">{LABELS[name]??name}</td><td className="px-5 py-3.5 text-right text-lg font-black">{s.clicks}</td><td className="px-5 py-3.5 text-right font-bold">{s.users.size}</td><td className="px-5 py-3.5 text-right font-bold">{s.clubs.size}</td></tr>)}</tbody></table></div>:<div className="p-8 text-center text-sm text-slate-500">Für diesen Zeitraum wurden noch keine Nutzungsdaten erfasst.</div>}
   </section>
-  <p className="px-1 text-xs text-slate-400">Tracking wird erst seit dem 30.09.2026 erfasst. Frühere Zeiträume können deshalb keine Daten enthalten.</p>
+  <p className="px-1 text-xs text-slate-400">Tracking wird erst seit dem 30.09.2026 erfasst. Frühere Zeiträume können deshalb keine Daten enthalten. Power-User-Aktivitäten sind aus der Statistik ausgeschlossen.</p>
  </section></main>
 }
 function Metric({icon,label,value}:{icon:React.ReactNode;label:string;value:string}){return <div className="rounded-[22px] border border-slate-200 bg-white p-4"><div className="flex items-center justify-between text-slate-500"><span className="text-xs font-bold uppercase tracking-wide">{label}</span>{icon}</div><div className="mt-2 text-3xl font-black">{value}</div></div>}
