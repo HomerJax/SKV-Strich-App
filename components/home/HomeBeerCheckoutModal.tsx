@@ -132,7 +132,7 @@ export default function HomeBeerCheckoutModal({
 
       {open ? (
         <div
-          className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] top-[calc(5.75rem+env(safe-area-inset-top))] z-[100] flex justify-center overflow-hidden bg-white p-0 sm:inset-0 sm:items-center sm:bg-slate-950/55 sm:p-4 sm:backdrop-blur-[2px]"
+          className="fixed inset-0 z-[1000] flex justify-center overflow-hidden bg-white p-0 sm:items-center sm:bg-slate-950/55 sm:p-4 sm:backdrop-blur-[2px]"
           role="presentation"
           onMouseDown={(event) => {
             if (!poolConfirmOpen && event.target === event.currentTarget) setOpen(false);
@@ -145,7 +145,7 @@ export default function HomeBeerCheckoutModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="beer-checkout-title"
-            className="h-full w-full touch-pan-y overflow-y-auto overscroll-none bg-white p-5 pb-6 [-webkit-overflow-scrolling:touch] sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-md sm:overscroll-contain sm:rounded-[30px] sm:p-6 sm:shadow-2xl"
+            className="h-full w-full touch-pan-y overflow-y-auto overscroll-none bg-white px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] [-webkit-overflow-scrolling:touch] sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-md sm:overscroll-contain sm:rounded-[30px] sm:p-6 sm:shadow-2xl"
           >
 
             <div className="flex items-start justify-between gap-4">
