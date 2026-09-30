@@ -15,12 +15,15 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const quantity = Number(String(formData.get("quantity") ?? "1"));
+    const donationCentsRaw = Number(String(formData.get("donation_cents") ?? "0"));
     const paymentMethod =
       String(formData.get("payment_method") ?? "") === "cash" ? "cash" : "paypal";
 
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
       return NextResponse.json({ error: t("beerApi.invalidQuantity") }, { status: 400 });
     }
+
+    const donationCents = paymentMethod === "paypal" && Number.isInteger(donationCentsRaw) && donationCentsRaw >= 0 && donationCentsRaw <= 10000 ? donationCentsRaw : 0;
 
     const supabase = await createClient();
     const { data: settings, error: settingsError } = await supabase
@@ -52,13 +55,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: t("beerApi.invalidPrice") }, { status: 400 });
     }
 
-    const totalCents = unitPriceCents * quantity;
+    const totalCents = unitPriceCents * quantity + donationCents;
     const { error } = await supabase.from("beer_consumptions").insert({
       club_id: clubId,
       player_id: player.id,
       quantity,
       unit_price_cents: unitPriceCents,
       total_cents: totalCents,
+      donation_cents: donationCents,
       payment_method: paymentMethod,
       payment_status: "pending",
       created_by: user.id,
