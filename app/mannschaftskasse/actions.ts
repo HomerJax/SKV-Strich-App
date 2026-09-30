@@ -51,14 +51,17 @@ export async function recordBeerAction(formData: FormData) {
     redirect(url({ beer_error: t("cashAction.invalidQuantity") }, returnTo));
   }
 
-  const paymentMethod =
-    String(formData.get("payment_method") ?? "") === "cash" ? "cash" : "paypal";
+  const rawPaymentMethod = String(formData.get("payment_method") ?? "");
+  const paymentMethod: "paypal" | "paypal_me" | "sumup" | "cash" =
+    rawPaymentMethod === "cash" || rawPaymentMethod === "paypal_me" || rawPaymentMethod === "sumup"
+      ? rawPaymentMethod
+      : "paypal";
 
   const supabase = await createClient();
   const { data: settings, error: settingsError } = await supabase
     .from("club_settings")
     .select(
-      "beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_price_cents",
+      "beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents",
     )
     .eq("club_id", clubId)
     .maybeSingle();
@@ -70,13 +73,21 @@ export async function recordBeerAction(formData: FormData) {
   const premiumEnabled = settings?.beerkasse_premium_enabled === true;
   const featureEnabled = settings?.beerkasse_enabled === true;
   const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
+  const paypalMeUrl = settings?.beerkasse_paypal_me_url?.trim() ?? "";
+  const sumupUrl = settings?.beerkasse_sumup_url?.trim() ?? "";
+  const cashEnabled = settings?.beerkasse_cash_enabled !== false;
   const unitPriceCents = Number(settings?.beerkasse_price_cents ?? 0);
 
   if (!premiumEnabled || !featureEnabled) {
     redirect(url({ beer_error: t("cashAction.beerDisabled") }, returnTo));
   }
 
-  if (paymentMethod === "paypal" && !paypalUrl) {
+  if (
+    (paymentMethod === "paypal" && !paypalUrl) ||
+    (paymentMethod === "paypal_me" && !paypalMeUrl) ||
+    (paymentMethod === "sumup" && !sumupUrl) ||
+    (paymentMethod === "cash" && !cashEnabled)
+  ) {
     redirect(url({ beer_error: t("cashAction.paypalMissing") }, returnTo));
   }
 
@@ -123,7 +134,13 @@ export async function recordBeerAction(formData: FormData) {
     redirect(url({ beer_saved: "cash" }, returnTo));
   }
 
-  redirect(buildPaypalUrl(paypalUrl, totalCents));
+  if (paymentMethod === "paypal_me") {
+    redirect(buildPaypalUrl(paypalMeUrl, totalCents));
+  }
+  if (paymentMethod === "sumup") {
+    redirect(sumupUrl);
+  }
+  redirect(paypalUrl);
 }
 
 function beerManageUrl(params: Record<string, string> = {}) {
@@ -156,7 +173,7 @@ export async function markBeerCashPaidAction(formData: FormData) {
       id: number;
       quantity: number;
       total_cents: number;
-      payment_method: "paypal" | "cash";
+      payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
       payment_status: "pending" | "paid" | "cancelled";
       cash_transaction_id: number | null;
     }>();
@@ -180,7 +197,7 @@ export async function markBeerCashPaidAction(formData: FormData) {
         amount_cents: entry.total_cents,
         kind: "income",
         category: "Getränke",
-        title: `Bierkasse · ${entry.quantity} Bier · ${entry.payment_method === "cash" ? "Bar" : "PayPal"}`,
+        title: `Bierkasse · ${entry.quantity} Bier · ${entry.payment_method === "cash" ? "Bar" : entry.payment_method === "paypal_me" ? "PayPal.Me" : entry.payment_method === "sumup" ? "SumUp" : "PayPal Pool"}`,
         source_type: "beer",
         source_id: entry.id,
         source_key: sourceKey,
@@ -256,7 +273,7 @@ export async function updateBeerConsumptionAction(formData: FormData) {
       quantity: number;
       unit_price_cents: number;
       total_cents: number;
-      payment_method: "paypal" | "cash";
+      payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
       payment_status: "pending" | "paid" | "cancelled";
       cash_transaction_id: number | null;
     }>();
@@ -330,7 +347,7 @@ export async function cancelBeerConsumptionAction(formData: FormData) {
       id: number;
       quantity: number;
       total_cents: number;
-      payment_method: "paypal" | "cash";
+      payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
       payment_status: "pending" | "paid" | "cancelled";
       cash_transaction_id: number | null;
     }>();
