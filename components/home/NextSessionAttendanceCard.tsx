@@ -118,8 +118,7 @@ export default function NextSessionAttendanceCard({
   const [reason, setReason] = useState("");
   const [notNominated, setNotNominated] = useState(false);
   const [latePenaltyMessage, setLatePenaltyMessage] = useState<string | null>(null);
-  const [showParticipants, setShowParticipants] = useState(false);
-  const [showAbsences, setShowAbsences] = useState(false);
+  const [showAttendanceDetails, setShowAttendanceDetails] = useState(false);
 
   useEffect(() => {
     setNow(new Date());
@@ -309,7 +308,7 @@ export default function NextSessionAttendanceCard({
         <div className="overflow-hidden rounded-[18px] border border-cyan-100 bg-cyan-50/45">
           <button
             type="button"
-            onClick={() => setShowParticipants((value) => !value)}
+            onClick={() => setShowAttendanceDetails((value) => !value)}
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
           >
             <div className="flex items-center gap-2.5">
@@ -323,10 +322,10 @@ export default function NextSessionAttendanceCard({
                 </div>
               </div>
             </div>
-            <ChevronDown className={`h-4 w-4 text-cyan-700 transition ${showParticipants ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-4 w-4 text-cyan-700 transition ${showAttendanceDetails ? "rotate-180" : ""}`} />
           </button>
 
-          {showParticipants ? (
+          {showAttendanceDetails ? (
             <div className="border-t border-cyan-100 bg-white/80 px-3 py-3">
               {participantNames.length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -349,7 +348,7 @@ export default function NextSessionAttendanceCard({
         <div className="overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50/60">
           <button
             type="button"
-            onClick={() => setShowAbsences((value) => !value)}
+            onClick={() => setShowAttendanceDetails((value) => !value)}
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
           >
             <div className="flex items-center gap-2.5">
@@ -363,10 +362,10 @@ export default function NextSessionAttendanceCard({
                 </div>
               </div>
             </div>
-            <ChevronDown className={`h-4 w-4 text-rose-700 transition ${showAbsences ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-4 w-4 text-rose-700 transition ${showAttendanceDetails ? "rotate-180" : ""}`} />
           </button>
 
-          {showAbsences ? (
+          {showAttendanceDetails ? (
             <div className="border-t border-rose-100 bg-white/70 px-3 py-3">
               {absentPlayers.length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
