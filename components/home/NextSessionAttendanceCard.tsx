@@ -399,11 +399,6 @@ export default function NextSessionAttendanceCard({
                          </div>
                        </div>
                      </Link>
-                      <div className={`mt-0.5 text-[11px] leading-4 ${player.reason ? "font-normal text-slate-500" : "text-slate-400"}`}>
-                        {player.reason ? player.reason : t("session.noReason")}
-                      </div>
-                      </div>
-                    </div>
                   ))}
                 </div>
               ) : (
