@@ -32,6 +32,7 @@ export default function HomeTeamFeedPreview({
   const [loading, setLoading] = useState(false);
   const [openBadge, setOpenBadge] = useState<TeamFeedItem | null>(null);
   const [reactionBusy, setReactionBusy] = useState<string | null>(null);
+  const [openReactions, setOpenReactions] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const { locale, t } = useI18n();
 
@@ -258,46 +259,30 @@ export default function HomeTeamFeedPreview({
                       </div>
                     </Link>
 
-                    <div className="ml-[52px] mt-2.5">
-                      <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                        {locale === "de" ? "Reagieren" : "React"}
+                    <div className="ml-[52px] mt-1.5">
+                      <div className="flex flex-wrap items-center gap-1">
+                        {options.filter(({ key }) => (item.reactions?.[key] ?? 0) > 0).map(({ key, emoji }) => (
+                          <span key={key} className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 ring-1 ring-inset ring-slate-200/70">
+                            {emoji} {item.reactions?.[key] ?? 0}
+                          </span>
+                        ))}
+                        <button type="button" onClick={() => setOpenReactions((current) => current === item.id ? null : item.id)} className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-[10px] font-semibold text-slate-400 transition hover:bg-slate-50 hover:text-slate-700">
+                          <span>☺</span><span>+</span>
+                        </button>
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        {options.map(({ key, emoji, label }) => {
-                          const active = item.myReactions?.includes(key) === true;
-                          const count = item.reactions?.[key] ?? 0;
-                          const busy = reactionBusy === item.id;
-
-                          return (
-                            <button
-                              key={key}
-                              type="button"
-                              aria-pressed={active}
-                              disabled={busy}
-                              onClick={() => void toggleReaction(item.id, key)}
-                              className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition duration-150 active:scale-95 disabled:cursor-wait disabled:opacity-60 ${
-                                active
-                                  ? "bg-slate-900 text-white shadow-sm"
-                                  : "bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200/80 hover:bg-slate-100"
-                              }`}
-                            >
-                              <span className="text-[12px] leading-none">{emoji}</span>
-                              <span>{label}</span>
-                              {count > 0 ? (
-                                <span
-                                  className={`min-w-4 rounded-full px-1 text-center text-[9px] font-bold leading-4 ${
-                                    active
-                                      ? "bg-white/15 text-white"
-                                      : "bg-white text-slate-500 ring-1 ring-inset ring-slate-200"
-                                  }`}
-                                >
-                                  {count}
-                                </span>
-                              ) : null}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      {openReactions === item.id ? (
+                        <div className="mt-1.5 flex flex-wrap gap-1 rounded-xl bg-slate-50/80 p-1.5">
+                          {options.map(({ key, emoji, label }) => {
+                            const active = item.myReactions?.includes(key) === true;
+                            const busy = reactionBusy === item.id;
+                            return (
+                              <button key={key} type="button" aria-pressed={active} disabled={busy} onClick={() => void toggleReaction(item.id, key)} className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition active:scale-95 ${active ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-inset ring-slate-200"}`}>
+                                <span>{emoji}</span><span>{label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 );
