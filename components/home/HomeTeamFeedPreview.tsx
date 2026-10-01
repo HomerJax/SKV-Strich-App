@@ -254,38 +254,29 @@ export default function HomeTeamFeedPreview({
                       </div>
                     </div>
 
-                    <div className="ml-[38px] mt-2">
-                      {openReactions !== item.id ? (
-                        <button type="button" onClick={() => setOpenReactions(item.id)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-1.5 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100 active:scale-[0.98]">
-                          <span>${locale === "de" ? "Abstimmen" : "Vote"}</span>
-                          <span className="text-slate-300">·</span>
-                          <span className="font-bold text-slate-400">${options.reduce((sum, option) => sum + (item.reactions?.[option.key] ?? 0), 0)} ${locale === "de" ? "Stimmen" : "votes"}</span>
-                        </button>
-                      ) : (
-                        <div className="max-w-sm space-y-1.5 rounded-xl border border-slate-200/80 bg-slate-50/60 p-2">
-                          {options.map(({ key, label }) => {
-                            const count = item.reactions?.[key] ?? 0;
-                            const total = options.reduce((sum, option) => sum + (item.reactions?.[option.key] ?? 0), 0);
-                            const percent = total > 0 ? Math.round((count / total) * 100) : 0;
-                            const maxCount = Math.max(...options.map((option) => item.reactions?.[option.key] ?? 0));
-                            const leading = count > 0 && count === maxCount;
-                            const active = item.myReactions?.includes(key) === true;
-                            const busy = reactionBusy === item.id;
-                            return (
-                              <button key={key} type="button" aria-pressed={active} disabled={busy} onClick={() => void toggleReaction(item.id, key)} className={`relative flex h-9 w-full items-center overflow-hidden rounded-lg border px-2.5 text-left transition active:scale-[0.99] ${leading ? "border-cyan-300 bg-cyan-50/60 shadow-sm" : active ? "border-slate-400 bg-white" : "border-slate-200/80 bg-white/80 hover:border-slate-300"}`}>
-                                <span className={`absolute inset-y-0 left-0 transition-all duration-500 ${leading ? "bg-cyan-200/70" : "bg-slate-100"}`} style={{ width: `${percent}%` }} />
-                                <span className={`relative z-10 flex w-full items-center justify-between gap-3 text-[10px] ${leading ? "font-extrabold text-cyan-950" : active ? "font-bold text-slate-900" : "font-semibold text-slate-600"}`}>
-                                  <span className="flex items-center gap-1.5">{label}{leading ? <span className="text-[9px]">🔥</span> : null}</span>
-                                  <span className={`rounded-full px-1.5 py-0.5 tabular-nums ${leading ? "bg-white/70 text-cyan-800" : "text-slate-400"}`}>{count}</span>
-                                </span>
-                              </button>
-                            );
-                          })}
-                          <button type="button" onClick={() => setOpenReactions(null)} className="px-1 pt-0.5 text-[9px] font-semibold text-slate-400 hover:text-slate-600">
-                            {locale === "de" ? "Schließen" : "Close"}
+                    <div className="ml-[38px] mt-2 flex flex-wrap gap-1.5">
+                      {options.map(({ key, label }) => {
+                        const count = item.reactions?.[key] ?? 0;
+                        const active = item.myReactions?.includes(key) === true;
+                        const busy = reactionBusy === item.id;
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            aria-pressed={active}
+                            disabled={busy}
+                            onClick={() => void toggleReaction(item.id, key)}
+                            className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-semibold transition duration-150 active:scale-95 ${active ? "border-cyan-300 bg-cyan-50 text-cyan-800 shadow-sm ring-1 ring-cyan-100" : "border-slate-200 bg-white text-slate-500 shadow-sm hover:border-slate-300 hover:text-slate-700"}`}
+                          >
+                            <span>{label}</span>
+                            {count > 0 ? (
+                              <span className={`min-w-[14px] rounded-full px-1 text-center text-[9px] font-bold tabular-nums ${active ? "bg-cyan-100 text-cyan-700" : "bg-slate-100 text-slate-400"}`}>
+                                {count}
+                              </span>
+                            ) : null}
                           </button>
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
                 );
