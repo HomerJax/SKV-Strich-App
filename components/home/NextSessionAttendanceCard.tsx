@@ -29,7 +29,7 @@ type NextSessionAttendanceCardProps = {
   startTime?: string | null;
   rsvpDeadlineMinutesBefore?: number;
   sessionRsvpDeadlineMinutesBefore?: number | null;
-  participants?: { id: number; name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[];
+  participantNames?: string[];
   absentPlayers?: { name: string; reason: string | null }[];
   requireAbsenceReason?: boolean;
   readOnly?: boolean;
@@ -99,7 +99,7 @@ export default function NextSessionAttendanceCard({
   startTime,
   rsvpDeadlineMinutesBefore = 60,
   sessionRsvpDeadlineMinutesBefore = null,
-  participants = [],
+  participantNames = [],
   absentPlayers = [],
   requireAbsenceReason = false,
   readOnly = false,
@@ -328,14 +328,14 @@ export default function NextSessionAttendanceCard({
 
           {showParticipants ? (
             <div className="border-t border-cyan-100 bg-white/80 px-3 py-3">
-              {participants.length > 0 ? (
+              {participantNames.length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {participants.map((player) => (
-                    <Link key={`participant-${player.id}`} href={`/badges?player=${player.id}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5 transition hover:bg-cyan-50">
+                  {participantNames.map((name, index) => (
+                    <div key={`participant-${name}-${index}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-[10px] font-black uppercase text-cyan-800">
-                        {player.photoUrl ? <img src={player.photoUrl} alt="" className="h-full w-full object-cover" style={{objectPosition:`${player.photoPositionX??50}% ${player.photoPositionY??50}%`,transform:`scale(${Number(player.photoZoom??1)})`,transformOrigin:`${player.photoPositionX??50}% ${player.photoPositionY??50}%`}}/> : player.name.trim().charAt(0) || "?"}
+                        {name.trim().charAt(0) || "?"}
                       </span>
-                      <span className="min-w-0 truncate text-xs font-bold text-slate-800">{player.name}</span>
+                      <span className="min-w-0 truncate text-xs font-bold text-slate-800">{name}</span>
                     </div>
                   ))}
                 </div>
