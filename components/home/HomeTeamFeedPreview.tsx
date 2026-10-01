@@ -267,14 +267,16 @@ export default function HomeTeamFeedPreview({
                             const count = item.reactions?.[key] ?? 0;
                             const total = options.reduce((sum, option) => sum + (item.reactions?.[option.key] ?? 0), 0);
                             const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+                            const maxCount = Math.max(...options.map((option) => item.reactions?.[option.key] ?? 0));
+                            const leading = count > 0 && count === maxCount;
                             const active = item.myReactions?.includes(key) === true;
                             const busy = reactionBusy === item.id;
                             return (
-                              <button key={key} type="button" aria-pressed={active} disabled={busy} onClick={() => void toggleReaction(item.id, key)} className={`relative flex h-8 w-full items-center overflow-hidden rounded-lg border px-2.5 text-left transition active:scale-[0.99] ${active ? "border-slate-400 bg-white" : "border-slate-200/80 bg-white/80 hover:border-slate-300"}`}>
-                                <span className="absolute inset-y-0 left-0 bg-slate-100 transition-all" style={{ width: `${percent}%` }} />
-                                <span className={`relative z-10 flex w-full items-center justify-between gap-3 text-[10px] ${active ? "font-bold text-slate-900" : "font-semibold text-slate-600"}`}>
-                                  <span>{label}</span>
-                                  <span className="tabular-nums text-slate-400">{count}</span>
+                              <button key={key} type="button" aria-pressed={active} disabled={busy} onClick={() => void toggleReaction(item.id, key)} className={`relative flex h-9 w-full items-center overflow-hidden rounded-lg border px-2.5 text-left transition active:scale-[0.99] ${leading ? "border-cyan-300 bg-cyan-50/60 shadow-sm" : active ? "border-slate-400 bg-white" : "border-slate-200/80 bg-white/80 hover:border-slate-300"}`}>
+                                <span className={`absolute inset-y-0 left-0 transition-all duration-500 ${leading ? "bg-cyan-200/70" : "bg-slate-100"}`} style={{ width: `${percent}%` }} />
+                                <span className={`relative z-10 flex w-full items-center justify-between gap-3 text-[10px] ${leading ? "font-extrabold text-cyan-950" : active ? "font-bold text-slate-900" : "font-semibold text-slate-600"}`}>
+                                  <span className="flex items-center gap-1.5">{label}{leading ? <span className="text-[9px]">🔥</span> : null}</span>
+                                  <span className={`rounded-full px-1.5 py-0.5 tabular-nums ${leading ? "bg-white/70 text-cyan-800" : "text-slate-400"}`}>{count}</span>
                                 </span>
                               </button>
                             );
