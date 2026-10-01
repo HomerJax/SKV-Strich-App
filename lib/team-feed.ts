@@ -7,7 +7,7 @@ import type { AppLocale } from "@/lib/i18n/config";
 
 export type TeamFeedItem = {
   id: string;
-  kind: "badge" | "result" | "birthday" | "beer";
+  kind: "badge" | "result" | "birthday" | "beer" | "late_rsvp";
   title: string;
   body: string;
   href: string;
@@ -40,6 +40,7 @@ type BadgePlayer = {
 
 type BirthdayPlayer = { id: number; first_name: string | null; last_name: string | null; nickname: string | null; birth_date: string | null; };
 type BeerRow = { player_id: number; quantity: number | null; created_at: string; players: BadgePlayer | BadgePlayer[] | null; };
+type LateRsvpRow = { id: number; player_id: number; value: string; created_at: string; source_key: string | null; players: BadgePlayer | BadgePlayer[] | null; };
 
 type AchievementRow = {
   id: string;
@@ -336,7 +337,32 @@ export async function getTeamFeedItems(
       };
     });
 
-  const combinedItems = [...birthdayItems, ...beerItems, ...badgeItems, ...resultItems];
+  const { data: lateRsvpData } = await supabase
+    .from("penalties")
+    .select(`id, player_id, value, created_at, source_key, players (first_name, last_name, nickname)`)
+    .eq("club_id", clubId)
+    .like("source_key", "late_rsvp:%")
+    .order("created_at", { ascending: false })
+    .limit(Math.max(12, limit * 2));
+
+  const lateRsvpItems: TeamFeedItem[] = ((lateRsvpData ?? []) as LateRsvpRow[]).map((row) => {
+    const actorName = playerName(row.players, locale);
+    const amount = /€/.test(row.value) ? row.value : `${row.value} €`;
+    const sessionId = row.source_key?.split(":")[1];
+    return {
+      id: `late-rsvp:${row.id}`,
+      kind: "late_rsvp" as const,
+      title: locale === "de" ? `⏰ ${actorName} ist doch noch dabei!` : `⏰ ${actorName} made it after all!`,
+      body: locale === "de"
+        ? `Schön, dass du’s noch geschafft hast. 😄 Danke auch für deinen ${amount} FBZG – die Mannschaftskasse freut sich. 🍻`
+        : `Glad you still made it. 😄 Thanks for the ${amount} team contribution too. 🍻`,
+      href: sessionId ? `/sessions/${sessionId}` : "/mannschaftskasse",
+      occurredAt: row.created_at,
+      actorName,
+    };
+  });
+
+  const combinedItems = [...lateRsvpItems, ...birthdayItems, ...beerItems, ...badgeItems, ...resultItems];
   const reactionFeedIds = combinedItems.filter((item) => item.kind === "birthday" || item.kind === "beer").map((item) => item.id);
   if (reactionFeedIds.length > 0) {
     const { data: reactionRows } = await supabase.from("team_feed_reactions").select("feed_id,reaction,user_id").eq("club_id", clubId).in("feed_id", reactionFeedIds);
