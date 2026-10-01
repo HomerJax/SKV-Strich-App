@@ -238,7 +238,7 @@ export default function HomeTeamFeedPreview({
                 return (
                   <div key={item.id} className="px-1 py-3">
                     <div className="flex items-start gap-2.5 rounded-xl px-1 py-1">
-                      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[14px] ring-1 ring-inset ring-amber-100/80">
+                      <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] ring-1 ring-inset ${item.kind === "beer" ? "bg-amber-50 text-amber-700 ring-amber-100/80" : "bg-rose-50 text-rose-600 ring-rose-100/80"}`}>
                         {item.kind === "beer" ? "🍺" : "🎂"}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -266,11 +266,11 @@ export default function HomeTeamFeedPreview({
                             aria-pressed={active}
                             disabled={busy}
                             onClick={() => void toggleReaction(item.id, key)}
-                            className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-semibold transition duration-150 active:scale-95 ${active ? "border-cyan-300 bg-cyan-50 text-cyan-800 shadow-sm ring-1 ring-cyan-100" : "border-slate-200 bg-white text-slate-500 shadow-sm hover:border-slate-300 hover:text-slate-700"}`}
+                            className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] transition duration-150 active:scale-90 ${active ? "scale-[1.04] border-cyan-500 bg-cyan-500 font-extrabold uppercase tracking-[0.02em] text-white shadow-[0_4px_12px_rgba(6,182,212,0.24)] ring-2 ring-cyan-100" : "border-slate-200 bg-white font-semibold text-slate-500 shadow-sm hover:border-slate-300 hover:text-slate-700"}`}
                           >
                             <span>{label}</span>
                             {count > 0 ? (
-                              <span className={`min-w-[14px] rounded-full px-1 text-center text-[9px] font-bold tabular-nums ${active ? "bg-cyan-100 text-cyan-700" : "bg-slate-100 text-slate-400"}`}>
+                              <span className={`min-w-[14px] rounded-full px-1 text-center text-[9px] font-bold tabular-nums ${active ? "bg-white/90 text-cyan-700" : "bg-slate-100 text-slate-400"}`}>
                                 {count}
                               </span>
                             ) : null}
