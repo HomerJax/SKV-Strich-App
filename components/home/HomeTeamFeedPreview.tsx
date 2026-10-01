@@ -33,6 +33,7 @@ export default function HomeTeamFeedPreview({
   const [openBadge, setOpenBadge] = useState<TeamFeedItem | null>(null);
   const [reactionBusy, setReactionBusy] = useState<string | null>(null);
   const [openReactions, setOpenReactions] = useState<string | null>(null);
+  const [reactionBoom, setReactionBoom] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const { locale, t } = useI18n();
 
@@ -41,6 +42,12 @@ export default function HomeTeamFeedPreview({
 
     setReactionBusy(itemId);
     const previous = items;
+    const target = items.find((item) => item.id === itemId);
+    const willActivate = !(target?.myReactions ?? []).includes(reaction);
+    if (willActivate) {
+      setReactionBoom(itemId);
+      window.setTimeout(() => setReactionBoom((current) => current === itemId ? null : current), 650);
+    }
 
     setItems((current) =>
       current.map((item) => {
@@ -246,7 +253,12 @@ export default function HomeTeamFeedPreview({
                       </div>
                     </div>
 
-                    <div className="ml-[38px] mt-2 flex flex-wrap gap-1.5">
+                    <div className="relative ml-[38px] mt-2 flex flex-wrap gap-1.5">
+                      {reactionBoom === item.id ? (
+                        <span className="pointer-events-none absolute -top-6 left-3 z-20 animate-bounce text-[11px] font-black uppercase tracking-[0.12em] text-cyan-600 drop-shadow-sm">
+                          BÄM!
+                        </span>
+                      ) : null}
                       {options.map(({ key, label }) => {
                         const count = item.reactions?.[key] ?? 0;
                         const active = item.myReactions?.includes(key) === true;
