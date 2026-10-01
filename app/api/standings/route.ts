@@ -32,6 +32,10 @@ type StandingRow = {
   first_name?: string | null;
   last_name?: string | null;
   nickname?: string | null;
+  photo_url?: string | null;
+  photo_position_x?: number | null;
+  photo_position_y?: number | null;
+  photo_zoom?: number | null;
   wins: number;
   sessions: number;
   mvps: number;
@@ -57,6 +61,10 @@ type PlayerStandingSourceRow = {
   last_name: string | null;
   nickname: string | null;
   is_guest: boolean | null;
+  photo_path: string | null;
+  photo_position_x: number | null;
+  photo_position_y: number | null;
+  photo_zoom: number | null;
 };
 
 type ResultSourceRow = {
@@ -429,7 +437,7 @@ async function computeStandings(
   ] = await Promise.all([
     supabase
       .from("players")
-      .select("id, name, first_name, last_name, nickname, is_guest")
+      .select("id, name, first_name, last_name, nickname, is_guest, photo_path, photo_position_x, photo_position_y, photo_zoom")
       .eq("club_id", clubId)
       .in("id", playerIds.length > 0 ? playerIds : [-1]),
     teamPlayersPromise,
@@ -468,6 +476,10 @@ async function computeStandings(
       first_name: string | null;
       last_name: string | null;
       nickname: string | null;
+      photo_url: string | null;
+      photo_position_x: number | null;
+      photo_position_y: number | null;
+      photo_zoom: number | null;
     }
   >();
 
@@ -481,6 +493,10 @@ async function computeStandings(
       first_name: player.first_name,
       last_name: player.last_name,
       nickname: player.nickname,
+      photo_url: player.photo_path ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl : null,
+      photo_position_x: player.photo_position_x,
+      photo_position_y: player.photo_position_y,
+      photo_zoom: player.photo_zoom,
     });
   }
 
@@ -558,6 +574,10 @@ async function computeStandings(
       first_name: player?.first_name ?? null,
       last_name: player?.last_name ?? null,
       nickname: player?.nickname ?? null,
+      photo_url: player?.photo_url ?? null,
+      photo_position_x: player?.photo_position_x ?? null,
+      photo_position_y: player?.photo_position_y ?? null,
+      photo_zoom: player?.photo_zoom ?? null,
       wins: winsCount.get(playerId) ?? 0,
       sessions: sessionsCount.get(playerId) ?? 0,
       mvps: mvpWinsMap.get(playerId) ?? 0,
