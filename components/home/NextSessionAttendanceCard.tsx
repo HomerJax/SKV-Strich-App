@@ -42,7 +42,7 @@ type AttendanceAvatarPlayer = { name: string; photoUrl: string | null; photoPosi
 function AttendanceAvatar({ player, tone }: { player: AttendanceAvatarPlayer; tone: "cyan" | "rose" }) {
   const fallbackClasses = tone === "cyan" ? "bg-cyan-100 text-cyan-800" : "bg-rose-100 text-rose-800";
   return (
-    <span className={`relative isolate flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-black uppercase ring-2 ring-white ${fallbackClasses}`}>
+    <span className={`relative inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-black ${fallbackClasses}`}>
       {player.photoUrl ? (
         <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-[12.5%] block h-[125%] overflow-hidden">
           <img
