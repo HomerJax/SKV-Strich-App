@@ -363,12 +363,12 @@ export async function getTeamFeedItems(
   });
 
   const combinedItems = [...lateRsvpItems, ...birthdayItems, ...beerItems, ...badgeItems, ...resultItems];
-  const reactionFeedIds = combinedItems.filter((item) => item.kind === "birthday" || item.kind === "beer").map((item) => item.id);
+  const reactionFeedIds = combinedItems.filter((item) => item.kind === "birthday" || item.kind === "beer" || item.kind === "late_rsvp").map((item) => item.id);
   if (reactionFeedIds.length > 0) {
     const { data: reactionRows } = await supabase.from("team_feed_reactions").select("feed_id,reaction,user_id").eq("club_id", clubId).in("feed_id", reactionFeedIds);
     const { data: { user } } = await supabase.auth.getUser();
     for (const item of combinedItems) {
-      if (item.kind !== "birthday" && item.kind !== "beer") continue;
+      if (item.kind !== "birthday" && item.kind !== "beer" && item.kind !== "late_rsvp") continue;
       const rows = (reactionRows ?? []).filter((row) => row.feed_id === item.id);
       item.reactions = rows.reduce<Record<string, number>>((acc, row) => { acc[row.reaction] = (acc[row.reaction] ?? 0) + 1; return acc; }, {});
       item.myReactions = user ? rows.filter((row) => row.user_id === user.id).map((row) => row.reaction) : [];
