@@ -39,6 +39,7 @@ type NextSessionAttendanceCardProps = {
 
 type AttendanceAvatarPlayer = { name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null };
 
+// Shared attendance avatar uses the same crop viewport as the header.
 function AttendanceAvatar({ player, tone }: { player: AttendanceAvatarPlayer; tone: "cyan" | "rose" }) {
   const fallbackClasses = tone === "cyan" ? "bg-cyan-100 text-cyan-800" : "bg-rose-100 text-rose-800";
   return (
