@@ -238,11 +238,7 @@ export default function HomeTeamFeedPreview({
 
                 return (
                   <div key={item.id} className="px-1 py-3">
-                    <Link
-                      href={item.href}
-                      onClick={() => trackProductEvent("team_feed_open", { kind: item.kind })}
-                      className="flex items-start gap-2.5 rounded-xl px-1 py-1 transition hover:bg-slate-50/60"
-                    >
+                    <div className="flex items-start gap-2.5 rounded-xl px-1 py-1">
                       <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[14px] ring-1 ring-inset ring-amber-100/80">
                         {item.kind === "beer" ? "🍺" : "🎂"}
                       </div>
@@ -257,7 +253,7 @@ export default function HomeTeamFeedPreview({
                       <div className="shrink-0 pt-0.5 text-[9px] font-semibold text-slate-300">
                         {formatDate(item.occurredAt, locale)}
                       </div>
-                    </Link>
+                    </div>
 
                     <div className="ml-[38px] mt-1">
                       <div className="flex flex-wrap items-center gap-1">
