@@ -159,6 +159,13 @@ function resultSummary(rows: ResultRow[], locale: AppLocale) {
     : `${scores.length} games · ${scores.join(" · ")}`;
 }
 
+function berlinDateKey(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value);
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 function sessionOccurredAt(session: SessionRow) {
   const time = session.start_time?.slice(0, 5) || "12:00";
   return `${session.date}T${time}:00`;
@@ -170,7 +177,7 @@ export async function getTeamFeedItems(
 ): Promise<TeamFeedItem[]> {
   const { locale } = await getServerI18n();
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = berlinDateKey(new Date());
 
   const { data: sessionsData } = await supabase
     .from("sessions")
@@ -292,7 +299,7 @@ export async function getTeamFeedItems(
 
   const beerByDayPlayer = new Map<string, { playerId: number; quantity: number; occurredAt: string; player: BadgePlayer | BadgePlayer[] | null }>();
   for (const row of (beerData ?? []) as BeerRow[]) {
-    const day = row.created_at.slice(0, 10);
+    const day = berlinDateKey(row.created_at);
     const key = `${day}:${row.player_id}`;
     const current = beerByDayPlayer.get(key);
     beerByDayPlayer.set(key, {
@@ -305,7 +312,7 @@ export async function getTeamFeedItems(
 
   const leadersByDay = new Map<string, { playerId: number; quantity: number; occurredAt: string; player: BadgePlayer | BadgePlayer[] | null }>();
   for (const entry of beerByDayPlayer.values()) {
-    const day = entry.occurredAt.slice(0, 10);
+    const day = berlinDateKey(entry.occurredAt);
     const leader = leadersByDay.get(day);
     if (!leader || entry.quantity > leader.quantity) leadersByDay.set(day, entry);
   }
