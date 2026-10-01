@@ -14,7 +14,7 @@ import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
-import { getAchievementFeedItem, getTeamFeedItems } from "@/lib/team-feed";
+import { getTeamFeedItems } from "@/lib/team-feed";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/messages";
@@ -520,23 +520,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     ? await getTeamFeedItems(clubId, teamFeedPageSize)
     : [];
 
-  // TEMP: Badge-Feed-Darstellung im SKV-Team sichtbar testen.
-  // Der Achievement-Datensatz und sein echtes Datum bleiben unverändert.
-  const featuredSommiBadge =
-    teamFeedEnabled && clubId === "108590d9-0877-4787-90a5-4679615b3b76"
-      ? await getAchievementFeedItem({
-          clubId,
-          playerId: 30,
-          badgeKey: "career_wins_25",
-        })
-      : null;
-
-  const teamFeedItems = featuredSommiBadge
-    ? [
-        featuredSommiBadge,
-        ...baseTeamFeedItems.filter((item) => item.id !== featuredSommiBadge.id),
-      ]
-    : baseTeamFeedItems;
+  const teamFeedItems = baseTeamFeedItems;
 
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
