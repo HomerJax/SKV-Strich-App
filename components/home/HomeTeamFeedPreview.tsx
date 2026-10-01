@@ -241,42 +241,42 @@ export default function HomeTeamFeedPreview({
                     <Link
                       href={item.href}
                       onClick={() => trackProductEvent("team_feed_open", { kind: item.kind })}
-                      className="flex items-start gap-3"
+                      className="flex items-start gap-2.5 rounded-xl px-1 py-1 transition hover:bg-slate-50/60"
                     >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-base">
+                      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[14px] ring-1 ring-inset ring-amber-100/80">
                         {item.kind === "beer" ? "🍺" : "🎂"}
                       </div>
-                      <div className="min-w-0 flex-1 pt-0.5">
-                        <div className="text-[13px] font-semibold leading-4.5 text-slate-900">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-bold leading-[18px] tracking-[-0.01em] text-slate-900">
                           {item.title}
                         </div>
-                        <div className="mt-0.5 text-[10px] font-medium leading-4 text-slate-500">
+                        <div className="mt-px text-[10px] font-medium leading-4 text-slate-400">
                           {item.body}
                         </div>
                       </div>
-                      <div className="shrink-0 pt-1 text-[10px] font-bold text-slate-400">
+                      <div className="shrink-0 pt-0.5 text-[9px] font-semibold text-slate-300">
                         {formatDate(item.occurredAt, locale)}
                       </div>
                     </Link>
 
-                    <div className="ml-[52px] mt-1.5">
+                    <div className="ml-[38px] mt-1">
                       <div className="flex flex-wrap items-center gap-1">
                         {options.filter(({ key }) => (item.reactions?.[key] ?? 0) > 0).map(({ key, emoji }) => (
-                          <span key={key} className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 ring-1 ring-inset ring-slate-200/70">
+                          <span key={key} className="inline-flex h-6 items-center gap-1 rounded-full bg-white px-2 text-[10px] font-bold text-slate-500 shadow-sm ring-1 ring-slate-200/80">
                             {emoji} {item.reactions?.[key] ?? 0}
                           </span>
                         ))}
-                        <button type="button" onClick={() => setOpenReactions((current) => current === item.id ? null : item.id)} className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-[10px] font-semibold text-slate-400 transition hover:bg-slate-50 hover:text-slate-700">
-                          <span>☺</span><span>+</span>
+                        <button type="button" onClick={() => setOpenReactions((current) => current === item.id ? null : item.id)} aria-label={locale === "de" ? "Reagieren" : "React"} className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-[11px] text-slate-400 shadow-sm ring-1 ring-slate-200/80 transition hover:text-slate-700 active:scale-95">
+                          <span>😊</span>
                         </button>
                       </div>
                       {openReactions === item.id ? (
-                        <div className="mt-1.5 flex flex-wrap gap-1 rounded-xl bg-slate-50/80 p-1.5">
+                        <div className="mt-1.5 inline-flex max-w-full flex-wrap gap-1 rounded-2xl bg-white p-1.5 shadow-lg ring-1 ring-slate-200/80">
                           {options.map(({ key, emoji, label }) => {
                             const active = item.myReactions?.includes(key) === true;
                             const busy = reactionBusy === item.id;
                             return (
-                              <button key={key} type="button" aria-pressed={active} disabled={busy} onClick={() => void toggleReaction(item.id, key)} className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition active:scale-95 ${active ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-inset ring-slate-200"}`}>
+                              <button key={key} type="button" aria-pressed={active} disabled={busy} onClick={() => void toggleReaction(item.id, key)} className={`inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[10px] font-semibold transition active:scale-95 ${active ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100"}`}>
                                 <span>{emoji}</span><span>{label}</span>
                               </button>
                             );
