@@ -65,7 +65,7 @@ export default function CareerWinArtwork({ badgeKey, px, grayscale=false, classN
   ) : null;
 
   return <>
-    <button type="button" onClick={()=>!grayscale&&setOpen(true)} className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border-0 bg-transparent p-0 ${grayscale?"cursor-default":"cursor-zoom-in"} ${className}`} style={{width:px,height:px}} aria-label={`${definition?.title??badgeKey} ${viewLargeLabel}`}>
+    <button type="button" onClick={()=>!grayscale&&setOpen(true)} className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border-0 bg-transparent p-0 ${grayscale?"cursor-default":"cursor-zoom-in"} ${className}`} style={{width:px,height:px}} title={badgeKey} aria-label={`${definition?.title??badgeKey} ${viewLargeLabel}`}>
       <div className={`pointer-events-none absolute inset-0 overflow-hidden rounded-[22%] ${grayscale?"grayscale opacity-45":""}`}>
         <img src={c.artwork} alt={`${c.value} ${winsLabel} · ${c.tier}`} className="absolute left-1/2 top-1/2 block max-w-none" style={{width:"166%",height:"auto",transform:"translate(-50%, -43%)"}} />
       </div>
