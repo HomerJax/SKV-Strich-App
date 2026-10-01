@@ -21,6 +21,7 @@ type Player = {
   first_name: string | null;
   last_name: string | null;
   nickname: string | null;
+  user_id: string | null;
 };
 
 type BeerRow = {
@@ -34,6 +35,9 @@ type BeerRow = {
   payment_status: "pending" | "paid" | "cancelled";
   paid_at: string | null;
   created_at: string;
+  created_by: string | null;
+  confirmed_by: string | null;
+  cancelled_by: string | null;
 };
 
 function playerName(player: Player, locale: AppLocale) {
@@ -76,12 +80,12 @@ export default async function BeerManagementPage({ searchParams }: Props) {
   const [{ data: playersData }, { data: rowsData }, { data: settingsData }] = await Promise.all([
     admin
       .from("players")
-      .select("id,name,first_name,last_name,nickname")
+      .select("id,name,first_name,last_name,nickname,user_id")
       .eq("club_id", clubId)
       .eq("is_guest", false),
     admin
       .from("beer_consumptions")
-      .select("id,player_id,quantity,unit_price_cents,total_cents,donation_cents,payment_method,payment_status,paid_at,created_at")
+      .select("id,player_id,quantity,unit_price_cents,total_cents,donation_cents,payment_method,payment_status,paid_at,created_at,created_by,confirmed_by,cancelled_by")
       .eq("club_id", clubId)
       .order("created_at", { ascending: false }),
     admin.from("club_settings").select("beerkasse_paypal_url").eq("club_id", clubId).maybeSingle<{ beerkasse_paypal_url: string | null }>(),
@@ -91,6 +95,8 @@ export default async function BeerManagementPage({ searchParams }: Props) {
   const players = (playersData ?? []) as Player[];
   const rows = (rowsData ?? []) as BeerRow[];
   const names = new Map(players.map((player) => [player.id, playerName(player, locale)]));
+  const userNames = new Map(players.filter((player) => player.user_id).map((player) => [player.user_id as string, playerName(player, locale)]));
+  const actorName = (userId: string | null) => userId ? (userNames.get(userId) ?? "Unbekannter Nutzer") : null;
   const activeRows = rows.filter((row) => row.payment_status !== "cancelled");
   const pendingRows = activeRows.filter((row) => row.payment_status === "pending");
   const pendingCash = pendingRows.filter((row) => row.payment_method === "cash");
@@ -238,6 +244,13 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                     <div className="mt-0.5 text-[10px] font-medium text-slate-500">
                       {paymentLabel(row.payment_method, locale)} · {formatCents(row.total_cents)} · {dateTime(row.created_at, locale)}
                     </div>
+                    {(actorName(row.created_by) || actorName(row.confirmed_by) || actorName(row.cancelled_by)) ? (
+                      <div className="mt-1 text-[10px] font-semibold text-slate-500">
+                        {actorName(row.created_by) ? <>Eingetragen von <span className="text-slate-700">{actorName(row.created_by)}</span></> : null}
+                        {actorName(row.confirmed_by) ? <>{actorName(row.created_by) ? " · " : ""}Geprüft von <span className="text-slate-700">{actorName(row.confirmed_by)}</span></> : null}
+                        {actorName(row.cancelled_by) ? <>{actorName(row.created_by) || actorName(row.confirmed_by) ? " · " : ""}Storniert von <span className="text-slate-700">{actorName(row.cancelled_by)}</span></> : null}
+                      </div>
+                    ) : null}
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black ${
                     row.payment_status === "paid"
