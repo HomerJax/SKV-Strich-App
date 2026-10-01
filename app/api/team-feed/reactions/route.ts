@@ -14,16 +14,43 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { data: existing } = await supabase.from("team_feed_reactions").select("id")
-    .eq("club_id", clubId).eq("feed_id", feedId).eq("user_id", user.id).eq("reaction", reaction).maybeSingle();
+  const { data: existingRows, error: existingError } = await supabase
+    .from("team_feed_reactions")
+    .select("id,reaction")
+    .eq("club_id", clubId)
+    .eq("feed_id", feedId)
+    .eq("user_id", user.id);
 
-  if (existing?.id) {
-    const { error } = await supabase.from("team_feed_reactions").delete().eq("id", existing.id).eq("user_id", user.id);
-    if (error) return NextResponse.json({ error: "delete_failed" }, { status: 500 });
-    return NextResponse.json({ active: false });
+  if (existingError) {
+    return NextResponse.json({ error: "lookup_failed" }, { status: 500 });
   }
 
-  const { error } = await supabase.from("team_feed_reactions").insert({ club_id: clubId, feed_id: feedId, user_id: user.id, reaction });
-  if (error) return NextResponse.json({ error: "insert_failed" }, { status: 500 });
-  return NextResponse.json({ active: true });
+  const alreadyActive = (existingRows ?? []).some((row) => row.reaction === reaction);
+
+  if ((existingRows ?? []).length > 0) {
+    const { error: deleteError } = await supabase
+      .from("team_feed_reactions")
+      .delete()
+      .eq("club_id", clubId)
+      .eq("feed_id", feedId)
+      .eq("user_id", user.id);
+
+    if (deleteError) {
+      return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+    }
+  }
+
+  if (alreadyActive) {
+    return NextResponse.json({ active: false, reaction: null });
+  }
+
+  const { error: insertError } = await supabase
+    .from("team_feed_reactions")
+    .insert({ club_id: clubId, feed_id: feedId, user_id: user.id, reaction });
+
+  if (insertError) {
+    return NextResponse.json({ error: "insert_failed" }, { status: 500 });
+  }
+
+  return NextResponse.json({ active: true, reaction });
 }
