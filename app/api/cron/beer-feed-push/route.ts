@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const now = berlinParts();
-  if (now.date < FEATURE_START || now.hour !== 22) return NextResponse.json({ ok: true, skipped: true, localDate: now.date, localHour: now.hour });
+  if (now.date < FEATURE_START || now.hour !== 22 && now.hour !== 23) return NextResponse.json({ ok: true, skipped: true, localDate: now.date, localHour: now.hour });
 
   const supabase = createAdminClient();
   const { data, error } = await supabase.from("beer_consumptions")
