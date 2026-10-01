@@ -351,14 +351,10 @@ export default function NextSessionAttendanceCard({
               {participants.length > 0 ? (
                 <div className="divide-y divide-cyan-100/70">
                   {participants.map((player) => (
-                    <div key={`participant-${player.id}`} className="flex min-h-12 items-center gap-3 px-1 py-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-cyan-100 text-xs font-black uppercase text-cyan-800 ring-2 ring-white">
-                        {player.photoUrl ? (
-                          <img src={player.photoUrl} alt="" className="h-full w-full object-cover" style={{ objectPosition: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%`, transformOrigin: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%`, transform: `scale(${player.photoZoom ?? 1})` }} />
-                        ) : (player.name.trim().charAt(0) || "?")}
-                      </span>
-                      <span className="min-w-0 truncate text-sm font-bold text-slate-800">{player.name}</span>
-                    </div>
+                     <Link href={`/badges?player=${player.id}`} key={`participant-${player.id}`} className="flex min-h-12 items-center gap-3 px-1 py-2.5 transition hover:bg-cyan-50/70">
+                       <AttendanceAvatar player={player} tone="cyan" />
+                       <span className="min-w-0 truncate text-sm font-bold text-slate-800">{player.name}</span>
+                     </Link>
                   ))}
                 </div>
               ) : (
@@ -393,14 +389,15 @@ export default function NextSessionAttendanceCard({
               {absentPlayers.length > 0 ? (
                 <div className="divide-y divide-rose-100/70">
                   {absentPlayers.map((player) => (
-                    <div key={`absence-${player.id}`} className="flex min-h-12 items-center gap-3 px-1 py-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-100 text-xs font-black uppercase text-rose-800 ring-2 ring-white">
-                        {player.photoUrl ? (
-                          <img src={player.photoUrl} alt="" className="h-full w-full object-cover" style={{ objectPosition: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%`, transformOrigin: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%`, transform: `scale(${player.photoZoom ?? 1})` }} />
-                        ) : (player.name.trim().charAt(0) || "?")}
-                      </span>
-                      <div className="min-w-0">
-                      <div className="truncate text-sm font-black text-slate-800">{player.name}</div>
+                     <Link href={`/badges?player=${player.id}`} key={`absence-${player.id}`} className="flex min-h-12 items-center gap-3 px-1 py-2.5 transition hover:bg-rose-50/80">
+                       <AttendanceAvatar player={player} tone="rose" />
+                       <div className="min-w-0">
+                         <div className="truncate text-sm font-black text-slate-800">{player.name}</div>
+                         <div className={`mt-0.5 text-[11px] leading-4 ${player.reason ? "font-normal text-slate-500" : "text-slate-400"}`}>
+                           {player.reason ? player.reason : t("session.noReason")}
+                         </div>
+                       </div>
+                     </Link>
                       <div className={`mt-0.5 text-[11px] leading-4 ${player.reason ? "font-normal text-slate-500" : "text-slate-400"}`}>
                         {player.reason ? player.reason : t("session.noReason")}
                       </div>
