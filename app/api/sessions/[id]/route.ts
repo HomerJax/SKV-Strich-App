@@ -402,12 +402,12 @@ export async function POST(
           | { label: string; value: string; type: string; message: string }
           | null = null;
 
-        const firstInAt = firstInHistory?.first_in_at ?? currentSignupAt;
-        const firstInEpochMs = Date.parse(firstInAt);
+        // Every actual switch to "in" after the deadline is late, regardless of
+        // whether the player had previously signed up before the deadline.
         const isLateSignup =
           deadlinePassed &&
           deadlineAt !== null &&
-          (!Number.isFinite(firstInEpochMs) || firstInEpochMs >= deadlineAt);
+          Date.now() >= deadlineAt;
 
         if (isLateSignup && featureFlags.penalties === true) {
           const { data: rule, error: ruleError } = await adminSupabase
