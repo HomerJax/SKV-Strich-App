@@ -113,26 +113,18 @@ type MvpVoteRow = {
   voted_player_id: number;
 };
 
+type NextSessionPlayer = {
+  first_name: string | null;
+  last_name: string | null;
+  photo_path: string | null;
+  photo_position_x: number | null;
+  photo_position_y: number | null;
+  photo_zoom: number | null;
+};
+
 type NextSessionParticipantRow = {
   player_id: number;
-  players:
-    | {
-        first_name: string | null;
-        last_name: string | null;
-        photo_path: string | null;
-        photo_position_x: number | null;
-        photo_position_y: number | null;
-        photo_zoom: number | null;
-      }
-    | {
-        first_name: string | null;
-        last_name: string | null;
-        photo_path: string | null;
-        photo_position_x: number | null;
-        photo_position_y: number | null;
-        photo_zoom: number | null;
-      }[]
-    | null;
+  players: NextSessionPlayer | NextSessionPlayer[] | null;
 };
 
 type NextSessionAbsentRow = {
@@ -285,7 +277,7 @@ function normalizePlayerRelation(
 
 function normalizeSimplePlayerRelation(
   player: NextSessionParticipantRow["players"]
-): Exclude<NextSessionParticipantRow["players"], null | Array<unknown>> | null {
+): NextSessionPlayer | null {
   if (!player) return null;
   if (Array.isArray(player)) return player[0] ?? null;
   return player;
