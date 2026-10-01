@@ -31,8 +31,31 @@ export default function HomeTeamFeedPreview({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loading, setLoading] = useState(false);
   const [openBadge, setOpenBadge] = useState<TeamFeedItem | null>(null);
+  const [reactionBusy, setReactionBusy] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const { locale, t } = useI18n();
+
+  const toggleReaction = async (itemId: string, reaction: string) => {
+    const busyKey = `${itemId}:${reaction}`;
+    if (reactionBusy === busyKey) return;
+    setReactionBusy(busyKey);
+    const previous = items;
+    setItems((current) => current.map((item) => {
+      if (item.id !== itemId) return item;
+      const active = item.myReactions?.includes(reaction) === true;
+      const reactions = { ...(item.reactions ?? {}) };
+      reactions[reaction] = Math.max(0, (reactions[reaction] ?? 0) + (active ? -1 : 1));
+      return { ...item, reactions, myReactions: active ? (item.myReactions ?? []).filter((value) => value !== reaction) : [...(item.myReactions ?? []), reaction] };
+    }));
+    try {
+      const response = await fetch("/api/team-feed/reactions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ feedId: itemId, reaction }) });
+      if (!response.ok) throw new Error("reaction_failed");
+    } catch {
+      setItems(previous);
+    } finally {
+      setReactionBusy(null);
+    }
+  };
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -168,6 +191,31 @@ export default function HomeTeamFeedPreview({
                         {formatDate(item.occurredAt, locale)}
                       </div>
                     </Link>
+                  </div>
+                );
+              }
+
+              if (item.kind === "birthday" || item.kind === "beer") {
+                const options = item.kind === "beer"
+                  ? [["prost","🍻 Prost"],["biermaschine","🤖 Biermaschine"],["maschine","👑 Maschine"],["laeuft","😂 Läuft"]]
+                  : [["glueckwunsch","🎉 Glückwunsch"],["kischde","🍺 Kischde"],["herz","❤️"]];
+                return (
+                  <div key={item.id} className="px-1 py-3">
+                    <Link href={item.href} onClick={() => trackProductEvent("team_feed_open", { kind: item.kind })} className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-lg">{item.kind === "beer" ? "🍺" : "🎂"}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-slate-900">{item.title}</div>
+                        <div className="mt-0.5 text-[11px] font-normal text-slate-500">{item.body}</div>
+                      </div>
+                      <div className="shrink-0 text-[10px] font-bold text-slate-400">{formatDate(item.occurredAt, locale)}</div>
+                    </Link>
+                    <div className="ml-12 mt-2 flex flex-wrap gap-1.5">
+                      {options.map(([key,label]) => {
+                        const active = item.myReactions?.includes(key) === true;
+                        const count = item.reactions?.[key] ?? 0;
+                        return <button key={key} type="button" disabled={reactionBusy === `${item.id}:${key}`} onClick={() => void toggleReaction(item.id, key)} className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition active:scale-95 ${active ? "border-cyan-300 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600"}`}>{label}{count > 0 ? ` · ${count}` : ""}</button>;
+                      })}
+                    </div>
                   </div>
                 );
               }
