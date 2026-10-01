@@ -113,18 +113,18 @@ type MvpVoteRow = {
   voted_player_id: number;
 };
 
-type NextSessionPlayer = {
-  first_name: string | null;
-  last_name: string | null;
-  photo_path: string | null;
-  photo_position_x: number | null;
-  photo_position_y: number | null;
-  photo_zoom: number | null;
-};
-
 type NextSessionParticipantRow = {
   player_id: number;
-  players: NextSessionPlayer | NextSessionPlayer[] | null;
+  players:
+    | {
+        first_name: string | null;
+        last_name: string | null;
+      }
+    | {
+        first_name: string | null;
+        last_name: string | null;
+      }[]
+    | null;
 };
 
 type NextSessionAbsentRow = {
@@ -277,7 +277,7 @@ function normalizePlayerRelation(
 
 function normalizeSimplePlayerRelation(
   player: NextSessionParticipantRow["players"]
-): NextSessionPlayer | null {
+): { first_name: string | null; last_name: string | null } | null {
   if (!player) return null;
   if (Array.isArray(player)) return player[0] ?? null;
   return player;
@@ -742,7 +742,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   let nextSessionPresenceStatus: "in" | "out" | "open" = "open";
   let nextSessionPresentCount = 0;
   let nextSessionAbsentCount = 0;
-  let nextSessionParticipants: { id: number; name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[] = [];
+  let nextSessionParticipantNames: string[] = [];
   let nextSessionAbsentPlayers: { name: string; reason: string | null }[] = [];
 
   if (homeSessionRsvpEnabled && nextSession) {
@@ -768,11 +768,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           reason,
           players (
             first_name,
-            last_name,
-            photo_path,
-            photo_position_x,
-            photo_position_y,
-            photo_zoom
+            last_name
           )
         `
         )
@@ -786,11 +782,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           player_id,
           players (
             first_name,
-            last_name,
-            photo_path,
-            photo_position_x,
-            photo_position_y,
-            photo_zoom
+            last_name
           )
         `
         )
@@ -803,7 +795,10 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     nextSessionPresentCount = participants.length;
     nextSessionAbsentCount = absences.length;
 
-    nextSessionParticipants = participants.map((row) => { const p = normalizeSimplePlayerRelation(row.players); const name = getSimplePlayerName(p, locale); return { id: row.player_id, name, photoUrl: p?.photo_path ? supabase.storage.from("player-photos").getPublicUrl(p.photo_path).data.publicUrl : null, photoPositionX: p?.photo_position_x ?? null, photoPositionY: p?.photo_position_y ?? null, photoZoom: p?.photo_zoom ?? null }; }).sort((a,b)=>a.name.localeCompare(b.name, locale === "de" ? "de" : "en"));
+    nextSessionParticipantNames = participants
+      .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players), locale))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, locale === "de" ? "de" : "en"));
 
     nextSessionAbsentPlayers = absences
       .map((row) => ({
@@ -920,7 +915,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               startTime={nextSession.start_time}
               rsvpDeadlineMinutesBefore={rsvpDeadlineMinutesBefore}
               sessionRsvpDeadlineMinutesBefore={nextSession.rsvp_deadline_minutes_before}
-              participants={nextSessionParticipants}
+              participantNames={nextSessionParticipantNames}
               absentPlayers={nextSessionAbsentPlayers}
               requireAbsenceReason={requireRsvpReasonOnAbsence}
               readOnly={isSupportView}
