@@ -36,19 +36,45 @@ export default function HomeTeamFeedPreview({
   const { locale, t } = useI18n();
 
   const toggleReaction = async (itemId: string, reaction: string) => {
-    const busyKey = `${itemId}:${reaction}`;
-    if (reactionBusy === busyKey) return;
-    setReactionBusy(busyKey);
+    if (reactionBusy === itemId) return;
+
+    setReactionBusy(itemId);
     const previous = items;
-    setItems((current) => current.map((item) => {
-      if (item.id !== itemId) return item;
-      const active = item.myReactions?.includes(reaction) === true;
-      const reactions = { ...(item.reactions ?? {}) };
-      reactions[reaction] = Math.max(0, (reactions[reaction] ?? 0) + (active ? -1 : 1));
-      return { ...item, reactions, myReactions: active ? (item.myReactions ?? []).filter((value) => value !== reaction) : [...(item.myReactions ?? []), reaction] };
-    }));
+
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== itemId) return item;
+
+        const currentReactions = item.myReactions ?? [];
+        const alreadyActive = currentReactions.includes(reaction);
+        const reactions = { ...(item.reactions ?? {}) };
+
+        for (const currentReaction of currentReactions) {
+          reactions[currentReaction] = Math.max(
+            0,
+            (reactions[currentReaction] ?? 0) - 1,
+          );
+        }
+
+        if (!alreadyActive) {
+          reactions[reaction] = (reactions[reaction] ?? 0) + 1;
+        }
+
+        return {
+          ...item,
+          reactions,
+          myReactions: alreadyActive ? [] : [reaction],
+        };
+      }),
+    );
+
     try {
-      const response = await fetch("/api/team-feed/reactions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ feedId: itemId, reaction }) });
+      const response = await fetch("/api/team-feed/reactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedId: itemId, reaction }),
+      });
+
       if (!response.ok) throw new Error("reaction_failed");
     } catch {
       setItems(previous);
@@ -197,24 +223,81 @@ export default function HomeTeamFeedPreview({
 
               if (item.kind === "birthday" || item.kind === "beer") {
                 const options = item.kind === "beer"
-                  ? [["prost","🍻 Prost"],["biermaschine","🤖 Biermaschine"],["maschine","👑 Maschine"],["laeuft","😂 Läuft"]]
-                  : [["glueckwunsch","🎉 Glückwunsch"],["kischde","🍺 Kischde"],["herz","❤️"]];
+                  ? [
+                      { key: "prost", emoji: "🍻", label: "Prost" },
+                      { key: "biermaschine", emoji: "🤖", label: "Biermaschine" },
+                      { key: "maschine", emoji: "👑", label: "Maschine" },
+                      { key: "laeuft", emoji: "😂", label: "Läuft" },
+                    ]
+                  : [
+                      { key: "glueckwunsch", emoji: "🎉", label: locale === "de" ? "Glückwunsch" : "Congrats" },
+                      { key: "kischde", emoji: "🍺", label: "Kischde" },
+                      { key: "herz", emoji: "❤️", label: locale === "de" ? "Herz" : "Love" },
+                    ];
+
                 return (
-                  <div key={item.id} className="px-1 py-3">
-                    <Link href={item.href} onClick={() => trackProductEvent("team_feed_open", { kind: item.kind })} className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-lg">{item.kind === "beer" ? "🍺" : "🎂"}</div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-                        <div className="mt-0.5 text-[11px] font-normal text-slate-500">{item.body}</div>
+                  <div key={item.id} className="px-1 py-3.5">
+                    <Link
+                      href={item.href}
+                      onClick={() => trackProductEvent("team_feed_open", { kind: item.kind })}
+                      className="flex items-start gap-3"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-lg ring-1 ring-inset ring-amber-100/80">
+                        {item.kind === "beer" ? "🍺" : "🎂"}
                       </div>
-                      <div className="shrink-0 text-[10px] font-bold text-slate-400">{formatDate(item.occurredAt, locale)}</div>
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <div className="text-[13px] font-bold leading-5 text-slate-900">
+                          {item.title}
+                        </div>
+                        <div className="mt-0.5 text-[11px] font-medium leading-4 text-slate-500">
+                          {item.body}
+                        </div>
+                      </div>
+                      <div className="shrink-0 pt-1 text-[10px] font-bold text-slate-400">
+                        {formatDate(item.occurredAt, locale)}
+                      </div>
                     </Link>
-                    <div className="ml-12 mt-2 flex flex-wrap gap-1.5">
-                      {options.map(([key,label]) => {
-                        const active = item.myReactions?.includes(key) === true;
-                        const count = item.reactions?.[key] ?? 0;
-                        return <button key={key} type="button" disabled={reactionBusy === `${item.id}:${key}`} onClick={() => void toggleReaction(item.id, key)} className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition active:scale-95 ${active ? "border-cyan-300 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600"}`}>{label}{count > 0 ? ` · ${count}` : ""}</button>;
-                      })}
+
+                    <div className="ml-[52px] mt-2.5">
+                      <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                        {locale === "de" ? "Reagieren" : "React"}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {options.map(({ key, emoji, label }) => {
+                          const active = item.myReactions?.includes(key) === true;
+                          const count = item.reactions?.[key] ?? 0;
+                          const busy = reactionBusy === item.id;
+
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              aria-pressed={active}
+                              disabled={busy}
+                              onClick={() => void toggleReaction(item.id, key)}
+                              className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition duration-150 active:scale-95 disabled:cursor-wait disabled:opacity-60 ${
+                                active
+                                  ? "bg-slate-900 text-white shadow-sm"
+                                  : "bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200/80 hover:bg-slate-100"
+                              }`}
+                            >
+                              <span className="text-[13px] leading-none">{emoji}</span>
+                              <span>{label}</span>
+                              {count > 0 ? (
+                                <span
+                                  className={`min-w-4 rounded-full px-1 text-center text-[9px] font-bold leading-4 ${
+                                    active
+                                      ? "bg-white/15 text-white"
+                                      : "bg-white text-slate-500 ring-1 ring-inset ring-slate-200"
+                                  }`}
+                                >
+                                  {count}
+                                </span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 );
