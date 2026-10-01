@@ -15,7 +15,8 @@ import {
 
 type PresenceStatus = "in" | "out" | "open";
 type PendingAction = "in" | "out" | null;
-type DeadlineTone = "normal" | "soon" | "urgent" | "passed";
+// Home attendance UI
+ type DeadlineTone = "normal" | "soon" | "urgent" | "passed";
 
 type NextSessionAttendanceCardProps = {
   sessionId: number;
