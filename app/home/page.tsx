@@ -113,18 +113,18 @@ type MvpVoteRow = {
   voted_player_id: number;
 };
 
+type NextSessionPlayer = {
+  first_name: string | null;
+  last_name: string | null;
+  photo_path: string | null;
+  photo_position_x: number | null;
+  photo_position_y: number | null;
+  photo_zoom: number | null;
+};
+
 type NextSessionParticipantRow = {
   player_id: number;
-  players:
-    | {
-        first_name: string | null;
-        last_name: string | null;
-      }
-    | {
-        first_name: string | null;
-        last_name: string | null;
-      }[]
-    | null;
+  players: NextSessionPlayer | NextSessionPlayer[] | null;
 };
 
 type NextSessionAbsentRow = {
@@ -277,7 +277,7 @@ function normalizePlayerRelation(
 
 function normalizeSimplePlayerRelation(
   player: NextSessionParticipantRow["players"]
-): { first_name: string | null; last_name: string | null } | null {
+): NextSessionPlayer | null {
   if (!player) return null;
   if (Array.isArray(player)) return player[0] ?? null;
   return player;
@@ -742,8 +742,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   let nextSessionPresenceStatus: "in" | "out" | "open" = "open";
   let nextSessionPresentCount = 0;
   let nextSessionAbsentCount = 0;
-  let nextSessionParticipantNames: string[] = [];
-  let nextSessionAbsentPlayers: { name: string; reason: string | null }[] = [];
+  let nextSessionParticipants: { id: number; name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[] = [];
+  let nextSessionAbsentPlayers: { id: number; name: string; reason: string | null; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[] = [];
 
   if (homeSessionRsvpEnabled && nextSession) {
     const selfRsvpPromise = currentPlayerId
@@ -768,7 +768,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           reason,
           players (
             first_name,
-            last_name
+            last_name,
+            photo_path,
+            photo_position_x,
+            photo_position_y,
+            photo_zoom
           )
         `
         )
@@ -782,7 +786,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           player_id,
           players (
             first_name,
-            last_name
+            last_name,
+            photo_path,
+            photo_position_x,
+            photo_position_y,
+            photo_zoom
           )
         `
         )
@@ -795,16 +803,38 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     nextSessionPresentCount = participants.length;
     nextSessionAbsentCount = absences.length;
 
-    nextSessionParticipantNames = participants
-      .map((row) => getSimplePlayerName(normalizeSimplePlayerRelation(row.players), locale))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b, locale === "de" ? "de" : "en"));
+    nextSessionParticipants = participants
+      .map((row) => {
+        const player = normalizeSimplePlayerRelation(row.players);
+        return {
+          id: row.player_id,
+          name: getSimplePlayerName(player, locale),
+          photoUrl: player?.photo_path
+            ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
+            : null,
+          photoPositionX: player?.photo_position_x ?? null,
+          photoPositionY: player?.photo_position_y ?? null,
+          photoZoom: player?.photo_zoom ?? null,
+        };
+      })
+      .filter((row) => Boolean(row.name))
+      .sort((a, b) => a.name.localeCompare(b.name, locale === "de" ? "de" : "en"));
 
     nextSessionAbsentPlayers = absences
-      .map((row) => ({
-        name: getSimplePlayerName(normalizeSimplePlayerRelation(row.players), locale),
-        reason: row.reason?.trim() || null,
-      }))
+      .map((row) => {
+        const player = normalizeSimplePlayerRelation(row.players);
+        return {
+          id: row.player_id,
+          name: getSimplePlayerName(player, locale),
+          reason: row.reason?.trim() || null,
+          photoUrl: player?.photo_path
+            ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
+            : null,
+          photoPositionX: player?.photo_position_x ?? null,
+          photoPositionY: player?.photo_position_y ?? null,
+          photoZoom: player?.photo_zoom ?? null,
+        };
+      })
       .filter((row) => Boolean(row.name))
       .sort((a, b) => a.name.localeCompare(b.name, locale === "de" ? "de" : "en"));
 
@@ -915,7 +945,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               startTime={nextSession.start_time}
               rsvpDeadlineMinutesBefore={rsvpDeadlineMinutesBefore}
               sessionRsvpDeadlineMinutesBefore={nextSession.rsvp_deadline_minutes_before}
-              participantNames={nextSessionParticipantNames}
+              participants={nextSessionParticipants}
               absentPlayers={nextSessionAbsentPlayers}
               requireAbsenceReason={requireRsvpReasonOnAbsence}
               readOnly={isSupportView}
