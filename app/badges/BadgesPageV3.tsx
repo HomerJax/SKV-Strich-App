@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -46,6 +47,13 @@ type PlayerRow = {
   nickname: string | null;
   is_guest: boolean | null;
   selected_badge_key: string | null;
+  birth_date: string | null;
+  jersey_number: number | null;
+  photo_path: string | null;
+  photo_position_x: number | null;
+  photo_position_y: number | null;
+  photo_zoom: number | null;
+  preferred_position: string | null;
 };
 
 type AchievementRow = {
@@ -562,7 +570,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
       .maybeSingle<ClubRow>(),
     supabase
       .from("players")
-      .select("id, name, first_name, last_name, nickname, is_guest, selected_badge_key")
+      .select("id, name, first_name, last_name, nickname, is_guest, selected_badge_key, birth_date, jersey_number, photo_path, photo_position_x, photo_position_y, photo_zoom, preferred_position")
       .eq("club_id", clubId)
       .order("first_name", { ascending: true }),
     supabase
@@ -694,6 +702,28 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
           }
           compact
         />
+
+        <section className="overflow-hidden rounded-[26px] border border-stone-300 bg-[#f6f0d8] shadow-sm">
+          <div className="flex items-center justify-between border-b border-stone-300 bg-white/50 px-4 py-3">
+            <div><div className="text-[9px] font-black uppercase tracking-[.22em] text-slate-500">strikr · digital</div><div className="text-lg font-black">{t("playerCard.title")}</div></div>
+            <div className="text-right font-mono text-[9px] text-slate-500">{t("playerCard.cardNo")}<br/><b className="text-slate-800">STR-{String(displayPlayer.id).padStart(5,"0")}</b></div>
+          </div>
+          <div className="grid grid-cols-[88px_1fr] gap-4 p-4 sm:grid-cols-[110px_1fr]">
+            <div className="aspect-[4/5] overflow-hidden border-2 border-white bg-stone-200 shadow-sm">
+              {displayPlayer.photo_path ? <Image src={supabase.storage.from("player-photos").getPublicUrl(displayPlayer.photo_path).data.publicUrl} alt={displayName} width={220} height={275} unoptimized className="h-full w-full object-cover" style={{objectPosition:`${displayPlayer.photo_position_x??50}% ${displayPlayer.photo_position_y??50}%`,transform:`scale(${Number(displayPlayer.photo_zoom??1)})`,transformOrigin:`${displayPlayer.photo_position_x??50}% ${displayPlayer.photo_position_y??50}%`}}/> : <div className="flex h-full items-center justify-center text-3xl font-black text-stone-400">{displayName[0]}</div>}
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-xl font-black">{displayName}</div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                <div><span className="block text-[9px] uppercase text-slate-400">{t("playerCard.born")}</span><b>{displayPlayer.birth_date?new Date(`${displayPlayer.birth_date}T12:00:00`).toLocaleDateString(locale==="de"?"de-DE":"en-GB"):"—"}</b></div>
+                <div><span className="block text-[9px] uppercase text-slate-400">{t("playerCard.jerseyNo")}</span><b>{displayPlayer.jersey_number||"—"}</b></div>
+                <div><span className="block text-[9px] uppercase text-slate-400">{t("playerCard.position")}</span><b>{displayPlayer.preferred_position==="goalkeeper"?t("playerCard.goalkeeper"):displayPlayer.preferred_position==="defense"?t("playerCard.defense"):displayPlayer.preferred_position==="attack"?t("playerCard.attack"):"—"}</b></div>
+                <div><span className="block text-[9px] uppercase text-slate-400">{t("playerCard.club")}</span><b className="line-clamp-1">{clubData?.display_name||"strikr Club"}</b></div>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-stone-300 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[.12em] text-slate-500">Spielerpass · Hall of Fame</div>
+        </section>
 
         <section className="relative overflow-hidden rounded-[32px] bg-slate-950 p-5 text-white shadow-[0_28px_70px_rgba(15,23,42,0.24)] sm:p-6">
           <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-400/[0.08] blur-3xl" />
