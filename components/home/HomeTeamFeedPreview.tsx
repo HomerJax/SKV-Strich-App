@@ -224,16 +224,8 @@ export default function HomeTeamFeedPreview({
 
               if (item.kind === "birthday" || item.kind === "beer") {
                 const options = item.kind === "beer"
-                  ? [
-                      { key: "biermaschine", label: "Biermaschine" },
-                      { key: "prost", label: "Prost Mahlzeit" },
-                      { key: "laeuft", label: "Stabil" },
-                    ]
-                  : [
-                      { key: "glueckwunsch", label: locale === "de" ? "Glückwunsch" : "Congrats" },
-                      { key: "kischde", label: "Kischde" },
-                      { key: "herz", label: locale === "de" ? "Ehrenmann" : "Legend" },
-                    ];
+                  ? [{ key: "biermaschine", label: locale === "de" ? "FEIER ICH" : "LOVE IT" }]
+                  : [{ key: "glueckwunsch", label: locale === "de" ? "GLÜCKWUNSCH" : "CONGRATS" }];
 
                 return (
                   <div key={item.id} className="px-1 py-3">
@@ -268,7 +260,7 @@ export default function HomeTeamFeedPreview({
                             onClick={() => void toggleReaction(item.id, key)}
                             className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] transition duration-150 active:scale-90 ${active ? "scale-[1.04] border-cyan-500 bg-cyan-500 font-extrabold uppercase tracking-[0.02em] text-white shadow-[0_4px_12px_rgba(6,182,212,0.24)] ring-2 ring-cyan-100" : "border-slate-200 bg-white font-semibold text-slate-500 shadow-sm hover:border-slate-300 hover:text-slate-700"}`}
                           >
-                            <span>{label}</span>
+                            <span>{active ? "🙌 " : ""}{label}</span>
                             {count > 0 ? (
                               <span className={`min-w-[14px] rounded-full px-1 text-center text-[9px] font-bold tabular-nums ${active ? "bg-white/90 text-cyan-700" : "bg-slate-100 text-slate-400"}`}>
                                 {count}
