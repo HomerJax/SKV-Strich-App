@@ -225,14 +225,14 @@ export default function HomeTeamFeedPreview({
               if (item.kind === "birthday" || item.kind === "beer") {
                 const options = item.kind === "beer"
                   ? [
-                      { key: "biermaschine", emoji: "🤖", label: "Biermaschine" },
-                      { key: "prost", emoji: "🍻", label: "Prost Mahlzeit" },
-                      { key: "laeuft", emoji: "🍺", label: "Stabil" },
+                      { key: "biermaschine", label: "Biermaschine" },
+                      { key: "prost", label: "Prost Mahlzeit" },
+                      { key: "laeuft", label: "Stabil" },
                     ]
                   : [
-                      { key: "glueckwunsch", emoji: "🎉", label: locale === "de" ? "Glückwunsch" : "Congrats" },
-                      { key: "kischde", emoji: "🍺", label: "Kischde" },
-                      { key: "herz", emoji: "❤️", label: locale === "de" ? "Herz" : "Love" },
+                      { key: "glueckwunsch", label: locale === "de" ? "Glückwunsch" : "Congrats" },
+                      { key: "kischde", label: "Kischde" },
+                      { key: "herz", label: locale === "de" ? "Ehrenmann" : "Legend" },
                     ];
 
                 return (
@@ -254,30 +254,36 @@ export default function HomeTeamFeedPreview({
                       </div>
                     </div>
 
-                    <div className="ml-[38px] mt-1">
-                      <div className="flex flex-wrap items-center gap-1">
-                        {options.filter(({ key }) => (item.reactions?.[key] ?? 0) > 0).map(({ key, emoji }) => (
-                          <span key={key} className="inline-flex h-6 items-center gap-1 rounded-full bg-white px-2 text-[10px] font-bold text-slate-500 shadow-sm ring-1 ring-slate-200/80">
-                            {emoji} {item.reactions?.[key] ?? 0}
-                          </span>
-                        ))}
-                        <button type="button" onClick={() => setOpenReactions((current) => current === item.id ? null : item.id)} aria-label={locale === "de" ? "Reagieren" : "React"} className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-[11px] text-slate-400 shadow-sm ring-1 ring-slate-200/80 transition hover:text-slate-700 active:scale-95">
-                          <span>😊</span>
+                    <div className="ml-[38px] mt-2">
+                      {openReactions !== item.id ? (
+                        <button type="button" onClick={() => setOpenReactions(item.id)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-1.5 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100 active:scale-[0.98]">
+                          <span>${locale === "de" ? "Abstimmen" : "Vote"}</span>
+                          <span className="text-slate-300">·</span>
+                          <span className="font-bold text-slate-400">${options.reduce((sum, option) => sum + (item.reactions?.[option.key] ?? 0), 0)} ${locale === "de" ? "Stimmen" : "votes"}</span>
                         </button>
-                      </div>
-                      {openReactions === item.id ? (
-                        <div className="mt-1.5 inline-flex max-w-full flex-wrap gap-1 rounded-2xl bg-white p-1.5 shadow-lg ring-1 ring-slate-200/80">
-                          {options.map(({ key, emoji, label }) => {
+                      ) : (
+                        <div className="max-w-sm space-y-1.5 rounded-xl border border-slate-200/80 bg-slate-50/60 p-2">
+                          {options.map(({ key, label }) => {
+                            const count = item.reactions?.[key] ?? 0;
+                            const total = options.reduce((sum, option) => sum + (item.reactions?.[option.key] ?? 0), 0);
+                            const percent = total > 0 ? Math.round((count / total) * 100) : 0;
                             const active = item.myReactions?.includes(key) === true;
                             const busy = reactionBusy === item.id;
                             return (
-                              <button key={key} type="button" aria-pressed={active} disabled={busy} onClick={() => void toggleReaction(item.id, key)} className={`inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[10px] font-semibold transition active:scale-95 ${active ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100"}`}>
-                                <span>{emoji}</span><span>{label}</span>
+                              <button key={key} type="button" aria-pressed={active} disabled={busy} onClick={() => void toggleReaction(item.id, key)} className={`relative flex h-8 w-full items-center overflow-hidden rounded-lg border px-2.5 text-left transition active:scale-[0.99] ${active ? "border-slate-400 bg-white" : "border-slate-200/80 bg-white/80 hover:border-slate-300"}`}>
+                                <span className="absolute inset-y-0 left-0 bg-slate-100 transition-all" style={{ width: `${percent}%` }} />
+                                <span className={`relative z-10 flex w-full items-center justify-between gap-3 text-[10px] ${active ? "font-bold text-slate-900" : "font-semibold text-slate-600"}`}>
+                                  <span>{label}</span>
+                                  <span className="tabular-nums text-slate-400">{count}</span>
+                                </span>
                               </button>
                             );
                           })}
+                          <button type="button" onClick={() => setOpenReactions(null)} className="px-1 pt-0.5 text-[9px] font-semibold text-slate-400 hover:text-slate-600">
+                            {locale === "de" ? "Schließen" : "Close"}
+                          </button>
                         </div>
-                      ) : null}
+                      )}
                     </div>
                   </div>
                 );
