@@ -472,7 +472,6 @@ export default function StandingsClient({
 
                         <td className="min-w-0 px-1.5 py-2 align-middle">
                           <div className="flex min-w-0 items-center gap-1.5">
-                            {hallOfFameEnabled ? <Link href={`/badges?player=${row.player_id}`} className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[9px] font-black text-slate-500 ring-1 ring-slate-200" title={t("standings.viewHallOfFame")}>{row.photo_url ? <img src={row.photo_url} alt="" className="h-full w-full object-cover" style={{objectPosition:`${row.photo_position_x??50}% ${row.photo_position_y??50}%`,transform:`scale(${Number(row.photo_zoom??1)})`,transformOrigin:`${row.photo_position_x??50}% ${row.photo_position_y??50}%`}}/> : getPlayerDisplayName(row).trim().charAt(0)}</Link> : null}
                             {hallOfFameEnabled ? (
                               <Link
                                 href={`/badges?player=${row.player_id}`}
