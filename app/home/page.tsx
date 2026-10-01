@@ -285,7 +285,7 @@ function normalizePlayerRelation(
 
 function normalizeSimplePlayerRelation(
   player: NextSessionParticipantRow["players"]
-): { first_name: string | null; last_name: string | null } | null {
+): Exclude<NextSessionParticipantRow["players"], null | Array<unknown>> | null {
   if (!player) return null;
   if (Array.isArray(player)) return player[0] ?? null;
   return player;
@@ -775,7 +775,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           player_id,
           reason,
           players (
-            first_name,\n            last_name,\n            photo_path,\n            photo_position_x,\n            photo_position_y,\n            photo_zoom\n          )
+            first_name,
+            last_name,
+            photo_path,
+            photo_position_x,
+            photo_position_y,
+            photo_zoom
+          )
         `
         )
         .eq("session_id", nextSession.id)
@@ -788,7 +794,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           player_id,
           players (
             first_name,
-            last_name
+            last_name,
+            photo_path,
+            photo_position_x,
+            photo_position_y,
+            photo_zoom
           )
         `
         )
@@ -801,7 +811,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     nextSessionPresentCount = participants.length;
     nextSessionAbsentCount = absences.length;
 
-    nextSessionParticipants = participants.map((row) => { const p = normalizeSimplePlayerRelation(row.players) as any; const name = getSimplePlayerName(p, locale); return { id: row.player_id, name, photoUrl: p?.photo_path ? supabase.storage.from("player-photos").getPublicUrl(p.photo_path).data.publicUrl : null, photoPositionX: p?.photo_position_x ?? null, photoPositionY: p?.photo_position_y ?? null, photoZoom: p?.photo_zoom ?? null }; }).sort((a,b)=>a.name.localeCompare(b.name, locale === "de" ? "de" : "en"));
+    nextSessionParticipants = participants.map((row) => { const p = normalizeSimplePlayerRelation(row.players); const name = getSimplePlayerName(p, locale); return { id: row.player_id, name, photoUrl: p?.photo_path ? supabase.storage.from("player-photos").getPublicUrl(p.photo_path).data.publicUrl : null, photoPositionX: p?.photo_position_x ?? null, photoPositionY: p?.photo_position_y ?? null, photoZoom: p?.photo_zoom ?? null }; }).sort((a,b)=>a.name.localeCompare(b.name, locale === "de" ? "de" : "en"));
 
     nextSessionAbsentPlayers = absences
       .map((row) => ({
