@@ -236,20 +236,20 @@ export default function HomeTeamFeedPreview({
                     ];
 
                 return (
-                  <div key={item.id} className="px-1 py-3.5">
+                  <div key={item.id} className="px-1 py-3">
                     <Link
                       href={item.href}
                       onClick={() => trackProductEvent("team_feed_open", { kind: item.kind })}
                       className="flex items-start gap-3"
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-lg ring-1 ring-inset ring-amber-100/80">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-base">
                         {item.kind === "beer" ? "🍺" : "🎂"}
                       </div>
                       <div className="min-w-0 flex-1 pt-0.5">
-                        <div className="text-[13px] font-bold leading-5 text-slate-900">
+                        <div className="text-[13px] font-semibold leading-4.5 text-slate-900">
                           {item.title}
                         </div>
-                        <div className="mt-0.5 text-[11px] font-medium leading-4 text-slate-500">
+                        <div className="mt-0.5 text-[10px] font-medium leading-4 text-slate-500">
                           {item.body}
                         </div>
                       </div>
@@ -262,7 +262,7 @@ export default function HomeTeamFeedPreview({
                       <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
                         {locale === "de" ? "Reagieren" : "React"}
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1">
                         {options.map(({ key, emoji, label }) => {
                           const active = item.myReactions?.includes(key) === true;
                           const count = item.reactions?.[key] ?? 0;
@@ -275,13 +275,13 @@ export default function HomeTeamFeedPreview({
                               aria-pressed={active}
                               disabled={busy}
                               onClick={() => void toggleReaction(item.id, key)}
-                              className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition duration-150 active:scale-95 disabled:cursor-wait disabled:opacity-60 ${
+                              className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold transition duration-150 active:scale-95 disabled:cursor-wait disabled:opacity-60 ${
                                 active
                                   ? "bg-slate-900 text-white shadow-sm"
                                   : "bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200/80 hover:bg-slate-100"
                               }`}
                             >
-                              <span className="text-[13px] leading-none">{emoji}</span>
+                              <span className="text-[12px] leading-none">{emoji}</span>
                               <span>{label}</span>
                               {count > 0 ? (
                                 <span
