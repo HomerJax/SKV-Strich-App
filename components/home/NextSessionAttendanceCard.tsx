@@ -37,7 +37,7 @@ type NextSessionAttendanceCardProps = {
   supportViewLabel?: string | null;
 };
 
-type AttendanceAvatarPlayer = { name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null };
+type AttendanceAvatarPlayer = { name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null };
 
 function AttendanceAvatar({ player, tone }: { player: AttendanceAvatarPlayer; tone: "cyan" | "rose" }) {
   const fallbackClasses = tone === "cyan" ? "bg-cyan-100 text-cyan-800" : "bg-rose-100 text-rose-800";
@@ -47,8 +47,8 @@ function AttendanceAvatar({ player, tone }: { player: AttendanceAvatarPlayer; to
         <img
           src={player.photoUrl}
           alt=""
-          className="absolute inset-0 block h-full w-full max-w-none object-cover"
-          style={{ objectPosition: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%` }}
+          className="h-full w-full object-cover"
+          style={{ objectPosition: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%`, transform: `scale(${Number(player.photoZoom ?? 1)})`, transformOrigin: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%` }}
         />
       ) : (player.name.trim().charAt(0) || "?")}
     </span>
