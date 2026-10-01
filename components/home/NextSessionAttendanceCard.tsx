@@ -29,8 +29,8 @@ type NextSessionAttendanceCardProps = {
   startTime?: string | null;
   rsvpDeadlineMinutesBefore?: number;
   sessionRsvpDeadlineMinutesBefore?: number | null;
-  participantNames?: string[];
-  absentPlayers?: { name: string; reason: string | null }[];
+  participants?: { id: number; name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[];
+  absentPlayers?: { id: number; name: string; reason: string | null; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[];
   requireAbsenceReason?: boolean;
   readOnly?: boolean;
   supportViewLabel?: string | null;
@@ -99,7 +99,7 @@ export default function NextSessionAttendanceCard({
   startTime,
   rsvpDeadlineMinutesBefore = 60,
   sessionRsvpDeadlineMinutesBefore = null,
-  participantNames = [],
+  participants = [],
   absentPlayers = [],
   requireAbsenceReason = false,
   readOnly = false,
@@ -327,14 +327,16 @@ export default function NextSessionAttendanceCard({
 
           {showAttendanceDetails ? (
             <div className="border-t border-cyan-100 bg-white/80 px-3 py-3">
-              {participantNames.length > 0 ? (
+              {participants.length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {participantNames.map((name, index) => (
-                    <div key={`participant-${name}-${index}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5">
+                  {participants.map((player) => (
+                    <div key={`participant-${player.id}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-[10px] font-black uppercase text-cyan-800">
-                        {name.trim().charAt(0) || "?"}
+                        {player.photoUrl ? (
+                          <img src={player.photoUrl} alt="" className="h-full w-full rounded-full object-cover" style={{ objectPosition: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%`, transform: `scale(${player.photoZoom ?? 1})` }} />
+                        ) : (player.name.trim().charAt(0) || "?")}
                       </span>
-                      <span className="min-w-0 truncate text-xs font-bold text-slate-800">{name}</span>
+                      <span className="min-w-0 truncate text-xs font-bold text-slate-800">{player.name}</span>
                     </div>
                   ))}
                 </div>
@@ -370,10 +372,17 @@ export default function NextSessionAttendanceCard({
               {absentPlayers.length > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {absentPlayers.map((player, index) => (
-                    <div key={`absence-${player.name}-${index}`} className="rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5">
+                    <div key={`absence-${player.id}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-slate-950/5">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-100 text-[10px] font-black uppercase text-rose-800">
+                        {player.photoUrl ? (
+                          <img src={player.photoUrl} alt="" className="h-full w-full object-cover" style={{ objectPosition: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%`, transform: `scale(${player.photoZoom ?? 1})` }} />
+                        ) : (player.name.trim().charAt(0) || "?")}
+                      </span>
+                      <div className="min-w-0">
                       <div className="text-xs font-black text-slate-800">{player.name}</div>
                       <div className={`mt-0.5 text-[11px] ${player.reason ? "font-semibold text-rose-700" : "text-slate-400"}`}>
                         {player.reason ? `„${player.reason}“` : t("session.noReason")}
+                      </div>
                       </div>
                     </div>
                   ))}
