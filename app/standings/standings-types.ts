@@ -23,10 +23,6 @@ export type StandingRow = {
   first_name?: string | null;
   last_name?: string | null;
   nickname?: string | null;
-  photo_url?: string | null;
-  photo_position_x?: number | null;
-  photo_position_y?: number | null;
-  photo_zoom?: number | null;
   wins: number;
   sessions: number;
   mvps: number;
