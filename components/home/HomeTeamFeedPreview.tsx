@@ -225,10 +225,9 @@ export default function HomeTeamFeedPreview({
               if (item.kind === "birthday" || item.kind === "beer") {
                 const options = item.kind === "beer"
                   ? [
-                      { key: "prost", emoji: "🍻", label: "Prost" },
                       { key: "biermaschine", emoji: "🤖", label: "Biermaschine" },
-                      { key: "maschine", emoji: "👑", label: "Maschine" },
-                      { key: "laeuft", emoji: "😂", label: "Läuft" },
+                      { key: "prost", emoji: "🍻", label: "Prost Mahlzeit" },
+                      { key: "laeuft", emoji: "🍺", label: "Stabil" },
                     ]
                   : [
                       { key: "glueckwunsch", emoji: "🎉", label: locale === "de" ? "Glückwunsch" : "Congrats" },
