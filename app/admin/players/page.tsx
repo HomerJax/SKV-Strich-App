@@ -175,91 +175,13 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
         missingPositionCount={missingPositionCount}
         defaultStrengthCount={defaultStrengthCount}
         balanceGroupCount={balanceGroupCount}
+        balanceGroups={balanceGroups.map(([name, groupPlayers]) => ({
+          name,
+          players: groupPlayers
+            .map(playerDisplayName)
+            .sort((a, b) => a.localeCompare(b, "de")),
+        }))}
       />
-
-      <div className="mb-4 rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-extrabold text-slate-950">Balanced Groups</h2>
-            <p className="mt-1 text-sm leading-5 text-slate-600">
-              Aktuelle Zuordnung auf einen Blick. Gruppe antippen, um alle Spieler zu sehen.
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
-            {balanceGroups.filter(([group]) => Boolean(group)).length} Gruppen
-          </span>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {balanceGroups.map(([group, groupPlayers]) => (
-            <details key={group || "__unassigned"} className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/70">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 [&::-webkit-details-marker]:hidden">
-                <div className="min-w-0">
-                  <div className={`text-sm font-bold ${group ? "text-slate-950" : "text-amber-800"}`}>
-                    {group || "Ohne Balanced Group"}
-                  </div>
-                  <div className="mt-0.5 text-xs text-slate-500">
-                    {groupPlayers.length} {groupPlayers.length === 1 ? "Spieler" : "Spieler"}
-                  </div>
-                </div>
-                <span className="shrink-0 text-sm font-bold text-slate-400 transition group-open:rotate-180">⌄</span>
-              </summary>
-              <div className="border-t border-slate-200 bg-white px-3.5 py-3">
-                <div className="flex flex-wrap gap-2">
-                  {groupPlayers
-                    .slice()
-                    .sort((a, b) => playerDisplayName(a).localeCompare(playerDisplayName(b), "de"))
-                    .map((player) => (
-                      <span key={player.id} className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700">
-                        {playerDisplayName(player)}
-                      </span>
-                    ))}
-                </div>
-              </div>
-            </details>
-          ))}
-          {balanceGroups.length === 0 ? (
-            <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">
-              Noch keine Spieler für Balanced Groups vorhanden.
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="text-sm font-semibold text-slate-900">
-            {t("adminPlayers.seasonTitle")}
-          </div>
-          <div className="mt-1 text-sm leading-6 text-slate-600">
-            {t("adminPlayers.seasonHint")}
-          </div>
-        </div>
-        <Link
-          href="/admin/seasons"
-          className="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          {t("adminPlayers.openSeasons")}
-        </Link>
-      </div>
-
-      {flashMessage ? (
-        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          {flashMessage}
-        </div>
-      ) : null}
-      {flashError ? (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {flashError}
-        </div>
-      ) : null}
-
-      {players.length > 0 ? (
-        <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-          <span className="font-semibold text-slate-900">{t("adminPlayers.editRoster")}</span>{" "}
-          {t("adminPlayers.rosterHint", { count: players.length })}
-        </div>
-      ) : null}
 
       <RosterBulkEditor
         players={players}
