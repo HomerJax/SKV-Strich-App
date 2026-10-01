@@ -354,7 +354,7 @@ export default function NextSessionAttendanceCard({
                   {participants.map((player) => (
                      <Link href={`/badges?player=${player.id}`} key={`participant-${player.id}`} className="flex min-h-12 items-center gap-3 px-1 py-2.5 transition hover:bg-cyan-50/70">
                        <AttendanceAvatar player={player} tone="cyan" />
-                       <span className="min-w-0 truncate text-sm font-bold text-slate-800">{player.name}</span>
+                       <span className="min-w-0 whitespace-normal break-words text-[12px] font-bold leading-[1.2] text-slate-800">{player.name}</span>
                      </Link>
                   ))}
                 </div>
@@ -393,7 +393,7 @@ export default function NextSessionAttendanceCard({
                      <Link href={`/badges?player=${player.id}`} key={`absence-${player.id}`} className="flex min-h-12 items-center gap-3 px-1 py-2.5 transition hover:bg-rose-50/80">
                        <AttendanceAvatar player={player} tone="rose" />
                        <div className="min-w-0">
-                         <div className="truncate text-sm font-black text-slate-800">{player.name}</div>
+                         <div className="whitespace-normal break-words text-[12px] font-black leading-[1.2] text-slate-800">{player.name}</div>
                          <div className={`mt-0.5 text-[11px] leading-4 ${player.reason ? "font-normal text-slate-500" : "text-slate-400"}`}>
                            {player.reason ? player.reason : t("session.noReason")}
                          </div>
