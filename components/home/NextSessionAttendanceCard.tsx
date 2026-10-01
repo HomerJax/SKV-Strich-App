@@ -37,6 +37,24 @@ type NextSessionAttendanceCardProps = {
   supportViewLabel?: string | null;
 };
 
+type AttendanceAvatarPlayer = { name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null };
+
+function AttendanceAvatar({ player, tone }: { player: AttendanceAvatarPlayer; tone: "cyan" | "rose" }) {
+  const fallbackClasses = tone === "cyan" ? "bg-cyan-100 text-cyan-800" : "bg-rose-100 text-rose-800";
+  return (
+    <span className={`relative isolate flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-black uppercase ring-2 ring-white ${fallbackClasses}`}>
+      {player.photoUrl ? (
+        <img
+          src={player.photoUrl}
+          alt=""
+          className="absolute inset-0 block h-full w-full max-w-none object-cover"
+          style={{ objectPosition: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%` }}
+        />
+      ) : (player.name.trim().charAt(0) || "?")}
+    </span>
+  );
+}
+
 function formatDeadline(date: Date, locale: AppLocale) {
   return date.toLocaleString(locale === "de" ? "de-DE" : "en-GB", {
     timeZone: "Europe/Berlin",
