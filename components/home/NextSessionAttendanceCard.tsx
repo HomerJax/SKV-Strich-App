@@ -380,8 +380,8 @@ export default function NextSessionAttendanceCard({
                       </span>
                       <div className="min-w-0">
                       <div className="truncate text-sm font-black text-slate-800">{player.name}</div>
-                      <div className={`mt-0.5 text-[11px] ${player.reason ? "font-semibold text-rose-700" : "text-slate-400"}`}>
-                        {player.reason ? `„${player.reason}“` : t("session.noReason")}
+                      <div className={`mt-0.5 text-[11px] leading-4 ${player.reason ? "font-normal text-slate-500" : "text-slate-400"}`}>
+                        {player.reason ? player.reason : t("session.noReason")}
                       </div>
                       </div>
                     </div>
