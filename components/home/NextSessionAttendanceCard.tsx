@@ -44,12 +44,14 @@ function AttendanceAvatar({ player, tone }: { player: AttendanceAvatarPlayer; to
   return (
     <span className={`relative isolate flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-black uppercase ring-2 ring-white ${fallbackClasses}`}>
       {player.photoUrl ? (
-        <img
-          src={player.photoUrl}
-          alt=""
-          className="h-full w-full object-cover"
-          style={{ objectPosition: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%`, transform: `scale(${Number(player.photoZoom ?? 1)})`, transformOrigin: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%` }}
-        />
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-[12.5%] block h-[125%] overflow-hidden">
+          <img
+            src={player.photoUrl}
+            alt=""
+            className="block h-full w-full object-cover"
+            style={{ objectPosition: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%`, transform: `scale(${Number(player.photoZoom ?? 1)})`, transformOrigin: `${player.photoPositionX ?? 50}% ${player.photoPositionY ?? 50}%` }}
+          />
+        </span>
       ) : (player.name.trim().charAt(0) || "?")}
     </span>
   );
