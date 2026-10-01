@@ -12,6 +12,7 @@ type ExistingPlayer = {
   id: number;
   category_key: string | null;
   strength: number | null;
+  balance_group: string | null;
 };
 
 function toText(value: FormDataEntryValue | null) {
@@ -49,7 +50,7 @@ async function requireAdminClubContext() {
     return { error: "unauthorized" as const };
   }
 
-  return { clubId: ctx.activeClubId };
+  return { clubId: ctx.activeClubId, userId: ctx.user.id };
 }
 
 export async function POST(request: NextRequest) {
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { data: existingPlayers, error: existingError } = await supabase
       .from("players")
-      .select("id, category_key, strength")
+      .select("id, category_key, strength, balance_group")
       .eq("club_id", access.clubId)
       .in("id", playerIds);
 
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
         payload.strength = existing.strength;
       }
 
-      return { playerId, payload };
+      return { playerId, payload, oldBalanceGroup: existing.balance_group };
     });
 
     const results = await Promise.all(
@@ -172,6 +173,25 @@ export async function POST(request: NextRequest) {
       return redirectToAdminPlayers(request, {
         error: t("adminPlayer.squadSaveFailed"),
       });
+    }
+
+    const balanceGroupChanges = updates
+      .filter(({ payload, oldBalanceGroup }) => (payload.balance_group ?? null) !== (oldBalanceGroup ?? null))
+      .map(({ playerId, payload, oldBalanceGroup }) => ({
+        club_id: access.clubId,
+        player_id: playerId,
+        old_balance_group: oldBalanceGroup ?? null,
+        new_balance_group: (payload.balance_group as string | null) ?? null,
+        changed_by: access.userId,
+      }));
+
+    if (balanceGroupChanges.length > 0) {
+      const { error: auditError } = await supabase
+        .from("balance_group_audit_log")
+        .insert(balanceGroupChanges);
+      if (auditError) {
+        console.error("Balance group audit log failed", auditError);
+      }
     }
 
     return redirectToAdminPlayers(request, {
