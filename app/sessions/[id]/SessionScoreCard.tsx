@@ -90,7 +90,7 @@ function GameRow({
               value={a}
               onChange={(event) => setA(cleanGoal(event.target.value))}
               disabled={saving}
-              className="h-12 rounded-xl border bg-white text-center text-xl font-black"
+              className="h-12 min-w-0 w-full rounded-xl border bg-white text-center text-xl font-black"
               aria-label={t("score.teamGoals", { team: t("score.team1"), game: result.game_no })}
             />
             <span className="font-black text-slate-400">:</span>
@@ -99,7 +99,7 @@ function GameRow({
               value={b}
               onChange={(event) => setB(cleanGoal(event.target.value))}
               disabled={saving}
-              className="h-12 rounded-xl border bg-white text-center text-xl font-black"
+              className="h-12 min-w-0 w-full rounded-xl border bg-white text-center text-xl font-black"
               aria-label={t("score.teamGoals", { team: t("score.team2"), game: result.game_no })}
             />
           </div>
@@ -281,7 +281,7 @@ export default function SessionScoreCard({
                 onChange={(event) => onGoalsAChange(cleanGoal(event.target.value))}
                 disabled={saving}
                 placeholder="0"
-                className="h-14 rounded-2xl border text-center text-2xl font-black"
+                className="h-14 min-w-0 w-full rounded-2xl border text-center text-2xl font-black"
                 aria-label={t("score.teamGoalsShort", { team: t("score.team1") })}
               />
               <span className="text-xl font-black text-slate-400">:</span>
@@ -292,7 +292,7 @@ export default function SessionScoreCard({
                 onChange={(event) => onGoalsBChange(cleanGoal(event.target.value))}
                 disabled={saving}
                 placeholder="0"
-                className="h-14 rounded-2xl border text-center text-2xl font-black"
+                className="h-14 min-w-0 w-full rounded-2xl border text-center text-2xl font-black"
                 aria-label={t("score.teamGoalsShort", { team: t("score.team2") })}
               />
             </div>
