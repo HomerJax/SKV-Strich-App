@@ -229,16 +229,21 @@ export default function HomeTeamFeedPreview({
                 );
               }
 
-              if (item.kind === "birthday" || item.kind === "beer") {
+              if (item.kind === "birthday" || item.kind === "beer" || item.kind === "late_rsvp") {
                 const options = item.kind === "beer"
                   ? [{ key: "biermaschine", label: locale === "de" ? "FEIER ICH" : "LOVE IT" }]
-                  : [{ key: "glueckwunsch", label: locale === "de" ? "GLÜCKWUNSCH" : "CONGRATS" }];
+                  : item.kind === "late_rsvp"
+                    ? [
+                        { key: "daumen_hoch", label: "👍" },
+                        { key: "geilo", label: locale === "de" ? "GEILO 😄" : "NICE 😄" },
+                      ]
+                    : [{ key: "glueckwunsch", label: locale === "de" ? "GLÜCKWUNSCH" : "CONGRATS" }];
 
                 return (
                   <div key={item.id} className="px-1 py-3">
                     <div className="flex items-start gap-2.5 rounded-xl px-1 py-1">
-                      <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] ring-1 ring-inset ${item.kind === "beer" ? "bg-amber-50 text-amber-700 ring-amber-100/80" : "bg-rose-50 text-rose-600 ring-rose-100/80"}`}>
-                        {item.kind === "beer" ? "🍺" : "🎂"}
+                      <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] ring-1 ring-inset ${item.kind === "beer" ? "bg-amber-50 text-amber-700 ring-amber-100/80" : item.kind === "late_rsvp" ? "bg-cyan-50 text-cyan-700 ring-cyan-100/80" : "bg-rose-50 text-rose-600 ring-rose-100/80"}`}>
+                        {item.kind === "beer" ? "🍺" : item.kind === "late_rsvp" ? "⏰" : "🎂"}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-[13px] font-bold leading-[18px] tracking-[-0.01em] text-slate-900">
