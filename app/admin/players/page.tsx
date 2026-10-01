@@ -177,41 +177,6 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
         balanceGroupCount={balanceGroupCount}
       />
 
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="text-sm font-semibold text-slate-900">
-            {t("adminPlayers.seasonTitle")}
-          </div>
-          <div className="mt-1 text-sm leading-6 text-slate-600">
-            {t("adminPlayers.seasonHint")}
-          </div>
-        </div>
-        <Link
-          href="/admin/seasons"
-          className="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          {t("adminPlayers.openSeasons")}
-        </Link>
-      </div>
-
-      {flashMessage ? (
-        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          {flashMessage}
-        </div>
-      ) : null}
-      {flashError ? (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {flashError}
-        </div>
-      ) : null}
-
-      {players.length > 0 ? (
-        <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-          <span className="font-semibold text-slate-900">{t("adminPlayers.editRoster")}</span>{" "}
-          {t("adminPlayers.rosterHint", { count: players.length })}
-        </div>
-      ) : null}
-
       <div className="mb-4 rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -260,6 +225,41 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
           ) : null}
         </div>
       </div>
+
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">
+            {t("adminPlayers.seasonTitle")}
+          </div>
+          <div className="mt-1 text-sm leading-6 text-slate-600">
+            {t("adminPlayers.seasonHint")}
+          </div>
+        </div>
+        <Link
+          href="/admin/seasons"
+          className="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          {t("adminPlayers.openSeasons")}
+        </Link>
+      </div>
+
+      {flashMessage ? (
+        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          {flashMessage}
+        </div>
+      ) : null}
+      {flashError ? (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {flashError}
+        </div>
+      ) : null}
+
+      {players.length > 0 ? (
+        <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+          <span className="font-semibold text-slate-900">{t("adminPlayers.editRoster")}</span>{" "}
+          {t("adminPlayers.rosterHint", { count: players.length })}
+        </div>
+      ) : null}
 
       <RosterBulkEditor
         players={players}
