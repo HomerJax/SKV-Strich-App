@@ -291,7 +291,9 @@ export async function getTeamFeedItems(
       };
     });
 
-  const beerSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // Beer moments start with the feature launch. Do not backfill older test evenings.
+  const beerFeatureStart = "2026-10-01T00:00:00+02:00";
+  const beerSince = new Date(beerFeatureStart).toISOString();
   const { data: beerData } = await supabase
     .from("beer_consumptions")
     .select(`player_id, quantity, created_at, players (first_name, last_name, nickname)`)
