@@ -255,8 +255,12 @@ export default function HomeTeamFeedPreview({
 
                     <div className="relative ml-[38px] mt-2 flex flex-wrap gap-1.5">
                       {reactionBoom === item.id ? (
-                        <span className="pointer-events-none absolute -top-6 left-3 z-20 animate-bounce text-[11px] font-black uppercase tracking-[0.12em] text-cyan-600 drop-shadow-sm">
-                          BÄM!
+                        <span className="pointer-events-none absolute left-7 top-3 z-20 h-0 w-0">
+                          <span className="absolute -left-7 -top-7 h-14 w-14 animate-ping rounded-full border-2 border-cyan-400/70" />
+                          <span className="absolute -left-1 -top-7 h-2 w-2 animate-bounce rounded-full bg-cyan-400" />
+                          <span className="absolute left-6 -top-3 h-1.5 w-1.5 animate-ping rounded-full bg-amber-400" />
+                          <span className="absolute -left-7 top-3 h-2 w-2 animate-ping rounded-full bg-cyan-300" />
+                          <span className="absolute left-4 top-5 h-1.5 w-1.5 animate-bounce rounded-full bg-amber-300" />
                         </span>
                       ) : null}
                       {options.map(({ key, label }) => {
@@ -270,7 +274,7 @@ export default function HomeTeamFeedPreview({
                             aria-pressed={active}
                             disabled={busy}
                             onClick={() => void toggleReaction(item.id, key)}
-                            className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] transition duration-150 active:scale-90 ${active ? "scale-[1.04] border-cyan-500 bg-cyan-500 font-extrabold uppercase tracking-[0.02em] text-white shadow-[0_4px_12px_rgba(6,182,212,0.24)] ring-2 ring-cyan-100" : "border-slate-200 bg-white font-semibold text-slate-500 shadow-sm hover:border-slate-300 hover:text-slate-700"}`}
+                            className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] transition duration-150 active:scale-90 ${active ? `${reactionBoom === item.id ? "scale-125" : "scale-[1.04]"} border-cyan-500 bg-cyan-500 font-extrabold uppercase tracking-[0.02em] text-white shadow-[0_4px_12px_rgba(6,182,212,0.24)] ring-2 ring-cyan-100` : "border-slate-200 bg-white font-semibold text-slate-500 shadow-sm hover:border-slate-300 hover:text-slate-700"}`}
                           >
                             <span>{active ? "🙌 " : ""}{label}</span>
                             {count > 0 ? (
