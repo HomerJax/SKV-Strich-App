@@ -7,7 +7,7 @@ import type { AppLocale } from "@/lib/i18n/config";
 
 export type TeamFeedItem = {
   id: string;
-  kind: "badge" | "result";
+  kind: "badge" | "result" | "birthday" | "beer";
   title: string;
   body: string;
   href: string;
@@ -35,6 +35,9 @@ type BadgePlayer = {
   last_name: string | null;
   nickname?: string | null;
 };
+
+type BirthdayPlayer = { id: number; first_name: string | null; last_name: string | null; nickname: string | null; birth_date: string | null; };
+type BeerRow = { player_id: number; quantity: number | null; created_at: string; players: BadgePlayer | BadgePlayer[] | null; };
 
 type AchievementRow = {
   id: string;
@@ -256,7 +259,73 @@ export async function getTeamFeedItems(
         }];
       });
 
-  return [...badgeItems, ...resultItems]
+  const { data: birthdayData } = await supabase
+    .from("players")
+    .select("id, first_name, last_name, nickname, birth_date")
+    .eq("club_id", clubId)
+    .eq("is_guest", false)
+    .not("birth_date", "is", null);
+
+  const todayMonthDay = today.slice(5);
+  const birthdayItems: TeamFeedItem[] = ((birthdayData ?? []) as BirthdayPlayer[])
+    .filter((player) => player.birth_date?.slice(5) === todayMonthDay)
+    .map((player) => {
+      const actorName = playerName(player, locale);
+      return {
+        id: `birthday:${player.id}:${today}`,
+        kind: "birthday" as const,
+        title: locale === "de" ? `🎂 Alles Gute, ${actorName}!` : `🎂 Happy birthday, ${actorName}!`,
+        body: locale === "de" ? "Glückwunsch! 🎉 · Freu mich auf deine Kischde 🍺" : "Happy birthday! 🎉 · Looking forward to your crate 🍺",
+        href: `/badges?player=${player.id}`,
+        occurredAt: `${today}T08:00:00`,
+        actorName,
+      };
+    });
+
+  const beerSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: beerData } = await supabase
+    .from("beer_consumptions")
+    .select(`player_id, quantity, created_at, players (first_name, last_name, nickname)`)
+    .eq("club_id", clubId)
+    .gte("created_at", beerSince)
+    .is("cancelled_at", null);
+
+  const beerByDayPlayer = new Map<string, { playerId: number; quantity: number; occurredAt: string; player: BadgePlayer | BadgePlayer[] | null }>();
+  for (const row of (beerData ?? []) as BeerRow[]) {
+    const day = row.created_at.slice(0, 10);
+    const key = `${day}:${row.player_id}`;
+    const current = beerByDayPlayer.get(key);
+    beerByDayPlayer.set(key, {
+      playerId: row.player_id,
+      quantity: (current?.quantity ?? 0) + Number(row.quantity ?? 0),
+      occurredAt: row.created_at > (current?.occurredAt ?? "") ? row.created_at : current!.occurredAt,
+      player: row.players,
+    });
+  }
+
+  const leadersByDay = new Map<string, { playerId: number; quantity: number; occurredAt: string; player: BadgePlayer | BadgePlayer[] | null }>();
+  for (const entry of beerByDayPlayer.values()) {
+    const day = entry.occurredAt.slice(0, 10);
+    const leader = leadersByDay.get(day);
+    if (!leader || entry.quantity > leader.quantity) leadersByDay.set(day, entry);
+  }
+
+  const beerItems: TeamFeedItem[] = [...leadersByDay.entries()]
+    .filter(([, leader]) => leader.quantity >= 3)
+    .map(([day, leader]) => {
+      const actorName = playerName(leader.player, locale);
+      return {
+        id: `beer:${day}:${leader.playerId}`,
+        kind: "beer" as const,
+        title: locale === "de" ? `🍺 Durstigster Spieler des Abends: ${actorName}` : `🍺 Thirstiest player of the night: ${actorName}`,
+        body: locale === "de" ? `${leader.quantity} Bier · Prost! 🍻` : `${leader.quantity} beers · Cheers! 🍻`,
+        href: "/mannschaftskasse/bier",
+        occurredAt: leader.occurredAt,
+        actorName,
+      };
+    });
+
+  return [...birthdayItems, ...beerItems, ...badgeItems, ...resultItems]
     .sort(
       (a, b) =>
         new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
