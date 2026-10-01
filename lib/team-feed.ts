@@ -328,8 +328,8 @@ export async function getTeamFeedItems(
       return {
         id: `beer:${day}:${leader.playerId}`,
         kind: "beer" as const,
-        title: locale === "de" ? `🍺 Durstigster Spieler des Abends: ${actorName}` : `🍺 Thirstiest player of the night: ${actorName}`,
-        body: locale === "de" ? `${leader.quantity} Bier · Prost! 🍻` : `${leader.quantity} beers · Cheers! 🍻`,
+        title: locale === "de" ? `🍺 ${actorName} hat ${leader.quantity} Bier vernichtet.` : `🍺 ${actorName} put away ${leader.quantity} beers.`,
+        body: locale === "de" ? "Prost Mahlzeit. Maschine. 😄" : "Cheers. Absolute machine. 😄",
         href: "/mannschaftskasse/bier",
         occurredAt: leader.occurredAt,
         actorName,
