@@ -881,7 +881,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                       <div className="text-[9px] font-black uppercase tracking-[0.15em] text-white/35">{t("badges.you")}</div>
                       <Link
                         href={`/badges?player=${ownPlayer.id}`}
-                        className="mt-1 block text-xs font-black leading-tight text-white underline decoration-white/15 underline-offset-4 hover:decoration-white/60 sm:text-sm"
+                        className="mt-1 block max-w-[118px] whitespace-normal break-words text-[10px] font-black leading-[1.15] text-white underline decoration-white/15 underline-offset-4 hover:decoration-white/60 sm:max-w-[150px] sm:text-xs"
                       >
                         {getPlayerDisplayName(ownPlayer, { useNicknames })}
                       </Link>
@@ -895,7 +895,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                       <div className="text-[9px] font-black uppercase tracking-[0.15em] text-white/35">{t("badges.compare")}</div>
                       <Link
                         href={`/badges?player=${comparePlayer.id}`}
-                        className="mt-1 block text-xs font-black leading-tight text-white underline decoration-white/15 underline-offset-4 hover:decoration-white/60 sm:text-sm"
+                        className="mt-1 block max-w-[118px] whitespace-normal break-words text-[10px] font-black leading-[1.15] text-white underline decoration-white/15 underline-offset-4 hover:decoration-white/60 sm:max-w-[150px] sm:text-xs"
                       >
                         {compareName}
                       </Link>
