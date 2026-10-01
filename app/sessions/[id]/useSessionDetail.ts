@@ -333,13 +333,12 @@ export function useSessionDetail({
       return () => {};
     }
 
-    const x = window.scrollX;
     const y = window.scrollY;
 
     return () => {
       window.requestAnimationFrame(() => {
         window.scrollTo({
-          left: x,
+          left: 0,
           top: y,
           behavior: "auto",
         });
