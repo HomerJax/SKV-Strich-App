@@ -11,6 +11,7 @@ type StandingsShareCardProps = {
   startRank: number;
   endRank: number;
   rows: RankRow[];
+  isPro: boolean;
 };
 
 function formatWinRate(wins: number, sessions: number) {
@@ -18,7 +19,7 @@ function formatWinRate(wins: number, sessions: number) {
   return `${Math.round((wins / sessions) * 100)}%`;
 }
 
-function MiniRow({ row }: { row: RankRow }) {
+function MiniRow({ row, isPro }: { row: RankRow; isPro: boolean }) {
   return (
     <div className="flex h-[27px] items-center gap-2 border-b border-white/[0.055] px-1 last:border-b-0">
       <div className="w-[22px] shrink-0 text-center text-[12px] font-black leading-none text-white/80">
@@ -32,7 +33,7 @@ function MiniRow({ row }: { row: RankRow }) {
       <div className="flex shrink-0 items-center gap-2 text-[8px] font-black tabular-nums text-white/50">
         <span className="w-[18px] text-right text-white/78">{row.wins}</span>
         <span className="w-[18px] text-right">{row.sessions}</span>
-        <span className="w-[28px] text-right">{formatWinRate(row.wins, row.sessions)}</span>
+        <span className="w-[28px] text-right">{isPro ? formatWinRate(row.wins, row.sessions) : "PRO"}</span>
       </div>
 
       <div className={`w-[30px] shrink-0 text-right text-[7px] font-black ${movementClass(row.deltaRank)}`}>
@@ -42,7 +43,7 @@ function MiniRow({ row }: { row: RankRow }) {
   );
 }
 
-function LeaderPanel({ row }: { row: RankRow }) {
+function LeaderPanel({ row, isPro }: { row: RankRow; isPro: boolean }) {
   const { t } = useI18n();
   return (
     <div className="relative overflow-hidden rounded-[18px] border border-white/10 bg-[radial-gradient(circle_at_82%_15%,rgba(59,130,246,0.18),transparent_32%),linear-gradient(145deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -68,7 +69,7 @@ function LeaderPanel({ row }: { row: RankRow }) {
       <div className="mt-2.5 flex items-center gap-4 border-t border-white/10 pt-2 text-[8px] font-bold text-white/52">
         <span>{row.sessions} {t("standings.shareAppearances")}</span>
         <span>·</span>
-        <span>{formatWinRate(row.wins, row.sessions)} {t("standings.winRate")}</span>
+        <span>{isPro ? `${formatWinRate(row.wins, row.sessions)} ${t("standings.winRate")}` : `🔒 PRO · ${t("standings.winRate")}`}</span>
       </div>
     </div>
   );
@@ -80,6 +81,7 @@ export default function StandingsShareCard({
   startRank,
   endRank,
   rows,
+  isPro,
 }: StandingsShareCardProps) {
   const { locale, t } = useI18n();
   const isTopCard = startRank === 1;
@@ -127,7 +129,7 @@ export default function StandingsShareCard({
       </div>
 
       <div className="absolute inset-x-0 bottom-[42px] top-[122px] z-[2] bg-[radial-gradient(circle_at_50%_20%,rgba(30,41,59,0.92),#0f172a_72%)] px-[14px] pt-[11px]">
-        {leader ? <LeaderPanel row={leader} /> : null}
+        {leader ? <LeaderPanel row={leader} isPro={isPro} /> : null}
 
         {listRows.length > 0 ? (
           <div className={leader ? "mt-2" : "mt-0"}>
@@ -138,13 +140,13 @@ export default function StandingsShareCard({
               <div className="flex items-center gap-2 pr-[31px] text-[6px] font-bold text-white/28">
                 <span>{t("standings.wins")}</span>
                 <span>{t("standings.appearancesShort")}</span>
-                <span>{t("standings.shareQuote")}</span>
+                <span>{isPro ? t("standings.shareQuote") : "PRO"}</span>
               </div>
             </div>
 
             <div className="overflow-hidden rounded-[12px] border border-white/[0.07] bg-black/10 px-2">
               {listRows.map((row) => (
-                <MiniRow key={row.player_id} row={row} />
+                <MiniRow key={row.player_id} row={row} isPro={isPro} />
               ))}
             </div>
           </div>
