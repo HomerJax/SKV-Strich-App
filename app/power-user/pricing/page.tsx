@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, Crown, LockKeyhole } from "lucide-react";
+import { Check, Crown, LockKeyhole, CreditCard, Database, Globe2 } from "lucide-react";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { PRODUCT_MATRIX } from "@/lib/billing/product-matrix";
 
@@ -52,6 +52,24 @@ export default async function PowerUserPricingMatrixPage() {
             </div>
           </div>
         </header>
+
+        <section className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
+            <div className="flex items-center gap-2 text-sm font-black text-emerald-950"><Database className="h-4 w-4" /> Billing-Daten</div>
+            <div className="mt-2 text-sm font-semibold text-emerald-800">✓ Vorhanden</div>
+            <p className="mt-1 text-xs leading-5 text-emerald-700">club_billing kann Free, Trial, PRO und Founder bereits abbilden.</p>
+          </div>
+          <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
+            <div className="flex items-center gap-2 text-sm font-black text-emerald-950"><Globe2 className="h-4 w-4" /> Produktgrenzen</div>
+            <div className="mt-2 text-sm font-semibold text-emerald-800">✓ Umsetzung läuft / weitgehend drin</div>
+            <p className="mt-1 text-xs leading-5 text-emerald-700">Free/PRO wird serverseitig und sichtbar getrennt; Restcheck vor Merge.</p>
+          </div>
+          <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-center gap-2 text-sm font-black text-amber-950"><CreditCard className="h-4 w-4" /> Checkout</div>
+            <div className="mt-2 text-sm font-semibold text-amber-800">○ Noch nicht verbunden</div>
+            <p className="mt-1 text-xs leading-5 text-amber-700">Stripe-Konto, Preise und Webhook fehlen noch. Danach automatische Freischaltung.</p>
+          </div>
+        </section>
 
         {areas.map((area) => {
           const rows = PRODUCT_MATRIX.filter((row) => row.area === area);
