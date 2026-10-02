@@ -242,6 +242,7 @@ export async function markBeerCashPaidAction(formData: FormData) {
         amount_cents: confirmedTotalCents,
         kind: "income",
         category: "Getränke",
+        account: entry.payment_method === "cash" ? "cash" : "paypal",
         title: `Bierkasse · ${entry.quantity} Bier · ${entry.payment_method === "cash" ? "Bar" : entry.payment_method === "paypal_me" ? "PayPal.Me" : entry.payment_method === "sumup" ? "SumUp" : "PayPal Pool"}`,
         source_type: "beer",
         source_id: entry.id,
@@ -302,10 +303,10 @@ export async function reopenBeerPaymentAction(formData: FormData) {
   const admin = createAdminClient();
   const { data: entry } = await admin
     .from("beer_consumptions")
-    .select("id,quantity,total_cents,payment_status,cash_transaction_id")
+    .select("id,quantity,total_cents,payment_method,payment_status,cash_transaction_id")
     .eq("club_id", clubId)
     .eq("id", consumptionId)
-    .maybeSingle<{ id:number; quantity:number; total_cents:number; payment_status:"pending"|"paid"|"cancelled"; cash_transaction_id:number|null }>();
+    .maybeSingle<{ id:number; quantity:number; total_cents:number; payment_method:"paypal"|"paypal_me"|"sumup"|"cash"; payment_status:"pending"|"paid"|"cancelled"; cash_transaction_id:number|null }>();
 
   if (!entry || entry.payment_status !== "paid") redirect(beerManageUrl({ error: "Die Zahlung ist nicht bestätigt." }));
 
@@ -315,6 +316,7 @@ export async function reopenBeerPaymentAction(formData: FormData) {
       amount_cents: -entry.total_cents,
       kind: "reversal",
       category: "Getränke",
+      account: entry.payment_method === "cash" ? "cash" : "paypal",
       title: `Bestätigung zurückgenommen · ${entry.quantity} Bier`,
       source_type: "beer_reopen",
       source_id: entry.id,
@@ -391,6 +393,7 @@ export async function updateBeerConsumptionAction(formData: FormData) {
       amount_cents: deltaCents,
       kind: deltaCents > 0 ? "income" : "reversal",
       category: "Getränke",
+      account: entry.payment_method === "cash" ? "cash" : "paypal",
       title: `Korrektur Bierkasse · ${entry.quantity} → ${quantity} Bier`,
       source_type: "beer_adjustment",
       source_id: entry.id,
@@ -458,6 +461,7 @@ export async function cancelBeerConsumptionAction(formData: FormData) {
       amount_cents: -entry.total_cents,
       kind: "reversal",
       category: "Getränke",
+      account: entry.payment_method === "cash" ? "cash" : "paypal",
       title: `Storno: Bierkasse · ${entry.quantity} Bier`,
       source_type: "beer_reversal",
       source_id: entry.id,
