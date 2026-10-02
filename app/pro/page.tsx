@@ -61,8 +61,33 @@ export default async function ProPage({
         </div>
 
         {checkoutState === "success" ? (
-          <div className="mb-5 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm font-bold text-emerald-100">
-            Zahlung erfolgreich. Stripe schaltet PRO jetzt automatisch für euren Club frei.
+          <div className="mb-8 overflow-hidden rounded-[28px] border border-emerald-300/25 bg-gradient-to-br from-emerald-300/12 via-white/[0.05] to-cyan-300/10 p-6 text-center shadow-[0_22px_80px_rgba(16,185,129,0.12)] sm:p-8">
+            <div className="text-4xl">🎉</div>
+            <div className="mt-3 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">
+              Willkommen bei strikr PRO
+            </div>
+            <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
+              Yeah – richtige Entscheidung.
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/60">
+              {billingAccess?.isPro
+                ? "PRO ist jetzt für euer Team aktiv. Viel Spaß mit den zusätzlichen Stats, Saisons und PRO-Funktionen."
+                : "Die Zahlung war erfolgreich. PRO wird gerade automatisch für euer Team freigeschaltet – das dauert normalerweise nur einen Moment."}
+            </p>
+            <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+              <Link
+                href="/home"
+                className="inline-flex items-center justify-center rounded-2xl bg-white px-6 py-3.5 text-sm font-black text-slate-950"
+              >
+                Weiter zu strikr
+              </Link>
+              <Link
+                href="/pro"
+                className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-6 py-3.5 text-sm font-black text-white/80"
+              >
+                PRO-Übersicht
+              </Link>
+            </div>
           </div>
         ) : checkoutState === "cancelled" ? (
           <div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white/70">
