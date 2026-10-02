@@ -934,15 +934,15 @@ export default async function Page({ searchParams }: Props) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
-                      {t("cashAdmin.clubExtra")}
+                      Bierkasse
                     </div>
-                    <h2 className="mt-1 text-lg font-black">{t("cashAdmin.beerPlus")}</h2>
+                    <h2 className="mt-1 text-lg font-black">Zahlung & Einstellungen</h2>
                     <p className="mt-1 text-xs font-medium text-slate-600">
-                      {t("cashAdmin.beerPlusHint")}
+                      Bier eintragen und bezahlen bleibt Free. PRO erweitert Statistik, Ranglisten und Badges.
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black text-white">
-                    {t("cashAdmin.perMonth")}
+                  <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1.5 text-[10px] font-black text-emerald-800">
+                    CORE FREE
                   </span>
                 </div>
 
@@ -951,13 +951,11 @@ export default async function Page({ searchParams }: Props) {
                 ) : null}
                 {q?.beerkasse_error ? (
                   <p className="mt-3 text-xs font-bold text-red-700">
-                    {q.beerkasse_error === "premium"
-                      ? t("cashAdmin.beerPremiumMissing")
-                      : q.beerkasse_error === "price"
-                        ? t("cashAdmin.beerInvalidPrice")
-                        : q.beerkasse_error === "url"
-                          ? t("cashAdmin.beerInvalidUrl")
-                          : t("cashAdmin.beerSaveFailed")}
+                    {q.beerkasse_error === "price"
+                      ? t("cashAdmin.beerInvalidPrice")
+                      : q.beerkasse_error === "url"
+                        ? t("cashAdmin.beerInvalidUrl")
+                        : t("cashAdmin.beerSaveFailed")}
                   </p>
                 ) : null}
 
@@ -965,8 +963,8 @@ export default async function Page({ searchParams }: Props) {
                   <>
                     <div className="mt-4 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
                       <div>
-                        <div className="text-sm font-black text-emerald-900">{t("cashAdmin.premiumEnabled")}</div>
-                        <div className="text-[11px] font-medium text-emerald-700">{t("cashAdmin.premiumEnabledHint")}</div>
+                        <div className="text-sm font-black text-emerald-900">Bierkasse verfügbar</div>
+                        <div className="text-[11px] font-medium text-emerald-700">Bier buchen und bezahlen ist im Free-Plan enthalten.</div>
                       </div>
                       <span className="text-lg">✓</span>
                     </div>
