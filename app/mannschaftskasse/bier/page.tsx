@@ -6,6 +6,7 @@ import {
   cancelBeerConsumptionAction,
   markBeerCashPaidAction,
   updateBeerConsumptionAction,
+  reopenBeerPaymentAction,
 } from "../actions";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
@@ -145,7 +146,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
         </div>
 
         {q?.saved ? (
-          <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">{q.saved === "updated" ? "✓ Bier-Eintrag wurde korrigiert." : t("beerManage.saved")}</div>
+          <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">{q.saved === "updated" ? "✓ Bier-Eintrag wurde korrigiert." : q.saved === "reopened" ? "↩ Bestätigung wurde zurückgenommen. Zahlung ist wieder offen." : t("beerManage.saved")}</div>
         ) : null}
         {q?.error ? (
           <div className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-800">{q.error}</div>
@@ -312,28 +313,29 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                 </div>
 
                 {row.payment_status === "paid" ? (
-                  <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-200 pt-2">
-                    <form action={updateBeerConsumptionAction} className="flex items-center gap-1">
-                      <input type="hidden" name="consumption_id" value={row.id} />
-                      <input
-                        name="quantity"
-                        type="number"
-                        min={1}
-                        max={99}
-                        defaultValue={row.quantity}
-                        className="w-16 rounded-xl border border-slate-200 bg-white px-2 py-2 text-center text-xs font-black"
-                      />
-                      <button className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700">
-                        ✓ {t("beerManage.correct")}
-                      </button>
-                    </form>
-                    <form action={cancelBeerConsumptionAction}>
-                      <input type="hidden" name="consumption_id" value={row.id} />
-                      <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700">
-                        {t("beerManage.cancel")}
-                      </button>
-                    </form>
-                  </div>
+                  <details className="mt-2 border-t border-slate-200 pt-2">
+                    <summary className="w-fit cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">Korrigieren</summary>
+                    <div className="mt-3 grid gap-3 rounded-2xl bg-white p-3 ring-1 ring-slate-200 sm:grid-cols-2">
+                      <form action={updateBeerConsumptionAction} className="space-y-2">
+                        <input type="hidden" name="consumption_id" value={row.id} />
+                        <div className="text-[10px] font-black uppercase tracking-[.12em] text-slate-500">Bieranzahl ändern</div>
+                        <div className="flex gap-2">
+                          <input name="quantity" type="number" min={1} max={99} defaultValue={row.quantity} className="w-20 rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-sm font-black" />
+                          <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white">Speichern</button>
+                        </div>
+                      </form>
+                      <form action={reopenBeerPaymentAction} className="space-y-2">
+                        <input type="hidden" name="consumption_id" value={row.id} />
+                        <div className="text-[10px] font-black uppercase tracking-[.12em] text-slate-500">Zahlung korrigieren</div>
+                        <p className="text-[11px] font-medium text-slate-500">Bestätigung zurücknehmen und den tatsächlichen Betrag anschließend erneut prüfen.</p>
+                        <button className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-black text-amber-900">↩ Bestätigung zurücknehmen</button>
+                      </form>
+                      <form action={cancelBeerConsumptionAction} className="sm:col-span-2">
+                        <input type="hidden" name="consumption_id" value={row.id} />
+                        <button className="text-[11px] font-semibold text-rose-600">{t("beerManage.cancel")}</button>
+                      </form>
+                    </div>
+                  </details>
                 ) : null}
               </div>
             ))}
