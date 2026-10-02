@@ -42,6 +42,7 @@ type SessionDetailClientProps = {
   initialSessionType?: "training" | "event";
   sessionTypesEnabled?: boolean;
   initialRsvpDeadlineMinutesBefore?: number;
+  initialIsPro?: boolean;
 };
 
 type SectionKey = "attendance" | "teams" | "photo" | "result" | "mvp";
@@ -216,7 +217,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     date: session.date,
     startTime: session.start_time ?? null,
     sessionOverrideMinutes: session.rsvp_deadline_minutes_before ?? null,
-    clubDefaultMinutes: props.initialRsvpDeadlineMinutesBefore ?? 60,
+    clubDefaultMinutes: props.initialRsvpDeadlineMinutesBefore ?? 30,
   });
 
   let activeSection: SectionKey | null = null;
@@ -358,6 +359,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             void deleteResult(gameNo);
           }}
           onToggleCollapsed={() => setResultCollapsed((prev) => !prev)}
+          isPro={props.initialIsPro === true}
           title={t("sessionDetail.gamesResults")}
         />
       </div>
