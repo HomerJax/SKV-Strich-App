@@ -159,6 +159,8 @@ export async function markBeerCashPaidAction(formData: FormData) {
   const { t } = await getServerI18n();
   const { clubId, user } = await requireBeerManagementAccess();
   const consumptionId = Number(String(formData.get("consumption_id") ?? ""));
+  const actualAmountEurosRaw = String(formData.get("actual_amount_euros") ?? "").trim().replace(",", ".");
+  const actualAmountCents = actualAmountEurosRaw ? Math.round(Number(actualAmountEurosRaw) * 100) : null;
   if (!Number.isFinite(consumptionId)) {
     redirect(beerManageUrl({ error: t("cashAction.invalidBeerEntry") }));
   }
@@ -166,13 +168,15 @@ export async function markBeerCashPaidAction(formData: FormData) {
   const admin = createAdminClient();
   const { data: entry, error: entryError } = await admin
     .from("beer_consumptions")
-    .select("id,quantity,total_cents,payment_method,payment_status,cash_transaction_id")
+    .select("id,quantity,unit_price_cents,total_cents,donation_cents,payment_method,payment_status,cash_transaction_id")
     .eq("club_id", clubId)
     .eq("id", consumptionId)
     .maybeSingle<{
       id: number;
       quantity: number;
+      unit_price_cents: number;
       total_cents: number;
+      donation_cents: number;
       payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
       payment_status: "pending" | "paid" | "cancelled";
       cash_transaction_id: number | null;
@@ -186,6 +190,16 @@ export async function markBeerCashPaidAction(formData: FormData) {
     redirect(beerManageUrl({ error: t("cashAction.entryClosed") }));
   }
 
+  const beerCents = entry.quantity * entry.unit_price_cents;
+  const confirmedTotalCents = entry.payment_method === "cash"
+    ? entry.total_cents
+    : actualAmountCents ?? entry.total_cents;
+
+  if (!Number.isInteger(confirmedTotalCents) || confirmedTotalCents < beerCents || confirmedTotalCents > 100000) {
+    redirect(beerManageUrl({ error: "Der tatsächliche Zahlbetrag muss mindestens dem Bierbetrag entsprechen." }));
+  }
+
+  const confirmedDonationCents = Math.max(0, confirmedTotalCents - beerCents);
   const sourceKey = `beer:${entry.id}:${entry.payment_method}-payment`;
   let transactionId = entry.cash_transaction_id;
 
@@ -194,7 +208,7 @@ export async function markBeerCashPaidAction(formData: FormData) {
       .from("cash_transactions")
       .insert({
         club_id: clubId,
-        amount_cents: entry.total_cents,
+        amount_cents: confirmedTotalCents,
         kind: "income",
         category: "Getränke",
         title: `Bierkasse · ${entry.quantity} Bier · ${entry.payment_method === "cash" ? "Bar" : entry.payment_method === "paypal_me" ? "PayPal.Me" : entry.payment_method === "sumup" ? "SumUp" : "PayPal Pool"}`,
@@ -231,6 +245,8 @@ export async function markBeerCashPaidAction(formData: FormData) {
     .from("beer_consumptions")
     .update({
       payment_status: "paid",
+      total_cents: confirmedTotalCents,
+      donation_cents: confirmedDonationCents,
       paid_at: new Date().toISOString(),
       confirmed_by: user.id,
       cash_transaction_id: transactionId,
