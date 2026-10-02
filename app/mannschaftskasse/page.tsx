@@ -68,6 +68,7 @@ type BeerConsumption = {
   quantity: number;
   unit_price_cents: number;
   total_cents: number;
+  donation_cents: number;
   payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
   payment_status: "pending" | "paid" | "cancelled";
   created_at: string;
@@ -156,7 +157,7 @@ export default async function Page({ searchParams }: Props) {
       .eq("club_id", clubId),
     supabase
       .from("beer_consumptions")
-      .select("id,player_id,quantity,unit_price_cents,total_cents,payment_method,payment_status,created_at")
+      .select("id,player_id,quantity,unit_price_cents,total_cents,donation_cents,payment_method,payment_status,created_at")
       .eq("club_id", clubId)
       .order("created_at", { ascending: false }),
   ]);
@@ -240,6 +241,15 @@ export default async function Page({ searchParams }: Props) {
   const myRecentBeer = player
     ? activeBeerConsumptions.filter((entry) => entry.player_id === player.id).slice(0, 5)
     : [];
+  const donorTotals = new Map<number, number>();
+  for (const entry of activeBeerConsumptions) {
+    if (entry.payment_status !== "paid" || entry.donation_cents <= 0) continue;
+    donorTotals.set(entry.player_id, (donorTotals.get(entry.player_id) ?? 0) + entry.donation_cents);
+  }
+  const topDonors = [...donorTotals.entries()]
+    .map(([playerId, cents]) => ({ playerId, cents, name: names.get(playerId) ?? t("cashbox.playerFallback", { id: playerId }) }))
+    .sort((a, b) => b.cents - a.cents || a.name.localeCompare(b.name, locale === "de" ? "de" : "en"));
+
   const beerLeaderboard = [...beerTotals.entries()]
     .map(([playerId, total]) => ({
       playerId,
@@ -475,6 +485,23 @@ export default async function Page({ searchParams }: Props) {
                   {t("cashbox.noBeerLeaderboard")}
                 </p>
               ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {beerStatsEnabled ? (
+          <section className="rounded-[24px] border border-emerald-200 bg-white p-5 shadow-sm">
+            <div className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">Mannschaftskasse</div>
+            <h2 className="mt-1 text-lg font-black text-slate-950">💚 Größte Gönner</h2>
+            <p className="mt-1 text-xs font-medium text-slate-500">Bestätigte freiwillige Beiträge</p>
+            <div className="mt-4 space-y-2">
+              {topDonors.slice(0, 10).map((entry, index) => (
+                <div key={entry.playerId} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-3"><span className="w-6 text-center text-xs font-black text-slate-400">{index + 1}.</span><span className="truncate text-sm font-black text-slate-900">{entry.name}</span></div>
+                  <span className="shrink-0 text-sm font-black text-emerald-700">{formatCents(entry.cents, locale)}</span>
+                </div>
+              ))}
+              {topDonors.length === 0 ? <p className="text-sm text-slate-500">Noch keine bestätigten freiwilligen Beiträge.</p> : null}
             </div>
           </section>
         ) : null}
