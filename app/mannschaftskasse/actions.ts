@@ -263,6 +263,50 @@ export async function markBeerCashPaidAction(formData: FormData) {
   redirect(beerManageUrl({ saved: "paid" }));
 }
 
+export async function reopenBeerPaymentAction(formData: FormData) {
+  const { clubId, user } = await requireBeerManagementAccess();
+  const consumptionId = Number(String(formData.get("consumption_id") ?? ""));
+  if (!Number.isFinite(consumptionId)) redirect(beerManageUrl({ error: "Ungültiger Bier-Eintrag." }));
+
+  const admin = createAdminClient();
+  const { data: entry } = await admin
+    .from("beer_consumptions")
+    .select("id,quantity,total_cents,payment_status,cash_transaction_id")
+    .eq("club_id", clubId)
+    .eq("id", consumptionId)
+    .maybeSingle<{ id:number; quantity:number; total_cents:number; payment_status:"pending"|"paid"|"cancelled"; cash_transaction_id:number|null }>();
+
+  if (!entry || entry.payment_status !== "paid") redirect(beerManageUrl({ error: "Die Zahlung ist nicht bestätigt." }));
+
+  if (entry.cash_transaction_id) {
+    const { error: reversalError } = await admin.from("cash_transactions").insert({
+      club_id: clubId,
+      amount_cents: -entry.total_cents,
+      kind: "reversal",
+      category: "Getränke",
+      title: `Bestätigung zurückgenommen · ${entry.quantity} Bier`,
+      source_type: "beer_reopen",
+      source_id: entry.id,
+      source_key: `beer:${entry.id}:reopen:${Date.now()}`,
+      reversed_transaction_id: entry.cash_transaction_id,
+      created_by: user.id,
+    });
+    if (reversalError) redirect(beerManageUrl({ error: "Kassenbuchung konnte nicht zurückgenommen werden." }));
+  }
+
+  const { error } = await admin.from("beer_consumptions").update({
+    payment_status: "pending",
+    paid_at: null,
+    confirmed_by: null,
+    cash_transaction_id: null,
+    updated_at: new Date().toISOString(),
+  }).eq("club_id", clubId).eq("id", entry.id);
+
+  if (error) redirect(beerManageUrl({ error: "Bestätigung konnte nicht zurückgenommen werden." }));
+  refreshBeerViews();
+  redirect(beerManageUrl({ saved: "reopened", review: "1" }));
+}
+
 export async function updateBeerConsumptionAction(formData: FormData) {
   const { t } = await getServerI18n();
   const { clubId, user } = await requireBeerManagementAccess();
