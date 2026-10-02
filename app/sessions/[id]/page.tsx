@@ -6,6 +6,8 @@ import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import SessionDetailClient from "./SessionDetailClient";
 import type { Player, SessionRow } from "./session-types";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -41,7 +43,7 @@ const DEFAULT_CLUB_SETTINGS: ClubSettings = {
   goalkeeper_label: "Torwart",
   use_nicknames: false,
   use_field_view: false,
-  rsvp_deadline_minutes_before: 60,
+  rsvp_deadline_minutes_before: FREE_RSVP_DEADLINE_MINUTES,
   require_rsvp_reason_on_absence: false,
 };
 
@@ -65,6 +67,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   const [
     featureFlags,
+    billingAccess,
     { data: clubData, error: clubError },
     { data: settingsData, error: settingsError },
     { data: sessionData, error: sessionError },
@@ -77,6 +80,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     { data: teamsData, error: teamsError },
   ] = await Promise.all([
     getFeatureFlagsForClub(clubId),
+    getClubBillingAccess(supabase, clubId),
     supabase.from("clubs").select("id, primary_color").eq("id", clubId).maybeSingle<ClubRow>(),
     supabase
       .from("club_settings")
@@ -250,7 +254,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialHomeSessionRsvpEnabled={homeSessionRsvpEnabled}
       initialSessionType={session.type === "event" ? "event" : "training"}
       sessionTypesEnabled={sessionTypesEnabled}
-      initialRsvpDeadlineMinutesBefore={clubSettings.rsvp_deadline_minutes_before ?? 60}
+      initialRsvpDeadlineMinutesBefore={billingAccess.isPro ? (clubSettings.rsvp_deadline_minutes_before ?? FREE_RSVP_DEADLINE_MINUTES) : FREE_RSVP_DEADLINE_MINUTES}
+      initialIsPro={billingAccess.isPro}
       />
     </HomePullToRefresh>
   );
