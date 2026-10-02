@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
 import { createClient } from "@/lib/supabase/server";
-import { reportPenaltyAction } from "./actions";
+import { addOpeningBalanceAction, reportPenaltyAction } from "./actions";
 import BeerCheckoutCard from "./BeerCheckoutCard";
 import { getServerI18n } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/messages";
@@ -329,6 +329,25 @@ export default async function Page({ searchParams }: Props) {
               </Link>
             ) : null}
           </div>
+        ) : null}
+
+        {canManageCashbox ? (
+          <details className="rounded-[24px] border border-emerald-200 bg-white p-5 shadow-sm">
+            <summary className="cursor-pointer font-black text-slate-950">Startbestand erfassen</summary>
+            <p className="mt-2 text-xs font-medium leading-5 text-slate-500">Vorhandenen Bestand übernehmen, ohne Bier- oder Gönnerstatistik zu verändern.</p>
+            <form action={addOpeningBalanceAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="text-xs font-bold text-slate-600">Bestand
+                <input name="amount" inputMode="decimal" required placeholder="116,00" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-black text-slate-950" />
+              </label>
+              <label className="text-xs font-bold text-slate-600">Stichtag
+                <input name="occurred_on" type="date" required defaultValue="2026-10-01" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-black text-slate-950" />
+              </label>
+              <label className="text-xs font-bold text-slate-600 sm:col-span-2">Notiz optional
+                <input name="notes" placeholder="z. B. Bestand vor Einführung der strikr Bierkasse" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
+              </label>
+              <button className="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white sm:col-span-2">PayPal-Startbestand speichern</button>
+            </form>
+          </details>
         ) : null}
 
         {beerFeatureEnabled && player ? (
