@@ -26,6 +26,7 @@ import { syncClubAchievements } from "@/lib/badges/engine";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 type PageProps = {
   searchParams?: Promise<{
@@ -557,6 +558,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
 
   await syncClubAchievements(clubId);
   const supabase = createAdminClient();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
 
   const [
     { data: clubData, error: clubError },
@@ -621,9 +623,15 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
 
   const displayAchievements = achievementsByPlayer.get(displayPlayer.id) ?? [];
   const displayAchievementMap = getAchievementMap(displayAchievements);
-  const earnedBadges = getEarnedDefinitions(displayAchievements).map(
+  const allEarnedBadges = getEarnedDefinitions(displayAchievements).map(
     (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
   );
+  const earnedBadges = billingAccess.isPro
+    ? allEarnedBadges
+    : allEarnedBadges.filter((badge) => badge.scope === "season");
+  const lockedCareerBadges = billingAccess.isPro
+    ? []
+    : allEarnedBadges.filter((badge) => badge.scope === "career");
   const openBadges = getOpenDefinitions(displayAchievements).map(
     (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
   );
@@ -697,7 +705,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
           backHref={isOwnHall ? "/stats" : "/badges"}
           topRightSlot={
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold text-white/90">
-              {earnedBadges.length}/{BADGE_DEFINITIONS.length}
+              {billingAccess.isPro ? `${allEarnedBadges.length}/${BADGE_DEFINITIONS.length}` : `${earnedBadges.length} Saison · PRO Karriere`}
             </span>
           }
           compact
@@ -792,6 +800,14 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
               <div className="mt-3 text-sm font-extrabold">{t("badges.emptyCase")}</div>
             </div>
           )}
+          {!billingAccess.isPro && lockedCareerBadges.length > 0 ? (
+            <div className="relative mt-4 rounded-[22px] border border-white/10 bg-white/[0.055] p-4">
+              <div className="text-xs font-black uppercase tracking-[0.14em] text-amber-300">🔒 Karriere-Badges · PRO</div>
+              <p className="mt-1 text-sm text-white/60">
+                {lockedCareerBadges.length} bereits erreichte Karriere-Auszeichnung{lockedCareerBadges.length === 1 ? "" : "en"} werden mit PRO freigeschaltet.
+              </p>
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -915,18 +931,19 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                     />
                     <ComparisonMetricRow
                       label={t("badges.winRate")}
-                      leftValue={formatPercent(ownStats.winRate, locale)}
-                      rightValue={formatPercent(compareStats.winRate, locale)}
+                      leftValue={billingAccess.isPro ? formatPercent(ownStats.winRate, locale) : "🔒 PRO"}
+                      rightValue={billingAccess.isPro ? formatPercent(compareStats.winRate, locale) : "🔒 PRO"}
                     />
                     <ComparisonMetricRow
                       label={t("badges.badges")}
-                      leftValue={String(ownEarnedBadges.length)}
-                      rightValue={String(compareEarnedBadges.length)}
+                      leftValue={billingAccess.isPro ? String(ownEarnedBadges.length) : "🔒 PRO"}
+                      rightValue={billingAccess.isPro ? String(compareEarnedBadges.length) : "🔒 PRO"}
                     />
                   </div>
                 </section>
 
-                <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+                {billingAccess.isPro ? (
+                  <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
                   <PlayerBadgeCollection
                     title={getPlayerDisplayName(ownPlayer, { useNicknames })}
                     playerId={ownPlayer.id}
@@ -943,7 +960,12 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
                     sharedKeys={sharedKeys}
                     locale={locale}
                   />
-                </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-600">
+                    🔒 Badge-Vergleich und gemeinsame Badges · PRO
+                  </div>
+                )}
               </div>
             ) : null}
           </div>
