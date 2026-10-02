@@ -157,10 +157,12 @@ function EmptyStatsContent({
   showMvp,
   badgeMvpCount,
   locale,
+  isPro,
 }: {
   showMvp: boolean;
   badgeMvpCount: number;
   locale: AppLocale;
+  isPro: boolean;
 }) {
   const t = (
     key: Parameters<typeof translate>[1],
@@ -178,6 +180,7 @@ function EmptyStatsContent({
         <PlayerTrendCard enabled={true} points={[]} />
       </StatsSection>
 
+      {isPro ? (
       <StatsSection
         title={t("stats.teamImpact")}
         subtitle={t("stats.teamImpactHint")}
@@ -193,6 +196,7 @@ function EmptyStatsContent({
           impactMeta={getImpactMeta(0, locale)}
         />
       </StatsSection>
+      ) : null}
 
       <StatsSection
         title={t("stats.recentResults")}
@@ -358,6 +362,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={0}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
         </section>
       </main>
@@ -447,6 +452,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={badgeMvpCount}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
         </section>
       </main>
@@ -525,6 +531,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={badgeMvpCount}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
         </section>
       </main>
@@ -559,6 +566,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={badgeMvpCount}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
         </section>
       </main>
@@ -607,6 +615,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             badgeMvpCount={badgeMvpCount}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
         </section>
       </main>
