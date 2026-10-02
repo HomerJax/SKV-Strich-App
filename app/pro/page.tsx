@@ -1,11 +1,35 @@
 import Link from "next/link";
 import { ArrowRight, Check, Crown } from "lucide-react";
 import { FREE_HIGHLIGHTS, PRODUCT_MATRIX, PRO_HIGHLIGHTS } from "@/lib/billing/product-matrix";
+import { getAuthContext, isActiveClubAdmin } from "@/lib/auth/context";
+import { createClient } from "@/lib/supabase/server";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { isStripeCheckoutConfigured } from "@/lib/billing/stripe";
 
 export const dynamic = "force-dynamic";
 
-export default function ProPage() {
+export default async function ProPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const areas = Array.from(new Set(PRODUCT_MATRIX.map((row) => row.area)));
+  const params = (await searchParams) ?? {};
+  const checkoutState = typeof params.checkout === "string" ? params.checkout : "";
+  const billingState = typeof params.billing === "string" ? params.billing : "";
+
+  const ctx = await getAuthContext();
+  const canBuyForActiveClub = Boolean(ctx.user && ctx.activeClubId && isActiveClubAdmin(ctx));
+  const supabase = await createClient();
+  const billingAccess = ctx.activeClubId
+    ? await getClubBillingAccess(supabase, ctx.activeClubId)
+    : null;
+  const monthlyConfigured = isStripeCheckoutConfigured("pro_monthly");
+  const yearlyConfigured = isStripeCheckoutConfigured("pro_yearly");
+  const hasStripeSubscription = Boolean(
+    billingAccess?.billing.billing_provider === "stripe" &&
+      billingAccess.billing.stripe_customer_id,
+  );
 
   return (
     <main className="min-h-screen bg-[#05080e] text-white">
@@ -32,6 +56,24 @@ export default function ProPage() {
             Die Kernfunktionen bleiben bewusst auch in Free nutzbar.
           </p>
         </div>
+
+        {checkoutState === "success" ? (
+          <div className="mb-5 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm font-bold text-emerald-100">
+            Zahlung erfolgreich. Stripe schaltet PRO jetzt automatisch für euren Club frei.
+          </div>
+        ) : checkoutState === "cancelled" ? (
+          <div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white/70">
+            Checkout abgebrochen – es wurde nichts geändert.
+          </div>
+        ) : checkoutState ? (
+          <div className="mb-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100">
+            PRO konnte gerade nicht gestartet werden. Bitte später erneut versuchen.
+          </div>
+        ) : billingState === "failed" ? (
+          <div className="mb-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100">
+            Das Abo-Portal konnte gerade nicht geöffnet werden.
+          </div>
+        ) : null}
 
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
@@ -62,11 +104,69 @@ export default function ProPage() {
                 </div>
               ))}
             </div>
-            <div className="relative mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-center">
-              <div className="text-sm font-black">Einführungspreis noch offen</div>
-              <div className="mt-1 text-xs leading-5 text-white/50">
-                Der Checkout wird direkt hier angebunden. Vor der Zahlung siehst du den finalen Preis und die Laufzeit.
-              </div>
+            <div className="relative mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
+              {billingAccess?.isPro ? (
+                <div className="text-center">
+                  <div className="text-sm font-black text-emerald-200">✓ PRO ist für euren Club aktiv</div>
+                  <div className="mt-1 text-xs leading-5 text-white/50">
+                    {billingAccess.planLabel}
+                    {billingAccess.billing.cancel_at_period_end ? " · Kündigung zum Periodenende vorgemerkt" : ""}
+                  </div>
+                  {hasStripeSubscription ? (
+                    <form method="post" action="/api/billing/portal" className="mt-3">
+                      <button className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white px-4 py-3 text-sm font-black text-slate-950">
+                        Abo verwalten
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
+              ) : canBuyForActiveClub ? (
+                <div>
+                  <div className="text-center text-sm font-black">PRO für euren Club freischalten</div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <form method="post" action="/api/billing/checkout">
+                      <input type="hidden" name="plan" value="pro_monthly" />
+                      <button
+                        disabled={!monthlyConfigured}
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {monthlyConfigured ? "Monatlich wählen" : "Monatlich · noch nicht live"}
+                      </button>
+                    </form>
+                    <form method="post" action="/api/billing/checkout">
+                      <input type="hidden" name="plan" value="pro_yearly" />
+                      <button
+                        disabled={!yearlyConfigured}
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-violet-500 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {yearlyConfigured ? "Jährlich wählen" : "Jährlich · noch nicht live"}
+                      </button>
+                    </form>
+                  </div>
+                  {!monthlyConfigured && !yearlyConfigured ? (
+                    <div className="mt-2 text-center text-xs leading-5 text-white/45">
+                      Preis und Stripe-Produkt werden noch eingerichtet.
+                    </div>
+                  ) : null}
+                </div>
+              ) : ctx.user ? (
+                <div className="text-center">
+                  <div className="text-sm font-black">Nur ein Team-Admin kann PRO buchen.</div>
+                  <div className="mt-1 text-xs leading-5 text-white/50">
+                    Wähle zuerst den Club, für den du PRO aktivieren möchtest.
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="text-sm font-black">Einloggen, Club wählen, PRO aktivieren.</div>
+                  <Link
+                    href="/login?next=%2Fpro"
+                    className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-black text-slate-950"
+                  >
+                    Einloggen
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
