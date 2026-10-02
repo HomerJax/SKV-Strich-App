@@ -6,6 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FREE_HIGHLIGHTS, PRO_HIGHLIGHTS } from "@/lib/billing/product-matrix";
+import { INTRO_PRICING, getAnnualSavingsPercent } from "@/lib/billing/pricing";
 import {
   ArrowRight,
   Bell,
@@ -394,7 +395,7 @@ export default async function LandingPage({
             </div>
 
             <p className="mt-4 text-xs font-semibold text-white/35">
-              Ohne Registrierung in die Demo · aktuell kostenlos für Teams
+              Ohne Registrierung in die Demo · Free verfügbar · PRO ab 4,99 €
             </p>
           </div>
 
@@ -580,7 +581,14 @@ export default async function LandingPage({
             <div className="relative overflow-hidden rounded-[30px] border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-cyan-50 p-6 shadow-sm sm:p-7">
               <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-300/30 blur-3xl" />
               <div className="relative inline-flex rounded-full bg-violet-700 px-3 py-1 text-xs font-black text-white">PRO</div>
-              <h3 className="relative mt-4 text-2xl font-black">Für Teams, die mehr draus machen.</h3>
+              <div className="relative mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
+                <h3 className="text-2xl font-black">Für Teams, die mehr draus machen.</h3>
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-amber-800">{INTRO_PRICING.badge}</span>
+              </div>
+              <div className="relative mt-4 flex flex-wrap items-end gap-4">
+                <div><span className="text-3xl font-black text-slate-950">{INTRO_PRICING.monthly.label}</span><span className="ml-1 text-sm font-bold text-slate-500">{INTRO_PRICING.monthly.suffix}</span></div>
+                <div className="text-sm font-bold text-violet-700">oder {INTRO_PRICING.yearly.label} {INTRO_PRICING.yearly.suffix} · ca. {getAnnualSavingsPercent()}% sparen</div>
+              </div>
               <div className="relative mt-5 space-y-2">
                 {PRO_HIGHLIGHTS.map((feature) => (
                   <div key={feature} className="flex gap-3 rounded-2xl bg-white/80 px-3 py-2.5 text-sm font-semibold text-slate-700">
@@ -592,7 +600,7 @@ export default async function LandingPage({
                 PRO ansehen <ArrowRight className="h-4 w-4" />
               </Link>
               <p className="relative mt-3 text-center text-xs font-semibold text-slate-500">
-                Einführungspreis wird vor dem Start der Bezahlung festgelegt.
+                Einführungspreis für frühe Teams. Spätere Neukundenpreise können höher liegen.
               </p>
             </div>
           </div>
