@@ -46,6 +46,7 @@ type Transaction = {
   title: string;
   category: string;
   occurred_on: string;
+  account: "paypal" | "cash" | null;
 };
 
 type Contribution = {
@@ -141,7 +142,7 @@ export default async function Page({ searchParams }: Props) {
       .order("sort_order"),
     supabase
       .from("cash_transactions")
-      .select("id,amount_cents,title,category,occurred_on")
+      .select("id,amount_cents,title,category,occurred_on,account")
       .eq("club_id", clubId)
       .order("occurred_on", { ascending: false })
       .order("id", { ascending: false }),
@@ -216,10 +217,13 @@ export default async function Page({ searchParams }: Props) {
   const sumupUrl = settings?.beerkasse_sumup_url?.trim() ?? "";
   const cashEnabled = settings?.beerkasse_cash_enabled !== false;
   const today = new Date().toISOString().slice(0, 10);
-  const teamBalance = transactions.reduce(
-    (sum, transaction) => sum + transaction.amount_cents,
-    0,
-  );
+  const teamBalance = transactions.reduce((sum, transaction) => sum + transaction.amount_cents, 0);
+  const paypalBalance = transactions
+    .filter((transaction) => transaction.account === "paypal")
+    .reduce((sum, transaction) => sum + transaction.amount_cents, 0);
+  const cashBalance = transactions
+    .filter((transaction) => transaction.account === "cash")
+    .reduce((sum, transaction) => sum + transaction.amount_cents, 0);
   const beerStatsEnabled =
     beerFeatureEnabled && settings?.beerkasse_stats_enabled === true;
   const beerBadgesEnabled =
@@ -297,19 +301,18 @@ export default async function Page({ searchParams }: Props) {
           <div className="mt-5 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/8 p-3">
               <div className="text-lg font-black">{formatCents(teamBalance, locale)}</div>
-              <div className="mt-1 text-[10px] font-bold text-white/50">{t("cashbox.balance")}</div>
+              <div className="mt-1 text-[10px] font-bold text-white/50">Gesamtbestand</div>
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
-              <div className="text-lg font-black">{mine.length}</div>
-              <div className="mt-1 text-[10px] font-bold text-white/50">{t("cashbox.fbzgOpen")}</div>
+              <div className="text-lg font-black">{formatCents(paypalBalance, locale)}</div>
+              <div className="mt-1 text-[10px] font-bold text-white/50">PayPal Pool</div>
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
-              <div className="text-lg font-black">
-                {formatCents(myOpenPenaltyCents + myOpenContributionCents + myOpenBeerCents, locale)}
-              </div>
-              <div className="mt-1 text-[10px] font-bold text-white/50">{t("cashbox.mineOpen")}</div>
+              <div className="text-lg font-black">{formatCents(cashBalance, locale)}</div>
+              <div className="mt-1 text-[10px] font-bold text-white/50">Bar*</div>
             </div>
           </div>
+          <p className="mt-2 text-[10px] font-semibold text-white/40">* Barbestand entspricht den in strikr gebuchten Barzahlungen und kann vom tatsächlichen Bargeldbestand abweichen.</p>
           <p className="mt-3 text-[11px] font-semibold leading-5 text-white/45">
             {t("cashbox.balanceHint")}
           </p>
