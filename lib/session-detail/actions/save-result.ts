@@ -4,6 +4,7 @@ import { fail, ok } from "@/lib/session-detail/response";
 import { getServerI18n } from "@/lib/i18n/server";
 import { sendClubPush } from "@/lib/push/club-events";
 import { persistSessionTeams } from "./persist-teams";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -48,8 +49,13 @@ export async function handleSaveResult({
       return fail(t("sessionAction.resultInvalid"));
     }
 
-    if (!Number.isInteger(gameNo) || gameNo < 1 || gameNo > 99) {
+    if (!Number.isInteger(gameNo) || gameNo < 1 || gameNo > 2) {
       return fail(t("sessionAction.gameNumberInvalid"));
+    }
+
+    const billingAccess = await getClubBillingAccess(supabase, clubId);
+    if (!billingAccess.isPro && gameNo > 1) {
+      return fail("Im Free-Plan ist 1 Spiel pro Training enthalten. Das zweite Spiel ist mit PRO verfügbar.", 403);
     }
 
     const [{ data: existingResult, error: existingResultError }, { data: anyResult, error: anyResultError }] =
