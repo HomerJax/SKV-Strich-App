@@ -40,6 +40,7 @@ type Props = {
   mvpVotingEnabled?: boolean;
   seriesId?: string | null;
   resultCount?: number;
+  isPro?: boolean;
 };
 
 function fmtLongDate(iso: string, locale: AppLocale) {
@@ -164,6 +165,7 @@ export default function SessionHeaderCard({
   mvpVotingEnabled = false,
   seriesId = null,
   resultCount = 0,
+  isPro = false,
 }: Props) {
   const { locale, t } = useI18n();
   const isEvent = sessionType === "event";
@@ -332,6 +334,7 @@ export default function SessionHeaderCard({
             clubDefaultMinutes={clubRsvpDeadlineMinutesBefore}
             isAdmin={isAdmin}
             isSeries={Boolean(seriesId)}
+            isPro={isPro}
           />
         </div>
 
