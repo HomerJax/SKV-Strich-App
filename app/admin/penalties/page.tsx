@@ -186,7 +186,7 @@ export default async function Page({ searchParams }: Props) {
     : "overview";
 
   const access = await requireCashboxAccess({ manage: true });
-  const { clubId, isClubAdmin, isPowerUser } = access;
+  const { clubId, isClubAdmin } = access;
   const supabase = createAdminClient();
   const billingAccess = await getClubBillingAccess(supabase, clubId);
 
@@ -1035,18 +1035,9 @@ export default async function Page({ searchParams }: Props) {
                     <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
                       {t("cashAdmin.beerNotEnabledHint")}
                     </p>
-                    {isPowerUser ? (
-                      <form action={setBeerkassePremiumAction} className="mt-3">
-                        <input type="hidden" name="enabled" value="1" />
-                        <button className="w-full rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-black text-slate-950">
-                          {t("cashAdmin.powerEnablePremium")}
-                        </button>
-                      </form>
-                    ) : (
-                      <div className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
-                        {t("cashAdmin.premiumAddon")}
-                      </div>
-                    )}
+                    <Link href="/mannschaftskasse/setup?edit=1" className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-black text-slate-950">
+                      Bierkasse einrichten
+                    </Link>
                   </div>
                 )}
               </section>
