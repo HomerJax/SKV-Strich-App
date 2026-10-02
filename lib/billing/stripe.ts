@@ -28,7 +28,11 @@ type StripeSubscription = {
   items?: {
     data?: Array<{
       current_period_end?: number | null;
-      price?: { id?: string | null } | null;
+      price?: {
+        id?: string | null;
+        lookup_key?: string | null;
+        metadata?: Record<string, string> | null;
+      } | null;
     }>;
   };
 };
@@ -55,25 +59,64 @@ export function getStripeWebhookSecret() {
   return getRequiredEnv("STRIPE_WEBHOOK_SECRET");
 }
 
-export function getStripePriceId(plan: StripePlanKey) {
-  const key =
-    plan === "pro_monthly"
-      ? "STRIPE_PRO_MONTHLY_PRICE_ID"
-      : "STRIPE_PRO_YEARLY_PRICE_ID";
-  return process.env[key]?.trim() || null;
+const STRIPE_PRICE_LOOKUP_KEYS: Record<StripePlanKey, string> = {
+  pro_monthly: "strikr_pro_monthly",
+  pro_yearly: "strikr_pro_yearly",
+};
+
+type StripePrice = {
+  id: string;
+  lookup_key?: string | null;
+  active?: boolean;
+  metadata?: Record<string, string> | null;
+};
+
+type StripePriceList = {
+  data?: StripePrice[];
+};
+
+export async function resolveStripePrice(plan: StripePlanKey) {
+  if (!process.env.STRIPE_SECRET_KEY?.trim()) return null;
+
+  const lookupKey = STRIPE_PRICE_LOOKUP_KEYS[plan];
+  const query = new URLSearchParams({
+    active: "true",
+    limit: "1",
+  });
+  query.append("lookup_keys[]", lookupKey);
+
+  const prices = await stripeRequest<StripePriceList>(
+    `/v1/prices?${query.toString()}`,
+  );
+
+  return prices.data?.[0] ?? null;
 }
 
-export function isStripeCheckoutConfigured(plan?: StripePlanKey) {
-  const hasSecret = Boolean(process.env.STRIPE_SECRET_KEY?.trim());
-  if (!hasSecret) return false;
-  if (plan) return Boolean(getStripePriceId(plan));
-  return Boolean(getStripePriceId("pro_monthly") || getStripePriceId("pro_yearly"));
+export async function isStripeCheckoutConfigured(plan?: StripePlanKey) {
+  if (!process.env.STRIPE_SECRET_KEY?.trim()) return false;
+
+  if (plan) return Boolean(await resolveStripePrice(plan));
+
+  const [monthly, yearly] = await Promise.all([
+    resolveStripePrice("pro_monthly"),
+    resolveStripePrice("pro_yearly"),
+  ]);
+  return Boolean(monthly || yearly);
 }
 
-export function getPlanKeyForStripePrice(priceId: string | null | undefined): StripePlanKey | null {
-  if (!priceId) return null;
-  if (priceId === getStripePriceId("pro_monthly")) return "pro_monthly";
-  if (priceId === getStripePriceId("pro_yearly")) return "pro_yearly";
+export function getPlanKeyForStripePrice(price: {
+  id?: string | null;
+  lookup_key?: string | null;
+  metadata?: Record<string, string> | null;
+} | null | undefined): StripePlanKey | null {
+  const metadataPlan = price?.metadata?.plan_key;
+  if (metadataPlan === "pro_monthly" || metadataPlan === "pro_yearly") {
+    return metadataPlan;
+  }
+
+  if (price?.lookup_key === STRIPE_PRICE_LOOKUP_KEYS.pro_monthly) return "pro_monthly";
+  if (price?.lookup_key === STRIPE_PRICE_LOOKUP_KEYS.pro_yearly) return "pro_yearly";
+
   return null;
 }
 
@@ -132,7 +175,8 @@ export async function createStripeCheckoutSession(input: {
   origin: string;
   customerId?: string | null;
 }) {
-  const priceId = getStripePriceId(input.plan);
+  const price = await resolveStripePrice(input.plan);
+  const priceId = price?.id ?? null;
   if (!priceId) throw new Error(`Stripe price for ${input.plan} is not configured.`);
 
   const params: Record<string, string | number | boolean | null | undefined> = {
@@ -182,7 +226,8 @@ export async function getStripeSubscription(subscriptionId: string) {
 
 export function getStripeSubscriptionSnapshot(subscription: StripeSubscription) {
   const firstItem = subscription.items?.data?.[0];
-  const priceId = firstItem?.price?.id ?? null;
+  const price = firstItem?.price ?? null;
+  const priceId = price?.id ?? null;
   const periodEndUnix =
     subscription.current_period_end ?? firstItem?.current_period_end ?? null;
 
@@ -191,7 +236,7 @@ export function getStripeSubscriptionSnapshot(subscription: StripeSubscription) 
     customerId: idFromExpandable(subscription.customer),
     priceId,
     planKey:
-      getPlanKeyForStripePrice(priceId) ??
+      getPlanKeyForStripePrice(price) ??
       (subscription.metadata?.plan_key === "pro_monthly" ||
       subscription.metadata?.plan_key === "pro_yearly"
         ? (subscription.metadata.plan_key as StripePlanKey)
