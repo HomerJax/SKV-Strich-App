@@ -488,7 +488,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     homeSettings?.require_rsvp_reason_on_absence === true;
   const teamFeedEnabled = homeSettings?.home_team_feed_enabled === true;
   const bierkasseHomeEnabled =
-    homeSettings?.beerkasse_premium_enabled === true &&
     homeSettings?.beerkasse_enabled === true &&
     homeSettings?.beerkasse_home_enabled === true;
   const bierkassePaypalUrl = homeSettings?.beerkasse_paypal_url?.trim() ?? "";
