@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { fail, ok } from "@/lib/session-detail/response";
 import { getServerI18n } from "@/lib/i18n/server";
+import { canAddGuestToSession, FREE_GUESTS_PER_SESSION_LIMIT } from "@/lib/billing/product-limits";
 
 type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -73,6 +74,11 @@ export async function handleAddGuestPlayer({
 
   if (!guestName.trim()) {
     return fail(t("sessionAction.guestNameRequired"));
+  }
+
+  const guestAllowed = await canAddGuestToSession(supabase, clubId, sessionId);
+  if (!guestAllowed) {
+    return fail(`Im Free-Plan ist ${FREE_GUESTS_PER_SESSION_LIMIT} Gastspieler pro Termin enthalten. Mit PRO kannst du weitere Gäste hinzufügen.`, 403);
   }
 
   const cleanStrength = guestStrength.trim();
