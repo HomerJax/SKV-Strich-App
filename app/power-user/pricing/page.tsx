@@ -66,8 +66,8 @@ export default async function PowerUserPricingMatrixPage() {
           </div>
           <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4">
             <div className="flex items-center gap-2 text-sm font-black text-amber-950"><CreditCard className="h-4 w-4" /> Checkout</div>
-            <div className="mt-2 text-sm font-semibold text-amber-800">○ Noch nicht verbunden</div>
-            <p className="mt-1 text-xs leading-5 text-amber-700">Stripe-Konto, Preise und Webhook fehlen noch. Danach automatische Freischaltung.</p>
+            <div className="mt-2 text-sm font-semibold text-amber-800">◐ Backend vorbereitet</div>
+            <p className="mt-1 text-xs leading-5 text-amber-700">Checkout, Webhook und automatische Club-Freischaltung sind gebaut. Offen: Stripe-Konto, finale Preise und Live-ENV/Webhook-Konfiguration.</p>
           </div>
         </section>
 
@@ -106,8 +106,7 @@ export default async function PowerUserPricingMatrixPage() {
             Noch offen
           </div>
           <p className="mt-2 text-sm leading-6 text-amber-900">
-            Der konkrete Einführungspreis und der automatische Checkout sind noch nicht final.
-            Die Produktgrenzen selbst sind bereits definiert und werden im Code umgesetzt.
+            Der konkrete Einführungspreis und die Live-Stripe-Konfiguration sind noch offen. Checkout, Webhook und automatische PRO-Synchronisierung sind im Code vorbereitet; die Produktgrenzen sind umgesetzt.
           </p>
         </div>
       </section>
