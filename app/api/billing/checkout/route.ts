@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!isStripeCheckoutConfigured(planRaw)) {
+  if (!(await isStripeCheckoutConfigured(planRaw))) {
     return NextResponse.redirect(
       new URL("/pro?checkout=not_configured", request.url),
       { status: 303 },
