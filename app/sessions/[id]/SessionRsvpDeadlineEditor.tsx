@@ -18,6 +18,7 @@ type Props = {
   clubDefaultMinutes: number;
   isAdmin: boolean;
   isSeries?: boolean;
+  isPro?: boolean;
 };
 
 function startLabel(
@@ -36,6 +37,7 @@ export default function SessionRsvpDeadlineEditor({
   clubDefaultMinutes,
   isAdmin,
   isSeries = false,
+  isPro = false,
 }: Props) {
   const { locale, t } = useI18n();
   const router = useRouter();
@@ -85,7 +87,7 @@ export default function SessionRsvpDeadlineEditor({
         formData.set("start_time", time);
         formData.set(
           "rsvp_deadline_minutes_before",
-          useClubDefault ? "" : minutes,
+          !isPro || useClubDefault ? "" : minutes,
         );
         formData.set("scope", isSeries ? scope : "single");
         await updateSessionRsvpSettingsAction(formData);
@@ -128,7 +130,7 @@ export default function SessionRsvpDeadlineEditor({
                 max={10080}
                 step={15}
                 value={minutes}
-                disabled={useClubDefault}
+                disabled={!isPro || useClubDefault}
                 onChange={(event) => setMinutes(event.target.value)}
                 className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none disabled:opacity-45"
               />
@@ -142,8 +144,9 @@ export default function SessionRsvpDeadlineEditor({
             type="checkbox"
             checked={useClubDefault}
             onChange={(event) => setUseClubDefault(event.target.checked)}
+            disabled={!isPro}
           />
-          {t("deadline.clubDefault", { minutes: clubDefaultMinutes })}
+          {isPro ? t("deadline.clubDefault", { minutes: clubDefaultMinutes }) : "Free: 30 Minuten vor Beginn · 🔒 individuelle Deadline mit PRO"}
         </label>
 
         {isSeries ? (
@@ -223,6 +226,7 @@ export default function SessionRsvpDeadlineEditor({
       <span className="text-white/38">
         {t("deadline.beforeValue", { minutes: effectiveMinutes })}
         {sessionOverrideMinutes == null ? ` · ${t("deadline.clubDefaultShort")}` : ""}
+        {!isPro ? " · 🔒 PRO für individuelle Deadline" : ""}
       </span>
       {isAdmin ? (
         <button
