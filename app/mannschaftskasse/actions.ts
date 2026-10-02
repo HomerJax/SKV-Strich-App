@@ -58,6 +58,7 @@ export async function addOpeningBalanceAction(formData: FormData) {
     notes,
     occurred_on: occurredOn,
     source_type: "opening_balance",
+    account: "paypal",
     created_by: user.id,
   });
 
