@@ -12,7 +12,6 @@ import StatsHero from "@/components/stats/StatsHero";
 import RecentResultsCard from "@/components/stats/RecentResultsCard";
 import TeamImpactCard from "@/components/stats/TeamImpactCard";
 import StatsSection from "@/components/stats/StatsSection";
-import ProFeatureLock from "@/components/billing/ProFeatureLock";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { getServerI18n } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/messages";
@@ -237,11 +236,13 @@ function StatsIntro({
   seasonName,
   primaryColorKey,
   locale,
+  isPro,
 }: {
   scope: StatsScope;
   seasonName: string | null;
   primaryColorKey: string | null | undefined;
   locale: AppLocale;
+  isPro: boolean;
 }) {
   const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
 
@@ -253,7 +254,7 @@ function StatsIntro({
       primaryColorKey={primaryColorKey}
       backLabel={t("stats.back")}
       backHref="/"
-      topRightSlot={<ScopeToggle scope={scope} seasonName={seasonName} />}
+      topRightSlot={isPro ? <ScopeToggle scope={scope} seasonName={seasonName} /> : <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white">Free · aktuelle Saison</span>}
       compact
     />
   );
@@ -263,7 +264,6 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const { locale, t } = await getServerI18n();
   const resolvedSearchParams = await searchParams;
   const requestedScope = String(resolvedSearchParams?.scope ?? "season").trim();
-  const scope: StatsScope = requestedScope === "career" ? "career" : "season";
 
   const { clubId, player, supportViewPlayer, isSupportView } = await requireClub();
   const viewPlayer = player ?? supportViewPlayer;
@@ -295,6 +295,9 @@ export default async function StatsPage({ searchParams }: PageProps) {
     getClubBillingAccess(supabase, clubId),
   ]);
 
+  const scope: StatsScope =
+    billingAccess.isPro && requestedScope === "career" ? "career" : "season";
+
   if (!flags.player_stats_overview) {
     redirect("/");
   }
@@ -325,55 +328,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
   const useStrength = clubSettings.use_strength ?? true;
   const strengthDefault = clubSettings.strength_default ?? 3;
   const primaryColorKey = clubData?.primary_color ?? "black";
-  const clubName = clubData?.display_name?.trim() || t("stats.yourTeam");
 
-  if (!billingAccess.isPro) {
-    return (
-      <main className="min-h-screen bg-neutral-100">
-        <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-          <StatsIntro
-            scope={scope}
-            seasonName={currentSeasonName}
-            primaryColorKey={primaryColorKey}
-            locale={locale}
-          />
-
-          <div className="relative overflow-hidden rounded-[28px]">
-            <div className="pointer-events-none select-none opacity-35 blur-[1px] grayscale">
-              <StatsHero
-                sessionsPlayed={12}
-                wins={7}
-                losses={3}
-                draws={2}
-                completedResults={12}
-                showMvp={true}
-                mvpWins={3}
-                mvpPerGame={0.25}
-              />
-
-              <div className="mt-5 space-y-5">
-                <EmptyStatsContent showMvp={true} badgeMvpCount={3} locale={locale} />
-              </div>
-            </div>
-
-            <div className="absolute inset-x-0 top-8 z-10 mx-auto w-[calc(100%-2rem)] max-w-2xl">
-              <ProFeatureLock
-                clubName={clubName}
-                title={t("stats.proTitle")}
-                description={t("stats.proDescription")}
-                featureList={[
-                  t("stats.proFeatureForm"),
-                  t("stats.proFeatureImpact"),
-                  t("stats.proFeatureMvp"),
-                  t("stats.proFeatureScope"),
-                ]}
-              />
-            </div>
-          </div>
-        </section>
-      </main>
-    );
-  }
 
   if (!viewPlayer) {
     return (
@@ -384,6 +339,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
 
           <StatsHero
@@ -395,6 +351,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             mvpWins={0}
             mvpPerGame={0}
+          isPro={billingAccess.isPro}
           />
 
           <EmptyStatsContent
@@ -471,6 +428,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
 
           <StatsHero
@@ -482,6 +440,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             mvpWins={0}
             mvpPerGame={0}
+          isPro={billingAccess.isPro}
           />
 
           <EmptyStatsContent
@@ -547,6 +506,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
 
           <StatsHero
@@ -558,6 +518,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             mvpWins={0}
             mvpPerGame={0}
+          isPro={billingAccess.isPro}
           />
 
           <EmptyStatsContent
@@ -579,6 +540,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
 
           <StatsHero
@@ -590,6 +552,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             mvpWins={0}
             mvpPerGame={0}
+          isPro={billingAccess.isPro}
           />
 
           <EmptyStatsContent
@@ -625,6 +588,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             seasonName={currentSeasonName}
             primaryColorKey={primaryColorKey}
             locale={locale}
+          isPro={billingAccess.isPro}
           />
 
           <StatsHero
@@ -636,6 +600,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
             showMvp={flags.session_mvp_voting}
             mvpWins={0}
             mvpPerGame={0}
+          isPro={billingAccess.isPro}
           />
 
           <EmptyStatsContent
@@ -943,12 +908,14 @@ export default async function StatsPage({ searchParams }: PageProps) {
     return bTime - aTime;
   });
 
-  const lastFive = recentResults.slice(0, 5);
+  const recentResultLimit = billingAccess.isPro ? 5 : 3;
+  const visibleRecentResults = recentResults.slice(0, recentResultLimit);
   const completedResults = totals.wins + totals.losses + totals.draws;
   const sessionsPlayed = myResults.length;
   mvpPerGame = completedResults > 0 ? mvpWins / completedResults : 0;
 
-  const trendPoints = [...recentResults].reverse().map((item, index) => ({
+  const trendSource = billingAccess.isPro ? recentResults : recentResults.slice(0, 3);
+  const trendPoints = [...trendSource].reverse().map((item, index) => ({
     id: `${item.sessionId}-${index}`,
     label: `${index + 1}`,
     value: trendValueForOutcome(item.outcome),
@@ -966,6 +933,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
           seasonName={currentSeasonName}
           primaryColorKey={primaryColorKey}
           locale={locale}
+        isPro={billingAccess.isPro}
         />
 
         <StatsHero
@@ -977,6 +945,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
           showMvp={flags.session_mvp_voting}
           mvpWins={mvpWins}
           mvpPerGame={mvpPerGame}
+        isPro={billingAccess.isPro}
         />
 
         {flags.player_trends ? (
@@ -990,7 +959,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
           </StatsSection>
         ) : null}
 
-        {flags.team_impact ? (
+        {flags.team_impact && billingAccess.isPro ? (
           <StatsSection
             title={t("stats.teamImpact")}
             subtitle={t("stats.impactShortHint")}
@@ -1010,11 +979,11 @@ export default async function StatsPage({ searchParams }: PageProps) {
 
         <StatsSection
           title={t("stats.recentResults")}
-          subtitle={t("stats.recentFiveHint")}
+          subtitle={billingAccess.isPro ? t("stats.recentFiveHint") : "Letzte 3 Spiele · mehr mit PRO"}
           defaultOpen={true}
           icon={<History className="h-5 w-5" />}
         >
-          <RecentResultsCard results={lastFive} />
+          <RecentResultsCard results={visibleRecentResults} />
         </StatsSection>
 
         {flags.session_mvp_voting ? (
