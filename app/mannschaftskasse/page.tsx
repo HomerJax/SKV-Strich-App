@@ -227,6 +227,7 @@ export default async function Page({ searchParams }: Props) {
   const beerPriceCents = Math.max(1, Number(settings?.beerkasse_price_cents ?? 200));
   const beerTotals = new Map<number, number>();
   for (const entry of activeBeerConsumptions) {
+    if (entry.payment_status !== "paid") continue;
     beerTotals.set(
       entry.player_id,
       (beerTotals.get(entry.player_id) ?? 0) + entry.quantity,
