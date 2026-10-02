@@ -7,6 +7,8 @@ import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { slugifyKey } from "./helpers";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { FREE_ACTIVE_CATEGORY_LIMIT } from "@/lib/billing/product-limits";
 
 function normalizeInternalRedirect(value: FormDataEntryValue | null) {
   const target = String(value ?? "/admin/settings").trim();
@@ -183,7 +185,8 @@ export async function addCategoryAction(formData: FormData) {
     );
   }
 
-  const shouldActivateNewCategory = activeCount < 2;
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
+  const shouldActivateNewCategory = billingAccess.isPro || activeCount < FREE_ACTIVE_CATEGORY_LIMIT;
 
   const { error } = await supabase.from("club_categories").insert({
     club_id: clubId,
@@ -267,11 +270,12 @@ export async function updateCategoryAction(formData: FormData) {
       );
     }
 
-    if (activeCountWithoutCurrent >= 2) {
+    const billingAccess = await getClubBillingAccess(supabase, clubId);
+    if (!billingAccess.isPro && activeCountWithoutCurrent >= FREE_ACTIVE_CATEGORY_LIMIT) {
       redirect(
         buildRedirectUrlWithParams(redirectTo, {
           category_error:
-            t("adminSettings.maxTwoActive"),
+            "Im Free-Plan sind 2 aktive Kategorien enthalten. Mit PRO kannst du weitere Kategorien aktivieren.",
         })
       );
     }
