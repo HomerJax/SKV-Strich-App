@@ -41,7 +41,8 @@ export async function canAddFixedPlayer(
     .from("players")
     .select("id", { count: "exact", head: true })
     .eq("club_id", clubId)
-    .eq("is_guest", false);
+    .eq("is_guest", false)
+    .or("roster_role.is.null,roster_role.neq.staff");
 
   if (error) throw new Error(error.message);
   return (count ?? 0) < limits.fixedPlayers;
