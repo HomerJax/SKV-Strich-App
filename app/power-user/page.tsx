@@ -262,6 +262,15 @@ export default async function PowerUserPage() {
           />
 
           <KpiCard
+            href="/power-user/pricing"
+            label="Free vs. PRO"
+            value="Matrix"
+            description="Auf einen Blick: Welche aktuellen strikr-Funktionen sind Free und welche gehören zu PRO?"
+            icon={<Shield className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
+          />
+
+          <KpiCard
             href="/power-user/clubs/cleanup"
             label={t("power.cleanup")}
             value={t("power.cleanupValue")}
