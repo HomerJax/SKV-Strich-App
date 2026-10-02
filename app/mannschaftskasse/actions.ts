@@ -8,6 +8,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { requireBeerManagementAccess, requireCashboxAccess } from "@/lib/cashbox/access";
 import { notifyBeerManagers } from "@/lib/cashbox/beer-notifications";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 function url(params: Record<string, string>, base = "/mannschaftskasse") {
   return `${base}?${new URLSearchParams(params)}`;
@@ -101,7 +102,6 @@ export async function recordBeerAction(formData: FormData) {
     redirect(url({ beer_error: t("cashAction.beerLoadFailed") }, returnTo));
   }
 
-  const premiumEnabled = settings?.beerkasse_premium_enabled === true;
   const featureEnabled = settings?.beerkasse_enabled === true;
   const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
   const paypalMeUrl = settings?.beerkasse_paypal_me_url?.trim() ?? "";
@@ -109,7 +109,7 @@ export async function recordBeerAction(formData: FormData) {
   const cashEnabled = settings?.beerkasse_cash_enabled !== false;
   const unitPriceCents = Number(settings?.beerkasse_price_cents ?? 0);
 
-  if (!premiumEnabled || !featureEnabled) {
+  if (!featureEnabled) {
     redirect(url({ beer_error: t("cashAction.beerDisabled") }, returnTo));
   }
 
@@ -534,7 +534,8 @@ export async function reportPenaltyAction(formData: FormData) {
     .maybeSingle();
   if (!target) redirect(url({ error: t("cashAction.playerNotFound") }));
 
-  const presetKey = String(formData.get("preset") ?? "").trim();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
+  const presetKey = billingAccess.isPro ? String(formData.get("preset") ?? "").trim() : "";
   const { data: preset } = presetKey
     ? await supabase
         .from("penalty_rules")
@@ -553,8 +554,12 @@ export async function reportPenaltyAction(formData: FormData) {
   if (!reason || !value) redirect(url({ error: t("cashAction.reasonValueRequired") }));
 
   const notes = String(formData.get("notes") ?? "").trim() || null;
-  const escalationDays = preset?.escalation_after_days ?? (type === "beer" ? 28 : null);
-  const escalationValue = preset?.escalation_value ?? (type === "beer" ? "+ 1 Sechserträger" : null);
+  const escalationDays = billingAccess.isPro
+    ? preset?.escalation_after_days ?? (type === "beer" ? 28 : null)
+    : null;
+  const escalationValue = billingAccess.isPro
+    ? preset?.escalation_value ?? (type === "beer" ? "+ 1 Sechserträger" : null)
+    : null;
 
   const { error } = await supabase.from("penalties").insert({
     club_id: clubId,
