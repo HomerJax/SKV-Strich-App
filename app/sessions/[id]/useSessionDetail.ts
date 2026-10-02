@@ -1216,7 +1216,16 @@ ${sessionUrl}`;
     const shouldUseScore = useStrength || useCategories;
     const balanceCategories = initialBalanceCategories ?? [];
 
+    const walkingPlayers = present.filter(
+      (player) => player.balance_group?.trim().toLocaleLowerCase("de-DE") === "gehfußballer"
+    );
+    const targetWalkingA = targetA === targetB
+      ? Math.ceil(walkingPlayers.length / 2)
+      : Math.ceil(walkingPlayers.length / 2);
+    const targetWalkingB = walkingPlayers.length - targetWalkingA;
+
     type BalanceQuality = {
+      walkingGroupPenalty: number;
       goalkeeperDiff: number;
       scoreDiff: number;
       groupPenalty: number;
@@ -1237,7 +1246,17 @@ ${sessionUrl}`;
           B.filter((player) => player.preferred_position === "goalkeeper").length
       );
 
+      const walkingCountA = A.filter(
+        (player) => player.balance_group?.trim().toLocaleLowerCase("de-DE") === "gehfußballer"
+      ).length;
+      const walkingCountB = B.filter(
+        (player) => player.balance_group?.trim().toLocaleLowerCase("de-DE") === "gehfußballer"
+      ).length;
+
       return {
+        walkingGroupPenalty:
+          Math.abs(walkingCountA - targetWalkingA) +
+          Math.abs(walkingCountB - targetWalkingB),
         goalkeeperDiff,
         scoreDiff,
         groupPenalty: balanceGroupPenalty(A, B),
@@ -1250,6 +1269,7 @@ ${sessionUrl}`;
 
     function compareQuality(left: BalanceQuality, right: BalanceQuality) {
       const priorities: (keyof BalanceQuality)[] = [
+        "walkingGroupPenalty",
         "goalkeeperDiff",
         "scoreDiff",
         "groupPenalty",
