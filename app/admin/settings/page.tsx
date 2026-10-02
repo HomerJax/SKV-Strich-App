@@ -10,6 +10,8 @@ import { CategorySettingsSection } from "@/components/admin/settings/CategorySet
 import { getServerI18n } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/config";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
 
 type PageProps = {
   searchParams?: Promise<{
@@ -99,12 +101,14 @@ function RsvpSettingsCard({
   saved,
   error,
   locale,
+  isPro,
 }: {
   value: number;
   requireReason: boolean;
   saved: boolean;
   error: string;
   locale: AppLocale;
+  isPro: boolean;
 }) {
   const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   return (
@@ -140,13 +144,14 @@ function RsvpSettingsCard({
               min={0}
               max={10080}
               step={15}
-              defaultValue={value}
+              defaultValue={isPro ? value : FREE_RSVP_DEADLINE_MINUTES}
+              disabled={!isPro}
               className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
             />
             <span className="text-sm font-semibold text-slate-500">{t("settings.rsvp.minutesBefore")}</span>
           </div>
           <div className="mt-2 text-xs text-slate-500">
-            {t("settings.rsvp.defaultHint")}
+            {isPro ? t("settings.rsvp.defaultHint") : "Free: fest 30 Minuten vor Beginn · 🔒 individuell mit PRO"}
           </div>
         </label>
 
@@ -154,12 +159,13 @@ function RsvpSettingsCard({
           <input
             type="checkbox"
             name="require_rsvp_reason_on_absence"
-            defaultChecked={requireReason}
+            defaultChecked={isPro && requireReason}
+            disabled={!isPro}
             className="mt-0.5 h-5 w-5 rounded border-slate-300 accent-slate-950"
           />
           <span>
             <span className="block text-sm font-semibold text-slate-950">
-              {t("settings.rsvp.reasonRequired")}
+{t("settings.rsvp.reasonRequired")} {!isPro ? " · 🔒 PRO" : ""}
             </span>
             <span className="mt-1 block text-sm leading-6 text-slate-600">
               {t("settings.rsvp.reasonHint")}
@@ -365,7 +371,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
   const supabase = await createClient();
 
-  const [{ data: settingsData }, { data: categoriesData }] = await Promise.all([
+  const [{ data: settingsData }, { data: categoriesData }, billingAccess] = await Promise.all([
     supabase
       .from("club_settings")
       .select("default_locale, use_strength, use_categories, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled")
@@ -376,6 +382,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
       .select("id, key, label, sort_order, is_active, is_strong")
       .eq("club_id", clubId)
       .order("sort_order", { ascending: true }),
+    getClubBillingAccess(supabase, clubId),
   ]);
 
   const settings = (settingsData as ClubSettingsRow | null) ?? null;
@@ -452,6 +459,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
           <CategorySettingsSection
             categories={categories}
             useCategories={settings?.use_categories ?? false}
+            isPro={billingAccess.isPro}
           />
         </SettingsShell>
 
@@ -464,11 +472,12 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
         <SettingsShell title={t("settings.section.rsvp")} description={t("settings.section.rsvpHint")}>
           <RsvpSettingsCard
-            value={settings?.rsvp_deadline_minutes_before ?? 60}
+            value={settings?.rsvp_deadline_minutes_before ?? FREE_RSVP_DEADLINE_MINUTES}
             requireReason={settings?.require_rsvp_reason_on_absence === true}
             saved={clubSaved}
             error={clubError}
             locale={locale}
+            isPro={billingAccess.isPro}
           />
         </SettingsShell>
 
