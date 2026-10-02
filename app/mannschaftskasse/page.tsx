@@ -229,9 +229,12 @@ export default async function Page({ searchParams }: Props) {
   const beerBadgesEnabled =
     beerStatsEnabled && settings?.beerkasse_badges_enabled === true;
   const beerPriceCents = Math.max(1, Number(settings?.beerkasse_price_cents ?? 200));
+  // SKV Bierstatistik starts with the new tracked Bierkasse on 01.10.2026.
+  // Older entries remain visible in history but do not affect statistics.
+  const beerStatsStart = "2026-10-01";
   const beerTotals = new Map<number, number>();
   for (const entry of activeBeerConsumptions) {
-    if (entry.payment_status !== "paid") continue;
+    if (entry.payment_status !== "paid" || entry.created_at.slice(0, 10) < beerStatsStart) continue;
     beerTotals.set(
       entry.player_id,
       (beerTotals.get(entry.player_id) ?? 0) + entry.quantity,
@@ -248,7 +251,11 @@ export default async function Page({ searchParams }: Props) {
     : [];
   const donorTotals = new Map<number, number>();
   for (const entry of activeBeerConsumptions) {
-    if (entry.payment_status !== "paid" || entry.donation_cents <= 0) continue;
+    if (
+      entry.payment_status !== "paid" ||
+      entry.created_at.slice(0, 10) < beerStatsStart ||
+      entry.donation_cents <= 0
+    ) continue;
     donorTotals.set(entry.player_id, (donorTotals.get(entry.player_id) ?? 0) + entry.donation_cents);
   }
   const topDonors = [...donorTotals.entries()]
