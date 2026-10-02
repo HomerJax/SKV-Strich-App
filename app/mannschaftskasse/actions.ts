@@ -281,7 +281,7 @@ export async function updateBeerConsumptionAction(formData: FormData) {
   const admin = createAdminClient();
   const { data: entry, error: entryError } = await admin
     .from("beer_consumptions")
-    .select("id,quantity,unit_price_cents,total_cents,payment_method,payment_status,cash_transaction_id")
+    .select("id,quantity,unit_price_cents,total_cents,donation_cents,payment_method,payment_status,cash_transaction_id")
     .eq("club_id", clubId)
     .eq("id", consumptionId)
     .maybeSingle<{
@@ -289,6 +289,7 @@ export async function updateBeerConsumptionAction(formData: FormData) {
       quantity: number;
       unit_price_cents: number;
       total_cents: number;
+      donation_cents: number;
       payment_method: "paypal" | "paypal_me" | "sumup" | "cash";
       payment_status: "pending" | "paid" | "cancelled";
       cash_transaction_id: number | null;
@@ -302,7 +303,7 @@ export async function updateBeerConsumptionAction(formData: FormData) {
     redirect(beerManageUrl({ error: t("cashAction.cancelledImmutable") }));
   }
 
-  const nextTotalCents = quantity * entry.unit_price_cents;
+  const nextTotalCents = quantity * entry.unit_price_cents + (entry.donation_cents ?? 0);
   const deltaCents = nextTotalCents - entry.total_cents;
 
   if (entry.payment_status === "paid" && deltaCents !== 0) {
