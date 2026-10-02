@@ -5,6 +5,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 type SeasonRow = {
   id: number;
@@ -86,7 +87,14 @@ export async function POST(request: Request) {
     const { clubId, membership, isPowerUser } = await requireClub();
     if (!canManageClub({ isPowerUser, role: membership.role })) return withMessage(request.url, redirectTo, { error: t("seasonApi.forbidden") });
     const supabase = await createClient();
+    const billingAccess = await getClubBillingAccess(supabase, clubId);
     const intent = String(formData.get("intent") ?? "").trim();
+
+    if (!billingAccess.isPro && intent !== "update-training-time") {
+      return withMessage(request.url, redirectTo, {
+        error: "Eigene Saisons anlegen, bearbeiten oder löschen ist eine PRO-Funktion. Im Free-Plan läuft die strikr Standard Saison.",
+      });
+    }
 
     if (intent === "update-training-time") {
       const seasonId = Number(String(formData.get("season_id") ?? "").trim());
