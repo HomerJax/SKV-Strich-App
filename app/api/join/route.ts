@@ -141,6 +141,10 @@ export async function POST(request: Request) {
 
   const membershipRole = invite.role === "admin" ? "admin" : "member";
 
+  const existingPlayerInTargetClub = existingProfiles.find(
+    (profile) => profile.club_id === invite.club_id
+  );
+
   if (!existingPlayerInTargetClub) {
     const playerAllowed = await canAddFixedPlayer(adminSupabase, invite.club_id);
     if (!playerAllowed) {
@@ -172,10 +176,6 @@ export async function POST(request: Request) {
       error: t("joinAction.membershipFailed"),
     });
   }
-
-  const existingPlayerInTargetClub = existingProfiles.find(
-    (profile) => profile.club_id === invite.club_id
-  );
 
   if (!existingPlayerInTargetClub) {
     const sourceProfile = existingProfiles[0];
