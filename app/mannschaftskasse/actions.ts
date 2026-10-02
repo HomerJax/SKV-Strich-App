@@ -93,7 +93,7 @@ export async function recordBeerAction(formData: FormData) {
   const { data: settings, error: settingsError } = await supabase
     .from("club_settings")
     .select(
-      "beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents",
+      "beerkasse_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents",
     )
     .eq("club_id", clubId)
     .maybeSingle();
