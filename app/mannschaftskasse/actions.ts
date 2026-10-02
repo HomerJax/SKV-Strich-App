@@ -37,6 +37,36 @@ function buildPaypalUrl(baseUrl: string, totalCents: number) {
   }
 }
 
+export async function addOpeningBalanceAction(formData: FormData) {
+  const { clubId, user } = await requireCashboxAccess({ manage: true });
+  const amountRaw = String(formData.get("amount") ?? "").trim().replace(",", ".");
+  const amountCents = Math.round(Number(amountRaw) * 100);
+  const occurredOn = String(formData.get("occurred_on") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  if (!Number.isInteger(amountCents) || amountCents <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(occurredOn)) {
+    redirect("/mannschaftskasse?error=Bitte Betrag und Stichtag prüfen.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("cash_transactions").insert({
+    club_id: clubId,
+    amount_cents: amountCents,
+    kind: "income",
+    category: "Startbestand",
+    title: "PayPal-Pool · Startbestand",
+    notes,
+    occurred_on: occurredOn,
+    source_type: "opening_balance",
+    created_by: user.id,
+  });
+
+  if (error) redirect("/mannschaftskasse?error=Startbestand konnte nicht gespeichert werden.");
+  refreshBeerViews();
+  revalidatePath("/mannschaftskasse");
+  redirect("/mannschaftskasse?saved=opening_balance");
+}
+
 export async function recordBeerAction(formData: FormData) {
   const { t } = await getServerI18n();
   const returnTo =
