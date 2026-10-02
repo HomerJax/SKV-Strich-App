@@ -25,8 +25,10 @@ export default async function ProPage({
   const billingAccess = ctx.activeClubId
     ? await getClubBillingAccess(supabase, ctx.activeClubId)
     : null;
-  const monthlyConfigured = isStripeCheckoutConfigured("pro_monthly");
-  const yearlyConfigured = isStripeCheckoutConfigured("pro_yearly");
+  const [monthlyConfigured, yearlyConfigured] = await Promise.all([
+    isStripeCheckoutConfigured("pro_monthly"),
+    isStripeCheckoutConfigured("pro_yearly"),
+  ]);
   const hasStripeSubscription = Boolean(
     billingAccess?.billing.billing_provider === "stripe" &&
       billingAccess.billing.stripe_customer_id,
