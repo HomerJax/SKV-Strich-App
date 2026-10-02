@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireClub } from "@/lib/auth/guards";
-import { requireBeerManagementAccess } from "@/lib/cashbox/access";
+import { requireBeerManagementAccess, requireCashboxAccess } from "@/lib/cashbox/access";
 import { notifyBeerManagers } from "@/lib/cashbox/beer-notifications";
 import { getServerI18n } from "@/lib/i18n/server";
 
