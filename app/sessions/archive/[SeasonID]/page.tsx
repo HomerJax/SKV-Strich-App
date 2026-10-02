@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import PageHero from "@/components/PageHero";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/messages";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 type PageProps = {
   params: Promise<{
@@ -81,6 +82,8 @@ export default async function ArchivedSeasonDetailPage({ params }: PageProps) {
   }
 
   const supabase = await createClient();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
+  if (!billingAccess.isPro) redirect("/sessions/archive?locked=1");
 
   const [
     { data: clubData },
