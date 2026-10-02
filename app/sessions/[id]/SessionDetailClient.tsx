@@ -432,7 +432,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           notes={session.notes ?? null}
           startTime={session.start_time ?? null}
           sessionRsvpDeadlineMinutesBefore={session.rsvp_deadline_minutes_before ?? null}
-          clubRsvpDeadlineMinutesBefore={props.initialRsvpDeadlineMinutesBefore ?? 60}
+          clubRsvpDeadlineMinutesBefore={props.initialRsvpDeadlineMinutesBefore ?? 30}
           presentCount={presentPlayers.length}
           teamACount={allowTeams ? teamA.length : 0}
           teamBCount={allowTeams ? teamB.length : 0}
@@ -460,6 +460,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           mvpVotingEnabled={showMvpSection}
           resultCount={results.length}
           seriesId={session.series_id ?? null}
+          isPro={props.initialIsPro === true}
         />
 
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
