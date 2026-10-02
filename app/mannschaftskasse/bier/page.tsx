@@ -199,8 +199,26 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                       </button>
                     </form>
 
-                    <form action={markBeerCashPaidAction}>
+                    <form action={markBeerCashPaidAction} className="w-full rounded-2xl bg-slate-50 p-3 sm:w-auto">
                       <input type="hidden" name="consumption_id" value={row.id} />
+                      {row.payment_method !== "cash" ? (
+                        <div className="mb-3">
+                          <div className="text-[10px] font-black uppercase tracking-[.12em] text-slate-500">Tatsächlich eingegangen</div>
+                          <div className="mt-2 flex max-w-sm flex-wrap gap-1.5">
+                            {Array.from({ length: 10 }, (_, index) => index + 1).map((euros) => (
+                              <label key={euros} className="cursor-pointer">
+                                <input className="peer sr-only" type="radio" name="actual_amount_euros" value={euros} defaultChecked={euros * 100 === row.total_cents} />
+                                <span className="block rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-black text-slate-700 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-800">{euros} €</span>
+                              </label>
+                            ))}
+                          </div>
+                          <label className="mt-2 block text-[10px] font-bold text-slate-500">
+                            Anderer Betrag
+                            <input name="actual_amount_euros" inputMode="decimal" placeholder="z. B. 12,50" className="mt-1 w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900" />
+                          </label>
+                          <div className="mt-2 text-[11px] font-semibold text-slate-500">strikr berechnet einen Mehrbetrag automatisch als freiwilligen Beitrag.</div>
+                        </div>
+                      ) : null}
                       <button className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-sm">
                         ✓ Geprüft & bestätigt
                       </button>
