@@ -478,9 +478,14 @@ async function setFeaturedBadgeAction(formData: FormData) {
   if (!player) redirect("/badges");
 
   const badgeKey = String(formData.get("badge_key") ?? "").trim();
-  if (!getBadgeDefinition(badgeKey)) throw new Error("Unbekanntes Badge.");
+  const badgeDefinition = getBadgeDefinition(badgeKey);
+  if (!badgeDefinition) throw new Error("Unbekanntes Badge.");
 
   const supabase = createAdminClient();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
+  if (!billingAccess.isPro && badgeDefinition.scope === "career") {
+    throw new Error("Karriere-Badges sind eine PRO-Funktion.");
+  }
   const { data: achievement, error: achievementError } = await supabase
     .from("player_achievements")
     .select("id")
@@ -636,9 +641,13 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
     (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
   );
   const displayName = getPlayerDisplayName(displayPlayer, { useNicknames });
-  const selectedBadge = displayPlayer.selected_badge_key
+  const selectedBadgeCandidate = displayPlayer.selected_badge_key
     ? getLocalizedBadgeDefinition(displayPlayer.selected_badge_key, locale)
     : null;
+  const selectedBadge =
+    selectedBadgeCandidate?.scope === "career" && !billingAccess.isPro
+      ? null
+      : selectedBadgeCandidate;
 
   const explicitCompareId = parsePlayerId(params.compare);
   const defaultCompareId = isOwnHall ? null : displayPlayer.id;
