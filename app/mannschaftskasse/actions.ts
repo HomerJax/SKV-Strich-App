@@ -311,20 +311,31 @@ export async function reopenBeerPaymentAction(formData: FormData) {
   if (!entry || entry.payment_status !== "paid") redirect(beerManageUrl({ error: "Die Zahlung ist nicht bestätigt." }));
 
   if (entry.cash_transaction_id) {
-    const { error: reversalError } = await admin.from("cash_transactions").insert({
-      club_id: clubId,
-      amount_cents: -entry.total_cents,
-      kind: "reversal",
-      category: "Getränke",
-      account: entry.payment_method === "cash" ? "cash" : "paypal",
-      title: `Bestätigung zurückgenommen · ${entry.quantity} Bier`,
-      source_type: "beer_reopen",
-      source_id: entry.id,
-      source_key: `beer:${entry.id}:reopen:${Date.now()}`,
-      reversed_transaction_id: entry.cash_transaction_id,
-      created_by: user.id,
-    });
-    if (reversalError) redirect(beerManageUrl({ error: "Kassenbuchung konnte nicht zurückgenommen werden." }));
+    const { data: existingReversal } = await admin
+      .from("cash_transactions")
+      .select("id")
+      .eq("club_id", clubId)
+      .eq("reversed_transaction_id", entry.cash_transaction_id)
+      .in("source_type", ["beer_reopen", "beer_reversal"])
+      .limit(1)
+      .maybeSingle<{ id: number }>();
+
+    if (!existingReversal) {
+      const { error: reversalError } = await admin.from("cash_transactions").insert({
+        club_id: clubId,
+        amount_cents: -entry.total_cents,
+        kind: "reversal",
+        category: "Getränke",
+        account: entry.payment_method === "cash" ? "cash" : "paypal",
+        title: `Bestätigung zurückgenommen · ${entry.quantity} Bier`,
+        source_type: "beer_reopen",
+        source_id: entry.id,
+        source_key: `beer:${entry.id}:reopen:${entry.cash_transaction_id}`,
+        reversed_transaction_id: entry.cash_transaction_id,
+        created_by: user.id,
+      });
+      if (reversalError && reversalError.code !== "23505") redirect(beerManageUrl({ error: "Kassenbuchung konnte nicht zurückgenommen werden." }));
+    }
   }
 
   const { error } = await admin.from("beer_consumptions").update({
