@@ -145,7 +145,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
         </div>
 
         {q?.saved ? (
-          <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">{t("beerManage.saved")}</div>
+          <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">{q.saved === "updated" ? "✓ Bier-Eintrag wurde korrigiert." : t("beerManage.saved")}</div>
         ) : null}
         {q?.error ? (
           <div className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-800">{q.error}</div>
@@ -295,7 +295,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                     {(actorName(row.created_by) || actorName(row.confirmed_by) || actorName(row.cancelled_by)) ? (
                       <div className="mt-1 text-[10px] font-semibold text-slate-500">
                         {actorName(row.created_by) ? <>Eingetragen von <span className="text-slate-700">{actorName(row.created_by)}</span></> : null}
-                        {actorName(row.confirmed_by) ? <>{actorName(row.created_by) ? " · " : ""}Geprüft von <span className="text-slate-700">{actorName(row.confirmed_by)}</span></> : null}
+                        {actorName(row.confirmed_by) ? <>{actorName(row.created_by) ? " · " : ""}Geprüft von <span className="text-slate-700">{actorName(row.confirmed_by)}</span>{row.paid_at ? <> · {dateTime(row.paid_at, locale)}</> : null}</> : null}
                         {actorName(row.cancelled_by) ? <>{actorName(row.created_by) || actorName(row.confirmed_by) ? " · " : ""}Storniert von <span className="text-slate-700">{actorName(row.cancelled_by)}</span></> : null}
                       </div>
                     ) : null}
@@ -324,7 +324,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                         className="w-16 rounded-xl border border-slate-200 bg-white px-2 py-2 text-center text-xs font-black"
                       />
                       <button className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700">
-                        {t("beerManage.correct")}
+                        ✓ {t("beerManage.correct")}
                       </button>
                     </form>
                     <form action={cancelBeerConsumptionAction}>
