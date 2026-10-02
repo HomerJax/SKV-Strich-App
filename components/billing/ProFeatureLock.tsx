@@ -13,17 +13,6 @@ type ProFeatureLockProps = {
   compact?: boolean;
 };
 
-/**
- * Aktuell bewusst pragmatisch gesetzt, damit strikr vor dem Supercup
- * manuell verkaufbar ist.
- *
- * Später umstellen auf:
- * - hello@strikr.team
- * - offizielle strikr WhatsApp-/Business-Nummer
- */
-const STRIKR_CONTACT_EMAIL =
-  process.env.NEXT_PUBLIC_STRIKR_CONTACT_EMAIL?.trim() || "mb1607@gmx.de";
-
 const STRIKR_WHATSAPP_NUMBER =
   process.env.NEXT_PUBLIC_STRIKR_WHATSAPP_NUMBER?.replace(/[^\d]/g, "") ||
   "491772685717";
@@ -48,11 +37,6 @@ function buildWhatsAppHref(clubName: string | null | undefined, t: (key: Message
   )}`;
 }
 
-function buildMailHref(clubName: string | null | undefined, t: (key: MessageKey, params?: Record<string, string | number | null | undefined>) => string) {
-  return `mailto:${STRIKR_CONTACT_EMAIL}?subject=${encodeURIComponent(
-    t("pro.mailSubject")
-  )}&body=${encodeURIComponent(buildContactMessage(clubName, t))}`;
-}
 
 export default function ProFeatureLock({
   clubName,
