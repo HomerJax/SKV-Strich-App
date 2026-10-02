@@ -2,6 +2,7 @@
 
 import { isFreeLaunchEnabled } from "@/lib/env";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import Link from "next/link";
 import type { MessageKey } from "@/lib/i18n/messages";
 
 type ProFeatureLockProps = {
@@ -87,7 +88,6 @@ export default function ProFeatureLock({
   }
 
   const whatsappHref = buildWhatsAppHref(clubName, t);
-  const mailHref = buildMailHref(clubName, t);
 
   return (
     <div
@@ -122,20 +122,20 @@ export default function ProFeatureLock({
       ) : null}
 
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        <Link
+          href="/pro"
+          className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+        >
+          PRO ansehen
+        </Link>
+
         <a
           href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
-        >
-          {t("pro.whatsappCta")}
-        </a>
-
-        <a
-          href={mailHref}
           className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
         >
-          {t("pro.emailCta")}
+          {t("pro.whatsappCta")}
         </a>
       </div>
 
