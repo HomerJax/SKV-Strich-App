@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { EyeOff, Layers3, Sparkles, Trophy } from "lucide-react";
 import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
+import { createClient } from "@/lib/supabase/server";
+import { requireClub } from "@/lib/auth/guards";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { BADGE_DEFINITIONS, getLocalizedBadgeDefinition } from "@/lib/badges/catalog";
 import { getServerI18n } from "@/lib/i18n/server";
@@ -39,9 +41,18 @@ function getBadgeSectionKey(badgeKey: string): BadgeSectionKey {
   return "special";
 }
 
-export default async function PowerUserBadgesPage() {
+export default async function PowerUserBadgesPage({ searchParams }: { searchParams?: Promise<{ saved?: string; error?: string }> }) {
   await requirePowerUser();
+  const { clubId } = await requireClub();
   const { locale, t } = await getServerI18n();
+  const resolvedSearchParams = await searchParams;
+  const supabase = await createClient();
+  const { data: badgeSettings } = await supabase
+    .from("club_settings")
+    .select("awards_started_at")
+    .eq("club_id", clubId)
+    .maybeSingle<{ awards_started_at: string | null }>();
+  const awardsStartedAt = badgeSettings?.awards_started_at ?? "";
   const sections = getSections(t);
 
   const badges = BADGE_DEFINITIONS.map((badge) => ({
@@ -72,6 +83,55 @@ export default async function PowerUserBadgesPage() {
               <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 sm:px-4"><div className="text-2xl font-black">{badges.filter((badge) => badge.visual.secret).length}</div><div className="text-[10px] text-slate-400 sm:text-xs">Secret</div></div>
             </div>
           </div>
+        </section>
+
+
+        <section className="rounded-[28px] border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Power User · Badge-Steuerung</div>
+          <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">{t("settings.awards.start")}</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-amber-900">{t("settings.awards.startHint")}</p>
+
+          {resolvedSearchParams?.saved === "1" ? (
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {t("settings.awards.saved")}
+            </div>
+          ) : null}
+
+          {resolvedSearchParams?.error ? (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {resolvedSearchParams.error === "invalid_awards_started_at"
+                ? t("settings.awards.invalidDate")
+                : t("settings.awards.error")}
+            </div>
+          ) : null}
+
+          <form method="post" action="/api/admin/settings" className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <input type="hidden" name="redirect_to" value="/power-user/badges" />
+            <label className="flex-1 text-sm font-semibold text-slate-900">
+              {t("settings.awards.start")}
+              <input
+                type="date"
+                name="awards_started_at"
+                defaultValue={awardsStartedAt}
+                className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
+              />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
+                {t("settings.awards.save")}
+              </button>
+              {awardsStartedAt ? (
+                <button
+                  type="submit"
+                  name="awards_started_at"
+                  value=""
+                  className="rounded-xl border border-amber-300 bg-white px-4 py-3 text-sm font-semibold text-amber-900"
+                >
+                  {t("settings.awards.backPreview")}
+                </button>
+              ) : null}
+            </div>
+          </form>
         </section>
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
