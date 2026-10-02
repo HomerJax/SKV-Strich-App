@@ -58,29 +58,3 @@ export async function saveBeerkasseAction(fd: FormData) {
   revalidatePath("/admin/penalties");
   redirect(settingsUrl({ beerkasse_saved: "1" }));
 }
-
-export async function setBeerkassePremiumAction(fd: FormData) {
-  const ctx = await requireClub();
-  if (!ctx.isPowerUser) redirect("/home");
-
-  const enabled = String(fd.get("enabled") ?? "") === "1";
-  const supabase = await createClient();
-
-  const { error } = await supabase.from("club_settings").upsert(
-    {
-      club_id: ctx.clubId,
-      beerkasse_premium_enabled: enabled,
-      ...(enabled ? {} : { beerkasse_enabled: false, beerkasse_home_enabled: false }),
-    },
-    { onConflict: "club_id" },
-  );
-
-  if (error) {
-    redirect(settingsUrl({ beerkasse_error: "premium_save" }));
-  }
-
-  revalidatePath("/home");
-  revalidatePath("/mannschaftskasse");
-  revalidatePath("/admin/penalties");
-  redirect(settingsUrl({ beerkasse_saved: "1" }));
-}
