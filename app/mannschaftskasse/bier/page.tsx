@@ -107,6 +107,13 @@ export default async function BeerManagementPage({ searchParams }: Props) {
     .filter((row) => row.payment_method === "cash" && row.payment_status === "paid")
     .reduce((sum, row) => sum + row.total_cents, 0);
   const pendingDigitalCents = pendingDigital.reduce((sum, row) => sum + row.total_cents, 0);
+  const donorTotals = new Map<number, number>();
+  activeRows
+    .filter((row) => row.payment_status === "paid" && row.donation_cents > 0)
+    .forEach((row) => donorTotals.set(row.player_id, (donorTotals.get(row.player_id) ?? 0) + row.donation_cents));
+  const topDonors = Array.from(donorTotals.entries())
+    .map(([playerId, cents]) => ({ playerId, cents, name: names.get(playerId) ?? t("beerManage.playerFallback", { id: playerId }) }))
+    .sort((a, b) => b.cents - a.cents || a.name.localeCompare(b.name, locale === "de" ? "de-DE" : "en-GB"));
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -245,6 +252,29 @@ export default async function BeerManagementPage({ searchParams }: Props) {
           </p>
         </section>
         {q?.review === "1" ? <script dangerouslySetInnerHTML={{ __html: 'document.getElementById("offen")?.scrollIntoView({block:"start"})' }} /> : null}
+
+        <section className="rounded-[26px] border border-emerald-200 bg-white p-5 shadow-sm">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">Mannschaftskasse</div>
+              <h2 className="mt-1 text-lg font-black text-slate-950">💚 Größte Gönner</h2>
+            </div>
+            <div className="text-[11px] font-semibold text-slate-500">bestätigte freiwillige Beiträge</div>
+          </div>
+          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+            {topDonors.length > 0 ? topDonors.map((donor, index) => (
+              <div key={donor.playerId} className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="w-6 text-center text-sm font-black text-slate-400">{index + 1}.</span>
+                  <span className="truncate text-sm font-black text-slate-900">{donor.name}</span>
+                </div>
+                <span className="shrink-0 text-sm font-black text-emerald-700">{formatCents(donor.cents)}</span>
+              </div>
+            )) : (
+              <div className="px-4 py-5 text-center text-sm font-semibold text-slate-500">Noch keine bestätigten freiwilligen Beiträge.</div>
+            )}
+          </div>
+        </section>
 
         <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black text-slate-950">{t("beerManage.latest")}</h2>
