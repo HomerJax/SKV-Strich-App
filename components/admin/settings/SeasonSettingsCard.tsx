@@ -373,7 +373,7 @@ export default async function SeasonSettingsCard({
                       </div>
                     ))
                   )}
-          
+                </div>
         </>
       ) : (
         <ProFeatureLock
