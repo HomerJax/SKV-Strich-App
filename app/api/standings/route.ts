@@ -642,6 +642,7 @@ export async function GET(request: NextRequest) {
         awardsStartedAt,
         awardsOfficial,
         rows: [],
+        isPro: billingAccess.isPro,
       });
     }
 
@@ -696,6 +697,7 @@ export async function GET(request: NextRequest) {
       awardsStartedAt,
       awardsOfficial,
       rows,
+      isPro: billingAccess.isPro,
     });
   } catch (error) {
     const message =
