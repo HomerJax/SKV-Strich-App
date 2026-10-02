@@ -17,5 +17,5 @@
       "schedule": "35 21 * * *"
     }
   ],
-  "ignoreCommand": "if [ \"$VERCEL_PROJECT_ID\" = \"prj_CEw44LCdZhqmVDnuszwTPlCekZwq\" ]; then [ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]; elif [ \"$VERCEL_PROJECT_ID\" = \"prj_UPZ5p7vh8P6zXT8xmSH869HwlAsd\" ]; then [ \"$VERCEL_GIT_COMMIT_REF\" != \"staging\" ]; else exit 1; fi"
+  "ignoreCommand": "case \"$VERCEL_PROJECT_ID:$VERCEL_GIT_COMMIT_REF\" in prj_CEw44LCdZhqmVDnuszwTPlCekZwq:main|prj_UPZ5p7vh8P6zXT8xmSH869HwlAsd:staging|prj_UPZ5p7vh8P6zXT8xmSH869HwlAsd:implement-free-pro-matrix) exit 1;;*) exit 0;;esac"
 }
