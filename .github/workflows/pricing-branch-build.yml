@@ -17,3 +17,9 @@ jobs:
           cache: npm
       - run: npm install --no-audit --no-fund
       - run: npm run build
+      - name: Upload refreshed lock file
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: refreshed-package-lock
+          path: package-lock.json
