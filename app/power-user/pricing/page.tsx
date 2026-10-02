@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check, Crown, LockKeyhole, CreditCard, Database, Globe2 } from "lucide-react";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import { PRODUCT_MATRIX } from "@/lib/billing/product-matrix";
+import { INTRO_PRICING, getAnnualSavingsPercent } from "@/lib/billing/pricing";
 
 export default async function PowerUserPricingMatrixPage() {
   await requirePowerUser();
@@ -66,8 +67,8 @@ export default async function PowerUserPricingMatrixPage() {
           </div>
           <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4">
             <div className="flex items-center gap-2 text-sm font-black text-amber-950"><CreditCard className="h-4 w-4" /> Checkout</div>
-            <div className="mt-2 text-sm font-semibold text-amber-800">◐ Backend vorbereitet</div>
-            <p className="mt-1 text-xs leading-5 text-amber-700">Checkout, Webhook und automatische Club-Freischaltung sind gebaut. Offen: Stripe-Konto, finale Preise und Live-ENV/Webhook-Konfiguration.</p>
+            <div className="mt-2 text-sm font-semibold text-emerald-800">✓ Stripe-Test erfolgreich</div>
+            <p className="mt-1 text-xs leading-5 text-emerald-700">4,99 € monatlich und 49,99 € jährlich sind im Stripe-Testmodus angelegt. Testzahlung, aktives Abo und Kundenportal funktionieren.</p>
           </div>
         </section>
 
@@ -106,7 +107,7 @@ export default async function PowerUserPricingMatrixPage() {
             Noch offen
           </div>
           <p className="mt-2 text-sm leading-6 text-amber-900">
-            Der konkrete Einführungspreis und die Live-Stripe-Konfiguration sind noch offen. Checkout, Webhook und automatische PRO-Synchronisierung sind im Code vorbereitet; die Produktgrenzen sind umgesetzt.
+            Offen vor echtem Geld: Live-Stripe-Konto/Keys in Vercel, Webhook auf /api/billing/webhook, Produktionsmigration und finaler Store-Checkout-Entscheid für iOS/Android. Die Testpreise und der Stripe-Testflow sind bereits bestätigt.
           </p>
         </div>
       </section>
