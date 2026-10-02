@@ -29,7 +29,6 @@ type ClubSettingsRow = {
   default_locale: string | null;
   use_strength: boolean | null;
   use_categories: boolean | null;
-  awards_started_at: string | null;
   rsvp_deadline_minutes_before: number | null;
   require_rsvp_reason_on_absence: boolean | null;
   home_team_feed_enabled: boolean | null;
@@ -184,88 +183,6 @@ function RsvpSettingsCard({
   );
 }
 
-function AwardsSettingsCard({
-  awardsStartedAt,
-  saved,
-  error,
-  locale,
-}: {
-  awardsStartedAt: string | null;
-  saved: boolean;
-  error: string;
-  locale: AppLocale;
-}) {
-  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
-  const dateValue = awardsStartedAt ?? "";
-
-  return (
-    <div className="space-y-5">
-      {saved ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {t("settings.awards.saved")}
-        </div>
-      ) : null}
-
-      {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error === "invalid_awards_started_at"
-            ? t("settings.awards.invalidDate")
-            : t("settings.awards.error")}
-        </div>
-      ) : null}
-
-      <div className="rounded-[20px] border border-amber-200 bg-amber-50 p-4">
-        <div className="text-sm font-black text-amber-950">
-          {t("settings.awards.previewTitle")}
-        </div>
-        <p className="mt-1 text-sm leading-6 text-amber-900">
-          {t("settings.awards.previewHint")}
-        </p>
-      </div>
-
-      <form method="post" action="/api/admin/settings" className="space-y-4">
-        <input type="hidden" name="redirect_to" value="/admin/settings" />
-
-        <label className="block rounded-[20px] border border-black/10 bg-neutral-50 p-4">
-          <div className="text-sm font-semibold text-slate-950">
-            {t("settings.awards.start")}
-          </div>
-          <div className="mt-1 text-sm leading-6 text-slate-600">
-            {t("settings.awards.startHint")}
-          </div>
-
-          <input
-            type="date"
-            name="awards_started_at"
-            defaultValue={dateValue}
-            className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
-          />
-        </label>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-          >
-            {t("settings.awards.save")}
-          </button>
-
-          {awardsStartedAt ? (
-            <button
-              type="submit"
-              name="awards_started_at"
-              value=""
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              {t("settings.awards.backPreview")}
-            </button>
-          ) : null}
-        </div>
-      </form>
-    </div>
-  );
-}
-
 function HomeFeedSettingsCard({
   enabled,
   saved,
@@ -374,7 +291,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
   const [{ data: settingsData }, { data: categoriesData }, billingAccess] = await Promise.all([
     supabase
       .from("club_settings")
-      .select("default_locale, use_strength, use_categories, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled")
+      .select("default_locale, use_strength, use_categories, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -481,14 +398,6 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
           />
         </SettingsShell>
 
-        <SettingsShell title={t("settings.section.awards")} description={t("settings.section.awardsHint")}>
-          <AwardsSettingsCard
-            awardsStartedAt={settings?.awards_started_at ?? null}
-            saved={clubSaved}
-            error={clubError}
-            locale={locale}
-          />
-        </SettingsShell>
       </section>
     </main>
   );
