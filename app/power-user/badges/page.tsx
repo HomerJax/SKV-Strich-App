@@ -6,6 +6,7 @@ import { BADGE_DEFINITIONS, getLocalizedBadgeDefinition } from "@/lib/badges/cat
 import { getServerI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { getBadgeVisualMeta } from "@/lib/badges/visual-catalog";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -40,8 +41,17 @@ function getBadgeSectionKey(badgeKey: string): BadgeSectionKey {
 }
 
 export default async function PowerUserBadgesPage() {
-  await requirePowerUser();
+  const ctx = await requirePowerUser();
   const { locale, t } = await getServerI18n();
+  const admin = createAdminClient();
+  const activeClubId = ctx.activeClubId;
+  const [{ data: activeClub }, { data: badgeSettings }] = activeClubId
+    ? await Promise.all([
+        admin.from("clubs").select("display_name,name").eq("id", activeClubId).maybeSingle<{ display_name: string | null; name: string | null }>(),
+        admin.from("club_settings").select("awards_started_at").eq("club_id", activeClubId).maybeSingle<{ awards_started_at: string | null }>(),
+      ])
+    : [{ data: null }, { data: null }];
+  const activeClubName = activeClub?.display_name?.trim() || activeClub?.name?.trim() || "Aktiver Club";
   const sections = getSections(t);
 
   const badges = BADGE_DEFINITIONS.map((badge) => ({
@@ -72,6 +82,48 @@ export default async function PowerUserBadgesPage() {
               <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 sm:px-4"><div className="text-2xl font-black">{badges.filter((badge) => badge.visual.secret).length}</div><div className="text-[10px] text-slate-400 sm:text-xs">Secret</div></div>
             </div>
           </div>
+        </section>
+
+        <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+            Badge-Zählung · interner Startpunkt
+          </div>
+          {activeClubId ? (
+            <>
+              <div className="mt-2 text-lg font-black text-slate-950">{activeClubName}</div>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Legt fest, ab welchem Datum neue Badge-Freischaltungen gezählt werden. Nur Power User.
+              </p>
+              <form method="post" action="/api/admin/settings" className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <input type="hidden" name="redirect_to" value="/power-user/badges" />
+                <label className="flex-1 text-sm font-bold text-slate-800">
+                  Startdatum
+                  <input
+                    type="date"
+                    name="awards_started_at"
+                    defaultValue={badgeSettings?.awards_started_at ?? ""}
+                    className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
+                  />
+                </label>
+                <button className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white">
+                  Speichern
+                </button>
+                {badgeSettings?.awards_started_at ? (
+                  <button
+                    name="awards_started_at"
+                    value=""
+                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-700"
+                  >
+                    Zurücksetzen
+                  </button>
+                ) : null}
+              </form>
+            </>
+          ) : (
+            <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+              Erst einen Club im Power-User-Kontext auswählen.
+            </div>
+          )}
         </section>
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
