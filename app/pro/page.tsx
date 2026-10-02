@@ -5,6 +5,7 @@ import { getAuthContext, isActiveClubAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { isStripeCheckoutConfigured } from "@/lib/billing/stripe";
+import { INTRO_PRICING, getAnnualSavingsPercent } from "@/lib/billing/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,14 @@ export default async function ProPage({
             <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl" />
             <div className="relative text-xs font-black uppercase tracking-[0.16em] text-violet-200">PRO</div>
             <h2 className="relative mt-2 text-2xl font-black">Mehr Tiefe für euer Team.</h2>
+            <div className="relative mt-4 rounded-2xl border border-violet-300/15 bg-violet-300/[0.08] p-4">
+              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-200">{INTRO_PRICING.badge}</div>
+              <div className="mt-2 flex flex-wrap items-end gap-x-5 gap-y-2">
+                <div><span className="text-3xl font-black">{INTRO_PRICING.monthly.label}</span><span className="ml-1 text-sm font-bold text-white/45">{INTRO_PRICING.monthly.suffix}</span></div>
+                <div className="text-sm font-black text-violet-200">{INTRO_PRICING.yearly.label} {INTRO_PRICING.yearly.suffix} · ca. {getAnnualSavingsPercent()}% günstiger</div>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-white/45">Günstiger Startpreis für die ersten Teams. Für spätere Neukunden kann der Preis steigen.</p>
+            </div>
             <div className="relative mt-5 space-y-2">
               {PRO_HIGHLIGHTS.map((feature) => (
                 <div key={feature} className="flex gap-3 rounded-2xl bg-white/[0.07] px-3 py-2.5 text-sm font-semibold text-white/80">
@@ -130,7 +139,7 @@ export default async function ProPage({
                         disabled={!monthlyConfigured}
                         className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        {monthlyConfigured ? "Monatlich wählen" : "Monatlich · noch nicht live"}
+                        {monthlyConfigured ? `${INTRO_PRICING.monthly.label} monatlich` : `${INTRO_PRICING.monthly.label} · noch nicht live`}
                       </button>
                     </form>
                     <form method="post" action="/api/billing/checkout">
@@ -139,7 +148,7 @@ export default async function ProPage({
                         disabled={!yearlyConfigured}
                         className="inline-flex w-full items-center justify-center rounded-xl bg-violet-500 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        {yearlyConfigured ? "Jährlich wählen" : "Jährlich · noch nicht live"}
+                        {yearlyConfigured ? `${INTRO_PRICING.yearly.label} jährlich` : `${INTRO_PRICING.yearly.label} · noch nicht live`}
                       </button>
                     </form>
                   </div>
