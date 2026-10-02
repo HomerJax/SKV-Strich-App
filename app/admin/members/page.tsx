@@ -379,7 +379,7 @@ export default async function AdminMembersPage({
 
                         {member.role === "admin" ? (
                           <div className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
-                            {t("members.beerFund")} verwalten · automatisch als Admin
+                            {t("members.beerManageAdmin")}
                           </div>
                         ) : (
                           <form action={setMemberPermissionAction} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
