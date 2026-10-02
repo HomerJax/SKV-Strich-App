@@ -3,6 +3,8 @@ import { Award, Trophy } from "lucide-react";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import ExtendedPersonalStats from "@/components/stats/ExtendedPersonalStats";
+import { createClient } from "@/lib/supabase/server";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 export default async function StatsLayout({
   children,
@@ -10,12 +12,26 @@ export default async function StatsLayout({
   children: React.ReactNode;
 }) {
   const { clubId } = await requireClub();
-  const flags = await getFeatureFlagsForClub(clubId);
+  const supabase = await createClient();
+  const [flags, billingAccess] = await Promise.all([
+    getFeatureFlagsForClub(clubId),
+    getClubBillingAccess(supabase, clubId),
+  ]);
 
   return (
     <>
       {children}
-      <ExtendedPersonalStats />
+      {billingAccess.isPro ? (
+        <ExtendedPersonalStats />
+      ) : (
+        <section className="bg-neutral-100 px-4 pb-8 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-6xl rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">PRO · Persönliche Insights</div>
+            <h2 className="mt-1 text-xl font-black text-slate-950">🔒 Wer passt am besten zu deinem Spiel?</h2>
+            <p className="mt-2 text-sm text-slate-600">Mit PRO siehst du unter anderem deinen besten Monat, häufigste Mitspieler und mit wem du am häufigsten gewinnst.</p>
+          </div>
+        </section>
+      )}
 
       {flags.hall_of_fame_badges ? (
         <Link
