@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { FREE_HIGHLIGHTS, PRO_HIGHLIGHTS } from "@/lib/billing/product-matrix";
+import { INTRO_PRICING, getAnnualSavingsPercent } from "@/lib/billing/pricing";
 import {
   ArrowRight,
   Bell,
@@ -393,7 +395,7 @@ export default async function LandingPage({
             </div>
 
             <p className="mt-4 text-xs font-semibold text-white/35">
-              Ohne Registrierung in die Demo · aktuell kostenlos für Teams
+              Ohne Registrierung in die Demo · Free verfügbar · PRO ab 4,99 €
             </p>
           </div>
 
@@ -547,41 +549,74 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <section className="bg-[#f5f7fa] py-14 text-slate-950 sm:py-18">
+      <section id="pricing" className="bg-[#f5f7fa] py-16 text-slate-950 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 rounded-[34px] border border-slate-200 bg-white p-6 shadow-[0_20px_70px_rgba(15,23,42,0.08)] sm:p-9 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                Early Teams
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-600">Free oder PRO</div>
+            <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-5xl">
+              Kostenlos anfangen. Mehr Tiefe, wenn ihr sie braucht.
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+              Free bleibt ein echtes Team-Produkt. PRO schaltet vor allem mehr Flexibilität,
+              Historie, Karriere-Stats und tiefere Auswertungen frei.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+              <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">FREE</div>
+              <h3 className="mt-4 text-2xl font-black">Alles für euren Trainingsabend.</h3>
+              <div className="mt-5 space-y-2">
+                {FREE_HIGHLIGHTS.map((feature) => (
+                  <div key={feature} className="flex gap-3 rounded-2xl bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">
+                    <span className="font-black text-emerald-600">✓</span><span>{feature}</span>
+                  </div>
+                ))}
               </div>
-              <h2 className="mt-3 text-3xl font-black tracking-[-0.045em]">
-                Jetzt testen. Mitgestalten. Founder-Vorteile sichern.
-              </h2>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
-                strikr ist aktuell komplett kostenlos. Teams, die früh starten
-                und Feedback geben, sichern sich Founder-Status und dauerhafte
-                Vorteile, falls später ein Premium-Modell dazukommt.
+              <Link href="/signup?next=%2Fclub-setup" data-analytics-event="landing_signup_cta_click" className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white">
+                Team kostenlos starten
+              </Link>
+            </div>
+
+            <div className="relative overflow-hidden rounded-[30px] border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-cyan-50 p-6 shadow-sm sm:p-7">
+              <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-300/30 blur-3xl" />
+              <div className="relative inline-flex rounded-full bg-violet-700 px-3 py-1 text-xs font-black text-white">PRO</div>
+              <div className="relative mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
+                <h3 className="text-2xl font-black">Für Teams, die mehr draus machen.</h3>
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-amber-800">{INTRO_PRICING.badge}</span>
+              </div>
+              <div className="relative mt-4 flex flex-wrap items-end gap-4">
+                <div><span className="text-3xl font-black text-slate-950">{INTRO_PRICING.monthly.label}</span><span className="ml-1 text-sm font-bold text-slate-500">{INTRO_PRICING.monthly.suffix}</span></div>
+                <div className="text-sm font-bold text-violet-700">oder {INTRO_PRICING.yearly.label} {INTRO_PRICING.yearly.suffix} · ca. {getAnnualSavingsPercent()}% sparen</div>
+              </div>
+              <div className="relative mt-5 space-y-2">
+                {PRO_HIGHLIGHTS.map((feature) => (
+                  <div key={feature} className="flex gap-3 rounded-2xl bg-white/80 px-3 py-2.5 text-sm font-semibold text-slate-700">
+                    <span className="font-black text-violet-600">✓</span><span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+              <Link href="/pro" data-analytics-event="landing_pro_click" className="relative mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-700 px-5 py-3.5 text-sm font-black text-white transition hover:bg-violet-800">
+                PRO ansehen <ArrowRight className="h-4 w-4" />
+              </Link>
+              <p className="relative mt-3 text-center text-xs font-semibold text-slate-500">
+                Einführungspreis für frühe Teams. Spätere Neukundenpreise können höher liegen.
               </p>
-              <div className="mt-6">
-                <Link
-                  href="/signup?next=%2Fclub-setup"
-                  data-analytics-event="landing_signup_cta_click"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3.5 text-sm font-black text-white transition hover:bg-slate-800"
-                >
-                  Team kostenlos starten <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-8 rounded-[34px] border border-slate-200 bg-white p-6 shadow-[0_20px_70px_rgba(15,23,42,0.08)] sm:p-9 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Jetzt loslegen</div>
+              <h2 className="mt-3 text-3xl font-black tracking-[-0.045em]">Erst spielen. Dann entscheiden, ob ihr PRO braucht.</h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
+                Ihr könnt mit Free direkt starten. PRO wird dort sichtbar angeboten, wo zusätzliche Tiefe oder Flexibilität Sinn ergibt.
+              </p>
             </div>
             <div className="rounded-[27px] bg-slate-950 p-5 text-white">
-              <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/40">
-                strikr aufs Smartphone
-              </div>
-              <div className="mt-3">
-                <StoreButtons />
-              </div>
-              <div className="mt-3 text-center text-[11px] font-semibold text-white/35">
-                iOS · Android · Web
-              </div>
+              <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/40">strikr aufs Smartphone</div>
+              <div className="mt-3"><StoreButtons /></div>
+              <div className="mt-3 text-center text-[11px] font-semibold text-white/35">iOS · Android · Web</div>
             </div>
           </div>
         </div>

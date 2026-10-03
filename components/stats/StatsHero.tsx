@@ -19,6 +19,7 @@ type StatsHeroProps = {
   showMvp: boolean;
   mvpWins: number;
   mvpPerGame: number;
+  isPro?: boolean;
 };
 
 type StatCardProps = {
@@ -89,6 +90,7 @@ export default function StatsHero({
   showMvp,
   mvpWins,
   mvpPerGame,
+  isPro = false,
 }: StatsHeroProps) {
   const { locale, t } = useI18n();
 
@@ -119,7 +121,9 @@ export default function StatsHero({
           value={String(wins)}
           hint={
             completedResults > 0
-? t("stats.successRate", { value: formatNumber((wins / completedResults) * 100, locale) })
+? isPro
+                ? t("stats.successRate", { value: formatNumber((wins / completedResults) * 100, locale) })
+                : "🔒 PRO · Siegquote"
               : t("stats.noResults")
           }
           valueClassName="text-emerald-700"
@@ -133,7 +137,9 @@ export default function StatsHero({
           value={String(losses)}
           hint={
             completedResults > 0
-              ? t("stats.resultShare", { value: formatNumber((losses / completedResults) * 100, locale) })
+              ? isPro
+                ? t("stats.resultShare", { value: formatNumber((losses / completedResults) * 100, locale) })
+                : "🔒 PRO · Anteil"
               : t("stats.noResults")
           }
           valueClassName="text-rose-700"
@@ -147,7 +153,9 @@ export default function StatsHero({
           value={String(draws)}
           hint={
             completedResults > 0
-              ? t("stats.resultShare", { value: formatNumber((draws / completedResults) * 100, locale) })
+              ? isPro
+                ? t("stats.resultShare", { value: formatNumber((draws / completedResults) * 100, locale) })
+                : "🔒 PRO · Anteil"
               : t("stats.noResults")
           }
           valueClassName="text-amber-700"

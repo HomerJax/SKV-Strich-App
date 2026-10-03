@@ -308,6 +308,7 @@ export default function StandingsClient({
   }, [isPro, seasonParam, t]);
 
   function handleSort(nextKey: SortKey) {
+    if (nextKey === "winRate" && !isPro) return;
     if (sortKey === nextKey) {
       setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
       return;
@@ -441,7 +442,7 @@ export default function StandingsClient({
                         <button type="button" onClick={() => handleSort("sessions")} className="ml-auto inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">{t("standings.appearancesShort")} <span className="text-[10px] text-slate-400">{sortIndicator("sessions")}</span></button>
                       </th>
                       <th className="w-20 px-1.5 py-2 text-right">
-                        <button type="button" onClick={() => handleSort("winRate")} className="ml-auto inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">{t("standings.winRate")} <span className="text-[10px] text-slate-400">{sortIndicator("winRate")}</span></button>
+                        {isPro ? <button type="button" onClick={() => handleSort("winRate")} className="ml-auto inline-flex items-center gap-1 font-semibold transition hover:text-slate-950">{t("standings.winRate")} <span className="text-[10px] text-slate-400">{sortIndicator("winRate")}</span></button> : <span className="font-semibold text-slate-500">🔒 {t("standings.winRate")} · PRO</span>}
                       </th>
                     </tr>
                   </thead>
@@ -515,7 +516,7 @@ export default function StandingsClient({
 
                         <td className="px-1 py-2 text-right font-semibold text-slate-900">{row.wins}</td>
                         <td className="px-1 py-2 text-right text-slate-700">{row.sessions}</td>
-                        <td className="px-1.5 py-2 text-right font-bold text-slate-900">{formatWinRate(row.wins, row.sessions)}</td>
+                        <td className="px-1.5 py-2 text-right font-bold text-slate-900">{isPro ? formatWinRate(row.wins, row.sessions) : <span className="text-[10px] font-bold text-slate-400">🔒 PRO</span>}</td>
                       </tr>
                       );
                     })}
@@ -588,6 +589,7 @@ export default function StandingsClient({
               startRank={card.startRank}
               endRank={card.endRank}
               rows={card.rows}
+              isPro={isPro}
             />
           ))}
         </div>

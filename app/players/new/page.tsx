@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { getServerI18n } from "@/lib/i18n/server";
+import { canAddFixedPlayer, FREE_FIXED_PLAYER_LIMIT } from "@/lib/billing/product-limits";
 
 type PreferredPosition = "defense" | "attack" | "goalkeeper" | null;
 type AgeGroup = "AH" | "Ü32" | null;
@@ -46,6 +47,11 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
     const { clubId } = await requireClub();
     const { t: actionT } = await getServerI18n();
     const supabase = await createClient();
+
+    const playerAllowed = await canAddFixedPlayer(supabase, clubId);
+    if (!playerAllowed) {
+      redirect(`/players/new?error=${encodeURIComponent(`Im Free-Plan sind bis zu ${FREE_FIXED_PLAYER_LIMIT} feste Spieler enthalten. Mit PRO kannst du weitere Spieler anlegen.`)}`);
+    }
 
     const firstName = clean(String(formData.get("first_name") ?? ""));
     const lastName = clean(String(formData.get("last_name") ?? ""));

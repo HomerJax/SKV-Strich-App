@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { canManageClub } from "@/lib/auth/access";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { FREE_BALANCE_GROUP_LIMIT } from "@/lib/billing/product-limits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -156,6 +158,19 @@ export async function POST(request: NextRequest) {
 
       return { playerId, payload, oldBalanceGroup: existing.balance_group };
     });
+
+    const billingAccess = await getClubBillingAccess(supabase, access.clubId);
+    const requestedBalanceGroups = new Set(
+      updates
+        .map(({ payload }) => String(payload.balance_group ?? "").trim())
+        .filter(Boolean)
+    );
+
+    if (!billingAccess.isPro && requestedBalanceGroups.size > FREE_BALANCE_GROUP_LIMIT) {
+      return redirectToAdminPlayers(request, {
+        error: "Im Free-Plan ist 1 Balanced Group enthalten. Mit PRO kannst du mehrere Gruppen nutzen.",
+      });
+    }
 
     const results = await Promise.all(
       updates.map(({ playerId, payload }) =>

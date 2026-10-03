@@ -19,6 +19,7 @@ type Props = {
   onDeleteResult: (gameNo: number) => void;
   onToggleCollapsed: () => void;
   title?: string;
+  isPro?: boolean;
 };
 
 function cleanGoal(value: string) {
@@ -151,6 +152,7 @@ export default function SessionScoreCard({
   onDeleteResult,
   onToggleCollapsed,
   title,
+  isPro = false,
 }: Props) {
   const { t } = useI18n();
   const [showNextGameForm, setShowNextGameForm] = useState(results.length === 0);
@@ -254,7 +256,12 @@ export default function SessionScoreCard({
           />
         ))}
 
-        {showNextGameForm ? (
+        {!isPro && results.length >= 1 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-center">
+            <div className="text-sm font-black text-slate-800">🔒 Zweites Spiel · PRO</div>
+            <p className="mt-1 text-xs text-slate-500">Im Free-Plan ist ein Spiel pro Training enthalten.</p>
+          </div>
+        ) : showNextGameForm ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-3">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">

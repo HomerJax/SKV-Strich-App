@@ -2,6 +2,7 @@
 
 import { isFreeLaunchEnabled } from "@/lib/env";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import Link from "next/link";
 import type { MessageKey } from "@/lib/i18n/messages";
 
 type ProFeatureLockProps = {
@@ -11,17 +12,6 @@ type ProFeatureLockProps = {
   featureList?: string[];
   compact?: boolean;
 };
-
-/**
- * Aktuell bewusst pragmatisch gesetzt, damit strikr vor dem Supercup
- * manuell verkaufbar ist.
- *
- * Später umstellen auf:
- * - hello@strikr.team
- * - offizielle strikr WhatsApp-/Business-Nummer
- */
-const STRIKR_CONTACT_EMAIL =
-  process.env.NEXT_PUBLIC_STRIKR_CONTACT_EMAIL?.trim() || "mb1607@gmx.de";
 
 const STRIKR_WHATSAPP_NUMBER =
   process.env.NEXT_PUBLIC_STRIKR_WHATSAPP_NUMBER?.replace(/[^\d]/g, "") ||
@@ -47,11 +37,6 @@ function buildWhatsAppHref(clubName: string | null | undefined, t: (key: Message
   )}`;
 }
 
-function buildMailHref(clubName: string | null | undefined, t: (key: MessageKey, params?: Record<string, string | number | null | undefined>) => string) {
-  return `mailto:${STRIKR_CONTACT_EMAIL}?subject=${encodeURIComponent(
-    t("pro.mailSubject")
-  )}&body=${encodeURIComponent(buildContactMessage(clubName, t))}`;
-}
 
 export default function ProFeatureLock({
   clubName,
@@ -87,7 +72,6 @@ export default function ProFeatureLock({
   }
 
   const whatsappHref = buildWhatsAppHref(clubName, t);
-  const mailHref = buildMailHref(clubName, t);
 
   return (
     <div
@@ -122,20 +106,20 @@ export default function ProFeatureLock({
       ) : null}
 
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        <Link
+          href="/pro"
+          className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+        >
+          PRO ansehen
+        </Link>
+
         <a
           href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
-        >
-          {t("pro.whatsappCta")}
-        </a>
-
-        <a
-          href={mailHref}
           className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
         >
-          {t("pro.emailCta")}
+          {t("pro.whatsappCta")}
         </a>
       </div>
 

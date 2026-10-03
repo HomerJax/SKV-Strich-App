@@ -6,6 +6,7 @@ import { canManageClub } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_RSVP_DEADLINE_MINUTES } from "@/lib/session-rsvp-deadline";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 type Scope = "single" | "future" | "series";
 
@@ -54,6 +55,11 @@ export async function updateSessionRsvpSettingsAction(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
+  if (!billingAccess.isPro && overrideRaw !== "") {
+    throw new Error("Eine individuelle Zu-/Absage-Deadline ist eine PRO-Funktion. Im Free-Plan gilt 30 Minuten vor Beginn.");
+  }
+
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
     .select("id,date,series_id")

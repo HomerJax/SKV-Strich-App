@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const { data: settings, error: settingsError } = await supabase
       .from("club_settings")
       .select(
-        "beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents",
+        "beerkasse_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents",
       )
       .eq("club_id", clubId)
       .maybeSingle();
@@ -41,14 +41,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: t("beerApi.loadFailed") }, { status: 500 });
     }
 
-    const premiumEnabled = settings?.beerkasse_premium_enabled === true;
     const featureEnabled = settings?.beerkasse_enabled === true;
     const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
     const paypalMeUrl = settings?.beerkasse_paypal_me_url?.trim() ?? "";
     const sumupUrl = settings?.beerkasse_sumup_url?.trim() ?? "";
     const unitPriceCents = Number(settings?.beerkasse_price_cents ?? 0);
 
-    if (!premiumEnabled || !featureEnabled) {
+    if (!featureEnabled) {
       return NextResponse.json({ error: "Bierkasse ist nicht aktiv." }, { status: 403 });
     }
 

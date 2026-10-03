@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 type MembershipRow = {
   club_id: string;
@@ -220,6 +221,22 @@ export async function POST(request: Request) {
       return redirectToAdminPlayers(origin, {
         error: "Diese E-Mail ist bereits einem anderen Spieler zugeordnet.",
       });
+    }
+  }
+
+  if (balanceGroup) {
+    const billingAccess = await getClubBillingAccess(supabase, clubId);
+    if (!billingAccess.isPro) {
+      const { data: groupRows } = await supabase
+        .from("players")
+        .select("balance_group")
+        .eq("club_id", clubId)
+        .neq("id", playerId)
+        .not("balance_group", "is", null);
+      const existingGroups = new Set((groupRows ?? []).map((row) => String(row.balance_group ?? "").trim()).filter(Boolean));
+      if (existingGroups.size > 0 && !existingGroups.has(balanceGroup)) {
+        return redirectToAdminPlayers(origin, { error: "Im Free-Plan ist 1 Balanced Group enthalten. Mit PRO kannst du mehrere Gruppen nutzen." });
+      }
     }
   }
 

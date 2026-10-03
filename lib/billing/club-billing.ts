@@ -22,6 +22,11 @@ export type ClubBilling = {
   trial_ends_at: string | null;
   pro_ends_at: string | null;
   billing_note: string | null;
+  billing_provider: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  cancel_at_period_end: boolean;
   updated_at: string | null;
 };
 
@@ -43,6 +48,11 @@ export const FREE_BILLING_FALLBACK: ClubBilling = {
   trial_ends_at: null,
   pro_ends_at: null,
   billing_note: "Fallback: kein Billing-Eintrag vorhanden.",
+  billing_provider: null,
+  stripe_customer_id: null,
+  stripe_subscription_id: null,
+  stripe_price_id: null,
+  cancel_at_period_end: false,
   updated_at: null,
 };
 
@@ -76,6 +86,11 @@ export function normalizeBilling(
     pro_ends_at: billing?.pro_ends_at ?? null,
     billing_note:
       billing?.billing_note ?? "Fallback: kein Billing-Eintrag vorhanden.",
+    billing_provider: billing?.billing_provider ?? null,
+    stripe_customer_id: billing?.stripe_customer_id ?? null,
+    stripe_subscription_id: billing?.stripe_subscription_id ?? null,
+    stripe_price_id: billing?.stripe_price_id ?? null,
+    cancel_at_period_end: billing?.cancel_at_period_end ?? false,
     updated_at: billing?.updated_at ?? null,
   };
 }
@@ -145,7 +160,7 @@ export async function getClubBillingAccess(
   const { data } = await supabase
     .from("club_billing")
     .select(
-      "club_id, plan_key, status, trial_ends_at, pro_ends_at, billing_note, updated_at"
+      "club_id, plan_key, status, trial_ends_at, pro_ends_at, billing_note, billing_provider, stripe_customer_id, stripe_subscription_id, stripe_price_id, cancel_at_period_end, updated_at"
     )
     .eq("club_id", clubId)
     .maybeSingle<ClubBilling>();

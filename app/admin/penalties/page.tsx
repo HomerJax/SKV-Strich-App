@@ -17,8 +17,10 @@ import {
   setCashboxManagerAction,
   setContributionStatusAction,
 } from "./cashbox-actions";
-import { saveBeerkasseAction, setBeerkassePremiumAction } from "./beerkasse-actions";
+import { saveBeerkasseAction } from "./beerkasse-actions";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { FREE_TRANSACTION_HISTORY_LIMIT } from "@/lib/billing/product-limits";
 
 type Props = {
   searchParams?: Promise<{
@@ -184,8 +186,9 @@ export default async function Page({ searchParams }: Props) {
     : "overview";
 
   const access = await requireCashboxAccess({ manage: true });
-  const { clubId, isClubAdmin, isPowerUser } = access;
+  const { clubId, isClubAdmin } = access;
   const supabase = createAdminClient();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
 
   const [
     { data: playersData },
@@ -213,7 +216,7 @@ export default async function Page({ searchParams }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("club_settings")
-      .select("cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_home_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
+      .select("cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_home_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -314,6 +317,10 @@ export default async function Page({ searchParams }: Props) {
       transaction.category === transactionCategoryFilter;
     return kindMatches && categoryMatches;
   });
+  const visibleFilteredTransactions = billingAccess.isPro
+    ? filteredTransactions
+    : transactions.slice(0, FREE_TRANSACTION_HISTORY_LIMIT);
+
   const monthIncome = thisMonth.reduce(
     (sum, transaction) =>
       transaction.amount_cents > 0 ? sum + transaction.amount_cents : sum,
@@ -501,7 +508,7 @@ export default async function Page({ searchParams }: Props) {
                 <div className="text-sm font-black text-slate-900">{formatCents(balanceCents)}</div>
               </div>
 
-              <form method="get" className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+              {billingAccess.isPro ? <form method="get" className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                 <input type="hidden" name="tab" value="transactions" />
                 <select
                   name="kind"
@@ -526,10 +533,10 @@ export default async function Page({ searchParams }: Props) {
                 <button className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 text-xs font-black text-slate-700">
                   {t("cashAdmin.filter")}
                 </button>
-              </form>
+              </form> : <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">🔒 Transaktionsfilter · PRO</div>}
 
               <div className="mt-4 space-y-2">
-                {filteredTransactions.map((transaction) => {
+                {visibleFilteredTransactions.map((transaction) => {
                   const reversed = reversedTransactionIds.has(transaction.id);
                   return (
                     <div key={transaction.id} className="rounded-2xl border border-slate-200 p-3">
@@ -570,7 +577,10 @@ export default async function Page({ searchParams }: Props) {
                     </div>
                   );
                 })}
-                {filteredTransactions.length === 0 ? (
+                {!billingAccess.isPro && transactions.length > FREE_TRANSACTION_HISTORY_LIMIT ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-500">🔒 Vollständige Transaktionshistorie & Filter · PRO</div>
+                ) : null}
+                {visibleFilteredTransactions.length === 0 ? (
                   <p className="text-sm text-slate-500">
                     {t("cashAdmin.noTransactionsFilter")}
                   </p>
@@ -719,14 +729,16 @@ export default async function Page({ searchParams }: Props) {
                     <option key={player.id} value={player.id}>{playerName(player, t("cashAdmin.playerFallback", { id: player.id }))}</option>
                   ))}
                 </select>
-                <select name="preset" defaultValue="" className="w-full rounded-xl border px-3 py-2.5 text-sm">
-                  <option value="">{t("cashbox.customReason")}</option>
-                  {rules.filter((rule) => rule.enabled).map((rule) => (
-                    <option key={rule.rule_key} value={rule.rule_key}>
-                      {rule.label} · {rule.value}
-                    </option>
-                  ))}
-                </select>
+{billingAccess.isPro ? (
+                  <select name="preset" defaultValue="" className="w-full rounded-xl border px-3 py-2.5 text-sm">
+                    <option value="">{t("cashbox.customReason")}</option>
+                    {rules.filter((rule) => rule.enabled).map((rule) => (
+                      <option key={rule.rule_key} value={rule.rule_key}>{rule.label} · {rule.value}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-500">🔒 FBZG-Regeln & Vorlagen · PRO</div>
+                )}
                 <div className="grid gap-2 sm:grid-cols-3">
                   <input name="reason" placeholder={t("cashAdmin.customReason")} className="rounded-xl border px-3 py-2.5 text-sm" />
                   <select name="type" className="rounded-xl border px-3 py-2.5 text-sm">
@@ -817,7 +829,7 @@ export default async function Page({ searchParams }: Props) {
         ) : null}
 
         {visibleTab === "rules" ? (
-          <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          billingAccess.isPro ? <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-black">{t("cashAdmin.rulesTitle")}</h2>
             <p className="mt-1 text-xs text-slate-500">
               {t("cashAdmin.rulesHint")}
@@ -871,7 +883,7 @@ export default async function Page({ searchParams }: Props) {
                 </form>
               ))}
             </div>
-          </section>
+          </section> : <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-black">🔒 FBZG-Regeln · PRO</h2><p className="mt-1 text-sm text-slate-600">Vorlagen, Fälligkeiten und Eskalationen werden mit PRO freigeschaltet.</p></section>
         ) : null}
 
         {visibleTab === "settings" ? (
@@ -922,15 +934,15 @@ export default async function Page({ searchParams }: Props) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
-                      {t("cashAdmin.clubExtra")}
+                      Bierkasse
                     </div>
-                    <h2 className="mt-1 text-lg font-black">{t("cashAdmin.beerPlus")}</h2>
+                    <h2 className="mt-1 text-lg font-black">Zahlung & Einstellungen</h2>
                     <p className="mt-1 text-xs font-medium text-slate-600">
-                      {t("cashAdmin.beerPlusHint")}
+                      Bier eintragen und bezahlen bleibt Free. PRO erweitert Statistik, Ranglisten und Badges.
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black text-white">
-                    {t("cashAdmin.perMonth")}
+                  <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1.5 text-[10px] font-black text-emerald-800">
+                    CORE FREE
                   </span>
                 </div>
 
@@ -939,22 +951,20 @@ export default async function Page({ searchParams }: Props) {
                 ) : null}
                 {q?.beerkasse_error ? (
                   <p className="mt-3 text-xs font-bold text-red-700">
-                    {q.beerkasse_error === "premium"
-                      ? t("cashAdmin.beerPremiumMissing")
-                      : q.beerkasse_error === "price"
-                        ? t("cashAdmin.beerInvalidPrice")
-                        : q.beerkasse_error === "url"
-                          ? t("cashAdmin.beerInvalidUrl")
-                          : t("cashAdmin.beerSaveFailed")}
+                    {q.beerkasse_error === "price"
+                      ? t("cashAdmin.beerInvalidPrice")
+                      : q.beerkasse_error === "url"
+                        ? t("cashAdmin.beerInvalidUrl")
+                        : t("cashAdmin.beerSaveFailed")}
                   </p>
                 ) : null}
 
-                {settings?.beerkasse_premium_enabled === true ? (
+                {settings ? (
                   <>
                     <div className="mt-4 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
                       <div>
-                        <div className="text-sm font-black text-emerald-900">{t("cashAdmin.premiumEnabled")}</div>
-                        <div className="text-[11px] font-medium text-emerald-700">{t("cashAdmin.premiumEnabledHint")}</div>
+                        <div className="text-sm font-black text-emerald-900">Bierkasse verfügbar</div>
+                        <div className="text-[11px] font-medium text-emerald-700">Bier buchen und bezahlen ist im Free-Plan enthalten.</div>
                       </div>
                       <span className="text-lg">✓</span>
                     </div>
@@ -991,14 +1001,20 @@ export default async function Page({ searchParams }: Props) {
                           <span>{t("cashAdmin.beerActive")}</span>
                           <input type="checkbox" name="enabled" defaultChecked={settings?.beerkasse_enabled === true} className="h-5 w-5" />
                         </label>
-                        <label className="flex items-center justify-between gap-3 text-sm font-bold">
-                          <span>{t("cashAdmin.showBeerStats")}</span>
-                          <input type="checkbox" name="stats_enabled" defaultChecked={settings?.beerkasse_stats_enabled !== false} className="h-5 w-5" />
-                        </label>
-                        <label className="flex items-center justify-between gap-3 text-sm font-bold">
-                          <span>{t("cashAdmin.showBeerBadges")}</span>
-                          <input type="checkbox" name="badges_enabled" defaultChecked={settings?.beerkasse_badges_enabled !== false} className="h-5 w-5" />
-                        </label>
+                        {billingAccess.isPro ? (
+                          <>
+                            <label className="flex items-center justify-between gap-3 text-sm font-bold">
+                              <span>{t("cashAdmin.showBeerStats")}</span>
+                              <input type="checkbox" name="stats_enabled" defaultChecked={settings?.beerkasse_stats_enabled !== false} className="h-5 w-5" />
+                            </label>
+                            <label className="flex items-center justify-between gap-3 text-sm font-bold">
+                              <span>{t("cashAdmin.showBeerBadges")}</span>
+                              <input type="checkbox" name="badges_enabled" defaultChecked={settings?.beerkasse_badges_enabled !== false} className="h-5 w-5" />
+                            </label>
+                          </>
+                        ) : (
+                          <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">🔒 Bierstatistik, Rangliste & Badges · PRO</div>
+                        )}
                         <label className="flex items-center justify-between gap-3 text-sm font-bold">
                           <span>{t("cashAdmin.showBeerHome")}</span>
                           <input type="checkbox" name="home_enabled" defaultChecked={settings?.beerkasse_home_enabled === true} className="h-5 w-5" />
@@ -1010,14 +1026,6 @@ export default async function Page({ searchParams }: Props) {
                       </button>
                     </form>
 
-                    {isPowerUser ? (
-                      <form action={setBeerkassePremiumAction} className="mt-3">
-                        <input type="hidden" name="enabled" value="0" />
-                        <button className="text-[10px] font-bold text-slate-400 underline">
-                          {t("cashAdmin.powerRemovePremium")}
-                        </button>
-                      </form>
-                    ) : null}
                   </>
                 ) : (
                   <div className="mt-4 rounded-2xl border border-amber-200 bg-white p-4">
@@ -1025,18 +1033,9 @@ export default async function Page({ searchParams }: Props) {
                     <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
                       {t("cashAdmin.beerNotEnabledHint")}
                     </p>
-                    {isPowerUser ? (
-                      <form action={setBeerkassePremiumAction} className="mt-3">
-                        <input type="hidden" name="enabled" value="1" />
-                        <button className="w-full rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-black text-slate-950">
-                          {t("cashAdmin.powerEnablePremium")}
-                        </button>
-                      </form>
-                    ) : (
-                      <div className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
-                        {t("cashAdmin.premiumAddon")}
-                      </div>
-                    )}
+                    <Link href="/mannschaftskasse/setup?edit=1" className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-black text-slate-950">
+                      Bierkasse einrichten
+                    </Link>
                   </div>
                 )}
               </section>

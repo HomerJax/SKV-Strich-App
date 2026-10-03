@@ -47,6 +47,8 @@ export function getAppUrl() {
 export function isFreeLaunchEnabled() {
   const value = process.env.NEXT_PUBLIC_FREE_LAUNCH?.trim().toLowerCase();
 
+  // Fail-safe before monetization launch: Free Launch stays active unless
+  // we explicitly switch it off after Stripe prices/webhooks are live.
   if (value === "false" || value === "0" || value === "off" || value === "no") {
     return false;
   }

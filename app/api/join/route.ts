@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { getServerI18n } from "@/lib/i18n/server";
+import { canAddFixedPlayer, FREE_FIXED_PLAYER_LIMIT } from "@/lib/billing/product-limits";
 
 type PlayerProfileRow = {
   id: number;
@@ -140,6 +141,20 @@ export async function POST(request: Request) {
 
   const membershipRole = invite.role === "admin" ? "admin" : "member";
 
+  const existingPlayerInTargetClub = existingProfiles.find(
+    (profile) => profile.club_id === invite.club_id
+  );
+
+  if (!existingPlayerInTargetClub) {
+    const playerAllowed = await canAddFixedPlayer(adminSupabase, invite.club_id);
+    if (!playerAllowed) {
+      return buildRedirect(requestUrl, "/join", {
+        token,
+        error: `Im Free-Plan sind bis zu ${FREE_FIXED_PLAYER_LIMIT} feste Spieler enthalten. Der Admin kann für weitere Spieler PRO aktivieren.`,
+      });
+    }
+  }
+
   const { error: membershipError } = await adminSupabase
     .from("club_memberships")
     .upsert(
@@ -161,10 +176,6 @@ export async function POST(request: Request) {
       error: t("joinAction.membershipFailed"),
     });
   }
-
-  const existingPlayerInTargetClub = existingProfiles.find(
-    (profile) => profile.club_id === invite.club_id
-  );
 
   if (!existingPlayerInTargetClub) {
     const sourceProfile = existingProfiles[0];

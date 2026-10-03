@@ -51,7 +51,6 @@ type SeasonSessionRow = {
 type HomeClubSettingsRow = {
   rsvp_deadline_minutes_before: number | null;
   require_rsvp_reason_on_absence: boolean | null;
-  beerkasse_premium_enabled: boolean | null;
   beerkasse_enabled: boolean | null;
   beerkasse_home_enabled: boolean | null;
   beerkasse_paypal_url: string | null;
@@ -444,7 +443,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     supabase
       .from("club_settings")
       .select(
-        "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_premium_enabled, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_paypal_me_url, beerkasse_sumup_url, beerkasse_cash_enabled, beerkasse_price_cents, home_team_feed_enabled"
+        "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_paypal_me_url, beerkasse_sumup_url, beerkasse_cash_enabled, beerkasse_price_cents, home_team_feed_enabled"
       )
       .eq("club_id", clubId)
       .maybeSingle<HomeClubSettingsRow>(),
@@ -488,7 +487,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     homeSettings?.require_rsvp_reason_on_absence === true;
   const teamFeedEnabled = homeSettings?.home_team_feed_enabled === true;
   const bierkasseHomeEnabled =
-    homeSettings?.beerkasse_premium_enabled === true &&
     homeSettings?.beerkasse_enabled === true &&
     homeSettings?.beerkasse_home_enabled === true;
   const bierkassePaypalUrl = homeSettings?.beerkasse_paypal_url?.trim() ?? "";

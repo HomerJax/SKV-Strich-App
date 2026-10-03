@@ -53,7 +53,7 @@ export default async function Page({ searchParams }: Props) {
       admin
         .from("club_settings")
         .select(
-          "cashbox_setup_completed,cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_home_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents",
+          "cashbox_setup_completed,cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_enabled,beerkasse_home_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents",
         )
         .eq("club_id", ctx.clubId)
         .maybeSingle(),
@@ -85,7 +85,7 @@ export default async function Page({ searchParams }: Props) {
 
   return (
     <CashboxSetupWizard
-      premiumBeer={settings?.beerkasse_premium_enabled === true}
+      premiumBeer={true}
       initialPenaltiesEnabled={settings?.cashbox_penalties_enabled === true}
       initialContributionsEnabled={settings?.cashbox_contributions_enabled === true}
       initialBeerEnabled={settings?.beerkasse_enabled === true}

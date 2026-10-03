@@ -8,6 +8,8 @@ import { canManageClub } from "@/lib/auth/access";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { parseEuroToCents } from "@/lib/cashbox/money";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { FREE_CONTRIBUTION_TYPE_LIMIT } from "@/lib/billing/product-limits";
 
 function cashUrl(tab: string, params: Record<string, string> = {}) {
   const search = new URLSearchParams({ tab, ...params });
@@ -155,6 +157,21 @@ export async function addContributionAction(formData: FormData) {
 
   if (!title || !amountCents || amountCents <= 0) {
     redirect(cashUrl("contributions", { error: t("cashAction.contributionRequired") }));
+  }
+
+  const billingAccess = await getClubBillingAccess(admin, clubId);
+  if (!billingAccess.isPro) {
+    const { count, error: contributionCountError } = await admin
+      .from("cash_contributions")
+      .select("id", { count: "exact", head: true })
+      .eq("club_id", clubId)
+      .is("archived_at", null);
+    if (contributionCountError) {
+      redirect(cashUrl("contributions", { error: contributionCountError.message }));
+    }
+    if ((count ?? 0) >= FREE_CONTRIBUTION_TYPE_LIMIT) {
+      redirect(cashUrl("contributions", { error: "Im Free-Plan ist 1 Beitragsart enthalten. Mit PRO kannst du weitere Beitragsarten anlegen." }));
+    }
   }
 
   let playerIds = formData

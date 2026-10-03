@@ -7,6 +7,8 @@ import { canManageClub } from "@/lib/auth/access";
 import PlayerSettingsCard from "@/components/admin/PlayerSettingsCard";
 import RosterBulkEditor from "@/components/admin/RosterBulkEditor";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { FREE_FIXED_PLAYER_LIMIT, FREE_BALANCE_GROUP_LIMIT } from "@/lib/billing/product-limits";
 
 type PlayerRow = {
   id: number;
@@ -65,6 +67,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
     { data: settingsData, error: settingsError },
     { data: categoriesData, error: categoriesError },
     { data: playersData, error: playersError },
+    billingAccess,
   ] = await Promise.all([
     supabase
       .from("club_settings")
@@ -89,6 +92,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
       .order("last_name", { ascending: true, nullsFirst: false })
       .order("first_name", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true }),
+    getClubBillingAccess(supabase, clubId),
   ]);
 
   if (settingsError || categoriesError || playersError) {
@@ -103,6 +107,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
   const settings = (settingsData as ClubSettingsRow | null) ?? null;
   const categories = (categoriesData ?? []) as ClubCategoryRow[];
   const players = (playersData ?? []) as PlayerRow[];
+  const fixedPlayerCount = players.filter((player) => player.is_guest !== true && (player.roster_role ?? "player") !== "staff").length;
   const generatorPlayers = players.filter(
     (player) =>
       player.is_active !== false && (player.roster_role ?? "player") !== "staff"
@@ -160,6 +165,19 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
         <p className="mt-2 text-sm leading-6 text-neutral-600">
           {t("adminPlayers.description")}
         </p>
+      </div>
+
+      <div className="mb-4 grid gap-2 sm:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+          {billingAccess.isPro
+            ? `${fixedPlayerCount} feste Spieler · PRO`
+            : `${fixedPlayerCount}/${FREE_FIXED_PLAYER_LIMIT} feste Spieler · weitere 🔒 PRO`}
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+          {billingAccess.isPro
+            ? "Mehrere Balanced Groups · PRO"
+            : `${FREE_BALANCE_GROUP_LIMIT} Balanced Group Free · weitere 🔒 PRO`}
+        </div>
       </div>
 
       <PlayerSettingsCard

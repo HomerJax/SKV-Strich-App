@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
 
 type MembershipRow = {
   club_id: string;
@@ -233,6 +235,8 @@ export async function POST(request: Request) {
     return redirectWithParams(request, redirectTo, { error: "nothing_to_save" });
   }
 
+  const billingAccess = await getClubBillingAccess(supabase, activeClubId);
+
   const { data: existingSettings, error: existingSettingsError } = await supabase
     .from("club_settings")
     .select(
@@ -256,7 +260,7 @@ export async function POST(request: Request) {
     season_end_month: 12,
     season_year_mode: "start_year",
     awards_started_at: null,
-    rsvp_deadline_minutes_before: 60,
+    rsvp_deadline_minutes_before: FREE_RSVP_DEADLINE_MINUTES,
     require_rsvp_reason_on_absence: false,
     home_team_feed_enabled: false,
   };
@@ -340,9 +344,13 @@ export async function POST(request: Request) {
     submitsAwardSettings ? parsedAwardsStartedAt : currentSettings.awards_started_at;
 
   const rawRsvpDeadline = parseInteger(formData.get("rsvp_deadline_minutes_before"));
-  const rsvpDeadlineMinutesBefore = submitsRsvpSettings
+  const requestedRsvpDeadlineMinutesBefore = submitsRsvpSettings
     ? rawRsvpDeadline
-    : (currentSettings.rsvp_deadline_minutes_before ?? 60);
+    : (currentSettings.rsvp_deadline_minutes_before ?? FREE_RSVP_DEADLINE_MINUTES);
+
+  const rsvpDeadlineMinutesBefore = billingAccess.isPro
+    ? requestedRsvpDeadlineMinutesBefore
+    : FREE_RSVP_DEADLINE_MINUTES;
 
   if (
     !Number.isInteger(rsvpDeadlineMinutesBefore) ||
@@ -352,9 +360,13 @@ export async function POST(request: Request) {
     return redirectWithParams(request, redirectTo, { error: "invalid_rsvp_deadline" });
   }
 
-  const requireRsvpReasonOnAbsence = submitsRsvpSettings
+  const requestedRequireRsvpReasonOnAbsence = submitsRsvpSettings
     ? parseBoolean(formData.get("require_rsvp_reason_on_absence"))
     : (currentSettings.require_rsvp_reason_on_absence ?? false);
+
+  const requireRsvpReasonOnAbsence = billingAccess.isPro
+    ? requestedRequireRsvpReasonOnAbsence
+    : false;
 
   const homeTeamFeedEnabled = submitsHomeSettings
     ? parseBoolean(formData.get("home_team_feed_enabled"))

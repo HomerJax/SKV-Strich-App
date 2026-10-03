@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { parseEuroToCents } from "@/lib/cashbox/money";
 import { getServerI18n } from "@/lib/i18n/server";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 async function ctx() {
   const access = await requireCashboxAccess({ manage: true });
@@ -102,7 +103,8 @@ export async function addPenaltyAction(formData: FormData) {
     redirect(url({ error: t("cashAction.playerNotFound") }));
   }
 
-  const presetKey = String(formData.get("preset") ?? "").trim();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
+  const presetKey = billingAccess.isPro ? String(formData.get("preset") ?? "").trim() : "";
   const { data: preset } = presetKey
     ? await supabase
         .from("penalty_rules")
@@ -125,13 +127,14 @@ export async function addPenaltyAction(formData: FormData) {
     redirect(url({ error: t("cashAction.reasonValueRequired") }));
   }
 
-  const dueRaw = String(formData.get("due_date") ?? "").trim();
+  const dueRaw = billingAccess.isPro ? String(formData.get("due_date") ?? "").trim() : "";
   const notes = String(formData.get("notes") ?? "").trim() || null;
-  const escalationDays =
-    preset?.escalation_after_days ?? (type === "beer" ? 28 : null);
-  const escalationValue =
-    preset?.escalation_value ??
-    (type === "beer" ? "+ 1 Sechserträger" : null);
+  const escalationDays = billingAccess.isPro
+    ? preset?.escalation_after_days ?? (type === "beer" ? 28 : null)
+    : null;
+  const escalationValue = billingAccess.isPro
+    ? preset?.escalation_value ?? (type === "beer" ? "+ 1 Sechserträger" : null)
+    : null;
 
   const { error } = await supabase.from("penalties").insert({
     club_id: clubId,
@@ -154,6 +157,10 @@ export async function addPenaltyAction(formData: FormData) {
 export async function savePenaltyRuleAction(formData: FormData) {
   const { t } = await getServerI18n();
   const { supabase, clubId } = await ctx();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
+  if (!billingAccess.isPro) {
+    redirect(url({ error: "FBZG-Regeln, Vorlagen und Eskalationen sind eine PRO-Funktion." }, "rules"));
+  }
   const ruleKey = String(formData.get("rule_key") ?? "").trim();
   const label = String(formData.get("label") ?? "").trim();
   const reason = String(formData.get("reason") ?? "").trim();

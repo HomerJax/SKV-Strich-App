@@ -24,24 +24,7 @@ export async function saveCashboxSetupAction(formData: FormData) {
   const contributionsEnabled = formData.get("contributions_enabled") === "on";
   const beerRequested = formData.get("beer_enabled") === "on";
 
-  const { data: currentSettings, error: settingsError } = await admin
-    .from("club_settings")
-    .select(
-      "beerkasse_premium_enabled,beerkasse_price_cents,beerkasse_paypal_url",
-    )
-    .eq("club_id", ctx.clubId)
-    .maybeSingle<{
-      beerkasse_premium_enabled: boolean;
-      beerkasse_price_cents: number;
-      beerkasse_paypal_url: string | null;
-    }>();
-
-  if (settingsError) {
-    redirect(setupUrl({ error: "load" }));
-  }
-
-  const beerEnabled =
-    beerRequested && currentSettings?.beerkasse_premium_enabled === true;
+  const beerEnabled = beerRequested;
 
   if (!penaltiesEnabled && !contributionsEnabled && !beerEnabled) {
     redirect(setupUrl({ error: "module" }));

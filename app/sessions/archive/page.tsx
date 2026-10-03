@@ -5,6 +5,8 @@ import PageHero from "@/components/PageHero";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/messages";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import ProFeatureLock from "@/components/billing/ProFeatureLock";
 
 type Season = {
   id: number;
@@ -59,6 +61,7 @@ export default async function SessionsArchivePage() {
   const { locale, t } = await getServerI18n();
   const { clubId } = await requireClub();
   const supabase = await createClient();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
 
   const [{ data: clubData }, { data: seasonsData, error: seasonsError }, { data: sessionRowsData, error: sessionRowsError }] =
     await Promise.all([
@@ -133,7 +136,14 @@ export default async function SessionsArchivePage() {
           }
         />
 
-        {archivedSeasons.length === 0 ? (
+        {!billingAccess.isPro ? (
+          <ProFeatureLock
+            clubName={club?.display_name?.trim() || "dein Team"}
+            title="Saisonarchiv mit PRO"
+            description="Im Free-Plan bleibt die aktuelle Saison vollständig nutzbar. Abgeschlossene Saisons und deren Trainingshistorie werden mit PRO freigeschaltet."
+            featureList={["Alte Saisons öffnen", "Vergangene Trainings ansehen", "Historische Entwicklung nachvollziehen"]}
+          />
+        ) : archivedSeasons.length === 0 ? (
           <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="max-w-xl">
               <div className="text-sm font-semibold text-slate-500">{t("archive.emptyLabel")}</div>

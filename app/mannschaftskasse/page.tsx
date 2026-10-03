@@ -8,6 +8,8 @@ import BeerCheckoutCard from "./BeerCheckoutCard";
 import { getServerI18n } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/config";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { FREE_TRANSACTION_HISTORY_LIMIT } from "@/lib/billing/product-limits";
 
 type Props = {
   searchParams?: Promise<{ saved?: string; error?: string; beer_error?: string; beer_saved?: string; setup_saved?: string }>;
@@ -106,6 +108,7 @@ export default async function Page({ searchParams }: Props) {
   const access = await requireCashboxAccess();
   const { clubId, player, canManageCashbox, canManageBeer, isClubAdmin } = access;
   const supabase = await createClient();
+  const billingAccess = await getClubBillingAccess(supabase, clubId);
 
   const [
     { data: playersData },
@@ -131,7 +134,7 @@ export default async function Page({ searchParams }: Props) {
       .order("created_at", { ascending: false }),
     supabase
       .from("club_settings")
-      .select("cashbox_setup_completed,cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_premium_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
+      .select("cashbox_setup_completed,cashbox_penalties_enabled,cashbox_contributions_enabled,beerkasse_enabled,beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled,beerkasse_price_cents,beerkasse_stats_enabled,beerkasse_badges_enabled")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -207,9 +210,7 @@ export default async function Page({ searchParams }: Props) {
     const cents = parseEuroToCents(entry.value);
     return sum + (cents && cents > 0 ? cents : 0);
   }, 0);
-  const beerFeatureEnabled =
-    settings?.beerkasse_premium_enabled === true &&
-    settings?.beerkasse_enabled === true;
+  const beerFeatureEnabled = settings?.beerkasse_enabled === true;
   const paypalUrl = settings?.beerkasse_paypal_url?.trim() ?? "";
   const paypalEnabled = beerFeatureEnabled && Boolean(paypalUrl);
   const paypalPool = /paypal\.com\/pools?\//i.test(paypalUrl);
@@ -225,7 +226,7 @@ export default async function Page({ searchParams }: Props) {
     .filter((transaction) => transaction.account === "cash")
     .reduce((sum, transaction) => sum + transaction.amount_cents, 0);
   const beerStatsEnabled =
-    beerFeatureEnabled && settings?.beerkasse_stats_enabled === true;
+    billingAccess.isPro && beerFeatureEnabled && settings?.beerkasse_stats_enabled === true;
   const beerBadgesEnabled =
     beerStatsEnabled && settings?.beerkasse_badges_enabled === true;
   const beerPriceCents = Math.max(1, Number(settings?.beerkasse_price_cents ?? 200));
@@ -261,6 +262,10 @@ export default async function Page({ searchParams }: Props) {
   const topDonors = [...donorTotals.entries()]
     .map(([playerId, cents]) => ({ playerId, cents, name: names.get(playerId) ?? t("cashbox.playerFallback", { id: playerId }) }))
     .sort((a, b) => b.cents - a.cents || a.name.localeCompare(b.name, locale === "de" ? "de" : "en"));
+
+  const visibleTransactions = billingAccess.isPro
+    ? transactions
+    : transactions.slice(0, FREE_TRANSACTION_HISTORY_LIMIT);
 
   const beerLeaderboard = [...beerTotals.entries()]
     .map(([playerId, total]) => ({
@@ -311,11 +316,11 @@ export default async function Page({ searchParams }: Props) {
               <div className="mt-1 text-[10px] font-bold text-white/50">Gesamtbestand</div>
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
-              <div className="text-lg font-black">{formatCents(paypalBalance, locale)}</div>
+              <div className="text-lg font-black">{billingAccess.isPro ? formatCents(paypalBalance, locale) : "🔒 PRO"}</div>
               <div className="mt-1 text-[10px] font-bold text-white/50">PayPal Pool</div>
             </div>
             <div className="rounded-2xl bg-white/8 p-3">
-              <div className="text-lg font-black">{formatCents(cashBalance, locale)}</div>
+              <div className="text-lg font-black">{billingAccess.isPro ? formatCents(cashBalance, locale) : "🔒 PRO"}</div>
               <div className="mt-1 text-[10px] font-bold text-white/50">Bar*</div>
             </div>
           </div>
@@ -620,14 +625,18 @@ export default async function Page({ searchParams }: Props) {
                 </option>
               ))}
             </select>
-            <select name="preset" className="w-full rounded-xl border px-3 py-2.5 text-sm">
-              <option value="">{t("cashbox.customReason")}</option>
-              {rules.map((rule) => (
-                <option key={rule.rule_key} value={rule.rule_key}>
-                  {rule.label} · {rule.value}
-                </option>
-              ))}
-            </select>
+{billingAccess.isPro ? (
+              <select name="preset" className="w-full rounded-xl border px-3 py-2.5 text-sm">
+                <option value="">{t("cashbox.customReason")}</option>
+                {rules.map((rule) => (
+                  <option key={rule.rule_key} value={rule.rule_key}>
+                    {rule.label} · {rule.value}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-500">🔒 Regeln & Vorlagen · PRO</div>
+            )}
             <div className="grid gap-2 sm:grid-cols-3">
               <input name="reason" placeholder={t("cashbox.ownReason")} className="rounded-xl border px-3 py-2.5 text-sm" />
               <select name="type" className="rounded-xl border px-3 py-2.5 text-sm">
@@ -647,7 +656,7 @@ export default async function Page({ searchParams }: Props) {
         <details className="rounded-[24px] border bg-white p-5">
           <summary className="cursor-pointer font-black">{t("cashbox.recentTransactions")}</summary>
           <div className="mt-3 space-y-2">
-            {transactions.slice(0, 10).map((transaction) => (
+            {visibleTransactions.map((transaction) => (
               <div key={transaction.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3">
                 <div>
                   <div className="text-sm font-bold">{transaction.title}</div>
@@ -661,6 +670,9 @@ export default async function Page({ searchParams }: Props) {
                 </div>
               </div>
             ))}
+            {!billingAccess.isPro && transactions.length > FREE_TRANSACTION_HISTORY_LIMIT ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">🔒 Vollständige Transaktionshistorie · PRO</div>
+            ) : null}
             {transactions.length === 0 ? (
               <p className="text-sm text-slate-500">{t("cashbox.noTransactions")}</p>
             ) : null}

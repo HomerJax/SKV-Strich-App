@@ -20,6 +20,7 @@ type CategorySettingsSectionProps = {
   saved?: boolean;
   error?: string;
   variant?: "default" | "onboarding";
+  isPro?: boolean;
 };
 
 export async function CategorySettingsSection({
@@ -29,6 +30,7 @@ export async function CategorySettingsSection({
   saved = false,
   error = "",
   variant = "default",
+  isPro = false,
 }: CategorySettingsSectionProps) {
   const { t } = await getServerI18n();
   const activeCategories = categories
@@ -58,6 +60,9 @@ export async function CategorySettingsSection({
         <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
           {t("categories.activeCount", { count: activeCount })}
         </span>
+        {!isPro ? (
+          <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">2 aktive Kategorien Free · weitere 🔒 PRO</span>
+        ) : null}
         {strongCategory ? (
           <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
             {t("categories.stronger", { name: strongCategory.label })}
@@ -128,8 +133,8 @@ export async function CategorySettingsSection({
 
               <div className="flex shrink-0 flex-col gap-2 sm:min-w-48">
                 <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <input type="checkbox" name="is_active" defaultChecked={category.is_active} />
-                  {t("categories.active")}
+                  <input type="checkbox" name="is_active" defaultChecked={category.is_active} disabled={!isPro && !category.is_active && activeCount >= 2} />
+                  {t("categories.active")}{!isPro && !category.is_active && activeCount >= 2 ? " · 🔒 PRO" : ""}
                 </label>
 
                 {category.is_active ? (
