@@ -12,6 +12,7 @@ import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
+import InsideStrikrChannelModal from "@/components/home/InsideStrikrChannelModal";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 import { getTeamFeedItems } from "@/lib/team-feed";
@@ -838,6 +839,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     <HomePullToRefresh>
       <main className="min-h-screen bg-slate-50 pb-24">
       <WhatsNewModal version="v0.2" />
+      <InsideStrikrChannelModal />
 
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <PageHero
