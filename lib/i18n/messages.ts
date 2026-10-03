@@ -44,8 +44,8 @@ export const DE_MESSAGES = {
   "home.viewSessions": "Sessions ansehen",
   "home.insideStrikrEyebrow": "Inside strikr",
   "home.insideStrikrTitle": "Der strikr Kabinentalk.",
-  "home.insideStrikrText": "Updates, Einblicke und alles, was hinter strikr passiert – direkt im WhatsApp-Kanal.",
-  "home.insideStrikrOpen": "Kabinentalk auf WhatsApp öffnen",
+  "home.insideStrikrText": "Updates, Einblicke & neue Features – direkt auf WhatsApp.",
+  "home.insideStrikrOpen": "Kabinentalk folgen",
   "home.insideStrikrDismiss": "Nicht mehr anzeigen",
   "home.insideStrikrClose": "Schließen",
 
@@ -3334,8 +3334,8 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "home.viewSessions": "View sessions",
   "home.insideStrikrEyebrow": "Inside strikr",
   "home.insideStrikrTitle": "The strikr Locker-room Talk.",
-  "home.insideStrikrText": "Updates, behind-the-scenes insights and everything happening around strikr – directly in our WhatsApp channel.",
-  "home.insideStrikrOpen": "Open the WhatsApp channel",
+  "home.insideStrikrText": "Updates, insights & new features – directly on WhatsApp.",
+  "home.insideStrikrOpen": "Follow the channel",
   "home.insideStrikrDismiss": "Don't show again",
   "home.insideStrikrClose": "Close",
 
