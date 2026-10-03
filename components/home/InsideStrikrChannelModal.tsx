@@ -68,8 +68,8 @@ export default function InsideStrikrChannelModal() {
         <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
           <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-[34px] bg-slate-950 shadow-[0_22px_70px_rgba(15,23,42,0.22)] ring-1 ring-black/5">
             <Image
-              src="/icon-dark.png"
-              alt="strikr"
+              src="/brand/inside-strikr-channel.png"
+              alt="Inside strikr – der strikr Kabinentalk"
               width={128}
               height={128}
               className="h-full w-full object-cover"
