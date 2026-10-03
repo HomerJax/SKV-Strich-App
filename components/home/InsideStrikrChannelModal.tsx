@@ -1,14 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import { ExternalLink, X } from "lucide-react";
 import { useSyncExternalStore } from "react";
-import StrikrBadgeMark from "@/components/brand/StrikrBadgeMark";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 const CHANNEL_URL = "https://whatsapp.com/channel/0029VbDksXIHVvTj4RgJs43v";
 const STORAGE_KEY = "strikr-inside-strikr-whatsapp-dismissed-2026-10";
 const UPDATE_STORAGE_KEY = "strikr-whats-new-big-update-2026-09";
 const CHANGE_EVENT = "strikr-inside-strikr-whatsapp-change";
+const WHATS_NEW_CHANGE_EVENT = "strikr-whats-new-change";
 
 function subscribe(callback: () => void) {
   if (typeof window === "undefined") return () => {};
@@ -16,10 +17,12 @@ function subscribe(callback: () => void) {
   const handler = () => callback();
   window.addEventListener("storage", handler);
   window.addEventListener(CHANGE_EVENT, handler);
+  window.addEventListener(WHATS_NEW_CHANGE_EVENT, handler);
 
   return () => {
     window.removeEventListener("storage", handler);
     window.removeEventListener(CHANGE_EVENT, handler);
+    window.removeEventListener(WHATS_NEW_CHANGE_EVENT, handler);
   };
 }
 
@@ -63,8 +66,15 @@ export default function InsideStrikrChannelModal() {
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
-          <div className="flex h-32 w-32 items-center justify-center rounded-[34px] bg-slate-950 shadow-[0_22px_70px_rgba(15,23,42,0.22)] ring-1 ring-black/5">
-            <StrikrBadgeMark className="h-[82px] w-[96px] text-white" />
+          <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-[34px] bg-slate-950 shadow-[0_22px_70px_rgba(15,23,42,0.22)] ring-1 ring-black/5">
+            <Image
+              src="/icon-dark.png"
+              alt="strikr"
+              width={128}
+              height={128}
+              className="h-full w-full object-cover"
+              priority
+            />
           </div>
 
           <div className="mt-7 text-[11px] font-black uppercase tracking-[0.24em] text-emerald-600">
