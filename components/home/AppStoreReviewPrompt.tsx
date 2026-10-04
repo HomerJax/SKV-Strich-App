@@ -6,16 +6,14 @@ import { ExternalLink, Star, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
-const APP_STORE_REVIEW_URL =
+const IOS_REVIEW_URL =
   "https://apps.apple.com/de/app/id6789918875?action=write-review";
+const ANDROID_REVIEW_URL =
+  "https://play.google.com/store/apps/details?id=team.strikr.app";
 
 const STATUS_KEY = "strikr-app-store-review-status-2026-10";
 const SNOOZE_UNTIL_KEY = "strikr-app-store-review-snooze-until-2026-10";
-const HOME_VISITS_KEY = "strikr-app-store-review-home-visits-2026-10";
-const WHATS_NEW_KEY = "strikr-whats-new-big-update-2026-09";
-const WHATSAPP_PROMO_KEY = "strikr-inside-strikr-whatsapp-dismissed-2026-10";
 
-const MIN_HOME_VISITS = 3;
 const SNOOZE_DAYS = 7;
 
 function setPermanentStatus(status: "reviewed" | "dismissed") {
@@ -27,28 +25,17 @@ export default function AppStoreReviewPrompt() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    const platform = Capacitor.getPlatform();
+    if (platform !== "ios" && platform !== "android") {
       return;
     }
 
     const status = window.localStorage.getItem(STATUS_KEY);
     if (status === "reviewed" || status === "dismissed") {
-      return;
-    }
-
-    const nextVisit =
-      Math.max(0, Number(window.localStorage.getItem(HOME_VISITS_KEY) ?? "0")) + 1;
-    window.localStorage.setItem(HOME_VISITS_KEY, String(nextVisit));
-
-    if (nextVisit < MIN_HOME_VISITS) {
-      return;
-    }
-
-    const whatsNewSeen = window.localStorage.getItem(WHATS_NEW_KEY) === "seen";
-    const whatsappPromoDismissed =
-      window.localStorage.getItem(WHATSAPP_PROMO_KEY) === "dismissed";
-
-    if (!whatsNewSeen || !whatsappPromoDismissed) {
       return;
     }
 
@@ -66,7 +53,9 @@ export default function AppStoreReviewPrompt() {
   function handleRateNow() {
     setPermanentStatus("reviewed");
     setOpen(false);
-    window.open(APP_STORE_REVIEW_URL, "_blank", "noopener,noreferrer");
+    const platform = Capacitor.getPlatform();
+    const reviewUrl = platform === "android" ? ANDROID_REVIEW_URL : IOS_REVIEW_URL;
+    window.open(reviewUrl, "_blank", "noopener,noreferrer");
   }
 
   function handleLater() {
