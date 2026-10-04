@@ -116,10 +116,8 @@ export default function AppStoreReviewPrompt() {
           {t("home.reviewPromptText")}
         </p>
 
-        <div className="mt-5 flex justify-center gap-1 text-amber-400" aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((value) => (
-            <Star key={value} className="h-6 w-6 fill-current" />
-          ))}
+        <div className="mt-5 flex justify-center text-amber-400" aria-hidden="true">
+          <Star className="h-7 w-7" />
         </div>
 
         <button
