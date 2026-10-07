@@ -19,17 +19,12 @@ export async function GET(
   const access = await requireSessionAccess(sessionId);
   if ("error" in access) return fail(access.error ?? t("sessionCommon.unknownError"), access.status);
 
-  const { adminSupabase, clubId, session, currentUserEmail } = access;
+  const { adminSupabase, clubId, session, currentPlayerId } = access;
   if (session.type !== "event") return ok({ isEvent: false, players: [], currentPlayerNominated: true });
-
-  const selfPlayerPromise = currentUserEmail
-    ? adminSupabase.from("players").select("id").eq("club_id", clubId).eq("email", currentUserEmail).maybeSingle()
-    : Promise.resolve({ data: null as { id: number } | null, error: null });
 
   const [
     { data: players, error: playersError },
     { data: exclusions, error: exclusionsError },
-    { data: selfPlayer, error: selfPlayerError },
   ] = await Promise.all([
     adminSupabase
       .from("players")
@@ -42,16 +37,15 @@ export async function GET(
       .from("session_event_exclusions")
       .select("player_id")
       .eq("club_id", clubId)
-      .eq("session_id", sessionId),
-    selfPlayerPromise,
+      .eq("session_id", sessionId)
   ]);
 
-  if (playersError || exclusionsError || selfPlayerError) {
-    return fail(t("eventRoster.loadFailed", { error: playersError?.message ?? exclusionsError?.message ?? selfPlayerError?.message ?? "" }), 500);
+  if (playersError || exclusionsError) {
+    return fail(t("eventRoster.loadFailed", { error: playersError?.message ?? exclusionsError?.message ?? "" }), 500);
   }
 
   const excluded = new Set((exclusions ?? []).map((row) => Number(row.player_id)));
-  const selfPlayerId = selfPlayer?.id ? Number(selfPlayer.id) : null;
+  const selfPlayerId = Number.isFinite(Number(currentPlayerId)) ? Number(currentPlayerId) : null;
 
   return ok({
     isEvent: true,
