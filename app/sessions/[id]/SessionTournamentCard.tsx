@@ -68,7 +68,7 @@ function formatClock(seconds: number) {
   const safe = Math.max(0, seconds);
   const minutes = Math.floor(safe / 60);
   const rest = safe % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+  return `{String(minutes).padStart(2, "0")}:{String(rest).padStart(2, "0")}`;
 }
 
 function ScoreEditor({
@@ -123,7 +123,7 @@ function ScoreEditor({
           disabled={disabled}
           onChange={(event) => setA(event.target.value.replace(/\D/g, "").slice(0, 2))}
           className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center text-lg font-black text-slate-950"
-          aria-label={`Tore ${teamName(match.team_a_id)}`}
+          aria-label={`Tore {teamName(match.team_a_id)}`}
         />
         <span className="font-black text-slate-400">:</span>
         <input
@@ -132,7 +132,7 @@ function ScoreEditor({
           disabled={disabled}
           onChange={(event) => setB(event.target.value.replace(/\D/g, "").slice(0, 2))}
           className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center text-lg font-black text-slate-950"
-          aria-label={`Tore ${teamName(match.team_b_id)}`}
+          aria-label={`Tore {teamName(match.team_b_id)}`}
         />
         <button
           type="button"
@@ -171,7 +171,7 @@ export default function SessionTournamentCard({
   const [timerRunning, setTimerRunning] = useState(false);
 
   async function load() {
-    const response = await fetch(`/api/sessions/${sessionId}/tournament`, {
+    const response = await fetch(`/api/sessions/{sessionId}/tournament`, {
       cache: "no-store",
       credentials: "same-origin",
     });
@@ -212,7 +212,7 @@ export default function SessionTournamentCard({
   );
 
   function teamName(teamId: number) {
-    return teamNameById.get(teamId) ?? `Team ${teamId}`;
+    return teamNameById.get(teamId) ?? `Team {teamId}`;
   }
 
   async function action(payload: Record<string, unknown>) {
@@ -220,7 +220,7 @@ export default function SessionTournamentCard({
     setError(null);
     setMessage(null);
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/tournament`, {
+      const response = await fetch(`/api/sessions/{sessionId}/tournament`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "same-origin",
@@ -282,7 +282,7 @@ export default function SessionTournamentCard({
               Optional für diese Trainingseinheit
             </div>
           </div>
-          <div className={`rounded-full px-3 py-1.5 text-xs font-black ${setupOpen ? "bg-cyan-100 text-cyan-800" : "bg-slate-100 text-slate-600"}`}>
+          <div className={`rounded-full px-3 py-1.5 text-xs font-black {setupOpen ? "bg-cyan-100 text-cyan-800" : "bg-slate-100 text-slate-600"}`}>
             {setupOpen ? "An" : "Aus"}
           </div>
         </button>
@@ -291,7 +291,7 @@ export default function SessionTournamentCard({
           <div className="mt-4 border-t border-slate-100 pt-4">
             <div className="rounded-2xl bg-slate-50 p-4">
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Teilnehmer</div>
-              <div className="mt-1 text-xl font-black text-slate-950">${presentCount} Zusagen / anwesend</div>
+              <div className="mt-1 text-xl font-black text-slate-950">{presentCount} Zusagen / anwesend</div>
               <div className="mt-1 text-xs font-semibold text-slate-500">strikr nutzt eure Zusagen und die bestätigte Anwesenheit für die Planung.</div>
             </div>
 
@@ -305,20 +305,20 @@ export default function SessionTournamentCard({
 
             <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">strikr empfiehlt</div>
-              <div className="mt-1 text-lg font-black text-slate-950">${teamCount} Teams · je ${minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spieler</div>
-              <div className="mt-1 text-xs font-semibold text-slate-600">${plannedGames} Spiele · ${matchMinutes} Min. pro Spiel · ${suggestedRounds}× gegeneinander</div>
+              <div className="mt-1 text-lg font-black text-slate-950">{teamCount} Teams · je {minTeamSize === maxTeamSize ? minTeamSize : `{minTeamSize}–{maxTeamSize}`} Spieler</div>
+              <div className="mt-1 text-xs font-semibold text-slate-600">{plannedGames} Spiele · {matchMinutes} Min. pro Spiel · {suggestedRounds}× gegeneinander</div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">${warmupMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. Warm-up</div></div>
-                <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">${changeMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. Pause</div></div>
-                <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">${Math.max(0, totalMinutes - plannedMinutes)}</div><div className="text-[10px] font-bold text-slate-400">Min. Puffer</div></div>
+                <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{warmupMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. Warm-up</div></div>
+                <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{changeMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. Pause</div></div>
+                <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{Math.max(0, totalMinutes - plannedMinutes)}</div><div className="text-[10px] font-bold text-slate-400">Min. Puffer</div></div>
               </div>
             </div>
 
             <button type="button" onClick={() => setSettingsOpen((current) => !current)} className="mt-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs font-black text-slate-700">
-              <span>${settingsOpen ? "Einstellungen schließen" : "Empfehlung anpassen"}</span><span>${settingsOpen ? "−" : "+"}</span>
+              <span>{settingsOpen ? "Einstellungen schließen" : "Empfehlung anpassen"}</span><span>{settingsOpen ? "−" : "+"}</span>
             </button>
 
-            ${settingsOpen ? (
+            {settingsOpen ? (
               <div className="mt-3 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3">
                 <label className="text-xs font-bold text-slate-600">Spieler pro Team<select value={playersPerTeam} onChange={(e) => setPlayersPerTeam(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950">{[3,4,5,6,7,8].map((count) => <option key={count} value={count}>{count}</option>)}</select></label>
                 <label className="text-xs font-bold text-slate-600">Spielzeit<input type="number" min={1} max={60} value={matchMinutes} onChange={(e) => setMatchMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" /></label>
@@ -329,7 +329,7 @@ export default function SessionTournamentCard({
 
             <div className="mt-4 rounded-2xl bg-slate-50 p-4">
               <div className="text-xs font-black text-slate-950">So sieht dein Turnier aus</div>
-              <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-600">${presentCount} Spieler werden automatisch in ${teamCount} möglichst ausgeglichene Teams aufgeteilt. strikr erstellt den kompletten Spielplan.</p>
+              <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-600">Ihr spielt insgesamt {totalMinutes} Minuten. Ein Spiel dauert {matchMinutes} Minuten – das könnt ihr direkt über die Spieluhr steuern. Danach habt ihr {changeMinutes} {changeMinutes === 1 ? "Minute" : "Minuten"} Zeit, das Feld zu wechseln, das Ergebnis einzutragen und das neue Spiel zu starten. Eure {presentCount} Spieler werden automatisch in {teamCount} möglichst ausgeglichene Teams aufgeteilt und strikr erstellt den kompletten Spielplan.</p>
               <div className="mt-3 grid gap-2">
                 <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">⏱ Spieluhr für jedes Spiel</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Direkt am jeweiligen Match starten, pausieren und zurücksetzen.</div></div>
                 <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">📊 Live-Tabelle</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Jedes Ergebnis aktualisiert Punkte, Tore und Platzierung automatisch.</div></div>
