@@ -357,7 +357,8 @@ async function replaceTournamentTeams(
 
   if (assignmentError) throw new Error(assignmentError.message);
 
-  const teamIds = createdTeams.map((team) => team.id);\n  const fixtures = gameCount ? buildTimedRoundRobinSchedule(teamIds, gameCount) : buildRoundRobinSchedule(teamIds, rounds);
+  const teamIds = createdTeams.map((team) => team.id);
+  const fixtures = gameCount ? buildTimedRoundRobinSchedule(teamIds, gameCount) : buildRoundRobinSchedule(teamIds, rounds);
   if (fixtures.length) {
     const { error: fixtureError } = await adminSupabase
       .from("tournament_matches")
