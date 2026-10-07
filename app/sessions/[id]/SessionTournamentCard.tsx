@@ -404,6 +404,26 @@ export default function SessionTournamentCard({
             Teams neu auslosen
           </button>
         ) : null}
+        {!completed && isAdmin ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (!window.confirm("Turnier wirklich zurücksetzen? Teams, Spielplan und bisherige Turnierergebnisse werden gelöscht. Zusagen und Anwesenheit bleiben erhalten.")) return;
+              void action({ intent: "reset" }).then(() => {
+                setTimerRunning(false);
+                setActiveGameNo(null);
+                setRemainingSeconds(matchMinutes * 60);
+                setSetupOpen(false);
+                setMessage("Turnier zurückgesetzt. Du kannst jetzt wieder den normalen Spielmodus nutzen oder ein neues Turnier starten.");
+                onActivated?.();
+              });
+            }}
+            className="mt-3 ml-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 disabled:opacity-40"
+          >
+            Turnier zurücksetzen
+          </button>
+        ) : null}
       </div>
 
       {(data?.teams ?? []).length ? (
