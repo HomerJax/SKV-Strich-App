@@ -60,6 +60,13 @@ export function buildRoundRobinSchedule(teamIds: number[], rounds = 2) {
   return fixtures;
 }
 
+export function buildTimedRoundRobinSchedule(teamIds: number[], gameCount: number) {
+  const target = Math.max(0, Math.floor(gameCount));
+  if (target === 0) return [] as Array<{ game_no: number; team_a_id: number; team_b_id: number }>;
+  const base = buildRoundRobinSchedule(teamIds, Math.max(1, Math.ceil(target / Math.max(1, (teamIds.length * (teamIds.length - 1)) / 2))));
+  return base.slice(0, target).map((fixture, index) => ({ ...fixture, game_no: index + 1 }));
+}
+
 export function calculateTournamentStandings(
   teams: TournamentTeam[],
   matches: TournamentMatch[],
