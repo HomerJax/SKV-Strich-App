@@ -3,6 +3,7 @@ import { requireSessionAccess } from "@/lib/session-detail/access";
 import { canManageClub } from "@/lib/auth/access";
 import {
   buildRoundRobinSchedule,
+  buildTimedRoundRobinSchedule,
   calculateTournamentStandings,
   hasUniqueTournamentWinner,
   type TournamentMatch,
@@ -244,6 +245,7 @@ async function replaceTournamentTeams(
   sessionId: number,
   teamCount: number,
   rounds: number,
+  gameCount?: number,
 ) {
   const { adminSupabase, clubId } = access;
 
@@ -355,7 +357,7 @@ async function replaceTournamentTeams(
 
   if (assignmentError) throw new Error(assignmentError.message);
 
-  const fixtures = buildRoundRobinSchedule(createdTeams.map((team) => team.id), rounds);
+  const teamIds = createdTeams.map((team) => team.id);\n  const fixtures = gameCount ? buildTimedRoundRobinSchedule(teamIds, gameCount) : buildRoundRobinSchedule(teamIds, rounds);
   if (fixtures.length) {
     const { error: fixtureError } = await adminSupabase
       .from("tournament_matches")
@@ -434,7 +436,7 @@ export async function POST(
     if (intent === "setup" || intent === "regenerate") {
       const teamCount = Math.max(2, Math.min(6, parseIntSafe(payload.teamCount, 3)));
       const matchMinutes = Math.max(1, Math.min(60, parseIntSafe(payload.matchMinutes, 8)));
-      const rounds = Math.max(1, Math.min(12, parseIntSafe(payload.rounds, 2)));
+      const rounds = Math.max(1, Math.min(12, parseIntSafe(payload.rounds, 2)));\n      const gameCount = Math.max(0, Math.min(200, parseIntSafe(payload.gameCount, 0)));
 
       const { data: existingResults, error: existingResultsError } = await access.adminSupabase
         .from("results")
@@ -458,7 +460,7 @@ export async function POST(
 
       if (clearMatchesError) throw new Error(clearMatchesError.message);
 
-      await replaceTournamentTeams(access, sessionId, teamCount, rounds);
+      await replaceTournamentTeams(access, sessionId, teamCount, rounds, gameCount || undefined);
 
       const { error: sessionUpdateError } = await access.adminSupabase
         .from("sessions")
