@@ -437,7 +437,8 @@ export async function POST(
     if (intent === "setup" || intent === "regenerate") {
       const teamCount = Math.max(2, Math.min(6, parseIntSafe(payload.teamCount, 3)));
       const matchMinutes = Math.max(1, Math.min(60, parseIntSafe(payload.matchMinutes, 8)));
-      const rounds = Math.max(1, Math.min(12, parseIntSafe(payload.rounds, 2)));\n      const gameCount = Math.max(0, Math.min(200, parseIntSafe(payload.gameCount, 0)));
+      const rounds = Math.max(1, Math.min(12, parseIntSafe(payload.rounds, 2)));
+      const gameCount = Math.max(0, Math.min(200, parseIntSafe(payload.gameCount, 0)));
 
       const { data: existingResults, error: existingResultsError } = await access.adminSupabase
         .from("results")
