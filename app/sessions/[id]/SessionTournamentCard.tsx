@@ -68,7 +68,7 @@ function formatClock(seconds: number) {
   const safe = Math.max(0, seconds);
   const minutes = Math.floor(safe / 60);
   const rest = safe % 60;
-  return `{String(minutes).padStart(2, "0")}:{String(rest).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
 }
 
 function ScoreEditor({
@@ -123,7 +123,7 @@ function ScoreEditor({
           disabled={disabled}
           onChange={(event) => setA(event.target.value.replace(/\D/g, "").slice(0, 2))}
           className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center text-lg font-black text-slate-950"
-          aria-label={`Tore {teamName(match.team_a_id)}`}
+          aria-label={`Tore ${teamName(match.team_a_id)}`}
         />
         <span className="font-black text-slate-400">:</span>
         <input
@@ -132,7 +132,7 @@ function ScoreEditor({
           disabled={disabled}
           onChange={(event) => setB(event.target.value.replace(/\D/g, "").slice(0, 2))}
           className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center text-lg font-black text-slate-950"
-          aria-label={`Tore {teamName(match.team_b_id)}`}
+          aria-label={`Tore ${teamName(match.team_b_id)}`}
         />
         <button
           type="button"
@@ -282,7 +282,7 @@ export default function SessionTournamentCard({
               Optional für diese Trainingseinheit
             </div>
           </div>
-          <div className={`rounded-full px-3 py-1.5 text-xs font-black {setupOpen ? "bg-cyan-100 text-cyan-800" : "bg-slate-100 text-slate-600"}`}>
+          <div className={`rounded-full px-3 py-1.5 text-xs font-black ${setupOpen ? "bg-cyan-100 text-cyan-800" : "bg-slate-100 text-slate-600"}`}>
             {setupOpen ? "An" : "Aus"}
           </div>
         </button>
