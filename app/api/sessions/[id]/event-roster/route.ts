@@ -45,7 +45,10 @@ export async function GET(
   }
 
   const excluded = new Set((exclusions ?? []).map((row) => Number(row.player_id)));
-  const selfPlayerId = Number.isFinite(Number(currentPlayerId)) ? Number(currentPlayerId) : null;
+  const selfPlayerId =
+    typeof currentPlayerId === "number" && Number.isFinite(currentPlayerId)
+      ? currentPlayerId
+      : null;
 
   return ok({
     isEvent: true,
