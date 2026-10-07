@@ -171,7 +171,7 @@ export default function SessionTournamentCard({
   const [timerRunning, setTimerRunning] = useState(false);
 
   async function load() {
-    const response = await fetch(`/api/sessions/{sessionId}/tournament`, {
+    const response = await fetch(`/api/sessions/${sessionId}/tournament`, {
       cache: "no-store",
       credentials: "same-origin",
     });
