@@ -476,6 +476,34 @@ export async function POST(
       return NextResponse.json({ ok: true, message: "Turnier wurde vorbereitet.", ...tournament });
     }
 
+    if (intent === "rename_team") {
+      const teamId = parseIntSafe(payload.teamId, 0);
+      const name = String(payload.name ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
+      if (teamId < 1 || !name) {
+        return NextResponse.json({ error: "Bitte einen gültigen Teamnamen eingeben." }, { status: 400 });
+      }
+      const { data: team, error: teamError } = await access.adminSupabase
+        .from("teams")
+        .select("id")
+        .eq("id", teamId)
+        .eq("session_id", sessionId)
+        .eq("club_id", access.clubId)
+        .maybeSingle<{ id: number }>();
+      if (teamError) throw new Error(teamError.message);
+      if (!team) return NextResponse.json({ error: "Team nicht gefunden." }, { status: 404 });
+
+      const { error: renameError } = await access.adminSupabase
+        .from("teams")
+        .update({ name })
+        .eq("id", teamId)
+        .eq("session_id", sessionId)
+        .eq("club_id", access.clubId);
+      if (renameError) throw new Error(renameError.message);
+
+      const tournament = await loadTournament(access, sessionId);
+      return NextResponse.json({ ok: true, message: "Teamname gespeichert.", ...tournament });
+    }
+
     if (intent === "save_match") {
       const gameNo = parseIntSafe(payload.gameNo, 0);
       const goalsA = parseIntSafe(payload.goalsA, -1);
