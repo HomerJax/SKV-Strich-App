@@ -397,7 +397,8 @@ export default function SessionTournamentCard({
               intent: "regenerate",
               teamCount: config?.tournament_team_count ?? teamCount,
               matchMinutes: config?.tournament_match_minutes ?? matchMinutes,
-              rounds: Math.max(1, Math.ceil(matches.length / Math.max(1, ((data?.teams.length ?? teamCount) * ((data?.teams.length ?? teamCount) - 1)) / 2))),\n              gameCount: matches.length,
+              rounds: Math.max(1, Math.ceil(matches.length / Math.max(1, ((data?.teams.length ?? teamCount) * ((data?.teams.length ?? teamCount) - 1)) / 2))),
+              gameCount: matches.length,
             })}
             className="mt-3 rounded-xl border border-cyan-200 bg-white px-3 py-2 text-xs font-black text-cyan-800 disabled:opacity-40"
           >
