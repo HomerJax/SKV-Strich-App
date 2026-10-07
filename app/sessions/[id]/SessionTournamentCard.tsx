@@ -156,6 +156,7 @@ export default function SessionTournamentCard({
   onActivated,
 }: Props) {
   const [playersPerTeam, setPlayersPerTeam] = useState(5);
+  const [nameGenre, setNameGenre] = useState("random");
   const [setupOpen, setSetupOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
@@ -252,7 +253,7 @@ export default function SessionTournamentCard({
   const plannedMinutes = warmupMinutes + plannedGames * matchMinutes + Math.max(0, plannedGames - 1) * changeMinutes;
 
   async function setup() {
-    const next = await action({ intent: "setup", teamCount, matchMinutes, rounds: suggestedRounds, gameCount: plannedGames });
+    const next = await action({ intent: "setup", teamCount, matchMinutes, rounds: suggestedRounds, gameCount: plannedGames, nameGenre });
     if (next) onActivated?.();
   }
 
@@ -322,6 +323,7 @@ export default function SessionTournamentCard({
 
             {settingsOpen ? (
               <div className="mt-3 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3">
+                <label className="col-span-2 text-xs font-bold text-slate-600">Teamnamen-Stil<select value={nameGenre} onChange={(e) => setNameGenre(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950"><option value="random">🎲 Zufällig</option><option value="fussball">⚽ Fußball</option><option value="bier">🍺 Bier & Kabine</option><option value="bescheuert">😂 Bescheuert</option><option value="tiere">🐯 Tiere</option><option value="schwaebisch">🥨 Schwäbisch</option><option value="it">💻 IT & Büro</option><option value="alte_herren">👴 Alte Herren</option><option value="essen">🍔 Essen</option></select><span className="mt-1 block text-[10px] font-semibold text-slate-400">Die Namen kannst du nach der Auslosung jederzeit per ✏️ ändern.</span></label>
                 <label className="text-xs font-bold text-slate-600">Spieler pro Team<select value={playersPerTeam} onChange={(e) => setPlayersPerTeam(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950">{[3,4,5,6,7,8].map((count) => <option key={count} value={count}>{count}</option>)}</select></label>
                 <label className="text-xs font-bold text-slate-600">Spielzeit<input type="number" min={1} max={60} value={matchMinutes} onChange={(e) => setMatchMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" /></label>
                 <label className="text-xs font-bold text-slate-600">Warm-up<input type="number" min={0} max={60} value={warmupMinutes} onChange={(e) => setWarmupMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" /></label>
@@ -399,6 +401,7 @@ export default function SessionTournamentCard({
               matchMinutes: config?.tournament_match_minutes ?? matchMinutes,
               rounds: Math.max(1, Math.ceil(matches.length / Math.max(1, ((data?.teams.length ?? teamCount) * ((data?.teams.length ?? teamCount) - 1)) / 2))),
               gameCount: matches.length,
+              nameGenre,
             })}
             className="mt-3 rounded-xl border border-cyan-200 bg-white px-3 py-2 text-xs font-black text-cyan-800 disabled:opacity-40"
           >
