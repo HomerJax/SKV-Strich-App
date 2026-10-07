@@ -128,6 +128,11 @@ type NextSessionParticipantRow = {
   players: NextSessionPlayer | NextSessionPlayer[] | null;
 };
 
+type NextSessionRsvpCommentRow = {
+  player_id: number;
+  reason: string | null;
+};
+
 type NextSessionAbsentRow = {
   player_id: number;
   reason: string | null;
@@ -724,24 +729,26 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   }
 
   let nextSessionPresenceStatus: "in" | "out" | "open" = "open";
+  let nextSessionPresenceComment: string | null = null;
   let nextSessionPresentCount = 0;
   let nextSessionAbsentCount = 0;
-  let nextSessionParticipants: { id: number; name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[] = [];
+  let nextSessionParticipants: { id: number; name: string; comment: string | null; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[] = [];
   let nextSessionAbsentPlayers: { id: number; name: string; reason: string | null; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[] = [];
 
   if (homeSessionRsvpEnabled && nextSession) {
     const selfRsvpPromise = currentPlayerId
       ? supabase
           .from("session_rsvps")
-          .select("status")
+          .select("status, reason")
           .eq("session_id", nextSession.id)
           .eq("player_id", currentPlayerId)
           .maybeSingle()
-      : Promise.resolve({ data: null as { status: string } | null, error: null });
+      : Promise.resolve({ data: null as { status: string; reason: string | null } | null, error: null });
 
     const [
       { data: absentRows },
       { data: participantRows },
+      { data: participantCommentRows },
       { data: selfRsvp },
     ] = await Promise.all([
       supabase
@@ -779,10 +786,20 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         `
         )
         .eq("session_id", nextSession.id),
+      supabase
+        .from("session_rsvps")
+        .select("player_id, reason")
+        .eq("session_id", nextSession.id)
+        .eq("club_id", clubId)
+        .eq("status", "in"),
       selfRsvpPromise,
     ]);
 
     const participants = (participantRows ?? []) as NextSessionParticipantRow[];
+    const participantComments = (participantCommentRows ?? []) as NextSessionRsvpCommentRow[];
+    const participantCommentByPlayerId = new Map(
+      participantComments.map((row) => [row.player_id, row.reason?.trim() || null]),
+    );
     const absences = (absentRows ?? []) as NextSessionAbsentRow[];
     nextSessionPresentCount = participants.length;
     nextSessionAbsentCount = absences.length;
@@ -793,6 +810,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         return {
           id: row.player_id,
           name: getSimplePlayerName(player, locale),
+          comment: participantCommentByPlayerId.get(row.player_id) ?? null,
           photoUrl: player?.photo_path
             ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
             : null,
@@ -830,6 +848,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       nextSessionPresenceStatus = "out";
     } else if (selfRsvp?.status === "in" || selfPresence) {
       nextSessionPresenceStatus = "in";
+      nextSessionPresenceComment =
+        selfRsvp?.status === "in" ? selfRsvp.reason?.trim() || null : null;
     } else {
       nextSessionPresenceStatus = "open";
     }
@@ -925,6 +945,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               }
               href={`/sessions/${nextSession.id}`}
               initialStatus={nextSessionPresenceStatus}
+              initialComment={nextSessionPresenceComment}
               initialPresentCount={nextSessionPresentCount}
               initialAbsentCount={nextSessionAbsentCount}
               sessionDate={nextSession.date}

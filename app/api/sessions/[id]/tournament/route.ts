@@ -300,7 +300,10 @@ async function replaceTournamentTeams(
     if (deleteTeamsError) throw new Error(deleteTeamsError.message);
   }
 
-  const generatedTeamNames = tournamentTeamNames(teamCount);\n\n  const { data: createdTeamsData, error: createdTeamsError } = await adminSupabase\n    .from("teams")
+  const generatedTeamNames = tournamentTeamNames(teamCount);
+
+  const { data: createdTeamsData, error: createdTeamsError } = await adminSupabase
+    .from("teams")
     .insert(
       Array.from({ length: teamCount }, (_, index) => ({
         session_id: sessionId,

@@ -13,6 +13,7 @@ type PresenceStatus = "in" | "out" | "open";
 export default function SessionRsvpButtons({
   sessionId,
   initialStatus,
+  initialComment = null,
   deadlineEpochMs = null,
   onStatusChange,
   requireAbsenceReason = false,
@@ -20,6 +21,7 @@ export default function SessionRsvpButtons({
 }: {
   sessionId: number;
   initialStatus: PresenceStatus;
+  initialComment?: string | null;
   deadlineEpochMs?: number | null;
   onStatusChange?: (status: PresenceStatus) => void;
   requireAbsenceReason?: boolean;
@@ -31,6 +33,9 @@ export default function SessionRsvpButtons({
   const [error, setError] = useState("");
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [comment, setComment] = useState(initialComment ?? "");
+  const [commentDraft, setCommentDraft] = useState(initialComment ?? "");
   const [notNominated, setNotNominated] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [latePenaltyMessage, setLatePenaltyMessage] = useState<string | null>(null);
@@ -39,6 +44,14 @@ export default function SessionRsvpButtons({
     const interval = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const nextComment = initialComment ?? "";
+    setStatus(initialStatus);
+    setComment(nextComment);
+    setCommentDraft(nextComment);
+    setCommentOpen(false);
+  }, [initialStatus, initialComment, sessionId]);
 
   useEffect(() => {
     if (readOnly) {
@@ -62,9 +75,15 @@ export default function SessionRsvpButtons({
 
   const deadlinePassed = deadlineEpochMs !== null && now >= deadlineEpochMs;
 
-  async function setPresence(nextStatus: "in" | "out", absenceReason = "") {
+  async function setPresence(
+    nextStatus: "in" | "out",
+    absenceReason = "",
+    attendanceComment = "",
+    keepSameStatus = false,
+  ) {
     if (readOnly || busy || notNominated) return;
-    const target: PresenceStatus = status === nextStatus ? "open" : nextStatus;
+    const target: PresenceStatus =
+      keepSameStatus ? nextStatus : status === nextStatus ? "open" : nextStatus;
 
     if (target === "out" && requireAbsenceReason) {
       const reasonError = getRequiredRsvpReasonError(absenceReason, t("rsvp.reasonRequired"));
@@ -87,6 +106,7 @@ export default function SessionRsvpButtons({
       formData.set("intent", "set_self_presence");
       formData.set("status", target);
       if (target === "out") formData.set("reason", absenceReason.trim().slice(0, 80));
+      if (target === "in") formData.set("comment", attendanceComment.trim().slice(0, 120));
 
       const response = await fetch(`/api/sessions/${sessionId}`, {
         method: "POST",
@@ -103,7 +123,16 @@ export default function SessionRsvpButtons({
         setLatePenaltyMessage(String(payload.latePenalty.message));
       }
       setReasonOpen(false);
+      setCommentOpen(false);
       if (target !== "out") setReason("");
+      if (target === "in") {
+        const savedComment = attendanceComment.trim().slice(0, 120);
+        setComment(savedComment);
+        setCommentDraft(savedComment);
+      } else {
+        setComment("");
+        setCommentDraft("");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t("session.responseSaveError"));
     } finally {
@@ -140,6 +169,65 @@ export default function SessionRsvpButtons({
       ) : deadlinePassed && status === "in" ? (
         <div className="mt-2 text-[11px] font-semibold text-slate-500">
           {t("session.commitmentLocked")}
+        </div>
+      ) : null}
+
+      {!readOnly ? (
+        <div className="mt-2" onClick={(event) => event.stopPropagation()}>
+          {commentOpen ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2.5">
+              <div className="text-[11px] font-bold text-emerald-800">
+                {t("session.attendanceComment")}{" "}
+                <span className="font-medium text-emerald-600">{t("session.optional")}</span>
+              </div>
+              <input
+                autoFocus
+                value={commentDraft}
+                maxLength={120}
+                onChange={(event) => {
+                  setCommentDraft(event.target.value);
+                  setError("");
+                }}
+                placeholder={t("session.attendanceCommentPlaceholder")}
+                className="mt-2 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs outline-none focus:border-emerald-400"
+              />
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCommentOpen(false);
+                    setCommentDraft(comment);
+                    setError("");
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500"
+                >
+                  {t("common.cancel")}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => void setPresence("in", "", commentDraft, status === "in")}
+                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40"
+                >
+                  {t("session.saveAttendanceComment")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => {
+                setCommentDraft(comment);
+                setCommentOpen(true);
+              }}
+              className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
+            >
+              {status === "in" && comment.trim()
+                ? `💬 „${comment.trim()}“ · ${t("session.editAttendanceComment")}`
+                : t("session.addAttendanceComment")}
+            </button>
+          )}
         </div>
       ) : null}
 

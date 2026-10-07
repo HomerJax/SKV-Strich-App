@@ -44,6 +44,7 @@ function sortDescByDate(a: SessionRow, b: SessionRow) { return b.date.localeComp
 function SessionCard({
   session,
   rsvpStatus,
+  rsvpComment = null,
   allowRsvp = false,
   clubDeadlineMinutes,
   requireAbsenceReason,
@@ -52,6 +53,7 @@ function SessionCard({
 }: {
   session: SessionRow;
   rsvpStatus?: PresenceStatus;
+  rsvpComment?: string | null;
   allowRsvp?: boolean;
   clubDeadlineMinutes: number;
   requireAbsenceReason: boolean;
@@ -94,6 +96,7 @@ function SessionCard({
         <SessionRsvpButtons
           sessionId={session.id}
           initialStatus={rsvpStatus}
+          initialComment={rsvpComment}
           deadlineEpochMs={deadlineEpochMs}
           requireAbsenceReason={requireAbsenceReason}
           readOnly={readOnlyRsvp}
@@ -165,24 +168,30 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   const requireAbsenceReason =
     rsvpSettings?.require_rsvp_reason_on_absence === true;
 
-  const rsvpBySession = new Map<number, PresenceStatus>();
+  const rsvpBySession = new Map<number, { status: PresenceStatus; comment: string | null }>();
   if (playerId && futureCurrentSeasonSessions.length > 0) {
     const ids = futureCurrentSeasonSessions.map((session) => session.id);
     const { data: rsvps } = await supabase
       .from("session_rsvps")
-      .select("session_id, status")
+      .select("session_id, status, reason")
       .eq("club_id", clubId)
       .eq("player_id", playerId)
       .in("session_id", ids);
 
     for (const row of rsvps ?? []) {
       if (row.status === "in" || row.status === "out" || row.status === "open") {
-        rsvpBySession.set(row.session_id, row.status);
+        rsvpBySession.set(row.session_id, {
+          status: row.status,
+          comment: row.status === "in" ? row.reason?.trim() || null : null,
+        });
       }
     }
   }
 
-  const statusFor = (sessionId: number): PresenceStatus => rsvpBySession.get(sessionId) ?? "open";
+  const statusFor = (sessionId: number): PresenceStatus =>
+    rsvpBySession.get(sessionId)?.status ?? "open";
+  const commentFor = (sessionId: number) =>
+    rsvpBySession.get(sessionId)?.comment ?? null;
 
   return (
     <main className="min-h-screen bg-neutral-100">
@@ -211,10 +220,10 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
           </div>
         ) : (
           <div className="space-y-5">
-            {nextSession ? <SectionCard title={t("session.next")} subtitle={t("session.nextHint")}><SessionCard session={nextSession} rsvpStatus={statusFor(nextSession.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} locale={locale} /></SectionCard> : null}
+            {nextSession ? <SectionCard title={t("session.next")} subtitle={t("session.nextHint")}><SessionCard session={nextSession} rsvpStatus={statusFor(nextSession.id)} rsvpComment={commentFor(nextSession.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} locale={locale} /></SectionCard> : null}
 
             <SectionCard title={t("session.upcoming")} subtitle={currentSeason ? t("session.currentSeasonHint", { name: currentSeason.name ? ` · ${currentSeason.name}` : "" }) : t("session.allUpcoming")}>
-              {moreUpcomingSessions.length > 0 ? <div className="space-y-3">{moreUpcomingSessions.map((session) => <SessionCard key={session.id} session={session} rsvpStatus={statusFor(session.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} locale={locale} />)}</div> : futureCurrentSeasonSessions.length > 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">{t("session.noMoreUpcoming")}</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">{t("session.noUpcoming")}</div>}
+              {moreUpcomingSessions.length > 0 ? <div className="space-y-3">{moreUpcomingSessions.map((session) => <SessionCard key={session.id} session={session} rsvpStatus={statusFor(session.id)} rsvpComment={commentFor(session.id)} allowRsvp={!!playerId} readOnlyRsvp={isSupportView} clubDeadlineMinutes={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} locale={locale} />)}</div> : futureCurrentSeasonSessions.length > 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">{t("session.noMoreUpcoming")}</div> : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">{t("session.noUpcoming")}</div>}
             </SectionCard>
 
             <details className="group rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">

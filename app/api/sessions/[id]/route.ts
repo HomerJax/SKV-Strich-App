@@ -206,6 +206,7 @@ export async function POST(
 
       const status = String(formData.get("status") ?? "").trim() as RsvpStatus;
       const reason = String(formData.get("reason") ?? "").trim().slice(0, 80);
+      const comment = String(formData.get("comment") ?? "").trim().slice(0, 120);
 
       if (status !== "in" && status !== "out" && status !== "open") {
         return fail(t("sessionApi.invalidStatus"), 400);
@@ -383,7 +384,7 @@ export async function POST(
               session_id: sessionId,
               player_id: playerId,
               status: "in",
-              reason: null,
+              reason: comment || null,
               updated_at: new Date().toISOString(),
             },
             {
@@ -477,16 +478,18 @@ export async function POST(
           }
         }
 
-        await sendRsvpUpdatePush({
-          clubId,
-          sessionId,
-          sessionDate: session.date,
-          sessionType,
-          currentUserId,
-          playerName,
-          status: "in",
-          previousStatus,
-        });
+        if (previousStatus !== "in") {
+          await sendRsvpUpdatePush({
+            clubId,
+            sessionId,
+            sessionDate: session.date,
+            sessionType,
+            currentUserId,
+            playerName,
+            status: "in",
+            previousStatus,
+          });
+        }
 
         return ok({
           message:
@@ -494,6 +497,7 @@ export async function POST(
               ? "Du bist dabei beim Training."
               : "Du bist beim Termin dabei.",
           status: "in",
+          comment: comment || null,
           lateSignup: isLateSignup,
           latePenalty,
         });

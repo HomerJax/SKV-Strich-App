@@ -24,13 +24,14 @@ type NextSessionAttendanceCardProps = {
   text: string;
   href: string;
   initialStatus: PresenceStatus;
+  initialComment?: string | null;
   initialPresentCount: number;
   initialAbsentCount?: number;
   sessionDate?: string;
   startTime?: string | null;
   rsvpDeadlineMinutesBefore?: number;
   sessionRsvpDeadlineMinutesBefore?: number | null;
-  participants?: { id: number; name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[];
+  participants?: { id: number; name: string; comment: string | null; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[];
   absentPlayers?: { id: number; name: string; reason: string | null; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null }[];
   requireAbsenceReason?: boolean;
   readOnly?: boolean;
@@ -115,6 +116,7 @@ export default function NextSessionAttendanceCard({
   text,
   href,
   initialStatus,
+  initialComment = null,
   initialPresentCount,
   initialAbsentCount = 0,
   sessionDate,
@@ -138,6 +140,9 @@ export default function NextSessionAttendanceCard({
   const [now, setNow] = useState<Date | null>(null);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [comment, setComment] = useState(initialComment ?? "");
+  const [commentDraft, setCommentDraft] = useState(initialComment ?? "");
   const [notNominated, setNotNominated] = useState(false);
   const [latePenaltyMessage, setLatePenaltyMessage] = useState<string | null>(null);
   const [showAttendanceDetails, setShowAttendanceDetails] = useState(false);
@@ -149,10 +154,14 @@ export default function NextSessionAttendanceCard({
   }, []);
 
   useEffect(() => {
+    const nextComment = initialComment ?? "";
     setStatus(initialStatus);
+    setComment(nextComment);
+    setCommentDraft(nextComment);
+    setCommentOpen(false);
     setPresentCount(initialPresentCount);
     setAbsentCount(initialAbsentCount);
-  }, [initialStatus, initialPresentCount, initialAbsentCount, sessionId]);
+  }, [initialStatus, initialComment, initialPresentCount, initialAbsentCount, sessionId]);
 
   useEffect(() => {
     const refreshWhenVisible = () => {
@@ -198,8 +207,14 @@ export default function NextSessionAttendanceCard({
   const deadlineText = deadline ? t("session.rsvpUntil", { date: formatDeadline(deadline, locale) }) : null;
   const remainingText = deadline && now ? getRemainingLabel(deadline, now, locale) : null;
 
-  async function updateStatus(nextStatus: PresenceStatus, action: Exclude<PendingAction, null>, absenceReason = "") {
-    if (readOnly || busy || status === nextStatus || notNominated) return;
+  async function updateStatus(
+    nextStatus: PresenceStatus,
+    action: Exclude<PendingAction, null>,
+    absenceReason = "",
+    attendanceComment = "",
+    keepSameStatus = false,
+  ) {
+    if (readOnly || busy || (!keepSameStatus && status === nextStatus) || notNominated) return;
 
     if (nextStatus === "out" && requireAbsenceReason) {
       const reasonError = getRequiredRsvpReasonError(absenceReason, t("rsvp.reasonRequired"));
@@ -225,6 +240,7 @@ export default function NextSessionAttendanceCard({
       formData.set("intent", "set_self_presence");
       formData.set("status", nextStatus);
       if (nextStatus === "out") formData.set("reason", absenceReason.trim().slice(0, 80));
+      if (nextStatus === "in") formData.set("comment", attendanceComment.trim().slice(0, 120));
       const response = await fetch(`/api/sessions/${sessionId}`, { method: "POST", body: formData, credentials: "same-origin" });
       const raw = await response.text();
       const payload = raw ? JSON.parse(raw) : null;
@@ -235,7 +251,16 @@ export default function NextSessionAttendanceCard({
         setLatePenaltyMessage(String(payload.latePenalty.message));
       }
       setReasonOpen(false);
+      setCommentOpen(false);
       if (nextStatus !== "out") setReason("");
+      if (nextStatus === "in") {
+        const savedComment = attendanceComment.trim().slice(0, 120);
+        setComment(savedComment);
+        setCommentDraft(savedComment);
+      } else {
+        setComment("");
+        setCommentDraft("");
+      }
       if (previousStatus === "in") setPresentCount((prev) => Math.max(0, prev - 1));
       if (previousStatus === "out") setAbsentCount((prev) => Math.max(0, prev - 1));
       if (nextStatus === "in") setPresentCount((prev) => prev + 1);
@@ -306,6 +331,64 @@ export default function NextSessionAttendanceCard({
               {t("session.commitmentLocked")}
             </div>
           ) : null}
+          {!readOnly ? (
+            <div className="m-1.5 mt-2">
+              {commentOpen ? (
+                <div className="rounded-[20px] border border-emerald-200 bg-white p-3">
+                  <div className="text-xs font-bold text-emerald-800">
+                    {t("session.attendanceComment")}{" "}
+                    <span className="font-medium text-emerald-600">{t("session.optional")}</span>
+                  </div>
+                  <input
+                    autoFocus
+                    value={commentDraft}
+                    maxLength={120}
+                    onChange={(event) => {
+                      setCommentDraft(event.target.value);
+                      setErrorMessage("");
+                    }}
+                    placeholder={t("session.attendanceCommentPlaceholder")}
+                    className="mt-2 w-full rounded-xl border border-emerald-200 px-3 py-2 text-xs outline-none focus:border-emerald-400"
+                  />
+                  <div className="mt-2 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCommentOpen(false);
+                        setCommentDraft(comment);
+                        setErrorMessage("");
+                      }}
+                      className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500"
+                    >
+                      {t("common.cancel")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void updateStatus("in", "in", "", commentDraft, status === "in")}
+                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40"
+                    >
+                      {t("session.saveAttendanceComment")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setCommentDraft(comment);
+                    setCommentOpen(true);
+                  }}
+                  className="w-full rounded-[18px] border border-emerald-200 bg-white px-3 py-2 text-left text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-50"
+                >
+                  {status === "in" && comment.trim()
+                    ? `💬 „${comment.trim()}“ · ${t("session.editAttendanceComment")}`
+                    : t("session.addAttendanceComment")}
+                </button>
+              )}
+            </div>
+          ) : null}
           {reasonOpen ? (
             <div className="m-1.5 mt-2 rounded-[20px] border border-rose-200 bg-white p-3">
               <div className="text-xs font-bold text-rose-800">
@@ -354,7 +437,12 @@ export default function NextSessionAttendanceCard({
                   {participants.map((player) => (
                      <Link href={`/badges?player=${player.id}`} key={`participant-${player.id}`} className="flex min-h-12 items-center gap-3 px-1 py-2.5 transition hover:bg-cyan-50/70">
                        <AttendanceAvatar player={player} tone="cyan" />
-                       <span className="min-w-0 whitespace-normal break-words text-[12px] font-bold leading-[1.2] text-slate-800">{player.name}</span>
+                       <span className="min-w-0">
+                         <span className="block whitespace-normal break-words text-[12px] font-bold leading-[1.2] text-slate-800">{player.name}</span>
+                         {player.comment ? (
+                           <span className="mt-0.5 block text-[11px] font-medium leading-4 text-emerald-700">💬 {player.comment}</span>
+                         ) : null}
+                       </span>
                      </Link>
                   ))}
                 </div>

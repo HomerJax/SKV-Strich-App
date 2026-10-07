@@ -447,7 +447,14 @@ export default function SessionAttendanceCard({
                       >
                         {!player.photo_url ? playerName.trim().charAt(0) || "?" : null}
                       </span>
-                      <div className="min-w-0 truncate text-sm font-black text-slate-900">{playerName}</div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-black text-slate-900">{playerName}</div>
+                        {player.rsvp_reason ? (
+                          <div className="mt-0.5 line-clamp-2 text-[11px] font-medium leading-4 text-emerald-700">
+                            💬 {player.rsvp_reason}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   );
                 }) : (
@@ -489,6 +496,7 @@ export default function SessionAttendanceCard({
               <SessionRsvpButtons
                 sessionId={sessionId}
                 initialStatus={selfStatus}
+                initialComment={selfStatus === "in" ? currentPlayer?.rsvp_reason ?? null : null}
                 deadlineEpochMs={rsvpDeadlineEpochMs}
                 requireAbsenceReason={clubSettings?.require_rsvp_reason_on_absence === true}
                 onStatusChange={(nextStatus) => {
@@ -889,6 +897,11 @@ export default function SessionAttendanceCard({
 
                         {guestBadge(player, t("attendance.guest"))}
                       </span>
+                      {isPresent && player.rsvp_reason ? (
+                        <span className="mt-0.5 block max-w-[260px] truncate text-[10px] font-medium text-emerald-700">
+                          💬 {player.rsvp_reason}
+                        </span>
+                      ) : null}
                     </span>
                   </span>
 
