@@ -169,6 +169,8 @@ export default function SessionTournamentCard({
   const [activeGameNo, setActiveGameNo] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState(8 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
+  const [editingTeamId, setEditingTeamId] = useState<number | null>(null);
+  const [editingTeamName, setEditingTeamName] = useState("");
 
   async function load() {
     const response = await fetch(`/api/sessions/${sessionId}/tournament`, {
@@ -408,9 +410,19 @@ export default function SessionTournamentCard({
         <div className="grid gap-3 sm:grid-cols-3">
           {data!.teams.map((team) => (
             <div key={team.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-black text-slate-950">{team.name}</div>
-                <div className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">{team.players.length}</div>
+              <div className="flex items-center justify-between gap-2">
+                {editingTeamId === team.id ? (
+                  <div className="flex min-w-0 flex-1 gap-1.5">
+                    <input autoFocus maxLength={40} value={editingTeamName} onChange={(e) => setEditingTeamName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && editingTeamName.trim()) void action({ intent: "rename_team", teamId: team.id, name: editingTeamName }).then(() => setEditingTeamId(null)); if (e.key === "Escape") setEditingTeamId(null); }} className="min-w-0 flex-1 rounded-lg border border-cyan-200 px-2 py-1 text-sm font-black text-slate-950 outline-none focus:ring-2 focus:ring-cyan-100" />
+                    <button type="button" disabled={busy || !editingTeamName.trim()} onClick={() => void action({ intent: "rename_team", teamId: team.id, name: editingTeamName }).then(() => setEditingTeamId(null))} className="rounded-lg bg-cyan-600 px-2 py-1 text-xs font-black text-white disabled:opacity-40">✓</button>
+                    <button type="button" onClick={() => setEditingTeamId(null)} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-black text-slate-500">×</button>
+                  </div>
+                ) : (
+                  <button type="button" disabled={!isAdmin} onClick={() => { setEditingTeamId(team.id); setEditingTeamName(team.name); }} className="min-w-0 text-left text-sm font-black text-slate-950 disabled:cursor-default">
+                    {team.name}{isAdmin ? <span className="ml-1.5 text-[10px] text-slate-400">✏️</span> : null}
+                  </button>
+                )}
+                <div className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">{team.players.length}</div>
               </div>
               <div className="mt-2 space-y-1">
                 {team.players.map((player) => (
