@@ -19,8 +19,10 @@ export async function POST(
   if ("error" in access) return fail(access.error ?? t("sessionCommon.unknownError"), access.status);
 
   const { adminSupabase, clubId, currentPlayerId } = access;
-  const playerId = Number(currentPlayerId);
-  if (!Number.isFinite(playerId)) return fail(t("rsvpReason.playerProfileMissing"), 404);
+  if (typeof currentPlayerId !== "number" || !Number.isFinite(currentPlayerId)) {
+    return fail(t("rsvpReason.playerProfileMissing"), 404);
+  }
+  const playerId = currentPlayerId;
 
   const body = (await request.json().catch(() => null)) as { reason?: string } | null;
   const reason = String(body?.reason ?? "").trim().slice(0, 80) || null;
