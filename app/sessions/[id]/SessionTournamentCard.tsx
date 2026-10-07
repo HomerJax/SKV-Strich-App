@@ -158,6 +158,9 @@ export default function SessionTournamentCard({
   const [teamCount, setTeamCount] = useState(3);
   const [setupOpen, setSetupOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
+  const [totalMinutes, setTotalMinutes] = useState(90);
+  const [warmupMinutes, setWarmupMinutes] = useState(10);
+  const [changeMinutes, setChangeMinutes] = useState(1);
   const [data, setData] = useState<TournamentPayload | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -235,8 +238,15 @@ export default function SessionTournamentCard({
     }
   }
 
+  const gamesPerRound = (teamCount * (teamCount - 1)) / 2;
+  const usableMinutes = Math.max(0, totalMinutes - warmupMinutes);
+  const maxGames = Math.max(0, Math.floor((usableMinutes + changeMinutes) / (matchMinutes + changeMinutes)));
+  const suggestedRounds = Math.max(1, Math.min(12, Math.floor(maxGames / gamesPerRound)));
+  const plannedGames = gamesPerRound * suggestedRounds;
+  const plannedMinutes = warmupMinutes + plannedGames * matchMinutes + Math.max(0, plannedGames - 1) * changeMinutes;
+
   async function setup() {
-    const next = await action({ intent: "setup", teamCount, matchMinutes });
+    const next = await action({ intent: "setup", teamCount, matchMinutes, rounds: suggestedRounds });
     if (next) onActivated?.();
   }
 
@@ -309,8 +319,33 @@ export default function SessionTournamentCard({
           </label>
         </div>
 
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <label className="text-xs font-bold text-slate-600">
+            Gesamtzeit
+            <input type="number" min={15} max={240} value={totalMinutes} onChange={(e) => setTotalMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />
+          </label>
+          <label className="text-xs font-bold text-slate-600">
+            Warm-up
+            <input type="number" min={0} max={60} value={warmupMinutes} onChange={(e) => setWarmupMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />
+          </label>
+          <label className="text-xs font-bold text-slate-600">
+            Wechsel
+            <input type="number" min={0} max={10} value={changeMinutes} onChange={(e) => setChangeMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />
+          </label>
+        </div>
+
+        <div className="mt-3 rounded-2xl bg-cyan-50 p-3">
+          <div className="text-xs font-black text-cyan-900">strikr Zeitplan</div>
+          <div className="mt-1 text-sm font-black text-slate-950">
+            {teamCount} Teams · {plannedGames} Spiele · {matchMinutes} Min. · {suggestedRounds}× jeder gegen jeden
+          </div>
+          <div className="mt-1 text-xs font-semibold text-slate-600">
+            ca. {plannedMinutes} von {totalMinutes} Min. belegt · {Math.max(0, totalMinutes - plannedMinutes)} Min. Puffer
+          </div>
+        </div>
+
         <div className="mt-3 text-xs font-semibold text-slate-500">
-          Aktuell anwesend: {presentCount}. Die Teams werden anhand Spieleranzahl und Stärke verteilt.
+          Aktuell anwesend: {presentCount}. Die Teams werden anhand Spieleranzahl und Stärke verteilt. Wertung: 3 Punkte Sieg · 1 Punkt Remis · 0 Niederlage.
         </div>
 
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
@@ -364,6 +399,7 @@ export default function SessionTournamentCard({
               intent: "regenerate",
               teamCount: config?.tournament_team_count ?? teamCount,
               matchMinutes: config?.tournament_match_minutes ?? matchMinutes,
+              rounds: Math.max(1, Math.round(matches.length / Math.max(1, ((data?.teams.length ?? teamCount) * ((data?.teams.length ?? teamCount) - 1)) / 2))),
             })}
             className="mt-3 rounded-xl border border-cyan-200 bg-white px-3 py-2 text-xs font-black text-cyan-800 disabled:opacity-40"
           >
