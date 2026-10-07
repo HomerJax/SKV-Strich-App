@@ -18,25 +18,18 @@ export async function POST(
   const access = await requireSessionAccess(sessionId);
   if ("error" in access) return fail(access.error ?? t("sessionCommon.unknownError"), access.status);
 
-  const { adminSupabase, clubId, currentUserEmail } = access;
-  if (!currentUserEmail) return fail(t("rsvpReason.userResolveFailed"), 401);
+  const { adminSupabase, clubId, currentPlayerId } = access;
+  const playerId = Number(currentPlayerId);
+  if (!Number.isFinite(playerId)) return fail(t("rsvpReason.playerProfileMissing"), 404);
 
   const body = (await request.json().catch(() => null)) as { reason?: string } | null;
   const reason = String(body?.reason ?? "").trim().slice(0, 80) || null;
-
-  const { data: player, error: playerError } = await adminSupabase
-    .from("players")
-    .select("id")
-    .eq("club_id", clubId)
-    .eq("email", currentUserEmail)
-    .maybeSingle();
-  if (playerError || !player) return fail(t("rsvpReason.playerProfileMissing"), 404);
 
   const { data: rsvp, error: rsvpLoadError } = await adminSupabase
     .from("session_rsvps")
     .select("status")
     .eq("session_id", sessionId)
-    .eq("player_id", player.id)
+    .eq("player_id", playerId)
     .maybeSingle();
   if (rsvpLoadError) return fail(t("rsvpReason.loadFailed", { error: rsvpLoadError.message }), 500);
   if (rsvp?.status !== "out") return fail(t("rsvpReason.outOnly"), 400);
@@ -45,7 +38,7 @@ export async function POST(
     .from("session_rsvps")
     .update({ reason, updated_at: new Date().toISOString() })
     .eq("session_id", sessionId)
-    .eq("player_id", player.id)
+    .eq("player_id", playerId)
     .eq("club_id", clubId);
   if (error) return fail(t("rsvpReason.saveFailed", { error: error.message }), 500);
 
