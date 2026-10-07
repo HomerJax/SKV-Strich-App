@@ -46,7 +46,7 @@ function parseIntSafe(value: unknown, fallback: number) {
 
 function canManage(access: Awaited<ReturnType<typeof requireSessionAccess>>) {
   if ("error" in access) return false;
-  return access.isPowerUser || canManageClub(access.membership.role);
+  return canManageClub({ isPowerUser: access.isPowerUser, role: access.membership.role });
 }
 
 async function loadTournament(access: Exclude<Awaited<ReturnType<typeof requireSessionAccess>>, { error: string }>, sessionId: number) {
