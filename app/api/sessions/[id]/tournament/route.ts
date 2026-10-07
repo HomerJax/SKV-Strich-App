@@ -134,8 +134,20 @@ const TOURNAMENT_TEAM_NAME_SETS = [
   ["Keine Wechsel","Alle Spielen","Einer Fehlt","Wer Ist Tor","Nächster Rein","Zeit Ist Um"],
 ] as const;
 
-function tournamentTeamNames(teamCount: number) {
-  const set = TOURNAMENT_TEAM_NAME_SETS[Math.floor(Math.random() * TOURNAMENT_TEAM_NAME_SETS.length)];
+const TOURNAMENT_TEAM_NAME_GENRES: Record<string, readonly (readonly string[])[]> = {
+  fussball: TOURNAMENT_TEAM_NAME_SETS.slice(0, 13),
+  tiere: TOURNAMENT_TEAM_NAME_SETS.slice(13, 15).concat(TOURNAMENT_TEAM_NAME_SETS.slice(62, 69)),
+  bier: TOURNAMENT_TEAM_NAME_SETS.slice(15, 16).concat(TOURNAMENT_TEAM_NAME_SETS.slice(34, 35), TOURNAMENT_TEAM_NAME_SETS.slice(47, 49)),
+  schwaebisch: TOURNAMENT_TEAM_NAME_SETS.slice(8, 9).concat(TOURNAMENT_TEAM_NAME_SETS.slice(32, 34)),
+  it: TOURNAMENT_TEAM_NAME_SETS.slice(18, 20).concat(TOURNAMENT_TEAM_NAME_SETS.slice(53, 59)),
+  alte_herren: TOURNAMENT_TEAM_NAME_SETS.slice(35, 42),
+  essen: TOURNAMENT_TEAM_NAME_SETS.slice(22, 24).concat(TOURNAMENT_TEAM_NAME_SETS.slice(31, 33), TOURNAMENT_TEAM_NAME_SETS.slice(75, 79)),
+  bescheuert: TOURNAMENT_TEAM_NAME_SETS.slice(24, 31).concat(TOURNAMENT_TEAM_NAME_SETS.slice(42, 47), TOURNAMENT_TEAM_NAME_SETS.slice(91)),
+};
+
+function tournamentTeamNames(teamCount: number, genre = "random") {
+  const pool = genre === "random" ? TOURNAMENT_TEAM_NAME_SETS : (TOURNAMENT_TEAM_NAME_GENRES[genre] ?? TOURNAMENT_TEAM_NAME_SETS);
+  const set = pool[Math.floor(Math.random() * pool.length)];
   return Array.from({ length: teamCount }, (_, index) => set[index] ?? `Team ${index + 1}`);
 }
 
@@ -246,6 +258,7 @@ async function replaceTournamentTeams(
   teamCount: number,
   rounds: number,
   gameCount?: number,
+  nameGenre = "random",
 ) {
   const { adminSupabase, clubId } = access;
 
@@ -302,7 +315,7 @@ async function replaceTournamentTeams(
     if (deleteTeamsError) throw new Error(deleteTeamsError.message);
   }
 
-  const generatedTeamNames = tournamentTeamNames(teamCount);
+  const generatedTeamNames = tournamentTeamNames(teamCount, nameGenre);
 
   const { data: createdTeamsData, error: createdTeamsError } = await adminSupabase
     .from("teams")
@@ -439,6 +452,8 @@ export async function POST(
       const matchMinutes = Math.max(1, Math.min(60, parseIntSafe(payload.matchMinutes, 8)));
       const rounds = Math.max(1, Math.min(12, parseIntSafe(payload.rounds, 2)));
       const gameCount = Math.max(0, Math.min(200, parseIntSafe(payload.gameCount, 0)));
+      const requestedGenre = String(payload.nameGenre ?? "random");
+      const nameGenre = requestedGenre === "random" || Object.prototype.hasOwnProperty.call(TOURNAMENT_TEAM_NAME_GENRES, requestedGenre) ? requestedGenre : "random";
 
       const { data: existingResults, error: existingResultsError } = await access.adminSupabase
         .from("results")
@@ -462,7 +477,7 @@ export async function POST(
 
       if (clearMatchesError) throw new Error(clearMatchesError.message);
 
-      await replaceTournamentTeams(access, sessionId, teamCount, rounds, gameCount || undefined);
+      await replaceTournamentTeams(access, sessionId, teamCount, rounds, gameCount || undefined, nameGenre);
 
       const { error: sessionUpdateError } = await access.adminSupabase
         .from("sessions")
