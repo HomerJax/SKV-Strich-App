@@ -157,6 +157,7 @@ export default function SessionTournamentCard({
 }: Props) {
   const [playersPerTeam, setPlayersPerTeam] = useState(5);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
   const [totalMinutes, setTotalMinutes] = useState(90);
   const [warmupMinutes, setWarmupMinutes] = useState(10);
@@ -288,82 +289,53 @@ export default function SessionTournamentCard({
 
         {setupOpen ? (
           <div className="mt-4 border-t border-slate-100 pt-4">
-            <p className="text-sm leading-6 text-slate-600">
-              Mehrere ausgeglichene Teams, automatischer Spielplan und Live-Tabelle.
-              Erst mit „Turniermodus starten“ wird diese Session umgestellt.
-            </p>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <label className="text-xs font-bold text-slate-600">
-            Spieler pro Team
-            <select
-              value={playersPerTeam}
-              onChange={(event) => setPlayersPerTeam(Number(event.target.value))}
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950"
-            >
-              {[3, 4, 5, 6, 7, 8].map((count) => (
-                <option key={count} value={count}>{count}</option>
-              ))}
-            </select>
-            <span className="mt-1 block text-[10px] font-semibold text-slate-400">strikr berechnet daraus automatisch die Teamanzahl.</span>
-          </label>
-          <label className="text-xs font-bold text-slate-600">
-            Spielzeit
-            <div className="mt-1 flex items-center rounded-xl border border-slate-200 bg-white">
-              <input
-                type="number"
-                min={1}
-                max={60}
-                value={matchMinutes}
-                onChange={(event) => setMatchMinutes(Number(event.target.value))}
-                className="min-w-0 flex-1 rounded-xl px-3 py-2 text-sm font-black text-slate-950 outline-none"
-              />
-              <span className="pr-3 text-xs font-bold text-slate-400">Min.</span>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Teilnehmer</div>
+              <div className="mt-1 text-xl font-black text-slate-950">${presentCount} Zusagen / anwesend</div>
+              <div className="mt-1 text-xs font-semibold text-slate-500">strikr nutzt eure Zusagen und die bestätigte Anwesenheit für die Planung.</div>
             </div>
-          </label>
-        </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <label className="text-xs font-bold text-slate-600">
-            Gesamtzeit
-            <input type="number" min={15} max={240} value={totalMinutes} onChange={(e) => setTotalMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />
-          </label>
-          <label className="text-xs font-bold text-slate-600">
-            Warm-up
-            <input type="number" min={0} max={60} value={warmupMinutes} onChange={(e) => setWarmupMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />
-          </label>
-          <label className="text-xs font-bold text-slate-600">
-            Pause zwischen Spielen
-            <input type="number" min={0} max={10} value={changeMinutes} onChange={(e) => setChangeMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />
-            <span className="mt-1 block text-[10px] font-semibold leading-4 text-slate-400">Zeit nach Abpfiff: Teams wechseln, Ergebnis eintragen, nächstes Spiel starten.</span>
-          </label>
-        </div>
+            <label className="mt-4 block text-xs font-bold text-slate-600">
+              Wie lange habt ihr insgesamt Zeit?
+              <div className="mt-1 flex items-center rounded-xl border border-slate-200 bg-white">
+                <input type="number" min={15} max={240} value={totalMinutes} onChange={(e) => setTotalMinutes(Number(e.target.value))} className="min-w-0 flex-1 rounded-xl px-3 py-2.5 text-base font-black text-slate-950 outline-none" />
+                <span className="pr-3 text-xs font-bold text-slate-400">Min.</span>
+              </div>
+            </label>
 
-        <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div><div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">strikr empfiehlt</div><div className="mt-1 text-lg font-black text-slate-950">{teamCount} Teams · je {minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spieler</div><div className="mt-0.5 text-xs font-semibold text-slate-500">{plannedGames} Spiele · {matchMinutes} Min. pro Spiel</div></div>
-            <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-cyan-800">{Math.max(0, totalMinutes - plannedMinutes)} Min. Puffer</div>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{teamCount}</div><div className="text-[10px] font-bold text-slate-400">Teams</div></div>
-            <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{suggestedRounds}×</div><div className="text-[10px] font-bold text-slate-400">gegeneinander</div></div>
-            <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{plannedMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. gesamt</div></div>
-          </div>
-        </div>
-        <div className="mt-3 rounded-2xl bg-slate-50 p-4">
-          <div className="text-xs font-black text-slate-950">So läuft euer Turnier ab</div>
-          <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-600">
-            Bei {presentCount} anwesenden Spielern empfiehlt strikr {teamCount} möglichst ausgeglichene Teams mit je {minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spielern und erstellt automatisch den Spielplan. Jedes Team spielt {suggestedRounds}× gegen jedes andere Team – insgesamt {plannedGames} Spiele à {matchMinutes} Minuten.
-          </p>
-          <div className="mt-3 grid gap-2">
-            <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">⏱ Spieluhr für jedes Spiel</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Spiel starten, pausieren und zurücksetzen – direkt beim nächsten Match.</div></div>
-            <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">📊 Live-Tabelle</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Nach jedem Ergebnis aktualisiert strikr Punkte, Tore und Platzierung automatisch.</div></div>
-            <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">🔄 {changeMinutes} Min. Pause zwischen Spielen</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Zeit für Teamwechsel, Ergebnis eintragen und das nächste Spiel starten.</div></div>
-          </div>
-          <p className="mt-3 text-[11px] font-semibold leading-5 text-slate-500">Wertung: 3 Punkte Sieg · 1 Punkt Remis · bei Gleichstand Tordifferenz → erzielte Tore.</p>
-        </div>
+            <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
+              <div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">strikr empfiehlt</div>
+              <div className="mt-1 text-lg font-black text-slate-950">${teamCount} Teams · je ${minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spieler</div>
+              <div className="mt-1 text-xs font-semibold text-slate-600">${plannedGames} Spiele · ${matchMinutes} Min. pro Spiel · ${suggestedRounds}× gegeneinander</div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">${warmupMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. Warm-up</div></div>
+                <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">${changeMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. Pause</div></div>
+                <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">${Math.max(0, totalMinutes - plannedMinutes)}</div><div className="text-[10px] font-bold text-slate-400">Min. Puffer</div></div>
+              </div>
+            </div>
 
+            <button type="button" onClick={() => setSettingsOpen((current) => !current)} className="mt-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs font-black text-slate-700">
+              <span>${settingsOpen ? "Einstellungen schließen" : "Empfehlung anpassen"}</span><span>${settingsOpen ? "−" : "+"}</span>
+            </button>
 
+            ${settingsOpen ? (
+              <div className="mt-3 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3">
+                <label className="text-xs font-bold text-slate-600">Spieler pro Team<select value={playersPerTeam} onChange={(e) => setPlayersPerTeam(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950">{[3,4,5,6,7,8].map((count) => <option key={count} value={count}>{count}</option>)}</select></label>
+                <label className="text-xs font-bold text-slate-600">Spielzeit<input type="number" min={1} max={60} value={matchMinutes} onChange={(e) => setMatchMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" /></label>
+                <label className="text-xs font-bold text-slate-600">Warm-up<input type="number" min={0} max={60} value={warmupMinutes} onChange={(e) => setWarmupMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" /></label>
+                <label className="text-xs font-bold text-slate-600">Pause zwischen Spielen<input type="number" min={0} max={10} value={changeMinutes} onChange={(e) => setChangeMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" /></label>
+              </div>
+            ) : null}
+
+            <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+              <div className="text-xs font-black text-slate-950">So sieht dein Turnier aus</div>
+              <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-600">${presentCount} Spieler werden automatisch in ${teamCount} möglichst ausgeglichene Teams aufgeteilt. strikr erstellt den kompletten Spielplan.</p>
+              <div className="mt-3 grid gap-2">
+                <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">⏱ Spieluhr für jedes Spiel</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Direkt am jeweiligen Match starten, pausieren und zurücksetzen.</div></div>
+                <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">📊 Live-Tabelle</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Jedes Ergebnis aktualisiert Punkte, Tore und Platzierung automatisch.</div></div>
+              </div>
+              <p className="mt-3 text-[11px] font-semibold leading-5 text-slate-500">Wertung: 3 Punkte Sieg · 1 Punkt Remis · Tordifferenz → erzielte Tore.</p>
+            </div>
 
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
