@@ -329,7 +329,14 @@ export default function SessionTournamentCard({
 
             <div className="mt-4 rounded-2xl bg-slate-50 p-4">
               <div className="text-xs font-black text-slate-950">So sieht dein Turnier aus</div>
-              <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-600">Ihr spielt insgesamt {totalMinutes} Minuten. Ein Spiel dauert {matchMinutes} Minuten – das könnt ihr direkt über die Spieluhr steuern. Danach habt ihr {changeMinutes} {changeMinutes === 1 ? "Minute" : "Minuten"} Zeit, das Feld zu wechseln, das Ergebnis einzutragen und das neue Spiel zu starten. Eure {presentCount} Spieler werden automatisch in {teamCount} möglichst ausgeglichene Teams aufgeteilt und strikr erstellt den kompletten Spielplan.</p>
+              <div className="mt-2 space-y-1.5 text-xs font-semibold text-slate-600">
+                <div>👥 <span className="font-black text-slate-950">{presentCount} Spieler</span> → {teamCount} ausgeglichene Teams à {minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spieler</div>
+                <div>🕒 <span className="font-black text-slate-950">{totalMinutes} Min.</span> Gesamtzeit</div>
+                <div>⚽ <span className="font-black text-slate-950">{plannedGames} Spiele</span> · jedes Team {suggestedRounds}× gegen jedes andere</div>
+                <div>⏱ <span className="font-black text-slate-950">{matchMinutes} Min.</span> pro Spiel · steuerbar über die Spieluhr</div>
+                <div>🔄 <span className="font-black text-slate-950">{changeMinutes} {changeMinutes === 1 ? "Min." : "Min."}</span> Pause für Feldwechsel + Ergebnis</div>
+                <div>📋 Spielplan wird automatisch von strikr erstellt</div>
+              </div>
               <div className="mt-3 grid gap-2">
                 <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">⏱ Spieluhr für jedes Spiel</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Direkt am jeweiligen Match starten, pausieren und zurücksetzen.</div></div>
                 <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">📊 Live-Tabelle</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Jedes Ergebnis aktualisiert Punkte, Tore und Platzierung automatisch.</div></div>
