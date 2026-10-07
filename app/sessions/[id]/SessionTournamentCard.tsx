@@ -348,8 +348,14 @@ export default function SessionTournamentCard({
         <div className="mt-3 rounded-2xl bg-slate-50 p-4">
           <div className="text-xs font-black text-slate-950">So läuft euer Turnier ab</div>
           <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-600">
-            strikr teilt die {presentCount} anwesenden Spieler in {teamCount} möglichst ausgeglichene Teams. Jedes Team spielt {suggestedRounds}× gegen jedes andere Team. Es entstehen {plannedGames} Spiele à {matchMinutes} Minuten. Nach jedem Spiel sind {changeMinutes} Min. Pause eingeplant – zum Teams wechseln, Ergebnis eintragen und das nächste Spiel starten. Die Tabelle aktualisiert sich automatisch: 3 Punkte für einen Sieg, 1 für ein Remis. Bei Gleichstand entscheiden Tordifferenz und danach erzielte Tore.
+            strikr teilt die {presentCount} anwesenden Spieler in {teamCount} möglichst ausgeglichene Teams und erstellt automatisch den Spielplan. Jedes Team spielt {suggestedRounds}× gegen jedes andere Team – insgesamt {plannedGames} Spiele à {matchMinutes} Minuten.
           </p>
+          <div className="mt-3 grid gap-2">
+            <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">⏱ Spieluhr für jedes Spiel</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Spiel starten, pausieren und zurücksetzen – direkt beim nächsten Match.</div></div>
+            <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">📊 Live-Tabelle</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Nach jedem Ergebnis aktualisiert strikr Punkte, Tore und Platzierung automatisch.</div></div>
+            <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">🔄 {changeMinutes} Min. Pause zwischen Spielen</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Zeit für Teamwechsel, Ergebnis eintragen und das nächste Spiel starten.</div></div>
+          </div>
+          <p className="mt-3 text-[11px] font-semibold leading-5 text-slate-500">Wertung: 3 Punkte Sieg · 1 Punkt Remis · bei Gleichstand Tordifferenz → erzielte Tore.</p>
         </div>
 
 
