@@ -90,7 +90,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .maybeSingle(),
     supabase
       .from("sessions")
-      .select("id, date, notes, type, winner_photo_path, start_time, rsvp_deadline_minutes_before, series_id, series_index, club_id")
+      .select("id, date, notes, type, winner_photo_path, start_time, rsvp_deadline_minutes_before, series_id, series_index, club_id, session_mode, tournament_team_count, tournament_match_minutes, tournament_winner_team_id, tournament_completed_at")
       .eq("id", sessionId)
       .eq("club_id", clubId)
       .single(),

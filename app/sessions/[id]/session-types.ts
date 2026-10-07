@@ -42,6 +42,11 @@ export type SessionRow = {
   timer_end_time?: string | null;
   timer_halftime_enabled?: boolean | null;
   timer_alarm_sound?: GameTimerAlarmSound | null;
+  session_mode?: "normal" | "tournament" | null;
+  tournament_team_count?: number | null;
+  tournament_match_minutes?: number | null;
+  tournament_winner_team_id?: number | null;
+  tournament_completed_at?: string | null;
 };
 
 export type SessionGameResult = {
