@@ -155,7 +155,7 @@ export default function SessionTournamentCard({
   hasNormalResult,
   onActivated,
 }: Props) {
-  const [teamCount, setTeamCount] = useState(3);
+  const [playersPerTeam, setPlayersPerTeam] = useState(5);
   const [setupOpen, setSetupOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
   const [totalMinutes, setTotalMinutes] = useState(90);
@@ -238,6 +238,9 @@ export default function SessionTournamentCard({
     }
   }
 
+  const teamCount = Math.max(2, Math.min(6, Math.round(presentCount / Math.max(2, playersPerTeam))));
+  const minTeamSize = Math.floor(presentCount / teamCount);
+  const maxTeamSize = Math.ceil(presentCount / teamCount);
   const gamesPerRound = (teamCount * (teamCount - 1)) / 2;
   const usableMinutes = Math.max(0, totalMinutes - warmupMinutes);
   const maxGames = Math.max(0, Math.floor((usableMinutes + changeMinutes) / (matchMinutes + changeMinutes)));
@@ -292,16 +295,17 @@ export default function SessionTournamentCard({
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <label className="text-xs font-bold text-slate-600">
-            Teams
+            Spieler pro Team
             <select
-              value={teamCount}
-              onChange={(event) => setTeamCount(Number(event.target.value))}
+              value={playersPerTeam}
+              onChange={(event) => setPlayersPerTeam(Number(event.target.value))}
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950"
             >
-              {[2, 3, 4, 5, 6].map((count) => (
+              {[3, 4, 5, 6, 7, 8].map((count) => (
                 <option key={count} value={count}>{count}</option>
               ))}
             </select>
+            <span className="mt-1 block text-[10px] font-semibold text-slate-400">strikr berechnet daraus automatisch die Teamanzahl.</span>
           </label>
           <label className="text-xs font-bold text-slate-600">
             Spielzeit
@@ -330,13 +334,14 @@ export default function SessionTournamentCard({
           </label>
           <label className="text-xs font-bold text-slate-600">
             Pause zwischen Spielen
-            <input type="number" min={0} max={10} value={changeMinutes} onChange={(e) => setChangeMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />\n            <span className="mt-1 block text-[10px] font-semibold leading-4 text-slate-400">Zeit nach Abpfiff: Teams wechseln, Ergebnis eintragen, nächstes Spiel starten.</span>
+            <input type="number" min={0} max={10} value={changeMinutes} onChange={(e) => setChangeMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />
+            <span className="mt-1 block text-[10px] font-semibold leading-4 text-slate-400">Zeit nach Abpfiff: Teams wechseln, Ergebnis eintragen, nächstes Spiel starten.</span>
           </label>
         </div>
 
         <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
           <div className="flex items-center justify-between gap-3">
-            <div><div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">Dein Turnier</div><div className="mt-1 text-lg font-black text-slate-950">{plannedGames} Spiele · {matchMinutes} Min.</div></div>
+            <div><div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">strikr empfiehlt</div><div className="mt-1 text-lg font-black text-slate-950">{teamCount} Teams · je {minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spieler</div><div className="mt-0.5 text-xs font-semibold text-slate-500">{plannedGames} Spiele · {matchMinutes} Min. pro Spiel</div></div>
             <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-cyan-800">{Math.max(0, totalMinutes - plannedMinutes)} Min. Puffer</div>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -348,7 +353,7 @@ export default function SessionTournamentCard({
         <div className="mt-3 rounded-2xl bg-slate-50 p-4">
           <div className="text-xs font-black text-slate-950">So läuft euer Turnier ab</div>
           <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-600">
-            strikr teilt die {presentCount} anwesenden Spieler in {teamCount} möglichst ausgeglichene Teams und erstellt automatisch den Spielplan. Jedes Team spielt {suggestedRounds}× gegen jedes andere Team – insgesamt {plannedGames} Spiele à {matchMinutes} Minuten.
+            Bei {presentCount} anwesenden Spielern empfiehlt strikr {teamCount} möglichst ausgeglichene Teams mit je {minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spielern und erstellt automatisch den Spielplan. Jedes Team spielt {suggestedRounds}× gegen jedes andere Team – insgesamt {plannedGames} Spiele à {matchMinutes} Minuten.
           </p>
           <div className="mt-3 grid gap-2">
             <div className="rounded-xl bg-white p-3"><div className="text-xs font-black text-slate-950">⏱ Spieluhr für jedes Spiel</div><div className="mt-0.5 text-[11px] font-semibold text-slate-500">Spiel starten, pausieren und zurücksetzen – direkt beim nächsten Match.</div></div>
