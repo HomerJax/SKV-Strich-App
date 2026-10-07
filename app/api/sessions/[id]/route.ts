@@ -219,6 +219,8 @@ export async function POST(
         );
       }
 
+      const playerId = currentPlayerId;
+
       const { data: playerData, error: playerError } = await adminSupabase
         .from("players")
         .select("id, first_name, last_name, nickname")
