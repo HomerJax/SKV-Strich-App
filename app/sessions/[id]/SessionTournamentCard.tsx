@@ -212,7 +212,7 @@ export default function SessionTournamentCard({
   );
 
   function teamName(teamId: number) {
-    return teamNameById.get(teamId) ?? `Team {teamId}`;
+    return teamNameById.get(teamId) ?? `Team ${teamId}`;
   }
 
   async function action(payload: Record<string, unknown>) {
@@ -220,7 +220,7 @@ export default function SessionTournamentCard({
     setError(null);
     setMessage(null);
     try {
-      const response = await fetch(`/api/sessions/{sessionId}/tournament`, {
+      const response = await fetch(`/api/sessions/${sessionId}/tournament`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "same-origin",
