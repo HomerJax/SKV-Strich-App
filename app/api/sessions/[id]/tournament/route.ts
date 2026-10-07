@@ -144,6 +144,7 @@ async function replaceTournamentTeams(
   access: Exclude<Awaited<ReturnType<typeof requireSessionAccess>>, { error: string }>,
   sessionId: number,
   teamCount: number,
+  rounds: number,
 ) {
   const { adminSupabase, clubId } = access;
 
@@ -253,7 +254,7 @@ async function replaceTournamentTeams(
 
   if (assignmentError) throw new Error(assignmentError.message);
 
-  const fixtures = buildRoundRobinSchedule(createdTeams.map((team) => team.id), 2);
+  const fixtures = buildRoundRobinSchedule(createdTeams.map((team) => team.id), rounds);
   if (fixtures.length) {
     const { error: fixtureError } = await adminSupabase
       .from("tournament_matches")
@@ -332,6 +333,7 @@ export async function POST(
     if (intent === "setup" || intent === "regenerate") {
       const teamCount = Math.max(2, Math.min(6, parseIntSafe(payload.teamCount, 3)));
       const matchMinutes = Math.max(1, Math.min(60, parseIntSafe(payload.matchMinutes, 8)));
+      const rounds = Math.max(1, Math.min(12, parseIntSafe(payload.rounds, 2)));
 
       const { data: existingResults, error: existingResultsError } = await access.adminSupabase
         .from("results")
@@ -355,7 +357,7 @@ export async function POST(
 
       if (clearMatchesError) throw new Error(clearMatchesError.message);
 
-      await replaceTournamentTeams(access, sessionId, teamCount);
+      await replaceTournamentTeams(access, sessionId, teamCount, rounds);
 
       const { error: sessionUpdateError } = await access.adminSupabase
         .from("sessions")
