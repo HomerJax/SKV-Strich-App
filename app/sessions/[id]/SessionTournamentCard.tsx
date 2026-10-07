@@ -157,6 +157,17 @@ export default function SessionTournamentCard({
 }: Props) {
   const [playersPerTeam, setPlayersPerTeam] = useState(5);
   const [nameGenre, setNameGenre] = useState("random");
+  const nameGenreLabels: Record<string, string> = {
+    random: "🎲 Zufällig",
+    fussball: "⚽ Fußball",
+    bier: "🍺 Bier & Kabine",
+    bescheuert: "😂 Bescheuert",
+    tiere: "🐯 Tiere",
+    schwaebisch: "🥨 Schwäbisch",
+    it: "💻 IT & Büro",
+    alte_herren: "👴 Alte Herren",
+    essen: "🍔 Essen",
+  };
   const [setupOpen, setSetupOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
@@ -310,6 +321,7 @@ export default function SessionTournamentCard({
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">strikr empfiehlt</div>
               <div className="mt-1 text-lg font-black text-slate-950">{teamCount} Teams · je {minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spieler</div>
               <div className="mt-1 text-xs font-semibold text-slate-600">{plannedGames} Spiele · {matchMinutes} Min. pro Spiel · Zeit optimal genutzt</div>
+              <div className="mt-2 rounded-xl bg-white/80 px-3 py-2 text-xs font-bold text-slate-600">🏷️ Teamnamen: <span className="font-black text-slate-950">{nameGenreLabels[nameGenre] ?? "🎲 Zufällig"}</span> <span className="font-semibold text-slate-400">· später frei änderbar</span></div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{warmupMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. Warm-up</div></div>
                 <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{changeMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. Pause</div></div>
