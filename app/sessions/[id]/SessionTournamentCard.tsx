@@ -329,24 +329,30 @@ export default function SessionTournamentCard({
             <input type="number" min={0} max={60} value={warmupMinutes} onChange={(e) => setWarmupMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />
           </label>
           <label className="text-xs font-bold text-slate-600">
-            Wechsel
-            <input type="number" min={0} max={10} value={changeMinutes} onChange={(e) => setChangeMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />
+            Pause zwischen Spielen
+            <input type="number" min={0} max={10} value={changeMinutes} onChange={(e) => setChangeMinutes(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950" />\n            <span className="mt-1 block text-[10px] font-semibold leading-4 text-slate-400">Zeit nach Abpfiff: Teams wechseln, Ergebnis eintragen, nächstes Spiel starten.</span>
           </label>
         </div>
 
-        <div className="mt-3 rounded-2xl bg-cyan-50 p-3">
-          <div className="text-xs font-black text-cyan-900">strikr Zeitplan</div>
-          <div className="mt-1 text-sm font-black text-slate-950">
-            {teamCount} Teams · {plannedGames} Spiele · {matchMinutes} Min. · {suggestedRounds}× jeder gegen jeden
+        <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div><div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">Dein Turnier</div><div className="mt-1 text-lg font-black text-slate-950">{plannedGames} Spiele · {matchMinutes} Min.</div></div>
+            <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-cyan-800">{Math.max(0, totalMinutes - plannedMinutes)} Min. Puffer</div>
           </div>
-          <div className="mt-1 text-xs font-semibold text-slate-600">
-            ca. {plannedMinutes} von {totalMinutes} Min. belegt · {Math.max(0, totalMinutes - plannedMinutes)} Min. Puffer
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{teamCount}</div><div className="text-[10px] font-bold text-slate-400">Teams</div></div>
+            <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{suggestedRounds}×</div><div className="text-[10px] font-bold text-slate-400">gegeneinander</div></div>
+            <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{plannedMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. gesamt</div></div>
           </div>
+        </div>
+        <div className="mt-3 rounded-2xl bg-slate-50 p-4">
+          <div className="text-xs font-black text-slate-950">So läuft euer Turnier ab</div>
+          <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-600">
+            strikr teilt die {presentCount} anwesenden Spieler in {teamCount} möglichst ausgeglichene Teams. Jedes Team spielt {suggestedRounds}× gegen jedes andere Team. Es entstehen {plannedGames} Spiele à {matchMinutes} Minuten. Nach jedem Spiel sind {changeMinutes} Min. Pause eingeplant – zum Teams wechseln, Ergebnis eintragen und das nächste Spiel starten. Die Tabelle aktualisiert sich automatisch: 3 Punkte für einen Sieg, 1 für ein Remis. Bei Gleichstand entscheiden Tordifferenz und danach erzielte Tore.
+          </p>
         </div>
 
-        <div className="mt-3 text-xs font-semibold text-slate-500">
-          Aktuell anwesend: {presentCount}. Die Teams werden anhand Spieleranzahl und Stärke verteilt. Wertung: 3 Punkte Sieg · 1 Punkt Remis · 0 Niederlage.
-        </div>
+
 
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
