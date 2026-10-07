@@ -12,6 +12,11 @@ export type SessionRow = {
   winner_photo_path: string | null;
   start_time: string | null;
   rsvp_deadline_minutes_before: number | null;
+  session_mode: "normal" | "tournament" | null;
+  tournament_team_count: number | null;
+  tournament_match_minutes: number | null;
+  tournament_winner_team_id: number | null;
+  tournament_completed_at: string | null;
   club_id: string;
 };
 
@@ -77,7 +82,7 @@ export async function requireSessionAccess(sessionId: number) {
 
   const { data: sessionData, error: sessionError } = await userSupabase
     .from("sessions")
-    .select("id, date, notes, type, winner_photo_path, start_time, rsvp_deadline_minutes_before, club_id")
+    .select("id, date, notes, type, winner_photo_path, start_time, rsvp_deadline_minutes_before, session_mode, tournament_team_count, tournament_match_minutes, tournament_winner_team_id, tournament_completed_at, club_id")
     .eq("id", sessionId)
     .eq("club_id", ctx.activeClubId)
     .maybeSingle();
