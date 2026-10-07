@@ -8,6 +8,7 @@ import SessionWinnerPhotoCard from "./SessionWinnerPhotoCard";
 import SessionScoreCard from "./SessionScoreCard";
 import SessionMvpCard from "./SessionMvpCard";
 import SessionGameTimerLoader from "./SessionGameTimerLoader";
+import SessionTournamentCard from "./SessionTournamentCard";
 import SessionEndModal from "@/components/SessionEndModal";
 import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionGameResult, SessionRow, TeamMap } from "./session-types";
@@ -212,6 +213,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   }
 
   const currentSessionType = session.type === "event" ? "event" : "training";
+  const isTournamentMode = session.session_mode === "tournament";
   const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
   const rsvpDeadlineEpochMs = getSessionDeadlineEpochMs({
     date: session.date,
@@ -224,6 +226,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   if (isEventSession) {
     activeSection = "attendance";
+  } else if (isTournamentMode) {
+    activeSection = attendanceDirty || presentPlayers.length < 2 ? "attendance" : null;
   } else if (attendanceDirty || presentPlayers.length < 2) {
     activeSection = "attendance";
   } else if (!teamsComplete || !teamsConfirmed) {
@@ -467,26 +471,38 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
 
         {renderWorkflowSection("attendance", renderAttendance())}
-        {allowTeams ? renderWorkflowSection("teams", renderTeams()) : null}
 
-        {isTrainingSession && !hasResult ? (
+        {isTrainingSession ? (
+          <SessionTournamentCard
+            sessionId={props.sessionId}
+            enabled={isTournamentMode}
+            isAdmin={isAdmin}
+            presentCount={presentPlayers.length}
+            hasNormalResult={hasResult && !isTournamentMode}
+            onActivated={() => router.refresh()}
+          />
+        ) : null}
+
+        {!isTournamentMode && allowTeams ? renderWorkflowSection("teams", renderTeams()) : null}
+
+        {!isTournamentMode && isTrainingSession && !hasResult ? (
           <SessionGameTimerLoader sessionId={props.sessionId} />
         ) : null}
 
-        {allowResult ? renderWorkflowSection("result", renderResult()) : null}
-        {allowWinnerPhoto
+        {!isTournamentMode && allowResult ? renderWorkflowSection("result", renderResult()) : null}
+        {!isTournamentMode && allowWinnerPhoto
           ? renderWorkflowSection("photo", renderWinnerPhoto())
           : null}
 
-        {hasResult && !dayWinnerSide ? (
+        {!isTournamentMode && hasResult && !dayWinnerSide ? (
           <NoticeCard tone="default">
             {t("sessionDetail.noDayWinner", { scoreA: scoreAValue, scoreB: scoreBValue })}
           </NoticeCard>
         ) : null}
 
-        {showMvpSection ? renderWorkflowSection("mvp", renderMvp()) : null}
+        {!isTournamentMode && showMvpSection ? renderWorkflowSection("mvp", renderMvp()) : null}
 
-        {isTrainingSession && hasResult && !activeSection ? (
+        {!isTournamentMode && isTrainingSession && hasResult && !activeSection ? (
           <NoticeCard tone="default">
             {t("sessionDetail.savedMoreGames")}
           </NoticeCard>
@@ -499,7 +515,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         ) : null}
       </div>
 
-      {allowResult ? (
+      {!isTournamentMode && allowResult ? (
         <SessionEndModal
           open={showSessionEndModal}
           onClose={() => setShowSessionEndModal(false)}
