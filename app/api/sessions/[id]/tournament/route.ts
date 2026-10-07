@@ -39,6 +39,44 @@ function playerLabel(player: PlayerRow) {
   return fullName || player.name?.trim() || `#${player.id}`;
 }
 
+const TOURNAMENT_TEAM_NAME_SETS = [
+  ["Wadenbeißer","Rasenotter","Platzhirsche","Flügelstürmer","Grätschenfüchse","Strafraumhaie"],
+  ["VARbrecher","Pressingmaschinen","Restverteidigung","Abseits GmbH","Expected Goats","Gegenpressing AG"],
+  ["Bierathleten","Hopfenhelden","Kabinenkönige","Durstlöscher","Dritte Halbzeit","Zapfhahn United"],
+  ["Alpakattacke","Rasenraketen","Kampfdackel","Turboenten","Flamingo FC","Pausenpandas"],
+  ["Tiki Taka Tanten","Grätsch Gatsby","Realitätsverlust","FC Fehlpass","Ballverlust Boys","Lattenkracher"],
+  ["Netztester","Pfostenfreunde","Eckfahnenjäger","Kreidefresser","Linienrichter","Tornetzterror"],
+  ["Sprintschnecken","Lauflegenden","Tempobolzer","Wadenwunder","Pulsraketen","Sauerstoffdiebe"],
+  ["Rote Raketen","Blaue Blitze","Goldene Grätschen","Silberfüchse","Schwarze Panther","Weiße Wölfe"],
+  ["Maultaschen Mafia","Spätzle Squad","Kehrwochen Kings","Ländle Legenden","Brezel Boys","Schwabensturm"],
+  ["Captain Chaos","Dribbel Doktoren","Professor Pressing","Taktik Titanen","Flanken Forscher","Pass Professoren"],
+  ["Rasenrebellen","Bolzplatzbande","Käfigkicker","Straßenzauberer","Pöhler Crew","Kunstschützen"],
+  ["Torhungrige","Punktediebe","Seriensieger","Comeback Kids","Underdogs","Favoritenschreck"],
+  ["Adler","Wölfe","Füchse","Bären","Haie","Pumas"],
+  ["Kobras","Piranhas","Büffel","Raben","Luchse","Hornissen"],
+  ["Waschbären","Erdmännchen","Capybaras","Otter","Faultiere","Axolotl"],
+  ["Don Promillo","Elfmeter Amigos","Los Grätschos","Torpedo Tiki-Taka","Athletico Bierbauch","Real Sofa"],
+  ["FC Feierabend","Montagsmaler","Donnerstagshelden","Wochenendprofis","Überstunden United","Gleitzeit City"],
+  ["No Look Pass","One Touch Wonders","Nutmeg Ninjas","Top Bin Boys","Clean Sheet Crew","Golden Goal Gang"],
+  ["Pixelkicker","Bug United","Cache Cowboys","Serverstürmer","404 Defense","Deploy Dortmund"],
+  ["ChatGPTsch","Prompt Piraten","Token Tigers","Bot Bolzer","KI Kicker","Algorithmus Athletic"],
+  ["Mondkicker","Marsmenschen","Saturnstürmer","Kometencrew","Galaxie United","Orbit Rangers"],
+  ["Vollspann Vikings","Grätschen Gladiatoren","Pass Piraten","Dribbel Drachen","Flanken Phantome","Tor Titanen"],
+  ["Gurkenliga","Kartoffel Kicker","Avocado Athletic","Banana Boys","Kiwi Kickers","Melonen Mafia"],
+  ["Espresso Eleven","Cappuccino Crew","Latte Legends","Mokka München","Koffein Kicker","Barista Boys"],
+  ["Socken Schützen","Leibchen Legenden","Stutzenstürmer","Schienbein Schurken","Trikot Titanen","Handtuch Heroes"],
+  ["Kreisliga Kometen","Bolzplatz Bosse","Kabinen Crew","Duschen Dodgers","Harzhelden","Kunstrasen Kings"],
+  ["Panik Pressing","Chaos Kicker","Planlos United","Improvisation FC","Zufallstreffer","Kontrollverlust"],
+  ["Feierbiester","Konfetti Kicker","Disco Dribbler","Bass Bolzer","Dancefloor Defense","Afterparty Athletic"],
+  ["Ninja Nutmegs","Samurai Strikers","Viking Volley","Spartan Squad","Gladiator Goals","Ritter der Raute"],
+  ["Donnerbolzen","Blitzkicker","Sturmtruppe","Wirbelwind","Tornado Team","Orkan Offensive"],
+] as const;
+
+function tournamentTeamNames(teamCount: number) {
+  const set = TOURNAMENT_TEAM_NAME_SETS[Math.floor(Math.random() * TOURNAMENT_TEAM_NAME_SETS.length)];
+  return Array.from({ length: teamCount }, (_, index) => set[index] ?? `Team ${index + 1}`);
+}
+
 function parseIntSafe(value: unknown, fallback: number) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? Math.trunc(numeric) : fallback;
@@ -201,13 +239,12 @@ async function replaceTournamentTeams(
     if (deleteTeamsError) throw new Error(deleteTeamsError.message);
   }
 
-  const { data: createdTeamsData, error: createdTeamsError } = await adminSupabase
-    .from("teams")
+  const generatedTeamNames = tournamentTeamNames(teamCount);\n\n  const { data: createdTeamsData, error: createdTeamsError } = await adminSupabase\n    .from("teams")
     .insert(
       Array.from({ length: teamCount }, (_, index) => ({
         session_id: sessionId,
         club_id: clubId,
-        name: `Team ${index + 1}`,
+        name: generatedTeamNames[index],
       })),
     )
     .select("id,name");
