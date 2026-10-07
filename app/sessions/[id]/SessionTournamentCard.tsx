@@ -156,6 +156,7 @@ export default function SessionTournamentCard({
   onActivated,
 }: Props) {
   const [teamCount, setTeamCount] = useState(3);
+  const [setupOpen, setSetupOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
   const [data, setData] = useState<TournamentPayload | null>(null);
   const [busy, setBusy] = useState(false);
@@ -254,13 +255,30 @@ export default function SessionTournamentCard({
     if (!isAdmin || hasNormalResult) return null;
 
     return (
-      <section className="rounded-[24px] border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-4 shadow-sm">
-        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-700">Session-Modus</div>
-        <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950">Turniermodus</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-600">
-          Mehrere ausgeglichene Teams, automatisch erzeugter Spielplan, 8-Minuten-Matches und Live-Tabelle.
-          In der Karriere zählt am Ende trotzdem nur ein Session-Sieg.
-        </p>
+      <section className="rounded-[20px] border border-slate-200 bg-white p-3 shadow-sm">
+        <button
+          type="button"
+          aria-expanded={setupOpen}
+          onClick={() => setSetupOpen((current) => !current)}
+          className="flex w-full items-center justify-between gap-3 text-left"
+        >
+          <div>
+            <div className="text-sm font-black text-slate-950">🏆 Turniermodus</div>
+            <div className="mt-0.5 text-xs font-semibold text-slate-500">
+              Optional für diese Trainingseinheit
+            </div>
+          </div>
+          <div className={`rounded-full px-3 py-1.5 text-xs font-black ${setupOpen ? "bg-cyan-100 text-cyan-800" : "bg-slate-100 text-slate-600"}`}>
+            {setupOpen ? "An" : "Aus"}
+          </div>
+        </button>
+
+        {setupOpen ? (
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <p className="text-sm leading-6 text-slate-600">
+              Mehrere ausgeglichene Teams, automatischer Spielplan und Live-Tabelle.
+              Erst mit „Turniermodus starten“ wird diese Session umgestellt.
+            </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <label className="text-xs font-bold text-slate-600">
@@ -305,6 +323,8 @@ export default function SessionTournamentCard({
         >
           {busy ? "Turnier wird vorbereitet …" : "Turniermodus starten"}
         </button>
+          </div>
+        ) : null}
       </section>
     );
   }
