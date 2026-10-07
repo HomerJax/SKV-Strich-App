@@ -476,6 +476,42 @@ export async function POST(
       return NextResponse.json({ ok: true, message: "Turnier wurde vorbereitet.", ...tournament });
     }
 
+    if (intent === "reset") {
+      const { data: tournamentTeams, error: teamsError } = await access.adminSupabase
+        .from("teams").select("id").eq("session_id", sessionId).eq("club_id", access.clubId);
+      if (teamsError) throw new Error(teamsError.message);
+      const teamIds = (tournamentTeams ?? []).map((team) => Number(team.id)).filter(Number.isFinite);
+
+      const { error: matchesError } = await access.adminSupabase
+        .from("tournament_matches").delete().eq("session_id", sessionId).eq("club_id", access.clubId);
+      if (matchesError) throw new Error(matchesError.message);
+
+      if (teamIds.length) {
+        const { error: assignmentsError } = await access.adminSupabase.from("team_players").delete().in("team_id", teamIds);
+        if (assignmentsError) throw new Error(assignmentsError.message);
+        const { error: deleteTeamsError } = await access.adminSupabase.from("teams").delete().in("id", teamIds);
+        if (deleteTeamsError) throw new Error(deleteTeamsError.message);
+      }
+
+      if (access.session.tournament_completed_at) {
+        const { error: resultError } = await access.adminSupabase.from("results").delete().eq("session_id", sessionId);
+        if (resultError) throw new Error(resultError.message);
+      }
+
+      const { error: resetError } = await access.adminSupabase.from("sessions").update({
+        session_mode: "normal",
+        tournament_team_count: null,
+        tournament_match_minutes: null,
+        tournament_winner_team_id: null,
+        tournament_completed_at: null,
+        winner_photo_path: null,
+      }).eq("id", sessionId).eq("club_id", access.clubId);
+      if (resetError) throw new Error(resetError.message);
+
+      const tournament = await loadTournament(access, sessionId);
+      return NextResponse.json({ ok: true, message: "Turnier wurde zurückgesetzt.", ...tournament });
+    }
+
     if (intent === "rename_team") {
       const teamId = parseIntSafe(payload.teamId, 0);
       const name = String(payload.name ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
