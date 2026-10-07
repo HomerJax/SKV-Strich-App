@@ -157,7 +157,7 @@ export async function POST(
     session,
     isPowerUser,
     currentUserId,
-    currentUserEmail,
+    currentPlayerId,
   } = access;
 
   const featureFlags = await getFeatureFlagsForClub(clubId);
@@ -212,17 +212,21 @@ export async function POST(
         return fail(t("sessionApi.invalidStatus"), 400);
       }
 
-      const userEmail = currentUserEmail;
+      const playerId = Number(currentPlayerId);
 
-      if (!userEmail) {
-        return fail(t("sessionApi.userResolveFailed"), 401);
+      if (!Number.isFinite(playerId)) {
+        return fail(
+          t("sessionApi.playerNotFound"),
+          404
+        );
       }
 
       const { data: playerData, error: playerError } = await adminSupabase
         .from("players")
         .select("id, first_name, last_name, nickname")
         .eq("club_id", clubId)
-        .eq("email", userEmail)
+        .eq("id", playerId)
+        .eq("is_guest", false)
         .maybeSingle<PlayerNameRow>();
 
       if (playerError) {
@@ -232,9 +236,7 @@ export async function POST(
         );
       }
 
-      const playerId = Number(playerData?.id);
-
-      if (!Number.isFinite(playerId) || !playerData) {
+      if (!playerData) {
         return fail(
           t("sessionApi.playerNotFound"),
           404
