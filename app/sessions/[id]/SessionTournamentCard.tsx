@@ -305,7 +305,7 @@ export default function SessionTournamentCard({
 
             <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">strikr empfiehlt</div>
-              <div className="mt-1 text-lg font-black text-slate-950">{teamCount} Teams · je {minTeamSize === maxTeamSize ? minTeamSize : `{minTeamSize}–{maxTeamSize}`} Spieler</div>
+              <div className="mt-1 text-lg font-black text-slate-950">{teamCount} Teams · je {minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spieler</div>
               <div className="mt-1 text-xs font-semibold text-slate-600">{plannedGames} Spiele · {matchMinutes} Min. pro Spiel · {suggestedRounds}× gegeneinander</div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-xl bg-white p-2"><div className="text-base font-black text-slate-950">{warmupMinutes}</div><div className="text-[10px] font-bold text-slate-400">Min. Warm-up</div></div>
