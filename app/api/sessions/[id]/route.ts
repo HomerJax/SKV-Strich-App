@@ -212,9 +212,7 @@ export async function POST(
         return fail(t("sessionApi.invalidStatus"), 400);
       }
 
-      const playerId = Number(currentPlayerId);
-
-      if (!Number.isFinite(playerId)) {
+      if (typeof currentPlayerId !== "number" || !Number.isFinite(currentPlayerId)) {
         return fail(
           t("sessionApi.playerNotFound"),
           404
