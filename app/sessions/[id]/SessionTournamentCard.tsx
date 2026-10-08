@@ -183,6 +183,7 @@ export default function SessionTournamentCard({
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupStage, setSetupStage] = useState<"time" | "recommendation" | "adjust" | "summary" | "generate">("time");
   const [tournamentStage, setTournamentStage] = useState<"teams" | "games">("teams");
+  const [tournamentTeamsConfirmed, setTournamentTeamsConfirmed] = useState(false);
   const [tournamentCollapsed, setTournamentCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
@@ -418,14 +419,13 @@ export default function SessionTournamentCard({
   const wizardReady = setupReady && (setupStage !== "recommendation" || recommendationAccepted);
   if (wizardControl && !enabled) {
     wizardControl.current = {
-      ready: wizardReady,
-      label: setupStage === "summary" ? "Turnier starten →" : setupStage === "generate" ? "Teams generieren →" : "Fertig & weiter →",
+      ready: wizardReady && setupStage !== "generate",
+      label: setupStage === "summary" ? "Turnier starten →" : setupStage === "generate" ? "Teams werden vorbereitet" : "Fertig & weiter →",
       next: () => {
         if (!wizardReady) return;
         if (setupStage === "time") setSetupStage("recommendation");
         else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary");
         else if (setupStage === "summary") setSetupStage("generate");
-        else void setup();
       },
     };
   }
@@ -434,8 +434,8 @@ export default function SessionTournamentCard({
   }, [wizardReady, setupStage, enabled, wizardControl, onWizardReady]);
 
   useEffect(() => {
-    if (enabled && tournamentWizardControl) onTournamentWizardChange?.(tournamentStage, !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0);
-  }, [enabled, tournamentStage, busy, data, tournamentWizardControl, onTournamentWizardChange]);
+    if (enabled && tournamentWizardControl) onTournamentWizardChange?.(tournamentStage, tournamentTeamsConfirmed && !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0);
+  }, [enabled, tournamentStage, tournamentTeamsConfirmed, busy, data, tournamentWizardControl, onTournamentWizardChange]);
 
   if (!enabled) {
     if (!isAdmin || hasNormalResult) return null;
@@ -501,7 +501,7 @@ export default function SessionTournamentCard({
             ) : null}
 
 </div> : null}
-            {setupStage === "generate" ? <div className="rounded-xl border border-teal-200 bg-teal-50 p-4"><div className="text-lg font-black text-slate-950">Teams generieren</div><p className="mt-2 text-sm text-slate-600">Die Turniereinstellungen stehen fest. Erstelle jetzt die Teams, prüfe anschließend die Aufteilung und bestätige sie vor dem ersten Spiel.</p></div> : null}
+            {setupStage === "generate" ? <div className="rounded-xl border border-teal-200 bg-teal-50 p-4"><div className="text-lg font-black text-slate-950">Teams generieren</div><p className="mt-2 text-sm text-slate-600">Die Turniereinstellungen stehen fest. Erstelle jetzt die Teams, prüfe anschließend die Aufteilung und bestätige sie vor dem ersten Spiel.</p><button type="button" disabled={busy || !setupReady} onClick={() => void setup()} className="mt-4 w-full rounded-xl bg-teal-700 px-4 py-3 text-sm font-black text-white disabled:opacity-40">{busy ? "Teams werden generiert …" : "Teams generieren"}</button></div> : null}
             {setupStage === "summary" ? <div>            <div className="mt-4 rounded-2xl bg-slate-50 p-4">
               <div className="text-xs font-black text-slate-950">So sieht dein Turnier aus</div>
               <div className="mt-2 space-y-1.5 text-xs font-semibold text-slate-600">
@@ -539,9 +539,9 @@ export default function SessionTournamentCard({
 
   if (tournamentWizardControl && enabled) {
     tournamentWizardControl.current = {
-      ready: tournamentStage === "teams" && !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0,
-      label: tournamentStage === "teams" ? "Teams bestätigen & Turnier starten →" : "Fertig & weiter →",
-      next: () => { if (tournamentStage === "teams" && !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0) setTournamentStage("games"); },
+      ready: tournamentStage === "teams" && tournamentTeamsConfirmed && !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0,
+      label: tournamentStage === "teams" ? "Fertig · Turnier starten →" : "Fertig & weiter →",
+      next: () => { if (tournamentStage === "teams" && tournamentTeamsConfirmed && !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0) setTournamentStage("games"); },
     };
   }
   const config = data?.config;
@@ -729,6 +729,7 @@ export default function SessionTournamentCard({
         </div>
       ) : null}
 
+      {tournamentWizardControl ? <button type="button" disabled={busy || (data?.teams.length ?? 0) < 2 || (data?.unassignedPlayers?.length ?? 0) > 0} onClick={() => setTournamentTeamsConfirmed(true)} className={`w-full rounded-xl px-4 py-3 text-sm font-black disabled:opacity-40 ${tournamentTeamsConfirmed ? "bg-teal-100 text-teal-800" : "bg-teal-700 text-white"}`}>{tournamentTeamsConfirmed ? "✓ Teams bestätigt" : "Teams bestätigen"}</button> : null}
       {!tournamentWizardControl ? <button type="button" onClick={() => setTournamentStage("games")} className="w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-bold text-white">Teams passen · Turnier spielen →</button> : null}
       </div> : null}
       {tournamentStage === "games" ? <div className="space-y-3">
