@@ -17,6 +17,7 @@ const config: CapacitorConfig = {
       "@capacitor/app",
       "@capacitor/filesystem",
       "@capacitor/share",
+      "@capacitor/local-notifications",
     ],
   },
   ios: {
