@@ -502,7 +502,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               : renderWinnerPhoto();
             return null;
           };
-          return <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.07)]">
+          return <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.07)]">
             <div className="bg-slate-950 px-5 py-5 text-white">
               <div className="flex items-center justify-between gap-3"><span className="text-[11px] font-bold uppercase tracking-[0.18em] text-teal-300">Session-Assistent</span><span className="text-xs text-slate-300">Schritt {selectedIndex + 1} von {steps.length}</span></div>
               <div className="mt-3 flex gap-1.5">{steps.map((s,i)=><div key={s.key} className={`h-1.5 flex-1 rounded-full ${i <= selectedIndex ? "bg-teal-400" : "bg-slate-700"}`} />)}</div>
@@ -510,10 +510,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               <p className="mt-1 text-sm text-slate-300">Bearbeite diesen Schritt und gehe anschließend weiter.</p>
             </div>
             <div className="space-y-4 p-4 sm:p-5">
-              {steps.slice(0,selectedIndex).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left"><span><span className="block text-sm font-bold text-slate-800">✓ {s.title}</span><span className="text-xs text-slate-500">{s.summary}</span></span><span className="text-xs font-semibold text-teal-700">Bearbeiten</span></button>)}
-              <div className="rounded-2xl border-2 border-teal-400 bg-teal-100 p-2 shadow-[0_8px_28px_rgba(13,148,136,0.12)] sm:p-4">{renderStep(selected)}</div>
+              {steps.slice(0,selectedIndex).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left"><span><span className="block text-sm font-bold text-slate-800">✓ {s.title}</span><span className="text-xs text-slate-500">{s.summary}</span></span><span className="text-xs font-semibold text-teal-700">Bearbeiten</span></button>)}
+              <div className="rounded-lg border-l-4 border-teal-500 bg-teal-50 p-2 shadow-[0_8px_28px_rgba(13,148,136,0.12)] sm:p-4">{renderStep(selected)}</div>
               <button type="button" onClick={()=>{const next=steps[selectedIndex+1];if(next)setPilotStep(next.key);}} disabled={selectedIndex === steps.length-1 || (selected === "attendance" && attendanceDirty)} className="w-full rounded-xl bg-slate-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-40">Fertig & weiter →</button>
-              {steps.slice(selectedIndex+1).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left text-sm text-slate-600"><span>{s.title}</span><span className="text-xs text-slate-400">Öffnen ›</span></button>)}
+              {steps.slice(selectedIndex+1).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-left text-sm text-slate-600"><span>{s.title}</span><span className="text-xs text-slate-400">Öffnen ›</span></button>)}
             </div>
           </div>;
         })() : (
