@@ -607,7 +607,8 @@ export default function SessionTournamentCard({
             disabled={busy}
             onClick={() => {
               if (!window.confirm("Turnier wirklich zurücksetzen? Teams, Spielplan und bisherige Turnierergebnisse werden gelöscht. Zusagen und Anwesenheit bleiben erhalten.")) return;
-              void action({ intent: "reset" }).then(() => {
+              void action({ intent: "reset" }).then((result) => {
+                if (!result) return;
                 setTimerRunning(false);
                 setActiveGameNo(null);
                 setRemainingSeconds(matchMinutes * 60);
