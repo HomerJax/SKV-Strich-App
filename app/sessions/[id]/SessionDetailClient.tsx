@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionAdminRsvpCard from "./SessionAdminRsvpCard";
@@ -95,6 +95,8 @@ function WorkspaceIntro({
 export default function SessionDetailClient(props: SessionDetailClientProps) {
   const { t } = useI18n();
   const [pilotStep, setPilotStep] = useState<"attendance" | "mode" | "teams" | "result" | "photo">("attendance");
+  const setupWizardRef = useRef<{ next: () => void; ready: boolean; label: string } | null>(null);
+  const [setupWizardReady, setSetupWizardReady] = useState(false);
   const {
     router,
     resultRef,
@@ -492,7 +494,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           const selectedIndex = steps.findIndex(s => s.key === selected);
           const renderStep = (key: typeof steps[number]["key"]) => {
             if (key === "attendance") return <div className="space-y-3">{renderAttendance()}<details className="rounded-xl border border-teal-200 bg-white p-3"><summary className="cursor-pointer text-sm font-semibold text-slate-700">Abwesenheiten verwalten</summary><div className="mt-3"><SessionAdminRsvpCard sessionId={props.sessionId} players={displayPlayers} hasResult={hasResult} isAdmin={isAdmin} /></div></details></div>;
-            if (key === "mode") return <SessionTournamentCard sessionId={props.sessionId} enabled={isTournamentMode} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={hasResult && !isTournamentMode} onActivated={() => router.refresh()} />;
+            if (key === "mode") return <SessionTournamentCard sessionId={props.sessionId} enabled={isTournamentMode} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={hasResult && !isTournamentMode} onActivated={() => router.refresh()} wizardControl={setupWizardRef} onWizardReady={setSetupWizardReady} />;
             if (key === "teams") return renderTeams();
             if (key === "result") return isTournamentMode
               ? <SessionTournamentCard sessionId={props.sessionId} enabled={true} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={false} onActivated={() => router.refresh()} onFinalized={() => { setPilotStep("photo"); router.refresh(); }} />
@@ -512,7 +514,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             <div className="space-y-4 p-4 sm:p-5">
               {steps.slice(0,selectedIndex).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left"><span><span className="block text-sm font-bold text-slate-800">✓ {s.title}</span><span className="text-xs text-slate-500">{s.summary}</span></span><span className="text-xs font-semibold text-teal-700">Bearbeiten</span></button>)}
               <div className="rounded-lg border-l-4 border-teal-500 bg-teal-50 p-2 shadow-[0_8px_28px_rgba(13,148,136,0.12)] sm:p-4">{renderStep(selected)}</div>
-              <button type="button" onClick={()=>{const next=steps[selectedIndex+1];if(next)setPilotStep(next.key);}} disabled={selectedIndex === steps.length-1 || (selected === "attendance" && attendanceDirty) || (selected === "result" && isTournamentMode && !session.tournament_completed_at)} className="w-full rounded-xl bg-slate-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-40">Fertig & weiter →</button>
+              <button type="button" onClick={()=>{if (selected === "mode" && !isTournamentMode) { setupWizardRef.current?.next(); return; } if (selected === "teams" && !isTournamentMode && !teamsConfirmed) { void confirmTeams(); return; } const next=steps[selectedIndex+1];if(next)setPilotStep(next.key);}} disabled={selectedIndex === steps.length-1 || (selected === "attendance" && (attendanceDirty || presentPlayers.length < 2)) || (selected === "mode" && !isTournamentMode && !setupWizardReady) || (selected === "teams" && !isTournamentMode && (!teamsComplete || saving || savingTeams)) || (selected === "result" && isTournamentMode && !session.tournament_completed_at)} className="w-full rounded-xl bg-slate-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-40">{selected === "mode" && !isTournamentMode ? (setupWizardRef.current?.label ?? "Fertig & weiter →") : selected === "teams" && !isTournamentMode && !teamsConfirmed ? "Teams bestätigen & weiter →" : "Fertig & weiter →"}</button>
               {steps.slice(selectedIndex+1).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-left text-sm text-slate-600"><span>{s.title}</span><span className="text-xs text-slate-400">Öffnen ›</span></button>)}
             </div>
           </div>;
