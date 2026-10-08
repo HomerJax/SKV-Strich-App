@@ -191,6 +191,14 @@ export default function SessionTournamentCard({
     { name: "City Loop", url: "https://opengameart.org/sites/default/files/city-loop_0.mp3" },
     { name: "Joyfully", url: "https://opengameart.org/sites/default/files/joyfully_loop_bpm170.mp3" },
     { name: "Loop", url: "https://opengameart.org/sites/default/files/cubedcanada%2Bloop_3.mp3" },
+    { name: "Goofy Attitude", url: "https://opengameart.org/sites/default/files/goofy_attitude.mp3" },
+    { name: "Comedy", url: "https://opengameart.org/sites/default/files/acoustic_comedy.mp3" },
+    { name: "Catsong", url: "https://opengameart.org/sites/default/files/Catsong.mp3" },
+    { name: "Danza D' Bots II", url: "https://opengameart.org/sites/default/files/DanzaDeBots_2.mp3" },
+    { name: "Kawaii 8bit", url: "https://opengameart.org/sites/default/files/kawaii_8bit.mp3" },
+    { name: "8-bit Rush Point", url: "https://opengameart.org/sites/default/files/15._rush_point.mp3" },
+    { name: "Castle Stage", url: "https://opengameart.org/sites/default/files/castle_stage_bpm180.mp3" },
+    { name: "8-bit Mechanical Complex", url: "https://opengameart.org/sites/default/files/8-bit_mechanical_complex.mp3" },
   ];
   const [lastMinuteMusic, setLastMinuteMusic] = useState(false);
   const lastMinuteAnnouncedRef = useRef(false);
