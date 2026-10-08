@@ -171,7 +171,7 @@ export default function SessionTournamentCard({
     essen: "🍔 Essen",
   };
   const [setupOpen, setSetupOpen] = useState(false);
-  const [setupStage, setSetupStage] = useState<"settings" | "preview">("settings");
+  const [setupStage, setSetupStage] = useState<"time" | "recommendation" | "adjust" | "summary">("time");
   const [tournamentStage, setTournamentStage] = useState<"teams" | "games">("teams");
   const [tournamentCollapsed, setTournamentCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -427,7 +427,8 @@ export default function SessionTournamentCard({
 
         {setupOpen ? (
           <div className="mt-4 border-t border-slate-100 pt-4">
-            <div className="rounded-2xl bg-slate-50 p-4">
+            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-teal-700">Turnier einrichten · Schritt ${setupStage === "time" ? 1 : setupStage === "recommendation" ? 2 : setupStage === "adjust" ? 3 : 4} von 4</div>
+            {setupStage === "time" ? <div className="space-y-3">            <div className="rounded-2xl bg-slate-50 p-4">
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Teilnehmer</div>
               <div className="mt-1 text-xl font-black text-slate-950">{presentCount} Zusagen / anwesend</div>
               <div className="mt-1 text-xs font-semibold text-slate-500">strikr nutzt eure Zusagen und die bestätigte Anwesenheit für die Planung.</div>
@@ -441,7 +442,8 @@ export default function SessionTournamentCard({
               </div>
             </label>
 
-            <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
+</div> : null}
+            {setupStage === "recommendation" ? <div>            <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">strikr empfiehlt</div>
               <div className="mt-1 text-lg font-black text-slate-950">{teamCount} Teams · je {minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spieler</div>
               <div className="mt-1 text-xs font-semibold text-slate-600">{plannedGames} Spiele · {matchMinutes} Min. pro Spiel · Zeit optimal genutzt</div>
@@ -453,11 +455,8 @@ export default function SessionTournamentCard({
               </div>
             </div>
 
-            <button type="button" onClick={() => setSettingsOpen((current) => !current)} className="mt-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-xs font-black text-slate-700">
-              <span>{settingsOpen ? "Einstellungen schließen" : "Empfehlung anpassen"}</span><span>{settingsOpen ? "−" : "+"}</span>
-            </button>
-
-            {settingsOpen ? (
+</div> : null}
+            {setupStage === "adjust" ? <div><div className="text-sm font-bold text-slate-900">Vorschlag anpassen</div>            {true ? (
               <div className="mt-3 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3">
                 <label className="col-span-2 text-xs font-bold text-slate-600">Teamnamen-Stil<select value={nameGenre} onChange={(e) => setNameGenre(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950"><option value="random">🎲 Zufällig</option><option value="fussball">⚽ Fußball</option><option value="bier">🍺 Bier & Kabine</option><option value="bescheuert">😂 Bescheuert</option><option value="tiere">🐯 Tiere</option><option value="schwaebisch">🥨 Schwäbisch</option><option value="it">💻 IT & Büro</option><option value="alte_herren">👴 Alte Herren</option><option value="essen">🍔 Essen</option></select><span className="mt-1 block text-[10px] font-semibold text-slate-400">Die Namen kannst du nach der Auslosung jederzeit per ✏️ ändern.</span></label>
                 <label className="text-xs font-bold text-slate-600">Spieler pro Team<select value={playersPerTeam} onChange={(e) => setPlayersPerTeam(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-950">{[3,4,5,6,7,8].map((count) => <option key={count} value={count}>{count}</option>)}</select></label>
@@ -467,7 +466,8 @@ export default function SessionTournamentCard({
               </div>
             ) : null}
 
-            <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+</div> : null}
+            {setupStage === "summary" ? <div>            <div className="mt-4 rounded-2xl bg-slate-50 p-4">
               <div className="text-xs font-black text-slate-950">So sieht dein Turnier aus</div>
               <div className="mt-2 space-y-1.5 text-xs font-semibold text-slate-600">
                 <div>👥 <span className="font-black text-slate-950">{presentCount} Spieler</span> → {teamCount} ausgeglichene Teams à {minTeamSize === maxTeamSize ? minTeamSize : `${minTeamSize}–${maxTeamSize}`} Spieler</div>
@@ -484,17 +484,15 @@ export default function SessionTournamentCard({
               <p className="mt-3 text-[11px] font-semibold leading-5 text-slate-500">Wertung: 3 Punkte Sieg · 1 Punkt Remis · Tordifferenz → erzielte Tore.</p>
             </div>
 
-        {setupStage === "preview" ? <button type="button" onClick={() => setSetupStage("settings")} className="mt-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700">← Grunddaten anpassen</button> : null}
+</div> : null}
+            <div className="mt-4 flex gap-2">
+              {setupStage !== "time" ? <button type="button" onClick={() => setSetupStage(setupStage === "summary" ? "recommendation" : "time")} className="rounded-lg border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">← Zurück</button> : null}
+              {setupStage === "recommendation" ? <button type="button" onClick={() => setSetupStage("adjust")} className="flex-1 rounded-lg border border-teal-500 bg-white px-4 py-3 text-sm font-bold text-teal-700">Anpassen</button> : null}
+              <button type="button" disabled={busy || totalMinutes < 15 || totalMinutes > 240 || presentCount < teamCount * 2} onClick={() => { if (setupStage === "time") setSetupStage("recommendation"); else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary"); else void setup(); }} className="flex-1 rounded-lg bg-teal-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-40">{busy ? "Wird vorbereitet …" : setupStage === "time" ? "Weiter →" : setupStage === "recommendation" ? "Passt · weiter →" : setupStage === "adjust" ? "Änderungen übernehmen →" : "Turnier starten →"}</button>
+            </div>
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
-        <button
-          type="button"
-          disabled={busy || presentCount < teamCount * 2}
-          onClick={() => { if (setupStage === "settings") { setSetupStage("preview"); setSettingsOpen(false); } else void setup(); }}
-          className="mt-4 w-full rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-black text-white shadow-sm disabled:opacity-40"
-        >
-          {busy ? "Turnier wird vorbereitet …" : setupStage === "settings" ? "Fertig & weiter · Turnierplan prüfen →" : "Passt · Turnier vorbereiten →"}
-        </button>
+
           </div>
         ) : null}
       </section>
