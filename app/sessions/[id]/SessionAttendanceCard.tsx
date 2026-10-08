@@ -167,7 +167,7 @@ function SectionSummaryPill({
 
   return (
     <div
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${className}`}
+      className={`inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold ${className}`}
     >
       {children}
     </div>
@@ -198,7 +198,7 @@ function ControlButton({
         onClick();
       }}
       disabled={disabled}
-      className={`inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition ${className} disabled:cursor-not-allowed disabled:opacity-60`}
+      className={`inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold transition ${className} disabled:cursor-not-allowed disabled:opacity-60`}
     >
       {children}
     </button>
@@ -521,7 +521,7 @@ export default function SessionAttendanceCard({
 
   if (collapsed) {
     return (
-      <section className={pilotWizard ? "overflow-hidden rounded-xl border border-teal-200 bg-white" : "rounded-[20px] border border-slate-200 bg-white shadow-sm"}>
+      <section className={pilotWizard ? "overflow-hidden rounded-lg border border-teal-200 bg-white" : "rounded-[20px] border border-slate-200 bg-white shadow-sm"}>
         <button
           type="button"
           onClick={() => {
@@ -590,7 +590,7 @@ export default function SessionAttendanceCard({
             </div>
           </div>
 
-          <div className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+          <div className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
             {t("attendance.edit")}
           </div>
         </button>
@@ -684,7 +684,7 @@ export default function SessionAttendanceCard({
               onToggleMultiSelect();
             }}
             disabled={hasResult || savingPresence}
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
               multiSelectEnabled
                 ? "border-slate-900 bg-slate-900 text-white"
                 : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
