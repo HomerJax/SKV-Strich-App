@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionAdminRsvpCard from "./SessionAdminRsvpCard";
@@ -93,6 +94,7 @@ function WorkspaceIntro({
 
 export default function SessionDetailClient(props: SessionDetailClientProps) {
   const { t } = useI18n();
+  const [pilotStep, setPilotStep] = useState<"attendance" | "mode" | "teams" | "result" | "photo" | null>(null);
   const {
     router,
     resultRef,
@@ -470,6 +472,49 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
 
+        {props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && isAdmin && isTrainingSession ? (() => {
+          const steps = [
+            { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2, summary: `${presentPlayers.length} Spieler dabei` },
+            { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || teamsConfirmed, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
+            ...(!isTournamentMode ? [
+              { key: "teams" as const, title: "Teams erstellen", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
+              { key: "result" as const, title: "Spiele & Ergebnisse", done: hasResult, summary: `${results.length} Ergebnis(se) erfasst` },
+              { key: "photo" as const, title: "Siegerfoto", done: hasWinnerPhoto || (hasResult && !dayWinnerSide), summary: hasWinnerPhoto ? "Foto vorhanden" : "Optional" },
+            ] : [
+              { key: "result" as const, title: "Turnier durchführen", done: Boolean(session.tournament_completed_at), summary: session.tournament_completed_at ? "Turnier abgeschlossen" : "Spielplan & Ergebnisse" },
+              { key: "photo" as const, title: "Siegerfoto", done: hasWinnerPhoto, summary: hasWinnerPhoto ? "Foto vorhanden" : "Optional" },
+            ]),
+          ];
+          const current = steps.find(s => !s.done)?.key ?? steps[steps.length - 1].key;
+          const selected = pilotStep && steps.some(s => s.key === pilotStep) ? pilotStep : current;
+          const selectedIndex = steps.findIndex(s => s.key === selected);
+          const renderStep = (key: typeof steps[number]["key"]) => {
+            if (key === "attendance") return renderAttendance();
+            if (key === "mode") return <SessionTournamentCard sessionId={props.sessionId} enabled={isTournamentMode} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={hasResult && !isTournamentMode} onActivated={() => router.refresh()} />;
+            if (key === "teams") return renderTeams();
+            if (key === "result") return isTournamentMode
+              ? <SessionTournamentCard sessionId={props.sessionId} enabled={true} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={false} onActivated={() => router.refresh()} />
+              : <div className="space-y-3"><SessionGameTimerLoader sessionId={props.sessionId} />{renderResult()}</div>;
+            if (key === "photo") return isTournamentMode && session.tournament_completed_at
+              ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={winnerPhotoCollapsed} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => setWinnerPhotoCollapsed(prev => !prev)} title={t("sessionDetail.winnerPhoto")} />
+              : renderWinnerPhoto();
+            return null;
+          };
+          return <div className="overflow-hidden rounded-[26px] border border-teal-200 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.09)]">
+            <div className="bg-slate-950 px-5 py-5 text-white">
+              <div className="flex items-center justify-between gap-3"><span className="text-[11px] font-bold uppercase tracking-[0.18em] text-teal-300">Session-Assistent</span><span className="text-xs text-slate-300">Schritt {selectedIndex + 1} von {steps.length}</span></div>
+              <div className="mt-3 flex gap-1.5">{steps.map((s,i)=><div key={s.key} className={`h-1.5 flex-1 rounded-full ${i <= selectedIndex ? "bg-teal-400" : "bg-slate-700"}`} />)}</div>
+              <h2 className="mt-4 text-2xl font-extrabold tracking-tight">{steps[selectedIndex].title}</h2>
+              <p className="mt-1 text-sm text-slate-300">Bearbeite diesen Schritt und gehe anschließend weiter.</p>
+            </div>
+            <div className="space-y-4 p-4 sm:p-5">
+              {steps.slice(0,selectedIndex).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left"><span><span className="block text-sm font-bold text-slate-800">✓ {s.title}</span><span className="text-xs text-slate-500">{s.summary}</span></span><span className="text-xs font-semibold text-teal-700">Bearbeiten</span></button>)}
+              <div className="rounded-2xl border-2 border-teal-200 bg-teal-50/30 p-3 sm:p-4">{renderStep(selected)}</div>
+              <button type="button" onClick={()=>{const next=steps[selectedIndex+1];if(next)setPilotStep(next.key);}} disabled={selectedIndex === steps.length-1 || (selected === "attendance" && attendanceDirty)} className="w-full rounded-xl bg-slate-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-40">Fertig & weiter →</button>
+              {steps.slice(selectedIndex+1).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left text-sm text-slate-600"><span>{s.title}</span><span className="text-xs text-slate-400">Öffnen ›</span></button>)}
+            </div>
+          </div>;
+        })() : (
         {renderWorkflowSection("attendance", renderAttendance())}
 
         {isTrainingSession ? (
@@ -531,6 +576,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             {t("sessionDetail.eventMode")}
           </NoticeCard>
         ) : null}
+        )}
       </div>
 
       {!isTournamentMode && allowResult ? (
