@@ -37,6 +37,7 @@ type SessionAttendanceCardProps = {
   guestSaving: boolean;
   clubSettings: ClubSettings | null;
   collapsed: boolean;
+  pilotWizard?: boolean;
   savingPresence: boolean;
   dirty: boolean;
   directSaveEnabled: boolean;
@@ -282,6 +283,7 @@ export default function SessionAttendanceCard({
   guestSaving,
   clubSettings,
   collapsed,
+  pilotWizard = false,
   savingPresence,
   dirty,
   directSaveEnabled,
@@ -519,7 +521,7 @@ export default function SessionAttendanceCard({
 
   if (collapsed) {
     return (
-      <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
+      <section className={pilotWizard ? "overflow-hidden rounded-xl border border-teal-200 bg-white" : "rounded-[20px] border border-slate-200 bg-white shadow-sm"}>
         <button
           type="button"
           onClick={() => {
@@ -598,11 +600,11 @@ export default function SessionAttendanceCard({
 
   return (
     <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-4 py-4">
+      <div className={pilotWizard ? "border-b border-teal-100 px-3 py-3" : "border-b border-slate-100 px-4 py-4"}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
+              <div className={pilotWizard ? "hidden" : "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600"}>
                 1
               </div>
 
@@ -643,7 +645,7 @@ export default function SessionAttendanceCard({
             ) : null}
           </div>
 
-          <button
+          {!pilotWizard ? <button
             type="button"
             onClick={() => {
               rememberScrollPosition();
@@ -652,11 +654,11 @@ export default function SessionAttendanceCard({
             className="shrink-0 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             {t("attendance.confirm")}
-          </button>
+          </button> : null}
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          {!hasResult && !directSaveEnabled ? (
+          {!pilotWizard && !hasResult && !directSaveEnabled ? (
             <ControlButton
               onClick={handleSavePresence}
               disabled={!dirty || savingPresence}
@@ -958,6 +960,7 @@ export default function SessionAttendanceCard({
             </ControlButton>
           </div>
         ) : null}
+        {pilotWizard && !hasResult && !directSaveEnabled && dirty ? <button type="button" onClick={handleSavePresence} disabled={savingPresence} className="mt-4 w-full rounded-xl bg-teal-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">{savingPresence ? t("profile.saving") : t("attendance.save")}</button> : null}
       </div>
     </section>
   );
