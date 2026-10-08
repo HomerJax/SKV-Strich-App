@@ -41,6 +41,7 @@ type Props = {
   seriesId?: string | null;
   resultCount?: number;
   isPro?: boolean;
+  compactPilot?: boolean;
 };
 
 function fmtLongDate(iso: string, locale: AppLocale) {
@@ -166,10 +167,44 @@ export default function SessionHeaderCard({
   seriesId = null,
   resultCount = 0,
   isPro = false,
+  compactPilot = false,
 }: Props) {
   const { locale, t } = useI18n();
   const isEvent = sessionType === "event";
   const hasTeams = teamACount > 0 || teamBCount > 0;
+
+  if (compactPilot) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <button type="button" onClick={onBack} className="text-xs font-semibold text-slate-500 hover:text-slate-900">← {t("sessionHeader.back")}</button>
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-[11px] font-semibold text-teal-800">{isEvent ? "Event" : hasResult ? t("sessionHeader.completed") : t("sessionHeader.running")}</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg font-extrabold tracking-tight text-slate-950">{fmtLongDate(date, locale)}</h1>
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+              <span>{startTime?.slice(0, 5) ?? "–"} Uhr</span>
+              <span>{presentCount} {t("sessionHeader.players")}</span>
+              {hasResult ? <span>{resultCount} {resultCount === 1 ? "Ergebnis" : "Ergebnisse"}</span> : null}
+            </div>
+          </div>
+          {hasResult && winnerPhotoUrl ? <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl"><Image src={winnerPhotoUrl} alt={t("winnerPhoto.alt")} width={48} height={48} className="h-full w-full object-cover" /></div> : null}
+        </div>
+        <details className="mt-3 border-t border-slate-100 pt-2">
+          <summary className="cursor-pointer text-xs font-semibold text-slate-500">Session-Details & Einstellungen bearbeiten</summary>
+          <div className="mt-3 space-y-3 rounded-xl bg-slate-950 p-3 text-white">
+            <SessionTypeSwitcher sessionId={sessionId} currentType={sessionType} action={onSessionTypeChange} disabled={!sessionTypesEnabled} embedded />
+            <SessionScheduleEditor sessionId={sessionId} date={date} startTime={startTime} isSeries={Boolean(seriesId)} compact />
+            <SessionNoteEditor sessionId={sessionId} notes={notes} isAdmin={isAdmin} />
+            {!hasResult ? <SessionRsvpDeadlineEditor sessionId={sessionId} date={date} startTime={startTime} sessionOverrideMinutes={sessionRsvpDeadlineMinutesBefore} clubDefaultMinutes={clubRsvpDeadlineMinutesBefore} isAdmin={isAdmin} isSeries={Boolean(seriesId)} isPro={isPro} /> : null}
+            {hasResult ? <button type="button" onClick={onOpenResultModal} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-900">{t("sessionHeader.shareResult")}</button> : null}
+            <button type="button" onClick={onDeleteSession} disabled={deletingSession} className="block text-xs font-semibold text-rose-300 disabled:opacity-50">{deletingSession ? t("sessionHeader.deleting") : t("sessionHeader.deleteSession")}</button>
+          </div>
+        </details>
+      </section>
+    );
+  }
 
   if (hasResult) {
     return (
