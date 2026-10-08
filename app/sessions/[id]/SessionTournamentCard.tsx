@@ -503,6 +503,15 @@ export default function SessionTournamentCard({
   const matches = data?.matches ?? [];
   const completedMatches = matches.filter((match) => match.goals_team_a != null && match.goals_team_b != null).length;
   const nextOpenMatch = matches.find((match) => match.goals_team_a == null || match.goals_team_b == null) ?? null;
+  const selectedMatch = matches.find((match) => match.game_no === activeGameNo) ?? nextOpenMatch;
+  const selectMatch = (gameNo: number) => {
+    if (timerRunning && activeGameNo !== gameNo && !window.confirm("Die laufende Spieluhr wird beim Wechsel pausiert. Anderes Spiel öffnen?")) return;
+    timerDeadlineRef.current = null;
+    void cancelTournamentFinish();
+    setTimerRunning(false);
+    setActiveGameNo(gameNo);
+    setRemainingSeconds((config?.tournament_match_minutes ?? matchMinutes) * 60);
+  };
 
   return (
     <section className="space-y-4">
@@ -665,14 +674,28 @@ export default function SessionTournamentCard({
         </div>
       ) : null}
 
+      <div className="rounded-lg border border-slate-200 bg-white p-3">
+        <div className="mb-2 text-sm font-bold text-slate-900">Spiel frei auswählen</div>
+        <p className="mb-3 text-xs text-slate-500">Reihenfolge flexibel: Spiele überspringen, später nachholen oder Ergebnisse korrigieren. Nur gespeicherte Ergebnisse zählen für die Tabelle.</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {matches.map((match) => {
+            const saved = match.goals_team_a != null && match.goals_team_b != null;
+            const selected = selectedMatch?.game_no === match.game_no;
+            return <button key={match.game_no} type="button" onClick={() => selectMatch(match.game_no)} className={`rounded-md border px-3 py-2 text-left text-xs font-semibold ${selected ? "border-teal-500 bg-teal-50 text-teal-900" : "border-slate-200 bg-white text-slate-700"}`}>
+              <span className="block">Spiel {match.game_no} {saved ? "✓" : "· offen"}</span>
+              <span className="mt-1 block font-normal">{teamName(match.team_a_id)} – {teamName(match.team_b_id)}</span>
+            </button>;
+          })}
+        </div>
+      </div>
       <div className="space-y-2">
         {matches.map((match) => (
           <div key={match.game_no} className="space-y-2">
-            {!completed && nextOpenMatch?.game_no === match.game_no ? (
+            {!completed && selectedMatch?.game_no === match.game_no ? (
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-slate-950 p-4 text-white shadow-sm">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">Nächstes Spiel</div>
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">Ausgewähltes Spiel · Reihenfolge frei</div>
           <div className="mt-1 break-words text-lg font-black">
-            {teamName(nextOpenMatch.team_a_id)} vs. {teamName(nextOpenMatch.team_b_id)}
+            {teamName(selectedMatch.team_a_id)} vs. {teamName(selectedMatch.team_b_id)}
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-2">
@@ -698,17 +721,17 @@ export default function SessionTournamentCard({
               <button
                 type="button"
                 onClick={() => {
-                  if (activeGameNo !== nextOpenMatch.game_no) startTimer(nextOpenMatch.game_no);
+                  if (activeGameNo !== selectedMatch.game_no) startTimer(selectedMatch.game_no);
                   else setTimerRunning((current) => { if (!current) { timerDeadlineRef.current = Date.now() + remainingSeconds * 1000; void scheduleTournamentFinish(timerDeadlineRef.current); } else { timerDeadlineRef.current = null; void cancelTournamentFinish(); } return !current; });
                 }}
                 className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-black text-slate-950"
               >
-                {timerRunning && activeGameNo === nextOpenMatch.game_no ? "Pause" : "Start"}
+                {timerRunning && activeGameNo === selectedMatch.game_no ? "Pause" : "Start"}
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  setActiveGameNo(nextOpenMatch.game_no);
+                  setActiveGameNo(selectedMatch.game_no);
                   setTimerRunning(false);
                   timerDeadlineRef.current = null;
                   void cancelTournamentFinish();
