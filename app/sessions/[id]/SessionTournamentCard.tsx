@@ -185,6 +185,7 @@ export default function SessionTournamentCard({
   const [activeGameNo, setActiveGameNo] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState(8 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
+  const timerDeadlineRef = useRef<number | null>(null);
   const [timerSoundEnabled, setTimerSoundEnabled] = useState(true);
   const audioContextRef = useRef<AudioContext | null>(null);
   const musicRef = useRef<HTMLAudioElement | null>(null);
@@ -286,7 +287,7 @@ export default function SessionTournamentCard({
 
   useEffect(() => {
     if (!timerRunning) return;
-    const handle = window.setInterval(() => setRemainingSeconds((current) => Math.max(0, current - 1)), 1000);
+    const handle = window.setInterval(() => { if (timerDeadlineRef.current !== null) setRemainingSeconds(Math.max(0, Math.ceil((timerDeadlineRef.current - Date.now()) / 1000))); }, 250);
     return () => window.clearInterval(handle);
   }, [timerRunning]);
 
@@ -390,6 +391,7 @@ export default function SessionTournamentCard({
     window.setTimeout(() => speak(["Let’s go! Auf geht’s!", "Pack ma’s! Vollgas!", "Auf geht’s, Männer! Viel Spaß!", "Und los geht’s!"][Math.floor(Math.random() * 4)]), 650);
     setActiveGameNo(gameNo);
     setRemainingSeconds(minutes * 60);
+    timerDeadlineRef.current = Date.now() + minutes * 60000;
     setTimerRunning(true);
   }
 
@@ -691,7 +693,7 @@ export default function SessionTournamentCard({
                 type="button"
                 onClick={() => {
                   if (activeGameNo !== nextOpenMatch.game_no) startTimer(nextOpenMatch.game_no);
-                  else setTimerRunning((current) => !current);
+                  else setTimerRunning((current) => { if (!current) timerDeadlineRef.current = Date.now() + remainingSeconds * 1000; else timerDeadlineRef.current = null; return !current; });
                 }}
                 className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-black text-slate-950"
               >
@@ -702,6 +704,7 @@ export default function SessionTournamentCard({
                 onClick={() => {
                   setActiveGameNo(nextOpenMatch.game_no);
                   setTimerRunning(false);
+                  timerDeadlineRef.current = null;
                   setRemainingSeconds((config?.tournament_match_minutes ?? matchMinutes) * 60);
                 }}
                 className="rounded-xl bg-white/10 px-3 py-2 text-xs font-black text-white"
