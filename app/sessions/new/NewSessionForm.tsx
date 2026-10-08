@@ -18,6 +18,7 @@ type NewSessionFormProps = {
   initialDate: string;
   seasons: NewSessionFormSeason[];
   enableSessionTypes?: boolean;
+  pilotWizard?: boolean;
 };
 
 type CreateMode = "single" | "series";
@@ -92,9 +93,11 @@ export default function NewSessionForm({
   initialDate,
   seasons,
   enableSessionTypes = false,
+  pilotWizard = false,
 }: NewSessionFormProps) {
   const { locale, t } = useI18n();
   const [mode, setMode] = useState<CreateMode>("single");
+  const [wizardStep, setWizardStep] = useState<1 | 2>(1);
   const [sessionType, setSessionType] = useState<SessionType>("training");
 
   const defaultSeasonId = seasons.length > 0 ? String(seasons[0].id) : "";
@@ -117,6 +120,8 @@ export default function NewSessionForm({
 
   return (
     <form action={action} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+      {pilotWizard ? <div className="space-y-2"><div className="flex items-center justify-between text-xs font-semibold text-slate-600"><span>Session erstellen</span><span>Schritt {wizardStep} von 2</span></div><div className="flex gap-2"><div className="h-1.5 flex-1 rounded-full bg-teal-500" /><div className={`h-1.5 flex-1 rounded-full ${wizardStep === 2 ? "bg-teal-500" : "bg-slate-200"}`} /></div><p className="text-sm font-semibold text-slate-900">{wizardStep === 1 ? "Was möchtest du planen?" : "Wann findet es statt?"}</p></div> : null}
+      <div className={pilotWizard && wizardStep !== 1 ? "hidden" : "space-y-4"}>
       {enableSessionTypes ? (
         <fieldset className="space-y-2">
           <legend className="text-xs font-semibold text-slate-700">{t("newSession.sessionType")}</legend>
@@ -142,6 +147,8 @@ export default function NewSessionForm({
         </label>
       </fieldset>
 
+      </div>
+      <div className={pilotWizard && wizardStep !== 2 ? "hidden" : "space-y-4"}>
       {mode === "single" ? (
         <div className="rounded-xl border border-slate-200 p-4">
           <div className="mb-3 text-sm font-semibold text-slate-900">{t("newSession.single")}</div>
@@ -181,7 +188,9 @@ export default function NewSessionForm({
 
       <label className="block"><div className="mb-1 text-xs font-semibold text-slate-700">{notesLabel}</div><input name="notes" placeholder={notesPlaceholder} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" /></label>
 
-      <SubmitButton sessionType={sessionType} blocked={mode === "series" && seasons.length === 0} />
+      {!pilotWizard || wizardStep === 2 ? <SubmitButton sessionType={sessionType} blocked={mode === "series" && seasons.length === 0} /> : null}
+      </div>
+      {pilotWizard ? <div className="flex gap-2">{wizardStep === 2 ? <button type="button" onClick={() => setWizardStep(1)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700">Zurück</button> : null}{wizardStep === 1 ? <button type="button" onClick={() => setWizardStep(2)} className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">Weiter →</button> : null}</div> : null}
     </form>
   );
 }
