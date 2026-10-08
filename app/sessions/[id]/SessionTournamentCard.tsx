@@ -383,7 +383,7 @@ export default function SessionTournamentCard({
       setTimerRunning(false);
       timerDeadlineRef.current = null;
       void cancelTournamentFinish();
-      setActiveGameNo(null);
+      setActiveGameNo(updated.matches?.find((match) => match.goals_team_a == null || match.goals_team_b == null)?.game_no ?? null);
       setRemainingSeconds((updated.config?.tournament_match_minutes ?? matchMinutes) * 60);
     }
   }
@@ -685,23 +685,15 @@ export default function SessionTournamentCard({
       </div> : null}
       {tournamentStage === "games" ? <div className="space-y-3">
       <div className="rounded-lg border border-slate-200 bg-white p-3">
-        <div className="mb-2 text-sm font-bold text-slate-900">Spiel frei auswählen</div>
-        <p className="mb-3 text-xs text-slate-500">Reihenfolge flexibel: Spiele überspringen, später nachholen oder Ergebnisse korrigieren. Nur gespeicherte Ergebnisse zählen für die Tabelle.</p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {matches.map((match) => {
-            const saved = match.goals_team_a != null && match.goals_team_b != null;
-            const selected = selectedMatch?.game_no === match.game_no;
-            return <button key={match.game_no} type="button" onClick={() => selectMatch(match.game_no)} className={`rounded-md border px-3 py-2 text-left text-xs font-semibold ${selected ? "border-teal-500 bg-teal-50 text-teal-900" : "border-slate-200 bg-white text-slate-700"}`}>
-              <span className="block">Spiel {match.game_no} {saved ? "✓" : "· offen"}</span>
-              <span className="mt-1 block font-normal">{teamName(match.team_a_id)} – {teamName(match.team_b_id)}</span>
-            </button>;
-          })}
-        </div>
+        <label htmlFor="tournament-game-select" className="mb-2 block text-xs font-bold text-slate-600">Anderes Spiel aufrufen</label>
+        <select id="tournament-game-select" value={selectedMatch?.game_no ?? ""} onChange={(e) => selectMatch(Number(e.target.value))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-bold text-slate-900">
+          {matches.map((match) => <option key={match.game_no} value={match.game_no}>Spiel {match.game_no} · {teamName(match.team_a_id)} – {teamName(match.team_b_id)} {match.goals_team_a != null && match.goals_team_b != null ? "✓" : "· offen"}</option>)}
+        </select>
+        <p className="mt-2 text-xs text-slate-500">Standardmäßig öffnet sich das nächste offene Spiel. Du kannst jederzeit wechseln und Spiele später nachholen.</p>
       </div>
-      <div className="space-y-2">
-        {matches.map((match) => (
-          <div key={match.game_no} className="space-y-2">
-            {!completed && selectedMatch?.game_no === match.game_no ? (
+      {selectedMatch ? <div className="space-y-2">
+        <div className="text-sm font-bold text-slate-900">Spiel {selectedMatch.game_no} von {matches.length}</div>
+            {!completed && selectedMatch != null ? (
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-slate-950 p-4 text-white shadow-sm">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">Ausgewähltes Spiel · Reihenfolge frei</div>
           <div className="mt-1 break-words text-lg font-black">
@@ -755,18 +747,8 @@ export default function SessionTournamentCard({
           </div>
         </div>
             ) : null}
-          <ScoreEditor
-            key={match.game_no}
-            match={match}
-            teamName={teamName}
-            busy={busy}
-            disabled={!isAdmin || completed}
-            onSave={saveMatch}
-          />
-          </div>
-        ))}
-      </div>
-
+          {selectedMatch ? <ScoreEditor key={selectedMatch.game_no} match={selectedMatch} teamName={teamName} busy={busy} disabled={!isAdmin || completed} onSave={saveMatch} /> : null}
+      </div> : null}
       {(data?.standings ?? []).length ? (
         <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 px-4 py-3">
