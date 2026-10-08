@@ -517,12 +517,10 @@ export function useSessionDetail({
 
   const hasWinnerPhoto = Boolean(winnerPhotoUrl || session?.winner_photo_path);
 
+  const tournamentPhotoReady = session?.session_mode === "tournament" && Boolean(session?.tournament_completed_at);
   const canUploadWinnerPhoto =
-    allowWinnerPhoto &&
-    hasResult &&
-    dayWinnerSide !== null &&
-    teamsComplete &&
-    teamsConfirmed &&
+    (allowWinnerPhoto || tournamentPhotoReady) &&
+    (tournamentPhotoReady || (hasResult && dayWinnerSide !== null && teamsComplete && teamsConfirmed)) &&
     !photoBusy &&
     !saving &&
     !deletingSession;
@@ -1655,17 +1653,17 @@ ${sessionUrl}`;
 
     if (!file) return;
 
-    if (!allowWinnerPhoto) {
+    if (!allowWinnerPhoto && !tournamentPhotoReady) {
       setErr(t("sessionHook.noWinnerPhotoEvent"));
       return;
     }
 
-    if (!hasResult) {
+    if (!hasResult && !tournamentPhotoReady) {
       setErr(t("sessionHook.saveResultFirst"));
       return;
     }
 
-    if (!dayWinnerSide) {
+    if (!dayWinnerSide && !tournamentPhotoReady) {
       setErr(t("sessionHook.noClearWinnerPhoto"));
       return;
     }
@@ -1675,14 +1673,14 @@ ${sessionUrl}`;
       return;
     }
 
-    if (!teamsComplete) {
+    if (!teamsComplete && !tournamentPhotoReady) {
       setErr(
         t("sessionHook.assignTeamsBeforePhoto")
       );
       return;
     }
 
-    if (!teamsConfirmed) {
+    if (!teamsConfirmed && !tournamentPhotoReady) {
       setErr(t("sessionHook.confirmTeamsFirst"));
       return;
     }
