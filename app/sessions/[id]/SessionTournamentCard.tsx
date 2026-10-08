@@ -566,8 +566,8 @@ export default function SessionTournamentCard({
                 setSetupOpen(false);
                 setSetupStage("time");
                 setTournamentStage("teams");
-                setMessage("Turnier zurückgesetzt. Du kannst jetzt wieder den normalen Spielmodus nutzen oder ein neues Turnier starten.");
-                onActivated?.();
+                setMessage("Turnier zurückgesetzt. Die Session wird neu geladen.");
+                window.location.reload();
               });
             }}
             className="mt-3 ml-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 disabled:opacity-40"
