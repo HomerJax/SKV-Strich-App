@@ -171,6 +171,8 @@ export default function SessionTournamentCard({
     essen: "🍔 Essen",
   };
   const [setupOpen, setSetupOpen] = useState(false);
+  const [setupStage, setSetupStage] = useState<"settings" | "preview">("settings");
+  const [tournamentStage, setTournamentStage] = useState<"teams" | "games">("teams");
   const [tournamentCollapsed, setTournamentCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
@@ -482,15 +484,16 @@ export default function SessionTournamentCard({
               <p className="mt-3 text-[11px] font-semibold leading-5 text-slate-500">Wertung: 3 Punkte Sieg · 1 Punkt Remis · Tordifferenz → erzielte Tore.</p>
             </div>
 
+        {setupStage === "preview" ? <button type="button" onClick={() => setSetupStage("settings")} className="mt-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700">← Grunddaten anpassen</button> : null}
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
         <button
           type="button"
           disabled={busy || presentCount < teamCount * 2}
-          onClick={() => void setup()}
+          onClick={() => { if (setupStage === "settings") { setSetupStage("preview"); setSettingsOpen(false); } else void setup(); }}
           className="mt-4 w-full rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-black text-white shadow-sm disabled:opacity-40"
         >
-          {busy ? "Turnier wird vorbereitet …" : "Turniermodus starten"}
+          {busy ? "Turnier wird vorbereitet …" : setupStage === "settings" ? "Fertig & weiter · Turnierplan prüfen →" : "Passt · Turnier vorbereiten →"}
         </button>
           </div>
         ) : null}
@@ -620,6 +623,15 @@ export default function SessionTournamentCard({
         ) : null}
       </div>
 
+      <div className="rounded-lg border border-slate-200 bg-white p-3">
+        <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Turnier-Assistent</div>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setTournamentStage("teams")} className={`rounded-md px-3 py-3 text-sm font-bold ${tournamentStage === "teams" ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-700"}`}>1 · Teams prüfen</button>
+          <button type="button" onClick={() => setTournamentStage("games")} className={`rounded-md px-3 py-3 text-sm font-bold ${tournamentStage === "games" ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-700"}`}>2 · Spiele & Tabelle</button>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">Du kannst jederzeit zwischen den Bereichen wechseln. Ergebnisse bleiben gespeichert.</p>
+      </div>
+      {tournamentStage === "teams" ? <div className="space-y-3">
       {(data?.teams ?? []).length ? (
         <div className="grid gap-3 sm:grid-cols-3">
           {data!.teams.map((team) => (
@@ -674,6 +686,9 @@ export default function SessionTournamentCard({
         </div>
       ) : null}
 
+      <button type="button" onClick={() => setTournamentStage("games")} className="w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-bold text-white">Teams passen · Turnier spielen →</button>
+      </div> : null}
+      {tournamentStage === "games" ? <div className="space-y-3">
       <div className="rounded-lg border border-slate-200 bg-white p-3">
         <div className="mb-2 text-sm font-bold text-slate-900">Spiel frei auswählen</div>
         <p className="mb-3 text-xs text-slate-500">Reihenfolge flexibel: Spiele überspringen, später nachholen oder Ergebnisse korrigieren. Nur gespeicherte Ergebnisse zählen für die Tabelle.</p>
@@ -796,6 +811,7 @@ export default function SessionTournamentCard({
         </div>
       ) : null}
 
+      </div> : null}
       {!completed && isAdmin && matches.length > 0 && completedMatches === matches.length ? (
         <button
           type="button"
