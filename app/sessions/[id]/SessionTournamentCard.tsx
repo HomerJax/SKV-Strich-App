@@ -64,6 +64,7 @@ type Props = {
   presentCount: number;
   hasNormalResult: boolean;
   onActivated?: () => void;
+  onFinalized?: () => void;
 };
 
 function formatClock(seconds: number) {
@@ -156,6 +157,7 @@ export default function SessionTournamentCard({
   presentCount,
   hasNormalResult,
   onActivated,
+  onFinalized,
 }: Props) {
   const [playersPerTeam, setPlayersPerTeam] = useState(5);
   const [nameGenre, setNameGenre] = useState("random");
@@ -802,7 +804,7 @@ export default function SessionTournamentCard({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void action({ intent: "finalize" })}
+          onClick={async () => { const result = await action({ intent: "finalize" }); if (result?.config?.tournament_completed_at) onFinalized?.(); }}
           className="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-sm disabled:opacity-40"
         >
           Turnier beenden · Ergebnisse werten
