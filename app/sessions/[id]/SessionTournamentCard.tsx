@@ -848,16 +848,14 @@ export default function SessionTournamentCard({
 
       </div> : null}
       {!completed && isAdmin && matches.length > 0 && completedMatches === matches.length ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={async () => { const result = await action({ intent: "finalize" }); if (result?.config?.tournament_completed_at) onFinalized?.(); }}
-          className="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-sm disabled:opacity-40"
-        >
-          Turnier beenden · Ergebnisse werten
-        </button>
+        <div className="space-y-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
+          <div className="text-4xl">🏆</div>
+          <div className="text-xs font-bold uppercase tracking-widest text-emerald-700">Alle Spiele abgeschlossen</div>
+          <h3 className="text-2xl font-black text-emerald-950">Glückwunsch, {data?.standings[0]?.teamName ?? "Turniersieger"}!</h3>
+          <p className="text-sm font-semibold text-emerald-800">Ihr seid Turniersieger! Die Ergebnisse stehen fest. Mit dem nächsten Schritt wird der Turniersieg offiziell gewertet.</p>
+          <button type="button" disabled={busy} onClick={async () => { const result = await action({ intent: "finalize" }); if (result?.config?.tournament_completed_at) onFinalized?.(); }} className="w-full rounded-lg bg-emerald-700 px-4 py-4 text-sm font-bold text-white disabled:opacity-40">Fertig & weiter · Turniersieg werten →</button>
+        </div>
       ) : null}
-
       {completed ? (
         <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
           <div className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Gesamtsieger</div>
