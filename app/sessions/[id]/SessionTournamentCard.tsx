@@ -205,7 +205,6 @@ export default function SessionTournamentCard({
   const [lastMinuteMusic, setLastMinuteMusic] = useState(false);
   const lastMinuteAnnouncedRef = useRef(false);
   const finishAnnouncedRef = useRef(false);
-  const startAnnouncementRef = useRef(false);
 
   function playWhistle() {
     if (!timerSoundEnabled) return;
@@ -296,13 +295,7 @@ export default function SessionTournamentCard({
     if (remainingSeconds <= 63 && remainingSeconds > 60 && !lastMinuteAnnouncedRef.current) {
       lastMinuteAnnouncedRef.current = true;
       speak(["Achtung, gleich beginnt die letzte Minute! Jetzt nochmal alles geben!", "Jetzt wird’s heiß! Die letzte Minute läuft gleich!", "Endspurt! Gleich geht’s in die letzte Minute!"][Math.floor(Math.random() * 3)]);
-      if (false && lastMinuteMusic && musicRef.current) {
-        const nextIndex = (lastTrackIndexRef.current + 1 + Math.floor(Math.random() * (finaleTracks.length - 1))) % finaleTracks.length;
-        lastTrackIndexRef.current = nextIndex;
-        musicRef.current.src = finaleTracks[nextIndex].url;
-        musicRef.current.load();
-        void musicRef.current.play().catch(() => setMessage("Musik konnte nicht automatisch starten. Bitte Audio am Gerät freigeben."));
-      }
+
     }
     if (remainingSeconds === 60 && lastMinuteMusic && musicRef.current) {
       const nextIndex = (lastTrackIndexRef.current + 1 + Math.floor(Math.random() * (finaleTracks.length - 1))) % finaleTracks.length;
