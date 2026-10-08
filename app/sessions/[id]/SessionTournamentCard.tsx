@@ -169,6 +169,7 @@ export default function SessionTournamentCard({
     essen: "🍔 Essen",
   };
   const [setupOpen, setSetupOpen] = useState(false);
+  const [tournamentCollapsed, setTournamentCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
   const [totalMinutes, setTotalMinutes] = useState(90);
@@ -400,6 +401,13 @@ export default function SessionTournamentCard({
           ) : null}
         </div>
 
+        {completed ? (
+          <button type="button" onClick={() => setTournamentCollapsed((current) => !current)}
+            aria-expanded={!tournamentCollapsed}
+            className="mt-3 w-full rounded-xl border border-cyan-200 bg-white px-4 py-3 text-sm font-black text-cyan-900">
+            {tournamentCollapsed ? "Turnierdetails anzeigen ↓" : "Turnierdetails einklappen ↑"}
+          </button>
+        ) : null}
         {completed && isAdmin ? (
           <button type="button" disabled={busy}
             onClick={() => {
@@ -414,7 +422,8 @@ export default function SessionTournamentCard({
         {message ? <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-800">{message}</div> : null}
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
-        {!completed && isAdmin ? (
+        <div className={tournamentCollapsed ? "hidden" : "contents"}>
+      {!completed && isAdmin ? (
           <button
             type="button"
             disabled={busy || completedMatches > 0}
@@ -586,10 +595,11 @@ export default function SessionTournamentCard({
             {data?.standings[0]?.teamName ?? "Turniersieger"}
           </div>
           <div className="mt-1 text-sm font-semibold text-emerald-800">
-            Für jeden Spieler dieses Teams zählt genau ein Sieg in der normalen strikr-Statistik.
+            Turniersieger laut Tabelle. Die Karriere-Sieg-Wertung wird separat verarbeitet.
           </div>
         </div>
       ) : null}
+      </div>
     </section>
   );
 }
