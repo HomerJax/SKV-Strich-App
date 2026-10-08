@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { cancelTournamentFinish, scheduleTournamentFinish } from "@/lib/tournament-finish-notification";
 
 type TeamPlayer = {
   id: number;
@@ -307,6 +308,8 @@ export default function SessionTournamentCard({
     }
     if (remainingSeconds === 0 && !finishAnnouncedRef.current) {
       finishAnnouncedRef.current = true;
+      timerDeadlineRef.current = null;
+      void cancelTournamentFinish();
       setTimerRunning(false);
       if (musicRef.current) { musicRef.current.pause(); musicRef.current.currentTime = 0; }
       playWhistle();
@@ -376,6 +379,8 @@ export default function SessionTournamentCard({
     const updated = await action({ intent: "save_match", gameNo, goalsA, goalsB });
     if (updated) {
       setTimerRunning(false);
+      timerDeadlineRef.current = null;
+      void cancelTournamentFinish();
       setActiveGameNo(null);
       setRemainingSeconds((updated.config?.tournament_match_minutes ?? matchMinutes) * 60);
     }
@@ -392,6 +397,7 @@ export default function SessionTournamentCard({
     setActiveGameNo(gameNo);
     setRemainingSeconds(minutes * 60);
     timerDeadlineRef.current = Date.now() + minutes * 60000;
+    void scheduleTournamentFinish(timerDeadlineRef.current).then((ok) => { if (!ok) setMessage("Hintergrund-Abpfiff nicht aktiv: Bitte Benachrichtigungen erlauben und die App aktualisieren."); });
     setTimerRunning(true);
   }
 
@@ -693,7 +699,7 @@ export default function SessionTournamentCard({
                 type="button"
                 onClick={() => {
                   if (activeGameNo !== nextOpenMatch.game_no) startTimer(nextOpenMatch.game_no);
-                  else setTimerRunning((current) => { if (!current) timerDeadlineRef.current = Date.now() + remainingSeconds * 1000; else timerDeadlineRef.current = null; return !current; });
+                  else setTimerRunning((current) => { if (!current) { timerDeadlineRef.current = Date.now() + remainingSeconds * 1000; void scheduleTournamentFinish(timerDeadlineRef.current); } else { timerDeadlineRef.current = null; void cancelTournamentFinish(); } return !current; });
                 }}
                 className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-black text-slate-950"
               >
@@ -705,6 +711,7 @@ export default function SessionTournamentCard({
                   setActiveGameNo(nextOpenMatch.game_no);
                   setTimerRunning(false);
                   timerDeadlineRef.current = null;
+                  void cancelTournamentFinish();
                   setRemainingSeconds((config?.tournament_match_minutes ?? matchMinutes) * 60);
                 }}
                 className="rounded-xl bg-white/10 px-3 py-2 text-xs font-black text-white"
