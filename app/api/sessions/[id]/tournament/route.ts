@@ -623,6 +623,25 @@ export async function POST(
       return NextResponse.json({ ok: true, message: "Turnier wieder geöffnet.", ...(await loadTournament(access, sessionId)) });
     }
 
+    if (intent === "change_match_minutes") {
+      const minutes = parseIntSafe(payload.matchMinutes, 0);
+      if (minutes < 1 || minutes > 60) {
+        return NextResponse.json({ error: "Bitte eine Spielzeit zwischen 1 und 60 Minuten wählen." }, { status: 400 });
+      }
+      const { data: session, error: sessionError } = await access.adminSupabase
+        .from("sessions").select("session_mode,tournament_completed_at")
+        .eq("id", sessionId).eq("club_id", access.clubId).single();
+      if (sessionError) throw new Error(sessionError.message);
+      if (session.session_mode !== "tournament" || session.tournament_completed_at) {
+        return NextResponse.json({ error: "Spielzeit kann nur während eines laufenden Turniers geändert werden." }, { status: 409 });
+      }
+      const { error: updateError } = await access.adminSupabase.from("sessions")
+        .update({ tournament_match_minutes: minutes })
+        .eq("id", sessionId).eq("club_id", access.clubId);
+      if (updateError) throw new Error(updateError.message);
+      return NextResponse.json({ ok: true, message: `Spielzeit für kommende Spiele auf ${minutes} Minuten geändert.`, ...(await loadTournament(access, sessionId)) });
+    }
+
     if (intent === "save_match") {
       const gameNo = parseIntSafe(payload.gameNo, 0);
       const goalsA = parseIntSafe(payload.goalsA, -1);
