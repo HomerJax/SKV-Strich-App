@@ -522,6 +522,11 @@ export async function POST(
       if (teamsError) throw new Error(teamsError.message);
       const teamIds = (tournamentTeams ?? []).map((team) => Number(team.id)).filter(Number.isFinite);
 
+      // Results reference teams via foreign keys. Delete them before removing tournament teams.
+      const { error: resultError } = await access.adminSupabase.from("results")
+        .delete().eq("session_id", sessionId).eq("club_id", access.clubId);
+      if (resultError) throw new Error(resultError.message);
+
       const { error: matchesError } = await access.adminSupabase
         .from("tournament_matches").delete().eq("session_id", sessionId).eq("club_id", access.clubId);
       if (matchesError) throw new Error(matchesError.message);
@@ -531,11 +536,6 @@ export async function POST(
         if (assignmentsError) throw new Error(assignmentsError.message);
         const { error: deleteTeamsError } = await access.adminSupabase.from("teams").delete().in("id", teamIds);
         if (deleteTeamsError) throw new Error(deleteTeamsError.message);
-      }
-
-      if (access.session.tournament_completed_at) {
-        const { error: resultError } = await access.adminSupabase.from("results").delete().eq("session_id", sessionId);
-        if (resultError) throw new Error(resultError.message);
       }
 
       const { error: resetError } = await access.adminSupabase.from("sessions").update({
