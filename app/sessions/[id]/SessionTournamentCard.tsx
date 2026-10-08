@@ -185,6 +185,8 @@ export default function SessionTournamentCard({
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSoundEnabled, setTimerSoundEnabled] = useState(true);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const [lastMinuteMusic, setLastMinuteMusic] = useState(false);
   const lastMinuteAnnouncedRef = useRef(false);
   const finishAnnouncedRef = useRef(false);
 
@@ -264,14 +266,28 @@ export default function SessionTournamentCard({
     if (remainingSeconds === 60 && !lastMinuteAnnouncedRef.current) {
       lastMinuteAnnouncedRef.current = true;
       announceLastMinute();
+      if (lastMinuteMusic && musicRef.current) {
+        musicRef.current.currentTime = 0;
+        void musicRef.current.play().catch(() => setMessage("Musik konnte nicht automatisch starten. Bitte Audio am Gerät freigeben."));
+      }
     }
     if (remainingSeconds === 0 && !finishAnnouncedRef.current) {
       finishAnnouncedRef.current = true;
       setTimerRunning(false);
+      if (musicRef.current) { musicRef.current.pause(); musicRef.current.currentTime = 0; }
       playWhistle();
       if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.([300, 150, 300]);
     }
   }, [remainingSeconds, timerRunning, timerSoundEnabled]);
+
+  useEffect(() => {
+    const audio = new Audio("https://opengameart.org/sites/default/files/city-loop_0.mp3");
+    audio.preload = "auto";
+    audio.loop = true;
+    audio.volume = 0.5;
+    musicRef.current = audio;
+    return () => { audio.pause(); audio.src = ""; musicRef.current = null; };
+  }, []);
 
   const teamNameById = useMemo(
     () => new Map((data?.teams ?? []).map((team) => [team.id, team.name])),
@@ -334,6 +350,7 @@ export default function SessionTournamentCard({
   function startTimer(gameNo: number) {
     const minutes = data?.config?.tournament_match_minutes ?? matchMinutes;
     prepareTimerAudio();
+    if (musicRef.current) { musicRef.current.pause(); musicRef.current.currentTime = 0; }
     lastMinuteAnnouncedRef.current = false;
     finishAnnouncedRef.current = false;
     setActiveGameNo(gameNo);
@@ -592,6 +609,18 @@ export default function SessionTournamentCard({
               <button type="button" onClick={() => { prepareTimerAudio(); setTimerSoundEnabled((value) => !value); }}
                 className="rounded-lg bg-white/10 px-2 py-1 text-xs font-bold text-white">
                 {timerSoundEnabled ? "🔊 Ansagen an" : "🔇 Ansagen aus"}
+              </button>
+              <button type="button" onClick={() => {
+                setLastMinuteMusic((value) => !value);
+                prepareTimerAudio();
+                if (musicRef.current) {
+                  void musicRef.current.play().then(() => {
+                    musicRef.current?.pause();
+                    if (musicRef.current) musicRef.current.currentTime = 0;
+                  }).catch(() => {});
+                }
+              }} className="ml-2 rounded-lg bg-white/10 px-2 py-1 text-xs font-bold text-white">
+                {lastMinuteMusic ? "🎵 Finale-Musik an" : "🎵 Finale-Musik aus"}
               </button>
             </div>
             <div className="flex gap-2">
