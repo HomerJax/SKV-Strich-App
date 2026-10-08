@@ -250,7 +250,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   function renderAttendance() {
     return (
       <div ref={attendanceRef} className="space-y-3">
-        {!(props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && isAdmin && isTrainingSession) ? <SessionAdminRsvpCard
+        {!(["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession) ? <SessionAdminRsvpCard
           sessionId={props.sessionId}
           players={displayPlayers}
           hasResult={hasResult}
@@ -273,7 +273,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           guestStrength={guestStrength}
           guestSaving={guestSaving}
           clubSettings={clubSettings}
-          collapsed={props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && isAdmin && isTrainingSession ? false : attendanceCollapsed}
+          collapsed={["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession ? false : attendanceCollapsed}
           savingPresence={savingPresence}
           dirty={attendanceDirty}
           directSaveEnabled={directAttendanceSaveEnabled}
@@ -281,7 +281,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           deletingGuestPlayerId={deletingGuestPlayerId}
           onToggleMultiSelect={toggleAttendanceMultiSelect}
           onToggleCollapsed={() => setAttendanceCollapsed((prev) => !prev)}
-          pilotWizard={props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && isAdmin && isTrainingSession}
+          pilotWizard={["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession}
           onToggleShowGuestForm={toggleGuestForm}
           onGuestNameChange={setGuestName}
           onGuestPositionChange={setGuestPosition}
@@ -473,13 +473,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           resultCount={results.length}
           seriesId={session.series_id ?? null}
           isPro={props.initialIsPro === true}
-          compactPilot={props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && isAdmin && isTrainingSession}
+          compactPilot={["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession}
         />
 
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
 
-        {props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && isAdmin && isTrainingSession ? (() => {
+        {["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession ? (() => {
           const steps = [
             { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2, summary: `${presentPlayers.length} Spieler dabei` },
             { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || teamsConfirmed, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
