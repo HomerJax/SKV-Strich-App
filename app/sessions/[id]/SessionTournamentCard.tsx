@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type TeamPlayer = {
   id: number;
@@ -183,6 +183,53 @@ export default function SessionTournamentCard({
   const [activeGameNo, setActiveGameNo] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState(8 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
+  const [timerSoundEnabled, setTimerSoundEnabled] = useState(true);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const lastMinuteAnnouncedRef = useRef(false);
+  const finishAnnouncedRef = useRef(false);
+
+  function playWhistle() {
+    if (!timerSoundEnabled) return;
+    try {
+      const ctx = audioContextRef.current;
+      if (!ctx) return;
+      if (ctx.state === "suspended") void ctx.resume();
+      const now = ctx.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = "sawtooth";
+        oscillator.frequency.setValueAtTime(i === 2 ? 1100 : 900, now + i * 0.22);
+        gain.gain.setValueAtTime(0.0001, now + i * 0.22);
+        gain.gain.exponentialRampToValueAtTime(0.17, now + i * 0.22 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.22 + 0.17);
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start(now + i * 0.22);
+        oscillator.stop(now + i * 0.22 + 0.18);
+      }
+    } catch { /* Audio may be unavailable in some webviews. */ }
+  }
+
+  function announceLastMinute() {
+    if (!timerSoundEnabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    try {
+      const utterance = new SpeechSynthesisUtterance("Noch eine Minute!");
+      utterance.lang = "de-DE";
+      utterance.rate = 1;
+      utterance.volume = 1;
+      window.speechSynthesis.speak(utterance);
+    } catch { /* Some browsers do not support speech output. */ }
+  }
+
+  function prepareTimerAudio() {
+    if (typeof window === "undefined") return;
+    try {
+      if (!audioContextRef.current) audioContextRef.current = new AudioContext();
+      if (audioContextRef.current.state === "suspended") void audioContextRef.current.resume();
+    } catch { /* Timer remains usable without sound. */ }
+  }
+
   const [editingTeamId, setEditingTeamId] = useState<number | null>(null);
   const [editingTeamName, setEditingTeamName] = useState("");
   const [unassignedPlayers, setUnassignedPlayers] = useState<TeamPlayer[]>([]);
@@ -208,21 +255,23 @@ export default function SessionTournamentCard({
 
   useEffect(() => {
     if (!timerRunning) return;
-    const handle = window.setInterval(() => {
-      setRemainingSeconds((current) => {
-        if (current <= 1) {
-          window.clearInterval(handle);
-          setTimerRunning(false);
-          if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-            navigator.vibrate?.([300, 150, 300]);
-          }
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
+    const handle = window.setInterval(() => setRemainingSeconds((current) => Math.max(0, current - 1)), 1000);
     return () => window.clearInterval(handle);
   }, [timerRunning]);
+
+  useEffect(() => {
+    if (!timerRunning) return;
+    if (remainingSeconds === 60 && !lastMinuteAnnouncedRef.current) {
+      lastMinuteAnnouncedRef.current = true;
+      announceLastMinute();
+    }
+    if (remainingSeconds === 0 && !finishAnnouncedRef.current) {
+      finishAnnouncedRef.current = true;
+      setTimerRunning(false);
+      playWhistle();
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.([300, 150, 300]);
+    }
+  }, [remainingSeconds, timerRunning, timerSoundEnabled]);
 
   const teamNameById = useMemo(
     () => new Map((data?.teams ?? []).map((team) => [team.id, team.name])),
@@ -284,6 +333,9 @@ export default function SessionTournamentCard({
 
   function startTimer(gameNo: number) {
     const minutes = data?.config?.tournament_match_minutes ?? matchMinutes;
+    prepareTimerAudio();
+    lastMinuteAnnouncedRef.current = false;
+    finishAnnouncedRef.current = false;
     setActiveGameNo(gameNo);
     setRemainingSeconds(minutes * 60);
     setTimerRunning(true);
@@ -535,7 +587,13 @@ export default function SessionTournamentCard({
             {teamName(nextOpenMatch.team_a_id)} vs. {teamName(nextOpenMatch.team_b_id)}
           </div>
           <div className="mt-4 flex items-center justify-between gap-4">
-            <div className="font-mono text-4xl font-black tracking-tight">{formatClock(remainingSeconds)}</div>
+            <div className="space-y-2">
+              <div className="font-mono text-4xl font-black tracking-tight">{formatClock(remainingSeconds)}</div>
+              <button type="button" onClick={() => { prepareTimerAudio(); setTimerSoundEnabled((value) => !value); }}
+                className="rounded-lg bg-white/10 px-2 py-1 text-xs font-bold text-white">
+                {timerSoundEnabled ? "🔊 Ansagen an" : "🔇 Ansagen aus"}
+              </button>
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"
