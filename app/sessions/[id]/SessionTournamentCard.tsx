@@ -186,6 +186,12 @@ export default function SessionTournamentCard({
   const [timerSoundEnabled, setTimerSoundEnabled] = useState(true);
   const audioContextRef = useRef<AudioContext | null>(null);
   const musicRef = useRef<HTMLAudioElement | null>(null);
+  const lastTrackIndexRef = useRef(-1);
+  const finaleTracks = [
+    { name: "City Loop", url: "https://opengameart.org/sites/default/files/city-loop_0.mp3" },
+    { name: "Joyfully", url: "https://opengameart.org/sites/default/files/joyfully_loop_bpm170.mp3" },
+    { name: "Loop", url: "https://opengameart.org/sites/default/files/cubedcanada%2Bloop_3.mp3" },
+  ];
   const [lastMinuteMusic, setLastMinuteMusic] = useState(false);
   const lastMinuteAnnouncedRef = useRef(false);
   const finishAnnouncedRef = useRef(false);
@@ -267,7 +273,10 @@ export default function SessionTournamentCard({
       lastMinuteAnnouncedRef.current = true;
       announceLastMinute();
       if (lastMinuteMusic && musicRef.current) {
-        musicRef.current.currentTime = 0;
+        const nextIndex = (lastTrackIndexRef.current + 1 + Math.floor(Math.random() * (finaleTracks.length - 1))) % finaleTracks.length;
+        lastTrackIndexRef.current = nextIndex;
+        musicRef.current.src = finaleTracks[nextIndex].url;
+        musicRef.current.load();
         void musicRef.current.play().catch(() => setMessage("Musik konnte nicht automatisch starten. Bitte Audio am Gerät freigeben."));
       }
     }
@@ -281,7 +290,7 @@ export default function SessionTournamentCard({
   }, [remainingSeconds, timerRunning, timerSoundEnabled]);
 
   useEffect(() => {
-    const audio = new Audio("https://opengameart.org/sites/default/files/city-loop_0.mp3");
+    const audio = new Audio();
     audio.preload = "auto";
     audio.loop = true;
     audio.volume = 0.5;
