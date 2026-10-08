@@ -65,6 +65,8 @@ type Props = {
   hasNormalResult: boolean;
   onActivated?: () => void;
   onFinalized?: () => void;
+  wizardControl?: { current: { next: () => void; ready: boolean; label: string } | null };
+  onWizardReady?: (ready: boolean) => void;
 };
 
 function formatClock(seconds: number) {
@@ -158,6 +160,8 @@ export default function SessionTournamentCard({
   hasNormalResult,
   onActivated,
   onFinalized,
+  wizardControl,
+  onWizardReady,
 }: Props) {
   const [playersPerTeam, setPlayersPerTeam] = useState(5);
   const [nameGenre, setNameGenre] = useState("random");
@@ -405,6 +409,25 @@ export default function SessionTournamentCard({
     setTimerRunning(true);
   }
 
+  const setupReady = totalMinutes >= 15 && totalMinutes <= 240 && presentCount >= teamCount * 2 && !busy;
+  const [recommendationAccepted, setRecommendationAccepted] = useState(false);
+  const wizardReady = setupReady && (setupStage !== "recommendation" || recommendationAccepted);
+  if (wizardControl && !enabled) {
+    wizardControl.current = {
+      ready: wizardReady,
+      label: setupStage === "summary" ? "Turnier starten →" : "Fertig & weiter →",
+      next: () => {
+        if (!wizardReady) return;
+        if (setupStage === "time") setSetupStage("recommendation");
+        else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary");
+        else void setup();
+      },
+    };
+  }
+  useEffect(() => {
+    if (wizardControl && !enabled) onWizardReady?.(wizardReady);
+  }, [wizardReady, setupStage, enabled, wizardControl, onWizardReady]);
+
   if (!enabled) {
     if (!isAdmin || hasNormalResult) return null;
 
@@ -487,10 +510,13 @@ export default function SessionTournamentCard({
             </div>
 
 </div> : null}
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {setupStage !== "time" ? <button type="button" onClick={() => setSetupStage(setupStage === "summary" ? "recommendation" : "time")} className="rounded-lg border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700">← Zurück</button> : null}
-              {setupStage === "recommendation" ? <button type="button" onClick={() => setSetupStage("adjust")} className="flex-1 rounded-lg border border-teal-500 bg-white px-4 py-3 text-sm font-bold text-teal-700">Anpassen</button> : null}
-              <button type="button" disabled={busy || totalMinutes < 15 || totalMinutes > 240 || presentCount < teamCount * 2} onClick={() => { if (setupStage === "time") setSetupStage("recommendation"); else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary"); else void setup(); }} className="flex-1 rounded-lg bg-teal-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-40">{busy ? "Wird vorbereitet …" : setupStage === "time" ? "Weiter →" : setupStage === "recommendation" ? "Passt · weiter →" : setupStage === "adjust" ? "Änderungen übernehmen →" : "Turnier starten →"}</button>
+              {setupStage === "recommendation" ? <>
+                <button type="button" onClick={() => { setRecommendationAccepted(false); setSetupStage("adjust"); }} className="rounded-lg border border-teal-500 bg-white px-4 py-3 text-sm font-bold text-teal-700">Anpassen</button>
+                <button type="button" onClick={() => setRecommendationAccepted(true)} className={`rounded-lg border px-4 py-3 text-sm font-bold ${recommendationAccepted ? "border-teal-500 bg-teal-50 text-teal-800" : "border-slate-300 bg-white text-slate-800"}`}>{recommendationAccepted ? "✓ Übernommen" : "Übernehmen"}</button>
+              </> : null}
+              {!wizardControl ? <button type="button" disabled={!wizardReady} onClick={() => { if (setupStage === "time") setSetupStage("recommendation"); else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary"); else void setup(); }} className="flex-1 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-40">Fertig & weiter →</button> : null}
             </div>
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
