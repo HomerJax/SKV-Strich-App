@@ -525,30 +525,30 @@ export default function SessionTournamentCard({
             <div className="text-xs font-semibold text-slate-500">3 Punkte Sieg · 1 Punkt Remis</div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] text-sm">
-              <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+            <table className="w-full table-fixed text-xs sm:text-sm">
+              <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
                 <tr>
-                  <th className="px-3 py-2 text-left">#</th>
-                  <th className="px-3 py-2 text-left">Team</th>
-                  <th className="px-2 py-2 text-center">Sp</th>
-                  <th className="px-2 py-2 text-center">S</th>
-                  <th className="px-2 py-2 text-center">U</th>
-                  <th className="px-2 py-2 text-center">N</th>
-                  <th className="px-2 py-2 text-center">Tore</th>
-                  <th className="px-3 py-2 text-right">Pkt</th>
+                  <th className="w-7 px-1 py-2 text-center">#</th>
+                  <th className="px-1 py-2 text-left">Team</th>
+                  <th className="w-8 px-1 py-2 text-center">Sp</th>
+                  <th className="w-11 px-1 py-2 text-center text-cyan-800">Pkt</th>
+                  <th className="hidden w-10 px-1 py-2 text-center sm:table-cell">S</th>
+                  <th className="hidden w-10 px-1 py-2 text-center sm:table-cell">U</th>
+                  <th className="hidden w-10 px-1 py-2 text-center sm:table-cell">N</th>
+                  <th className="w-12 px-1 py-2 text-center">Tore</th>
                 </tr>
               </thead>
               <tbody>
                 {data!.standings.map((row, index) => (
                   <tr key={row.teamId} className="border-t border-slate-100">
-                    <td className="px-3 py-2 font-black text-slate-400">{index + 1}</td>
-                    <td className="px-3 py-2 font-black text-slate-950">{row.teamName}</td>
-                    <td className="px-2 py-2 text-center">{row.played}</td>
-                    <td className="px-2 py-2 text-center">{row.wins}</td>
-                    <td className="px-2 py-2 text-center">{row.draws}</td>
-                    <td className="px-2 py-2 text-center">{row.losses}</td>
-                    <td className="px-2 py-2 text-center">{row.goalsFor}:{row.goalsAgainst}</td>
-                    <td className="px-3 py-2 text-right text-base font-black">{row.points}</td>
+                    <td className="px-1 py-2 text-center font-black text-slate-400">{index + 1}</td>
+                    <td className="truncate px-1 py-2 font-black text-slate-950" title={row.teamName}>{row.teamName}</td>
+                    <td className="px-1 py-2 text-center">{row.played}</td>
+                    <td className="bg-cyan-50 px-1 py-2 text-center text-base font-black text-cyan-900">{row.points}</td>
+                    <td className="hidden px-1 py-2 text-center sm:table-cell">{row.wins}</td>
+                    <td className="hidden px-1 py-2 text-center sm:table-cell">{row.draws}</td>
+                    <td className="hidden px-1 py-2 text-center sm:table-cell">{row.losses}</td>
+                    <td className="px-1 py-2 text-center">{row.goalsFor}:{row.goalsAgainst}</td>
                   </tr>
                 ))}
               </tbody>
