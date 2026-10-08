@@ -534,6 +534,32 @@ export async function POST(
       return NextResponse.json({ ok: true, message: "Turnier wurde zurückgesetzt.", ...tournament });
     }
 
+    if (intent === "move_player") {
+      const playerId = parseIntSafe(payload.playerId, 0);
+      const targetTeamId = parseIntSafe(payload.targetTeamId, 0);
+      const tournament = await loadTournament(access, sessionId);
+      if (tournament.config?.session_mode !== "tournament" || tournament.config.tournament_completed_at) {
+        return NextResponse.json({ error: "Abgeschlossenes Turnier zuerst wieder öffnen." }, { status: 409 });
+      }
+      if (playerId < 1 || (targetTeamId !== 0 && !tournament.teams.some((team) => team.id === targetTeamId))) {
+        return NextResponse.json({ error: "Ungültiger Spieler oder Zielteam." }, { status: 400 });
+      }
+      const { data: attendance, error: attendanceError } = await access.adminSupabase
+        .from("session_players").select("player_id").eq("session_id", sessionId).eq("player_id", playerId).maybeSingle();
+      if (attendanceError) throw new Error(attendanceError.message);
+      if (!attendance) return NextResponse.json({ error: "Spieler ist nicht anwesend." }, { status: 409 });
+      const ids = tournament.teams.map((team) => team.id);
+      const { error: removeError } = await access.adminSupabase.from("team_players")
+        .delete().eq("player_id", playerId).in("team_id", ids);
+      if (removeError) throw new Error(removeError.message);
+      if (targetTeamId) {
+        const { error: addError } = await access.adminSupabase.from("team_players")
+          .insert({ team_id: targetTeamId, player_id: playerId });
+        if (addError) throw new Error(addError.message);
+      }
+      return NextResponse.json({ ok: true, message: targetTeamId ? "Spieler verschoben." : "Spieler ist nicht zugeordnet.", ...(await loadTournament(access, sessionId)) });
+    }
+
     if (intent === "rename_team") {
       const teamId = parseIntSafe(payload.teamId, 0);
       const name = String(payload.name ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
