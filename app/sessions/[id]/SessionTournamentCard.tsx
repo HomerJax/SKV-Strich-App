@@ -97,12 +97,12 @@ function ScoreEditor({
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
             Spiel {match.game_no}
           </div>
-          <div className="mt-1 text-sm font-black text-slate-950">
+          <div className="mt-1 break-words text-sm font-black text-slate-950">
             {teamName(match.team_a_id)} <span className="text-slate-400">vs.</span> {teamName(match.team_b_id)}
           </div>
         </div>
@@ -117,7 +117,7 @@ function ScoreEditor({
         )}
       </div>
 
-      <div className="mt-3 grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2">
+      <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
         <input
           inputMode="numeric"
           value={a}
@@ -139,7 +139,7 @@ function ScoreEditor({
           type="button"
           disabled={disabled || busy || a === "" || b === ""}
           onClick={() => void onSave(match.game_no, Number(a), Number(b))}
-          className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white disabled:opacity-40"
+          className="col-span-3 w-full rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white disabled:opacity-40"
         >
           Speichern
         </button>
@@ -205,6 +205,7 @@ export default function SessionTournamentCard({
   const [lastMinuteMusic, setLastMinuteMusic] = useState(false);
   const lastMinuteAnnouncedRef = useRef(false);
   const finishAnnouncedRef = useRef(false);
+  const startAnnouncementRef = useRef(false);
 
   function playWhistle() {
     if (!timerSoundEnabled) return;
@@ -227,6 +228,18 @@ export default function SessionTournamentCard({
         oscillator.stop(now + i * 0.22 + 0.18);
       }
     } catch { /* Audio may be unavailable in some webviews. */ }
+  }
+
+  function speak(text: string) {
+    if (!timerSoundEnabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    try {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "de-DE";
+      utterance.rate = 1.12;
+      utterance.pitch = 1.12;
+      utterance.volume = 1;
+      window.speechSynthesis.speak(utterance);
+    } catch { /* Speech may be unavailable. */ }
   }
 
   function announceLastMinute() {
@@ -280,16 +293,23 @@ export default function SessionTournamentCard({
 
   useEffect(() => {
     if (!timerRunning) return;
-    if (remainingSeconds === 60 && !lastMinuteAnnouncedRef.current) {
+    if (remainingSeconds <= 63 && remainingSeconds > 60 && !lastMinuteAnnouncedRef.current) {
       lastMinuteAnnouncedRef.current = true;
-      announceLastMinute();
-      if (lastMinuteMusic && musicRef.current) {
+      speak(["Achtung, gleich beginnt die letzte Minute! Jetzt nochmal alles geben!", "Jetzt wird’s heiß! Die letzte Minute läuft gleich!", "Endspurt! Gleich geht’s in die letzte Minute!"][Math.floor(Math.random() * 3)]);
+      if (false && lastMinuteMusic && musicRef.current) {
         const nextIndex = (lastTrackIndexRef.current + 1 + Math.floor(Math.random() * (finaleTracks.length - 1))) % finaleTracks.length;
         lastTrackIndexRef.current = nextIndex;
         musicRef.current.src = finaleTracks[nextIndex].url;
         musicRef.current.load();
         void musicRef.current.play().catch(() => setMessage("Musik konnte nicht automatisch starten. Bitte Audio am Gerät freigeben."));
       }
+    }
+    if (remainingSeconds === 60 && lastMinuteMusic && musicRef.current) {
+      const nextIndex = (lastTrackIndexRef.current + 1 + Math.floor(Math.random() * (finaleTracks.length - 1))) % finaleTracks.length;
+      lastTrackIndexRef.current = nextIndex;
+      musicRef.current.src = finaleTracks[nextIndex].url;
+      musicRef.current.load();
+      void musicRef.current.play().catch(() => setMessage("Musik konnte nicht automatisch starten."));
     }
     if (remainingSeconds === 0 && !finishAnnouncedRef.current) {
       finishAnnouncedRef.current = true;
@@ -373,6 +393,8 @@ export default function SessionTournamentCard({
     if (musicRef.current) { musicRef.current.pause(); musicRef.current.currentTime = 0; }
     lastMinuteAnnouncedRef.current = false;
     finishAnnouncedRef.current = false;
+    playWhistle();
+    window.setTimeout(() => speak(["Let’s go! Auf geht’s!", "Pack ma’s! Vollgas!", "Auf geht’s, Männer! Viel Spaß!", "Und los geht’s!"][Math.floor(Math.random() * 4)]), 650);
     setActiveGameNo(gameNo);
     setRemainingSeconds(minutes * 60);
     setTimerRunning(true);
@@ -646,14 +668,14 @@ export default function SessionTournamentCard({
         {matches.map((match) => (
           <div key={match.game_no} className="space-y-2">
             {!completed && nextOpenMatch?.game_no === match.game_no ? (
-              <div className="rounded-[24px] bg-slate-950 p-4 text-white shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-slate-950 p-4 text-white shadow-sm">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">Nächstes Spiel</div>
-          <div className="mt-1 text-lg font-black">
+          <div className="mt-1 break-words text-lg font-black">
             {teamName(nextOpenMatch.team_a_id)} vs. {teamName(nextOpenMatch.team_b_id)}
           </div>
-          <div className="mt-4 flex items-center justify-between gap-4">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-2">
-              <div className="font-mono text-4xl font-black tracking-tight">{formatClock(remainingSeconds)}</div>
+              <div className="font-mono text-4xl font-black tracking-tight tabular-nums">{formatClock(remainingSeconds)}</div>
               <button type="button" onClick={() => { prepareTimerAudio(); setTimerSoundEnabled((value) => !value); }}
                 className="rounded-lg bg-white/10 px-2 py-1 text-xs font-bold text-white">
                 {timerSoundEnabled ? "🔊 Ansagen an" : "🔇 Ansagen aus"}
@@ -671,7 +693,7 @@ export default function SessionTournamentCard({
                 {lastMinuteMusic ? "🎵 Finale-Musik an" : "🎵 Finale-Musik aus"}
               </button>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => {
