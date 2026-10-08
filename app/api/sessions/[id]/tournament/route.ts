@@ -562,6 +562,23 @@ export async function POST(
       return NextResponse.json({ ok: true, message: "Teamname gespeichert.", ...tournament });
     }
 
+    if (intent === "reopen") {
+      const { data: config, error: configError } = await access.adminSupabase.from("sessions")
+        .select("session_mode,tournament_completed_at").eq("id", sessionId).eq("club_id", access.clubId)
+        .single<{ session_mode: string | null; tournament_completed_at: string | null }>();
+      if (configError) throw new Error(configError.message);
+      if (config.session_mode !== "tournament" || !config.tournament_completed_at)
+        return NextResponse.json({ error: "Turnier ist nicht abgeschlossen." }, { status: 409 });
+      const { error: deleteError } = await access.adminSupabase.from("results").delete()
+        .eq("session_id", sessionId).eq("club_id", access.clubId);
+      if (deleteError) throw new Error(deleteError.message);
+      const { error: reopenError } = await access.adminSupabase.from("sessions")
+        .update({ tournament_completed_at: null, tournament_winner_team_id: null })
+        .eq("id", sessionId).eq("club_id", access.clubId);
+      if (reopenError) throw new Error(reopenError.message);
+      return NextResponse.json({ ok: true, message: "Turnier wieder geöffnet.", ...(await loadTournament(access, sessionId)) });
+    }
+
     if (intent === "save_match") {
       const gameNo = parseIntSafe(payload.gameNo, 0);
       const goalsA = parseIntSafe(payload.goalsA, -1);
