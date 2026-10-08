@@ -270,7 +270,12 @@ export default function SessionTournamentCard({
   }
 
   async function saveMatch(gameNo: number, goalsA: number, goalsB: number) {
-    await action({ intent: "save_match", gameNo, goalsA, goalsB });
+    const updated = await action({ intent: "save_match", gameNo, goalsA, goalsB });
+    if (updated) {
+      setTimerRunning(false);
+      setActiveGameNo(null);
+      setRemainingSeconds((updated.config?.tournament_match_minutes ?? matchMinutes) * 60);
+    }
   }
 
   function startTimer(gameNo: number) {
@@ -490,8 +495,11 @@ export default function SessionTournamentCard({
         </div>
       ) : null}
 
-      {!completed && nextOpenMatch ? (
-        <div className="rounded-[24px] bg-slate-950 p-4 text-white shadow-sm">
+      <div className="space-y-2">
+        {matches.map((match) => (
+          <div key={match.game_no} className="space-y-2">
+            {!completed && nextOpenMatch?.game_no === match.game_no ? (
+              <div className="rounded-[24px] bg-slate-950 p-4 text-white shadow-sm">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">Nächstes Spiel</div>
           <div className="mt-1 text-lg font-black">
             {teamName(nextOpenMatch.team_a_id)} vs. {teamName(nextOpenMatch.team_b_id)}
@@ -523,10 +531,7 @@ export default function SessionTournamentCard({
             </div>
           </div>
         </div>
-      ) : null}
-
-      <div className="space-y-2">
-        {matches.map((match) => (
+            ) : null}
           <ScoreEditor
             key={match.game_no}
             match={match}
@@ -535,6 +540,7 @@ export default function SessionTournamentCard({
             disabled={!isAdmin || completed}
             onSave={saveMatch}
           />
+          </div>
         ))}
       </div>
 
