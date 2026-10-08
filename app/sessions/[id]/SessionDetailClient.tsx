@@ -494,6 +494,24 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           ? renderWorkflowSection("photo", renderWinnerPhoto())
           : null}
 
+        {isTournamentMode && session.tournament_completed_at && isAdmin ? (
+          <SessionWinnerPhotoCard
+            sessionId={props.sessionId}
+            hasResult={hasResult}
+            saving={saving}
+            photoBusy={photoBusy}
+            collapsed={winnerPhotoCollapsed}
+            canUploadWinnerPhoto={canUploadWinnerPhoto}
+            winnerPhotoUrl={winnerPhotoUrl}
+            hasWinnerPhoto={hasWinnerPhoto}
+            winnerPhotoInputRef={winnerPhotoInputRef}
+            onWinnerPhotoUpload={handleWinnerPhotoUpload}
+            onWinnerPhotoDelete={handleWinnerPhotoDelete}
+            onToggleCollapsed={() => setWinnerPhotoCollapsed((prev) => !prev)}
+            title={t("sessionDetail.winnerPhoto")}
+          />
+        ) : null}
+
         {!isTournamentMode && hasResult && !dayWinnerSide ? (
           <NoticeCard tone="default">
             {t("sessionDetail.noDayWinner", { scoreA: scoreAValue, scoreB: scoreBValue })}
