@@ -68,6 +68,7 @@ type Props = {
   wizardControl?: { current: { next: () => void; ready: boolean; label: string } | null };
   tournamentWizardControl?: { current: { next: () => void; ready: boolean; label: string } | null };
   onWizardReady?: (ready: boolean) => void;
+  onTournamentWizardChange?: (stage: "teams" | "games", ready: boolean) => void;
 };
 
 function formatClock(seconds: number) {
@@ -164,6 +165,7 @@ export default function SessionTournamentCard({
   wizardControl,
   tournamentWizardControl,
   onWizardReady,
+  onTournamentWizardChange,
 }: Props) {
   const [playersPerTeam, setPlayersPerTeam] = useState(5);
   const [nameGenre, setNameGenre] = useState("random");
@@ -430,6 +432,10 @@ export default function SessionTournamentCard({
   useEffect(() => {
     if (wizardControl && !enabled) onWizardReady?.(wizardReady);
   }, [wizardReady, setupStage, enabled, wizardControl, onWizardReady]);
+
+  useEffect(() => {
+    if (enabled && tournamentWizardControl) onTournamentWizardChange?.(tournamentStage, !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0);
+  }, [enabled, tournamentStage, busy, data, tournamentWizardControl, onTournamentWizardChange]);
 
   if (!enabled) {
     if (!isAdmin || hasNormalResult) return null;
