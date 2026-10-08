@@ -588,7 +588,7 @@ export default function SessionTournamentCard({
           <button type="button" disabled={busy}
             onClick={() => {
               if (window.confirm("Turnier wieder öffnen? Die bisherige Siegerwertung wird vorübergehend zurückgenommen. Nach Korrekturen bitte erneut abschließen.")) {
-                void action({ intent: "reopen" }).then(() => onActivated?.());
+                void action({ intent: "reopen" }).then((result) => { if (!result) return; setTournamentStage("games"); setTournamentTeamsConfirmed(true); setTournamentCollapsed(false); setActiveGameNo(result.matches?.[result.matches.length - 1]?.game_no ?? null); onActivated?.(); });
               }
             }}
             className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-black text-amber-900 disabled:opacity-40">
