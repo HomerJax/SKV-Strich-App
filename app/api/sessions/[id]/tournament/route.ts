@@ -244,7 +244,25 @@ async function loadTournament(access: Exclude<Awaited<ReturnType<typeof requireS
   const matches = (matchesData ?? []) as TournamentMatch[];
   const standings = calculateTournamentStandings(teams as TournamentTeam[], matches);
 
+  const { data: attendanceRows, error: attendanceError } = await adminSupabase
+    .from("session_players").select("player_id").eq("session_id", sessionId);
+  if (attendanceError) throw new Error(attendanceError.message);
+  const assignedIds = new Set(((teamPlayersData ?? []) as TeamPlayerRow[]).map((row) => row.player_id));
+  const unassignedIds = (attendanceRows ?? []).map((row) => Number(row.player_id))
+    .filter((id) => !assignedIds.has(id));
+  const { data: unassignedRows, error: unassignedError } = unassignedIds.length
+    ? await adminSupabase.from("players")
+        .select("id,name,first_name,last_name,nickname,strength,preferred_position")
+        .eq("club_id", clubId).in("id", unassignedIds)
+    : { data: [] as PlayerRow[], error: null };
+  if (unassignedError) throw new Error(unassignedError.message);
+  const unassignedPlayers = ((unassignedRows ?? []) as PlayerRow[]).map((player) => ({
+    id: player.id, name: playerLabel(player),
+    strength: player.strength, preferredPosition: player.preferred_position,
+  }));
+
   return {
+    unassignedPlayers,
     config: sessionConfig,
     teams: tournamentTeams,
     matches,
