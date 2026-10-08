@@ -383,7 +383,7 @@ export default function SessionTournamentCard({
       setTimerRunning(false);
       timerDeadlineRef.current = null;
       void cancelTournamentFinish();
-      setActiveGameNo(updated.matches?.find((match) => match.goals_team_a == null || match.goals_team_b == null)?.game_no ?? null);
+      setActiveGameNo(gameNo);
       setRemainingSeconds((updated.config?.tournament_match_minutes ?? matchMinutes) * 60);
     }
   }
@@ -749,6 +749,15 @@ export default function SessionTournamentCard({
             ) : null}
           {selectedMatch ? <ScoreEditor key={selectedMatch.game_no} match={selectedMatch} teamName={teamName} busy={busy} disabled={!isAdmin || completed} onSave={saveMatch} /> : null}
       </div> : null}
+      {!completed && isAdmin && selectedMatch && completedMatches < matches.length ? (
+        <button type="button" disabled={busy} onClick={() => {
+          const next = matches.find((match) => (match.goals_team_a == null || match.goals_team_b == null) && match.game_no !== selectedMatch.game_no);
+          if (next) selectMatch(next.game_no);
+          else if (nextOpenMatch) selectMatch(nextOpenMatch.game_no);
+        }} className="w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+          Fertig & weiter · nächstes offenes Spiel →
+        </button>
+      ) : null}
       {(data?.standings ?? []).length ? (
         <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 px-4 py-3">
@@ -796,7 +805,7 @@ export default function SessionTournamentCard({
           onClick={() => void action({ intent: "finalize" })}
           className="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-sm disabled:opacity-40"
         >
-          Turnier abschließen · 1 Session-Sieg werten
+          Turnier beenden · Ergebnisse werten
         </button>
       ) : null}
 
