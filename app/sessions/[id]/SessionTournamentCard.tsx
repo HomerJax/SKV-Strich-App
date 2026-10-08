@@ -173,6 +173,8 @@ export default function SessionTournamentCard({
   const [tournamentCollapsed, setTournamentCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [matchMinutes, setMatchMinutes] = useState(8);
+  const [editingMatchMinutes, setEditingMatchMinutes] = useState(false);
+  const [newMatchMinutes, setNewMatchMinutes] = useState(8);
   const [totalMinutes, setTotalMinutes] = useState(90);
   const [warmupMinutes, setWarmupMinutes] = useState(10);
   const [changeMinutes, setChangeMinutes] = useState(1);
@@ -261,6 +263,7 @@ export default function SessionTournamentCard({
     setUnassignedPlayers(payload.unassignedPlayers ?? []);
     const minutes = payload.config?.tournament_match_minutes ?? 8;
     setMatchMinutes(minutes);
+    setNewMatchMinutes(minutes);
     setRemainingSeconds(minutes * 60);
   }
 
@@ -518,6 +521,34 @@ export default function SessionTournamentCard({
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
         <div className={tournamentCollapsed ? "hidden" : "contents"}>
+      {!completed && isAdmin ? (
+        <div className="mt-3 rounded-2xl border border-cyan-200 bg-cyan-50 p-3">
+          <button type="button" onClick={() => { setEditingMatchMinutes((value) => !value); setNewMatchMinutes(config?.tournament_match_minutes ?? matchMinutes); }}
+            className="flex w-full items-center justify-between text-left text-sm font-black text-cyan-950">
+            <span>⏱ Spielzeit ändern · aktuell {config?.tournament_match_minutes ?? matchMinutes} Min.</span>
+            <span>{editingMatchMinutes ? "−" : "+"}</span>
+          </button>
+          {editingMatchMinutes ? (
+            <div className="mt-3 flex items-center gap-2">
+              <input type="number" min={1} max={60} value={newMatchMinutes}
+                onChange={(event) => setNewMatchMinutes(Number(event.target.value))}
+                className="w-20 rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm font-bold text-slate-950" />
+              <span className="text-xs font-semibold text-slate-600">Minuten</span>
+              <button type="button" disabled={busy || newMatchMinutes < 1 || newMatchMinutes > 60}
+                onClick={() => void action({ intent: "change_match_minutes", matchMinutes: newMatchMinutes }).then((next) => {
+                  if (!next) return;
+                  setMatchMinutes(newMatchMinutes);
+                  if (!timerRunning) setRemainingSeconds(newMatchMinutes * 60);
+                  setEditingMatchMinutes(false);
+                })}
+                className="ml-auto rounded-xl bg-cyan-700 px-3 py-2 text-xs font-black text-white disabled:opacity-40">
+                Speichern
+              </button>
+            </div>
+          ) : null}
+          {editingMatchMinutes ? <div className="mt-2 text-xs text-cyan-800">Gilt für kommende Spiele. Eine laufende Uhr bleibt unverändert.</div> : null}
+        </div>
+      ) : null}
       {!completed && isAdmin ? (
           <button
             type="button"
