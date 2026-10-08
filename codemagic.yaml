@@ -189,7 +189,7 @@ workflows:
       - name: Set marketing version
         script: |
           cd ios/App
-          agvtool new-marketing-version 1.5
+          agvtool new-marketing-version 1.6
 
       - name: Set build number
         script: |
