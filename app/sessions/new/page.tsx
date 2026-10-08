@@ -527,6 +527,7 @@ export default async function NewSessionPage({
         initialDate={todayIso}
         seasons={formSeasons}
         enableSessionTypes={sessionTypesEnabled}
+        pilotWizard={clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60"}
       />
     </div>
   );
