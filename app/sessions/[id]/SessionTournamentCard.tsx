@@ -66,6 +66,7 @@ type Props = {
   onActivated?: () => void;
   onFinalized?: () => void;
   wizardControl?: { current: { next: () => void; ready: boolean; label: string } | null };
+  tournamentWizardControl?: { current: { next: () => void; ready: boolean; label: string } | null };
   onWizardReady?: (ready: boolean) => void;
 };
 
@@ -161,6 +162,7 @@ export default function SessionTournamentCard({
   onActivated,
   onFinalized,
   wizardControl,
+  tournamentWizardControl,
   onWizardReady,
 }: Props) {
   const [playersPerTeam, setPlayersPerTeam] = useState(5);
@@ -177,7 +179,7 @@ export default function SessionTournamentCard({
     essen: "🍔 Essen",
   };
   const [setupOpen, setSetupOpen] = useState(false);
-  const [setupStage, setSetupStage] = useState<"time" | "recommendation" | "adjust" | "summary">("time");
+  const [setupStage, setSetupStage] = useState<"time" | "recommendation" | "adjust" | "summary" | "generate">("time");
   const [tournamentStage, setTournamentStage] = useState<"teams" | "games">("teams");
   const [tournamentCollapsed, setTournamentCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -415,11 +417,12 @@ export default function SessionTournamentCard({
   if (wizardControl && !enabled) {
     wizardControl.current = {
       ready: wizardReady,
-      label: setupStage === "summary" ? "Turnier starten →" : "Fertig & weiter →",
+      label: setupStage === "summary" ? "Turnier starten →" : setupStage === "generate" ? "Teams generieren →" : "Fertig & weiter →",
       next: () => {
         if (!wizardReady) return;
         if (setupStage === "time") setSetupStage("recommendation");
         else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary");
+        else if (setupStage === "summary") setSetupStage("generate");
         else void setup();
       },
     };
@@ -452,7 +455,7 @@ export default function SessionTournamentCard({
 
         {setupOpen ? (
           <div className="mt-4 border-t border-slate-100 pt-4">
-            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-teal-700">Turnier einrichten · Schritt {setupStage === "time" ? 1 : setupStage === "recommendation" ? 2 : setupStage === "adjust" ? 3 : 4} von 4</div>
+            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-teal-700">Turnier einrichten · Schritt {setupStage === "time" ? 1 : setupStage === "recommendation" ? 2 : setupStage === "adjust" ? 3 : setupStage === "summary" ? 4 : 5} von 4</div>
             {setupStage === "time" ? <div className="space-y-3">            <div className="rounded-2xl bg-slate-50 p-4">
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Teilnehmer</div>
               <div className="mt-1 text-xl font-black text-slate-950">{presentCount} Zusagen / anwesend</div>
@@ -492,6 +495,7 @@ export default function SessionTournamentCard({
             ) : null}
 
 </div> : null}
+            {setupStage === "generate" ? <div className="rounded-xl border border-teal-200 bg-teal-50 p-4"><div className="text-lg font-black text-slate-950">Teams generieren</div><p className="mt-2 text-sm text-slate-600">Die Turniereinstellungen stehen fest. Erstelle jetzt die Teams, prüfe anschließend die Aufteilung und bestätige sie vor dem ersten Spiel.</p></div> : null}
             {setupStage === "summary" ? <div>            <div className="mt-4 rounded-2xl bg-slate-50 p-4">
               <div className="text-xs font-black text-slate-950">So sieht dein Turnier aus</div>
               <div className="mt-2 space-y-1.5 text-xs font-semibold text-slate-600">
@@ -516,7 +520,7 @@ export default function SessionTournamentCard({
                 <button type="button" onClick={() => { setRecommendationAccepted(false); setSetupStage("adjust"); }} className="rounded-lg border border-teal-500 bg-white px-4 py-3 text-sm font-bold text-teal-700">Anpassen</button>
                 <button type="button" onClick={() => setRecommendationAccepted(true)} className={`rounded-lg border px-4 py-3 text-sm font-bold ${recommendationAccepted ? "border-teal-500 bg-teal-50 text-teal-800" : "border-slate-300 bg-white text-slate-800"}`}>{recommendationAccepted ? "✓ Übernommen" : "Übernehmen"}</button>
               </> : null}
-              {!wizardControl ? <button type="button" disabled={!wizardReady} onClick={() => { if (setupStage === "time") setSetupStage("recommendation"); else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary"); else void setup(); }} className="flex-1 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-40">Fertig & weiter →</button> : null}
+              {!wizardControl ? <button type="button" disabled={!wizardReady} onClick={() => { if (setupStage === "time") setSetupStage("recommendation"); else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary"); else if (setupStage === "summary") setSetupStage("generate"); else void setup(); }} className="flex-1 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-40">Fertig & weiter →</button> : null}
             </div>
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
@@ -527,6 +531,13 @@ export default function SessionTournamentCard({
     );
   }
 
+  if (tournamentWizardControl && enabled) {
+    tournamentWizardControl.current = {
+      ready: tournamentStage === "teams" && !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0,
+      label: tournamentStage === "teams" ? "Teams bestätigen & Turnier starten →" : "Fertig & weiter →",
+      next: () => { if (tournamentStage === "teams" && !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0) setTournamentStage("games"); },
+    };
+  }
   const config = data?.config;
   const completed = Boolean(config?.tournament_completed_at);
   const matches = data?.matches ?? [];
@@ -712,7 +723,7 @@ export default function SessionTournamentCard({
         </div>
       ) : null}
 
-      <button type="button" onClick={() => setTournamentStage("games")} className="w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-bold text-white">Teams passen · Turnier spielen →</button>
+      {!tournamentWizardControl ? <button type="button" onClick={() => setTournamentStage("games")} className="w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-bold text-white">Teams passen · Turnier spielen →</button> : null}
       </div> : null}
       {tournamentStage === "games" ? <div className="space-y-3">
       <div className="rounded-lg border border-slate-200 bg-white p-3">
