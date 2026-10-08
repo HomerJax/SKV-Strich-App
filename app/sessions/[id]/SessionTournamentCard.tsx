@@ -427,7 +427,7 @@ export default function SessionTournamentCard({
 
         {setupOpen ? (
           <div className="mt-4 border-t border-slate-100 pt-4">
-            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-teal-700">Turnier einrichten · Schritt ${setupStage === "time" ? 1 : setupStage === "recommendation" ? 2 : setupStage === "adjust" ? 3 : 4} von 4</div>
+            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-teal-700">Turnier einrichten · Schritt {setupStage === "time" ? 1 : setupStage === "recommendation" ? 2 : setupStage === "adjust" ? 3 : 4} von 4</div>
             {setupStage === "time" ? <div className="space-y-3">            <div className="rounded-2xl bg-slate-50 p-4">
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Teilnehmer</div>
               <div className="mt-1 text-xl font-black text-slate-950">{presentCount} Zusagen / anwesend</div>
@@ -621,13 +621,10 @@ export default function SessionTournamentCard({
         ) : null}
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-3">
-        <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Turnier-Assistent</div>
-        <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => setTournamentStage("teams")} className={`rounded-md px-3 py-3 text-sm font-bold ${tournamentStage === "teams" ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-700"}`}>1 · Teams prüfen</button>
-          <button type="button" onClick={() => setTournamentStage("games")} className={`rounded-md px-3 py-3 text-sm font-bold ${tournamentStage === "games" ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-700"}`}>2 · Spiele & Tabelle</button>
-        </div>
-        <p className="mt-2 text-xs text-slate-500">Du kannst jederzeit zwischen den Bereichen wechseln. Ergebnisse bleiben gespeichert.</p>
+      <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
+        <div className="text-xs font-bold uppercase tracking-wide text-teal-700">Turnier · {tournamentStage === "teams" ? "Teams prüfen" : "Spiele durchführen"}</div>
+        <div className="mt-1 text-sm font-semibold text-slate-700">{tournamentStage === "teams" ? "Kontrolliere die Teams und verschiebe bei Bedarf Spieler. Danach geht es mit Fertig & weiter zu den Spielen." : "Wähle ein beliebiges Spiel aus. Die Tabelle aktualisiert sich nach gespeicherten Ergebnissen."}</div>
+        {tournamentStage === "games" ? <button type="button" onClick={() => setTournamentStage("teams")} className="mt-2 text-xs font-bold text-teal-700">← Teams nochmals prüfen</button> : null}
       </div>
       {tournamentStage === "teams" ? <div className="space-y-3">
       {(data?.teams ?? []).length ? (
