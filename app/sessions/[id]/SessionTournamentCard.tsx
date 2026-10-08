@@ -552,6 +552,29 @@ export default function SessionTournamentCard({
             Turnier wieder öffnen · Ergebnisse korrigieren
           </button>
         ) : null}
+        {isAdmin ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (!window.confirm("Turnier wirklich zurücksetzen? Teams, Spielplan und bisherige Turnierergebnisse werden gelöscht. Zusagen und Anwesenheit bleiben erhalten.")) return;
+              void action({ intent: "reset" }).then((result) => {
+                if (!result) return;
+                setTimerRunning(false);
+                setActiveGameNo(null);
+                setRemainingSeconds(matchMinutes * 60);
+                setSetupOpen(false);
+                setSetupStage("time");
+                setTournamentStage("teams");
+                setMessage("Turnier zurückgesetzt. Du kannst jetzt wieder den normalen Spielmodus nutzen oder ein neues Turnier starten.");
+                onActivated?.();
+              });
+            }}
+            className="mt-3 ml-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 disabled:opacity-40"
+          >
+            Turnier zurücksetzen
+          </button>
+        ) : null}
         {message ? <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-800">{message}</div> : null}
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
@@ -599,27 +622,6 @@ export default function SessionTournamentCard({
             className="mt-3 rounded-xl border border-cyan-200 bg-white px-3 py-2 text-xs font-black text-cyan-800 disabled:opacity-40"
           >
             Teams neu auslosen
-          </button>
-        ) : null}
-        {!completed && isAdmin ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              if (!window.confirm("Turnier wirklich zurücksetzen? Teams, Spielplan und bisherige Turnierergebnisse werden gelöscht. Zusagen und Anwesenheit bleiben erhalten.")) return;
-              void action({ intent: "reset" }).then((result) => {
-                if (!result) return;
-                setTimerRunning(false);
-                setActiveGameNo(null);
-                setRemainingSeconds(matchMinutes * 60);
-                setSetupOpen(false);
-                setMessage("Turnier zurückgesetzt. Du kannst jetzt wieder den normalen Spielmodus nutzen oder ein neues Turnier starten.");
-                onActivated?.();
-              });
-            }}
-            className="mt-3 ml-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 disabled:opacity-40"
-          >
-            Turnier zurücksetzen
           </button>
         ) : null}
       </div>
