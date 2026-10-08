@@ -516,6 +516,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             </div>
           </div>;
         })() : (
+        <>
         {renderWorkflowSection("attendance", renderAttendance())}
 
         {isTrainingSession ? (
@@ -577,6 +578,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             {t("sessionDetail.eventMode")}
           </NoticeCard>
         ) : null}
+        </>
         )}
       </div>
 
