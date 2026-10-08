@@ -400,6 +400,17 @@ export default function SessionTournamentCard({
           ) : null}
         </div>
 
+        {completed && isAdmin ? (
+          <button type="button" disabled={busy}
+            onClick={() => {
+              if (window.confirm("Turnier wieder öffnen? Die bisherige Siegerwertung wird vorübergehend zurückgenommen. Nach Korrekturen bitte erneut abschließen.")) {
+                void action({ intent: "reopen" }).then(() => onActivated?.());
+              }
+            }}
+            className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-black text-amber-900 disabled:opacity-40">
+            Turnier wieder öffnen · Ergebnisse korrigieren
+          </button>
+        ) : null}
         {message ? <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-800">{message}</div> : null}
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
