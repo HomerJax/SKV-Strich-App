@@ -430,7 +430,7 @@ export default function SessionTournamentCard({
     };
   }
   useEffect(() => {
-    if (wizardControl && !enabled) onWizardReady?.(wizardReady);
+    if (wizardControl && !enabled) onWizardReady?.(wizardReady && setupStage !== "generate");
   }, [wizardReady, setupStage, enabled, wizardControl, onWizardReady]);
 
   useEffect(() => {
@@ -526,7 +526,7 @@ export default function SessionTournamentCard({
                 <button type="button" onClick={() => { setRecommendationAccepted(false); setSetupStage("adjust"); }} className="rounded-lg border border-teal-500 bg-white px-4 py-3 text-sm font-bold text-teal-700">Anpassen</button>
                 <button type="button" onClick={() => setRecommendationAccepted(true)} className={`rounded-lg border px-4 py-3 text-sm font-bold ${recommendationAccepted ? "border-teal-500 bg-teal-50 text-teal-800" : "border-slate-300 bg-white text-slate-800"}`}>{recommendationAccepted ? "✓ Übernommen" : "Übernehmen"}</button>
               </> : null}
-              {!wizardControl ? <button type="button" disabled={!wizardReady} onClick={() => { if (setupStage === "time") setSetupStage("recommendation"); else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary"); else if (setupStage === "summary") setSetupStage("generate"); else void setup(); }} className="flex-1 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-40">Fertig & weiter →</button> : null}
+              {!wizardControl ? <button type="button" disabled={!wizardReady} onClick={() => { if (setupStage === "time") setSetupStage("recommendation"); else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary"); else if (setupStage === "summary") setSetupStage("generate"); }} className="flex-1 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-40">Fertig & weiter →</button> : null}
             </div>
         {error ? <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</div> : null}
 
