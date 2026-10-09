@@ -95,7 +95,7 @@ function WorkspaceIntro({
 
 export default function SessionDetailClient(props: SessionDetailClientProps) {
   const { t } = useI18n();
-  const [pilotStep, setPilotStep] = useState<"attendance" | "mode" | "teams" | "result" | "photo">("attendance");
+  const [pilotStep, setPilotStep] = useState<"attendance" | "mode" | "teams" | "result" | "photo" | "winner">("attendance");
   const tournamentWizardRef = useRef<{ next: () => void; ready: boolean; label: string } | null>(null);
   const [tournamentWizardStage, setTournamentWizardStage] = useState<"teams" | "games">("teams");
   const [tournamentTeamsReady, setTournamentTeamsReady] = useState(false);
