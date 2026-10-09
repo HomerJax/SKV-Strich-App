@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionAdminRsvpCard from "./SessionAdminRsvpCard";
@@ -490,6 +491,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             ] : [
               { key: "result" as const, title: "Turnier durchführen", done: Boolean(session.tournament_completed_at), summary: session.tournament_completed_at ? "Turnier abgeschlossen" : "Spielplan & Ergebnisse" },
               { key: "photo" as const, title: "Siegerfoto", done: hasWinnerPhoto, summary: hasWinnerPhoto ? "Foto vorhanden" : "Optional" },
+              { key: "winner" as const, title: "Siegercard", done: false, summary: "Turniersieg ansehen" },
             ]),
           ];
           const current = steps.find(s => !s.done)?.key ?? steps[steps.length - 1].key;
@@ -505,6 +507,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             if (key === "photo") return isTournamentMode && session.tournament_completed_at
               ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={winnerPhotoCollapsed} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => setWinnerPhotoCollapsed(prev => !prev)} title={t("sessionDetail.winnerPhoto")} />
               : renderWinnerPhoto();
+            if (key === "winner") return <div className="space-y-4 rounded-xl bg-white p-4 text-center">
+              <div className="text-4xl">🏆</div>
+              <h3 className="text-xl font-extrabold text-slate-900">Glückwunsch zum Turniersieg!</h3>
+              <p className="text-sm text-slate-600">Das Turnier ist abgeschlossen und der Sieger steht fest.</p>
+              {winnerPhotoUrl ? <Image src={winnerPhotoUrl} alt="Siegerfoto des Turniers" width={960} height={720} unoptimized className="mx-auto w-full max-w-lg rounded-xl object-cover" /> : <p className="text-sm text-slate-500">Du kannst das Siegerfoto jederzeit im vorherigen Schritt ergänzen.</p>}
+              <button type="button" onClick={() => setPilotStep("result")} className="w-full rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-900">Turnier und Abschlusstabelle ansehen →</button>
+            </div>;
             return null;
           };
           return <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.07)]">
