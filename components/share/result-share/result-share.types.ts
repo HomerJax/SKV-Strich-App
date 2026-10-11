@@ -6,6 +6,7 @@ export type ResultShareLayout = "sticker" | "floodlight" | "sports_editorial";
 export type ExtendedResultShareData = ResultShareData & {
   locale?: AppLocale;
   sessionId: number;
+  tournamentWinnerName?: string;
   clubLogoUrl?: string | null;
   clubName?: string | null;
   strikrLogoUrl?: string | null;
