@@ -310,3 +310,37 @@ export async function getResultShareData(
     winnerPhotoZoom: session.winner_photo_zoom ?? 1,
   };
 }
+
+export async function getTournamentShareData(sessionIdRaw: string, locale: AppLocale = "de"): Promise<ResultSharePayload & { tournamentWinnerName: string }> {
+  const sessionId = Number(sessionIdRaw);
+  if (!Number.isInteger(sessionId) || sessionId <= 0) throw new Error("Ungültige Session-ID");
+  const supabase = await createClient();
+  const { data: session, error } = await supabase.from("sessions")
+    .select("id,date,club_id,session_mode,tournament_completed_at,tournament_winner_team_id,winner_photo_path,winner_photo_focus_x,winner_photo_focus_y,winner_photo_zoom")
+    .eq("id", sessionId).single();
+  if (error || !session || session.session_mode !== "tournament" || !session.tournament_completed_at || !session.tournament_winner_team_id)
+    throw new Error("Turnier noch nicht abgeschlossen");
+  const { data: winnerTeam, error: teamError } = await supabase.from("teams")
+    .select("id,name").eq("id", session.tournament_winner_team_id)
+    .eq("session_id", sessionId).eq("club_id", session.club_id).single();
+  if (teamError || !winnerTeam) throw new Error("Turniersieger nicht gefunden");
+  const branding = await getBaseShareBranding();
+  const { club, clubLogoUrl } = await getClubShareData(session.club_id, supabase);
+  if (club?.display_name) branding.clubName = club.display_name;
+  if (clubLogoUrl) branding.clubCrestUrl = clubLogoUrl;
+  return {
+    sessionId, locale, title: "TURNIERSIEGER", subtitle: "Turnier abgeschlossen",
+    date: session.date ? formatDate(session.date, locale) : "",
+    goalsA: "1", goalsB: "0", teamAName: winnerTeam.name, teamBName: "",
+    winnerLabel: winnerTeam.name,
+    winnerPhotoUrl: await getWinnerPhotoUrl(session.winner_photo_path, supabase),
+    branding, clubName: club?.display_name ?? branding.clubName ?? null,
+    clubLogoUrl, strikrLogoUrl: branding.appLogoUrl ?? null,
+    clubPrimaryColor: club?.primary_color ?? null,
+    winnerWasShorthanded: false, upsetWin: false, dramaticFinish: false,
+    winnerPhotoFocusX: session.winner_photo_focus_x ?? 0.5,
+    winnerPhotoFocusY: session.winner_photo_focus_y ?? 0.5,
+    winnerPhotoZoom: session.winner_photo_zoom ?? 1,
+    tournamentWinnerName: winnerTeam.name,
+  };
+}
