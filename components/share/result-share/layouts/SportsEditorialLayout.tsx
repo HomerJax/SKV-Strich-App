@@ -295,7 +295,7 @@ export function SportsEditorialLayout({
               whiteSpace: "nowrap",
             }}
           >
-            {getEditorialTitle(copy.headline, data.sessionId)}
+            {data.tournamentWinnerName ? "CHAMPIONS." : getEditorialTitle(copy.headline, data.sessionId)}
           </div>
         </div>
 
@@ -404,7 +404,7 @@ export function SportsEditorialLayout({
               textShadow: `0 0 34px ${colorway.accentGlow}`,
             }}
           >
-            <span style={{ display: "flex" }}>{score.goalsA}</span>
+            {data.tournamentWinnerName ? <span style={{ display: "flex", fontSize: 48, letterSpacing: -1 }}>🏆 TURNIERSIEGER</span> : <><span style={{ display: "flex" }}>{score.goalsA}</span>
 
             <span
               style={{
@@ -417,7 +417,7 @@ export function SportsEditorialLayout({
               :
             </span>
 
-            <span style={{ display: "flex" }}>{score.goalsB}</span>
+            <span style={{ display: "flex" }}>{score.goalsB}</span></>}
           </div>
 
           <div
@@ -436,7 +436,7 @@ export function SportsEditorialLayout({
               textShadow: `0 0 28px ${colorway.accentGlow}`,
             }}
           >
-            {getShortHeadline(copy.headline, data.sessionId)}
+            {data.tournamentWinnerName ?? getShortHeadline(copy.headline, data.sessionId)}
           </div>
         </div>
       </div>
