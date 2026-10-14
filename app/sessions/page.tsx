@@ -195,7 +195,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   const commentFor = (sessionId: number) =>
     rsvpBySession.get(sessionId)?.comment ?? null;
 
-  if (clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60") {
+  if (["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "b8d4b692-baf1-4263-8fdd-64df424114a7"].includes(clubId)) {
     const auth = await getAuthContext();
     const membership = auth.memberships.find(m => m.club_id === clubId);
     const isAdmin = auth.isPowerUser || membership?.role === "admin";
