@@ -156,6 +156,7 @@ export async function POST(
     membership,
     session,
     isPowerUser,
+    canLeadTraining,
     currentUserId,
     currentPlayerId,
   } = access;
@@ -173,6 +174,7 @@ export async function POST(
     const intent = String(formData.get("intent") ?? "").trim();
 
     if (intent === "toggle_presence") {
+      if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       const requestedPlayerId = Number(String(formData.get("player_id") ?? ""));
 
       if (!Number.isFinite(requestedPlayerId)) {
@@ -579,6 +581,7 @@ export async function POST(
     }
 
     if (intent === "add_guest_player") {
+      if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       const guestName = String(formData.get("guest_name") ?? "");
       const guestPosition = String(formData.get("guest_position") ?? "");
       const guestAgeGroup = String(formData.get("guest_age_group") ?? "");
@@ -720,6 +723,7 @@ export async function POST(
     }
 
     if (intent === "save_teams") {
+      if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       if (!allowTeams) {
         return fail(
           t("sessionApi.teamsDisabled"),
@@ -752,6 +756,7 @@ export async function POST(
     }
 
     if (intent === "save_result") {
+      if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       if (!allowResult) {
         return fail(
           t("sessionApi.resultDisabled"),
@@ -778,6 +783,7 @@ export async function POST(
     }
 
     if (intent === "delete_result") {
+      if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       if (!allowResult) {
         return fail(
           t("sessionApi.noResult"),
@@ -797,6 +803,7 @@ export async function POST(
     }
 
     if (intent === "delete_winner_photo") {
+      if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       if (!allowWinnerPhoto) {
         return fail(
           t("sessionApi.noWinnerPhoto"),
@@ -940,6 +947,7 @@ export async function POST(
     }
 
     if (intent === "upload_winner_photo") {
+      if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       if (!allowWinnerPhoto) {
         return fail(
           t("sessionApi.noWinnerPhoto"),
