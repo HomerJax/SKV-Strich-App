@@ -18,7 +18,7 @@ import { getServerI18n } from "@/lib/i18n/server";
 
 const marketingTitle = "strikr – Jedes Training zählt. | Training redefined.";
 const marketingDescription =
-  "Macht aus euren Trainingsspielen eine Saison: faire Teams, Ergebnisse, Tabelle, persönliche Stats, Vergleiche und Trophäen – automatisch mit strikr.";
+  "Für Sportteams, Hobbyclubs und Freizeitgruppen: Anwesenheit organisieren, faire Teams bilden, Spiele festhalten und mit Tabellen, Statistiken und Trophäen mehr Motivation schaffen – ganz ohne Ligabetrieb.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.strikr.team"),
