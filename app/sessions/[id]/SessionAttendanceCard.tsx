@@ -393,6 +393,7 @@ export default function SessionAttendanceCard({
         !memberPresentIds.includes(player.id) &&
         getPlayerRsvpStatus(player) === "out",
     );
+    const openPlayers = players.filter((player) => !memberPresentIds.includes(player.id) && getPlayerRsvpStatus(player) !== "out");
     const currentPlayer =
       currentPlayerId !== null
         ? players.find((player) => player.id === currentPlayerId) ?? null
@@ -431,13 +432,13 @@ export default function SessionAttendanceCard({
 
         <div className="p-4">
           <div className="grid gap-3">
-            <div className="overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50/50">
-              <div className="flex items-center justify-between px-3 py-2.5">
+            <details open className="overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50/50">
+              <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5">
                 <div className="text-sm font-black text-slate-950">{t("attendance.going")}</div>
                 <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black text-white">
                   {acceptedPlayers.length}
                 </span>
-              </div>
+              </summary>
               <div className="grid gap-2 border-t border-emerald-100 bg-white/70 p-3 sm:grid-cols-2">
                 {acceptedPlayers.length > 0 ? acceptedPlayers.map((player) => {
                   const playerName = getPlayerDisplayName(player);
@@ -463,15 +464,15 @@ export default function SessionAttendanceCard({
                   <div className="text-xs font-medium text-slate-500">{t("attendance.noGoing")}</div>
                 )}
               </div>
-            </div>
+            </details>
 
-            <div className="overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50/50">
-              <div className="flex items-center justify-between px-3 py-2.5">
+            <details className="overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50/50">
+              <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5">
                 <div className="text-sm font-black text-slate-950">{t("attendance.out")}</div>
                 <span className="rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-black text-white">
                   {absentPlayers.length}
                 </span>
-              </div>
+              </summary>
               <div className="grid gap-2 border-t border-rose-100 bg-white/70 p-3 sm:grid-cols-2">
                 {absentPlayers.length > 0 ? absentPlayers.map((player) => {
                   const playerName = getPlayerDisplayName(player);
@@ -487,7 +488,11 @@ export default function SessionAttendanceCard({
                   <div className="text-xs font-medium text-slate-500">{t("attendance.noOut")}</div>
                 )}
               </div>
-            </div>
+            </details>
+            <details className="overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50/50">
+              <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5"><span className="text-sm font-black text-slate-950">Noch offen</span><span className="rounded-full bg-slate-600 px-2.5 py-1 text-[10px] font-black text-white">{openPlayers.length}</span></summary>
+              <div className="grid gap-2 border-t border-slate-200 bg-white/70 p-3 sm:grid-cols-2">{openPlayers.length ? openPlayers.map(player => <div key={player.id} className="rounded-2xl bg-white px-3 py-2.5 text-sm font-bold text-slate-900 ring-1 ring-slate-950/5">{getPlayerDisplayName(player)}</div>) : <span className="text-xs text-slate-500">Alle haben sich zurückgemeldet.</span>}</div>
+            </details>
           </div>
 
           {selfRsvpEnabled && currentPlayerId !== null ? (
