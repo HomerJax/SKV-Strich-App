@@ -33,6 +33,9 @@ export default function HomeTeamFeedPreview({
   const [openBadge, setOpenBadge] = useState<TeamFeedItem | null>(null);
   const [reactionBusy, setReactionBusy] = useState<string | null>(null);
   const [openReactions, setOpenReactions] = useState<string | null>(null);
+  const [reactionNames,setReactionNames]=useState<Array<{reaction:string;name:string}>>([]);
+  const [reactionNamesLoading,setReactionNamesLoading]=useState(false);
+  const showReactionNames=async(feedId:string)=>{if(openReactions===feedId){setOpenReactions(null);return;}setOpenReactions(feedId);setReactionNames([]);setReactionNamesLoading(true);try{const res=await fetch(`/api/team-feed/reactions?feedId=${encodeURIComponent(feedId)}`,{cache:"no-store"});if(!res.ok)throw new Error("lookup_failed");const data=await res.json();setReactionNames(data.reactions??[]);}catch{setReactionNames([]);}finally{setReactionNamesLoading(false);}};
   const [reactionBoom, setReactionBoom] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const { locale, t } = useI18n();
@@ -290,7 +293,9 @@ export default function HomeTeamFeedPreview({
                           </button>
                         );
                       })}
+                      {(Object.values(item.reactions??{}).reduce((a,b)=>a+b,0)>0)&&<button type="button" onClick={()=>void showReactionNames(item.id)} className="ml-1 text-[10px] font-semibold text-cyan-700 underline underline-offset-2">{locale==="de"?"Wer hat reagiert?":"Who reacted?"}</button>}
                     </div>
+                    {openReactions===item.id&&<div className="ml-[38px] mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">{reactionNamesLoading?"Lade Reaktionen …":reactionNames.length?reactionNames.map((r,i)=><div key={i} className="py-1"><span className="font-semibold">{r.name}</span> · {r.reaction==="glueckwunsch"?"Glückwunsch":r.reaction==="biermaschine"?"Feier ich":r.reaction==="geilo"?"Geilo":r.reaction==="daumen_hoch"?"👍":r.reaction}</div>):"Noch keine Reaktionen"}</div>}
                   </div>
                 );
               }
