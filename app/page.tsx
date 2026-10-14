@@ -34,13 +34,13 @@ const flowSteps = [
   {
     number: "02",
     title: "Faire Teams",
-    text: "Aus den Spielern möglichst ausgeglichene Teams erstellen und loslegen.",
+    text: "Aus eurer Gruppe möglichst ausgeglichene Teams erstellen und loslegen.",
     icon: Sparkles,
   },
   {
     number: "03",
     title: "Spielen & Ergebnis",
-    text: "Kicken, Ergebnis speichern und den Trainingsabend festhalten.",
+    text: "Gemeinsam spielen, Ergebnis speichern und eure Einheit festhalten.",
     icon: Camera,
   },
   {
@@ -75,7 +75,7 @@ const gameBlocks = [
 const productBlocks = [
   {
     title: "Zusagen & Anwesenheit",
-    text: "Wer ist dabei? Wer fehlt? Trainingsplanung ohne Chat-Chaos.",
+    text: "Wer ist dabei? Wer fehlt? Gemeinsame Termine planen – ohne Chat-Chaos.",
     icon: Users,
   },
   {
@@ -85,12 +85,12 @@ const productBlocks = [
   },
   {
     title: "Ergebnis & Siegerfoto",
-    text: "Ergebnis speichern, Sieger festhalten und Trainingsmomente teilen.",
+    text: "Ergebnis speichern, Sieger festhalten und Spielmomente teilen.",
     icon: Camera,
   },
   {
     title: "Tabelle & Wettbewerb",
-    text: "Siege und Ergebnisse werden automatisch zur laufenden Saison.",
+    text: "Aus euren Ergebnissen entsteht eine Tabelle – auch ohne Ligabetrieb.",
     icon: Trophy,
   },
   {
@@ -371,9 +371,9 @@ export default async function LandingPage({
             </h1>
 
             <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-7 text-white/62 sm:text-lg sm:leading-8">
-              Macht aus euren Trainingsspielen eine Saison – mit fairen Teams,
-              Ergebnissen, Tabelle, persönlichen Stats und Trophäen. Automatisch
-              mit strikr.
+              Ob Sportteam, Hobbyclub oder Freizeitgruppe: Organisiert eure Treffen,
+              bildet faire Teams und macht aus Spielen und Ergebnissen Tabellen,
+              Stats und neue Motivation – ganz ohne Ligabetrieb.
             </p>
 
             <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
@@ -409,14 +409,14 @@ export default async function LandingPage({
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
-              Vom Kick zur Saison
+              Aus Spielen wird mehr
             </div>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-5xl">
-              Einfach vor dem Training. Geil danach.
+              Einfach organisieren. Mehr Spaß beim Spielen.
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
-              strikr löst zuerst das Organisatorische – und macht danach aus
-              jedem Trainingsspiel etwas, das weiterzählt.
+              Erst Zusagen und Teams organisieren. Dann gemeinsam spielen, Ergebnisse
+              festhalten und sehen, wie sich eure Gruppe entwickelt.
             </p>
           </div>
 
@@ -496,7 +496,7 @@ export default async function LandingPage({
               Was strikr mitbringt
             </div>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-4xl">
-              Alles rund um euren Trainingskick. Ohne Vereinssoftware-Overkill.
+              Alles für eure Sportgruppe. Ohne Vereinssoftware-Overkill.
             </h2>
           </div>
 
@@ -524,7 +524,7 @@ export default async function LandingPage({
             Keine Erklärung nötig
           </div>
           <h2 className="mt-5 text-4xl font-black tracking-[-0.055em] sm:text-6xl">
-            Klick rein. Spiel einen Trainingsabend durch.
+            Klick rein. Erlebe eine gemeinsame Spieleinheit.
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
             Die Demo zeigt dir strikr mit einem gefüllten Beispielteam – ohne
