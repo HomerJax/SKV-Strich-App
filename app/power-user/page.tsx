@@ -8,6 +8,7 @@ import {
   CreditCard,
   MailCheck,
   MessageSquareText,
+  BellRing,
   MailOpen,
   MousePointerClick,
   Shield,
@@ -295,6 +296,15 @@ export default async function PowerUserPage() {
             value="Antworten"
             description="Feedback von Marc und Stefan vergleichen: Mehrwert, Kritik, Wünsche und Preisbereitschaft."
             icon={<MessageSquareText className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
+          />
+
+          <KpiCard
+            href="/power-user/notifications"
+            label="Notifications"
+            value="Matrix & Nutzer"
+            description="Alle Push-Auslöser, Empfänger und Live-Übersicht der aktivierten und deaktivierten Nutzer-Einstellungen."
+            icon={<BellRing className="h-6 w-6" strokeWidth={2.1} />}
             detailsLabel={detailsLabel}
           />
 
