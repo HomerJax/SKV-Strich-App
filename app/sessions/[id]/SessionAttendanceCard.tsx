@@ -433,12 +433,12 @@ export default function SessionAttendanceCard({
 
         <div className="p-4">
           <div className="grid gap-3">
-            <details open className="overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50/50">
+            <details className="group overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50/50">
               <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5">
                 <div className="text-sm font-black text-slate-950">{t("attendance.going")}</div>
                 <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black text-white">
                   {acceptedPlayers.length}
-                </span>
+                </span><span className="text-sm text-emerald-700 transition-transform group-open:rotate-180">⌄</span>
               </summary>
               <div className="grid gap-2 border-t border-emerald-100 bg-white/70 p-3 sm:grid-cols-2">
                 {acceptedPlayers.length > 0 ? acceptedPlayers.map((player) => {
@@ -468,12 +468,12 @@ export default function SessionAttendanceCard({
               </div>
             </details>
 
-            <details className="overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50/50">
+            <details className="group overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50/50">
               <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5">
                 <div className="text-sm font-black text-slate-950">{t("attendance.out")}</div>
                 <span className="rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-black text-white">
                   {absentPlayers.length}
-                </span>
+                </span><span className="text-sm text-rose-700 transition-transform group-open:rotate-180">⌄</span>
               </summary>
               <div className="grid gap-2 border-t border-rose-100 bg-white/70 p-3 sm:grid-cols-2">
                 {absentPlayers.length > 0 ? absentPlayers.map((player) => {
@@ -491,8 +491,8 @@ export default function SessionAttendanceCard({
                 )}
               </div>
             </details>
-            <details className="overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50/50">
-              <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5"><span className="text-sm font-black text-slate-950">Noch offen</span><span className="rounded-full bg-slate-600 px-2.5 py-1 text-[10px] font-black text-white">{openPlayers.length}</span></summary>
+            <details className="group overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50/50">
+              <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5"><span className="text-sm font-black text-slate-950">Noch offen</span><span className="rounded-full bg-slate-600 px-2.5 py-1 text-[10px] font-black text-white">{openPlayers.length}</span><span className="text-sm text-slate-600 group-open:rotate-180">⌄</span></summary>
               <div className="grid gap-2 border-t border-slate-200 bg-white/70 p-3 sm:grid-cols-2">{openPlayers.length ? openPlayers.map(player => <div key={player.id} className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 text-sm font-bold text-slate-900 ring-1 ring-slate-950/5">{renderPlayerAvatar(player)}<span className="flex-1">{getPlayerDisplayName(player)}</span>{player.id === currentPlayerId && selfRsvpEnabled ? <button type="button" onClick={() => document.getElementById("session-own-rsvp")?.scrollIntoView({ behavior: "smooth", block: "center" })} className="rounded-lg bg-slate-100 px-2 py-1 text-xs">Jetzt zusagen</button> : null}</div>) : <span className="text-xs text-slate-500">Alle haben sich zurückgemeldet.</span>}</div>
             </details>
           </div>
