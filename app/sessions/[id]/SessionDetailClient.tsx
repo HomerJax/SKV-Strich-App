@@ -98,6 +98,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const { t } = useI18n();
   const [pilotView, setPilotView] = useState<"admin" | "leader" | "player">("admin");
   const [pilotFinished, setPilotFinished] = useState(false);
+  const [pilotPhotoSkipped, setPilotPhotoSkipped] = useState(false);
   const [pilotStep, setPilotStep] = useState<"attendance" | "mode" | "teams" | "result" | "photo" | "winner">("attendance");
   const tournamentWizardRef = useRef<{ next: () => void; ready: boolean; label: string } | null>(null);
   const [tournamentWizardStage, setTournamentWizardStage] = useState<"teams" | "games">("teams");
@@ -493,10 +494,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             ...(!isTournamentMode ? [
               { key: "teams" as const, title: "Teams erstellen", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
               { key: "result" as const, title: "Spiele & Ergebnisse", done: hasResult, summary: `${results.length} Ergebnis(se) erfasst` },
-              { key: "photo" as const, title: "Siegerfoto", done: hasWinnerPhoto || (hasResult && !dayWinnerSide), summary: hasWinnerPhoto ? "Foto vorhanden" : "Optional" },
+              { key: "photo" as const, title: "Siegerfoto", done: hasWinnerPhoto || pilotPhotoSkipped || (hasResult && !dayWinnerSide), summary: hasWinnerPhoto ? "Foto vorhanden" : "Optional" },
             ] : [
               { key: "result" as const, title: "Turnier durchführen", done: Boolean(session.tournament_completed_at), summary: session.tournament_completed_at ? "Turnier abgeschlossen" : "Spielplan & Ergebnisse" },
-              { key: "photo" as const, title: "Siegerfoto", done: hasWinnerPhoto, summary: hasWinnerPhoto ? "Foto vorhanden" : "Optional" },
+              { key: "photo" as const, title: "Siegerfoto", done: hasWinnerPhoto || pilotPhotoSkipped, summary: hasWinnerPhoto ? "Foto vorhanden" : pilotPhotoSkipped ? "Ohne Foto fortgesetzt" : "Optional" },
               { key: "winner" as const, title: "Siegercard", done: false, summary: "Turniersieg ansehen" },
             ]),
           ];
@@ -517,17 +518,17 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             return null;
           };
           return <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.07)]">
-            <div className="bg-slate-950 px-5 py-5 text-white">
+            <div className="sticky top-0 z-20 bg-slate-950 px-4 py-3 text-white shadow-lg sm:px-5">
               <div className="flex items-center justify-between gap-3"><span className="text-[11px] font-bold uppercase tracking-[0.18em] text-teal-300">Session-Assistent</span><span className="text-xs text-slate-300">Schritt {selectedIndex + 1} von {steps.length}</span></div>
-              <nav aria-label="Session-Schritte" className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">{steps.map((s,i)=><button type="button" key={s.key} onClick={()=>setPilotStep(s.key)} aria-current={i===selectedIndex?"step":undefined} className={`rounded-lg border px-2 py-2 text-left text-[11px] font-semibold transition ${i===selectedIndex?"border-teal-400 bg-teal-400 text-slate-950":s.done?"border-teal-800 bg-slate-800 text-teal-200":"border-slate-700 bg-slate-900 text-slate-300"}`}><span className="block text-[10px] opacity-70">{s.done?"✓":i+1}</span>{s.title}</button>)}</nav>
-              <h2 className="mt-4 text-2xl font-extrabold tracking-tight">{steps[selectedIndex].title}</h2>
-              <p className="mt-1 text-sm text-slate-300">Jeder Schritt bleibt erreichbar. Zurückgehen setzt keine Daten zurück.</p>
+              <nav aria-label="Session-Schritte" className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6">{steps.map((s,i)=><button type="button" key={s.key} onClick={()=>setPilotStep(s.key)} aria-current={i===selectedIndex?"step":undefined} className={`rounded-lg border px-2 py-2 text-left text-[11px] font-semibold transition ${i===selectedIndex?"border-teal-400 bg-teal-400 text-slate-950":s.done?"border-teal-800 bg-slate-800 text-teal-200":"border-slate-700 bg-slate-900 text-slate-300"}`}><span className="block text-[10px] opacity-70">{s.done?"✓":i+1}</span>{s.title}</button>)}</nav>
+              <h2 className="mt-2 text-base font-extrabold tracking-tight">{steps[selectedIndex].title}</h2>
+
             </div>
             <div className="space-y-4 p-4 sm:p-5">
               {steps.slice(0,selectedIndex).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left"><span><span className="block text-sm font-bold text-slate-800">✓ {s.title}</span><span className="text-xs text-slate-500">{s.summary}</span></span><span className="text-xs font-semibold text-teal-700">Bearbeiten</span></button>)}
               {pilotFinished ? <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">✓ Session abgeschlossen. Du kannst alle Schritte weiterhin ansehen oder bearbeiten.</div> : null}
               <div className="rounded-lg border-l-4 border-teal-500 bg-teal-50 p-2 shadow-[0_8px_28px_rgba(13,148,136,0.12)] sm:p-4">{renderStep(selected)}</div>
-              <button type="button" onClick={()=>{if (selected === "mode" && !isTournamentMode) { setPilotStep("teams"); return; } if (selected === "result" && isTournamentMode && tournamentWizardStage === "teams") { tournamentWizardRef.current?.next(); return; } if (selected === "teams" && !isTournamentMode && !teamsConfirmed) { void confirmTeams(); return; } const next=steps[selectedIndex+1];if(next)setPilotStep(next.key);else setPilotFinished(true);}} disabled={(selectedIndex === steps.length-1 && pilotFinished) || (selected === "attendance" && (attendanceDirty || presentPlayers.length < 2)) || (selected === "teams" && !isTournamentMode && (!teamsComplete || saving || savingTeams)) || (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at))} className="w-full rounded-xl bg-slate-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-40">{selected === "mode" && !isTournamentMode ? (setupWizardRef.current?.label ?? "Fertig & weiter →") : selected === "result" && isTournamentMode && tournamentWizardStage === "teams" ? "Fertig · Turnier starten →" : selected === "teams" && !isTournamentMode && !teamsConfirmed ? "Teams bestätigen & weiter →" : selectedIndex === steps.length-1 ? "Session abschließen ✓" : "Fertig & weiter →"}</button>
+              <button type="button" onClick={()=>{if (selected === "mode" && !isTournamentMode) { setPilotStep("teams"); return; } if (selected === "result" && isTournamentMode && tournamentWizardStage === "teams") { tournamentWizardRef.current?.next(); return; } if (selected === "teams" && !isTournamentMode && !teamsConfirmed) { void confirmTeams(); return; } const next=steps[selectedIndex+1];if(next)setPilotStep(next.key);else { setPilotPhotoSkipped(!hasWinnerPhoto); setPilotFinished(true); if (!isTournamentMode && allowResult) setShowSessionEndModal(true); }}} disabled={(selectedIndex === steps.length-1 && pilotFinished) || (selected === "attendance" && (attendanceDirty || presentPlayers.length < 2)) || (selected === "teams" && !isTournamentMode && (!teamsComplete || saving || savingTeams)) || (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at))} className="w-full rounded-xl bg-slate-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-40">{selected === "mode" && !isTournamentMode ? (setupWizardRef.current?.label ?? "Fertig & weiter →") : selected === "result" && isTournamentMode && tournamentWizardStage === "teams" ? "Fertig · Turnier starten →" : selected === "teams" && !isTournamentMode && !teamsConfirmed ? "Teams bestätigen & weiter →" : selectedIndex === steps.length-1 ? "Session abschließen ✓" : "Fertig & weiter →"}</button>
               {steps.slice(selectedIndex+1).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-left text-sm text-slate-600"><span>{s.title}</span><span className="text-xs text-slate-400">Öffnen ›</span></button>)}
             </div>
           </div>;
