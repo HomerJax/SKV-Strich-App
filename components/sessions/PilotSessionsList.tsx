@@ -5,7 +5,7 @@ import {ChevronDown,CheckCircle2,XCircle,Clock3} from "lucide-react";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
 type Person={id:number;name:string;photoUrl:string|null;photoPositionX:number|null;photoPositionY:number|null;photoZoom:number|null};
 type Session={id:number;date:string;start_time:string|null;notes:string|null;type:"training"|"event"|null;status:"in"|"out"|"open";comment:string|null;rsvp_deadline_minutes_before:number|null;participants:(Person&{comment:string|null})[];absentPlayers:(Person&{reason:string|null})[]};
-export default function PilotSessionsList({sessions,locale,isAdmin,readOnly,clubDeadline,requireAbsenceReason}:{sessions:Session[];locale:"de"|"en";isAdmin:boolean;readOnly:boolean;clubDeadline:number;requireAbsenceReason:boolean}){
+export default function PilotSessionsList({sessions,locale,isAdmin,canCreateTraining,readOnly,clubDeadline,requireAbsenceReason}:{sessions:Session[];locale:"de"|"en";isAdmin:boolean;canCreateTraining:boolean;readOnly:boolean;clubDeadline:number;requireAbsenceReason:boolean}){
  const [tab,setTab]=useState<"future"|"past">("future");
  const [openId,setOpenId]=useState<number|null>(null);
  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Berlin",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
