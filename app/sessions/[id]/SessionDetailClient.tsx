@@ -95,6 +95,7 @@ function WorkspaceIntro({
 
 export default function SessionDetailClient(props: SessionDetailClientProps) {
   const { t } = useI18n();
+  const [pilotView, setPilotView] = useState<"admin" | "player">("admin");
   const [pilotStep, setPilotStep] = useState<"attendance" | "mode" | "teams" | "result" | "photo" | "winner">("attendance");
   const tournamentWizardRef = useRef<{ next: () => void; ready: boolean; label: string } | null>(null);
   const [tournamentWizardStage, setTournamentWizardStage] = useState<"teams" | "games">("teams");
@@ -220,6 +221,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     return null;
   }
 
+  const pilotAdmin = props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && isAdmin;
+  const playerPreview = pilotAdmin && pilotView === "player";
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";
   const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
@@ -439,6 +442,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   return (
     <>
       <div className="space-y-4">
+        {pilotAdmin ? <div className="rounded-2xl border border-slate-200 bg-white p-3"><div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{playerPreview ? "Spieleransicht · Vorschau" : "Adminansicht · Verwaltung"}</div><div className="flex gap-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setPilotView("admin")} aria-pressed={!playerPreview} className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-bold ${!playerPreview ? "bg-slate-950 text-white shadow-sm" : "text-slate-600"}`}>Adminansicht</button><button type="button" onClick={() => setPilotView("player")} aria-pressed={playerPreview} className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-bold ${playerPreview ? "bg-slate-950 text-white shadow-sm" : "text-slate-600"}`}>Spieleransicht</button></div></div> : null}
         <SessionHeaderCard
           sessionId={props.sessionId}
           date={session.date}
@@ -451,7 +455,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           teamBCount={allowTeams ? teamB.length : 0}
           hasResult={allowResult ? hasResult : false}
           nextStepLabel={nextStepLabel}
-          isAdmin={isAdmin}
+          isAdmin={isAdmin && !playerPreview}
           deletingSession={deletingSession}
           primaryColorKey={primaryColorKey}
           onDeleteSession={handleDeleteSession}
@@ -480,7 +484,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
 
-        {["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession ? (() => {
+        {playerPreview ? <div className="space-y-4"><div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold text-slate-950">Teilnehmer</h2><p className="text-sm text-slate-600">{presentPlayers.length} Spieler dabei</p><div className="mt-3 flex flex-wrap gap-2">{presentPlayers.map(p => <span key={p.id} className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm text-slate-700">{p.nickname || p.first_name || p.name}</span>)}</div></div>{teamsComplete ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-3 text-base font-bold">Teams</h2><div className="grid grid-cols-2 gap-3"><div><div className="mb-2 text-sm font-bold">Team A</div>{displayTeamA.map(p => <div key={p.id} className="py-1 text-sm">{p.nickname || p.first_name || p.name}</div>)}</div><div><div className="mb-2 text-sm font-bold">Team B</div>{displayTeamB.map(p => <div key={p.id} className="py-1 text-sm">{p.nickname || p.first_name || p.name}</div>)}</div></div></div> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div> : ["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession ? (() => {
           const steps = [
             { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2, summary: `${presentPlayers.length} Spieler dabei` },
             { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || teamsConfirmed, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
