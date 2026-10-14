@@ -289,7 +289,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           guestStrength={guestStrength}
           guestSaving={guestSaving}
           clubSettings={clubSettings}
-          collapsed={["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession ? false : attendanceCollapsed}
+          collapsed={["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76", "b8d4b692-baf1-4263-8fdd-64df424114a7"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession ? false : attendanceCollapsed}
           savingPresence={savingPresence}
           dirty={attendanceDirty}
           directSaveEnabled={directAttendanceSaveEnabled}
@@ -297,7 +297,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           deletingGuestPlayerId={deletingGuestPlayerId}
           onToggleMultiSelect={toggleAttendanceMultiSelect}
           onToggleCollapsed={() => setAttendanceCollapsed((prev) => !prev)}
-          pilotWizard={["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession}
+          pilotWizard={["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76", "b8d4b692-baf1-4263-8fdd-64df424114a7"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession}
           onToggleShowGuestForm={toggleGuestForm}
           onGuestNameChange={setGuestName}
           onGuestPositionChange={setGuestPosition}
