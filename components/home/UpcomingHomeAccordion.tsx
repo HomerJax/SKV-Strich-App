@@ -1,5 +1,5 @@
-import Link from "next/link";
 "use client";
+import Link from "next/link";
 import {useState} from "react";
 import {ChevronDown} from "lucide-react";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
