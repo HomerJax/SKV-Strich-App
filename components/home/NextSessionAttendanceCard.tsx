@@ -36,6 +36,7 @@ type NextSessionAttendanceCardProps = {
   requireAbsenceReason?: boolean;
   readOnly?: boolean;
   supportViewLabel?: string | null;
+  compact?: boolean;
 };
 
 type AttendanceAvatarPlayer = { name: string; photoUrl: string | null; photoPositionX: number | null; photoPositionY: number | null; photoZoom: number | null };
@@ -128,6 +129,7 @@ export default function NextSessionAttendanceCard({
   requireAbsenceReason = false,
   readOnly = false,
   supportViewLabel = null,
+  compact = false,
 }: NextSessionAttendanceCardProps) {
   const router = useRouter();
   const { locale, t } = useI18n();
@@ -287,7 +289,7 @@ export default function NextSessionAttendanceCard({
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-600">{t("session.nextTraining")}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-600">{compact ? (locale === "de" ? "Weiterer Termin" : "Upcoming session") : t("session.nextTraining")}</div>
           <h2 className="mt-1.5 text-[18px] font-semibold leading-tight tracking-[-0.035em] text-slate-950 sm:text-[21px]">{title}</h2>
           {text?.trim() ? <p className="mt-1.5 line-clamp-2 text-xs font-medium leading-5 text-slate-500">{text.trim()}</p> : null}
           {deadlineText ? (
@@ -410,7 +412,7 @@ export default function NextSessionAttendanceCard({
       ) : null}
 
       <div className="relative mt-3 grid grid-cols-2 gap-2">
-        <div className="overflow-hidden rounded-[18px] border border-cyan-100 bg-cyan-50/45">
+        <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-slate-100/70">
           <button
             type="button"
             onClick={() => setShowAttendanceDetails((value) => !value)}
@@ -421,7 +423,7 @@ export default function NextSessionAttendanceCard({
                 {presentCount}
               </span>
               <div>
-                <div className="text-sm font-black text-slate-950">{t("session.in")}</div>
+                <div className="text-sm font-black text-slate-950">{locale === "de" ? "Wer ist dabei?" : "Who is going?"}</div>
                 <div className="text-[11px] font-medium text-cyan-700">
                   {presentCount === 1 ? t("session.oneGoing") : t("session.manyGoing", { count: presentCount })}
                 </div>
@@ -453,7 +455,7 @@ export default function NextSessionAttendanceCard({
           ) : null}
         </div>
 
-        <div className="overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50/60">
+        <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-slate-100/70">
           <button
             type="button"
             onClick={() => setShowAttendanceDetails((value) => !value)}
@@ -464,7 +466,7 @@ export default function NextSessionAttendanceCard({
                 {absentCount}
               </span>
               <div>
-                <div className="text-sm font-black text-slate-950">{t("session.out")}</div>
+                <div className="text-sm font-black text-slate-950">{locale === "de" ? "Wer hat abgesagt?" : "Who declined?"}</div>
                 <div className="text-[11px] font-medium text-rose-700">
                   {absentCount === 1 ? t("session.oneOut") : t("session.manyOut", { count: absentCount })}
                 </div>
