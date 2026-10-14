@@ -394,6 +394,7 @@ export default function SessionAttendanceCard({
         getPlayerRsvpStatus(player) === "out",
     );
     const openPlayers = players.filter((player) => !memberPresentIds.includes(player.id) && getPlayerRsvpStatus(player) !== "out");
+    const renderPlayerAvatar = (player: Player) => <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 bg-cover bg-center text-xs font-black uppercase text-white shadow-sm" style={player.photo_url ? { backgroundImage: `url("${player.photo_url}")` } : undefined}>{!player.photo_url ? getPlayerDisplayName(player).trim().charAt(0) || "?" : null}</span>;
     const currentPlayer =
       currentPlayerId !== null
         ? players.find((player) => player.id === currentPlayerId) ?? null
@@ -443,14 +444,14 @@ export default function SessionAttendanceCard({
                 {acceptedPlayers.length > 0 ? acceptedPlayers.map((player) => {
                   const playerName = getPlayerDisplayName(player);
                   return (
-                    <div key={player.id} className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 ring-1 ring-slate-950/5">
+                    <div key={player.id} className={`flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 ring-1 ring-slate-950/5 ${player.id === currentPlayerId ? "ring-2 ring-emerald-400" : ""}`}>
                       <span
                         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 bg-cover bg-center text-xs font-black uppercase text-white shadow-sm"
                         style={player.photo_url ? { backgroundImage: `url("${player.photo_url}")` } : undefined}
                       >
                         {!player.photo_url ? playerName.trim().charAt(0) || "?" : null}
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-black text-slate-900">{playerName}</div>
                         {player.rsvp_reason ? (
                           <div className="mt-0.5 line-clamp-2 text-[11px] font-medium leading-4 text-emerald-700">
@@ -458,6 +459,7 @@ export default function SessionAttendanceCard({
                           </div>
                         ) : null}
                       </div>
+                      {player.id === currentPlayerId && selfRsvpEnabled ? <button type="button" onClick={() => document.getElementById("session-own-rsvp")?.scrollIntoView({ behavior: "smooth", block: "center" })} className="shrink-0 rounded-lg bg-emerald-100 px-2 py-1.5 text-xs font-bold text-emerald-900">Meine Zusage ändern</button> : null}
                     </div>
                   );
                 }) : (
@@ -491,12 +493,12 @@ export default function SessionAttendanceCard({
             </details>
             <details className="overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50/50">
               <summary className="flex cursor-pointer items-center justify-between px-3 py-2.5"><span className="text-sm font-black text-slate-950">Noch offen</span><span className="rounded-full bg-slate-600 px-2.5 py-1 text-[10px] font-black text-white">{openPlayers.length}</span></summary>
-              <div className="grid gap-2 border-t border-slate-200 bg-white/70 p-3 sm:grid-cols-2">{openPlayers.length ? openPlayers.map(player => <div key={player.id} className="rounded-2xl bg-white px-3 py-2.5 text-sm font-bold text-slate-900 ring-1 ring-slate-950/5">{getPlayerDisplayName(player)}</div>) : <span className="text-xs text-slate-500">Alle haben sich zurückgemeldet.</span>}</div>
+              <div className="grid gap-2 border-t border-slate-200 bg-white/70 p-3 sm:grid-cols-2">{openPlayers.length ? openPlayers.map(player => <div key={player.id} className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 text-sm font-bold text-slate-900 ring-1 ring-slate-950/5">{renderPlayerAvatar(player)}<span className="flex-1">{getPlayerDisplayName(player)}</span>{player.id === currentPlayerId && selfRsvpEnabled ? <button type="button" onClick={() => document.getElementById("session-own-rsvp")?.scrollIntoView({ behavior: "smooth", block: "center" })} className="rounded-lg bg-slate-100 px-2 py-1 text-xs">Jetzt zusagen</button> : null}</div>) : <span className="text-xs text-slate-500">Alle haben sich zurückgemeldet.</span>}</div>
             </details>
           </div>
 
           {selfRsvpEnabled && currentPlayerId !== null ? (
-            <div className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50 p-3.5">
+            <div id="session-own-rsvp" className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50 p-3.5">
               <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
                 {t("attendance.yourRsvp")}
               </div>
