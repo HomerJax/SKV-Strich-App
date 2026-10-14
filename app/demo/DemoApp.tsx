@@ -460,7 +460,7 @@ export default function DemoApp({ logoUrl }: DemoAppProps) {
             <img src={logoUrl} alt="1. FC Strikr 2026" className="h-9 w-9 shrink-0 rounded-xl border border-black/10 bg-white object-contain p-1" />
             <div className="min-w-0"><div className="flex items-center gap-2"><DemoPill /><span className="truncate text-sm font-black">{DEMO_CLUB.name}</span></div><div className="mt-0.5 truncate text-[11px] text-amber-900/70">{selectedLabel} · Änderungen werden nicht gespeichert</div></div>
           </div>
-          <Link href="/signup?next=%2Fclub-setup" className="hidden shrink-0 items-center gap-1 rounded-full bg-black px-3 py-2 text-xs font-bold text-white hover:bg-zinc-800 sm:inline-flex">Eigenen Club erstellen <ArrowRight className="h-3.5 w-3.5" /></Link>
+          <Link href="/signup?next=%2Fclub-setup" className="hidden shrink-0 items-center gap-1 rounded-full bg-black px-3 py-2 text-xs font-bold text-white hover:bg-zinc-800 sm:inline-flex">Eigenes Team starten <ArrowRight className="h-3.5 w-3.5" /></Link>
         </div>
       </div>
 
@@ -482,7 +482,7 @@ export default function DemoApp({ logoUrl }: DemoAppProps) {
         </div>
       </div>
 
-      <Link href="/signup?next=%2Fclub-setup" className="fixed bottom-24 right-4 z-30 inline-flex items-center gap-2 rounded-full bg-black px-4 py-3 text-xs font-extrabold text-white shadow-xl sm:hidden">Club starten <ArrowRight className="h-3.5 w-3.5" /></Link>
+      <Link href="/signup?next=%2Fclub-setup" className="fixed bottom-24 right-4 z-30 inline-flex items-center gap-2 rounded-full bg-black px-4 py-3 text-xs font-extrabold text-white shadow-xl sm:hidden">Team starten <ArrowRight className="h-3.5 w-3.5" /></Link>
     </main>
   );
 }
