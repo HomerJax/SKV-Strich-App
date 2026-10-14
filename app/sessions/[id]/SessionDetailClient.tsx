@@ -96,7 +96,7 @@ function WorkspaceIntro({
 
 export default function SessionDetailClient(props: SessionDetailClientProps) {
   const { t } = useI18n();
-  const [pilotView, setPilotView] = useState<"admin" | "player">("admin");
+  const [pilotView, setPilotView] = useState<"admin" | "leader" | "player">("admin");
   const [pilotStep, setPilotStep] = useState<"attendance" | "mode" | "teams" | "result" | "photo" | "winner">("attendance");
   const tournamentWizardRef = useRef<{ next: () => void; ready: boolean; label: string } | null>(null);
   const [tournamentWizardStage, setTournamentWizardStage] = useState<"teams" | "games">("teams");
@@ -443,7 +443,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   return (
     <>
       <div className="space-y-4">
-        {pilotAdmin ? <div className="rounded-2xl border border-slate-200 bg-white p-3"><div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{playerPreview ? "Spieleransicht · Vorschau" : props.initialIsClubAdmin === false ? "Trainingsleitung · Durchführung" : "Adminansicht · Verwaltung"}</div><div className="flex gap-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setPilotView("admin")} aria-pressed={!playerPreview} className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-bold ${!playerPreview ? "bg-slate-950 text-white shadow-sm" : "text-slate-600"}`}>{props.initialIsClubAdmin === false ? "Trainingsleitung" : "Adminansicht"}</button><button type="button" onClick={() => setPilotView("player")} aria-pressed={playerPreview} className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-bold ${playerPreview ? "bg-slate-950 text-white shadow-sm" : "text-slate-600"}`}>Spieleransicht</button></div></div> : null}
+        {pilotAdmin ? <div className="rounded-2xl border border-slate-200 bg-white p-3"><div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{playerPreview ? "Spieleransicht · Vorschau" : pilotView === "leader" || props.initialIsClubAdmin === false ? "Trainingsleitung · Vorschau" : "Adminansicht · Verwaltung"}</div><div className="flex gap-1 rounded-xl bg-slate-100 p-1">{(props.initialIsClubAdmin === false ? [{key:"leader",label:"Trainingsleitung"},{key:"player",label:"Spieler"}] : [{key:"admin",label:"Admin"},{key:"leader",label:"Trainingsleitung"},{key:"player",label:"Spieler"}]).map(item=><button key={item.key} type="button" onClick={()=>setPilotView(item.key as "admin" | "leader" | "player")} aria-pressed={pilotView===item.key} className={`flex-1 rounded-lg px-2 py-2.5 text-xs font-bold sm:text-sm ${pilotView===item.key?"bg-slate-950 text-white shadow-sm":"text-slate-600"}`}>{item.label}</button>)}</div>{pilotView==="leader"&&props.initialIsClubAdmin!==false?<p className="mt-2 text-xs text-slate-500">Vorschau: Trainingsleitung kann Anwesenheiten, Teams und Ergebnisse bearbeiten, aber keine Termine verwalten.</p>:null}</div> : null}
         <SessionHeaderCard
           sessionId={props.sessionId}
           date={session.date}
@@ -456,7 +456,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           teamBCount={allowTeams ? teamB.length : 0}
           hasResult={allowResult ? hasResult : false}
           nextStepLabel={nextStepLabel}
-          isAdmin={isAdmin && !playerPreview && props.initialIsClubAdmin !== false}
+          isAdmin={isAdmin && !playerPreview && pilotView === "admin" && props.initialIsClubAdmin !== false}
           deletingSession={deletingSession}
           primaryColorKey={primaryColorKey}
           onDeleteSession={handleDeleteSession}
