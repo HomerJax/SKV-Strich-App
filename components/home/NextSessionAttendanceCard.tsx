@@ -290,7 +290,7 @@ export default function NextSessionAttendanceCard({
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-600">{compact ? (locale === "de" ? "Weiterer Termin" : "Upcoming session") : t("session.nextTraining")}</div>
-          <h2 className="mt-1.5 text-[18px] font-semibold leading-tight tracking-[-0.035em] text-slate-950 sm:text-[21px]">{title}</h2>
+          <h2 className="mt-1.5 text-[18px] font-semibold leading-tight tracking-[-0.035em] text-slate-950 sm:text-[21px]"><Link href={href} className="hover:text-cyan-700 hover:underline underline-offset-4">{title}</Link></h2>
           {text?.trim() ? <p className="mt-1.5 line-clamp-2 text-xs font-medium leading-5 text-slate-500">{text.trim()}</p> : null}
           {deadlineText ? (
             <div className={`mt-3 flex max-w-full items-start gap-1.5 text-[11px] font-semibold leading-4 ${deadlineTextClasses(deadlineTone)}`}>
