@@ -229,7 +229,9 @@ function ToggleSwitch({
 
 function PlayerMetaChips({ player }: { player: Player }) {
   const { t } = useI18n();
-  const categoryLabel = player.category_label ?? null;
+  const rawCategory = String(player.category_key ?? player.age_group ?? "").trim().toLocaleLowerCase("de-DE");
+  const normalizedCategory = rawCategory === "ah" ? "AH" : rawCategory === "ü32" || rawCategory === "ue32" ? "Ü32" : null;
+  const categoryLabel = normalizedCategory ?? player.category_label ?? player.age_group ?? null;
   const position =
     player.preferred_position === "goalkeeper"
       ? t("attendance.goalkeeper")
@@ -243,7 +245,7 @@ function PlayerMetaChips({ player }: { player: Player }) {
     <span className="flex shrink-0 items-center gap-1">
       <span
         className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${ageBadgeColor(
-          player.age_group,
+          normalizedCategory ?? player.age_group,
         )}`}
       >
         {categoryLabel ?? "?"}
