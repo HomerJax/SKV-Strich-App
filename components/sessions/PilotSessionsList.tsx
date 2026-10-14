@@ -1,10 +1,13 @@
 "use client";
 import Link from "next/link";
 import {useState} from "react";
-import {ChevronRight,CalendarDays,CheckCircle2,XCircle,Clock3} from "lucide-react";
-type Session={id:number;date:string;start_time:string|null;notes:string|null;type:"training"|"event"|null;status:"in"|"out"|"open"};
-export default function PilotSessionsList({sessions,locale,isAdmin}:{sessions:Session[];locale:"de"|"en";isAdmin:boolean}){
+import {ChevronDown,CheckCircle2,XCircle,Clock3} from "lucide-react";
+import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
+type Person={id:number;name:string;photoUrl:string|null;photoPositionX:number|null;photoPositionY:number|null;photoZoom:number|null};
+type Session={id:number;date:string;start_time:string|null;notes:string|null;type:"training"|"event"|null;status:"in"|"out"|"open";comment:string|null;rsvp_deadline_minutes_before:number|null;participants:(Person&{comment:string|null})[];absentPlayers:(Person&{reason:string|null})[]};
+export default function PilotSessionsList({sessions,locale,isAdmin,readOnly,clubDeadline,requireAbsenceReason}:{sessions:Session[];locale:"de"|"en";isAdmin:boolean;readOnly:boolean;clubDeadline:number;requireAbsenceReason:boolean}){
  const [tab,setTab]=useState<"future"|"past">("future");
+ const [openId,setOpenId]=useState<number|null>(null);
  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Berlin",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
  const filtered=sessions.filter(s=>tab==="future"?s.date>=today:s.date<today).sort((a,b)=>tab==="future"?(a.date+a.start_time).localeCompare(b.date+b.start_time):(b.date+b.start_time).localeCompare(a.date+a.start_time));
  return <section className="space-y-4">
@@ -15,10 +18,10 @@ export default function PilotSessionsList({sessions,locale,isAdmin}:{sessions:Se
  const date=new Date(s.date+"T12:00:00");
  const weekday=date.toLocaleDateString(locale==="de"?"de-DE":"en-GB",{weekday:"short"});
  const day=date.toLocaleDateString(locale==="de"?"de-DE":"en-GB",{day:"2-digit",month:"short"});
- return <Link key={s.id} href={`/sessions/${s.id}`} className={`flex items-center gap-3 px-4 py-4 transition hover:bg-slate-50 ${i?"border-t border-slate-100":""}`}>
+ return <div key={s.id} className={i?"border-t border-slate-100":""}><button type="button" aria-expanded={openId===s.id} onClick={()=>setOpenId(openId===s.id?null:s.id)} className="flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-slate-50">
  <div className="flex w-16 shrink-0 flex-col items-center rounded-xl bg-slate-100 px-1 py-2"><span className="text-[10px] font-bold uppercase text-slate-500">{weekday}</span><span className="text-sm font-black text-slate-900">{day}</span></div>
  <div className="min-w-0 flex-1"><div className="text-sm font-bold text-slate-950">{s.type==="event"?(locale==="de"?"Event / Spiel":"Event / Match"):(locale==="de"?"Training":"Training")} · {s.start_time?.slice(0,5)??"–"}</div>{s.notes?.trim()?<p className="mt-0.5 truncate text-xs text-slate-500">{s.notes.trim()}</p>:null}
- {tab==="future"?<div className="mt-1 flex items-center gap-1 text-xs font-semibold">{s.status==="in"?<><CheckCircle2 className="h-3.5 w-3.5 text-cyan-600"/><span className="text-cyan-700">{locale==="de"?"Zugesagt":"Going"}</span></>:s.status==="out"?<><XCircle className="h-3.5 w-3.5 text-rose-600"/><span className="text-rose-700">{locale==="de"?"Abgesagt":"Declined"}</span></>:<><Clock3 className="h-3.5 w-3.5 text-slate-400"/><span className="text-slate-500">{locale==="de"?"Noch offen":"Not answered"}</span></>}</div>:null}</div><ChevronRight className="h-5 w-5 shrink-0 text-slate-400"/></Link>;
+ {tab==="future"?<div className="mt-1 flex items-center gap-1 text-xs font-semibold">{s.status==="in"?<><CheckCircle2 className="h-3.5 w-3.5 text-cyan-600"/><span className="text-cyan-700">{locale==="de"?"Zugesagt":"Going"}</span></>:s.status==="out"?<><XCircle className="h-3.5 w-3.5 text-rose-600"/><span className="text-rose-700">{locale==="de"?"Abgesagt":"Declined"}</span></>:<><Clock3 className="h-3.5 w-3.5 text-slate-400"/><span className="text-slate-500">{locale==="de"?"Noch offen":"Not answered"}</span></>}</div>:null}</div><ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${openId===s.id?"rotate-180":""}`}/></button>{openId===s.id?<div className="border-t border-slate-100 bg-slate-50 p-2">{tab==="future"?<NextSessionAttendanceCard compact sessionId={s.id} title={day+" · "+(s.start_time?.slice(0,5)??"–")} text={s.notes??""} href={`/sessions/${s.id}`} initialStatus={s.status} initialComment={s.comment} initialPresentCount={s.participants.length} initialAbsentCount={s.absentPlayers.length} sessionDate={s.date} startTime={s.start_time} rsvpDeadlineMinutesBefore={clubDeadline} sessionRsvpDeadlineMinutesBefore={s.rsvp_deadline_minutes_before} participants={s.participants} absentPlayers={s.absentPlayers} requireAbsenceReason={requireAbsenceReason} readOnly={readOnly}/>:<Link href={`/sessions/${s.id}`} className="block rounded-xl bg-white px-4 py-3 text-sm font-semibold text-cyan-700">{locale==="de"?"Ergebnisse, Teams und Details ansehen →":"View results, teams and details →"}</Link>}</div>:null}</div>;
  })}
  </div>
 
