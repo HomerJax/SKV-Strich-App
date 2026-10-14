@@ -105,7 +105,7 @@ export async function requireSessionAccess(sessionId: number) {
   const { data: leadPlayer } = currentPlayerId !== null
     ? await adminSupabase.from("players").select("can_lead_training").eq("id", currentPlayerId).eq("club_id", ctx.activeClubId).maybeSingle()
     : { data: null };
-  const canLeadTraining = ctx.activeClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && leadPlayer?.can_lead_training === true;
+  const canLeadTraining = leadPlayer?.can_lead_training === true;
 
   const currentUserEmail = ctx.user.email?.trim().toLowerCase() ?? null;
 
