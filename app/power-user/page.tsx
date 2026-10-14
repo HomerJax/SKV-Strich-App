@@ -254,6 +254,7 @@ export default async function PowerUserPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <KpiCard href="/power-user/permissions" label="Berechtigungen" value="Rollenmatrix" description="Pro Verein prüfen, wer Admin, Trainingsleiter oder Spieler ist und welche Aktionen erlaubt sind." icon={<Shield className="h-6 w-6" />} detailsLabel={detailsLabel} />
           <KpiCard
             href="/power-user/clubs"
             label={t("power.clubsBilling")}
