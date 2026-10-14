@@ -199,6 +199,8 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     const auth = await getAuthContext();
     const membership = auth.memberships.find(m => m.club_id === clubId);
     const isAdmin = auth.isPowerUser || membership?.role === "admin";
+    const { data: leaderRecord } = viewPlayer?.id ? await supabase.from("players").select("can_lead_training").eq("id", viewPlayer.id).eq("club_id", clubId).maybeSingle() : { data: null };
+    const canCreateTraining = !isSupportView && (isAdmin || leaderRecord?.can_lead_training === true);
     type PilotPerson={id:number;first_name:string|null;last_name:string|null;photo_path:string|null;photo_position_x:number|null;photo_position_y:number|null;photo_zoom:number|null};
     type PilotMember={session_id:number;player_id:number;players:PilotPerson|PilotPerson[]|null};
     type PilotReply={session_id:number;player_id:number;status:string;reason:string|null};
@@ -214,7 +216,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     const pilotAbsentPeople=(absentPeople??[]) as PilotPerson[];
     return <main className="min-h-screen bg-neutral-100"><section className="mx-auto w-full max-w-3xl space-y-4 px-4 py-4 sm:px-6">
       <PageHero eyebrow={locale === "de" ? "Übersicht" : "Overview"} title={locale === "de" ? "Termine" : "Sessions"} description={locale === "de" ? "Alle Trainings und Spiele auf einen Blick." : "All training sessions and matches."} primaryColorKey={club?.primary_color} backLabel={t("session.back")} backHref="/" compact/>
-      <PilotSessionsList locale={locale} isAdmin={isAdmin} readOnly={isSupportView} clubDeadline={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} sessions={sessions.map(s=>{
+      <PilotSessionsList locale={locale} isAdmin={isAdmin} canCreateTraining={canCreateTraining} readOnly={isSupportView} clubDeadline={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} sessions={sessions.map(s=>{
         const members=pilotMembers.filter(p=>p.session_id===s.id);
         const replies=pilotReplies.filter(r=>r.session_id===s.id);
         const person=(p:{first_name:string|null;last_name:string|null;photo_path:string|null;photo_position_x:number|null;photo_position_y:number|null;photo_zoom:number|null}|null,id:number)=>({
