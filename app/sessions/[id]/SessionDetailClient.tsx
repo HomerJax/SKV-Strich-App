@@ -255,7 +255,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   function renderAttendance() {
     return (
       <div ref={attendanceRef} className="space-y-3">
-        {!(["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession) ? <SessionAdminRsvpCard
+        {!(["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession) || playerPreview ? <SessionAdminRsvpCard
           sessionId={props.sessionId}
           players={displayPlayers}
           hasResult={hasResult}
@@ -265,12 +265,12 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         <SessionAttendanceCard
           sessionId={props.sessionId}
           currentPlayerId={props.initialCurrentPlayerId}
-          selfRsvpEnabled={props.initialHomeSessionRsvpEnabled === true}
+          selfRsvpEnabled={props.initialHomeSessionRsvpEnabled === true || (playerPreview && props.initialCurrentPlayerId !== null)}
           rsvpDeadlineEpochMs={rsvpDeadlineEpochMs}
           players={displayPlayers}
           presentIds={draftPresentIds}
           hasResult={hasResult}
-          isAdmin={isAdmin}
+          isAdmin={isAdmin && !playerPreview}
           showGuestForm={showGuestForm}
           guestName={guestName}
           guestPosition={guestPosition}
