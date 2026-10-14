@@ -13,9 +13,9 @@ export async function submitPilotFeedback(_:FeedbackState,formData:FormData):Pro
  const {data:{user}}=await supabase.auth.getUser();
  if(!user || !PILOT_ACCESS[user.id]) return {error:"Kein Zugriff auf diesen Fragebogen."};
  const clubId=PILOT_ACCESS[user.id];
- const keys=["setup","invite","usage","useful","teams","issues","missing","recommend","pro","improvement"];
+ const keys=["usage","useful","positive","issues","players_positive","players_negative","fairness","missing","price","recommend","other"];
  const answers:Record<string,string>={};
- for(const key of keys){const value=formData.get(key);if(typeof value!=="string"||value.trim().length===0||value.length>2500)return {error:"Bitte alle Fragen beantworten."};answers[key]=value.trim();}
+ for(const key of keys){const values=formData.getAll(key).filter((v):v is string=>typeof v==="string");const value=values.join(", ").trim();if(value.length>2500)return {error:"Eine Antwort ist zu lang."};answers[key]=value;}
  const {error}=await supabase.from("pilot_admin_feedback").insert({user_id:user.id,club_id:clubId,answers});
  if(error){if(error.code==="23505")return {error:"Du hast den Fragebogen bereits abgeschickt."};return {error:"Speichern fehlgeschlagen. Bitte erneut versuchen."};}
  revalidatePath("/pilot-feedback");
