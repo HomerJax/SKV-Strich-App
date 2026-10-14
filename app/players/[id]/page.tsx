@@ -36,7 +36,7 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
   if (!pass) notFound();
   const canEdit = ownPlayer?.id === pass.id || canManageClub({ isPowerUser, role: membership.role });
   const displayName = getPlayerDisplayName(pass);
-  const canAssignTrainingLead = clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && canManageClub({ isPowerUser, role: membership.role });
+  const canAssignTrainingLead = canManageClub({ isPowerUser, role: membership.role });
   const photoUrl = pass.photo_path ? supabase.storage.from("player-photos").getPublicUrl(pass.photo_path).data.publicUrl : null;
   const photoStyle = { objectPosition:`${pass.photo_position_x ?? 50}% ${pass.photo_position_y ?? 50}%`, transform:`scale(${Number(pass.photo_zoom ?? 1)})`, transformOrigin:`${pass.photo_position_x ?? 50}% ${pass.photo_position_y ?? 50}%` };
   const photo = photoUrl ? <Image src={photoUrl} alt={displayName} width={300} height={375} unoptimized className="h-full w-full object-cover" style={photoStyle}/> : <div className="flex h-full items-center justify-center text-5xl font-black text-slate-400">{displayName.slice(0,1).toUpperCase()}</div>;
@@ -77,7 +77,7 @@ export default async function PlayerPassPage({ params, searchParams }: Props) {
         </div>
       </div>
 
-      {canAssignTrainingLead ? <form action="/api/training-leaders" method="post" className="rounded-2xl border border-slate-200 bg-white p-4"><input type="hidden" name="player_id" value={pass.id}/><input type="hidden" name="enabled" value={pass.can_lead_training ? "false" : "true"}/><div className="flex items-center justify-between gap-3"><div><div className="text-sm font-bold text-slate-900">Trainingsleitung</div><p className="text-xs text-slate-500">Darf Anwesenheiten, Teams und Ergebnisse verwalten.</p></div><button type="submit" className={`rounded-lg px-3 py-2 text-xs font-bold ${pass.can_lead_training ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>{pass.can_lead_training ? "Aktiv · Deaktivieren" : "Aktivieren"}</button></div></form> : null}
+      {canAssignTrainingLead ? <form action="/api/training-leaders" method="post" className="rounded-2xl border border-slate-200 bg-white p-4"><input type="hidden" name="player_id" value={pass.id}/><input type="hidden" name="enabled" value={pass.can_lead_training ? "false" : "true"}/><div className="flex items-center justify-between gap-3"><div><div className="text-sm font-bold text-slate-900">Trainingsleitung</div><p className="text-xs text-slate-500">Darf Anwesenheiten, Teams und Ergebnisse verwalten und in freigeschalteten Vereinen den Session-Assistenten bedienen.</p></div><button type="submit" className={`rounded-lg px-3 py-2 text-xs font-bold ${pass.can_lead_training ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>{pass.can_lead_training ? "Aktiv · Deaktivieren" : "Aktivieren"}</button></div></form> : null}
       {canEdit ? <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="font-bold text-slate-950">{t("players.managePass")}</h2>
         <p className="mt-1 text-xs text-slate-500">{t("players.managePassHint")}</p>
