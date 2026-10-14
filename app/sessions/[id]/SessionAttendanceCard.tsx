@@ -834,7 +834,7 @@ export default function SessionAttendanceCard({
             {key:"present",label:"Anwesend",list:players.filter(p=>presentIds.includes(p.id)),open:true,tone:"emerald"},
             {key:"absent",label:"Abgesagt",list:players.filter(p=>!presentIds.includes(p.id)&&getPlayerRsvpStatus(p)==="out"),open:false,tone:"rose"},
             {key:"open",label:"Noch offen",list:players.filter(p=>!presentIds.includes(p.id)&&getPlayerRsvpStatus(p)!=="out"),open:false,tone:"slate"},
-          ] as const).map(group=><details key={group.key} defaultOpen={group.open} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          ] as const).map(group=><details key={group.key} open={group.open ? true : undefined} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <summary className="flex cursor-pointer list-none items-center justify-between bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900"><span>{group.label}</span><span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600">{group.list.length} ▾</span></summary>
             <div className="grid gap-1.5 p-2">
           {group.list.map((player) => {
