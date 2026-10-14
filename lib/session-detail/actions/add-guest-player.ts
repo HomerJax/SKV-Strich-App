@@ -91,6 +91,12 @@ export async function handleAddGuestPlayer({
     return fail(t("sessionAction.guestStrengthInvalid"));
   }
 
+  const normalizedCategory = guestAgeGroup.trim().toLocaleLowerCase("de-DE");
+  const requestedCategoryKey = normalizedCategory === "ah" ? "ah" : normalizedCategory === "ü32" || normalizedCategory === "ue32" ? "ue32" : null;
+  const { data: matchingCategory } = requestedCategoryKey
+    ? await supabase.from("club_categories").select("key").eq("club_id", clubId).eq("key", requestedCategoryKey).eq("is_active", true).maybeSingle()
+    : { data: null };
+
   const payload = {
     club_id: clubId,
     name: guestName.trim(),
@@ -98,6 +104,7 @@ export async function handleAddGuestPlayer({
     is_guest: true,
     preferred_position: guestPosition.trim() === "" ? null : guestPosition.trim(),
     age_group: guestAgeGroup.trim() === "" ? null : guestAgeGroup.trim(),
+    category_key: matchingCategory?.key ?? null,
     strength: parsedStrength,
   };
 
@@ -105,7 +112,7 @@ export async function handleAddGuestPlayer({
     .from("players")
     .insert(payload)
     .select(
-      "id, name, first_name, last_name, nickname, is_active, age_group, preferred_position, strength, is_guest"
+      "id, name, first_name, last_name, nickname, is_active, age_group, category_key, preferred_position, strength, is_guest"
     )
     .single();
 
