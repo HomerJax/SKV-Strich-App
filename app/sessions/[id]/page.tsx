@@ -62,7 +62,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const sessionId = Number(resolvedParams.id);
   const { clubId, membership, isPowerUser, player } = await requireClub();
   const supabase = await createClient();
-  const { data: trainingLeadRecord } = player?.id && clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? await supabase.from("players").select("can_lead_training").eq("id", player.id).eq("club_id", clubId).maybeSingle() : { data: null };
+  const { data: trainingLeadRecord } = player?.id ? await supabase.from("players").select("can_lead_training").eq("id", player.id).eq("club_id", clubId).maybeSingle() : { data: null };
   const canLeadTraining = trainingLeadRecord?.can_lead_training === true;
 
   if (!Number.isFinite(sessionId)) redirect("/sessions");
