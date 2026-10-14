@@ -592,6 +592,7 @@ export async function POST(
         sessionId,
         clubId,
         membership,
+        canLeadTraining,
         guestName,
         guestPosition,
         guestAgeGroup,
