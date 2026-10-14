@@ -8,7 +8,6 @@ import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
 import HomeQuickStats from "@/components/home/HomeQuickStats";
-import UpcomingHomeSessions from "@/components/home/UpcomingHomeSessions";
 import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
@@ -531,25 +530,37 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
 
-  let upcomingHomeItems: {id:number;date:string;startTime:string|null;notes:string|null;status:"in"|"out"|"open";presentCount:number;deadlineMinutes:number|null}[] = [];
+  let upcomingHomeSessions: (SessionRow & { status: "in"|"out"|"open"; comment:string|null; presentCount:number; absentCount:number; participants: {id:number;name:string;comment:string|null;photoUrl:string|null;photoPositionX:number|null;photoPositionY:number|null;photoZoom:number|null}[]; absentPlayers:{id:number;name:string;reason:string|null;photoUrl:string|null;photoPositionX:number|null;photoPositionY:number|null;photoZoom:number|null}[] })[] = [];
   if (isHomeRsvpPilot && homeSessionRsvpEnabled && nextSession) {
     const {data: futureRows} = await supabase.from("sessions")
       .select("id,date,start_time,notes,rsvp_deadline_minutes_before")
       .eq("club_id",clubId).gte("date",today).neq("id",nextSession.id)
       .order("date",{ascending:true}).order("start_time",{ascending:true}).limit(10);
-    const future = (futureRows??[]) as SessionRow[];
+    const future=(futureRows??[]) as SessionRow[];
     if(future.length){
       const ids=future.map(s=>s.id);
       const [{data:rsvps},{data:participants}] = await Promise.all([
-        supabase.from("session_rsvps").select("session_id,player_id,status").eq("club_id",clubId).in("session_id",ids),
-        supabase.from("session_players").select("session_id,player_id").in("session_id",ids)
+        supabase.from("session_rsvps").select("session_id,player_id,status,reason").eq("club_id",clubId).in("session_id",ids),
+        supabase.from("session_players").select("session_id,player_id,players(first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom)").in("session_id",ids)
       ]);
-      const countBySession=new Map<number,number>();
-      for(const row of participants??[])countBySession.set(row.session_id,(countBySession.get(row.session_id)??0)+1);
-      upcomingHomeItems=future.map(s=>{
-        const own=(rsvps??[]).find(r=>r.session_id===s.id&&r.player_id===currentPlayerId);
-        const status: "in"|"out"|"open" = own?.status==="in"?"in":own?.status==="out"?"out":(participants??[]).some(r=>r.session_id===s.id&&r.player_id===currentPlayerId)?"in":"open";
-        return {id:s.id,date:s.date,startTime:s.start_time,notes:s.notes,status,presentCount:countBySession.get(s.id)??0,deadlineMinutes:s.rsvp_deadline_minutes_before};
+      const allRsvps=rsvps??[];
+      const allParticipants=(participants??[]) as unknown as (NextSessionParticipantRow & {session_id:number})[];
+      const playerInfo=(playerId:number)=>normalizeSimplePlayerRelation(allParticipants.find(p=>p.player_id===playerId)?.players??null);
+      const photo=(p:NextSessionPlayer|null)=>p?.photo_path?supabase.storage.from("player-photos").getPublicUrl(p.photo_path).data.publicUrl:null;
+      upcomingHomeSessions=future.map(s=>{
+        const sessionParticipants=allParticipants.filter(p=>p.session_id===s.id);
+        const sessionRsvps=allRsvps.filter(r=>r.session_id===s.id);
+        const own=sessionRsvps.find(r=>r.player_id===currentPlayerId);
+        const status:"in"|"out"|"open"=own?.status==="in"?"in":own?.status==="out"?"out":sessionParticipants.some(p=>p.player_id===currentPlayerId)?"in":"open";
+        const attending=sessionParticipants.map(p=>{
+          const info=normalizeSimplePlayerRelation(p.players);
+          return {id:p.player_id,name:getSimplePlayerName(info,locale),comment:sessionRsvps.find(r=>r.player_id===p.player_id&&r.status==="in")?.reason??null,photoUrl:photo(info),photoPositionX:info?.photo_position_x??null,photoPositionY:info?.photo_position_y??null,photoZoom:info?.photo_zoom??null};
+        });
+        const absent=sessionRsvps.filter(r=>r.status==="out").map(r=>{
+          const info=playerInfo(r.player_id);
+          return {id:r.player_id,name:getSimplePlayerName(info,locale),reason:r.reason??null,photoUrl:photo(info),photoPositionX:info?.photo_position_x??null,photoPositionY:info?.photo_position_y??null,photoZoom:info?.photo_zoom??null};
+        });
+        return {...s,status,comment:own?.status==="in"?own.reason??null:null,presentCount:attending.length,absentCount:absent.length,participants:attending,absentPlayers:absent};
       });
     }
   }
@@ -1010,8 +1021,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           />
         )}
 
-        {isHomeRsvpPilot && homeSessionRsvpEnabled && upcomingHomeItems.length > 0 ? (
-          <UpcomingHomeSessions items={upcomingHomeItems} playerId={currentPlayerId} readOnly={isSupportView} requireAbsenceReason={requireRsvpReasonOnAbsence} clubDeadline={rsvpDeadlineMinutesBefore}/>
+        {isHomeRsvpPilot && homeSessionRsvpEnabled && upcomingHomeSessions.length > 0 ? (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-1"><h2 className="text-base font-bold text-slate-950">Weitere Termine</h2><Link href="/sessions" className="text-xs font-semibold text-cyan-700">Alle Termine →</Link></div>
+            {upcomingHomeSessions.slice(0,2).map(s=><NextSessionAttendanceCard key={s.id} compact sessionId={s.id} title={formatSessionTitle(s.date,s.start_time,locale)} text={s.notes?.trim()||t("home.checkAttendance")} href={`/sessions/${s.id}`} initialStatus={s.status} initialComment={s.comment} initialPresentCount={s.presentCount} initialAbsentCount={s.absentCount} sessionDate={s.date} startTime={s.start_time} rsvpDeadlineMinutesBefore={rsvpDeadlineMinutesBefore} sessionRsvpDeadlineMinutesBefore={s.rsvp_deadline_minutes_before} participants={s.participants} absentPlayers={s.absentPlayers} requireAbsenceReason={requireRsvpReasonOnAbsence} readOnly={isSupportView} supportViewLabel={supportViewLabel}/>)}
+          </section>
         ) : null}
 
         {currentPlayerId || !isPowerUser ? (
