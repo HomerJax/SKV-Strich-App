@@ -515,8 +515,20 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           const selectedIndex = steps.findIndex(s => s.key === selected);
           const renderStep = (key: typeof steps[number]["key"]) => {
             if (key === "attendance") return renderAttendance();
-            if (key === "mode") return <div className="space-y-3"><div className="rounded-xl border border-slate-200 bg-white p-4"><h3 className="text-base font-black text-slate-950">Wie wollt ihr spielen?</h3><p className="mt-1 text-xs text-slate-500">Wähle normales Spiel oder aktiviere den Turniermodus.</p><div className={`mt-3 rounded-xl border-2 p-3 ${!isTournamentMode ? "border-teal-500 bg-teal-50" : "border-slate-200"}`}><div className="font-bold text-slate-950">⚽ Normales Spiel {!isTournamentMode ? "✓" : ""}</div><p className="mt-1 text-xs text-slate-600">Zwei Teams bilden, spielen und Ergebnisse eintragen.</p></div></div><SessionTournamentCard sessionId={props.sessionId} enabled={isTournamentMode} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={hasResult && !isTournamentMode} onActivated={() => { setPilotStep("result"); setTournamentWizardStage("teams"); router.refresh(); }} wizardControl={setupWizardRef} onWizardReady={setSetupWizardReady} /></div>;
-            if (key === "teams") return renderTeams();
+            if (key === "mode") return <div className="space-y-3">
+              <h3 className="text-base font-black text-slate-950">Wie wollt ihr spielen?</h3>
+              <div className={`rounded-xl border-2 bg-white p-3 ${!isTournamentMode ? "border-teal-500" : "border-slate-200"}`}>
+                <div className="flex items-center justify-between"><span className="text-sm font-bold">⚽ Normales Spiel</span><span className="text-xs font-bold text-teal-700">{!isTournamentMode ? "✓ Ausgewählt" : "Nicht ausgewählt"}</span></div>
+                <p className="mt-1 text-xs text-slate-500">Zwei Teams, Spiele und Ergebnisse</p>
+              </div>
+              <div className={`rounded-xl border-2 bg-white p-3 ${isTournamentMode ? "border-teal-500" : "border-slate-200"}`}>
+                <div className="flex items-center justify-between"><span className="text-sm font-bold">🏆 Turniermodus</span><span className="text-xs font-bold text-teal-700">{isTournamentMode ? "✓ Ausgewählt" : "Optional"}</span></div>
+                <p className="mt-1 text-xs text-slate-500">Mehrere Teams, Spielplan und Turniertabelle</p>
+                {!isTournamentMode && hasResult ? <p className="mt-2 text-xs font-semibold text-amber-700">Wechsel gesperrt: Ergebnisse sind bereits erfasst.</p> : null}
+                {!isTournamentMode && !hasResult ? <SessionTournamentCard sessionId={props.sessionId} enabled={false} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={false} onActivated={() => { setPilotStep("result"); setTournamentWizardStage("teams"); router.refresh(); }} wizardControl={setupWizardRef} onWizardReady={setSetupWizardReady} /> : null}
+              </div>
+            </div>;
+                        if (key === "teams") return renderTeams();
             if (key === "result") return isTournamentMode
               ? <SessionTournamentCard sessionId={props.sessionId} enabled={true} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={false} onActivated={() => router.refresh()} tournamentWizardControl={tournamentWizardRef} onTournamentWizardChange={(stage, ready) => { setTournamentWizardStage(stage); setTournamentTeamsReady(ready); }} onFinalized={() => { setPilotStep("photo"); router.refresh(); }} />
               : <div className="space-y-3"><SessionGameTimerLoader sessionId={props.sessionId} />{renderResult()}</div>;
