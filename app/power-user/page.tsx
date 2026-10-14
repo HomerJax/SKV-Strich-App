@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CreditCard,
   MailCheck,
+  MessageSquareText,
   MailOpen,
   MousePointerClick,
   Shield,
@@ -285,6 +286,15 @@ export default async function PowerUserPage() {
             value="Live"
             description={t("power.analyticsDesc")}
             icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
+          />
+
+          <KpiCard
+            href="/power-user/pilot-feedback"
+            label="Pilotteams Feedback"
+            value="Antworten"
+            description="Feedback von Marc und Stefan vergleichen: Mehrwert, Kritik, Wünsche und Preisbereitschaft."
+            icon={<MessageSquareText className="h-6 w-6" strokeWidth={2.1} />}
             detailsLabel={detailsLabel}
           />
 
