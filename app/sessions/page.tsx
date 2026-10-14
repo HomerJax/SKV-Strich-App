@@ -1,4 +1,6 @@
 import Link from "next/link";
+import PilotSessionsList from "@/components/sessions/PilotSessionsList";
+import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import PageHero from "@/components/ui/PageHero";
@@ -192,6 +194,16 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     rsvpBySession.get(sessionId)?.status ?? "open";
   const commentFor = (sessionId: number) =>
     rsvpBySession.get(sessionId)?.comment ?? null;
+
+  if (clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60") {
+    const auth = await getAuthContext();
+    const membership = auth.memberships.find(m => m.club_id === clubId);
+    const isAdmin = auth.isPowerUser || membership?.role === "admin";
+    return <main className="min-h-screen bg-neutral-100"><section className="mx-auto w-full max-w-3xl space-y-4 px-4 py-4 sm:px-6">
+      <PageHero eyebrow={locale === "de" ? "Übersicht" : "Overview"} title={locale === "de" ? "Termine" : "Sessions"} description={locale === "de" ? "Alle Trainings und Spiele auf einen Blick." : "All training sessions and matches."} primaryColorKey={club?.primary_color} backLabel={t("session.back")} backHref="/" compact/>
+      <PilotSessionsList locale={locale} isAdmin={isAdmin} sessions={sessions.map(s=>({...s,status:statusFor(s.id)}))}/>
+    </section></main>;
+  }
 
   return (
     <main className="min-h-screen bg-neutral-100">
