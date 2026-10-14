@@ -8,6 +8,7 @@ import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
 import HomeQuickStats from "@/components/home/HomeQuickStats";
+import UpcomingHomeSessions from "@/components/home/UpcomingHomeSessions";
 import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
@@ -425,7 +426,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   } = clubAccess;
   const supabase = await createClient();
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getPartsInBerlin(new Date()).dateKey;
+  const isHomeRsvpPilot = clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
   const isAdmin =
     isPowerUser || membership.role === "admin" || membership.role === "owner";
   const viewPlayer = player ?? supportViewPlayer;
@@ -528,6 +530,29 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const teamFeedItems = baseTeamFeedItems;
 
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
+
+  let upcomingHomeItems: {id:number;date:string;startTime:string|null;notes:string|null;status:"in"|"out"|"open";presentCount:number;deadlineMinutes:number|null}[] = [];
+  if (isHomeRsvpPilot && homeSessionRsvpEnabled && nextSession) {
+    const {data: futureRows} = await supabase.from("sessions")
+      .select("id,date,start_time,notes,rsvp_deadline_minutes_before")
+      .eq("club_id",clubId).gte("date",today).neq("id",nextSession.id)
+      .order("date",{ascending:true}).order("start_time",{ascending:true}).limit(10);
+    const future = (futureRows??[]) as SessionRow[];
+    if(future.length){
+      const ids=future.map(s=>s.id);
+      const [{data:rsvps},{data:participants}] = await Promise.all([
+        supabase.from("session_rsvps").select("session_id,player_id,status").eq("club_id",clubId).in("session_id",ids),
+        supabase.from("session_players").select("session_id,player_id").in("session_id",ids)
+      ]);
+      const countBySession=new Map<number,number>();
+      for(const row of participants??[])countBySession.set(row.session_id,(countBySession.get(row.session_id)??0)+1);
+      upcomingHomeItems=future.map(s=>{
+        const own=(rsvps??[]).find(r=>r.session_id===s.id&&r.player_id===currentPlayerId);
+        const status: "in"|"out"|"open" = own?.status==="in"?"in":own?.status==="out"?"out":(participants??[]).some(r=>r.session_id===s.id&&r.player_id===currentPlayerId)?"in":"open";
+        return {id:s.id,date:s.date,startTime:s.start_time,notes:s.notes,status,presentCount:countBySession.get(s.id)??0,deadlineMinutes:s.rsvp_deadline_minutes_before};
+      });
+    }
+  }
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
   const clubName = club?.display_name?.trim() || t("home.yourTeam");
   const userId = user?.id ?? null;
@@ -984,6 +1009,10 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             cta={isAdmin ? t("home.createTraining") : t("home.viewSessions")}
           />
         )}
+
+        {isHomeRsvpPilot && homeSessionRsvpEnabled && upcomingHomeItems.length > 0 ? (
+          <UpcomingHomeSessions items={upcomingHomeItems} playerId={currentPlayerId} readOnly={isSupportView} requireAbsenceReason={requireRsvpReasonOnAbsence} clubDeadline={rsvpDeadlineMinutesBefore}/>
+        ) : null}
 
         {currentPlayerId || !isPowerUser ? (
           <section data-home-quick-info="true" className="rounded-[26px] border border-slate-200/80 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
