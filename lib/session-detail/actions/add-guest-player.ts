@@ -25,6 +25,7 @@ type AddGuestPlayerInput = {
   membership: {
     role: string | null;
   };
+  canLeadTraining?: boolean;
   guestName: string;
   guestPosition: string;
   guestAgeGroup: string;
@@ -40,6 +41,7 @@ export async function handleAddGuestPlayer({
   sessionId,
   clubId,
   membership,
+  canLeadTraining = false,
   guestName,
   guestPosition,
   guestAgeGroup,
@@ -48,7 +50,7 @@ export async function handleAddGuestPlayer({
   const { t } = await getServerI18n();
   const role = membership.role;
 
-  if (!canAddGuestPlayer(role)) {
+  if (!canAddGuestPlayer(role) && !canLeadTraining) {
     return fail(
       t("sessionAction.guestAdminOnly"),
       403
