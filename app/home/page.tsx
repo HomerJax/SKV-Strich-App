@@ -8,6 +8,7 @@ import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
 import HomeQuickStats from "@/components/home/HomeQuickStats";
+import UpcomingHomeAccordion from "@/components/home/UpcomingHomeAccordion";
 import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
@@ -1022,10 +1023,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         )}
 
         {isHomeRsvpPilot && homeSessionRsvpEnabled && upcomingHomeSessions.length > 0 ? (
-          <section className="space-y-3">
-            <div className="flex items-center justify-between px-1"><h2 className="text-base font-bold text-slate-950">Weitere Termine</h2><Link href="/sessions" className="text-xs font-semibold text-cyan-700">Alle Termine →</Link></div>
-            {upcomingHomeSessions.slice(0,2).map(s=><NextSessionAttendanceCard key={s.id} compact sessionId={s.id} title={formatSessionTitle(s.date,s.start_time,locale)} text={s.notes?.trim()||t("home.checkAttendance")} href={`/sessions/${s.id}`} initialStatus={s.status} initialComment={s.comment} initialPresentCount={s.presentCount} initialAbsentCount={s.absentCount} sessionDate={s.date} startTime={s.start_time} rsvpDeadlineMinutesBefore={rsvpDeadlineMinutesBefore} sessionRsvpDeadlineMinutesBefore={s.rsvp_deadline_minutes_before} participants={s.participants} absentPlayers={s.absentPlayers} requireAbsenceReason={requireRsvpReasonOnAbsence} readOnly={isSupportView} supportViewLabel={supportViewLabel}/>)}
-          </section>
+          <UpcomingHomeAccordion items={upcomingHomeSessions.slice(0,2)} locale={locale} clubDeadline={rsvpDeadlineMinutesBefore} requireAbsenceReason={requireRsvpReasonOnAbsence} readOnly={isSupportView} supportViewLabel={supportViewLabel}/>
         ) : null}
 
         {currentPlayerId || !isPowerUser ? (
