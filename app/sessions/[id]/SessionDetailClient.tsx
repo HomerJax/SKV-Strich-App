@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TournamentWinnerCard from "./TournamentWinnerCard";
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
@@ -100,6 +100,15 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [pilotFinished, setPilotFinished] = useState(false);
   const [pilotPhotoSkipped, setPilotPhotoSkipped] = useState(false);
   const [pilotStep, setPilotStep] = useState<"attendance" | "mode" | "teams" | "result" | "photo" | "winner">("attendance");
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(`strikr-wizard-${props.sessionId}`);
+      if (saved && ["attendance", "mode", "teams", "result", "photo", "winner"].includes(saved)) setPilotStep(saved as typeof pilotStep);
+    } catch { /* Private browsing can disable storage. */ }
+  }, [props.sessionId]);
+  useEffect(() => {
+    try { window.localStorage.setItem(`strikr-wizard-${props.sessionId}`, pilotStep); } catch { /* Storage is optional. */ }
+  }, [props.sessionId, pilotStep]);
   const tournamentWizardRef = useRef<{ next: () => void; ready: boolean; label: string } | null>(null);
   const [tournamentWizardStage, setTournamentWizardStage] = useState<"teams" | "games">("teams");
   const [tournamentTeamsReady, setTournamentTeamsReady] = useState(false);
@@ -224,7 +233,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     return null;
   }
 
-  const pilotAdmin = props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && isAdmin;
+  const pilotAdmin = props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && props.initialIsClubAdmin === true;
   const playerPreview = pilotAdmin && pilotView === "player";
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";
@@ -490,7 +499,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         {playerPreview ? <div className="space-y-4"><div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div> : ["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "108590d9-0877-4787-90a5-4679615b3b76"].includes(props.initialClubId ?? "") && isAdmin && isTrainingSession ? (() => {
           const steps = [
             { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2, summary: `${presentPlayers.length} Spieler dabei` },
-            { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || teamsConfirmed, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
+            { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
             ...(!isTournamentMode ? [
               { key: "teams" as const, title: "Teams erstellen", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
               { key: "result" as const, title: "Spiele & Ergebnisse", done: hasResult, summary: `${results.length} Ergebnis(se) erfasst` },
@@ -525,12 +534,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
             </div>
             <div className="space-y-4 p-4 sm:p-5">
-              {steps.slice(0,selectedIndex).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left"><span><span className="block text-sm font-bold text-slate-800">✓ {s.title}</span><span className="text-xs text-slate-500">{s.summary}</span></span><span className="text-xs font-semibold text-teal-700">Bearbeiten</span></button>)}
+
               {pilotFinished ? <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">✓ Session abgeschlossen. Du kannst alle Schritte weiterhin ansehen oder bearbeiten.</div> : null}
               {selected === "result" && !isTournamentMode && hasResult ? <div className="overflow-hidden rounded-2xl bg-slate-950 p-5 text-center text-white shadow-lg"><div className="text-[10px] font-black uppercase tracking-[0.24em] text-teal-300">Spielergebnis</div><div className="mt-3 text-5xl font-black tabular-nums tracking-tight">{scoreAValue} <span className="text-teal-400">:</span> {scoreBValue}</div>{winnerPhotoUrl ? <img src={winnerPhotoUrl} alt="Siegerfoto" className="mx-auto mt-4 max-h-72 w-full rounded-xl object-contain" /> : null}<button type="button" onClick={() => setShowSessionEndModal(true)} className="mt-4 rounded-lg bg-teal-400 px-5 py-2.5 text-sm font-bold text-slate-950">Ergebnis teilen ↗</button></div> : null}
               <div className="rounded-lg border-l-4 border-teal-500 bg-teal-50 p-2 shadow-[0_8px_28px_rgba(13,148,136,0.12)] sm:p-4">{renderStep(selected)}</div>
+              {selected === "attendance" && (attendanceDirty || presentPlayers.length < 2) ? <p className="text-xs font-semibold text-amber-800">Zum Fortfahren mindestens zwei Teilnehmer auswählen und offene Änderungen speichern.</p> : null}
+              {selected === "teams" && !teamsComplete ? <p className="text-xs font-semibold text-amber-800">Bitte zuerst beide Teams vollständig zusammenstellen.</p> : null}
               <button type="button" onClick={()=>{if (selected === "mode" && !isTournamentMode) { setPilotStep("teams"); return; } if (selected === "result" && isTournamentMode && tournamentWizardStage === "teams") { tournamentWizardRef.current?.next(); return; } if (selected === "teams" && !isTournamentMode && !teamsConfirmed) { void confirmTeams(); return; } const next=steps[selectedIndex+1];if(next)setPilotStep(next.key);else { setPilotPhotoSkipped(!hasWinnerPhoto); setPilotFinished(true); if (!isTournamentMode && allowResult) setShowSessionEndModal(true); }}} disabled={(selectedIndex === steps.length-1 && pilotFinished) || (selected === "attendance" && (attendanceDirty || presentPlayers.length < 2)) || (selected === "teams" && !isTournamentMode && (!teamsComplete || saving || savingTeams)) || (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at))} className="w-full rounded-xl bg-slate-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-40">{selected === "mode" && !isTournamentMode ? (setupWizardRef.current?.label ?? "Fertig & weiter →") : selected === "result" && isTournamentMode && tournamentWizardStage === "teams" ? "Fertig · Turnier starten →" : selected === "teams" && !isTournamentMode && !teamsConfirmed ? "Teams bestätigen & weiter →" : selectedIndex === steps.length-1 ? "Session abschließen ✓" : "Fertig & weiter →"}</button>
-              {steps.slice(selectedIndex+1).map(s=><button key={s.key} type="button" onClick={()=>setPilotStep(s.key)} className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-left text-sm text-slate-600"><span>{s.title}</span><span className="text-xs text-slate-400">Öffnen ›</span></button>)}
+
             </div>
           </div>;
         })() : (
