@@ -29,6 +29,7 @@ type SessionDetailClientProps = {
   initialManualTeams: TeamMap;
   initialClubId: string;
   initialIsAdmin: boolean;
+  initialIsClubAdmin?: boolean;
   initialCurrentPlayerId: number | null;
   initialClubSettings: ClubSettings;
   initialBalanceCategories?: BalanceCategory[];
@@ -442,7 +443,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   return (
     <>
       <div className="space-y-4">
-        {pilotAdmin ? <div className="rounded-2xl border border-slate-200 bg-white p-3"><div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{playerPreview ? "Spieleransicht · Vorschau" : "Adminansicht · Verwaltung"}</div><div className="flex gap-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setPilotView("admin")} aria-pressed={!playerPreview} className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-bold ${!playerPreview ? "bg-slate-950 text-white shadow-sm" : "text-slate-600"}`}>Adminansicht</button><button type="button" onClick={() => setPilotView("player")} aria-pressed={playerPreview} className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-bold ${playerPreview ? "bg-slate-950 text-white shadow-sm" : "text-slate-600"}`}>Spieleransicht</button></div></div> : null}
+        {pilotAdmin ? <div className="rounded-2xl border border-slate-200 bg-white p-3"><div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{playerPreview ? "Spieleransicht · Vorschau" : props.initialIsClubAdmin === false ? "Trainingsleitung · Durchführung" : "Adminansicht · Verwaltung"}</div><div className="flex gap-2 rounded-xl bg-slate-100 p-1"><button type="button" onClick={() => setPilotView("admin")} aria-pressed={!playerPreview} className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-bold ${!playerPreview ? "bg-slate-950 text-white shadow-sm" : "text-slate-600"}`}>{props.initialIsClubAdmin === false ? "Trainingsleitung" : "Adminansicht"}</button><button type="button" onClick={() => setPilotView("player")} aria-pressed={playerPreview} className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-bold ${playerPreview ? "bg-slate-950 text-white shadow-sm" : "text-slate-600"}`}>Spieleransicht</button></div></div> : null}
         <SessionHeaderCard
           sessionId={props.sessionId}
           date={session.date}
@@ -455,7 +456,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           teamBCount={allowTeams ? teamB.length : 0}
           hasResult={allowResult ? hasResult : false}
           nextStepLabel={nextStepLabel}
-          isAdmin={isAdmin && !playerPreview}
+          isAdmin={isAdmin && !playerPreview && props.initialIsClubAdmin !== false}
           deletingSession={deletingSession}
           primaryColorKey={primaryColorKey}
           onDeleteSession={handleDeleteSession}
