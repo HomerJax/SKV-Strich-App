@@ -427,7 +427,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const supabase = await createClient();
 
   const today = getPartsInBerlin(new Date()).dateKey;
-  const isHomeRsvpPilot = clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
+  const isHomeRsvpPilot = ["12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", "b8d4b692-baf1-4263-8fdd-64df424114a7"].includes(clubId);
   const isAdmin =
     isPowerUser || membership.role === "admin" || membership.role === "owner";
   const viewPlayer = player ?? supportViewPlayer;
