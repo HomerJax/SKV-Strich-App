@@ -78,7 +78,7 @@ export default function AppBottomNav({ isAdmin = false }: AppBottomNavProps) {
 
           <NavItem
             href="/sessions"
-            label={t("nav.sessions")}
+            label={t("nav.sessions") === "Sessions" ? "Termine" : t("nav.sessions")}
             active={
               pathname === "/sessions" || pathname.startsWith("/sessions/")
             }
