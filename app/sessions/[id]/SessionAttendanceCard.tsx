@@ -498,10 +498,8 @@ export default function SessionAttendanceCard({
           </div>
 
           {selfRsvpEnabled && currentPlayerId !== null ? (
-            <div id="session-own-rsvp" className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50 p-3.5">
-              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                {t("attendance.yourRsvp")}
-              </div>
+            <div id="session-own-rsvp" className="mt-3 rounded-xl border border-slate-200 bg-white p-2">
+
               <SessionRsvpButtons
                 sessionId={sessionId}
                 initialStatus={selfStatus}
