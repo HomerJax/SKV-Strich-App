@@ -158,7 +158,7 @@ function parseIntSafe(value: unknown, fallback: number) {
 
 function canManage(access: Awaited<ReturnType<typeof requireSessionAccess>>) {
   if ("error" in access) return false;
-  return canManageClub({ isPowerUser: access.isPowerUser, role: access.membership.role });
+  return canManageClub({ isPowerUser: access.isPowerUser, role: access.membership.role }) || access.canLeadTraining;
 }
 
 async function loadTournament(access: Exclude<Awaited<ReturnType<typeof requireSessionAccess>>, { error: string }>, sessionId: number) {
@@ -448,7 +448,7 @@ export async function POST(
   }
 
   if (!canManage(access)) {
-    return NextResponse.json({ error: "Nur Admins können den Turniermodus verwalten." }, { status: 403 });
+    return NextResponse.json({ error: "Nur Admins oder Trainingsleiter können den Turniermodus verwalten." }, { status: 403 });
   }
 
   if (access.session.type === "event") {
