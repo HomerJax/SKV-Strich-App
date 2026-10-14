@@ -22,9 +22,9 @@ export async function POST(
   const access = await requireSessionAccess(sessionId);
   if ("error" in access) return fail(access.error ?? "Unbekannter Fehler.", access.status);
 
-  const { adminSupabase, clubId, membership, isPowerUser } = access;
+  const { adminSupabase, clubId, membership, isPowerUser, canLeadTraining } = access;
   const hasAdminAccess = canManageClub({ isPowerUser, role: membership.role });
-  if (!hasAdminAccess) return fail(t("adminRsvp.adminOnly"), 403);
+  if (!hasAdminAccess && !canLeadTraining) return fail(t("adminRsvp.adminOnly"), 403);
 
   let payload: { playerId?: unknown; status?: unknown };
   try {
