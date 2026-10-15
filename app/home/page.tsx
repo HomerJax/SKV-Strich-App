@@ -1090,8 +1090,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         {teamFeedEnabled ? (
           <HomeTeamFeedPreview
             items={teamFeedItems}
-            initialOffset={baseTeamFeedItems.length}
-            initialHasMore={baseTeamFeedItems.length === teamFeedPageSize}
+            initialOffset={teamFeedItems.length}
+            initialHasMore={teamFeedItems.length === teamFeedPageSize}
           />
         ) : null}
 
