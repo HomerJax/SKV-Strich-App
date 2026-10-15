@@ -514,20 +514,19 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     canManageCashbox = Boolean(managerRow);
   }
 
-  let pendingBeerCount = 0;
-  let pendingBeerTotalCents = 0;
-  if (canManageCashbox && homeSettings?.beerkasse_enabled === true) {
-    const { data: pendingBeerRows } = await supabase.from("beer_consumptions").select("total_cents").eq("club_id", clubId).eq("payment_status", "pending");
-    pendingBeerCount = pendingBeerRows?.length ?? 0;
-    pendingBeerTotalCents = (pendingBeerRows ?? []).reduce((sum, row) => sum + Number(row.total_cents ?? 0), 0);
-  }
-
   const teamFeedPageSize = 8;
-  const baseTeamFeedItems = teamFeedEnabled
-    ? await getTeamFeedItems(clubId, teamFeedPageSize)
-    : [];
-
-  const teamFeedItems = baseTeamFeedItems;
+  // These independent requests can run in parallel after club permissions/settings are known.
+  const [pendingBeerResult, teamFeedItems] = await Promise.all([
+    canManageCashbox && homeSettings?.beerkasse_enabled === true
+      ? supabase.from("beer_consumptions").select("total_cents").eq("club_id", clubId).eq("payment_status", "pending")
+      : Promise.resolve({ data: [] as { total_cents: number | null }[] }),
+    teamFeedEnabled ? getTeamFeedItems(clubId, teamFeedPageSize) : Promise.resolve([]),
+  ]);
+  const pendingBeerRows = pendingBeerResult.data ?? [];
+  const pendingBeerCount = pendingBeerRows.length;
+  const pendingBeerTotalCents = pendingBeerRows.reduce(
+    (sum, row) => sum + Number(row.total_cents ?? 0), 0
+  );
 
   const nextSession = (nextSessionData ?? null) as SessionRow | null;
 
