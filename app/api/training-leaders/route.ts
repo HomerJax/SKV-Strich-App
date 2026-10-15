@@ -15,5 +15,6 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase.from("players").update({ can_lead_training: enabled }).eq("id", playerId).eq("club_id", clubId).eq("is_guest", false).select("id").maybeSingle();
   if (error || !data) return NextResponse.json({ error: error?.message ?? "Berechtigung konnte nicht gespeichert werden." }, { status: 400 });
-  return NextResponse.redirect(new URL(`/players/${playerId}?saved=1`, request.url), 303);
+  const destination = form.get("return_to") === "members" ? "/admin/members?success=training_leader_saved" : `/players/${playerId}?saved=1`;
+  return NextResponse.redirect(new URL(destination, request.url), 303);
 }
