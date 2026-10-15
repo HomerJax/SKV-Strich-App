@@ -130,7 +130,7 @@ export default async function AdminMembersPage({
       .order("role", { ascending: false }),
     adminSupabase
       .from("players")
-      .select("user_id, first_name, last_name, nickname, email")
+      .select("id, user_id, first_name, last_name, nickname, email, can_lead_training")
       .eq("club_id", clubId)
       .eq("is_guest", false),
     adminSupabase
@@ -175,6 +175,8 @@ export default async function AdminMembersPage({
   const playerByUserId = new Map<
     string,
     {
+      id: number;
+      can_lead_training: boolean | null;
       user_id: string | null;
       first_name: string | null;
       last_name: string | null;
@@ -288,6 +290,7 @@ export default async function AdminMembersPage({
               const isCurrentUser = member.user_id === ctx.user?.id;
               const canChangeRole = !isCurrentUser;
               const canRemoveMember = !isCurrentUser;
+              const linkedPlayer = playerByUserId.get(member.user_id);
 
               return (
                 <details
@@ -408,6 +411,26 @@ export default async function AdminMembersPage({
                           </form>
                         )}
                       </div>
+
+                      {linkedPlayer ? (
+                        <div className="rounded-2xl bg-white p-3 lg:col-span-2">
+                          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Trainingsleitung</div>
+                          <form method="POST" action="/api/training-leaders" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <div className="text-sm font-semibold text-slate-900">
+                                {linkedPlayer.can_lead_training ? "✓ Trainingsleiter aktiv" : "Kein Trainingsleiter"}
+                              </div>
+                              <p className="mt-1 text-xs text-slate-500">Darf Anwesenheiten, Teams und Ergebnisse verwalten, ohne vollständige Adminrechte zu erhalten.</p>
+                            </div>
+                            <input type="hidden" name="player_id" value={linkedPlayer.id} />
+                            <input type="hidden" name="enabled" value={linkedPlayer.can_lead_training ? "false" : "true"} />
+                            <input type="hidden" name="return_to" value="members" />
+                            <button type="submit" className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold ${linkedPlayer.can_lead_training ? "border border-rose-200 bg-rose-50 text-rose-700" : "bg-slate-950 text-white"}`}>
+                              {linkedPlayer.can_lead_training ? "Trainingsleitung entfernen" : "Zum Trainingsleiter machen"}
+                            </button>
+                          </form>
+                        </div>
+                      ) : null}
 
                       <div className="rounded-2xl bg-white p-3 lg:col-span-2">
                         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
