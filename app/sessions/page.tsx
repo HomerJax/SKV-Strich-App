@@ -211,21 +211,37 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     ]);
     const pilotMembers=(memberRows??[]) as unknown as PilotMember[];
     const pilotReplies=(replyRows??[]) as PilotReply[];
+    // Index loaded data once rather than rescanning every RSVP and participant for each session.
+    const membersBySession = new Map<number, PilotMember[]>();
+    const repliesBySession = new Map<number, PilotReply[]>();
+    for (const member of pilotMembers) {
+      const group = membersBySession.get(member.session_id) ?? [];
+      group.push(member);
+      membersBySession.set(member.session_id, group);
+    }
+    for (const reply of pilotReplies) {
+      const group = repliesBySession.get(reply.session_id) ?? [];
+      group.push(reply);
+      repliesBySession.set(reply.session_id, group);
+    }
     const missingIds=[...new Set(pilotReplies.filter(r=>r.status==="out"&&!pilotMembers.some(p=>p.player_id===r.player_id)).map(r=>r.player_id))];
     const {data:absentPeople}=missingIds.length?await supabase.from("players").select("id,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom").in("id",missingIds):{data:[]};
     const pilotAbsentPeople=(absentPeople??[]) as PilotPerson[];
+    const absentPeopleById=new Map(pilotAbsentPeople.map(p=>[p.id,p]));
     return <main className="min-h-screen bg-neutral-100"><section className="mx-auto w-full max-w-3xl space-y-4 px-4 py-4 sm:px-6">
       <PageHero eyebrow={locale === "de" ? "Übersicht" : "Overview"} title={locale === "de" ? "Termine" : "Sessions"} description={locale === "de" ? "Alle Trainings und Spiele auf einen Blick." : "All training sessions and matches."} primaryColorKey={club?.primary_color} backLabel={t("session.back")} backHref="/" compact/>
       <PilotSessionsList locale={locale} isAdmin={isAdmin} canCreateTraining={canCreateTraining} readOnly={isSupportView} clubDeadline={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} sessions={sessions.map(s=>{
-        const members=pilotMembers.filter(p=>p.session_id===s.id);
-        const replies=pilotReplies.filter(r=>r.session_id===s.id);
+        const members=membersBySession.get(s.id) ?? [];
+        const replies=repliesBySession.get(s.id) ?? [];
+        const memberByPlayer=new Map(members.map(p=>[p.player_id,p]));
+        const replyByPlayer=new Map(replies.filter(r=>r.status==="in").map(r=>[r.player_id,r]));
         const person=(p:{first_name:string|null;last_name:string|null;photo_path:string|null;photo_position_x:number|null;photo_position_y:number|null;photo_zoom:number|null}|null,id:number)=>({
           id,name:[p?.first_name,p?.last_name].filter(Boolean).join(" ")||"Spieler",
           photoUrl:p?.photo_path?supabase.storage.from("player-photos").getPublicUrl(p.photo_path).data.publicUrl:null,
           photoPositionX:p?.photo_position_x??null,photoPositionY:p?.photo_position_y??null,photoZoom:p?.photo_zoom??null
         });
-        const info=(id:number)=>{const raw=members.find(p=>p.player_id===id)?.players??pilotAbsentPeople.find(p=>p.id===id)??null;return Array.isArray(raw)?raw[0]??null:raw;};
-        return {...s,status:statusFor(s.id),comment:commentFor(s.id),participants:members.map(p=>({...person(info(p.player_id),p.player_id),comment:replies.find(r=>r.player_id===p.player_id&&r.status==="in")?.reason??null})),absentPlayers:replies.filter(r=>r.status==="out").map(r=>({...person(info(r.player_id),r.player_id),reason:r.reason??null}))};
+        const info=(id:number)=>{const raw=memberByPlayer.get(id)?.players??absentPeopleById.get(id)??null;return Array.isArray(raw)?raw[0]??null:raw;};
+        return {...s,status:statusFor(s.id),comment:commentFor(s.id),participants:members.map(p=>({...person(info(p.player_id),p.player_id),comment:replyByPlayer.get(p.player_id)?.reason??null})),absentPlayers:replies.filter(r=>r.status==="out").map(r=>({...person(info(r.player_id),r.player_id),reason:r.reason??null}))};
       })}/>
     </section></main>;
   }
