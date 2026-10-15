@@ -23,17 +23,17 @@ export default function ScopeToggle({
   }
 
   return (
-    <div className="min-w-[220px] rounded-2xl border border-white/20 bg-black/15 p-1.5 shadow-inner backdrop-blur">
-      <div className="mb-1 px-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/60">
+    <div className="w-full rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="mb-3 text-xs font-black uppercase tracking-[0.14em] text-slate-500">
         {t("stats.view")}
       </div>
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/15 p-1">
+      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5">
         <button
           type="button"
           onClick={() => changeScope("season")}
           disabled={isPending}
           aria-pressed={scope === "season"}
-          className={`rounded-lg px-3 py-2 text-xs font-black transition ${scope === "season" ? "bg-white text-slate-950 shadow-sm" : "text-white/80 hover:bg-white/10 hover:text-white"} disabled:cursor-wait disabled:opacity-70`}
+          className={`min-h-14 rounded-xl px-3 py-3 text-base font-black transition sm:text-lg ${scope === "season" ? "bg-slate-950 text-white shadow-md" : "text-slate-500 hover:bg-slate-200 hover:text-slate-950"} disabled:cursor-wait disabled:opacity-70`}
         >
           {t("stats.season")}
         </button>
@@ -42,12 +42,12 @@ export default function ScopeToggle({
           onClick={() => changeScope("career")}
           disabled={isPending}
           aria-pressed={scope === "career"}
-          className={`rounded-lg px-3 py-2 text-xs font-black transition ${scope === "career" ? "bg-white text-slate-950 shadow-sm" : "text-white/80 hover:bg-white/10 hover:text-white"} disabled:cursor-wait disabled:opacity-70`}
+          className={`min-h-14 rounded-xl px-3 py-3 text-base font-black transition sm:text-lg ${scope === "career" ? "bg-slate-950 text-white shadow-md" : "text-slate-500 hover:bg-slate-200 hover:text-slate-950"} disabled:cursor-wait disabled:opacity-70`}
         >
           {t("stats.career")}
         </button>
       </div>
-      <div className="mt-1 min-h-4 px-1 text-[10px] font-semibold text-white/65">
+      <div className="mt-3 min-h-5 text-sm font-semibold text-slate-600">
         {isPending
           ? t("stats.loadingView")
           : scope === "career"
