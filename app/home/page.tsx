@@ -546,16 +546,33 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       ]);
       const allRsvps=rsvps??[];
       const allParticipants=(participants??[]) as unknown as (NextSessionParticipantRow & {session_id:number})[];
-      const playerInfo=(playerId:number)=>normalizeSimplePlayerRelation(allParticipants.find(p=>p.player_id===playerId)?.players??null);
+      const participantsBySession=new Map<number,typeof allParticipants>();
+      const rsvpsBySession=new Map<number,typeof allRsvps>();
+      const playerInfoById=new Map<number,NextSessionPlayer|null>();
+      for(const participant of allParticipants){
+        const group=participantsBySession.get(participant.session_id)??[];
+        group.push(participant);
+        participantsBySession.set(participant.session_id,group);
+        if(!playerInfoById.has(participant.player_id)){
+          playerInfoById.set(participant.player_id,normalizeSimplePlayerRelation(participant.players));
+        }
+      }
+      for(const rsvp of allRsvps){
+        const group=rsvpsBySession.get(rsvp.session_id)??[];
+        group.push(rsvp);
+        rsvpsBySession.set(rsvp.session_id,group);
+      }
+      const playerInfo=(playerId:number)=>playerInfoById.get(playerId)??null;
       const photo=(p:NextSessionPlayer|null)=>p?.photo_path?supabase.storage.from("player-photos").getPublicUrl(p.photo_path).data.publicUrl:null;
       upcomingHomeSessions=future.map(s=>{
-        const sessionParticipants=allParticipants.filter(p=>p.session_id===s.id);
-        const sessionRsvps=allRsvps.filter(r=>r.session_id===s.id);
-        const own=sessionRsvps.find(r=>r.player_id===currentPlayerId);
+        const sessionParticipants=participantsBySession.get(s.id)??[];
+        const sessionRsvps=rsvpsBySession.get(s.id)??[];
+        const rsvpByPlayer=new Map(sessionRsvps.map(r=>[r.player_id,r]));
+        const own=currentPlayerId?rsvpByPlayer.get(currentPlayerId):undefined;
         const status:"in"|"out"|"open"=own?.status==="in"?"in":own?.status==="out"?"out":sessionParticipants.some(p=>p.player_id===currentPlayerId)?"in":"open";
         const attending=sessionParticipants.map(p=>{
           const info=normalizeSimplePlayerRelation(p.players);
-          return {id:p.player_id,name:getSimplePlayerName(info,locale),comment:sessionRsvps.find(r=>r.player_id===p.player_id&&r.status==="in")?.reason??null,photoUrl:photo(info),photoPositionX:info?.photo_position_x??null,photoPositionY:info?.photo_position_y??null,photoZoom:info?.photo_zoom??null};
+          return {id:p.player_id,name:getSimplePlayerName(info,locale),comment:rsvpByPlayer.get(p.player_id)?.status==="in"?rsvpByPlayer.get(p.player_id)?.reason??null:null,photoUrl:photo(info),photoPositionX:info?.photo_position_x??null,photoPositionY:info?.photo_position_y??null,photoZoom:info?.photo_zoom??null};
         });
         const absent=sessionRsvps.filter(r=>r.status==="out").map(r=>{
           const info=playerInfo(r.player_id);
