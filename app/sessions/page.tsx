@@ -224,7 +224,8 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
       group.push(reply);
       repliesBySession.set(reply.session_id, group);
     }
-    const missingIds=[...new Set(pilotReplies.filter(r=>r.status==="out"&&!pilotMembers.some(p=>p.player_id===r.player_id)).map(r=>r.player_id))];
+    const memberPlayerIds = new Set(pilotMembers.map(p => p.player_id));
+    const missingIds=[...new Set(pilotReplies.filter(r=>r.status==="out"&&!memberPlayerIds.has(r.player_id)).map(r=>r.player_id))];
     const {data:absentPeople}=missingIds.length?await supabase.from("players").select("id,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom").in("id",missingIds):{data:[]};
     const pilotAbsentPeople=(absentPeople??[]) as PilotPerson[];
     const absentPeopleById=new Map(pilotAbsentPeople.map(p=>[p.id,p]));
