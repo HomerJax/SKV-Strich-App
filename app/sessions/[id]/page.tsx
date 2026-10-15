@@ -62,12 +62,11 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const sessionId = Number(resolvedParams.id);
   const { clubId, membership, isPowerUser, player } = await requireClub();
   const supabase = await createClient();
-  const { data: trainingLeadRecord } = player?.id ? await supabase.from("players").select("can_lead_training").eq("id", player.id).eq("club_id", clubId).maybeSingle() : { data: null };
-  const canLeadTraining = trainingLeadRecord?.can_lead_training === true;
 
   if (!Number.isFinite(sessionId)) redirect("/sessions");
 
   const [
+    { data: trainingLeadRecord },
     featureFlags,
     billingAccess,
     { data: clubData, error: clubError },
@@ -81,6 +80,9 @@ export default async function SessionDetailPage({ params }: PageProps) {
     { data: resultData, error: resultError },
     { data: teamsData, error: teamsError },
   ] = await Promise.all([
+    player?.id
+      ? supabase.from("players").select("can_lead_training").eq("id", player.id).eq("club_id", clubId).maybeSingle()
+      : Promise.resolve({ data: null }),
     getFeatureFlagsForClub(clubId),
     getClubBillingAccess(supabase, clubId),
     supabase.from("clubs").select("id, primary_color").eq("id", clubId).maybeSingle<ClubRow>(),
@@ -125,6 +127,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   if (resultError) throw new Error(`Ergebnis konnte nicht geladen werden: ${resultError.message}`);
   if (teamsError) throw new Error(`Teams konnten nicht geladen werden: ${teamsError.message}`);
 
+  const canLeadTraining = trainingLeadRecord?.can_lead_training === true;
   const mvpVotingEnabled = featureFlags.session_mvp_voting === true;
   const useNicknames = featureFlags.use_nicknames === true;
   const useFieldView = featureFlags.use_field_view === true;
