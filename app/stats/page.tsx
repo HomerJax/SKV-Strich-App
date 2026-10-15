@@ -251,6 +251,7 @@ function StatsIntro({
   const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
 
   return (
+    <>
     <PageHero
       eyebrow={t("stats.player")}
       title={t("stats.myStats")}
@@ -258,9 +259,12 @@ function StatsIntro({
       primaryColorKey={primaryColorKey}
       backLabel={t("stats.back")}
       backHref="/"
-      topRightSlot={isPro ? <ScopeToggle scope={scope} seasonName={seasonName} /> : <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white">Free · aktuelle Saison</span>}
       compact
     />
+    {isPro ? <ScopeToggle scope={scope} seasonName={seasonName} /> : (
+      <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 shadow-sm">Free · {seasonName ?? "Aktuelle Saison"}</div>
+    )}
+    </>
   );
 }
 
