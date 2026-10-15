@@ -1101,7 +1101,7 @@ ${sessionUrl}`;
         await persistTeamsNow(nextManualTeams);
       }
 
-      setAttendanceCollapsed(true);
+      // Keep the current panel open after saving; do not unexpectedly change the layout.
       setMsg(t("sessionHook.attendanceSaved"));
     } catch (e: unknown) {
       setErr(getErrorMessage(e, t("sessionHook.attendanceSaveFailed")));
