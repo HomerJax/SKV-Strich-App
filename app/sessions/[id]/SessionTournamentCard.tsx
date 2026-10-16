@@ -418,7 +418,7 @@ export default function SessionTournamentCard({
   const [recommendationAccepted, setRecommendationAccepted] = useState(false);
   const wizardReady = setupReady && (setupStage !== "recommendation" || recommendationAccepted);
   if (wizardControl && !enabled) {
-    wizardControl.current = {
+    wizardControl.current = setupOpen ? {
       ready: wizardReady && setupStage !== "generate",
       label: setupStage === "summary" ? "Turnier starten →" : setupStage === "generate" ? "Teams werden vorbereitet" : "Fertig & weiter →",
       next: () => {
@@ -427,11 +427,11 @@ export default function SessionTournamentCard({
         else if (setupStage === "recommendation" || setupStage === "adjust") setSetupStage("summary");
         else if (setupStage === "summary") setSetupStage("generate");
       },
-    };
+    } : null;
   }
   useEffect(() => {
-    if (wizardControl && !enabled) onWizardReady?.(wizardReady && setupStage !== "generate");
-  }, [wizardReady, setupStage, enabled, wizardControl, onWizardReady]);
+    if (wizardControl && !enabled) onWizardReady?.(setupOpen && wizardReady && setupStage !== "generate");
+  }, [wizardReady, setupStage, setupOpen, enabled, wizardControl, onWizardReady]);
 
   useEffect(() => {
     if (enabled && tournamentWizardControl) onTournamentWizardChange?.(tournamentStage, tournamentTeamsConfirmed && !busy && (data?.teams.length ?? 0) >= 2 && (data?.unassignedPlayers?.length ?? 0) === 0);
