@@ -34,8 +34,6 @@ type PlayerRow = {
 };
 
 function playerLabel(player: PlayerRow) {
-  const nickname = player.nickname?.trim();
-  if (nickname) return nickname;
   const fullName = [player.first_name?.trim(), player.last_name?.trim()].filter(Boolean).join(" ");
   return fullName || player.name?.trim() || `#${player.id}`;
 }
