@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -18,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
+import TeamBalanceReveal from "./TeamBalanceReveal";
 import {
   DEFAULT_PRESENT_IDS,
   DEMO_BADGES,
@@ -242,12 +243,26 @@ function TrainingView({
   const [goalsA, setGoalsA] = useState("7");
   const [goalsB, setGoalsB] = useState("5");
   const [savedResult, setSavedResult] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationRun, setGenerationRun] = useState(0);
+  const generationTimer = useRef<number | null>(null);
 
   const presentPlayers = DEMO_PLAYERS.filter((player) => presentIds.includes(player.id));
   const teamA = teams ? presentPlayers.filter((player) => teams[player.id] === "A") : [];
   const teamB = teams ? presentPlayers.filter((player) => teams[player.id] === "B") : [];
+  const scoreA = teamA.reduce((sum, player) => sum + playerScore(player), 0);
+  const scoreB = teamB.reduce((sum, player) => sum + playerScore(player), 0);
+
+  function cancelGeneration() {
+    if (generationTimer.current !== null) {
+      window.clearTimeout(generationTimer.current);
+      generationTimer.current = null;
+    }
+    setIsGenerating(false);
+  }
 
   function togglePresence(playerId: number) {
+    cancelGeneration();
     const next = presentIds.includes(playerId)
       ? presentIds.filter((id) => id !== playerId)
       : [...presentIds, playerId];
@@ -257,12 +272,24 @@ function TrainingView({
   }
 
   function generate() {
-    if (presentPlayers.length < 2) return;
-    setTeams(buildBalancedTeams(presentPlayers));
+    if (presentPlayers.length < 2 || isGenerating) return;
+
+    const nextTeams = buildBalancedTeams(presentPlayers);
+    cancelGeneration();
+    setTeams(null);
     setSavedResult(null);
+    setIsGenerating(true);
+
+    generationTimer.current = window.setTimeout(() => {
+      setTeams(nextTeams);
+      setGenerationRun((run) => run + 1);
+      setIsGenerating(false);
+      generationTimer.current = null;
+    }, 650);
   }
 
   function reset() {
+    cancelGeneration();
     setPresentIds(DEFAULT_PRESENT_IDS);
     setTeams(null);
     setGoalsA("7");
@@ -316,36 +343,42 @@ function TrainingView({
         <button
           type="button"
           onClick={generate}
-          disabled={presentPlayers.length < 2}
+          disabled={presentPlayers.length < 2 || isGenerating}
           className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
         >
-          <Shuffle className="h-4 w-4" /> Faire Teams generieren
+          {isGenerating ? (
+            <>
+              <Sparkles className="h-4 w-4 animate-pulse" /> Teams werden berechnet …
+            </>
+          ) : (
+            <>
+              <Shuffle className="h-4 w-4" /> Teams generieren
+            </>
+          )}
         </button>
       </section>
 
-      {teams ? (
-        <section className="grid gap-4 lg:grid-cols-2">
-          {(["A", "B"] as const).map((side) => {
-            const team = side === "A" ? teamA : teamB;
-            const total = team.reduce((sum, player) => sum + playerScore(player), 0);
-            return (
-              <div key={side} className="rounded-[24px] border border-black/10 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-xl font-black text-zinc-950">Team {side}</h2>
-                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-700">Balance {total}</span>
-                </div>
-                <div className="mt-4 space-y-2">
-                  {team.map((player) => (
-                    <div key={player.id} className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2.5">
-                      <div className="font-semibold text-zinc-900">{player.name}</div>
-                      <div className="text-xs text-zinc-500">{positionLabel(player.position)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+      {isGenerating ? (
+        <section className="overflow-hidden rounded-[28px] bg-zinc-950 p-5 text-white shadow-xl">
+          <div className="flex items-center gap-2 text-sm font-black">
+            <Sparkles className="h-4 w-4 animate-pulse text-emerald-300" />
+            strikr berechnet die fairste Aufteilung …
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="h-24 animate-pulse rounded-2xl bg-white/[0.06]" />
+            <div className="h-24 animate-pulse rounded-2xl bg-white/[0.06]" />
+          </div>
         </section>
+      ) : null}
+
+      {teams ? (
+        <TeamBalanceReveal
+          teamA={teamA}
+          teamB={teamB}
+          scoreA={scoreA}
+          scoreB={scoreB}
+          runId={generationRun}
+        />
       ) : null}
 
       {teams ? (
