@@ -34,6 +34,12 @@ Die aktuellen Preise sind bewusst als Early-Adopter-/Einführungspreise gedacht.
 - Free Launch bleibt fail-safe aktiv, solange Monetarisierung nicht bewusst eingeschaltet wird
 - Preise werden per Stripe Lookup Key aufgelöst; Price IDs müssen nicht in Vercel gepflegt werden
 
+## Isolierter Free-Test in Production
+- `STRIKR_FREE_TEST_CLUB_ID` ist eine optionale, serverseitige Ausnahme für genau einen Club.
+- Solange Free Launch global aktiv ist, wird nur die eingetragene Club-ID nach ihrem normalen Billing-Plan bewertet; alle anderen Clubs bleiben im Free-Launch-Verhalten.
+- Für einen echten Produktionstest die Variable nur auf den neu angelegten Beispielclub setzen. Danach entfernen, sobald der Test abgeschlossen oder der globale Rollout erfolgt ist.
+- `NEXT_PUBLIC_FREE_LAUNCH` während eines isolierten Tests nicht global deaktivieren.
+
 ## Noch vor Live
 1. Live-Stripe-Konto vollständig aktivieren.
 2. Live-Produkt `strikr PRO` mit denselben Lookup Keys anlegen.
