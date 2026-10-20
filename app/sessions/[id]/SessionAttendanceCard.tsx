@@ -242,7 +242,7 @@ function PlayerMetaChips({ player }: { player: Player }) {
           : t("attendance.open");
 
   return (
-    <span className="flex shrink-0 items-center gap-1">
+    <span className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
       <span
         className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${ageBadgeColor(
           normalizedCategory ?? player.age_group,
@@ -606,7 +606,7 @@ export default function SessionAttendanceCard({
   }
 
   return (
-    <section className="rounded-[20px] border border-slate-200 bg-white shadow-sm">
+    <section className="min-w-0 rounded-[20px] border border-slate-200 bg-white shadow-sm">
       <div className={pilotWizard ? "border-b border-teal-100 px-3 py-3" : "border-b border-slate-100 px-4 py-4"}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -738,7 +738,7 @@ export default function SessionAttendanceCard({
                   value={guestName}
                   onChange={(e) => onGuestNameChange(e.target.value)}
                   placeholder={t("attendance.guestPlaceholder")}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
+                  className="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base sm:text-sm outline-none transition focus:border-slate-500"
                 />
               </div>
 
@@ -756,7 +756,7 @@ export default function SessionAttendanceCard({
                         e.target.value as Player["preferred_position"] | "",
                       )
                     }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
+                    className="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base sm:text-sm outline-none transition focus:border-slate-500"
                   >
                     <option value="">{t("attendance.open")}</option>
                     <option value="goalkeeper">
@@ -784,7 +784,7 @@ export default function SessionAttendanceCard({
                         e.target.value as Player["age_group"] | "",
                       )
                     }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
+                    className="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base sm:text-sm outline-none transition focus:border-slate-500"
                   >
                     <option value="">{t("attendance.open")}</option>
                     <option value="AH">AH</option>
@@ -800,7 +800,7 @@ export default function SessionAttendanceCard({
                     <select
                       value={guestStrength}
                       onChange={(e) => onGuestStrengthChange(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-500"
+                      className="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base sm:text-sm outline-none transition focus:border-slate-500"
                     >
                       <option value="">
                         {t("attendance.unknownStrength", {
@@ -856,7 +856,7 @@ export default function SessionAttendanceCard({
             return (
               <div
                 key={player.id}
-                className={`flex items-center gap-2 ${
+                className={`flex min-w-0 items-start gap-2 sm:items-center ${
                   hasResult ? "opacity-60" : ""
                 }`}
               >
@@ -873,7 +873,7 @@ export default function SessionAttendanceCard({
                           ? t("attendance.markPresentAfterOut")
                           : t("attendance.markPresent")
                   }
-                  className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
+                  className={`flex min-w-0 flex-1 flex-col items-stretch justify-center gap-1.5 rounded-2xl border px-3 py-2 text-sm transition sm:flex-row sm:items-center sm:justify-between sm:gap-2 ${
                     isPresent
                       ? "border-emerald-200 bg-emerald-50"
                       : isAbsent
@@ -885,7 +885,7 @@ export default function SessionAttendanceCard({
                       : ""
                   } ${hasResult ? "cursor-not-allowed" : ""}`}
                 >
-                  <span className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex min-w-0 w-full items-center gap-2.5 sm:w-auto">
                     <span
                       className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                         isPresent
@@ -921,7 +921,7 @@ export default function SessionAttendanceCard({
                     </span>
                   </span>
 
-                  <span className="flex shrink-0 items-center gap-2">
+                  <span className="flex min-w-0 max-w-full flex-wrap items-center gap-1 sm:shrink-0 sm:gap-2">
                     {isLastChanged && savingPresence ? (
                       <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700">
                         {t("attendance.saving")}
