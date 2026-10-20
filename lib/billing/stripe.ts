@@ -95,13 +95,19 @@ export async function resolveStripePrice(plan: StripePlanKey) {
 export async function isStripeCheckoutConfigured(plan?: StripePlanKey) {
   if (!process.env.STRIPE_SECRET_KEY?.trim()) return false;
 
-  if (plan) return Boolean(await resolveStripePrice(plan));
+  try {
+    if (plan) return Boolean(await resolveStripePrice(plan));
 
-  const [monthly, yearly] = await Promise.all([
-    resolveStripePrice("pro_monthly"),
-    resolveStripePrice("pro_yearly"),
-  ]);
-  return Boolean(monthly || yearly);
+    const [monthly, yearly] = await Promise.all([
+      resolveStripePrice("pro_monthly"),
+      resolveStripePrice("pro_yearly"),
+    ]);
+    return Boolean(monthly || yearly);
+  } catch {
+    // Keep the public Pro page available if Stripe is temporarily unreachable
+    // or its server-side key is invalid. Checkout itself still validates Stripe.
+    return false;
+  }
 }
 
 export function getPlanKeyForStripePrice(price: {

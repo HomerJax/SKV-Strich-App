@@ -181,7 +181,7 @@ export default async function ProPage({
                   </div>
                   {!monthlyConfigured && !yearlyConfigured ? (
                     <div className="mt-2 text-center text-xs leading-5 text-white/45">
-                      Preis und Stripe-Produkt werden noch eingerichtet.
+                      Der PRO-Checkout ist derzeit nicht verfügbar. Bitte versucht es später erneut.
                     </div>
                   ) : null}
                 </div>
