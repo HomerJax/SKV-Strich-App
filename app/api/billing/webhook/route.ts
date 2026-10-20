@@ -77,6 +77,7 @@ async function resolveClubId(input: {
 async function syncSubscription(
   rawSubscription: Record<string, unknown>,
   eventType: string,
+  explicitClubId?: string | null,
 ) {
   const subscriptionId =
     typeof rawSubscription.id === "string" ? rawSubscription.id : null;
@@ -92,7 +93,7 @@ async function syncSubscription(
 
   const snapshot = getStripeSubscriptionSnapshot(subscription);
   const clubId = await resolveClubId({
-    explicitClubId: snapshot.clubId,
+    explicitClubId: explicitClubId ?? snapshot.clubId,
     subscriptionId: snapshot.subscriptionId,
     customerId: snapshot.customerId,
   });
@@ -151,7 +152,21 @@ async function syncSubscription(
   }
 }
 
-async function handleCheckoutCompleted(object: Record<string, unknown>) {
+async function handleCheckoutCompleted(
+  object: Record<string, unknown>,
+  eventType: string,
+) {
+  if (object.mode !== "subscription") {
+    throw new Error("Stripe checkout event is not a subscription.");
+  }
+
+  const paymentStatus = object.payment_status;
+  if (paymentStatus !== "paid" && paymentStatus !== "no_payment_required") {
+    // Checkout can complete before a delayed payment is settled. Wait for the
+    // async payment event or the subscription's active update before granting Pro.
+    return;
+  }
+
   const metadata = getMetadata(object);
   const clubId =
     metadata.club_id ||
@@ -170,41 +185,11 @@ async function handleCheckoutCompleted(object: Record<string, unknown>) {
     throw new Error("Stripe subscription checkout completed without subscription id.");
   }
 
-  const subscription = await getStripeSubscription(subscriptionId);
-  const snapshot = getStripeSubscriptionSnapshot(subscription);
-
-  const resolvedPlan =
-    snapshot.planKey ||
-    (metadata.plan_key === "pro_monthly" || metadata.plan_key === "pro_yearly"
-      ? metadata.plan_key
-      : null);
-
-  if (!resolvedPlan) {
-    throw new Error("Stripe checkout completed with unknown price.");
-  }
-
-  const admin = createAdminClient();
-  const { error } = await admin.from("club_billing").upsert(
-    {
-      club_id: clubId,
-      plan_key: resolvedPlan,
-      status: "active",
-      trial_ends_at: null,
-      pro_ends_at: snapshot.periodEnd,
-      billing_note: "Stripe-Checkout erfolgreich · PRO automatisch freigeschaltet.",
-      billing_provider: "stripe",
-      stripe_customer_id: snapshot.customerId ?? customerId,
-      stripe_subscription_id: subscriptionId,
-      stripe_price_id: snapshot.priceId,
-      cancel_at_period_end: snapshot.cancelAtPeriodEnd,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "club_id" },
+  await syncSubscription(
+    { id: subscriptionId, customer: customerId },
+    eventType,
+    clubId,
   );
-
-  if (error) {
-    throw new Error(`Failed to activate club after checkout: ${error.message}`);
-  }
 }
 
 async function handleEvent(event: StripeWebhookEvent) {
@@ -212,7 +197,8 @@ async function handleEvent(event: StripeWebhookEvent) {
 
   switch (event.type) {
     case "checkout.session.completed":
-      await handleCheckoutCompleted(object);
+    case "checkout.session.async_payment_succeeded":
+      await handleCheckoutCompleted(object, event.type);
       break;
 
     case "customer.subscription.created":
