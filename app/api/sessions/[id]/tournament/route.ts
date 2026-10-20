@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSessionAccess } from "@/lib/session-detail/access";
 import { canManageClub } from "@/lib/auth/access";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import {
   buildRoundRobinSchedule,
   buildTimedRoundRobinSchedule,
@@ -461,6 +462,16 @@ export async function POST(
   }
 
   const intent = String(payload.intent ?? "");
+
+  if (intent === "setup" || intent === "regenerate") {
+    const billingAccess = await getClubBillingAccess(access.adminSupabase, access.clubId);
+    if (!billingAccess.isPro) {
+      return NextResponse.json(
+        { error: "Der Turniermodus mit mehreren Spielen ist eine PRO-Funktion. Im Free-Plan ist ein Spiel pro Training enthalten." },
+        { status: 403 },
+      );
+    }
+  }
 
   try {
     if (intent === "setup" || intent === "regenerate") {

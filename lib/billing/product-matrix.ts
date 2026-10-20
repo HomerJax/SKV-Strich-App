@@ -24,6 +24,7 @@ export const PRODUCT_MATRIX: ProductMatrixRow[] = [
   { area: "Termine", feature: "RSVP-Deadline", free: "30 Min. fest", pro: "Frei konfigurierbar" },
   { area: "Termine", feature: "Pflichtgrund bei Absage", free: "🔒", pro: "Enthalten" },
   { area: "Spiel", feature: "Spiele pro Termin", free: "1", pro: "Bis 2" },
+  { area: "Spiel", feature: "Turniermodus mit Spielplan", free: "🔒", pro: "Enthalten" },
   { area: "Spiel", feature: "Spieluhr", free: "Komplett enthalten", pro: "Komplett enthalten" },
   { area: "Ergebnis", feature: "Ergebnis & Siegerfoto", free: "Enthalten", pro: "Enthalten" },
   { area: "Ergebnis", feature: "Share Cards", free: "Enthalten", pro: "Enthalten" },
@@ -62,7 +63,7 @@ export const FREE_HIGHLIGHTS = [
 
 export const PRO_HIGHLIGHTS = [
   "Mehr Spieler, Gäste, Kategorien und Balanced Groups",
-  "Zweites Spiel und flexible RSVP-Regeln",
+  "Zweites Spiel, Turniermodus und flexible RSVP-Regeln",
   "Eigene Saisons, Archiv und Karriere-Historie",
   "Siegquote, tiefere Stats, Vergleiche und Karriere-Badges",
   "Erweiterte Mannschafts- und Bierkassen-Auswertungen",
