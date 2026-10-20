@@ -350,7 +350,7 @@ export default function NextSessionAttendanceCard({
                       setErrorMessage("");
                     }}
                     placeholder={t("session.attendanceCommentPlaceholder")}
-                    className="mt-2 w-full rounded-xl border border-emerald-200 px-3 py-2 text-xs outline-none focus:border-emerald-400"
+                    className="mt-2 w-full rounded-xl border border-emerald-200 px-3 py-2 text-base sm:text-xs outline-none focus:border-emerald-400"
                   />
                   <div className="mt-2 flex justify-end gap-2">
                     <button
@@ -399,7 +399,7 @@ export default function NextSessionAttendanceCard({
                   {requireAbsenceReason ? t("session.required") : t("session.optional")}
                 </span>
               </div>
-              <input autoFocus value={reason} maxLength={80} onChange={(event) => { setReason(event.target.value); setErrorMessage(""); }} placeholder={t("session.reasonPlaceholder")} className="mt-2 w-full rounded-xl border border-rose-200 px-3 py-2 text-xs outline-none focus:border-rose-400" />
+              <input autoFocus value={reason} maxLength={80} onChange={(event) => { setReason(event.target.value); setErrorMessage(""); }} placeholder={t("session.reasonPlaceholder")} className="mt-2 w-full rounded-xl border border-rose-200 px-3 py-2 text-base sm:text-xs outline-none focus:border-rose-400" />
               {requireAbsenceReason ? (
                 <div className={`mt-1.5 text-[10px] font-semibold ${reason.length > 0 && !reasonValid ? "text-rose-700" : "text-slate-500"}`}>
                   {t("session.reasonHint")}
