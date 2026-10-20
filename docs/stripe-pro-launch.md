@@ -35,9 +35,9 @@ Die aktuellen Preise sind bewusst als Early-Adopter-/Einführungspreise gedacht.
 - Preise werden per Stripe Lookup Key aufgelöst; Price IDs müssen nicht in Vercel gepflegt werden
 
 ## Isolierter Free-Test in Production
-- `STRIKR_FREE_TEST_CLUB_ID` ist eine optionale, serverseitige Ausnahme für genau einen Club.
-- Solange Free Launch global aktiv ist, wird nur die eingetragene Club-ID nach ihrem normalen Billing-Plan bewertet; alle anderen Clubs bleiben im Free-Launch-Verhalten.
-- Für einen echten Produktionstest die Variable nur auf den neu angelegten Beispielclub setzen. Danach entfernen, sobald der Test abgeschlossen oder der globale Rollout erfolgt ist.
+- `STRIKR_FREE_LAUNCH_BYPASS_CLUB_IDS` ist eine optionale, serverseitige Liste exakter Club-IDs, getrennt durch Kommas.
+- Solange Free Launch global aktiv ist, werden nur die eingetragenen Club-IDs nach ihrem normalen Billing-Plan bewertet; alle anderen Clubs bleiben im Free-Launch-Verhalten.
+- Für einen echten Produktionstest nur den neuen Beispielclub ergänzen. Bereits ausdrücklich als Free vorgesehene Clubs können ebenfalls eingetragen werden. Danach die Testclub-ID entfernen, sobald der Test abgeschlossen oder der globale Rollout erfolgt ist.
 - `NEXT_PUBLIC_FREE_LAUNCH` während eines isolierten Tests nicht global deaktivieren.
 
 ## Noch vor Live

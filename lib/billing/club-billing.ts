@@ -129,14 +129,18 @@ export function getBillingAccess(
     (billing.pro_ends_at === null || isDateInFuture(billing.pro_ends_at));
 
   const paidOrGrantedPro = isFounder || isTrial || hasActiveTimedPro;
-  const freeTestClubId = process.env.STRIKR_FREE_TEST_CLUB_ID?.trim();
-  const isFreeTestClub =
-    Boolean(freeTestClubId) &&
+  const freeLaunchBypassClubIds = new Set(
+    (process.env.STRIKR_FREE_LAUNCH_BYPASS_CLUB_IDS ?? "")
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  const bypassesFreeLaunch =
     Boolean(billing.club_id) &&
-    billing.club_id.toLowerCase() === freeTestClubId?.toLowerCase();
-  // Keep the global launch override for every club except one explicitly
-  // selected production test club. The server-only env var defaults to none.
-  const isFreeLaunch = isFreeLaunchEnabled() && !isFreeTestClub;
+    freeLaunchBypassClubIds.has(billing.club_id.toLowerCase());
+  // Only explicitly listed clubs use their stored plan while the global launch
+  // override remains active. The server-only allowlist defaults to empty.
+  const isFreeLaunch = isFreeLaunchEnabled() && !bypassesFreeLaunch;
   const isPro = isFreeLaunch || paidOrGrantedPro;
 
   const isExpired =
