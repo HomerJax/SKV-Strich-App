@@ -9,6 +9,17 @@ type StripeRequestOptions = {
   params?: Record<string, string | number | boolean | null | undefined>;
 };
 
+class StripeApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly stripeCode: string | null,
+    readonly stripeType: string | null,
+  ) {
+    super("Stripe API request failed.");
+    this.name = "StripeApiError";
+  }
+}
+
 type StripeCheckoutSession = {
   id: string;
   url: string | null;
@@ -89,11 +100,21 @@ export async function resolveStripePrice(plan: StripePlanKey) {
     `/v1/prices?${query.toString()}`,
   );
 
-  return prices.data?.[0] ?? null;
+  const price = prices.data?.[0] ?? null;
+  if (!price) {
+    console.warn("Stripe price lookup returned no active price.", {
+      plan,
+      lookupKey,
+    });
+  }
+  return price;
 }
 
 export async function isStripeCheckoutConfigured(plan?: StripePlanKey) {
-  if (!process.env.STRIPE_SECRET_KEY?.trim()) return false;
+  if (!process.env.STRIPE_SECRET_KEY?.trim()) {
+    console.warn("Stripe Checkout is missing its server-side secret key.");
+    return false;
+  }
 
   try {
     if (plan) return Boolean(await resolveStripePrice(plan));
@@ -103,9 +124,17 @@ export async function isStripeCheckoutConfigured(plan?: StripePlanKey) {
       resolveStripePrice("pro_yearly"),
     ]);
     return Boolean(monthly || yearly);
-  } catch {
+  } catch (error) {
     // Keep the public Pro page available if Stripe is temporarily unreachable
     // or its server-side key is invalid. Checkout itself still validates Stripe.
+    const stripeError = error instanceof StripeApiError ? error : null;
+    console.error("Stripe Checkout price lookup failed.", {
+      plan: plan ?? "all",
+      errorKind: stripeError ? "stripe_api" : "network_or_internal",
+      status: stripeError?.status ?? null,
+      stripeCode: stripeError?.stripeCode ?? null,
+      stripeType: stripeError?.stripeType ?? null,
+    });
     return false;
   }
 }
@@ -158,11 +187,13 @@ async function stripeRequest<T>(path: string, options: StripeRequestOptions = {}
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message =
-      typeof payload?.error?.message === "string"
-        ? payload.error.message
-        : `Stripe request failed with status ${response.status}`;
-    throw new Error(message);
+    const code = payload?.error?.code;
+    const type = payload?.error?.type;
+    throw new StripeApiError(
+      response.status,
+      typeof code === "string" ? code : null,
+      typeof type === "string" ? type : null,
+    );
   }
 
   return payload as T;
