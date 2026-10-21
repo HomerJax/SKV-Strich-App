@@ -139,6 +139,7 @@ export default async function SessionsArchivePage() {
         {!billingAccess.isPro ? (
           <ProFeatureLock
             clubName={club?.display_name?.trim() || "dein Team"}
+            freeLaunch={billingAccess.isFreeLaunch}
             title="Saisonarchiv mit PRO"
             description="Im Free-Plan bleibt die aktuelle Saison vollständig nutzbar. Abgeschlossene Saisons und deren Trainingshistorie werden mit PRO freigeschaltet."
             featureList={["Alte Saisons öffnen", "Vergangene Trainings ansehen", "Historische Entwicklung nachvollziehen"]}

@@ -1,6 +1,5 @@
 "use client";
 
-import { isFreeLaunchEnabled } from "@/lib/env";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import Link from "next/link";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -11,6 +10,7 @@ type ProFeatureLockProps = {
   description?: string;
   featureList?: string[];
   compact?: boolean;
+  freeLaunch?: boolean;
 };
 
 const STRIKR_WHATSAPP_NUMBER =
@@ -44,12 +44,13 @@ export default function ProFeatureLock({
   description,
   featureList = [],
   compact = false,
+  freeLaunch = false,
 }: ProFeatureLockProps) {
   const { t } = useI18n();
   const resolvedTitle = title ?? t("pro.defaultTitle");
   const resolvedDescription = description ?? t("pro.defaultDescription");
 
-  if (isFreeLaunchEnabled()) {
+  if (freeLaunch) {
     return (
       <div
         className={`rounded-[24px] border border-sky-200 bg-sky-50 shadow-sm ${

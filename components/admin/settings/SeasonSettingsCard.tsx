@@ -378,6 +378,7 @@ export default async function SeasonSettingsCard({
       ) : (
         <ProFeatureLock
           clubName="dein Team"
+          freeLaunch={billingAccess.isFreeLaunch}
           title="Eigene Saisons mit PRO"
           description="Im Free-Plan nutzt ihr eine laufende strikr Standard Saison. Die Trainingszeit der Serie kannst du weiterhin ändern."
           featureList={["Eigener Saisonname und Zeitraum", "Mehrere Saisons", "Saisons bearbeiten und löschen", "Vergangene Saisons verwalten"]}

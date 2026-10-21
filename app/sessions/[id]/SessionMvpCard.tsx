@@ -933,6 +933,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             <div className="mt-4">
               <ProFeatureLock
                 clubName={state.clubName}
+                freeLaunch={mvpAccess?.reason === "free_launch"}
                 title={t("mvpVoting.lockTitle")}
                 description={t("mvpVoting.lockDescription", { limit: mvpAccess?.freeLimit ?? 4 })}
                 featureList={[
