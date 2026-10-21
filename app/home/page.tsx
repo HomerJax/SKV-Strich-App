@@ -116,6 +116,7 @@ type MvpVoteRow = {
 };
 
 type NextSessionPlayer = {
+  name: string | null;
   first_name: string | null;
   last_name: string | null;
   photo_path: string | null;
@@ -258,7 +259,7 @@ function getPlayerName(player: MvpPlayerRow | null | undefined, locale: AppLocal
 
 function getSimplePlayerName(
   player:
-    | { first_name: string | null; last_name: string | null }
+    | { name: string | null; first_name: string | null; last_name: string | null }
     | null
     | undefined,
   locale: AppLocale,
@@ -271,7 +272,7 @@ function getSimplePlayerName(
     .join(" ")
     .trim();
 
-  return name || translate(locale, "home.playerFallback");
+  return name || player.name?.trim() || translate(locale, "home.playerFallback");
 }
 
 function normalizePlayerRelation(
@@ -541,7 +542,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       const ids=future.map(s=>s.id);
       const [{data:rsvps},{data:participants}] = await Promise.all([
         supabase.from("session_rsvps").select("session_id,player_id,status,reason").eq("club_id",clubId).in("session_id",ids),
-        supabase.from("session_players").select("session_id,player_id,players(first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom)").in("session_id",ids)
+        supabase.from("session_players").select("session_id,player_id,players(name,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom)").in("session_id",ids)
       ]);
       const allRsvps=rsvps??[];
       const allParticipants=(participants??[]) as unknown as (NextSessionParticipantRow & {session_id:number})[];
@@ -811,6 +812,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           player_id,
           reason,
           players (
+            name,
             first_name,
             last_name,
             photo_path,
@@ -829,6 +831,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           `
           player_id,
           players (
+            name,
             first_name,
             last_name,
             photo_path,

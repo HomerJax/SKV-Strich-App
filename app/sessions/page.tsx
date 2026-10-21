@@ -201,12 +201,12 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     const isAdmin = auth.isPowerUser || membership?.role === "admin";
     const { data: leaderRecord } = viewPlayer?.id ? await supabase.from("players").select("can_lead_training").eq("id", viewPlayer.id).eq("club_id", clubId).maybeSingle() : { data: null };
     const canCreateTraining = !isSupportView && (isAdmin || leaderRecord?.can_lead_training === true);
-    type PilotPerson={id:number;first_name:string|null;last_name:string|null;photo_path:string|null;photo_position_x:number|null;photo_position_y:number|null;photo_zoom:number|null};
+    type PilotPerson={id:number;name:string|null;first_name:string|null;last_name:string|null;photo_path:string|null;photo_position_x:number|null;photo_position_y:number|null;photo_zoom:number|null};
     type PilotMember={session_id:number;player_id:number;players:PilotPerson|PilotPerson[]|null};
     type PilotReply={session_id:number;player_id:number;status:string;reason:string|null};
     const upcomingIds=sessions.filter(s=>s.date>=todayIso).map(s=>s.id);
     const [{data:memberRows},{data:replyRows}]=await Promise.all([
-      upcomingIds.length?supabase.from("session_players").select("session_id,player_id,players(id,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom)").in("session_id",upcomingIds):Promise.resolve({data:[]}),
+      upcomingIds.length?supabase.from("session_players").select("session_id,player_id,players(id,name,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom)").in("session_id",upcomingIds):Promise.resolve({data:[]}),
       upcomingIds.length?supabase.from("session_rsvps").select("session_id,player_id,status,reason").eq("club_id",clubId).in("session_id",upcomingIds):Promise.resolve({data:[]})
     ]);
     const pilotMembers=(memberRows??[]) as unknown as PilotMember[];
@@ -226,7 +226,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     }
     const memberPlayerIds = new Set(pilotMembers.map(p => p.player_id));
     const missingIds=[...new Set(pilotReplies.filter(r=>r.status==="out"&&!memberPlayerIds.has(r.player_id)).map(r=>r.player_id))];
-    const {data:absentPeople}=missingIds.length?await supabase.from("players").select("id,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom").in("id",missingIds):{data:[]};
+    const {data:absentPeople}=missingIds.length?await supabase.from("players").select("id,name,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom").in("id",missingIds):{data:[]};
     const pilotAbsentPeople=(absentPeople??[]) as PilotPerson[];
     const absentPeopleById=new Map(pilotAbsentPeople.map(p=>[p.id,p]));
     return <main className="min-h-screen bg-neutral-100"><section className="mx-auto w-full max-w-3xl space-y-4 px-4 py-4 sm:px-6">
@@ -236,8 +236,8 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
         const replies=repliesBySession.get(s.id) ?? [];
         const memberByPlayer=new Map(members.map(p=>[p.player_id,p]));
         const replyByPlayer=new Map(replies.filter(r=>r.status==="in").map(r=>[r.player_id,r]));
-        const person=(p:{first_name:string|null;last_name:string|null;photo_path:string|null;photo_position_x:number|null;photo_position_y:number|null;photo_zoom:number|null}|null,id:number)=>({
-          id,name:[p?.first_name,p?.last_name].filter(Boolean).join(" ")||"Spieler",
+        const person=(p:PilotPerson|null,id:number)=>({
+          id,name:[p?.first_name,p?.last_name].filter(Boolean).join(" ").trim()||p?.name?.trim()||"Spieler",
           photoUrl:p?.photo_path?supabase.storage.from("player-photos").getPublicUrl(p.photo_path).data.publicUrl:null,
           photoPositionX:p?.photo_position_x??null,photoPositionY:p?.photo_position_y??null,photoZoom:p?.photo_zoom??null
         });
