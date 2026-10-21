@@ -49,6 +49,10 @@ type SessionDetailClientProps = {
   initialIsPro?: boolean;
 };
 
+// Limited pilot: only SKV Rutesheim Ü32 & AH sees the animated team-balance reveal.
+// This id was verified against public.clubs in the connected production Supabase project.
+const TEAM_BALANCE_REVEAL_PILOT_CLUB_ID = "108590d9-0877-4787-90a5-4679615b3b76";
+
 type SectionKey = "attendance" | "teams" | "photo" | "result" | "mvp";
 
 function NoticeCard({
@@ -235,6 +239,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   }
 
   const pilotAdmin = props.initialIsClubAdmin === true;
+  const enableBalanceReveal = props.initialClubId === TEAM_BALANCE_REVEAL_PILOT_CLUB_ID;
   const playerPreview = !isAdmin || (pilotAdmin && pilotView === "player");
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";
@@ -321,8 +326,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     return (
       <div ref={teamsRef}>
         <SessionTeamsCard
-          generationRunId={teamGenerationRunId}
-          showStrengthNumbers={pilotAdmin && pilotView === "admin"}
+          enableBalanceReveal={enableBalanceReveal}
+          generationRunId={enableBalanceReveal ? teamGenerationRunId : 0}
+          showStrengthNumbers={enableBalanceReveal && pilotAdmin && pilotView === "admin"}
           scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}}
           teamA={displayTeamA}
           teamB={displayTeamB}
