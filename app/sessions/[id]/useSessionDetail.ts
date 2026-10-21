@@ -207,6 +207,7 @@ export function useSessionDetail({
   const [draftPresentIds, setDraftPresentIds] = useState<number[]>(initialPresentIds);
 
   const [manualTeams, setManualTeams] = useState<TeamMap>(initialManualTeams);
+  const [teamGenerationRunId, setTeamGenerationRunId] = useState(0);
   const [clubId] = useState<string | null>(initialClubId);
   const [isAdmin] = useState(initialIsAdmin);
   const [clubSettings] = useState<ClubSettings | null>(initialClubSettings);
@@ -1398,6 +1399,7 @@ ${sessionUrl}`;
 
     setManualTeams(next);
     setTeamsConfirmed(false);
+    setTeamGenerationRunId((run) => run + 1);
     await persistTeamsNow(next);
 
     const usesBalanceGroups = present.some((player) =>
@@ -1868,6 +1870,7 @@ ${sessionUrl}`;
     teamA,
     teamB,
     unassigned,
+    teamGenerationRunId,
     displayPlayers,
     displayTeamA,
     displayTeamB,
