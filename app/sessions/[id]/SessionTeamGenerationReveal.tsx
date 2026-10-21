@@ -71,7 +71,10 @@ export default function SessionTeamGenerationReveal({
   // Players are disclosed alternately, but their membership and score are already final.
   const shownA = revealing ? Math.min(teamA.length, Math.ceil(shown / 2)) : teamA.length;
   const shownB = revealing ? Math.min(teamB.length, Math.floor(shown / 2)) : teamB.length;
-  const max = Math.max(1, sumTeamScore(teamA, scoreOptions), sumTeamScore(teamB, scoreOptions));
+  const scoringActive = scoreOptions.useStrength || scoreOptions.useCategories;
+  const max = scoringActive
+    ? Math.max(1, sumTeamScore(teamA, scoreOptions), sumTeamScore(teamB, scoreOptions))
+    : Math.max(1, teamA.length, teamB.length);
 
   const teams = [
     { label: "Team A", players: teamA, count: shownA, color: "bg-white" },
@@ -99,8 +102,8 @@ export default function SessionTeamGenerationReveal({
 
       <div className="mt-3 grid grid-cols-2 gap-2.5">
         {teams.map((team) => {
-          const partialScore = sumTeamScore(team.players.slice(0, team.count), scoreOptions);
-          const fullScore = sumTeamScore(team.players, scoreOptions);
+          const partialScore = scoringActive ? sumTeamScore(team.players.slice(0, team.count), scoreOptions) : team.count;
+          const fullScore = scoringActive ? sumTeamScore(team.players, scoreOptions) : team.players.length;
           return (
             <div key={team.label} className="min-w-0 rounded-xl border border-white/10 bg-white/[0.055] p-2.5 sm:p-3">
               <div className="flex items-center justify-between gap-1">
@@ -113,9 +116,12 @@ export default function SessionTeamGenerationReveal({
                   <span className="text-[10px] text-white/50">{team.count}/{team.players.length}</span>
                 )}
               </div>
-              <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/15" role="progressbar"
-                aria-label={`${team.label} ${de ? "Teamstärke" : "team strength"}`}
-                aria-valuemin={0} aria-valuemax={max} aria-valuenow={partialScore}>
+              <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/15"
+                role={showStrengthNumbers ? "progressbar" : "img"}
+                aria-label={`${team.label} ${scoringActive ? (de ? "Teamstärke" : "team strength") : (de ? "Verteilungsfortschritt" : "assignment progress")}`}
+                aria-valuemin={showStrengthNumbers ? 0 : undefined}
+                aria-valuemax={showStrengthNumbers ? max : undefined}
+                aria-valuenow={showStrengthNumbers ? partialScore : undefined}>
                 <div className={`h-full rounded-full transition-[width] duration-300 ease-out ${team.color}`}
                   style={{ width: `${(partialScore / max) * 100}%` }} />
               </div>
