@@ -233,7 +233,7 @@ export default async function ProPage({
         <div className="py-12 text-center">
           <h2 className="text-3xl font-black">Mit Free starten. PRO später dazunehmen.</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/50">
-            Sobald der Checkout live ist, wird ein Kauf automatisch dem aktuellen Club zugeordnet und PRO unmittelbar freigeschaltet.
+            Der Checkout ordnet den Kauf dem aktuellen Verein zu. PRO wird nach bestätigter Zahlung automatisch freigeschaltet.
           </p>
           <Link href="/signup?next=%2Fclub-setup" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-black text-slate-950">
             Team starten <ArrowRight className="h-4 w-4" />
