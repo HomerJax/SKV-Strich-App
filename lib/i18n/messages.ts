@@ -2704,7 +2704,7 @@ export const DE_MESSAGES = {
   "pro.launchDescription": "strikr startet ohne Funktionslimit. Ihr könnt die App vollständig nutzen. Weitere Funktionen folgen später.",
   "pro.whatsappCta": "Pro-Angebot per WhatsApp anfragen",
   "pro.emailCta": "Per E-Mail anfragen",
-  "pro.manualNote": "Aktuell: Supercup-Angebot und manuelle Freischaltung.",
+  "pro.manualNote": "Upgrade läuft über den Stripe-Checkout. Pro wird nach bestätigter Zahlung automatisch freigeschaltet.",
   "power.badges.section.careerAppearances.title": "Karriere · Einsätze",
   "power.badges.section.careerAppearances.eyebrow": "Karriere",
   "power.badges.section.careerAppearances.description": "Die langfristige Teilnahme-Leiter von 10 bis 500 Einsätzen. Hier muss die optische Eskalation besonders klar erkennbar sein.",
@@ -6021,7 +6021,7 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "pro.launchDescription": "strikr launches without feature limits. You can use the full app. More features will follow later.",
   "pro.whatsappCta": "Request Pro offer via WhatsApp",
   "pro.emailCta": "Request by email",
-  "pro.manualNote": "Currently: Supercup offer and manual activation.",
+  "pro.manualNote": "Upgrade through Stripe Checkout. Pro activates automatically after payment is confirmed.",
 
   "power.badges.section.careerAppearances.title": "Career · Appearances",
   "power.badges.section.careerAppearances.eyebrow": "Career",
