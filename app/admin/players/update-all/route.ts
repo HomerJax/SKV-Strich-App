@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 type ExistingPlayer = {
   id: number;
+  name: string;
   category_key: string | null;
   strength: number | null;
   balance_group: string | null;
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { data: existingPlayers, error: existingError } = await supabase
       .from("players")
-      .select("id, category_key, strength, balance_group")
+      .select("id, name, category_key, strength, balance_group")
       .eq("club_id", access.clubId)
       .in("id", playerIds);
 
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
         roster_role: rosterRoleRaw === "staff" ? "staff" : "player",
         is_active: toBool(formData.get(`is_active_${playerId}`)),
         is_guest: toBool(formData.get(`is_guest_${playerId}`)),
-        name: displayName || nickname || null,
+        name: displayName || nickname || existing.name,
       };
 
       const categoryField = `category_key_${playerId}`;

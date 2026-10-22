@@ -195,7 +195,7 @@ export async function POST(request: Request) {
 
   const { data: existingPlayer } = await supabase
     .from("players")
-    .select("id, club_id")
+    .select("id, club_id, name")
     .eq("id", playerId)
     .eq("club_id", clubId)
     .limit(1)
@@ -252,7 +252,7 @@ export async function POST(request: Request) {
     balance_group: balanceGroup,
     is_active: isActive,
     is_guest: isGuest,
-    name: displayName || nickname || null,
+    name: displayName || nickname || existingPlayer.name,
   };
 
   if (strengthRaw) {
