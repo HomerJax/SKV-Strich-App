@@ -50,11 +50,11 @@ export async function POST(request: Request) {
 
   const { data: existingBilling, error: readError } = await supabase
     .from("club_billing")
-    .select("plan_key, stripe_subscription_id")
+    .select("plan_key, billing_provider, stripe_subscription_id")
     .eq("club_id", clubId)
     .maybeSingle();
 
-  if (readError || existingBilling?.plan_key === "founder" || existingBilling?.stripe_subscription_id) {
+  if (readError || existingBilling?.plan_key === "founder" || existingBilling?.stripe_subscription_id || existingBilling?.billing_provider === "stripe") {
     return NextResponse.redirect(
       new URL("/power-user/clubs?billing_error=protected_plan", request.url),
       { status: 303 }

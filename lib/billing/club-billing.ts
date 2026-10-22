@@ -110,8 +110,7 @@ export function getBillingAccess(
 ): BillingAccess {
   const billing = normalizeBilling(billingInput, clubId);
 
-  const isFounder =
-    billing.status === "active" && billing.plan_key === "founder";
+  const isFounder = billing.plan_key === "founder";
 
   const hasActiveTimedPro =
     billing.status === "active" &&
