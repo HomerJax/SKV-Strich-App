@@ -130,7 +130,12 @@ export function getBillingAccess(
 
   const paidOrGrantedPro = isFounder || isTrial || hasActiveTimedPro;
   const freeLaunchBypassClubIds = new Set(
-    (process.env.STRIKR_FREE_LAUNCH_BYPASS_CLUB_IDS ?? "")
+    [
+      process.env.STRIKR_FREE_LAUNCH_BYPASS_CLUB_IDS,
+      process.env.STRIKR_FREE_LAUNCH_BYPASS_CLUB_IDS_EXTRA,
+    ]
+      .filter(Boolean)
+      .join(",")
       .split(",")
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean),
