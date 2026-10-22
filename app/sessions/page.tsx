@@ -225,11 +225,13 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
       group.push(reply);
       repliesBySession.set(reply.session_id, group);
     }
-    const memberPlayerIds = new Set(pilotMembers.map(p => p.player_id));
-    const missingIds=[...new Set(pilotReplies.filter(r=>r.status==="out"&&!memberPlayerIds.has(r.player_id)).map(r=>r.player_id))];
-    const {data:absentPeople}=missingIds.length?await supabase.from("players").select("id,name,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom").in("id",missingIds):{data:[]};
-    const pilotAbsentPeople=(absentPeople??[]) as PilotPerson[];
-    const absentPeopleById=new Map(pilotAbsentPeople.map(p=>[p.id,p]));
+    // Resolve every referenced player directly within the authenticated club.
+    // The RSVP relation alone can be null even for existing roster members.
+    const attendeeIds = [...new Set([...pilotMembers.map(p => p.player_id), ...pilotReplies.map(r => r.player_id)])];
+    const {data:attendeePeople} = attendeeIds.length
+      ? await supabase.from("players").select("id,name,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom").eq("club_id",clubId).in("id",attendeeIds)
+      : {data:[]};
+    const attendeePeopleById=new Map(((attendeePeople??[]) as PilotPerson[]).map(p=>[p.id,p]));
     return <main className="min-h-screen bg-neutral-100"><section className="mx-auto w-full max-w-3xl space-y-4 px-4 py-4 sm:px-6">
       <PageHero eyebrow={locale === "de" ? "Übersicht" : "Overview"} title={locale === "de" ? "Termine" : "Sessions"} description={locale === "de" ? "Alle Trainings und Spiele auf einen Blick." : "All training sessions and matches."} primaryColorKey={club?.primary_color} backLabel={t("session.back")} backHref="/" compact/>
       <PilotSessionsList locale={locale} isAdmin={isAdmin} canCreateTraining={canCreateTraining} readOnly={isSupportView} clubDeadline={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} sessions={sessions.map(s=>{
@@ -242,7 +244,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
           photoUrl:p?.photo_path?supabase.storage.from("player-photos").getPublicUrl(p.photo_path).data.publicUrl:null,
           photoPositionX:p?.photo_position_x??null,photoPositionY:p?.photo_position_y??null,photoZoom:p?.photo_zoom??null
         });
-        const info=(id:number)=>{const raw=memberByPlayer.get(id)?.players??absentPeopleById.get(id)??null;return Array.isArray(raw)?raw[0]??null:raw;};
+        const info=(id:number)=>{const direct=attendeePeopleById.get(id);const raw=memberByPlayer.get(id)?.players??null;return direct??(Array.isArray(raw)?raw[0]??null:raw);};
         return {...s,status:statusFor(s.id),comment:commentFor(s.id),participants:members.map(p=>({...person(info(p.player_id),p.player_id),comment:replyByPlayer.get(p.player_id)?.reason??null})),absentPlayers:replies.filter(r=>r.status==="out").map(r=>({...person(info(r.player_id),r.player_id),reason:r.reason??null}))};
       })}/>
     </section></main>;

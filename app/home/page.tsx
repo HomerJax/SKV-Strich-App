@@ -275,6 +275,30 @@ function getSimplePlayerName(
   return name || player.name?.trim() || translate(locale, "home.playerFallback");
 }
 
+// Resolve attendee names from the club roster itself. RSVP-to-player nested
+// relations may be null even when the referenced player still exists.
+async function loadAttendancePlayers(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  clubId: string,
+  playerIds: number[],
+): Promise<Map<number, NextSessionPlayer>> {
+  const ids = [...new Set(playerIds)].filter((id) => Number.isSafeInteger(id) && id > 0);
+  if (ids.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from("players")
+    .select("id,name,first_name,last_name,photo_path,photo_position_x,photo_position_y,photo_zoom")
+    .eq("club_id", clubId)
+    .in("id", ids);
+
+  if (error) {
+    console.error("Could not load club player names for attendance:", error.message);
+    return new Map();
+  }
+
+  return new Map((data ?? []).map((player) => [player.id, player]));
+}
+
 function normalizePlayerRelation(
   player: MvpSessionPlayerRow["players"]
 ): MvpPlayerRow | null {
@@ -548,7 +572,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       const allParticipants=(participants??[]) as unknown as (NextSessionParticipantRow & {session_id:number})[];
       const participantsBySession=new Map<number,typeof allParticipants>();
       const rsvpsBySession=new Map<number,typeof allRsvps>();
-      const playerInfoById=new Map<number,NextSessionPlayer|null>();
+      const playerInfoById = await loadAttendancePlayers(
+        supabase,
+        clubId,
+        [...allParticipants.map((p) => p.player_id), ...allRsvps.map((r) => r.player_id)],
+      );
       for(const participant of allParticipants){
         const group=participantsBySession.get(participant.session_id)??[];
         group.push(participant);
@@ -571,7 +599,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         const own=currentPlayerId?rsvpByPlayer.get(currentPlayerId):undefined;
         const status:"in"|"out"|"open"=own?.status==="in"?"in":own?.status==="out"?"out":sessionParticipants.some(p=>p.player_id===currentPlayerId)?"in":"open";
         const attending=sessionParticipants.map(p=>{
-          const info=normalizeSimplePlayerRelation(p.players);
+          const info=playerInfoById.get(p.player_id) ?? normalizeSimplePlayerRelation(p.players);
           return {id:p.player_id,name:getSimplePlayerName(info,locale),comment:rsvpByPlayer.get(p.player_id)?.status==="in"?rsvpByPlayer.get(p.player_id)?.reason??null:null,photoUrl:photo(info),photoPositionX:info?.photo_position_x??null,photoPositionY:info?.photo_position_y??null,photoZoom:info?.photo_zoom??null};
         });
         const absent=sessionRsvps.filter(r=>r.status==="out").map(r=>{
@@ -857,12 +885,17 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       participantComments.map((row) => [row.player_id, row.reason?.trim() || null]),
     );
     const absences = (absentRows ?? []) as NextSessionAbsentRow[];
+    const attendancePlayerById = await loadAttendancePlayers(
+      supabase,
+      clubId,
+      [...participants.map((row) => row.player_id), ...absences.map((row) => row.player_id)],
+    );
     nextSessionPresentCount = participants.length;
     nextSessionAbsentCount = absences.length;
 
     nextSessionParticipants = participants
       .map((row) => {
-        const player = normalizeSimplePlayerRelation(row.players);
+        const player = attendancePlayerById.get(row.player_id) ?? normalizeSimplePlayerRelation(row.players);
         return {
           id: row.player_id,
           name: getSimplePlayerName(player, locale),
@@ -880,7 +913,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
     nextSessionAbsentPlayers = absences
       .map((row) => {
-        const player = normalizeSimplePlayerRelation(row.players);
+        const player = attendancePlayerById.get(row.player_id) ?? normalizeSimplePlayerRelation(row.players);
         return {
           id: row.player_id,
           name: getSimplePlayerName(player, locale),
