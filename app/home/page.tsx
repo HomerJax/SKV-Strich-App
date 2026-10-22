@@ -582,7 +582,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         group.push(participant);
         participantsBySession.set(participant.session_id,group);
         if(!playerInfoById.has(participant.player_id)){
-          playerInfoById.set(participant.player_id,normalizeSimplePlayerRelation(participant.players));
+          const nestedPlayer = normalizeSimplePlayerRelation(participant.players);
+          if (nestedPlayer) playerInfoById.set(participant.player_id, nestedPlayer);
         }
       }
       for(const rsvp of allRsvps){
