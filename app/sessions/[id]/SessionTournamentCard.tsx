@@ -461,7 +461,7 @@ export default function SessionTournamentCard({
 
         {setupOpen ? (
           <div className="mt-4 border-t border-slate-100 pt-4">
-            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-teal-700">Turnier einrichten · Schritt {setupStage === "time" ? 1 : setupStage === "recommendation" ? 2 : setupStage === "adjust" ? 3 : setupStage === "summary" ? 4 : 5} von 4</div>
+            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-teal-700">Turnier einrichten · Schritt {setupStage === "time" ? 1 : setupStage === "recommendation" ? 2 : setupStage === "adjust" ? 3 : setupStage === "summary" ? 4 : 5} von 5</div>
             {setupStage === "time" ? <div className="space-y-3">            <div className="rounded-2xl bg-slate-50 p-4">
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Teilnehmer</div>
               <div className="mt-1 text-xl font-black text-slate-950">{presentCount} Zusagen / anwesend</div>
