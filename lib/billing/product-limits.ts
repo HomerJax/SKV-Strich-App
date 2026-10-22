@@ -9,6 +9,7 @@ export const FREE_CONTRIBUTION_TYPE_LIMIT = 1;
 export const FREE_TRANSACTION_HISTORY_LIMIT = 5;
 export const FREE_RSVP_DEADLINE_MINUTES = 30;
 export const FREE_FORM_GAMES = 3;
+export const PRO_GAMES_PER_SESSION_LIMIT = 2;
 
 export async function getProductLimits(
   supabase: SupabaseClient,

@@ -7,6 +7,7 @@ import SessionRsvpDeadlineEditor from "./SessionRsvpDeadlineEditor";
 import SessionScheduleEditor from "./SessionScheduleEditor";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { AppLocale } from "@/lib/i18n/config";
+import { formatDateOnly } from "@/lib/date-only";
 
 type SessionType = "training" | "event";
 
@@ -45,7 +46,7 @@ type Props = {
 };
 
 function fmtLongDate(iso: string, locale: AppLocale) {
-  return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
+  return formatDateOnly(iso, locale === "de" ? "de-DE" : "en-GB", {
     weekday: "long",
     day: "2-digit",
     month: "2-digit",

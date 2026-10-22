@@ -1736,7 +1736,7 @@ export const DE_MESSAGES = {
   "score.gamesSaved": "{count} Spiele gespeichert",
   "score.dailyWins": "Tagessiege {a}:{b}",
   "score.openGames": "Spiele öffnen",
-  "score.description": "Ein Training, feste Teams, beliebig viele Spiele. Jeder Spielsieg zählt als eigener Strich.",
+  "score.description": "Ein Training, feste Teams, bis zu zwei Spiele mit PRO. Jeder Spielsieg zählt als eigener Strich.",
   "score.compact": "Kompakt",
   "score.trainingWinner": "Sieger des Trainingsabends",
   "score.dailyWinsValue": "{a}:{b} Tagessiege",
@@ -1749,6 +1749,7 @@ export const DE_MESSAGES = {
   "score.saveResult": "Ergebnis speichern",
   "score.saveGame": "Spiel {game} speichern",
   "score.addGame": "Weiteres Trainingsspiel hinzufügen",
+  "score.gameLimitReached": "Das Pro-Limit von {count} Spielen pro Training ist erreicht.",
   "score.sessionHint": "Anwesenheit zählt für den Trainingsabend nur einmal. Die Teams bleiben für alle Spiele dieser Session gleich.",
 
   "winnerPhoto.title": "Siegerfoto",
@@ -5038,7 +5039,7 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "score.gamesSaved": "{count} games saved",
   "score.dailyWins": "Daily wins {a}:{b}",
   "score.openGames": "Open games",
-  "score.description": "One training session, fixed teams, any number of games. Each game win counts as its own point.",
+  "score.description": "One training session, fixed teams, up to two games with Pro. Each game win counts as its own point.",
   "score.compact": "Compact",
   "score.trainingWinner": "Winner of the training night",
   "score.dailyWinsValue": "{a}:{b} daily wins",
@@ -5051,6 +5052,7 @@ export const EN_MESSAGES: Record<MessageKey, string> = {
   "score.saveResult": "Save result",
   "score.saveGame": "Save game {game}",
   "score.addGame": "Add another training game",
+  "score.gameLimitReached": "The Pro limit of {count} games per training session has been reached.",
   "score.sessionHint": "Attendance counts once for the training night. Teams stay the same for every game in this session.",
 
   "winnerPhoto.title": "Winner photo",

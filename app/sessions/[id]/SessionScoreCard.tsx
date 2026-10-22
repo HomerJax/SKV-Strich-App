@@ -5,6 +5,7 @@ import type { SessionGameResult } from "./session-types";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { translate } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/config";
+import { PRO_GAMES_PER_SESSION_LIMIT } from "@/lib/billing/product-limits";
 
 type Props = {
   results: SessionGameResult[];
@@ -260,6 +261,10 @@ export default function SessionScoreCard({
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-center">
             <div className="text-sm font-black text-slate-800">🔒 Zweites Spiel · PRO</div>
             <p className="mt-1 text-xs text-slate-500">Im Free-Plan ist ein Spiel pro Training enthalten.</p>
+          </div>
+        ) : isPro && results.length >= PRO_GAMES_PER_SESSION_LIMIT ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-xs font-semibold text-slate-600">
+            {t("score.gameLimitReached", { count: PRO_GAMES_PER_SESSION_LIMIT })}
           </div>
         ) : showNextGameForm ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-3">

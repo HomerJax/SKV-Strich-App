@@ -13,6 +13,7 @@ import {
 import { getServerI18n } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/config";
+import { formatDateOnly } from "@/lib/date-only";
 
 type SessionsPageProps = { searchParams?: Promise<{ success?: string }> };
 type Season = { id: number; name: string; start_date: string | null; end_date: string | null };
@@ -22,7 +23,7 @@ type ClubRow = { id: string; display_name: string | null; primary_color: string 
 type PresenceStatus = "in" | "out" | "open";
 
 function fmtDate(iso: string, locale: AppLocale) {
-  return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
+  return formatDateOnly(iso, locale === "de" ? "de-DE" : "en-GB", {
     weekday: "short",
     day: "2-digit",
     month: "2-digit",

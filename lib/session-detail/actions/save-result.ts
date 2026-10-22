@@ -5,6 +5,7 @@ import { getServerI18n } from "@/lib/i18n/server";
 import { sendClubPush } from "@/lib/push/club-events";
 import { persistSessionTeams } from "./persist-teams";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { PRO_GAMES_PER_SESSION_LIMIT } from "@/lib/billing/product-limits";
 
 type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -49,7 +50,11 @@ export async function handleSaveResult({
       return fail(t("sessionAction.resultInvalid"));
     }
 
-    if (!Number.isInteger(gameNo) || gameNo < 1 || gameNo > 2) {
+    if (
+      !Number.isInteger(gameNo) ||
+      gameNo < 1 ||
+      gameNo > PRO_GAMES_PER_SESSION_LIMIT
+    ) {
       return fail(t("sessionAction.gameNumberInvalid"));
     }
 
