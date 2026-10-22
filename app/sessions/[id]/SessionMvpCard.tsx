@@ -40,7 +40,7 @@ type MvpVotingAccess = {
   allowed: boolean;
   usedThisSeason: number;
   freeLimit: number;
-  reason: "free_launch" | "pro" | "free_available" | "free_limit_reached";
+  reason: "pro" | "free_available" | "free_limit_reached";
 };
 
 type MvpState = {
@@ -894,11 +894,7 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
                   tone={pillTone}
                 />
 
-                {mvpAccess?.reason === "free_launch" ? (
-                  <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
-                    {t("mvpVoting.freeLaunch")}
-                  </span>
-                ) : mvpAccess && !mvpAccess.isPro ? (
+                {mvpAccess && !mvpAccess.isPro ? (
                   <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
                     {t("mvpVoting.freeUsage", { used: mvpAccess.usedThisSeason, limit: mvpAccess.freeLimit })}
                   </span>
@@ -933,7 +929,6 @@ export default function SessionMvpCard({ sessionId }: SessionMvpCardProps) {
             <div className="mt-4">
               <ProFeatureLock
                 clubName={state.clubName}
-                freeLaunch={mvpAccess?.reason === "free_launch"}
                 title={t("mvpVoting.lockTitle")}
                 description={t("mvpVoting.lockDescription", { limit: mvpAccess?.freeLimit ?? 4 })}
                 featureList={[

@@ -10,7 +10,6 @@ type ProFeatureLockProps = {
   description?: string;
   featureList?: string[];
   compact?: boolean;
-  freeLaunch?: boolean;
 };
 
 const STRIKR_WHATSAPP_NUMBER =
@@ -44,33 +43,10 @@ export default function ProFeatureLock({
   description,
   featureList = [],
   compact = false,
-  freeLaunch = false,
 }: ProFeatureLockProps) {
   const { t } = useI18n();
   const resolvedTitle = title ?? t("pro.defaultTitle");
   const resolvedDescription = description ?? t("pro.defaultDescription");
-
-  if (freeLaunch) {
-    return (
-      <div
-        className={`rounded-[24px] border border-sky-200 bg-sky-50 shadow-sm ${
-          compact ? "p-4" : "p-5"
-        }`}
-      >
-        <div className="inline-flex rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-bold text-sky-800">
-          {t("pro.launchBadge")}
-        </div>
-
-        <h3 className="mt-3 text-lg font-extrabold tracking-tight text-slate-950">
-          {t("pro.launchTitle")}
-        </h3>
-
-        <p className="mt-2 text-sm leading-6 text-slate-700">
-          {t("pro.launchDescription")}
-        </p>
-      </div>
-    );
-  }
 
   const whatsappHref = buildWhatsAppHref(clubName, t);
 

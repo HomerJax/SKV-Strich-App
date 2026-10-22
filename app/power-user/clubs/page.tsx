@@ -223,56 +223,8 @@ function sortClubViews(a: ClubView, b: ClubView) {
 
 function BillingActions({ clubId, locale }: { clubId: string; locale: AppLocale }) {
   return (
-    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+    <div className="mt-4 grid gap-2">
       <form method="post" action="/power-user/clubs/billing">
-        <input type="hidden" name="club_id" value={clubId} />
-        <input type="hidden" name="action" value="supercup_trial" />
-        <button
-          type="submit"
-          className="inline-flex w-full items-center justify-center rounded-xl bg-amber-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-amber-700"
-        >
-          {translate(locale, "powerClubs.trial30Days")}
-        </button>
-      </form>
-
-      <form method="post" action="/power-user/clubs/billing">
-        <input type="hidden" name="club_id" value={clubId} />
-        <input type="hidden" name="action" value="founder" />
-        <button
-          type="submit"
-          className="inline-flex w-full items-center justify-center rounded-xl bg-violet-700 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-violet-800"
-        >
-          Founder
-        </button>
-      </form>
-
-      <form method="post" action="/power-user/clubs/billing">
-        <input type="hidden" name="club_id" value={clubId} />
-        <input type="hidden" name="action" value="pro_6_months" />
-        <button
-          type="submit"
-          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-800"
-        >
-          {translate(locale, "powerClubs.planSixMonths")}
-        </button>
-      </form>
-
-      <form method="post" action="/power-user/clubs/billing">
-        <input type="hidden" name="club_id" value={clubId} />
-        <input type="hidden" name="action" value="pro_yearly" />
-        <button
-          type="submit"
-          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-900 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-950"
-        >
-          {translate(locale, "powerClubs.planYearly")}
-        </button>
-      </form>
-
-      <form
-        method="post"
-        action="/power-user/clubs/billing"
-        className="sm:col-span-2"
-      >
         <input type="hidden" name="club_id" value={clubId} />
         <input type="hidden" name="action" value="free" />
         <button

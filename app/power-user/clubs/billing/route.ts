@@ -7,18 +7,6 @@ function getString(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function addMonths(months: number) {
-  const date = new Date();
-  date.setMonth(date.getMonth() + months);
-  return date.toISOString();
-}
-
-function addDays(days: number) {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString();
-}
-
 function getBillingPatch(action: string) {
   switch (action) {
     case "free":
@@ -28,44 +16,6 @@ function getBillingPatch(action: string) {
         trial_ends_at: null,
         pro_ends_at: null,
         billing_note: "Manuell auf Free gesetzt.",
-      };
-
-    case "supercup_trial": {
-      const trialEndsAt = addDays(30);
-      return {
-        plan_key: "supercup_trial",
-        status: "active",
-        trial_ends_at: trialEndsAt,
-        pro_ends_at: trialEndsAt,
-        billing_note: "Manuell für 30 Tage als Pro-Trial freigeschaltet.",
-      };
-    }
-
-    case "pro_6_months":
-      return {
-        plan_key: "pro_6_months",
-        status: "active",
-        trial_ends_at: null,
-        pro_ends_at: addMonths(6),
-        billing_note: "Manuell auf Pro 6 Monate gesetzt.",
-      };
-
-    case "pro_yearly":
-      return {
-        plan_key: "pro_yearly",
-        status: "active",
-        trial_ends_at: null,
-        pro_ends_at: addMonths(12),
-        billing_note: "Manuell auf Pro 12 Monate gesetzt.",
-      };
-
-    case "founder":
-      return {
-        plan_key: "founder",
-        status: "active",
-        trial_ends_at: null,
-        pro_ends_at: null,
-        billing_note: "Founder / dauerhaft manuell freigeschaltet.",
       };
 
     default:
@@ -97,6 +47,19 @@ export async function POST(request: Request) {
   }
 
   const supabase = createAdminClient();
+
+  const { data: existingBilling, error: readError } = await supabase
+    .from("club_billing")
+    .select("plan_key, stripe_subscription_id")
+    .eq("club_id", clubId)
+    .maybeSingle();
+
+  if (readError || existingBilling?.plan_key === "founder" || existingBilling?.stripe_subscription_id) {
+    return NextResponse.redirect(
+      new URL("/power-user/clubs?billing_error=protected_plan", request.url),
+      { status: 303 }
+    );
+  }
 
   const { error } = await supabase.from("club_billing").upsert(
     {

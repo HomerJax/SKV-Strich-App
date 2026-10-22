@@ -1,5 +1,4 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { isFreeLaunchEnabled } from "@/lib/env";
 
 export type ClubBillingPlanKey =
   | "free"
@@ -34,9 +33,7 @@ export type BillingAccess = {
   billing: ClubBilling;
   isFree: boolean;
   isPro: boolean;
-  isFreeLaunch: boolean;
   isFounder: boolean;
-  isTrial: boolean;
   isExpired: boolean;
   planLabel: string;
 };
@@ -116,37 +113,13 @@ export function getBillingAccess(
   const isFounder =
     billing.status === "active" && billing.plan_key === "founder";
 
-  const isTrial =
-    billing.status === "active" &&
-    billing.plan_key === "supercup_trial" &&
-    isDateInFuture(billing.pro_ends_at ?? billing.trial_ends_at);
-
   const hasActiveTimedPro =
     billing.status === "active" &&
-    billing.plan_key !== "free" &&
-    billing.plan_key !== "founder" &&
-    billing.plan_key !== "supercup_trial" &&
+    billing.billing_provider === "stripe" &&
+    (billing.plan_key === "pro_monthly" || billing.plan_key === "pro_yearly") &&
     (billing.pro_ends_at === null || isDateInFuture(billing.pro_ends_at));
 
-  const paidOrGrantedPro = isFounder || isTrial || hasActiveTimedPro;
-  const freeLaunchBypassClubIds = new Set(
-    [
-      process.env.STRIKR_FREE_LAUNCH_BYPASS_CLUB_IDS,
-      process.env.STRIKR_FREE_LAUNCH_BYPASS_CLUB_IDS_EXTRA,
-    ]
-      .filter(Boolean)
-      .join(",")
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  );
-  const bypassesFreeLaunch =
-    Boolean(billing.club_id) &&
-    freeLaunchBypassClubIds.has(billing.club_id.toLowerCase());
-  // Only explicitly listed clubs use their stored plan while the global launch
-  // override remains active. The server-only allowlist defaults to empty.
-  const isFreeLaunch = isFreeLaunchEnabled() && !bypassesFreeLaunch;
-  const isPro = isFreeLaunch || paidOrGrantedPro;
+  const isPro = isFounder || hasActiveTimedPro;
 
   const isExpired =
     billing.status !== "active" ||
@@ -159,13 +132,9 @@ export function getBillingAccess(
     billing,
     isFree: !isPro,
     isPro,
-    isFreeLaunch,
     isFounder,
-    isTrial,
     isExpired,
-    planLabel: isFreeLaunch
-      ? "Zum Start kostenlos"
-      : getPlanLabel(billing.plan_key),
+    planLabel: getPlanLabel(billing.plan_key),
   };
 }
 

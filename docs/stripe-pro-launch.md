@@ -31,14 +31,14 @@ Die aktuellen Preise sind bewusst als Early-Adopter-/Einführungspreise gedacht.
 - Stripe Webhook: `/api/billing/webhook`
 - automatische Synchronisierung nach `club_billing`
 - Stripe-Felder in Staging-Supabase migriert
-- Free Launch bleibt fail-safe aktiv, solange Monetarisierung nicht bewusst eingeschaltet wird
+- Free Launch ist abgeschaltet; neue und bestehende reguläre Vereine werden ausschließlich anhand ihres gespeicherten Free-/Stripe-Pro-Tarifs bewertet. Founder bleiben dauerhaft Pro.
 - Preise werden per Stripe Lookup Key aufgelöst; Price IDs müssen nicht in Vercel gepflegt werden
 
-## Isolierter Free-Test in Production
-- `STRIKR_FREE_LAUNCH_BYPASS_CLUB_IDS` ist eine optionale, serverseitige Liste exakter Club-IDs, getrennt durch Kommas.
-- Solange Free Launch global aktiv ist, werden nur die eingetragenen Club-IDs nach ihrem normalen Billing-Plan bewertet; alle anderen Clubs bleiben im Free-Launch-Verhalten.
-- Für einen echten Produktionstest nur den neuen Beispielclub ergänzen. Bereits ausdrücklich als Free vorgesehene Clubs können ebenfalls eingetragen werden. Danach die Testclub-ID entfernen, sobald der Test abgeschlossen oder der globale Rollout erfolgt ist.
-- `NEXT_PUBLIC_FREE_LAUNCH` während eines isolierten Tests nicht global deaktivieren.
+## Free/Pro-Berechtigung in Production
+- `NEXT_PUBLIC_FREE_LAUNCH=false` ist in Production gesetzt; die Berechtigungslogik wertet keinen Free-Launch-Schalter oder Club-Bypass mehr aus.
+- Neue Vereine starten mit `plan_key=free`.
+- Founder mit aktivem Founder-Plan behalten dauerhaft Pro; Stripe-Pro wird ausschließlich über eine aktive Stripe-Berechtigung freigeschaltet.
+- Reguläre Pro-Testphasen und manuelle Pro-Zuteilungen sind deaktiviert.
 
 ## Noch vor Live
 1. Live-Stripe-Konto vollständig aktivieren.
@@ -56,7 +56,7 @@ Die aktuellen Preise sind bewusst als Early-Adopter-/Einführungspreise gedacht.
    - `customer.subscription.deleted`
 6. Produktionsmigration `202610021330_add_stripe_billing_fields.sql` anwenden.
 7. Live-Testzahlung mit echtem Club durchführen.
-8. Erst danach `NEXT_PUBLIC_FREE_LAUNCH=false` setzen.
+8. Free-/Pro-Berechtigungen mit Founder-, Free- und Stripe-Abo-Regressionsprüfungen verifizieren.
 9. Vor Freigabe in den nativen Stores prüfen, wie PRO-Kauf in iOS/Android angeboten wird.
 10. Umsatzsteuer/Steuerdarstellung für Live-Betrieb festlegen.
 
