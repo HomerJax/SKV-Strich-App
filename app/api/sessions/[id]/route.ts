@@ -797,7 +797,6 @@ export async function POST(
         goalsB,
         manualTeamsRaw,
         actorUserId: currentUserId,
-        winnerPhotoPath: session.winner_photo_path,
       });
     }
 
@@ -817,7 +816,6 @@ export async function POST(
         sessionId,
         clubId,
         gameNo,
-        winnerPhotoPath: session.winner_photo_path,
       });
     }
 

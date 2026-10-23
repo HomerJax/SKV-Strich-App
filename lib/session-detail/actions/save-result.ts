@@ -25,7 +25,6 @@ type SaveResultInput = {
   goalsB: string;
   manualTeamsRaw: string;
   actorUserId: string;
-  winnerPhotoPath?: string | null;
 };
 
 export async function handleSaveResult({
@@ -37,7 +36,6 @@ export async function handleSaveResult({
   goalsB,
   manualTeamsRaw,
   actorUserId,
-  winnerPhotoPath = null,
 }: SaveResultInput) {
   let fallbackError = "Result could not be saved.";
   try {
@@ -128,22 +126,6 @@ export async function handleSaveResult({
       }
     }
 
-    let winnerPhotoCleared = false;
-    if (winnerPhotoPath) {
-      const { error: photoResetError } = await supabase
-        .from("sessions")
-        .update({ winner_photo_path: null })
-        .eq("id", sessionId)
-        .eq("club_id", clubId);
-
-      if (!photoResetError) {
-        winnerPhotoCleared = true;
-        await supabase.storage.from("session-photos").remove([winnerPhotoPath]);
-      } else {
-        console.error("Winner photo reset after result change failed", photoResetError);
-      }
-    }
-
     try {
       await syncClubAchievements(clubId);
     } catch (error) {
@@ -159,7 +141,6 @@ export async function handleSaveResult({
       goalsA: cleanA,
       goalsB: cleanB,
       gameNo,
-      winnerPhotoCleared,
     });
   } catch (error) {
     return fail(

@@ -1561,10 +1561,6 @@ ${sessionUrl}`;
         setWinnerPhotoCollapsed(false);
         setTeamsConfirmed(true);
 
-        if (result.winnerPhotoCleared === true && session) {
-          setSession({ ...session, winner_photo_path: null });
-          setWinnerPhotoUrl(null);
-        }
         setMsg(result.message);
         resetPreparedResultShare();
 
@@ -1606,7 +1602,10 @@ ${sessionUrl}`;
 
     if (saving || deletingSession || deletingGuestPlayerId) return;
 
-    const okConfirm = window.confirm(t("sessionHook.deleteGameConfirm", { game: gameNo }));
+    const okConfirm = window.confirm(
+      t("sessionHook.deleteGameConfirm", { game: gameNo }) +
+      "\n\nDas vorhandene Siegerfoto bleibt gespeichert."
+    );
     if (!okConfirm) return;
 
     const restoreScroll = preserveScrollPosition();
@@ -1628,10 +1627,6 @@ ${sessionUrl}`;
         setShowSessionEndModal(false);
         resetPreparedResultShare();
 
-        if (result.winnerPhotoCleared === true && session) {
-          setSession({ ...session, winner_photo_path: null });
-          setWinnerPhotoUrl(null);
-        }
         setMsg(result.message);
 
         if (!result.hasResult) {

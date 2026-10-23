@@ -243,12 +243,6 @@ export default async function SessionDetailPage({ params }: PageProps) {
             className="inline-flex rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900 ring-1 ring-amber-200">
             ⚠️ Spätabsagen / Nichterscheinen prüfen
           </Link>
-          {hasResult && session.session_mode !== "tournament" ? (
-            <Link href={`/sessions/${sessionId}/team-correction`}
-              className="inline-flex rounded-xl bg-cyan-50 px-4 py-2 text-sm font-bold text-cyan-900 ring-1 ring-cyan-200">
-              ✏️ Teams nachträglich korrigieren
-            </Link>
-          ) : null}
         </div>
       )}
       <SessionDetailClient
