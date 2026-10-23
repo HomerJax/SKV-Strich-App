@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSessionAccess } from "@/lib/session-detail/access";
 import { canManageClub } from "@/lib/auth/access";
+import { syncClubAchievements } from "@/lib/badges/engine";
 
 export const dynamic = "force-dynamic";
 
@@ -45,5 +46,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     console.error("Post-result team correction denied", { sessionId, code: error.code, message: error.message });
     return NextResponse.json({ error: error.message }, { status: 409 });
   }
-  return NextResponse.json({ ok: true, correction: data, message: "Teamkorrektur gespeichert. Ergebnis und Siegerfoto bleiben erhalten." });
+  // Team-specific results and standings are read from the updated assignments.
+  // Refresh derived achievement progress exactly as regular result saves do.
+  try {
+    await syncClubAchievements(access.clubId);
+  } catch (syncError) {
+    console.error("Badge sync after completed team correction failed", syncError);
+  }
+  return NextResponse.json({ ok: true, correction: data, message: "Teamkorrektur gespeichert. Ergebnis und vorhandenes Siegerfoto bleiben unverändert." });
 }
