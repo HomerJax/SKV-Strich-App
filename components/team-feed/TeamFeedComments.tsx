@@ -10,6 +10,7 @@ export default function TeamFeedComments({feedId}:{feedId:string}) {
   const [loaded,setLoaded] = useState(false);
   const [draft,setDraft] = useState("");
   const [editing,setEditing] = useState(false);
+  const [canModerate,setCanModerate] = useState(false);
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState("");
   const mine = comments.find((comment)=>comment.mine);
@@ -18,8 +19,8 @@ export default function TeamFeedComments({feedId}:{feedId:string}) {
     try {
       const res=await fetch(`/api/team-feed/comments?feedId=${encodeURIComponent(feedId)}`,{cache:"no-store"});
       if(!res.ok)throw Error("Kommentare nicht verfügbar.");
-      const result=await res.json() as {comments?:Comment[]};
-      setComments(result.comments??[]);
+      const result=await res.json() as {comments?:Comment[];canModerate?:boolean};
+      setComments(result.comments??[]);setCanModerate(result.canModerate===true);
       setLoaded(true);
     }catch {setError("Kommentare konnten nicht geladen werden.");}
   }
@@ -27,13 +28,13 @@ export default function TeamFeedComments({feedId}:{feedId:string}) {
     if(!open && !loaded) await load();
     setOpen(!open);
   }
-  async function save(action:"save"|"delete") {
+  async function save(action:"save"|"delete",targetUserId?:string) {
     if(busy)return;
     setBusy(true);setError("");
     try {
       const res=await fetch("/api/team-feed/comments",{
         method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({feedId,action,text:draft})
+        body:JSON.stringify({feedId,action,text:draft,targetUserId})
       });
       const payload=await res.json().catch(()=>({})) as {error?:string};
       if(!res.ok)throw Error(payload.error??"Speichern fehlgeschlagen.");
@@ -50,6 +51,7 @@ export default function TeamFeedComments({feedId}:{feedId:string}) {
       {comments.map(c=><div key={c.userId} className="rounded-lg bg-slate-50 p-2 text-xs">
         <span className="font-bold text-slate-700">{c.name}{c.mine?" · Du":""}</span>
         <p className="mt-0.5 whitespace-pre-wrap break-words text-slate-700">{c.body}</p>
+        {canModerate&&!c.mine?<button type="button" disabled={busy} className="mt-1 text-[10px] font-semibold text-rose-600" onClick={()=>void save("delete",c.userId)}>Als Admin entfernen</button>:null}
       </div>)}
       {mine && !editing ? <button type="button" onClick={()=>{setDraft(mine.body);setEditing(true);}} className="text-[11px] font-semibold text-cyan-700">Meinen Kommentar bearbeiten</button> : null}
       {(!mine || editing) ? <div className="space-y-2">

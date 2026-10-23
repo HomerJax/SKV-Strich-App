@@ -3,6 +3,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTeamFeedItems } from "@/lib/team-feed";
+import { canManageClub } from "@/lib/auth/access";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ async function validFeed(clubId: string, feedId: string) {
 }
 
 export async function GET(request: NextRequest) {
-  const { clubId, user } = await requireClub();
+  const { clubId, user, isPowerUser, membership } = await requireClub();
   const feedId = request.nextUrl.searchParams.get("feedId")?.trim() ?? "";
   if (!feedId || !feedPattern.test(feedId)) {
     return NextResponse.json({ error: "Ungültige Meldung" }, { status: 400 });
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest) {
   const names = new Map((players ?? []).map((p) => [p.user_id, [p.first_name,p.last_name].filter(Boolean).join(" ")]));
   return NextResponse.json({
     myUserId: user.id,
+    canModerate: canManageClub({isPowerUser,role:membership.role}),
     comments: (data ?? []).map((row) => ({
       userId: row.user_id, name: names.get(row.user_id) || "Mitspieler",
       body: row.body, createdAt: row.created_at, updatedAt: row.updated_at,
@@ -43,14 +45,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { clubId, user } = await requireClub();
-  const body = await request.json().catch(() => null) as { feedId?: string; text?: string; action?: string } | null;
+  const { clubId, user, isPowerUser, membership } = await requireClub();
+  const body = await request.json().catch(() => null) as { feedId?: string; text?: string; action?: string; targetUserId?: string } | null;
   const feedId = body?.feedId?.trim() ?? "";
   if (!await validFeed(clubId,feedId)) return NextResponse.json({ error: "Meldung nicht gefunden." }, { status: 400 });
   const admin = createAdminClient();
   if (body?.action === "delete") {
+    const moderator=canManageClub({isPowerUser,role:membership.role});
+    const targetUserId=moderator && body.targetUserId ? body.targetUserId : user.id;
     const { error } = await admin.from("team_feed_comments").delete()
-      .eq("club_id",clubId).eq("feed_id",feedId).eq("user_id",user.id);
+      .eq("club_id",clubId).eq("feed_id",feedId).eq("user_id",targetUserId);
     return error ? NextResponse.json({ error: "Löschen fehlgeschlagen." }, { status: 500 })
       : NextResponse.json({ ok:true });
   }
