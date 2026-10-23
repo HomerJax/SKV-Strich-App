@@ -11,7 +11,7 @@ async function accessSession(context:{params:Promise<{id:string}>}) {
   if(!Number.isSafeInteger(sessionId)||sessionId<1) return {error:"Ungültiger Termin.",status:400 as const};
   return requireSessionAccess(sessionId);
 }
-function permitted(a:{isPowerUser:boolean;membership:{role:string}|null;canLeadTraining:boolean}) {
+function permitted(a:{isPowerUser:boolean;membership:{role:string|null}|null;canLeadTraining:boolean}) {
   return canManageClub({isPowerUser:a.isPowerUser,role:a.membership?.role}) || a.canLeadTraining;
 }
 export async function GET(_request:NextRequest,context:{params:Promise<{id:string}>}) {
