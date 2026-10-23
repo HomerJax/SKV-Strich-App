@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DEFAULT_WHEEL_SEGMENTS, WHEEL_COLORS, type WheelSegment } from "@/lib/cashbox/wheel-config";
+import {
+  DEFAULT_WHEEL_SEGMENTS, WHEEL_COLORS, WHEEL_FIELD_COUNTS,
+  equalizeWheelSegments, resizeWheelSegments, applyWheelChancePreset,
+  type WheelSegment,
+} from "@/lib/cashbox/wheel-config";
 
 export default function WheelSettingsEditor({ initialSegments }: { initialSegments: WheelSegment[] }) {
   const [segments, setSegments] = useState<WheelSegment[]>(initialSegments.map((s) => ({ ...s })));
@@ -9,30 +13,41 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
   const [saved, setSaved] = useState("");
   const [error, setError] = useState("");
   const total = useMemo(() => segments.reduce((sum, item) => sum + item.weight, 0), [segments]);
-  const valid = total === 100 && segments.length >= 2 && segments.length <= 10 &&
+  const luckTotal = segments.filter((segment) => segment.category === "luck")
+    .reduce((sum, segment) => sum + segment.weight, 0);
+  const challengeTotal = total - luckTotal;
+  const valid = total === 100 && WHEEL_FIELD_COUNTS.some((count) => count === segments.length) &&
     segments.every((item) => item.icon.trim() && item.label.trim() &&
       Number.isInteger(item.weight) && item.weight > 0 && item.weight <= 99 &&
       item.label.trim().length <= 28 && item.description.length <= 120 &&
       [...item.icon.trim()].length <= 8);
 
-  function edit(id: string, field: "icon"|"label"|"description"|"weight", value: string) {
+  function edit(id: string, field: "icon"|"label"|"description"|"weight"|"category", value: string) {
     setSaved("");
-    setSegments((prev) => prev.map((item) =>
-      item.id === id ? { ...item, [field]: field === "weight" ? Number(value) : value } : item));
+    setError("");
+    setSegments((previous) => previous.map((item) => {
+      if (item.id !== id) return item;
+      if (field === "category") return {
+        ...item, category: value === "luck" ? "luck" as const : "challenge" as const,
+      };
+      return { ...item, [field]: field === "weight" ? Number(value) : value };
+    }));
   }
-  function add() {
-    if (segments.length >= 10) return;
-    const id = `w_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`;
-    setSegments((prev) => [...prev, {
-      id, icon: "🎯", label: "Neues Feld", description: "", weight: 1,
-    }]);
+
+  function changeCount(count: 4 | 6 | 8) {
+    setSegments((previous) => resizeWheelSegments(previous, count));
     setSaved("");
+    setError("");
   }
-  function remove(id: string) {
-    if (segments.length <= 2) return;
-    setSegments((prev) => prev.filter((item) => item.id !== id));
+
+  function applyPreset(preset: "equal" | "50" | "60" | "40") {
+    setSegments((previous) => preset === "equal"
+      ? equalizeWheelSegments(previous)
+      : applyWheelChancePreset(previous, Number(preset) as 40 | 50 | 60));
     setSaved("");
+    setError("");
   }
+
   async function save() {
     if (saving || !valid) return;
     setSaving(true);
@@ -57,15 +72,63 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
   return (
     <section className="space-y-4">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-black text-slate-950">Deine Rad-Felder</h2>
-            <p className="mt-1 text-xs text-slate-600">2–10 Felder · Prozentchancen zusammen genau 100 %</p>
+        <div>
+          <h2 className="text-base font-black text-slate-950">So sieht dein Schicksalsrad aus</h2>
+          <p className="mt-1 text-xs text-slate-600">
+            Mehr Felder = kleinere Tortenstücke. Wähle 4, 6 oder 8 Felder und einen Chancen-Vorschlag.
+          </p>
+        </div>
+
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-700">
+            1 · Anzahl der Felder
+          </p>
+          <div className="grid grid-cols-3 gap-2" role="group" aria-label="Anzahl der Rad-Felder">
+            {WHEEL_FIELD_COUNTS.map((count) => (
+              <button key={count} type="button" aria-pressed={segments.length === count}
+                onClick={() => changeCount(count)}
+                className={`rounded-xl border px-3 py-3 text-center text-sm font-black transition
+                  ${segments.length === count
+                    ? "border-cyan-600 bg-cyan-600 text-white shadow-md"
+                    : "border-slate-200 bg-white text-slate-800 hover:border-cyan-400"}`}>
+                🎡 {count} Felder
+              </button>
+            ))}
           </div>
-          <button type="button" onClick={add} disabled={segments.length >= 10}
-            className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white disabled:opacity-40">
-            + Feld hinzufügen
-          </button>
+          <p className="mt-2 text-[11px] leading-5 text-slate-500">
+            Beim Wechsel bleiben vorhandene Texte erhalten. Zusätzliche Felder bekommen Vorschläge und
+            die Prozente werden zunächst möglichst gleich verteilt.
+          </p>
+        </div>
+
+        <div className="mt-5">
+          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-700">
+            2 · Chancen per Klick verteilen
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { id: "equal", label: "⚖️ Alle gleich", hint: "Jedes Feld ähnlich oft" },
+              { id: "50", label: "🎯 50 / 50", hint: "Glück und Pech gleich" },
+              { id: "60", label: "🍀 60 / 40", hint: "60 % Glück · 40 % Pech" },
+              { id: "40", label: "🔥 40 / 60", hint: "40 % Glück · 60 % Pech" },
+            ] as const).map((preset) => (
+              <button key={preset.id} type="button" onClick={() => applyPreset(preset.id)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left hover:border-cyan-400 hover:bg-cyan-50">
+                <span className="block text-xs font-black text-slate-950">{preset.label}</span>
+                <span className="mt-1 block text-[10px] font-medium text-slate-600">{preset.hint}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] leading-5 text-slate-500">
+            Glück oder Pech kannst du unten pro Feld festlegen. Die Vorschläge ändern nur die
+            Wahrscheinlichkeiten – keine echten Geld- oder Bierstrafen.
+          </p>
+        </div>
+        <div className="mt-5 flex items-center justify-between">
+          <h3 className="text-xs font-black uppercase tracking-wide text-slate-700">
+            3 · Felder bearbeiten
+          </h3>
+          <span className="text-[11px] font-bold text-cyan-800">{segments.length} Felder</span>
         </div>
         <div className="mt-4 space-y-3">
           {segments.map((segment, index) => (
@@ -76,10 +139,10 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
                     style={{ backgroundColor: WHEEL_COLORS[index % WHEEL_COLORS.length] }}>{segment.icon || "🎡"}</span>
                   <span className="text-sm font-black text-slate-900">Feld {index + 1}</span>
                 </div>
-                <button type="button" onClick={() => remove(segment.id)} disabled={segments.length <= 2}
-                  className="rounded-lg px-2 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-30">
-                  Entfernen
-                </button>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-bold
+                  ${segment.category === "luck" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                  {segment.category === "luck" ? "🍀 Glück" : "🔥 Pech"}
+                </span>
               </div>
               <div className="grid grid-cols-[80px_1fr_104px] gap-2">
                 <label className="text-[11px] font-bold text-slate-600">
@@ -103,6 +166,15 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
                 </label>
               </div>
               <label className="mt-2 block text-[11px] font-bold text-slate-600">
+                Ist das ein gutes oder schlechtes Ergebnis?
+                <select value={segment.category || "challenge"}
+                  onChange={(event) => edit(segment.id, "category", event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900">
+                  <option value="luck">🍀 Glück · gut für den Spieler</option>
+                  <option value="challenge">🔥 Pech · kleine Kabinen-Challenge</option>
+                </select>
+              </label>
+              <label className="mt-2 block text-[11px] font-bold text-slate-600">
                 Was bedeutet dieses Feld?
                 <input value={segment.description} maxLength={120}
                   onChange={(event) => edit(segment.id, "description", event.target.value)}
@@ -123,7 +195,9 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
             ))}
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <p className="text-xs font-bold text-emerald-800">🍀 Glück: {luckTotal} %</p>
+          <p className="text-xs font-bold text-amber-800">🔥 Pech: {challengeTotal} %</p>
           <p className="text-xs font-bold text-slate-700">
             Summe: <span className={total === 100 ? "text-emerald-700" : "text-rose-700"}>
               {total} %
@@ -147,9 +221,9 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
           werden durch einen Zufallsdreh nicht automatisch verändert. Bereits gedrehte
           Strafen behalten ihr ursprüngliches Ergebnis, auch wenn du die Felder änderst.
         </p>
-        <button type="button" onClick={() => { setSegments(DEFAULT_WHEEL_SEGMENTS.map((s) => ({...s})));setSaved(""); }}
+        <button type="button" onClick={() => { setSegments(equalizeWheelSegments(DEFAULT_WHEEL_SEGMENTS.map((s) => ({...s}))));setSaved(""); }}
           className="mt-3 text-xs font-bold text-cyan-800 underline underline-offset-2">
-          Standardfelder in den Editor laden (erst nach Speichern aktiv)
+          4 Standardfelder gleichmäßig laden (erst nach Speichern aktiv)
         </button>
       </div>
     </section>

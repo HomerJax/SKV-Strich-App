@@ -133,8 +133,10 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                 const end = start + segment.weight * 3.6;
                 const center = (start + end) / 2;
                 const small = end - start < 28;
-                const point = polar(center, small ? 119 : 100);
-                const textPoint = polar(center, 70);
+                const dense = segments.length >= 8;
+                const point = polar(center, small || dense ? 120 : 112);
+                const textPoint = polar(center, dense ? 88 : segments.length >= 6 ? 83 : 76);
+                const maxLabelLength = dense ? 7 : segments.length >= 6 ? 9 : 12;
                 return (
                   <g key={segment.id}>
                     <path d={sector(start, end)} fill={WHEEL_COLORS[index % WHEEL_COLORS.length]}
@@ -143,9 +145,9 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                       fontSize={small ? 13 : 23}>{segment.icon}</text>
                     {!small && (
                       <text x={textPoint.x} y={textPoint.y} textAnchor="middle"
-                        dominantBaseline="central" fontSize="10" fontWeight="800" fill="#fff"
+                        dominantBaseline="central" fontSize={dense ? "8" : segments.length >= 6 ? "9" : "10"} fontWeight="800" fill="#fff"
                         stroke="#041725" strokeWidth=".5" paintOrder="stroke">
-                        {segment.label.length > 12 ? segment.label.slice(0, 11) + "…" : segment.label}
+                        {segment.label.length > maxLabelLength ? segment.label.slice(0, maxLabelLength - 1) + "…" : segment.label}
                       </text>
                     )}
                   </g>
@@ -163,6 +165,9 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
           {segments.map((segment, index) => (
             <div key={segment.id} className="rounded-xl border border-slate-200 bg-white px-2.5 py-2.5"
               style={{ borderLeft: `4px solid ${WHEEL_COLORS[index % WHEEL_COLORS.length]}` }}>
+              <div className="mb-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                {segment.category === "luck" ? "🍀 Glück" : "🔥 Pech"}
+              </div>
               <div className="flex items-start justify-between gap-1">
                 <span className="text-[11px] font-black leading-4 text-slate-900">
                   {segment.icon} {segment.label}

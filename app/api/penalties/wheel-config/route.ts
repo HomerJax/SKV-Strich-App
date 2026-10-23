@@ -25,9 +25,9 @@ export async function PUT(request: NextRequest) {
   }
   const payload = await request.json().catch(() => null) as { segments?: unknown } | null;
   const segments = parseWheelSegments(payload?.segments);
-  if (!segments) {
+  if (!segments || ![4, 6, 8].includes(segments.length)) {
     return NextResponse.json({
-      error: "Erlaubt sind 2 bis 10 Felder mit eindeutiger ID, Symbol, Namen und 1–99 % Chance. Die Summe muss 100 % sein.",
+      error: "Erlaubt sind genau 4, 6 oder 8 Felder mit Name, Symbol, Glück/Pech-Kategorie und 1–99 % Chance. Die Summe muss 100 % sein.",
     }, { status: 400 });
   }
   const db = createAdminClient();
