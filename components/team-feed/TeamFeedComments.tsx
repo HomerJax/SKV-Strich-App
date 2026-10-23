@@ -57,7 +57,7 @@ export default function TeamFeedComments({feedId}:{feedId:string}) {
       {(!mine || editing) ? <div className="space-y-2">
         <textarea aria-label="Dein Kommentar" value={draft} onChange={e=>setDraft(e.target.value)}
           maxLength={200} rows={2} placeholder="Einmal deinen Senf dazugeben …"
-          className="w-full rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900"/>
+          className="w-full rounded-xl border border-slate-200 bg-white p-2 text-base text-slate-900 sm:text-sm"/>
         <div className="flex items-center justify-between gap-2">
           <span className="text-[10px] text-slate-400">{draft.length}/200 · Ein Kommentar pro Meldung</span>
           <button type="button" disabled={busy||!draft.trim()} onClick={()=>void save("save")}

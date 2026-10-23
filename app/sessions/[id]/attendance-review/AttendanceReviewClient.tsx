@@ -46,11 +46,11 @@ export default function AttendanceReviewClient({sessionId}:{sessionId:number}) {
         <button disabled={busy!==null} onClick={()=>void submit(row.id,"decide","excuse")} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold disabled:opacity-40">Entschuldigen / Ausnahme</button>
       </div>:null}
       {!row.review&&row.firstInAt?<div className="mt-3 space-y-2">
-        <select aria-label={`Grund für ${row.name}`} value={kind[row.id]??"late_cancel"} onChange={e=>setKind(p=>({...p,[row.id]:e.target.value as "late_cancel"|"no_show"}))} className="w-full rounded-lg border border-slate-200 p-2 text-sm">
+        <select aria-label={`Grund für ${row.name}`} value={kind[row.id]??"late_cancel"} onChange={e=>setKind(p=>({...p,[row.id]:e.target.value as "late_cancel"|"no_show"}))} className="w-full rounded-lg border border-slate-200 p-2 text-base sm:text-sm">
           <option value="late_cancel">Nach Deadline abgesagt (auch über Freund)</option>
           <option value="no_show">Zugesagt, nicht erschienen</option>
         </select>
-        <input aria-label="Notiz" value={notes[row.id]??""} maxLength={500} onChange={e=>setNotes(p=>({...p,[row.id]:e.target.value}))} placeholder="z. B. Rolf meldete sich per WhatsApp um 18:45 Uhr" className="w-full rounded-lg border border-slate-200 p-2 text-sm"/>
+        <input aria-label="Notiz" value={notes[row.id]??""} maxLength={500} onChange={e=>setNotes(p=>({...p,[row.id]:e.target.value}))} placeholder="z. B. Rolf meldete sich per WhatsApp um 18:45 Uhr" className="w-full rounded-lg border border-slate-200 p-2 text-base sm:text-sm"/>
         <button disabled={busy!==null} onClick={()=>void submit(row.id,"report")} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">Zur Prüfung erfassen</button>
       </div>:null}
     </div>)}
