@@ -7,7 +7,7 @@ import type { AppLocale } from "@/lib/i18n/config";
 
 export type TeamFeedItem = {
   id: string;
-  kind: "badge" | "result" | "birthday" | "beer" | "late_rsvp";
+  kind: "badge" | "result" | "birthday" | "beer" | "late_rsvp" | "attendance" | "wheel";
   title: string;
   body: string;
   href: string;
@@ -362,7 +362,42 @@ export async function getTeamFeedItems(
     };
   });
 
-  const combinedItems = [...lateRsvpItems, ...birthdayItems, ...beerItems, ...badgeItems, ...resultItems];
+  // Confirmed penalties and cosmetic wheel results become locker-room news.
+  const [{ data: reviews }, { data: spins }] = await Promise.all([
+    supabase.from("session_attendance_reviews")
+      .select("id,session_id,kind,reviewed_at,players(first_name,last_name,nickname)")
+      .eq("club_id",clubId).eq("status","penalized").order("reviewed_at",{ascending:false}).limit(Math.max(12,limit*2)),
+    supabase.from("penalty_wheel_spins")
+      .select("id,outcome,spun_at,players(first_name,last_name,nickname)")
+      .eq("club_id",clubId).order("spun_at",{ascending:false}).limit(Math.max(12,limit*2))
+  ]);
+  type ReviewNews={id:number;session_id:number;kind:string;reviewed_at:string|null;players:BadgePlayer|BadgePlayer[]|null};
+  type WheelNews={id:number;outcome:string;spun_at:string;players:BadgePlayer|BadgePlayer[]|null};
+  const attendanceItems:TeamFeedItem[]=((reviews??[]) as ReviewNews[]).map(row=>{
+    const actor=playerName(row.players,locale);
+    return {
+      id:`attendance:${row.id}`,kind:"attendance",
+      title:row.kind==="no_show"?`👻 ${actor} hat die Kabine versetzt!`:`🚨 ${actor} hat spät abgesagt!`,
+      body:"Die Strafe wurde vom Verantwortlichen bestätigt. Die Mannschaftskasse freut sich. 😄",
+      href:`/sessions/${row.session_id}`,occurredAt:row.reviewed_at??new Date().toISOString(),actorName:actor
+    };
+  });
+  const wheelCopy:Record<string,string>={
+    lucky:"🍀 Kabinen-Joker – heute keine Sprüche!",
+    usual:"😎 Alles beim Alten – immerhin gut gedreht!",
+    confession:"🎤 Kabinen-Beichte beim nächsten Training!",
+    challenge:"🔥 Die nächste Aufwärmrunde gehört dir!"
+  };
+  const wheelItems:TeamFeedItem[]=((spins??[]) as WheelNews[]).map(row=>{
+    const actor=playerName(row.players,locale);
+    return {
+      id:`wheel:${row.id}`,kind:"wheel",
+      title:`🎡 ${actor} hat am Schicksalsrad gedreht!`,
+      body:wheelCopy[row.outcome]??"Das Rad hat entschieden – die Strafe bleibt unverändert.",
+      href:"/mannschaftskasse",occurredAt:row.spun_at,actorName:actor
+    };
+  });
+  const combinedItems = [...wheelItems, ...attendanceItems, ...lateRsvpItems, ...birthdayItems, ...beerItems, ...badgeItems, ...resultItems];
   const reactionFeedIds = combinedItems.filter((item) => item.kind === "birthday" || item.kind === "beer" || item.kind === "late_rsvp").map((item) => item.id);
   if (reactionFeedIds.length > 0) {
     const { data: reactionRows } = await supabase.from("team_feed_reactions").select("feed_id,reaction,user_id").eq("club_id", clubId).in("feed_id", reactionFeedIds);
