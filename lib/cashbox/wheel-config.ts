@@ -74,6 +74,36 @@ export function equalizeWheelSegments(segments: WheelSegment[]): WheelSegment[] 
   return segments.map((segment, index) => ({ ...segment, weight: weights[index] }));
 }
 
+/**
+ * Make chosen fields roughly twice as likely as the unchosen fields.
+ * Percentages are rounded with the largest-remainder method, preserving 100%.
+ * These are actual server-side draw odds (the wheel uses the same weights).
+ * Selection is an editing aid: only the resulting weights are persisted.
+ */
+export function favorWheelSegments(
+  segments: WheelSegment[],
+  preferredIds: readonly string[],
+): WheelSegment[] {
+  const preferred = new Set(preferredIds);
+  const selectedCount = segments.filter((segment) => preferred.has(segment.id)).length;
+  if (selectedCount === 0 || selectedCount === segments.length) {
+    return segments.map((segment) => ({ ...segment }));
+  }
+  const units = segments.map((segment) => preferred.has(segment.id) ? 2 : 1);
+  const totalUnits = units.reduce((sum, weight) => sum + weight, 0);
+  const shares = units.map((weight) => 100 * weight / totalUnits);
+  const weights = shares.map((value) => Math.floor(value));
+  const remaining = 100 - weights.reduce((sum, weight) => sum + weight, 0);
+  const byRemainder = segments.map((_, index) => index).sort((left, right) =>
+    (shares[right] - Math.floor(shares[right])) -
+    (shares[left] - Math.floor(shares[left])) ||
+    Number(preferred.has(segments[right].id)) - Number(preferred.has(segments[left].id)) ||
+    left - right,
+  );
+  for (let i = 0; i < remaining; i++) weights[byRemainder[i]]++;
+  return segments.map((segment, index) => ({ ...segment, weight: weights[index] }));
+}
+
 export function resizeWheelSegments(segments: WheelSegment[], size: 4 | 6 | 8): WheelSegment[] {
   const next = segments.slice(0, size).map((segment) => ({ ...segment }));
   // Keep existing custom field descriptions; provide sensible new defaults.

@@ -3,12 +3,13 @@
 import { useMemo, useState } from "react";
 import {
   DEFAULT_WHEEL_SEGMENTS, WHEEL_COLORS, WHEEL_FIELD_COUNTS,
-  equalizeWheelSegments, resizeWheelSegments, applyWheelChancePreset,
+  equalizeWheelSegments, resizeWheelSegments, applyWheelChancePreset, favorWheelSegments,
   type WheelSegment,
 } from "@/lib/cashbox/wheel-config";
 
 export default function WheelSettingsEditor({ initialSegments }: { initialSegments: WheelSegment[] }) {
   const [segments, setSegments] = useState<WheelSegment[]>(initialSegments.map((s) => ({ ...s })));
+  const [preferredIds, setPreferredIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState("");
   const [error, setError] = useState("");
@@ -36,6 +37,7 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
 
   function changeCount(count: 4 | 6 | 8) {
     setSegments((previous) => resizeWheelSegments(previous, count));
+    setPreferredIds([]);
     setSaved("");
     setError("");
   }
@@ -44,6 +46,22 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
     setSegments((previous) => preset === "equal"
       ? equalizeWheelSegments(previous)
       : applyWheelChancePreset(previous, Number(preset) as 40 | 50 | 60));
+    setPreferredIds([]);
+    setSaved("");
+    setError("");
+  }
+
+  function togglePreferred(id: string) {
+    setPreferredIds((previous) => previous.includes(id)
+      ? previous.filter((item) => item !== id)
+      : [...previous, id]);
+    setSaved("");
+    setError("");
+  }
+
+  function applyPreferred() {
+    if (!preferredIds.length || preferredIds.length >= segments.length) return;
+    setSegments((previous) => favorWheelSegments(previous, preferredIds));
     setSaved("");
     setError("");
   }
@@ -107,7 +125,7 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
           </p>
           <div className="grid grid-cols-2 gap-2">
             {([
-              { id: "equal", label: "⚖️ Alle gleich", hint: "Jedes Feld ähnlich oft" },
+              { id: "equal", label: "⚖️ Fair verteilen", hint: "Alle Felder erhalten nahezu die gleiche Chance" },
               { id: "50", label: "🎯 50 / 50", hint: "Glück und Pech gleich" },
               { id: "60", label: "🍀 60 / 40", hint: "60 % Glück · 40 % Pech" },
               { id: "40", label: "🔥 40 / 60", hint: "40 % Glück · 60 % Pech" },
@@ -123,6 +141,30 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
             Glück oder Pech kannst du unten pro Feld festlegen. Die Vorschläge ändern nur die
             Wahrscheinlichkeiten – keine echten Geld- oder Bierstrafen.
           </p>
+
+          <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50/70 p-3">
+            <p className="text-xs font-black text-cyan-950">⭐ Einzelne Felder häufiger treffen lassen</p>
+            <p className="mt-1 text-[11px] leading-5 text-slate-700">
+              Markiere unten z. B. <b>Feld 1</b> und <b>Feld 2</b> mit „⭐ Häufiger“.
+              Danach verteilen wir 100 % automatisch. Markierte Felder haben jeweils
+              ungefähr die doppelte Chance gegenüber einem nicht markierten Feld.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold text-cyan-900">
+                {preferredIds.length} von {segments.length} Feldern markiert
+              </span>
+              <button type="button" onClick={applyPreferred}
+                disabled={preferredIds.length === 0 || preferredIds.length === segments.length}
+                className="rounded-xl bg-cyan-700 px-4 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40">
+                ⭐ Markierte Felder häufiger
+              </button>
+            </div>
+            {preferredIds.length === segments.length && (
+              <p className="mt-2 text-[11px] font-semibold text-amber-900">
+                Wenn alle Felder markiert sind, kann keines häufiger sein. Mindestens eines abwählen.
+              </p>
+            )}
+          </div>
         </div>
         <div className="mt-5 flex items-center justify-between">
           <h3 className="text-xs font-black uppercase tracking-wide text-slate-700">
@@ -132,17 +174,31 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
         </div>
         <div className="mt-4 space-y-3">
           {segments.map((segment, index) => (
-            <div key={segment.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <div className="mb-3 flex items-center justify-between gap-3">
+            <div key={segment.id}
+              className={`rounded-xl border p-3 ${preferredIds.includes(segment.id)
+                ? "border-cyan-500 bg-cyan-50/70 ring-1 ring-cyan-200"
+                : "border-slate-200 bg-slate-50"}`}>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-full text-lg text-white"
                     style={{ backgroundColor: WHEEL_COLORS[index % WHEEL_COLORS.length] }}>{segment.icon || "🎡"}</span>
                   <span className="text-sm font-black text-slate-900">Feld {index + 1}</span>
                 </div>
-                <span className={`rounded-full px-2 py-1 text-[10px] font-bold
-                  ${segment.category === "luck" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-                  {segment.category === "luck" ? "🍀 Glück" : "🔥 Pech"}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-bold
+                    ${segment.category === "luck" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                    {segment.category === "luck" ? "🍀 Glück" : "🔥 Pech"}
+                  </span>
+                  <button type="button" onClick={() => togglePreferred(segment.id)}
+                    aria-pressed={preferredIds.includes(segment.id)}
+                    aria-label={`Feld ${index + 1}: ${segment.label} ${preferredIds.includes(segment.id) ? "nicht mehr bevorzugen" : "häufiger treffen lassen"}`}
+                    className={`rounded-full border px-3 py-1.5 text-[11px] font-bold transition
+                      ${preferredIds.includes(segment.id)
+                        ? "border-cyan-700 bg-cyan-700 text-white"
+                        : "border-slate-300 bg-white text-slate-700 hover:border-cyan-500"}`}>
+                    {preferredIds.includes(segment.id) ? "★ Häufiger gewählt" : "☆ Häufiger"}
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-[80px_1fr_104px] gap-2">
                 <label className="text-[11px] font-bold text-slate-600">
@@ -221,7 +277,7 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
           werden durch einen Zufallsdreh nicht automatisch verändert. Bereits gedrehte
           Strafen behalten ihr ursprüngliches Ergebnis, auch wenn du die Felder änderst.
         </p>
-        <button type="button" onClick={() => { setSegments(equalizeWheelSegments(DEFAULT_WHEEL_SEGMENTS.map((s) => ({...s}))));setSaved(""); }}
+        <button type="button" onClick={() => { setSegments(equalizeWheelSegments(DEFAULT_WHEEL_SEGMENTS.map((s) => ({...s}))));setPreferredIds([]);setSaved(""); }}
           className="mt-3 text-xs font-bold text-cyan-800 underline underline-offset-2">
           4 Standardfelder gleichmäßig laden (erst nach Speichern aktiv)
         </button>
