@@ -62,6 +62,13 @@ export async function POST(request:NextRequest,context:{params:Promise<{id:strin
     if(existing?.status && existing.status!=="pending")return NextResponse.json({error:"Fall ist bereits abgeschlossen."},{status:409});
     const {data:initialYes}=await db.from("session_rsvp_first_ins").select("first_in_at").eq("club_id",clubId).eq("session_id",sessionId).eq("player_id",playerId).maybeSingle();
     if(!initialYes)return NextResponse.json({error:"Es liegt keine vorherige Zusage vor."},{status:409});
+    const {data:currentRsvp}=await db.from("session_rsvps")
+      .select("status,updated_at").eq("club_id",clubId).eq("session_id",sessionId)
+      .eq("player_id",playerId).maybeSingle();
+    if(!currentRsvp || currentRsvp.status==="open")
+      return NextResponse.json({error:"Keine aktive oder verspätet zurückgezogene Zusage vorhanden."},{status:409});
+    if(currentRsvp.status==="out" && (kind==="no_show" || (deadline!==null && new Date(currentRsvp.updated_at).getTime()<=deadline)))
+      return NextResponse.json({error:"Der Spieler hatte bereits rechtzeitig abgesagt. Keine Strafe möglich."},{status:409});
     const note=(body.note??"").trim().slice(0,500);
     const {error}=await db.from("session_attendance_reviews").upsert({
       club_id:clubId,session_id:sessionId,player_id:playerId,kind,status:"pending",
