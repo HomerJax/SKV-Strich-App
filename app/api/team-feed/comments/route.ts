@@ -6,7 +6,7 @@ import { getTeamFeedItems } from "@/lib/team-feed";
 
 export const dynamic = "force-dynamic";
 
-const feedPattern = /^(badge:[0-9a-zA-Z-]+|result:\d+|birthday:[0-9:-]+|beer:[0-9:-]+|late-rsvp:\d+)$/;
+const feedPattern = /^(badge:[0-9a-zA-Z-]+|result:\d+|birthday:[0-9:-]+|beer:[0-9:-]+|late-rsvp:\d+|attendance:\d+|wheel:\d+)$/;
 
 async function validFeed(clubId: string, feedId: string) {
   if (feedId.length > 160 || !feedPattern.test(feedId)) return false;
