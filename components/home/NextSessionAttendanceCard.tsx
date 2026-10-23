@@ -139,6 +139,7 @@ export default function NextSessionAttendanceCard({
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [savedMessage, setSavedMessage] = useState("");
   const [now, setNow] = useState<Date | null>(null);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -237,6 +238,7 @@ export default function NextSessionAttendanceCard({
       setBusy(true);
       setPendingAction(action);
       setErrorMessage("");
+      setSavedMessage("");
 
       const formData = new FormData();
       formData.set("intent", "set_self_presence");
@@ -249,6 +251,7 @@ export default function NextSessionAttendanceCard({
       if (!response.ok) throw new Error(payload?.error || t("session.saveError"));
 
       setStatus(nextStatus);
+      setSavedMessage(nextStatus==="in" ? (locale==="de" ? "✓ Deine Zusage wurde gespeichert." : "✓ Your attendance was saved.") : nextStatus==="out" ? (locale==="de" ? "✓ Deine Absage wurde gespeichert." : "✓ Your absence was saved.") : (locale==="de" ? "✓ Rückmeldung zurückgesetzt." : "✓ Response cleared."));
       if (nextStatus === "in" && payload?.latePenalty?.message) {
         setLatePenaltyMessage(String(payload.latePenalty.message));
       }
@@ -313,6 +316,7 @@ export default function NextSessionAttendanceCard({
           {errorMessage}
         </div>
       ) : null}
+      {savedMessage ? <div role="status" className="relative mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">{savedMessage}</div> : null}
 
       {!notNominated ? (
         <div className="relative mt-4 rounded-[22px] bg-slate-50 p-1.5 ring-1 ring-slate-200">

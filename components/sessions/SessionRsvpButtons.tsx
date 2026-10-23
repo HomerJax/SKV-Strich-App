@@ -27,10 +27,11 @@ export default function SessionRsvpButtons({
   requireAbsenceReason?: boolean;
   readOnly?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [status, setStatus] = useState<PresenceStatus>(initialStatus);
   const [busy, setBusy] = useState<PresenceStatus | null>(null);
   const [error, setError] = useState("");
+  const [savedMessage, setSavedMessage] = useState("");
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [commentOpen, setCommentOpen] = useState(false);
@@ -101,6 +102,7 @@ export default function SessionRsvpButtons({
     try {
       setBusy(nextStatus);
       setError("");
+      setSavedMessage("");
 
       const formData = new FormData();
       formData.set("intent", "set_self_presence");
@@ -118,6 +120,7 @@ export default function SessionRsvpButtons({
       if (!response.ok) throw new Error(payload?.error || t("session.responseSaveError"));
 
       setStatus(target);
+      setSavedMessage(target==="in" ? (locale==="de" ? "✓ Deine Zusage wurde gespeichert." : "✓ Your attendance was saved.") : target==="out" ? (locale==="de" ? "✓ Deine Absage wurde gespeichert." : "✓ Your absence was saved.") : (locale==="de" ? "✓ Rückmeldung zurückgesetzt." : "✓ Response cleared."));
       onStatusChange?.(target);
       if (target === "in" && payload?.latePenalty?.message) {
         setLatePenaltyMessage(String(payload.latePenalty.message));
@@ -253,6 +256,7 @@ export default function SessionRsvpButtons({
       ) : null}
 
       {error ? <div className="mt-2 text-xs font-semibold text-rose-700">{error}</div> : null}
+      {savedMessage ? <div role="status" className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">{savedMessage}</div> : null}
       <LateRsvpModal
         open={latePenaltyMessage !== null}
         message={latePenaltyMessage ?? ""}
