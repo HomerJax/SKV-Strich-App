@@ -5,6 +5,7 @@ import { LoaderCircle, Medal, X } from "lucide-react";
 import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TeamFeedItem } from "@/lib/team-feed";
+import TeamFeedComments from "@/components/team-feed/TeamFeedComments";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { AppLocale } from "@/lib/i18n/config";
 import { trackProductEvent } from "@/components/ProductAnalyticsTracker";
@@ -228,6 +229,7 @@ export default function HomeTeamFeedPreview({
                         {formatDate(item.occurredAt, locale)}
                       </div>
                     </Link>
+                    <TeamFeedComments feedId={item.id}/>
                   </div>
                 );
               }
@@ -296,13 +298,14 @@ export default function HomeTeamFeedPreview({
                       {(Object.values(item.reactions??{}).reduce((a,b)=>a+b,0)>0)&&<button type="button" onClick={()=>void showReactionNames(item.id)} className="ml-1 text-[10px] font-semibold text-cyan-700 underline underline-offset-2">{locale==="de"?"Wer hat reagiert?":"Who reacted?"}</button>}
                     </div>
                     {openReactions===item.id&&<div className="ml-[38px] mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">{reactionNamesLoading?"Lade Reaktionen …":reactionNames.length?reactionNames.map((r,i)=><div key={i} className="py-1"><span className="font-semibold">{r.name}</span> · {r.reaction==="glueckwunsch"?"Glückwunsch":r.reaction==="biermaschine"?"Feier ich":r.reaction==="geilo"?"Geilo":r.reaction==="daumen_hoch"?"👍":r.reaction}</div>):"Noch keine Reaktionen"}</div>}
+                    <div className="ml-[38px]"><TeamFeedComments feedId={item.id}/></div>
                   </div>
                 );
               }
 
               return (
+                <div key={item.id} className="py-2">
                 <Link
-                  key={item.id}
                   href={item.href}
                   onClick={() => trackProductEvent("team_feed_open", { kind: item.kind })}
                   className="flex items-center gap-3 px-1 py-3 transition hover:bg-slate-50/70"
@@ -324,6 +327,8 @@ export default function HomeTeamFeedPreview({
                     {formatDate(item.occurredAt, locale)}
                   </div>
                 </Link>
+                <TeamFeedComments feedId={item.id}/>
+                </div>
               );
             })}
           </div>

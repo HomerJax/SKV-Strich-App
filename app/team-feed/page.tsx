@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getTeamFeedItems } from "@/lib/team-feed";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
+import TeamFeedComments from "@/components/team-feed/TeamFeedComments";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -67,8 +68,8 @@ export default async function TeamFeedPage() {
                 const Icon = item.kind === "badge" ? Trophy : Medal;
 
                 return (
+                  <div key={item.id} className="px-4 py-3">
                   <Link
-                    key={item.id}
                     href={item.href}
                     className="flex gap-3 px-4 py-4 transition hover:bg-slate-50"
                   >
@@ -94,6 +95,8 @@ export default async function TeamFeedPage() {
                       </div>
                     </div>
                   </Link>
+                  <TeamFeedComments feedId={item.id}/>
+                  </div>
                 );
               })}
             </div>

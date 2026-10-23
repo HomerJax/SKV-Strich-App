@@ -333,7 +333,7 @@ export default function NextSessionAttendanceCard({
               {t("session.commitmentLocked")}
             </div>
           ) : null}
-          {!readOnly && (commentOpen || (status === "in" && comment.trim().length > 0)) ? (
+          {!readOnly && (commentOpen || status === "in") ? (
             <div className="m-1.5 mt-2">
               {commentOpen ? (
                 <div className="rounded-[20px] border border-emerald-200 bg-white p-3">
