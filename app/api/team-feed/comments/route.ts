@@ -11,7 +11,7 @@ const feedPattern = /^(badge:[0-9a-zA-Z-]+|result:\d+|birthday:[0-9:-]+|beer:[0-
 
 async function validFeed(clubId: string, feedId: string) {
   if (feedId.length > 160 || !feedPattern.test(feedId)) return false;
-  const items = await getTeamFeedItems(clubId, 120);
+  const items = await getTeamFeedItems(clubId, 120, false);
   return items.some((item) => item.id === feedId);
 }
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("team_feed_comments")
     .select("user_id,body,created_at,updated_at")
-    .eq("club_id", clubId).eq("feed_id", feedId).order("created_at");
+    .eq("club_id", clubId).eq("feed_id", feedId).order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "Kommentare konnten nicht geladen werden." }, { status: 500 });
   const ids = [...new Set((data ?? []).map((row) => row.user_id))];
   const admin = createAdminClient();

@@ -17,6 +17,17 @@ export type TeamFeedItem = {
   badgeDetailText?: string;
   reactions?: Record<string, number>;
   myReactions?: string[];
+  commentCount?: number;
+  recentComments?: TeamFeedCommentPreview[];
+};
+
+export type TeamFeedCommentPreview = {
+  userId: string;
+  name: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  mine: boolean;
 };
 
 type SessionRow = {
@@ -177,6 +188,7 @@ function sessionOccurredAt(session: SessionRow) {
 export async function getTeamFeedItems(
   clubId: string,
   limit = 20,
+  includeCommentPreviews = true,
 ): Promise<TeamFeedItem[]> {
   const { locale } = await getServerI18n();
   const supabase = await createClient();
@@ -435,12 +447,64 @@ export async function getTeamFeedItems(
     }
   }
 
-  return combinedItems
+  const visibleItems = combinedItems
     .sort(
       (a, b) =>
         new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
     )
     .slice(0, limit);
+
+  // Fetch previews together instead of one HTTP request per news item.
+  // Comments are tied to stable feed IDs and remain visible if ranking changes.
+  if (includeCommentPreviews && visibleItems.length > 0) {
+    const { data: commentRows, error: commentError } = await supabase
+      .from("team_feed_comments")
+      .select("feed_id,user_id,body,created_at,updated_at")
+      .eq("club_id", clubId)
+      .in("feed_id", visibleItems.map((item) => item.id))
+      .order("created_at", { ascending: false })
+      .limit(5000);
+    if (commentError) {
+      console.error("Team feed comment previews unavailable", commentError.message);
+    } else if (commentRows?.length) {
+      const authorIds = [...new Set(commentRows.map((row) => row.user_id))];
+      const [{ data: authors }, { data: auth }] = await Promise.all([
+        supabase.from("players")
+          .select("user_id,first_name,last_name")
+          .eq("club_id", clubId)
+          .in("user_id", authorIds),
+        supabase.auth.getUser(),
+      ]);
+      const nameByUserId = new Map(
+        (authors ?? []).map((author) => [
+          author.user_id,
+          [author.first_name, author.last_name].filter(Boolean).join(" ") || "Mitspieler",
+        ]),
+      );
+      const grouped = new Map<string, { count: number; recent: TeamFeedCommentPreview[] }>();
+      for (const row of commentRows) {
+        const group = grouped.get(row.feed_id) ?? { count: 0, recent: [] };
+        group.count++;
+        if (group.recent.length < 2) {
+          group.recent.push({
+            userId: row.user_id,
+            name: nameByUserId.get(row.user_id) ?? "Mitspieler",
+            body: row.body,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            mine: auth.user?.id === row.user_id,
+          });
+        }
+        grouped.set(row.feed_id, group);
+      }
+      for (const item of visibleItems) {
+        const summary = grouped.get(item.id);
+        item.commentCount = summary?.count ?? 0;
+        item.recentComments = summary?.recent ?? [];
+      }
+    }
+  }
+  return visibleItems;
 }
 
 

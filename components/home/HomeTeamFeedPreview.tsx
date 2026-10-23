@@ -228,7 +228,7 @@ export default function HomeTeamFeedPreview({
                       </div>
                     </Link>
                     </div>
-                    <div className="ml-12"><TeamFeedComments feedId={item.id}/></div>
+                    <div className="ml-12"><TeamFeedComments feedId={item.id} initialCommentCount={item.commentCount ?? 0} initialComments={item.recentComments}/></div>
                   </div>
                 );
               }
@@ -297,7 +297,7 @@ export default function HomeTeamFeedPreview({
                       {(Object.values(item.reactions??{}).reduce((a,b)=>a+b,0)>0)&&<button type="button" onClick={()=>void showReactionNames(item.id)} className="ml-1 text-[10px] font-semibold text-cyan-700 underline underline-offset-2">{locale==="de"?"Wer hat reagiert?":"Who reacted?"}</button>}
                     </div>
                     {openReactions===item.id&&<div className="ml-[38px] mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">{reactionNamesLoading?"Lade Reaktionen …":reactionNames.length?reactionNames.map((r,i)=><div key={i} className="py-1"><span className="font-semibold">{r.name}</span> · {r.reaction==="glueckwunsch"?"Glückwunsch":r.reaction==="biermaschine"?"Feier ich":r.reaction==="geilo"?"Geilo":r.reaction==="daumen_hoch"?"👍":r.reaction}</div>):"Noch keine Reaktionen"}</div>}
-                    <div className="ml-[38px]"><TeamFeedComments feedId={item.id}/></div>
+                    <div className="ml-[38px]"><TeamFeedComments feedId={item.id} initialCommentCount={item.commentCount ?? 0} initialComments={item.recentComments}/></div>
                   </div>
                 );
               }
@@ -326,7 +326,7 @@ export default function HomeTeamFeedPreview({
                     {formatDate(item.occurredAt, locale)}
                   </div>
                 </Link>
-                <TeamFeedComments feedId={item.id}/>
+                <TeamFeedComments feedId={item.id} initialCommentCount={item.commentCount ?? 0} initialComments={item.recentComments}/>
                 </div>
               );
             })}
