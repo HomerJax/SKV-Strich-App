@@ -170,9 +170,9 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         <div className="text-center">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Dreh oder zahl?</p>
           <p className="mt-1 text-[11px] text-slate-600">
-            Dein Verein legt die Chancen fest – sie bleiben geheim.
-            Die Felder sind zur Darstellung gleich groß, unabhängig von ihren Chancen.
-            {canResetForTest ? " Testmodus: Du kannst das Rad erneut ausprobieren." : " Ein Versuch pro Strafe."}
+            {canResetForTest
+              ? "Testmodus: Dreh so oft du willst!"
+              : "Die Kabine ist gespannt. Ein Versuch pro Strafe."}
           </p>
         </div>
 
@@ -268,7 +268,8 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
               onClick={() => setShowResultPopup(false)} aria-hidden="true" />
             <div role="dialog" aria-modal="true" aria-labelledby="wheel-result-title"
               aria-describedby="wheel-result-description"
-              className="relative w-full max-w-[420px] overflow-hidden rounded-[28px] border border-cyan-200/50 bg-white text-center shadow-[0_24px_90px_rgba(0,0,0,.48)]">
+              data-strikr-wheel-result
+              className="relative max-h-[calc(100dvh-2rem)] w-full max-w-[420px] overflow-y-auto rounded-[28px] border border-cyan-200/50 bg-white text-center shadow-[0_24px_90px_rgba(0,0,0,.48)]">
               <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-[#124a59] to-cyan-700 px-5 pb-12 pt-9 text-white">
                 <div className="absolute -left-14 -top-16 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl" aria-hidden="true"/>
                 <div className="absolute -right-12 top-10 h-36 w-36 rounded-full bg-amber-300/20 blur-3xl" aria-hidden="true"/>
@@ -303,6 +304,18 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                 )}
               </div>
             </div>
+            <style>{`
+              @keyframes strikrResultPop {
+                from { opacity: 0; transform: translateY(28px) scale(.84); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+              }
+              [data-strikr-wheel-result] {
+                animation: strikrResultPop .42s cubic-bezier(.18,1.1,.3,1) both;
+              }
+              @media (prefers-reduced-motion: reduce) {
+                [data-strikr-wheel-result] { animation: none; }
+              }
+            `}</style>
           </div>,
           document.body,
         )
