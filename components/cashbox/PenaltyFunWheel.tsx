@@ -22,6 +22,7 @@ type WheelResponse = {
   detail?: string | null;
   icon?: string | null;
   segments?: WheelSegment[];
+  canResetForTest?: boolean;
   error?: string;
 };
 
@@ -32,6 +33,8 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
   const [detail, setDetail] = useState("");
   const [icon, setIcon] = useState("🎡");
   const [busy, setBusy] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [canResetForTest, setCanResetForTest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [rotation, setRotation] = useState(0);
   const [animate, setAnimate] = useState(false);
@@ -51,6 +54,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         if (!active) return;
         const next = data.segments?.length ? data.segments : DEFAULT_WHEEL_SEGMENTS;
         setSegments(next);
+        setCanResetForTest(data.canResetForTest === true);
         setOutcome(data.outcome || null);
         setMessage(data.label || "");
         setDetail(data.detail || "");
@@ -82,6 +86,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
       const nextSegments = data.segments?.length ? data.segments : segments;
       const selected = nextSegments.find((item) => item.id === data.outcome);
       setSegments(nextSegments);
+      setCanResetForTest(data.canResetForTest === true);
       setOutcome(data.outcome);
       setMessage(data.label || selected?.label || "Ergebnis");
       setDetail(data.detail || selected?.description || "");
@@ -102,6 +107,35 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
     }
   }
 
+  async function resetTestSpin() {
+    if (!canResetForTest || !outcome || busy || resetting || !reveal) return;
+    setResetting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/penalties/wheel", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ penaltyId }),
+      });
+      const data = await response.json() as WheelResponse;
+      if (!response.ok) throw new Error(data.error || "Zurücksetzen fehlgeschlagen.");
+      if (timer.current) clearTimeout(timer.current);
+      setSegments(data.segments?.length ? data.segments : DEFAULT_WHEEL_SEGMENTS);
+      setCanResetForTest(data.canResetForTest === true);
+      setOutcome(null);
+      setMessage("");
+      setDetail("");
+      setIcon("🎡");
+      setAnimate(false);
+      setRotation(0);
+      setReveal(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Testdreh konnte nicht zurückgesetzt werden.");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <details className="mt-3 overflow-hidden rounded-2xl border border-cyan-200 bg-cyan-50/70 p-3 shadow-sm">
       <summary className="cursor-pointer text-xs font-black text-cyan-900">
@@ -111,7 +145,8 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         <div className="text-center">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Dreh oder zahl?</p>
           <p className="mt-1 text-[11px] text-slate-600">
-            Dein Verein hat die Felder und Chancen festgelegt. Ein Versuch pro Strafe.
+            Dein Verein hat die Felder und Chancen festgelegt.
+            {canResetForTest ? " Testmodus: Du kannst das Rad erneut ausprobieren." : " Ein Versuch pro Strafe."}
           </p>
         </div>
 
@@ -195,6 +230,22 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
             className="w-full rounded-xl bg-cyan-600 px-4 py-3.5 text-sm font-black text-white disabled:opacity-50">
             {loading ? "Rad wird geladen …" : busy ? "Ergebnis wird gespeichert …" : "🎡 JETZT DREHEN"}
           </button>
+        )}
+        {canResetForTest && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
+            <p className="text-xs font-black text-amber-950">🧪 Nur zum Testen</p>
+            <p className="mt-1 text-[11px] leading-5 text-amber-900">
+              Du darfst diese Teststrafe zurücksetzen und beliebig oft neu drehen.
+              Es wird nur das Testergebnis gelöscht – keine echte Strafe oder Zahlung verändert.
+            </p>
+            {outcome && (
+              <button type="button" onClick={() => void resetTestSpin()}
+                disabled={resetting || busy || !reveal}
+                className="mt-3 w-full rounded-xl border border-amber-300 bg-white px-3 py-3 text-sm font-black text-amber-950 transition hover:bg-amber-100 disabled:opacity-50">
+                {resetting ? "Testdreh wird zurückgesetzt …" : "🔄 Zurücksetzen & nochmal drehen"}
+              </button>
+            )}
+          </div>
         )}
         <p className="rounded-xl bg-slate-900 px-3 py-2 text-center text-[10px] font-semibold leading-4 text-white">
           Die ausgeloste Kabinenaktion wird gespeichert. Geld- und Bierstrafen ändern sich dabei nicht automatisch.
