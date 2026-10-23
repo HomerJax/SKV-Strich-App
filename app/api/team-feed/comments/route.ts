@@ -7,7 +7,7 @@ import { canManageClub } from "@/lib/auth/access";
 
 export const dynamic = "force-dynamic";
 
-const feedPattern = /^(badge:[0-9a-zA-Z-]+|result:\d+|birthday:[0-9:-]+|beer:[0-9:-]+|late-rsvp:\d+|attendance:\d+|wheel:\d+)$/;
+const feedPattern = /^(badge:[0-9a-zA-Z-]+|result:\d+|birthday:[0-9:-]+|beer:[0-9:-]+|late-rsvp:\d+|attendance:\d+|wheel:\d+|paid:\d+)$/;
 
 async function validFeed(clubId: string, feedId: string) {
   if (feedId.length > 160 || !feedPattern.test(feedId)) return false;

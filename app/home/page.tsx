@@ -13,6 +13,7 @@ import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
+import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
 import InsideStrikrChannelModal from "@/components/home/InsideStrikrChannelModal";
 import AppStoreReviewPrompt from "@/components/home/AppStoreReviewPrompt";
 import PageHero from "@/components/ui/PageHero";
@@ -541,12 +542,19 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
   const teamFeedPageSize = 8;
   // These independent requests can run in parallel after club permissions/settings are known.
-  const [pendingBeerResult, teamFeedItems] = await Promise.all([
+  const [pendingBeerResult, teamFeedItems, myPenaltiesResult] = await Promise.all([
     canManageCashbox && homeSettings?.beerkasse_enabled === true
       ? supabase.from("beer_consumptions").select("total_cents").eq("club_id", clubId).eq("payment_status", "pending")
       : Promise.resolve({ data: [] as { total_cents: number | null }[] }),
     teamFeedEnabled ? getTeamFeedItems(clubId, teamFeedPageSize) : Promise.resolve([]),
+    player?.id && !isSupportView
+      ? supabase.from("penalties")
+          .select("id,reason,type,value,source_key")
+          .eq("club_id", clubId).eq("player_id", player.id).is("resolved_at", null)
+          .order("created_at", { ascending: false }).limit(20)
+      : Promise.resolve({ data: [] as { id: number; reason: string | null; type: string; value: string | null; source_key: string | null }[] }),
   ]);
+  const myOpenPenalties = myPenaltiesResult.data ?? [];
   const pendingBeerRows = pendingBeerResult.data ?? [];
   const pendingBeerCount = pendingBeerRows.length;
   const pendingBeerTotalCents = pendingBeerRows.reduce(
@@ -999,6 +1007,46 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           }
           compact
         />
+
+        {myOpenPenalties.length > 0 ? (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[.16em] text-amber-700">
+                  💸 Meine offenen Strafen
+                </div>
+                <div className="mt-1 text-sm font-black text-slate-950">
+                  {myOpenPenalties.length === 1
+                    ? "Du hast 1 offene Strafe"
+                    : `Du hast ${myOpenPenalties.length} offene Strafen`}
+                </div>
+                <div className="text-[11px] font-medium text-amber-900/70">
+                  Nur für dich sichtbar · Schicksalsrad direkt hier ausprobieren
+                </div>
+              </div>
+              <Link href="/mannschaftskasse" className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">
+                Mannschaftskasse →
+              </Link>
+            </div>
+            <div className="mt-3 space-y-2">
+              {myOpenPenalties.slice(0, 2).map((penalty) => (
+                <div key={penalty.id} className="rounded-xl border border-amber-100 bg-white px-3 py-3">
+                  <div className="text-sm font-bold text-slate-900">{penalty.reason || "Offene Strafe"}</div>
+                  <div className="mt-0.5 text-sm font-semibold text-amber-800">{penalty.value || "Betrag offen"}</div>
+                  {penalty.source_key?.startsWith("test:") ? (
+                    <div className="mt-1 text-[10px] font-bold text-cyan-700">Test – keine echte Zahlung</div>
+                  ) : null}
+                  <PenaltyFunWheel penaltyId={penalty.id}/>
+                </div>
+              ))}
+              {myOpenPenalties.length > 2 ? (
+                <Link href="/mannschaftskasse" className="inline-flex text-xs font-bold text-cyan-700">
+                  + {myOpenPenalties.length - 2} weitere Strafen ansehen →
+                </Link>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         {canManageCashbox && homeSettings?.beerkasse_enabled === true ? (
           <section className={"rounded-2xl border px-4 py-4 " + (pendingBeerCount > 0 ? "border-amber-400 bg-amber-100 shadow-[0_8px_24px_rgba(245,158,11,0.18)] ring-2 ring-amber-300/40" : "border-slate-200 bg-white")}>

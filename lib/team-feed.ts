@@ -7,7 +7,7 @@ import type { AppLocale } from "@/lib/i18n/config";
 
 export type TeamFeedItem = {
   id: string;
-  kind: "badge" | "result" | "birthday" | "beer" | "late_rsvp" | "attendance" | "wheel";
+  kind: "badge" | "result" | "birthday" | "beer" | "late_rsvp" | "attendance" | "wheel" | "paid";
   title: string;
   body: string;
   href: string;
@@ -363,16 +363,21 @@ export async function getTeamFeedItems(
   });
 
   // Confirmed penalties and cosmetic wheel results become locker-room news.
-  const [{ data: reviews }, { data: spins }] = await Promise.all([
+  const [{ data: reviews }, { data: spins }, { data: paidPenalties }] = await Promise.all([
     supabase.from("session_attendance_reviews")
       .select("id,session_id,kind,reviewed_at,players(first_name,last_name,nickname)")
       .eq("club_id",clubId).eq("status","penalized").order("reviewed_at",{ascending:false}).limit(Math.max(12,limit*2)),
     supabase.from("penalty_wheel_spins")
-      .select("id,outcome,spun_at,players(first_name,last_name,nickname)")
-      .eq("club_id",clubId).order("spun_at",{ascending:false}).limit(Math.max(12,limit*2))
+      .select("id,outcome,spun_at,players(first_name,last_name,nickname),penalties(value,source_key)")
+      .eq("club_id",clubId).order("spun_at",{ascending:false}).limit(Math.max(12,limit*2)),
+    supabase.from("penalties")
+      .select("id,reason,type,value,resolved_at,source_key,cash_transaction_id,players(first_name,last_name,nickname)")
+      .eq("club_id",clubId).not("resolved_at","is",null)
+      .order("resolved_at",{ascending:false}).limit(Math.max(20,limit*3))
   ]);
   type ReviewNews={id:number;session_id:number;kind:string;reviewed_at:string|null;players:BadgePlayer|BadgePlayer[]|null};
-  type WheelNews={id:number;outcome:string;spun_at:string;players:BadgePlayer|BadgePlayer[]|null};
+  type WheelNews={id:number;outcome:string;spun_at:string;players:BadgePlayer|BadgePlayer[]|null;penalties:{value:string|null;source_key:string|null}|{value:string|null;source_key:string|null}[]|null};
+  type PaidPenaltyNews={id:number;reason:string|null;type:"money"|"beer"|"custom";value:string|null;resolved_at:string;source_key:string|null;cash_transaction_id:number|null;players:BadgePlayer|BadgePlayer[]|null};
   const attendanceItems:TeamFeedItem[]=((reviews??[]) as ReviewNews[]).map(row=>{
     const actor=playerName(row.players,locale);
     return {
@@ -388,16 +393,40 @@ export async function getTeamFeedItems(
     confession:"🎤 Kabinen-Beichte beim nächsten Training!",
     challenge:"🔥 Die nächste Aufwärmrunde gehört dir!"
   };
-  const wheelItems:TeamFeedItem[]=((spins??[]) as WheelNews[]).map(row=>{
+  const wheelItems:TeamFeedItem[]=((spins??[]) as WheelNews[]).flatMap(row=>{
+    const penalty=Array.isArray(row.penalties)?row.penalties[0]??null:row.penalties;
+    // Never broadcast technical test spins to a real team's Kabinen-Talk.
+    if(penalty?.source_key?.startsWith("test:"))return [];
     const actor=playerName(row.players,locale);
-    return {
-      id:`wheel:${row.id}`,kind:"wheel",
-      title:`🎡 ${actor} hat am Schicksalsrad gedreht!`,
-      body:wheelCopy[row.outcome]??"Das Rad hat entschieden – die Strafe bleibt unverändert.",
+    const value=penalty?.value?.trim()||"eine Strafe";
+    const hasMoney=/^(?:\\d+[.,]?\\d*)\\s*(?:€|EUR)?$/i.test(value);
+    const publicValue=hasMoney && !/[€]/.test(value)?`${value} €`:value;
+    return [{
+      id:`wheel:${row.id}`,kind:"wheel" as const,
+      title:`🎡 ${actor} zockt am Schicksalsrad!`,
+      body:row.outcome==="challenge"
+        ?`Aus ${publicValue} wird 'ne Kiste … Sprüche! 😈 Nur Spaß – die Strafe bleibt unverändert.`
+        :`${publicValue} auf dem Rad · ${wheelCopy[row.outcome]??"Die Kabine hat entschieden!"} Die Strafe bleibt unverändert.`,
       href:"/mannschaftskasse",occurredAt:row.spun_at,actorName:actor
-    };
+    }];
   });
-  const combinedItems = [...wheelItems, ...attendanceItems, ...lateRsvpItems, ...birthdayItems, ...beerItems, ...badgeItems, ...resultItems];
+  const paidItems:TeamFeedItem[]=((paidPenalties??[]) as PaidPenaltyNews[]).flatMap(row=>{
+    if(row.source_key?.startsWith("test:"))return [];
+    if(row.type==="money"&&!row.cash_transaction_id)return [];
+    const actor=playerName(row.players,locale);
+    const label=row.value?.trim()||"seine Strafe";
+    const isMoney=row.type==="money";
+    const displayAmount=isMoney&&!/€|EUR/i.test(label)?`${label} €`:label;
+    return [{
+      id:`paid:${row.id}`,kind:"paid" as const,
+      title:isMoney?`💰 ${actor} hat bezahlt – ${displayAmount} in der Kasse!`:`🍻 ${actor} hat seine Strafe erledigt!`,
+      body:isMoney
+        ?`Schuldenfrei! Die Mannschaftskasse sagt Danke. 😄 · ${row.reason||"FBZG"}`
+        :`${displayAmount} abgehakt. Die Kabine freut sich. 🙌`,
+      href:"/mannschaftskasse",occurredAt:row.resolved_at,actorName:actor
+    }];
+  });
+  const combinedItems = [...paidItems, ...wheelItems, ...attendanceItems, ...lateRsvpItems, ...birthdayItems, ...beerItems, ...badgeItems, ...resultItems];
   const reactionFeedIds = combinedItems.filter((item) => item.kind === "birthday" || item.kind === "beer" || item.kind === "late_rsvp").map((item) => item.id);
   if (reactionFeedIds.length > 0) {
     const { data: reactionRows } = await supabase.from("team_feed_reactions").select("feed_id,reaction,user_id").eq("club_id", clubId).in("feed_id", reactionFeedIds);
