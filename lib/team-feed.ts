@@ -315,24 +315,20 @@ export async function getTeamFeedItems(
     });
   }
 
-  const leadersByDay = new Map<string, { playerId: number; quantity: number; occurredAt: string; player: BadgePlayer | BadgePlayer[] | null }>();
-  for (const entry of beerByDayPlayer.values()) {
-    const day = berlinDateKey(entry.occurredAt);
-    const leader = leadersByDay.get(day);
-    if (!leader || entry.quantity > leader.quantity) leadersByDay.set(day, entry);
-  }
-
-  const beerItems: TeamFeedItem[] = [...leadersByDay.entries()]
-    .filter(([, leader]) => leader.quantity >= 3)
-    .map(([day, leader]) => {
-      const actorName = playerName(leader.player, locale);
+  // Keep a stable post for every player/day with 3+ beers; never replace
+  // an existing post (and its comments) with the day's latest top drinker.
+  const beerItems: TeamFeedItem[] = [...beerByDayPlayer.values()]
+    .filter((entry) => entry.quantity >= 3)
+    .map((entry) => {
+      const day = berlinDateKey(entry.occurredAt);
+      const actorName = playerName(entry.player, locale);
       return {
-        id: `beer:${day}:${leader.playerId}`,
+        id: `beer:${day}:${entry.playerId}`,
         kind: "beer" as const,
-        title: locale === "de" ? `🍺 ${actorName} hat ${leader.quantity} Bier vernichtet.` : `🍺 ${actorName} put away ${leader.quantity} beers.`,
+        title: locale === "de" ? `🍺 ${actorName} hat ${entry.quantity} Bier vernichtet.` : `🍺 ${actorName} put away ${entry.quantity} beers.`,
         body: locale === "de" ? "Prost Mahlzeit. Maschine. 😄" : "Cheers. Absolute machine. 😄",
         href: "/mannschaftskasse/bier",
-        occurredAt: leader.occurredAt,
+        occurredAt: entry.occurredAt,
         actorName,
       };
     });
