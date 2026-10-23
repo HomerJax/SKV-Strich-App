@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
 import { redirect } from "next/navigation";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
@@ -598,6 +599,7 @@ export default async function Page({ searchParams }: Props) {
                       {t("cashbox.overdue", { value: entry.escalation_value })}
                     </div>
                   ) : null}
+                  <PenaltyFunWheel penaltyId={entry.id}/>
                 </div>
               );
             })}
