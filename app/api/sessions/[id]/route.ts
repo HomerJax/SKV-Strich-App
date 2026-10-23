@@ -330,7 +330,7 @@ export async function POST(
       if (
         deadlinePassed &&
         previousStatus === "in" &&
-        status !== "in"
+        status === "open"
       ) {
         return fail(
           deadlineLabel
@@ -505,6 +505,24 @@ export async function POST(
           lateSignup: isLateSignup,
           latePenalty,
         });
+      }
+
+      if (deadlinePassed && previousStatus === "in" && status === "out") {
+        // The original confirmation survives in session_rsvp_first_ins.
+        // A manager must review the late cancellation before any penalty.
+        const { error: reviewError } = await adminSupabase
+          .from("session_attendance_reviews")
+          .upsert({
+            club_id: clubId,
+            session_id: sessionId,
+            player_id: playerId,
+            kind: "late_cancel",
+            status: "pending",
+            note: reason || "Spätabsage über die App",
+            reported_by: currentUserId,
+            reported_at: new Date().toISOString(),
+          }, { onConflict: "session_id,player_id", ignoreDuplicates: true });
+        if (reviewError) return fail("Spätabsage konnte nicht dokumentiert werden.",500);
       }
 
       const { error: deleteError } = await adminSupabase

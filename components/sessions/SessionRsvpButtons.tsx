@@ -93,7 +93,7 @@ export default function SessionRsvpButtons({
       }
     }
 
-    if (deadlinePassed && status === "in" && target !== "in") {
+    if (deadlinePassed && status === "in" && target === "open") {
       setError(t("session.deadlineLockedError"));
       return;
     }
@@ -157,8 +157,8 @@ export default function SessionRsvpButtons({
         <button type="button" disabled={readOnly || busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void setPresence("in"); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "in" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"].join(" ")}>
           {busy === "in" ? t("session.saving") : status === "in" ? t("session.confirmed") : t("session.confirm")}
         </button>
-        <button type="button" disabled={readOnly || busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (status === "out") void setPresence("out"); else setReasonOpen(true); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "out" ? "border-rose-600 bg-rose-600 text-white" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"].join(" ")}>
-          {busy === "out" ? t("session.saving") : deadlinePassed && status === "in" ? t("session.cantCancel") : status === "out" ? t("session.cancelled") : t("session.decline")}
+        <button type="button" disabled={readOnly || busy !== null} onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (status === "out") void setPresence("out"); else setReasonOpen(true); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "out" ? "border-rose-600 bg-rose-600 text-white" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"].join(" ")}>
+          {busy === "out" ? t("session.saving") : status === "out" ? t("session.cancelled") : t("session.decline")}
         </button>
       </div>
 

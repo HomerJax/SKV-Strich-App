@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { isAdminRole } from "@/lib/auth/access";
@@ -236,6 +237,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   return (
     <HomePullToRefresh>
+      {(isPowerUser || isAdminRole(membership.role) || canLeadTraining) && <div className="mx-auto max-w-5xl px-4 pt-3"><Link href={`/sessions/${sessionId}/attendance-review`} className="inline-flex rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900 ring-1 ring-amber-200">⚠️ Spätabsagen / Nichterscheinen prüfen</Link></div>}
       <SessionDetailClient
       sessionId={sessionId}
       initialSession={sessionForClient}
