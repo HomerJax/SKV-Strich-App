@@ -240,6 +240,20 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
             </div>
           ))}
         </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => applyPreset("equal")}
+            className="rounded-xl border border-cyan-200 bg-white px-3 py-3 text-xs font-black text-cyan-900 hover:bg-cyan-50">
+            ⚖️ Fair verteilen
+          </button>
+          <button type="button" onClick={applyPreferred}
+            disabled={preferredIds.length === 0 || preferredIds.length === segments.length}
+            className="rounded-xl bg-cyan-700 px-3 py-3 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40">
+            ⭐ Markierte häufiger
+          </button>
+        </div>
+        <p className="mt-2 text-[11px] font-medium text-slate-500">
+          Die Vorschläge gelten sofort für die Prozentwerte. Erst „Schicksalsrad für den Verein speichern“ macht sie für Spieler aktiv.
+        </p>
         <div className="mt-4 overflow-hidden rounded-full bg-slate-100">
           <div className="flex h-4 w-full">
             {segments.map((segment, index) => (
