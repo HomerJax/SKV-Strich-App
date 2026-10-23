@@ -90,6 +90,8 @@ export async function POST(request:NextRequest,context:{params:Promise<{id:strin
     return error?NextResponse.json({error:error.message},{status:500}):NextResponse.json({ok:true});
   }
   if(body.decision!=="penalize")return NextResponse.json({error:"Ungültige Entscheidung."},{status:400});
+  const {data:cashboxSettings}=await db.from("club_settings").select("cashbox_penalties_enabled").eq("club_id",clubId).maybeSingle();
+  if(cashboxSettings?.cashbox_penalties_enabled!==true)return NextResponse.json({error:"Die Mannschaftskasse für Strafen ist deaktiviert."},{status:409});
   const {data:rule}=await db.from("penalty_rules").select("reason,type,value,escalation_after_days,escalation_value")
     .eq("club_id",clubId).eq("rule_key",existing.kind==="no_show"?"no_show":"late_cancel").eq("enabled",true).maybeSingle();
   if(!rule)return NextResponse.json({error:"Strafregel ist deaktiviert oder nicht konfiguriert."},{status:409});
