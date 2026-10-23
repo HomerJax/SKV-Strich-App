@@ -185,10 +185,8 @@ export default function HomeTeamFeedPreview({
             {items.map((item) => {
               if (item.kind === "badge" && item.badgeKey) {
                 return (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 px-1 py-3 transition hover:bg-slate-50/70"
-                  >
+                  <div key={item.id} className="px-1 py-3">
+                    <div className="flex items-center gap-3 transition hover:bg-slate-50/70">
                     <button
                       type="button"
                       onClick={(event) => {
@@ -229,7 +227,8 @@ export default function HomeTeamFeedPreview({
                         {formatDate(item.occurredAt, locale)}
                       </div>
                     </Link>
-                    <TeamFeedComments feedId={item.id}/>
+                    </div>
+                    <div className="ml-12"><TeamFeedComments feedId={item.id}/></div>
                   </div>
                 );
               }
