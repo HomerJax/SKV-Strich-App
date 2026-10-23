@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  DEFAULT_WHEEL_SEGMENTS, WHEEL_COLORS, getWheelSegmentMidpoint, type WheelSegment,
-} from "@/lib/cashbox/wheel-config";
+  PUBLIC_WHEEL_COLORS, visibleSegmentMidpoint, type PublicWheelSegment,
+} from "@/lib/cashbox/wheel-public";
 
 function polar(degrees: number, radius: number) {
   const radians = (degrees - 90) * Math.PI / 180;
@@ -21,13 +21,13 @@ type WheelResponse = {
   label?: string | null;
   detail?: string | null;
   icon?: string | null;
-  segments?: WheelSegment[];
+  segments?: PublicWheelSegment[];
   canResetForTest?: boolean;
   error?: string;
 };
 
 export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
-  const [segments, setSegments] = useState<WheelSegment[]>(DEFAULT_WHEEL_SEGMENTS);
+  const [segments, setSegments] = useState<PublicWheelSegment[]>([]);
   const [outcome, setOutcome] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [detail, setDetail] = useState("");
@@ -52,14 +52,14 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         return data;
       }).then((data) => {
         if (!active) return;
-        const next = data.segments?.length ? data.segments : DEFAULT_WHEEL_SEGMENTS;
+        const next = data.segments ?? [];
         setSegments(next);
         setCanResetForTest(data.canResetForTest === true);
         setOutcome(data.outcome || null);
         setMessage(data.label || "");
         setDetail(data.detail || "");
         setIcon(data.icon || "🎡");
-        setRotation(data.outcome ? (360 - getWheelSegmentMidpoint(next, data.outcome)) % 360 : 0);
+        setRotation(data.outcome ? (360 - visibleSegmentMidpoint(next, data.outcome)) % 360 : 0);
         setAnimate(false);
         setReveal(true);
       }).catch((cause) => {
@@ -83,7 +83,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
       });
       const data = await response.json() as WheelResponse;
       if (!response.ok || !data.outcome) throw new Error(data.error || "Dreh fehlgeschlagen.");
-      const nextSegments = data.segments?.length ? data.segments : segments;
+      const nextSegments = data.segments ?? segments;
       const selected = nextSegments.find((item) => item.id === data.outcome);
       setSegments(nextSegments);
       setCanResetForTest(data.canResetForTest === true);
@@ -93,7 +93,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
       setIcon(data.icon || selected?.icon || "🎡");
       setReveal(false);
       setAnimate(true);
-      const target = (360 - getWheelSegmentMidpoint(nextSegments, data.outcome)) % 360;
+      const target = (360 - visibleSegmentMidpoint(nextSegments, data.outcome)) % 360;
       setRotation((prev) => {
         const current = ((prev % 360) + 360) % 360;
         return prev + 6 * 360 + ((target - current + 360) % 360);
@@ -120,7 +120,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
       const data = await response.json() as WheelResponse;
       if (!response.ok) throw new Error(data.error || "Zurücksetzen fehlgeschlagen.");
       if (timer.current) clearTimeout(timer.current);
-      setSegments(data.segments?.length ? data.segments : DEFAULT_WHEEL_SEGMENTS);
+      setSegments(data.segments ?? []);
       setCanResetForTest(data.canResetForTest === true);
       setOutcome(null);
       setMessage("");
@@ -145,7 +145,8 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         <div className="text-center">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Dreh oder zahl?</p>
           <p className="mt-1 text-[11px] text-slate-600">
-            Dein Verein hat die Felder und Chancen festgelegt.
+            Dein Verein legt die Chancen fest – sie bleiben geheim.
+            Die Felder sind zur Darstellung gleich groß, unabhängig von ihren Chancen.
             {canResetForTest ? " Testmodus: Du kannst das Rad erneut ausprobieren." : " Ein Versuch pro Strafe."}
           </p>
         </div>
@@ -164,8 +165,10 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                 transition: animate ? "transform 3200ms cubic-bezier(.13,.83,.17,1)" : "none",
               }}>
               {segments.map((segment, index) => {
-                const start = segments.slice(0, index).reduce((sum, s) => sum + s.weight * 3.6, 0);
-                const end = start + segment.weight * 3.6;
+                // The sectors intentionally have identical visual sizes.
+                // True (possibly unequal) probabilities never reach the client.
+                const start = index * 360 / segments.length;
+                const end = (index + 1) * 360 / segments.length;
                 const center = (start + end) / 2;
                 const small = end - start < 28;
                 const dense = segments.length >= 8;
@@ -174,7 +177,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                 const maxLabelLength = dense ? 7 : segments.length >= 6 ? 9 : 12;
                 return (
                   <g key={segment.id}>
-                    <path d={sector(start, end)} fill={WHEEL_COLORS[index % WHEEL_COLORS.length]}
+                    <path d={sector(start, end)} fill={PUBLIC_WHEEL_COLORS[index % PUBLIC_WHEEL_COLORS.length]}
                       stroke="#F8FAFC" strokeWidth="2" strokeLinejoin="round"/>
                     <text x={point.x} y={point.y} textAnchor="middle" dominantBaseline="central"
                       fontSize={small ? 13 : 23}>{segment.icon}</text>
@@ -199,7 +202,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         <div className="grid grid-cols-2 gap-2">
           {segments.map((segment, index) => (
             <div key={segment.id} className="rounded-xl border border-slate-200 bg-white px-2.5 py-2.5"
-              style={{ borderLeft: `4px solid ${WHEEL_COLORS[index % WHEEL_COLORS.length]}` }}>
+              style={{ borderLeft: `4px solid ${PUBLIC_WHEEL_COLORS[index % PUBLIC_WHEEL_COLORS.length]}` }}>
               <div className="mb-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
                 {segment.category === "luck" ? "🍀 Glück" : "🔥 Pech"}
               </div>
@@ -207,7 +210,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                 <span className="text-[11px] font-black leading-4 text-slate-900">
                   {segment.icon} {segment.label}
                 </span>
-                <span className="shrink-0 text-[11px] font-black text-cyan-700">{segment.weight}%</span>
+                
               </div>
               {segment.description && (
                 <p className="mt-1 text-[10px] leading-4 text-slate-600">{segment.description}</p>

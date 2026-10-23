@@ -3,6 +3,15 @@ import { randomInt } from "node:crypto";
 import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DEFAULT_WHEEL_SEGMENTS, parseWheelSegments, pickWheelSegment, type WheelSegment } from "@/lib/cashbox/wheel-config";
+import type { PublicWheelSegment } from "@/lib/cashbox/wheel-public";
+
+// Do not transmit server-side weights to ordinary players, even through the API.
+// The spin is weighted on the server, while the visual wheel is neutral.
+function playerWheelSegments(segments: WheelSegment[]): PublicWheelSegment[] {
+  return segments.map(({ id, icon, label, description, category }) => ({
+    id, icon, label, description, category,
+  }));
+}
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +52,7 @@ function spinPayload(spin: SpinRow, fallback: WheelSegment[], canResetForTest = 
     label: spin.outcome_label || selected?.label || "Dein Rad-Ergebnis",
     detail: spin.outcome_detail ?? selected?.description ?? "",
     icon: spin.outcome_icon || selected?.icon || "🎡",
-    segments,
+    segments: playerWheelSegments(segments),
     alreadySpun: true,
     canResetForTest,
   };
@@ -71,7 +80,7 @@ export async function GET(request: NextRequest) {
   if (spinError) return NextResponse.json({ error: "Drehung konnte nicht geladen werden." }, { status: 500 });
   return NextResponse.json(spin
     ? spinPayload(spin as SpinRow, segments, canResetForTest)
-    : { outcome: null, label: null, detail: null, segments, canResetForTest });
+    : { outcome: null, label: null, detail: null, segments: playerWheelSegments(segments), canResetForTest });
 }
 
 export async function POST(request: NextRequest) {
@@ -125,7 +134,7 @@ export async function POST(request: NextRequest) {
     label: choice.label,
     detail: choice.description,
     icon: choice.icon,
-    segments,
+    segments: playerWheelSegments(segments),
     alreadySpun: false,
     canResetForTest,
   });
@@ -174,7 +183,7 @@ export async function DELETE(request: NextRequest) {
     label: null,
     detail: null,
     icon: null,
-    segments,
+    segments: playerWheelSegments(segments),
     canResetForTest: true,
     message: "Nur der Testdreh wurde zurückgesetzt. Du kannst erneut drehen.",
   });
