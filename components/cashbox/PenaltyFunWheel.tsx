@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   PUBLIC_WHEEL_COLORS, visibleSegmentMidpoint, type PublicWheelSegment,
 } from "@/lib/cashbox/wheel-public";
@@ -39,12 +40,31 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
   const [rotation, setRotation] = useState(0);
   const [animate, setAnimate] = useState(false);
   const [reveal, setReveal] = useState(true);
+  const [showResultPopup, setShowResultPopup] = useState(false);
   const [error, setError] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!showResultPopup) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowResultPopup(false);
+    };
+    window.addEventListener("keydown", onEscape);
+    closeButtonRef.current?.focus();
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", onEscape);
+    };
+  }, [showResultPopup]);
+
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setShowResultPopup(false);
     void fetch(`/api/penalties/wheel?penaltyId=${penaltyId}`, { cache: "no-store" })
       .then(async (r) => {
         const data = await r.json() as WheelResponse;
@@ -74,6 +94,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
   async function spin() {
     if (busy || loading || outcome) return;
     setBusy(true);
+    setShowResultPopup(false);
     setError("");
     try {
       const response = await fetch("/api/penalties/wheel", {
@@ -99,7 +120,10 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         return prev + 6 * 360 + ((target - current + 360) % 360);
       });
       if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => setReveal(true), 3200);
+      timer.current = setTimeout(() => {
+        setReveal(true);
+        setShowResultPopup(true);
+      }, 3200);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Das Rad konnte nicht gedreht werden.");
     } finally {
@@ -120,6 +144,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
       const data = await response.json() as WheelResponse;
       if (!response.ok) throw new Error(data.error || "Zurücksetzen fehlgeschlagen.");
       if (timer.current) clearTimeout(timer.current);
+      setShowResultPopup(false);
       setSegments(data.segments ?? []);
       setCanResetForTest(data.canResetForTest === true);
       setOutcome(null);
@@ -199,38 +224,22 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          {segments.map((segment, index) => (
-            <div key={segment.id} className="rounded-xl border border-slate-200 bg-white px-2.5 py-2.5"
-              style={{ borderLeft: `4px solid ${PUBLIC_WHEEL_COLORS[index % PUBLIC_WHEEL_COLORS.length]}` }}>
-              <div className="mb-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
-                {segment.category === "luck" ? "🍀 Glück" : "🔥 Pech"}
-              </div>
-              <div className="flex items-start justify-between gap-1">
-                <span className="text-[11px] font-black leading-4 text-slate-900">
-                  {segment.icon} {segment.label}
-                </span>
-                
-              </div>
-              {segment.description && (
-                <p className="mt-1 text-[10px] leading-4 text-slate-600">{segment.description}</p>
-              )}
-            </div>
-          ))}
-        </div>
-
         {outcome ? (
-          <div role="status" className="rounded-xl border border-cyan-200 bg-white p-3 text-center">
-            {reveal ? (
-              <>
-                <div className="text-lg font-black text-slate-950">{icon} {message}</div>
-                {detail && <p className="mt-1 text-xs font-semibold text-slate-700">{detail}</p>}
-              </>
-            ) : <p className="text-sm font-black text-cyan-700">🎡 Das Schicksal entscheidet …</p>}
+          <div className="space-y-2 text-center">
+            {!reveal ? (
+              <p role="status" className="rounded-xl bg-cyan-100 px-4 py-3 text-sm font-black text-cyan-900">
+                🎡 Das Schicksal entscheidet …
+              </p>
+            ) : (
+              <button type="button" onClick={() => setShowResultPopup(true)}
+                className="w-full rounded-xl bg-slate-950 px-4 py-3.5 text-sm font-black text-white shadow-md transition hover:bg-slate-800">
+                🎁 Dein Ergebnis nochmal ansehen
+              </button>
+            )}
           </div>
         ) : (
           <button type="button" disabled={busy || loading || !!error} onClick={() => void spin()}
-            className="w-full rounded-xl bg-cyan-600 px-4 py-3.5 text-sm font-black text-white disabled:opacity-50">
+            className="w-full rounded-xl bg-cyan-600 px-4 py-3.5 text-sm font-black text-white shadow-md transition hover:bg-cyan-700 disabled:opacity-50">
             {loading ? "Rad wird geladen …" : busy ? "Ergebnis wird gespeichert …" : "🎡 JETZT DREHEN"}
           </button>
         )}
@@ -250,11 +259,54 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
             )}
           </div>
         )}
-        <p className="rounded-xl bg-slate-900 px-3 py-2 text-center text-[10px] font-semibold leading-4 text-white">
-          Die ausgeloste Kabinenaktion wird gespeichert. Geld- und Bierstrafen ändern sich dabei nicht automatisch.
-        </p>
         {error && <p role="alert" className="text-xs font-semibold text-rose-700">{error}</p>}
       </div>
+      {showResultPopup && outcome && reveal
+        ? createPortal(
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8">
+            <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md"
+              onClick={() => setShowResultPopup(false)} aria-hidden="true" />
+            <div role="dialog" aria-modal="true" aria-labelledby="wheel-result-title"
+              aria-describedby="wheel-result-description"
+              className="relative w-full max-w-[420px] overflow-hidden rounded-[28px] border border-cyan-200/50 bg-white text-center shadow-[0_24px_90px_rgba(0,0,0,.48)]">
+              <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-[#124a59] to-cyan-700 px-5 pb-12 pt-9 text-white">
+                <div className="absolute -left-14 -top-16 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl" aria-hidden="true"/>
+                <div className="absolute -right-12 top-10 h-36 w-36 rounded-full bg-amber-300/20 blur-3xl" aria-hidden="true"/>
+                <p className="relative text-[11px] font-black uppercase tracking-[.23em] text-cyan-100">
+                  🎡 Das Schicksal hat entschieden!
+                </p>
+                <div className="relative mx-auto mt-7 flex h-32 w-32 items-center justify-center rounded-full border-4 border-white/60 bg-white/15 text-7xl shadow-[0_0_45px_rgba(103,232,249,.4)] sm:h-36 sm:w-36" aria-hidden="true">
+                  {icon}
+                </div>
+              </div>
+              <div className="relative -mt-6 space-y-3 rounded-t-[28px] bg-white px-5 pb-6 pt-6">
+                <p className="text-[10px] font-black uppercase tracking-[.2em] text-cyan-700">Dein Ergebnis</p>
+                <h2 id="wheel-result-title" className="break-words text-2xl font-black leading-tight text-slate-950 sm:text-3xl">
+                  {message}
+                </h2>
+                <p id="wheel-result-description" className="mx-auto max-w-[320px] whitespace-pre-wrap break-words text-sm font-semibold leading-6 text-slate-700">
+                  {detail || "Dein Ergebnis wurde gespeichert."}
+                </p>
+                <p className="text-[11px] leading-5 text-slate-500">
+                  Die ursprüngliche Geld- oder Bierstrafe bleibt unverändert.
+                </p>
+                <button ref={closeButtonRef} type="button" onClick={() => setShowResultPopup(false)}
+                  className="mt-2 w-full rounded-xl bg-cyan-600 px-4 py-3.5 text-sm font-black text-white transition hover:bg-cyan-700">
+                  Alles klar! 🙌
+                </button>
+                {canResetForTest && (
+                  <button type="button" onClick={() => void resetTestSpin()}
+                    disabled={resetting || busy}
+                    className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-black text-amber-900 disabled:opacity-50">
+                    {resetting ? "Testdreh zurücksetzen …" : "🧪 Nur Test: Zurücksetzen & nochmal drehen"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+        : null}
     </details>
   );
 }
