@@ -1,48 +1,114 @@
-import { NextRequest,NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { randomInt } from "node:crypto";
 import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { DEFAULT_WHEEL_SEGMENTS, parseWheelSegments, pickWheelSegment, type WheelSegment } from "@/lib/cashbox/wheel-config";
 
-const labels:Record<string,string>={
-  lucky:"🍀 Kabinen-Joker! Heute keine dummen Sprüche.",
-  usual:"😎 Alles bleibt beim Alten – immerhin gut gedreht!",
-  confession:"🎤 Kabinen-Beichte: Erzähl beim nächsten Training deine beste Ausrede.",
-  challenge:"🔥 Kabinen-Challenge: Übernimm beim nächsten Training das Aufwärmen."
-};
-export async function POST(request:NextRequest) {
-  const {clubId,user,player}=await requireClub();
-  const body=await request.json().catch(()=>null) as {penaltyId?:number}|null;
-  const penaltyId=Number(body?.penaltyId);
-  if(!player?.id||!Number.isSafeInteger(penaltyId)||penaltyId<1)return NextResponse.json({error:"Kein gültiger Spieler oder Strafe."},{status:400});
-  const db=createAdminClient();
-  const {data:penalty}=await db.from("penalties").select("id,player_id,resolved_at")
-    .eq("club_id",clubId).eq("id",penaltyId).eq("player_id",player.id).maybeSingle();
-  if(!penalty)return NextResponse.json({error:"Strafe nicht gefunden."},{status:404});
-  const {data:existing}=await db.from("penalty_wheel_spins").select("outcome")
-    .eq("club_id",clubId).eq("penalty_id",penaltyId).maybeSingle();
-  if(existing)return NextResponse.json({outcome:existing.outcome,label:labels[existing.outcome],alreadySpun:true});
-  if(penalty.resolved_at)return NextResponse.json({error:"Nur offene Strafen haben einen Dreh."},{status:409});
-  const random=randomInt(100);
-  const outcome=random<10?"lucky":random<80?"usual":random<95?"confession":"challenge";
-  const {error}=await db.from("penalty_wheel_spins").insert({
-    club_id:clubId,penalty_id:penaltyId,player_id:player.id,spun_by:user.id,outcome
-  });
-  if(error){
-    // In case of concurrent clicks, return the first persisted outcome.
-    const {data:saved}=await db.from("penalty_wheel_spins").select("outcome")
-      .eq("club_id",clubId).eq("penalty_id",penaltyId).maybeSingle();
-    if(saved)return NextResponse.json({outcome:saved.outcome,label:labels[saved.outcome],alreadySpun:true});
-    return NextResponse.json({error:"Glücksrad konnte nicht gespeichert werden."},{status:500});
-  }
-  return NextResponse.json({outcome,label:labels[outcome],alreadySpun:false});
+export const dynamic = "force-dynamic";
+
+async function activeSegments(db: ReturnType<typeof createAdminClient>, clubId: string): Promise<WheelSegment[]> {
+  const { data, error } = await db.from("penalty_wheel_settings")
+    .select("segments").eq("club_id", clubId).maybeSingle();
+  if (error) throw new Error(error.message);
+  return parseWheelSegments(data?.segments) ?? DEFAULT_WHEEL_SEGMENTS;
 }
-export async function GET(request:NextRequest) {
-  const {clubId,player}=await requireClub();
-  const penaltyId=Number(request.nextUrl.searchParams.get("penaltyId"));
-  if(!player?.id||!Number.isSafeInteger(penaltyId))return NextResponse.json({error:"Ungültige Anfrage"},{status:400});
-  const db=createAdminClient();
-  const {data:penalty}=await db.from("penalties").select("id").eq("club_id",clubId).eq("player_id",player.id).eq("id",penaltyId).maybeSingle();
-  if(!penalty)return NextResponse.json({error:"Nicht gefunden"},{status:404});
-  const {data:spin}=await db.from("penalty_wheel_spins").select("outcome").eq("club_id",clubId).eq("penalty_id",penaltyId).maybeSingle();
-  return NextResponse.json({outcome:spin?.outcome??null,label:spin?labels[spin.outcome]:null});
+
+type SpinRow = {
+  outcome: string;
+  outcome_label: string | null;
+  outcome_detail: string | null;
+  outcome_icon: string | null;
+  segments_snapshot: unknown;
+};
+
+function spinPayload(spin: SpinRow, fallback: WheelSegment[]) {
+  const segments = parseWheelSegments(spin.segments_snapshot) ?? fallback;
+  const selected = segments.find((segment) => segment.id === spin.outcome);
+  return {
+    outcome: spin.outcome,
+    label: spin.outcome_label || selected?.label || "Dein Rad-Ergebnis",
+    detail: spin.outcome_detail ?? selected?.description ?? "",
+    icon: spin.outcome_icon || selected?.icon || "🎡",
+    segments,
+    alreadySpun: true,
+  };
+}
+
+export async function GET(request: NextRequest) {
+  const { clubId, player } = await requireClub();
+  const penaltyId = Number(request.nextUrl.searchParams.get("penaltyId"));
+  if (!player?.id || !Number.isSafeInteger(penaltyId) || penaltyId < 1) {
+    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+  }
+  const db = createAdminClient();
+  const { data: penalty, error: penaltyError } = await db.from("penalties")
+    .select("id").eq("club_id", clubId).eq("player_id", player.id).eq("id", penaltyId).maybeSingle();
+  if (penaltyError) return NextResponse.json({ error: "Strafe konnte nicht geladen werden." }, { status: 500 });
+  if (!penalty) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
+
+  const [{ data: spin, error: spinError }, segments] = await Promise.all([
+    db.from("penalty_wheel_spins")
+      .select("outcome,outcome_label,outcome_detail,outcome_icon,segments_snapshot")
+      .eq("club_id", clubId).eq("penalty_id", penaltyId).maybeSingle(),
+    activeSegments(db, clubId),
+  ]);
+  if (spinError) return NextResponse.json({ error: "Drehung konnte nicht geladen werden." }, { status: 500 });
+  return NextResponse.json(spin
+    ? spinPayload(spin as SpinRow, segments)
+    : { outcome: null, label: null, detail: null, segments });
+}
+
+export async function POST(request: NextRequest) {
+  const { clubId, user, player } = await requireClub();
+  const body = await request.json().catch(() => null) as { penaltyId?: number } | null;
+  const penaltyId = Number(body?.penaltyId);
+  if (!player?.id || !Number.isSafeInteger(penaltyId) || penaltyId < 1) {
+    return NextResponse.json({ error: "Kein gültiger Spieler oder Strafe." }, { status: 400 });
+  }
+  const db = createAdminClient();
+  const { data: penalty, error: penaltyError } = await db.from("penalties")
+    .select("id,player_id,resolved_at")
+    .eq("club_id", clubId).eq("id", penaltyId).eq("player_id", player.id).maybeSingle();
+  if (penaltyError) return NextResponse.json({ error: "Strafe konnte nicht geladen werden." }, { status: 500 });
+  if (!penalty) return NextResponse.json({ error: "Strafe nicht gefunden." }, { status: 404 });
+
+  const { data: existing } = await db.from("penalty_wheel_spins")
+    .select("outcome,outcome_label,outcome_detail,outcome_icon,segments_snapshot")
+    .eq("club_id", clubId).eq("penalty_id", penaltyId).maybeSingle();
+  const segments = await activeSegments(db, clubId);
+  if (existing) return NextResponse.json(spinPayload(existing as SpinRow, segments));
+  if (penalty.resolved_at) {
+    return NextResponse.json({ error: "Nur offene Strafen haben einen Dreh." }, { status: 409 });
+  }
+
+  // Cryptographically secure weighted draw. One immutable result per penalty.
+  const choice = pickWheelSegment(segments, randomInt(100));
+  const { error: saveError } = await db.from("penalty_wheel_spins").insert({
+    club_id: clubId,
+    penalty_id: penaltyId,
+    player_id: player.id,
+    spun_by: user.id,
+    outcome: choice.id,
+    outcome_label: choice.label,
+    outcome_detail: choice.description,
+    outcome_icon: choice.icon,
+    segments_snapshot: segments,
+  });
+  if (saveError) {
+    const { data: saved } = await db.from("penalty_wheel_spins")
+      .select("outcome,outcome_label,outcome_detail,outcome_icon,segments_snapshot")
+      .eq("club_id", clubId).eq("penalty_id", penaltyId).maybeSingle();
+    if (saved) return NextResponse.json(spinPayload(saved as SpinRow, segments));
+    console.error("Penalty wheel spin saving failed", saveError.code);
+    return NextResponse.json({ error: "Das Ergebnis konnte nicht gespeichert werden." }, { status: 500 });
+  }
+  // Explicitly do not change penalties, payments, beer, or cash transactions.
+  return NextResponse.json({
+    outcome: choice.id,
+    label: choice.label,
+    detail: choice.description,
+    icon: choice.icon,
+    segments,
+    alreadySpun: false,
+  });
 }

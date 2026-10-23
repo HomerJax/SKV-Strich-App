@@ -376,7 +376,7 @@ export async function getTeamFeedItems(
       .select("id,session_id,kind,reviewed_at,players(first_name,last_name,nickname)")
       .eq("club_id",clubId).eq("status","penalized").order("reviewed_at",{ascending:false}).limit(Math.max(12,limit*2)),
     supabase.from("penalty_wheel_spins")
-      .select("id,outcome,spun_at,players(first_name,last_name,nickname),penalties(value,source_key)")
+      .select("id,outcome,outcome_label,outcome_detail,outcome_icon,spun_at,players(first_name,last_name,nickname),penalties(value,source_key)")
       .eq("club_id",clubId).order("spun_at",{ascending:false}).limit(Math.max(12,limit*2)),
     supabase.from("penalties")
       .select("id,reason,type,value,resolved_at,source_key,cash_transaction_id,players(first_name,last_name,nickname)")
@@ -384,7 +384,7 @@ export async function getTeamFeedItems(
       .order("resolved_at",{ascending:false}).limit(Math.max(20,limit*3))
   ]);
   type ReviewNews={id:number;session_id:number;kind:string;reviewed_at:string|null;players:BadgePlayer|BadgePlayer[]|null};
-  type WheelNews={id:number;outcome:string;spun_at:string;players:BadgePlayer|BadgePlayer[]|null;penalties:{value:string|null;source_key:string|null}|{value:string|null;source_key:string|null}[]|null};
+  type WheelNews={id:number;outcome:string;outcome_label:string|null;outcome_detail:string|null;outcome_icon:string|null;spun_at:string;players:BadgePlayer|BadgePlayer[]|null;penalties:{value:string|null;source_key:string|null}|{value:string|null;source_key:string|null}[]|null};
   type PaidPenaltyNews={id:number;reason:string|null;type:"money"|"beer"|"custom";value:string|null;resolved_at:string;source_key:string|null;cash_transaction_id:number|null;players:BadgePlayer|BadgePlayer[]|null};
   const attendanceItems:TeamFeedItem[]=((reviews??[]) as ReviewNews[]).map(row=>{
     const actor=playerName(row.players,locale);
@@ -403,18 +403,15 @@ export async function getTeamFeedItems(
   };
   const wheelItems:TeamFeedItem[]=((spins??[]) as WheelNews[]).flatMap(row=>{
     const penalty=Array.isArray(row.penalties)?row.penalties[0]??null:row.penalties;
-    // Never broadcast technical test spins to a real team's Kabinen-Talk.
     if(penalty?.source_key?.startsWith("test:"))return [];
     const actor=playerName(row.players,locale);
-    const value=penalty?.value?.trim()||"eine Strafe";
-    const hasMoney=/^(?:\\d+[.,]?\\d*)\\s*(?:€|EUR)?$/i.test(value);
-    const publicValue=hasMoney && !/[€]/.test(value)?`${value} €`:value;
+    const label=row.outcome_label?.trim() || row.outcome;
+    const detail=row.outcome_detail?.trim() || wheelCopy[row.outcome] || "Das Rad hat entschieden!";
+    const symbol=row.outcome_icon?.trim() || "🎡";
     return [{
       id:`wheel:${row.id}`,kind:"wheel" as const,
-      title:`🎡 ${actor} zockt am Schicksalsrad!`,
-      body:row.outcome==="challenge"
-        ?`Aus ${publicValue} wird 'ne Kiste … Sprüche! 😈 Nur Spaß – die Strafe bleibt unverändert.`
-        :`${publicValue} auf dem Rad · ${wheelCopy[row.outcome]??"Die Kabine hat entschieden!"} Die Strafe bleibt unverändert.`,
+      title:`🎡 ${actor} hat gezockt: ${symbol} ${label}!`,
+      body:`${detail} · Die ursprüngliche Geld- oder Bierstrafe bleibt unverändert.`,
       href:"/mannschaftskasse",occurredAt:row.spun_at,actorName:actor
     }];
   });

@@ -285,7 +285,12 @@ export default async function Page({ searchParams }: Props) {
           </Link>
           <div className="flex items-center gap-2">
             {isClubAdmin ? (
-              <Link href="/mannschaftskasse/setup?edit=1" className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">{t("cashbox.editSetup")}</Link>
+              <>
+                <Link href="/mannschaftskasse/gluecksrad" className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-900">
+                  🎡 Glücksrad einstellen
+                </Link>
+                <Link href="/mannschaftskasse/setup?edit=1" className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">{t("cashbox.editSetup")}</Link>
+              </>
             ) : null}
             {canManageBeer && beerFeatureEnabled ? (
               <Link
