@@ -232,24 +232,17 @@ button:disabled,
 }
 
 /*
- * Mobile WebKit (iOS and installed iOS app) automatically magnifies the page
- * when a focused form control uses text below 16px. This often persists after
- * saving results/RSVPs and feels like a broken pinch zoom. Apply consistently
- * to every editable control (tournament, attendance, cashbox, settings, etc.)
- * without disabling user-initiated accessibility zoom.
+ * iOS Safari/WKWebView zooms into form controls smaller than 16px. Android
+ * webviews also benefit from a stable minimum input font size when the keyboard
+ * opens and closes. Apply to editable fields app-wide on mobile, including
+ * tournament results, attendance, cashbox, and administrative forms.
+ * Leave buttons and desktop layouts unchanged; preserve user pinch-to-zoom.
  */
-@supports (-webkit-touch-callout: none) {
-  @media (max-width: 767px) {
-    input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
-    textarea,
-    select,
-    [contenteditable="true"] {
-      font-size: max(16px, 1em);
-    }
-    input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
-    textarea,
-    select {
-      font-size: 16px !important;
-    }
+@media (max-width: 767px) {
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select,
+  [contenteditable="true"] {
+    font-size: max(16px, 1em) !important;
   }
 }
