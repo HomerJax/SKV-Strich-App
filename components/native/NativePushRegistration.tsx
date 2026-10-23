@@ -4,6 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { FirebaseMessaging } from "@capacitor-firebase/messaging";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { markNativePushIntent } from "@/lib/native/return-home";
 
 type NotificationData = {
   url?: unknown;
@@ -82,7 +83,8 @@ export default function NativePushRegistration() {
             const url = data?.url;
             const clubId = data?.clubId;
 
-            if (typeof url === "string" && url.startsWith("/")) {
+            if (typeof url === "string" && url.startsWith("/") && !url.startsWith("//")) {
+              markNativePushIntent();
               if (typeof clubId === "string" && clubId.trim()) {
                 const params = new URLSearchParams({
                   clubId: clubId.trim(),

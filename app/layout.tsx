@@ -8,8 +8,7 @@ import RouteAwareAppShell from "@/components/RouteAwareAppShell";
 import HomeAchievementTeaser from "@/components/home/HomeAchievementTeaser";
 import NativeDeepLinkHandler from "@/components/native/NativeDeepLinkHandler";
 import NativeStartupReady from "@/components/native/NativeStartupReady";
-import NativeLastPathTracker from "@/components/native/NativeLastPathTracker";
-import NativeLastRouteTracker from "@/components/native/NativeLastRouteTracker";
+import NativeHomeOnResume from "@/components/native/NativeHomeOnResume";
 import GlobalActionFeedback from "@/components/ui/GlobalActionFeedback";
 import PublicDemoLauncher from "@/components/demo/PublicDemoLauncher";
 import I18nProvider from "@/components/i18n/I18nProvider";
@@ -73,8 +72,7 @@ export default async function RootLayout({
         <I18nProvider locale={locale}>
         <NativeDeepLinkHandler />
         <NativeStartupReady />
-        <NativeLastPathTracker />
-        <NativeLastRouteTracker />
+        <NativeHomeOnResume />
         <GlobalActionFeedback />
         <ProductAnalyticsTracker />
         <PublicDemoLauncher />

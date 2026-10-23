@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cancelTournamentFinish, scheduleTournamentFinish } from "@/lib/tournament-finish-notification";
+import { ACTIVE_TOURNAMENT_KEY } from "@/lib/native/return-home";
 
 type TeamPlayer = {
   id: number;
@@ -100,9 +101,11 @@ function ScoreEditor({
   }, [match.goals_team_a, match.goals_team_b]);
 
   const complete = match.goals_team_a != null && match.goals_team_b != null;
+  const unsaved = a !== (match.goals_team_a == null ? "" : String(match.goals_team_a)) ||
+    b !== (match.goals_team_b == null ? "" : String(match.goals_team_b));
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div data-strikr-unsaved={unsaved ? "true" : undefined} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
@@ -144,7 +147,11 @@ function ScoreEditor({
         <button
           type="button"
           disabled={disabled || busy || a === "" || b === ""}
-          onClick={() => void onSave(match.game_no, Number(a), Number(b))}
+          onClick={() => {
+            // Close the iOS keyboard and reset its visual viewport before the UI re-renders.
+            if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+            void onSave(match.game_no, Number(a), Number(b));
+          }}
           className="col-span-3 w-full rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white disabled:opacity-40"
         >
           Speichern
@@ -300,6 +307,21 @@ export default function SessionTournamentCard({
   }, [enabled, sessionId]);
 
   useEffect(() => {
+    // A started, unfinished tournament remains the launch target after a
+    // long app interruption. Markers expire automatically after 12 hours.
+    try {
+      const raw = window.localStorage.getItem(ACTIVE_TOURNAMENT_KEY);
+      const previous = raw ? JSON.parse(raw) as { sessionId?: number } : null;
+      if (enabled && data && !data.config?.tournament_completed_at) {
+        window.localStorage.setItem(ACTIVE_TOURNAMENT_KEY,
+          JSON.stringify({ sessionId, savedAt: Date.now() }));
+      } else if (previous?.sessionId === sessionId && (!enabled || (data && data.config?.tournament_completed_at))) {
+        window.localStorage.removeItem(ACTIVE_TOURNAMENT_KEY);
+      }
+    } catch { /* browser storage is optional */ }
+  }, [enabled, data, sessionId]);
+
+  useEffect(() => {
     if (!timerRunning) return;
     const handle = window.setInterval(() => { if (timerDeadlineRef.current !== null) setRemainingSeconds(Math.max(0, Math.ceil((timerDeadlineRef.current - Date.now()) / 1000))); }, 250);
     return () => window.clearInterval(handle);
@@ -441,7 +463,7 @@ export default function SessionTournamentCard({
     if (!isAdmin || hasNormalResult) return null;
 
     return (
-      <section className="rounded-[20px] border border-slate-200 bg-white p-3 shadow-sm">
+      <section data-strikr-unsaved={setupOpen ? "true" : undefined} className="rounded-[20px] border border-slate-200 bg-white p-3 shadow-sm">
         <button
           type="button"
           aria-expanded={setupOpen}
