@@ -160,7 +160,7 @@ export default function TrainingAttendanceStep({
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-xs font-bold text-slate-700">
                 Position
-                <select value={guestPosition} onChange={(e) => onGuestPositionChange(e.target.value as Player["preferred_position"] | "")}
+                <select value={guestPosition ?? ""} onChange={(e) => onGuestPositionChange(e.target.value as Player["preferred_position"] | "")}
                   className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-2 text-base">
                   <option value="">Offen</option><option value="goalkeeper">Torwart</option>
                   <option value="defense">Hinten</option><option value="attack">Vorne</option>
@@ -168,7 +168,7 @@ export default function TrainingAttendanceStep({
               </label>
               <label className="block text-xs font-bold text-slate-700">
                 Kategorie
-                <select value={guestAgeGroup} onChange={(e) => onGuestAgeGroupChange(e.target.value as Player["age_group"] | "")}
+                <select value={guestAgeGroup ?? ""} onChange={(e) => onGuestAgeGroupChange(e.target.value as Player["age_group"] | "")}
                   className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-2 text-base">
                   <option value="">Offen</option><option value="AH">AH</option><option value="Ü32">Ü32</option>
                 </select>
