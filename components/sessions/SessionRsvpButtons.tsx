@@ -235,7 +235,7 @@ export default function SessionRsvpButtons({
             <div className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-800">
               💬 {comment.trim()}
             </div>
-          )}
+          ) : null}
         </div>
       ) : null}
 
