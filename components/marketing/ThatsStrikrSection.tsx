@@ -88,10 +88,10 @@ async function getAutomaticallyPublishedReels(): Promise<Reel[]> {
 
       // The /reel/ permalink is the reliable public signal even when the
       // API's optional media_product_type field is not exposed.
-      const reelMatch = permalink.pathname.match(/^\\/reel\\/([A-Za-z0-9_-]+)\\/?$/);
-      if (!reelMatch) continue;
+      const pathParts = permalink.pathname.split("/").filter(Boolean);
+      if (pathParts.length !== 2 || pathParts[0] !== "reel" || !/^[A-Za-z0-9_-]+$/.test(pathParts[1])) continue;
 
-      const shortcode = reelMatch[1];
+      const shortcode = pathParts[1];
       if (seen.has(shortcode)) continue;
       seen.add(shortcode);
 
