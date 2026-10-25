@@ -17,6 +17,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --ignore-scripts
+      - run: npm install --no-audit --no-fund
       - run: npx tsc --noEmit
       - run: npm run build
