@@ -12,6 +12,7 @@ import SessionMvpCard from "./SessionMvpCard";
 import SessionGameTimerLoader from "./SessionGameTimerLoader";
 import SessionTournamentCard from "./SessionTournamentCard";
 import TrainingSessionWizard from "./TrainingSessionWizard";
+import TrainingAttendanceStep from "./TrainingAttendanceStep";
 import SessionEndModal from "@/components/SessionEndModal";
 import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionGameResult, SessionRow, TeamMap } from "./session-types";
@@ -271,7 +272,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     deleteResult,
     handleWinnerPhotoUpload,
     handleWinnerPhotoDelete,
-  } = useSessionDetail(props);
+  } = useSessionDetail({ ...props, forceAttendanceBatchMode: true });
 
   if (err && !session) {
     return <div className="bg-red-50 p-4 text-sm text-red-700">{err}</div>;
@@ -332,6 +333,33 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   }
 
   function renderAttendance() {
+    if (isAdmin && isTrainingSession && !playerPreview) {
+      return (
+        <div ref={attendanceRef}>
+          <TrainingAttendanceStep
+            players={displayPlayers}
+            selectedIds={draftPresentIds}
+            dirty={attendanceDirty}
+            saving={savingPresence}
+            locked={hasResult}
+            onToggle={(playerId) => { void togglePresence(playerId); }}
+            onSave={() => { void savePresence(); }}
+            showGuestForm={showGuestForm}
+            guestName={guestName}
+            guestPosition={guestPosition}
+            guestAgeGroup={guestAgeGroup}
+            guestStrength={guestStrength}
+            guestSaving={guestSaving}
+            onToggleShowGuestForm={toggleGuestForm}
+            onGuestNameChange={setGuestName}
+            onGuestPositionChange={setGuestPosition}
+            onGuestAgeGroupChange={setGuestAgeGroup}
+            onGuestStrengthChange={setGuestStrength}
+            onAddGuestPlayer={() => { void addGuestPlayer(); }}
+          />
+        </div>
+      );
+    }
     return (
       <div ref={attendanceRef} className="space-y-3">
         {!(true && isAdmin && isTrainingSession) && !playerPreview ? <SessionAdminRsvpCard
@@ -590,7 +618,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           <section className="space-y-4" aria-label="Training vorbereiten">
             <div className="rounded-2xl bg-slate-950 p-5 text-white shadow-md">
               <div className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-teal-300">
-                {trainingCompleted ? "Training abgeschlossen" : liveOrPrepared ? "Training fortsetzen" : "Training ist geplant"}
+                {trainingCompleted ? "Training abgeschlossen" : "Neuer Trainings-Wizard · Pilot"}
               </div>
               <h2 className="mt-2 text-xl font-black tracking-tight">
                 {trainingCompleted ? "Training erledigt!" : liveOrPrepared ? "Bereit für den nächsten Schritt?" : "Alles bereit für den Trainingstag?"}
@@ -608,7 +636,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 <div className="rounded-xl bg-white/10 p-3 text-center"><div className="text-xl font-black">{noResponseCount}</div><div className="text-[10px] font-semibold text-slate-300">Noch offen</div></div>
               </div>
               <button type="button" onClick={enterTrainingWizard} className="mt-5 min-h-14 w-full rounded-xl bg-teal-400 px-4 py-3 text-base font-extrabold text-slate-950 shadow-lg transition hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300">
-                {trainingCompleted ? "✓ Abgeschlossenes Training ansehen" : liveOrPrepared ? "▶ Training fortsetzen" : "▶ Training starten"}
+                {trainingCompleted ? "✓ Training ansehen" : liveOrPrepared ? "▶ Wizard fortsetzen" : "▶ Fullscreen-Wizard starten"}
               </button>
               <p className="mt-2 text-center text-xs text-slate-300">
                 {trainingCompleted ? "Du kannst die gespeicherten Schritte weiterhin prüfen und ändern." : liveOrPrepared ? "Du kannst den Fullscreen-Assistenten jederzeit wieder verlassen." : "Der Fullscreen-Assistent beginnt mit der Anwesenheitsprüfung."}
@@ -676,7 +704,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at)) ||
             (selected === "photo" && isTournamentMode && !session.tournament_completed_at);
           const helperText = selected === "attendance"
-            ? "Prüfe die tatsächliche Anwesenheit und ergänze bei Bedarf Gäste. Änderungen zuerst speichern."
+            ? "Tippe alle anwesenden Spieler an, speichere die gesamte Auswahl einmal und bestätige danach die Anwesenheit."
             : selected === "mode"
               ? "Entscheide dich für ein normales Spiel oder richte optional ein Turnier ein."
               : selected === "teams"
