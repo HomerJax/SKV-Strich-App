@@ -162,14 +162,14 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
   }
 
   return (
-    <details className="mt-3 overflow-hidden rounded-2xl border border-cyan-200 bg-cyan-50/70 p-3 shadow-sm">
-      <summary className="cursor-pointer text-xs font-black text-cyan-900">
+    <details className="group mt-3 overflow-hidden rounded-[24px] border border-slate-800/15 bg-gradient-to-br from-slate-950 via-[#0b1828] to-[#10384b] p-4 text-white shadow-[0_18px_55px_rgba(2,8,23,.16)]">
+      <summary className="cursor-pointer text-sm font-black tracking-tight text-cyan-100 marker:text-cyan-400">
         🎡 Schicksalsrad · {outcome ? "Dein Ergebnis ansehen" : "Traust du dich?"}
       </summary>
       <div className="mt-3 space-y-3">
         <div className="text-center">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Dreh oder zahl?</p>
-          <p className="mt-1 text-[11px] text-slate-600">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200">Dreh oder zahl?</p>
+          <p className="mt-1 text-[11px] text-slate-300">
             {canResetForTest
               ? "Testmodus: Dreh so oft du willst!"
               : "Die Kabine ist gespannt. Ein Versuch pro Strafe."}
@@ -177,12 +177,14 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         </div>
 
         <div className="relative mx-auto mt-4 w-full max-w-[290px]">
-          <div className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 drop-shadow-md">
+          <div className="pointer-events-none absolute -inset-4 rounded-full bg-cyan-400/10 blur-2xl" aria-hidden="true" />
+          <div className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 drop-shadow-[0_4px_5px_rgba(0,0,0,.6)]">
             <svg width="32" height="37" viewBox="0 0 32 37" role="img" aria-label="Zeiger">
-              <path d="M3 2 H29 L16 34 Z" fill="white" stroke="#0A2536" strokeWidth="3"/>
+              <path d="M5 3 H27 L16 31 Z" fill="#67E8F9" stroke="#08202E" strokeWidth="2.5"/>
             </svg>
           </div>
-          <div className="rounded-full bg-slate-950 p-2 shadow-[0_12px_30px_rgba(10,35,55,.27)]">
+          <div className="relative rounded-full border border-white/20 bg-gradient-to-br from-slate-700 via-[#091725] to-slate-950 p-[6px] shadow-[0_20px_45px_rgba(0,0,0,.52),inset_0_1px_2px_rgba(255,255,255,.2)]">
+            <div className="rounded-full border border-cyan-200/35 bg-[#091725] p-[2px]">
             <svg viewBox="0 0 320 320" role="img" aria-label="Schicksalsrad mit vereinsindividuellen Feldern"
               className="block w-full rounded-full"
               style={{
@@ -203,7 +205,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                 return (
                   <g key={segment.id}>
                     <path d={sector(start, end)} fill={PUBLIC_WHEEL_COLORS[index % PUBLIC_WHEEL_COLORS.length]}
-                      stroke="#F8FAFC" strokeWidth="2" strokeLinejoin="round"/>
+                      stroke="#071523" strokeWidth="1.6" strokeLinejoin="round"/>
                     <text x={point.x} y={point.y} textAnchor="middle" dominantBaseline="central"
                       fontSize={small ? 13 : 23}>{segment.icon}</text>
                     {!small && (
@@ -216,44 +218,47 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                   </g>
                 );
               })}
-              <circle cx="160" cy="160" r="45" fill="#071E2E" stroke="white" strokeWidth="4"/>
-              <text x="160" y="164" textAnchor="middle" fill="white" fontSize="24" fontWeight="900">strikr</text>
-              <text x="160" y="180" textAnchor="middle" fill="#6EE7EA"
-                fontSize="9" fontWeight="800" letterSpacing="1">SCHICKSAL</text>
+              <circle cx="160" cy="160" r="139" fill="none" stroke="#BDF7FC" strokeOpacity=".5" strokeWidth="1.3"/>
+              <circle cx="160" cy="160" r="43" fill="#061622" stroke="#62DCEB" strokeOpacity=".6" strokeWidth="2"/>
+              <circle cx="160" cy="160" r="37" fill="#0A2132" stroke="#FFFFFF" strokeOpacity=".17" strokeWidth="1"/>
+              <text x="160" y="163" textAnchor="middle" fill="white" fontSize="23" fontWeight="900">strikr</text>
+              <text x="160" y="179" textAnchor="middle" fill="#73E8ED"
+                fontSize="9" fontWeight="800" letterSpacing="1.2">SCHICKSAL</text>
             </svg>
+            </div>
           </div>
         </div>
 
         {outcome ? (
           <div className="space-y-2 text-center">
             {!reveal ? (
-              <p role="status" className="rounded-xl bg-cyan-100 px-4 py-3 text-sm font-black text-cyan-900">
+              <p role="status" className="rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-sm font-black text-cyan-100">
                 🎡 Das Schicksal entscheidet …
               </p>
             ) : (
               <button type="button" onClick={() => setShowResultPopup(true)}
-                className="w-full rounded-xl bg-slate-950 px-4 py-3.5 text-sm font-black text-white shadow-md transition hover:bg-slate-800">
+                className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3.5 text-sm font-black text-white transition hover:bg-white/20">
                 🎁 Dein Ergebnis nochmal ansehen
               </button>
             )}
           </div>
         ) : (
           <button type="button" disabled={busy || loading || !!error} onClick={() => void spin()}
-            className="w-full rounded-xl bg-cyan-600 px-4 py-3.5 text-sm font-black text-white shadow-md transition hover:bg-cyan-700 disabled:opacity-50">
+            className="w-full rounded-xl bg-cyan-300 px-4 py-3.5 text-sm font-black text-slate-950 shadow-[0_8px_25px_rgba(34,211,238,.22)] transition hover:bg-white disabled:opacity-50">
             {loading ? "Rad wird geladen …" : busy ? "Ergebnis wird gespeichert …" : "🎡 JETZT DREHEN"}
           </button>
         )}
         {canResetForTest && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
-            <p className="text-xs font-black text-amber-950">🧪 Nur zum Testen</p>
-            <p className="mt-1 text-[11px] leading-5 text-amber-900">
+          <div className="rounded-xl border border-white/15 bg-white/[0.07] px-3 py-3">
+            <p className="text-xs font-black text-cyan-100">🧪 Nur zum Testen</p>
+            <p className="mt-1 text-[11px] leading-5 text-slate-300">
               Du darfst diese Teststrafe zurücksetzen und beliebig oft neu drehen.
               Es wird nur das Testergebnis gelöscht – keine echte Strafe oder Zahlung verändert.
             </p>
             {outcome && (
               <button type="button" onClick={() => void resetTestSpin()}
                 disabled={resetting || busy || !reveal}
-                className="mt-3 w-full rounded-xl border border-amber-300 bg-white px-3 py-3 text-sm font-black text-amber-950 transition hover:bg-amber-100 disabled:opacity-50">
+                className="mt-3 w-full rounded-xl border border-white/25 bg-white/10 px-3 py-3 text-sm font-black text-white transition hover:bg-white/20 disabled:opacity-50">
                 {resetting ? "Testdreh wird zurückgesetzt …" : "🔄 Zurücksetzen & nochmal drehen"}
               </button>
             )}
@@ -272,7 +277,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
               className="relative max-h-[calc(100dvh-2rem)] w-full max-w-[420px] overflow-y-auto rounded-[28px] border border-cyan-200/50 bg-white text-center shadow-[0_24px_90px_rgba(0,0,0,.48)]">
               <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-[#124a59] to-cyan-700 px-5 pb-12 pt-9 text-white">
                 <div className="absolute -left-14 -top-16 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl" aria-hidden="true"/>
-                <div className="absolute -right-12 top-10 h-36 w-36 rounded-full bg-amber-300/20 blur-3xl" aria-hidden="true"/>
+                <div className="absolute -right-12 top-10 h-36 w-36 rounded-full bg-violet-300/20 blur-3xl" aria-hidden="true"/>
                 <p className="relative text-[11px] font-black uppercase tracking-[.23em] text-cyan-100">
                   🎡 Das Schicksal hat entschieden!
                 </p>
