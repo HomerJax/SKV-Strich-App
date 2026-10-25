@@ -55,6 +55,8 @@ type SessionDetailClientProps = {
   initialUseNicknames?: boolean;
   initialUseFieldView?: boolean;
   initialHomeSessionRsvpEnabled?: boolean;
+  // Only the isolated training wizard opts into explicit batch attendance saves.
+  forceAttendanceBatchMode?: boolean;
 };
 
 type ApiSuccess =
@@ -187,6 +189,7 @@ export function useSessionDetail({
   initialUseNicknames,
   initialUseFieldView,
   initialHomeSessionRsvpEnabled,
+  forceAttendanceBatchMode = false,
 }: SessionDetailClientProps) {
   const { locale, t } = useI18n();
   const router = useRouter();
@@ -223,7 +226,7 @@ export function useSessionDetail({
     initialHomeSessionRsvpEnabled ?? false
   );
   const [attendanceMultiSelectEnabled, setAttendanceMultiSelectEnabled] =
-    useState(false);
+    useState(forceAttendanceBatchMode);
 
   const [winnerPhotoUrl, setWinnerPhotoUrl] = useState<string | null>(
     initialWinnerPhotoUrl
@@ -278,7 +281,7 @@ export function useSessionDetail({
   const [resultShareMessage, setResultShareMessage] = useState<string | null>(null);
 
   const directAttendanceSaveEnabled =
-    homeSessionRsvpEnabled && !attendanceMultiSelectEnabled;
+    !forceAttendanceBatchMode && homeSessionRsvpEnabled && !attendanceMultiSelectEnabled;
 
   const sessionType: SessionType = (session?.type ?? "training") as SessionType;
   const isTrainingSession = sessionType === "training";
@@ -653,7 +656,7 @@ export function useSessionDetail({
   }
 
   function toggleAttendanceMultiSelect() {
-    if (hasResult || savingPresence) {
+    if (forceAttendanceBatchMode || hasResult || savingPresence) {
       return;
     }
 
