@@ -170,7 +170,7 @@ export default function SessionHeaderCard({
   resultCount = 0,
   isPro = false,
   compactPilot = false,
-  trainingStarted = false,
+  trainingStarted,
 }: Props) {
   const { locale, t } = useI18n();
   const isEvent = sessionType === "event";
@@ -181,7 +181,7 @@ export default function SessionHeaderCard({
       <section className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={onBack} className="text-xs font-semibold text-slate-500 hover:text-slate-900">← {t("sessionHeader.back")}</button>
-          <span className="rounded-full bg-teal-50 px-3 py-1 text-[11px] font-semibold text-teal-800">{isEvent ? "Event" : hasResult ? t("sessionHeader.completed") : trainingStarted ? "In Durchführung" : "Geplant"}</span>
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-[11px] font-semibold text-teal-800">{isEvent ? "Event" : hasResult ? t("sessionHeader.completed") : trainingStarted === undefined ? t("sessionHeader.running") : trainingStarted ? "In Durchführung" : "Geplant"}</span>
         </div>
         <div className="mt-2 flex items-center justify-between gap-3">
           <div className="min-w-0">
