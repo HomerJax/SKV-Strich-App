@@ -14,7 +14,7 @@ type Reel = {
 // STRIKR_INSTAGRAM_REELS Vercel environment variable, separated by commas,
 // semicolons or newlines. No video file is uploaded to strikr.
 // Example: https://www.instagram.com/reel/REAL_PUBLIC_SHORTCODE/
-function getPublishedReels(): Reel[] {
+function getManuallyConfiguredReels(): Reel[] {
   const configured = process.env.STRIKR_INSTAGRAM_REELS ?? "";
   const seen = new Set<string>();
   const reels: Reel[] = [];
@@ -48,8 +48,71 @@ function getPublishedReels(): Reel[] {
   return reels;
 }
 
-export default function ThatsStrikrSection() {
-  const reels = getPublishedReels();
+// Official Instagram API with Instagram Login: reads only published media from
+// the authorized professional @getstrikr account. The access token stays server-side.
+// Next.js caches responses for 30 minutes, so new Reels appear without a redeploy.
+async function getAutomaticallyPublishedReels(): Promise<Reel[]> {
+  const token = process.env.STRIKR_INSTAGRAM_ACCESS_TOKEN?.trim();
+  if (!token) return [];
+
+  try {
+    const url = new URL("https://graph.instagram.com/v25.0/me/media");
+    url.searchParams.set("fields", "id,media_type,permalink,timestamp");
+    url.searchParams.set("limit", "30");
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      next: { revalidate: 1800 },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!response.ok) return [];
+
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== "object" || !("data" in payload) || !Array.isArray(payload.data)) return [];
+
+    const items = payload.data as Array<Record<string, unknown>>;
+    const sorted = [...items].sort((a, b) => {
+      const left = typeof a.timestamp === "string" ? Date.parse(a.timestamp) : 0;
+      const right = typeof b.timestamp === "string" ? Date.parse(b.timestamp) : 0;
+      return (Number.isFinite(right) ? right : 0) - (Number.isFinite(left) ? left : 0);
+    });
+
+    const reels: Reel[] = [];
+    const seen = new Set<string>();
+
+    for (const entry of sorted) {
+      if (typeof entry.permalink !== "string") continue;
+
+      const permalink = new URL(entry.permalink);
+      if (permalink.protocol !== "https:" || !["www.instagram.com", "instagram.com"].includes(permalink.hostname)) continue;
+
+      // The /reel/ permalink is the reliable public signal even when the
+      // API's optional media_product_type field is not exposed.
+      const reelMatch = permalink.pathname.match(/^\\/reel\\/([A-Za-z0-9_-]+)\\/?$/);
+      if (!reelMatch) continue;
+
+      const shortcode = reelMatch[1];
+      if (seen.has(shortcode)) continue;
+      seen.add(shortcode);
+
+      reels.push({
+        permalink: `https://www.instagram.com/reel/${shortcode}/`,
+        embedUrl: `https://www.instagram.com/reel/${shortcode}/embed/`,
+        title: reels.length === 0 ? "THAT'S STRIKR. – Neuester Reel" : "strikr im Einsatz",
+      });
+      if (reels.length === 3) break;
+    }
+
+    return reels;
+  } catch {
+    // Keep the landing page usable when Meta is temporarily unavailable.
+    return [];
+  }
+}
+
+export default async function ThatsStrikrSection() {
+  const automaticReels = await getAutomaticallyPublishedReels();
+  const reels = automaticReels.length ? automaticReels : getManuallyConfiguredReels();
 
   return (
     <section id="thats-strikr" aria-labelledby="thats-strikr-heading" className="relative overflow-hidden border-y border-white/10 bg-[#070e17] py-16 sm:py-20">
