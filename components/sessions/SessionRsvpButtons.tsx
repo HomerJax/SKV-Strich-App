@@ -157,10 +157,18 @@ export default function SessionRsvpButtons({
   return (
     <div className="mt-3" onClick={(event) => event.preventDefault()}>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" disabled={readOnly || busy !== null || (deadlinePassed && status === "in")} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void setPresence("in"); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "in" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"].join(" ")}>
+        <button type="button" disabled={readOnly || busy !== null || (deadlinePassed && status === "in")} onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setReasonOpen(false);
+          setCommentDraft(comment);
+          setCommentOpen(true);
+          setError("");
+          setSavedMessage("");
+        }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "in" ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"].join(" ")}>
           {busy === "in" ? t("session.saving") : status === "in" ? t("session.confirmed") : t("session.confirm")}
         </button>
-        <button type="button" disabled={readOnly || busy !== null} onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (status === "out") void setPresence("out"); else setReasonOpen(true); }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "out" ? "border-rose-600 bg-rose-600 text-white" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"].join(" ")}>
+        <button type="button" disabled={readOnly || busy !== null} onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (status === "out") void setPresence("out"); else { setCommentOpen(false); setReasonOpen(true); } }} className={["rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60", status === "out" ? "border-rose-600 bg-rose-600 text-white" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"].join(" ")}>
           {busy === "out" ? t("session.saving") : status === "out" ? t("session.cancelled") : t("session.decline")}
         </button>
       </div>
@@ -180,7 +188,7 @@ export default function SessionRsvpButtons({
           {commentOpen ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2.5">
               <div className="text-[11px] font-bold text-emerald-800">
-                {t("session.attendanceComment")}{" "}
+                {status === "in" ? t("session.editAttendanceComment") : t("session.attendanceComment")}{" "}
                 <span className="font-medium text-emerald-600">{t("session.optional")}</span>
               </div>
               <input
@@ -194,7 +202,14 @@ export default function SessionRsvpButtons({
                 placeholder={t("session.attendanceCommentPlaceholder")}
                 className="mt-2 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-base sm:text-xs outline-none focus:border-emerald-400"
               />
-              <div className="mt-2 flex justify-end gap-2">
+              <div className="mt-2 flex flex-wrap justify-end gap-2">
+                {status === "in" && !deadlinePassed ? (
+                  <button type="button" disabled={busy !== null}
+                    onClick={() => void setPresence("in")}
+                    className="mr-auto rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 underline underline-offset-2 disabled:opacity-50">
+                    {locale === "de" ? "Zusage zurücknehmen" : "Withdraw attendance"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => {
@@ -212,24 +227,14 @@ export default function SessionRsvpButtons({
                   onClick={() => void setPresence("in", "", commentDraft, status === "in")}
                   className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40"
                 >
-                  {t("session.saveAttendanceComment")}
+                  {locale === "de" ? "Zusage speichern" : "Save attendance"}
                 </button>
               </div>
             </div>
-          ) : (
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={() => {
-                setCommentDraft(comment);
-                setCommentOpen(true);
-              }}
-              className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
-            >
-              {status === "in" && comment.trim()
-                ? `💬 „${comment.trim()}“ · ${t("session.editAttendanceComment")}`
-                : t("session.addAttendanceComment")}
-            </button>
+          ) : status === "in" && comment.trim() ? (
+            <div className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-800">
+              💬 {comment.trim()}
+            </div>
           )}
         </div>
       ) : null}
