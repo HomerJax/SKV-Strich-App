@@ -109,6 +109,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [wizardManualSelection, setWizardManualSelection] = useState(false);
   const [normalModeReviewed, setNormalModeReviewed] = useState(false);
   const [attendanceReviewed, setAttendanceReviewed] = useState(false);
+  const [trainingStarted, setTrainingStarted] = useState(false);
+  const [trainingWizardOpen, setTrainingWizardOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -119,6 +121,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       }
       setNormalModeReviewed(window.localStorage.getItem("strikr-mode-reviewed-" + props.sessionId) === "true");
       setAttendanceReviewed(window.localStorage.getItem("strikr-attendance-reviewed-" + props.sessionId) === "true");
+      setTrainingStarted(window.localStorage.getItem("strikr-training-started-" + props.sessionId) === "true");
       setPilotPhotoSkipped(window.localStorage.getItem("strikr-photo-skipped-" + props.sessionId) === "true");
     } catch { /* Storage is optional. */ }
   }, [props.sessionId]);
@@ -127,6 +130,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     if (pilotStep === null) return;
     try { window.localStorage.setItem("strikr-wizard-" + props.sessionId, pilotStep); } catch { /* Storage is optional. */ }
   }, [props.sessionId, pilotStep]);
+
+  useEffect(() => {
+    if (!trainingStarted) return;
+    try { window.localStorage.setItem("strikr-training-started-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
+  }, [props.sessionId, trainingStarted]);
 
   useEffect(() => {
     if (!attendanceReviewed) return;
@@ -273,6 +281,20 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";
   const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
+  const liveOrPrepared = trainingStarted || teamsComplete || hasResult || isTournamentMode;
+  const expectedCount = displayPlayers.filter(p => !p.is_guest && p.rsvp_status === "in").length;
+  const declinedCount = displayPlayers.filter(p => !p.is_guest && p.rsvp_status === "out").length;
+  const noResponseCount = displayPlayers.filter(p => !p.is_guest && !p.rsvp_status).length;
+
+  function enterTrainingWizard() {
+    setTrainingStarted(true);
+    setTrainingWizardOpen(true);
+  }
+
+  function leaveTrainingWizard() {
+    if (attendanceDirty && !window.confirm("Es gibt noch ungespeicherte Änderungen bei der Anwesenheit. Assistent trotzdem schließen?")) return;
+    setTrainingWizardOpen(false);
+  }
   const rsvpDeadlineEpochMs = getSessionDeadlineEpochMs({
     date: session.date,
     startTime: session.start_time ?? null,
@@ -530,12 +552,48 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           seriesId={session.series_id ?? null}
           isPro={props.initialIsPro === true}
           compactPilot={true && isAdmin && isTrainingSession}
+          trainingStarted={liveOrPrepared}
         />
 
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
 
-        {playerPreview ? <div className="space-y-4"><div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div> : true && isAdmin && isTrainingSession ? (() => {
+        {playerPreview ? <div className="space-y-4"><div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div> : true && isAdmin && isTrainingSession ? (!trainingWizardOpen ? (
+          <section className="space-y-4" aria-label="Training vorbereiten">
+            <div className="rounded-2xl bg-slate-950 p-5 text-white shadow-md">
+              <div className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-teal-300">
+                {liveOrPrepared ? "Training fortsetzen" : "Training ist geplant"}
+              </div>
+              <h2 className="mt-2 text-xl font-black tracking-tight">
+                {liveOrPrepared ? "Bereit für den nächsten Schritt?" : "Alles bereit für den Trainingstag?"}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                {liveOrPrepared
+                  ? "Deine gespeicherten Anwesenheiten, Teams und Ergebnisse bleiben erhalten. Setze den Trainings-Assistenten fort."
+                  : "Die Einheit ist angelegt. Bis zum Trainingsbeginn können die Spieler zu- oder absagen und du kannst den Termin vorbereiten. Erst beim Start geht es in den geführten Ablauf."}
+              </p>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="rounded-xl bg-white/10 p-3 text-center"><div className="text-xl font-black">{expectedCount}</div><div className="text-[10px] font-semibold text-slate-300">Zusagen</div></div>
+                <div className="rounded-xl bg-white/10 p-3 text-center"><div className="text-xl font-black">{declinedCount}</div><div className="text-[10px] font-semibold text-slate-300">Absagen</div></div>
+                <div className="rounded-xl bg-white/10 p-3 text-center"><div className="text-xl font-black">{noResponseCount}</div><div className="text-[10px] font-semibold text-slate-300">Noch offen</div></div>
+              </div>
+              <button type="button" onClick={enterTrainingWizard} className="mt-5 min-h-14 w-full rounded-xl bg-teal-400 px-4 py-3 text-base font-extrabold text-slate-950 shadow-lg transition hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300">
+                {liveOrPrepared ? "▶ Training fortsetzen" : "▶ Training starten"}
+              </button>
+              <p className="mt-2 text-center text-xs text-slate-300">
+                {liveOrPrepared ? "Du kannst den Fullscreen-Assistenten jederzeit wieder verlassen." : "Der Fullscreen-Assistent beginnt mit der Anwesenheitsprüfung."}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="text-base font-black text-slate-950">Vorbereitung & Rückmeldungen</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">Bis zum Training kannst du Termin, Notizen und Zu-/Absagen wie gewohnt verwalten. Am Spieltag bestätigst du die tatsächliche Anwesenheit im Assistenten.</p>
+              <div className="mt-4">
+                <SessionAdminRsvpCard sessionId={props.sessionId} players={displayPlayers} hasResult={hasResult} isAdmin={props.initialIsClubAdmin === true && pilotView === "admin"} />
+              </div>
+            </div>
+          </section>
+        ) : (() => {
           const steps = [
             { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2 && (attendanceReviewed || teamsComplete || hasResult || isTournamentMode), summary: `${presentPlayers.length} Spieler dabei` },
             { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || normalModeReviewed || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
@@ -626,6 +684,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               steps={steps}
               selectedIndex={selectedIndex}
               completed={pilotFinished}
+              fullscreen
+              onClose={leaveTrainingWizard}
               helperText={statusHint ?? helperText}
               nextDisabled={nextDisabled}
               nextLabel={nextLabel}
@@ -686,7 +746,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               ) : null}
             </TrainingSessionWizard>
           );
-        })() : (
+        })()) : (
         <>
         {renderWorkflowSection("attendance", renderAttendance())}
 
