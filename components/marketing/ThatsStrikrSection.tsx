@@ -50,7 +50,7 @@ function getManuallyConfiguredReels(): Reel[] {
 
 // Official Instagram API with Instagram Login: reads only published media from
 // the authorized professional @getstrikr account. The access token stays server-side.
-// Next.js caches responses for 30 minutes, so new Reels appear without a redeploy.
+// Next.js caches responses for 24 hours, so new Reels appear without a redeploy.
 async function getAutomaticallyPublishedReels(): Promise<Reel[]> {
   const token = process.env.STRIKR_INSTAGRAM_ACCESS_TOKEN?.trim();
   if (!token) return [];
@@ -62,7 +62,7 @@ async function getAutomaticallyPublishedReels(): Promise<Reel[]> {
 
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
-      next: { revalidate: 1800 },
+      next: { revalidate: 86400 },
       signal: AbortSignal.timeout(7000),
     });
     if (!response.ok) return [];
