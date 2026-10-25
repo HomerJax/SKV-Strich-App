@@ -6,12 +6,16 @@ import { isAdminRole } from "@/lib/auth/access";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import SessionDetailClient from "./SessionDetailClient";
+import SessionDetailClientPilot from "./SessionDetailClientPilot";
 import type { Player, SessionRow } from "./session-types";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+// Server-only pilot allowlist. Other clubs always render the original session screen.
+const TRAINING_WIZARD_TEST_CLUB_ID = "2bad3748-b1d9-4d52-977e-ba60600b5a04";
 
 export const metadata = {
   title: "Session in strikr",
@@ -234,6 +238,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
     .filter((category) => category.is_active)
     .map((category) => ({ key: category.key, label: category.label, isStrong: category.is_strong }));
   const winnerPhotoUrl = winnerPhotoError ? null : winnerPhotoData?.signedUrl ?? null;
+  const TrainingDetailComponent =
+    clubId === TRAINING_WIZARD_TEST_CLUB_ID ? SessionDetailClientPilot : SessionDetailClient;
 
   return (
     <HomePullToRefresh>
@@ -245,7 +251,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
           </Link>
         </div>
       )}
-      <SessionDetailClient
+      <TrainingDetailComponent
       sessionId={sessionId}
       initialSession={sessionForClient}
       initialPlayers={players}
