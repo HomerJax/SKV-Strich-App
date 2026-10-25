@@ -519,6 +519,23 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     );
   }
 
+  const sessionEndModal = !isTournamentMode && allowResult ? (
+    <SessionEndModal
+      open={showSessionEndModal}
+      onClose={() => setShowSessionEndModal(false)}
+      scoreA={scoreAValue}
+      scoreB={scoreBValue}
+      wasUnderdog={false}
+      winnerPhotoUrl={winnerPhotoUrl}
+      onShareSocial={handleShareResult}
+      sharingSocial={sharingResult}
+      resultShareReady={resultShareReady}
+      preparingResultShare={preparingResultShare}
+      resultShareMessage={resultShareMessage}
+      mvpVotingEnabled={mvpVotingEnabled}
+    />
+  ) : null;
+
   return (
     <>
       <div className="space-y-4">
@@ -693,6 +710,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               completed={pilotFinished}
               fullscreen
               onClose={leaveTrainingWizard}
+              overlayContent={sessionEndModal}
               helperText={statusHint ?? helperText}
               nextDisabled={nextDisabled}
               nextLabel={nextLabel}
@@ -821,22 +839,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         )}
       </div>
 
-      {!isTournamentMode && allowResult ? (
-        <SessionEndModal
-          open={showSessionEndModal}
-          onClose={() => setShowSessionEndModal(false)}
-          scoreA={scoreAValue}
-          scoreB={scoreBValue}
-          wasUnderdog={false}
-          winnerPhotoUrl={winnerPhotoUrl}
-          onShareSocial={handleShareResult}
-          sharingSocial={sharingResult}
-          resultShareReady={resultShareReady}
-          preparingResultShare={preparingResultShare}
-          resultShareMessage={resultShareMessage}
-          mvpVotingEnabled={mvpVotingEnabled}
-        />
-      ) : null}
+      {!(trainingWizardOpen && isAdmin && isTrainingSession && !playerPreview) ? sessionEndModal : null}
     </>
   );
 }
