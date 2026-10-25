@@ -20,7 +20,7 @@ export default function DatenschutzPage() {
             Datenschutzerklärung
           </h1>
 
-          <p className="mt-3 text-sm text-slate-500">Stand: 28. Juli 2026</p>
+          <p className="mt-3 text-sm text-slate-500">Stand: 25. Oktober 2026</p>
 
           <div className="mt-7 space-y-7 text-sm leading-7 text-slate-700">
             <section>
@@ -170,6 +170,29 @@ export default function DatenschutzPage() {
                     className="font-semibold text-slate-950 underline underline-offset-4"
                   >
                     Datenschutzhinweise von Vercel
+                  </a>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-slate-950">
+                    Instagram-Reels (Meta)
+                  </h3>
+                  <p>
+                    Auf unserer öffentlichen Landingpage können einzelne öffentlich
+                    verfügbare Instagram-Reels eingebettet werden. Die Verbindung zu
+                    Instagram wird erst hergestellt, wenn Besucher ausdrücklich auf
+                    „Reel hier abspielen“ klicken. Dabei können insbesondere die
+                    IP-Adresse und technische Browserinformationen an Meta übermittelt
+                    sowie Cookies durch Instagram gesetzt werden. Die Einbettung ist
+                    optional; die Website kann ohne Aktivierung genutzt werden.
+                  </p>
+                  <a
+                    href="https://www.facebook.com/privacy/policy/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-slate-950 underline underline-offset-4"
+                  >
+                    Datenschutzinformationen von Meta
                   </a>
                 </div>
 
