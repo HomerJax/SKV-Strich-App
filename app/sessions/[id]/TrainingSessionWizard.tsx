@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export type TrainingWizardStep = {
   key: string;
@@ -22,6 +23,8 @@ type Props = {
   helperText?: string | null;
   beforeContent?: ReactNode;
   children: ReactNode;
+  fullscreen?: boolean;
+  onClose?: () => void;
 };
 
 export default function TrainingSessionWizard({
@@ -36,7 +39,25 @@ export default function TrainingSessionWizard({
   helperText,
   beforeContent,
   children,
+  fullscreen = false,
+  onClose,
 }: Props) {
+  const [portalReady, setPortalReady] = useState(false);
+  useEffect(() => { setPortalReady(true); }, []);
+  useEffect(() => {
+    if (!fullscreen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", escape);
+    };
+  }, [fullscreen, onClose]);
+
   const selected = steps[selectedIndex];
   if (!selected) return null;
 
@@ -44,10 +65,12 @@ export default function TrainingSessionWizard({
   const canOpenStep = (index: number) =>
     index <= selectedIndex || steps.slice(0, index).every((step) => step.done);
 
-  return (
+  const wizard = (
     <section
       aria-label="Trainings-Assistent"
-      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.07)]"
+      className={fullscreen
+        ? "mx-auto min-h-full w-full max-w-3xl bg-white sm:my-4 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-slate-200 sm:shadow-xl"
+        : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.07)]"}
     >
       <div className="bg-slate-950 px-4 pb-4 pt-4 text-white sm:px-5">
         <div className="flex items-center justify-between gap-2">
@@ -149,5 +172,36 @@ export default function TrainingSessionWizard({
         </div>
       </div>
     </section>
+  );
+
+  if (!fullscreen) return wizard;
+  if (!portalReady) return null;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Training durchführen"
+      className="fixed inset-0 z-[9999] overflow-y-auto overscroll-contain bg-slate-100"
+      style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-extrabold uppercase tracking-[0.13em] text-teal-700">strikr</div>
+            <div className="text-sm font-bold text-slate-950">Training durchführen</div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-teal-500"
+          >
+            Schließen ×
+          </button>
+        </div>
+      </header>
+      {wizard}
+    </div>,
+    document.body,
   );
 }
