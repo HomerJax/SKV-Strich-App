@@ -29,40 +29,29 @@ type Props = {
 };
 
 export default function TrainingSessionWizard({
-  steps,
-  selectedIndex,
-  completed,
-  onSelect,
-  onBack,
-  onNext,
-  nextDisabled,
-  nextLabel,
-  helperText,
-  beforeContent,
-  children,
-  fullscreen = false,
-  onClose,
-  overlayContent,
+  steps, selectedIndex, completed, onSelect, onBack, onNext,
+  nextDisabled, nextLabel, helperText, beforeContent, children,
+  fullscreen = false, onClose, overlayContent,
 }: Props) {
   const [portalReady, setPortalReady] = useState(false);
+
   useEffect(() => { setPortalReady(true); }, []);
   useEffect(() => {
     if (!fullscreen) return;
-    const previous = document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const escape = (event: KeyboardEvent) => {
+    const onEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose?.();
     };
-    document.addEventListener("keydown", escape);
+    document.addEventListener("keydown", onEscape);
     return () => {
-      document.body.style.overflow = previous;
-      document.removeEventListener("keydown", escape);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onEscape);
     };
   }, [fullscreen, onClose]);
 
-  const selected = steps[selectedIndex];
-  if (!selected) return null;
-
+  const current = steps[selectedIndex];
+  if (!current) return null;
   const completeCount = steps.filter((step) => step.done).length;
   const canOpenStep = (index: number) =>
     index <= selectedIndex || steps.slice(0, index).every((step) => step.done);
@@ -71,42 +60,36 @@ export default function TrainingSessionWizard({
     <section
       aria-label="Trainings-Assistent"
       className={fullscreen
-        ? "mx-auto min-h-full w-full max-w-3xl bg-white sm:my-4 sm:min-h-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-slate-200 sm:shadow-xl"
-        : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.07)]"}
+        ? "mx-auto min-h-full w-full max-w-3xl bg-slate-50 pb-28"
+        : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"}
     >
-      <div className="bg-slate-950 px-4 pb-4 pt-4 text-white sm:px-5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-teal-300">
-            Dein Trainings-Assistent
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-teal-950 px-5 pb-6 pt-5 text-white">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-300">
+            Schritt {selectedIndex + 1} von {steps.length}
           </span>
-          <span className="shrink-0 text-xs font-semibold text-slate-300">
-            {selectedIndex + 1} / {steps.length}
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-slate-200">
+            {completeCount} erledigt
           </span>
         </div>
-
-        <div className="mt-3 flex gap-1.5" aria-label="Fortschritt">
+        <div className="mt-4 flex gap-1.5" aria-label="Trainingsfortschritt">
           {steps.map((step, index) => (
             <div
               key={step.key}
-              className={
-                "h-1.5 min-w-0 flex-1 rounded-full " +
-                (step.done ? "bg-teal-400" : index === selectedIndex ? "bg-teal-200" : "bg-slate-700")
-              }
+              className={"h-1.5 min-w-0 flex-1 rounded-full transition-colors " +
+                (step.done ? "bg-teal-400" : index === selectedIndex ? "bg-white" : "bg-white/20")}
             />
           ))}
         </div>
-        <div className="mt-2 text-xs text-slate-300">
-          {completeCount} von {steps.length} Schritten erledigt
-        </div>
-        <h2 className="mt-3 text-xl font-black leading-tight tracking-tight" aria-live="polite">
-          {selected.title}
-        </h2>
-        <p className="mt-1 text-sm text-slate-300">{selected.summary}</p>
+        <h1 className="mt-5 text-2xl font-black leading-tight tracking-tight sm:text-3xl" aria-live="polite">
+          {current.title}
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-slate-300">{current.summary}</p>
       </div>
 
       <nav
-        aria-label="Trainingsschritte"
-        className="flex gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50 px-3 py-3 sm:px-4"
+        aria-label="Schritte im Trainingsablauf"
+        className="flex gap-3 overflow-x-auto border-b border-slate-200 bg-white px-4 py-3"
       >
         {steps.map((step, index) => {
           const active = index === selectedIndex;
@@ -118,47 +101,45 @@ export default function TrainingSessionWizard({
               disabled={!unlocked}
               onClick={() => onSelect(index)}
               aria-current={active ? "step" : undefined}
-              className={
-                "min-w-[104px] flex-1 rounded-xl border px-2.5 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 disabled:cursor-not-allowed disabled:opacity-50 " +
-                (active
-                  ? "border-teal-500 bg-white text-slate-950 shadow-sm"
-                  : step.done
-                    ? "border-teal-100 bg-teal-50 text-teal-900"
-                    : "border-slate-200 bg-white text-slate-500")
-              }
+              className={"inline-flex min-w-max items-center gap-2 rounded-lg px-2 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-40 " +
+                (active ? "bg-teal-50 text-teal-950 ring-1 ring-teal-200" : "text-slate-600")}
             >
-              <span className="block text-[10px] font-black uppercase tracking-wide">
-                {step.done ? "✓ Erledigt" : active ? "Jetzt dran" : "Schritt " + (index + 1)}
+              <span className={"flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black " +
+                (step.done ? "bg-teal-500 text-slate-950" : active ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-600")}
+              >
+                {step.done ? "✓" : index + 1}
               </span>
-              <span className="mt-1 block text-xs font-bold leading-4">{step.title}</span>
-              {step.optional ? (
-                <span className="mt-1 block text-[10px] font-medium opacity-70">Optional</span>
-              ) : null}
+              <span className="text-xs font-bold">{step.title}</span>
             </button>
           );
         })}
       </nav>
 
-      <div className="space-y-4 px-3 py-4 sm:px-5">
+      <main className="space-y-4 px-3 pb-6 pt-4 sm:px-6">
         {completed ? (
-          <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
-            ✓ Training abgeschlossen. Du kannst die Schritte weiterhin ansehen und bearbeiten.
+          <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
+            ✓ Training abgeschlossen. Gespeicherte Schritte kannst du erneut ansehen und bearbeiten.
           </div>
         ) : null}
         {helperText ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-5 text-slate-700">
+          <div className="rounded-xl border border-teal-100 bg-teal-50 px-4 py-3 text-sm leading-6 text-slate-700">
             {helperText}
           </div>
         ) : null}
         {beforeContent}
-        <div className="min-w-0 space-y-3">{children}</div>
+        <div className="min-w-0 space-y-4">{children}</div>
+      </main>
 
-        <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row">
+      <footer className={fullscreen
+        ? "fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 pb-[calc(12px+env(safe-area-inset-bottom))] pt-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur"
+        : "border-t border-slate-200 bg-white px-4 py-4"}
+      >
+        <div className="mx-auto flex max-w-3xl gap-2">
           {selectedIndex > 0 ? (
             <button
               type="button"
               onClick={onBack}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-500 sm:w-1/3"
+              className="min-h-13 shrink-0 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-extrabold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-500"
             >
               ← Zurück
             </button>
@@ -167,12 +148,12 @@ export default function TrainingSessionWizard({
             type="button"
             disabled={nextDisabled}
             onClick={onNext}
-            className="min-h-12 flex-1 rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-teal-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+            className="min-h-14 min-w-0 flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 shadow-sm transition hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-teal-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
           >
             {nextLabel}
           </button>
         </div>
-      </div>
+      </footer>
     </section>
   );
 
@@ -184,19 +165,24 @@ export default function TrainingSessionWizard({
       role="dialog"
       aria-modal="true"
       aria-label="Training durchführen"
-      className="fixed inset-0 z-[9999] overflow-y-auto overscroll-contain bg-slate-100"
-      style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed inset-0 z-[9999] overflow-y-auto overscroll-contain bg-slate-50"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-          <div>
-            <div className="text-xs font-extrabold uppercase tracking-[0.13em] text-teal-700">strikr</div>
-            <div className="text-sm font-bold text-slate-950">Training durchführen</div>
+          <div className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-xl font-black text-teal-300">
+              S
+            </span>
+            <div>
+              <div className="text-xs font-extrabold uppercase tracking-[0.15em] text-teal-700">strikr</div>
+              <div className="text-sm font-black text-slate-950">Trainings-Wizard</div>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-teal-500"
+            className="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 focus-visible:outline-2 focus-visible:outline-teal-500"
           >
             Schließen ×
           </button>
