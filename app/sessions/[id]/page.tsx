@@ -14,8 +14,8 @@ import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// Server-only pilot allowlist. Other clubs always render the original session screen.
-const TRAINING_WIZARD_TEST_CLUB_ID = "2bad3748-b1d9-4d52-977e-ba60600b5a04";
+// Server-only pilot allowlist: 1. FC Strikr 2026 only. Other clubs retain the original session screen.
+const TRAINING_WIZARD_TEST_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
 
 export const metadata = {
   title: "Session in strikr",
