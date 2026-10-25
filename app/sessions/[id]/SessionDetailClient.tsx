@@ -109,6 +109,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [wizardManualSelection, setWizardManualSelection] = useState(false);
   const [normalModeReviewed, setNormalModeReviewed] = useState(false);
   const [attendanceReviewed, setAttendanceReviewed] = useState(false);
+  const [attendanceRosterSignature, setAttendanceRosterSignature] = useState("");
   const [trainingStarted, setTrainingStarted] = useState(false);
   const [trainingWizardOpen, setTrainingWizardOpen] = useState(false);
 
@@ -121,6 +122,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       }
       setNormalModeReviewed(window.localStorage.getItem("strikr-mode-reviewed-" + props.sessionId) === "true");
       setAttendanceReviewed(window.localStorage.getItem("strikr-attendance-reviewed-" + props.sessionId) === "true");
+      setAttendanceRosterSignature(window.localStorage.getItem("strikr-attendance-roster-" + props.sessionId) ?? "");
       setTrainingStarted(window.localStorage.getItem("strikr-training-started-" + props.sessionId) === "true");
       setPilotPhotoSkipped(window.localStorage.getItem("strikr-photo-skipped-" + props.sessionId) === "true");
     } catch { /* Storage is optional. */ }
@@ -138,8 +140,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   useEffect(() => {
     if (!attendanceReviewed) return;
-    try { window.localStorage.setItem("strikr-attendance-reviewed-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
-  }, [props.sessionId, attendanceReviewed]);
+    try {
+      window.localStorage.setItem("strikr-attendance-reviewed-" + props.sessionId, "true");
+      window.localStorage.setItem("strikr-attendance-roster-" + props.sessionId, attendanceRosterSignature);
+    } catch { /* Storage is optional. */ }
+  }, [props.sessionId, attendanceReviewed, attendanceRosterSignature]);
 
   useEffect(() => {
     if (!normalModeReviewed) return;
@@ -281,7 +286,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";
   const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
-  const liveOrPrepared = trainingStarted || teamsComplete || hasResult || isTournamentMode;
+  const liveOrPrepared = trainingStarted || hasResult;
+  const currentAttendanceSignature = [...draftPresentIds].sort((a,b) => a-b).join(",");
+  const attendanceConfirmed = attendanceReviewed && attendanceRosterSignature === currentAttendanceSignature;
   const expectedCount = displayPlayers.filter(p => !p.is_guest && p.rsvp_status === "in").length;
   const declinedCount = displayPlayers.filter(p => !p.is_guest && p.rsvp_status === "out").length;
   const noResponseCount = displayPlayers.filter(p => !p.is_guest && !p.rsvp_status).length;
@@ -595,7 +602,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           </section>
         ) : (() => {
           const steps = [
-            { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2 && (attendanceReviewed || teamsComplete || hasResult || isTournamentMode), summary: `${presentPlayers.length} Spieler dabei` },
+            { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2 && (attendanceConfirmed || hasResult), summary: `${presentPlayers.length} Spieler dabei` },
             { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || normalModeReviewed || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
             ...(!isTournamentMode ? [
               { key: "teams" as const, title: "Teams erstellen", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
@@ -699,6 +706,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               onNext={() => {
                 if (nextDisabled) return;
                 if (selected === "attendance") {
+                  setAttendanceRosterSignature(currentAttendanceSignature);
                   setAttendanceReviewed(true);
                   setPilotStep("mode");
                   setWizardManualSelection(true);
