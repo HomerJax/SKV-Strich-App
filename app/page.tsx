@@ -52,6 +52,13 @@ const flowSteps = [
   },
 ];
 
+const featureNavigation = [
+  { href: "#feature-organisation", number: "01", title: "Organisation", hint: "Zusagen & Trainingsplanung", icon: Users },
+  { href: "#feature-fair", number: "02", title: "Faire Teams", hint: "Ausgeglichen statt diskutieren", icon: Sparkles },
+  { href: "#feature-stats", number: "03", title: "Stats & Badges", hint: "Jedes Training zählt weiter", icon: ChartColumn },
+  { href: "#feature-more", number: "04", title: "Mehr entdecken", hint: "Ergebnisse, Fotos & Updates", icon: Trophy },
+];
+
 const gameBlocks = [
   {
     eyebrow: "DEINE KARRIERE",
@@ -361,20 +368,21 @@ export default async function LandingPage({
 
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-gradient-to-r from-cyan-300/[0.09] to-violet-400/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 shadow-[0_0_38px_rgba(34,211,238,0.13)]">
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_16px_rgba(103,232,249,1)]" />
-              Jedes Training zählt.
+              Dein Team. Dein Ding.
             </div>
 
             <h1 className="mt-4 text-[2.7rem] font-black leading-[0.98] tracking-[-0.06em] text-white sm:mt-7 sm:text-7xl lg:text-[5.6rem]">
-              Ein Klick.
+              Mehr aus jedem
               <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(103,232,249,0.12)]">
-                Faire Teams.
+                Training.
               </span>
             </h1>
 
             <p className="mx-auto mt-4 max-w-2xl text-sm font-medium leading-6 text-white/75 sm:mt-6 sm:text-lg sm:leading-8">
-              Schluss mit der Diskussion, wer mit wem spielt. strikr erstellt
-              ausgeglichene Teams für euren Hobbykick oder Teamsport-Abend.
-              Dazu gibt&apos;s Zusagen, Ergebnisse, Tabellen und Stats.
+              strikr ist eure App für Hobby- und Freizeitteams.
+              Zusagen organisieren, faire Teams bilden, Ergebnisse festhalten
+              und mit Tabellen, Stats und Badges für neue Motivation sorgen.
+              Ohne Pflichtliga. Ohne Organisationschaos.
             </p>
 
             <div className="mt-5 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
@@ -383,7 +391,7 @@ export default async function LandingPage({
                 data-analytics-event="landing_demo_click"
                 className="group inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-black text-slate-950 shadow-[0_0_42px_rgba(103,232,249,0.15)] transition hover:-translate-y-0.5 hover:bg-cyan-50"
               >
-                Faire Teams gratis testen
+                strikr kostenlos ausprobieren
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
               </Link>
               <Link
@@ -398,30 +406,50 @@ export default async function LandingPage({
             <p className="mt-3 text-xs font-semibold text-white/60 sm:mt-4">
               Demo ohne Anmeldung · Free-Tarif verfügbar · Für Hobby- und Freizeitteams
             </p>
+            <a href="#features" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-cyan-200/85 underline decoration-cyan-300/30 underline-offset-4 transition hover:text-white">
+              Alle Funktionen entdecken ↓
+            </a>
           </div>
 
           <ProductStage />
         </div>
       </section>
 
-      <section className="relative bg-[#070b12] py-16 sm:py-20">
+      <section id="features" className="relative scroll-mt-8 bg-[#070b12] py-16 sm:py-20">
         <div className="pointer-events-none absolute left-[8%] top-12 h-48 w-48 rounded-full bg-cyan-500/8 blur-3xl" />
         <div className="pointer-events-none absolute right-[6%] bottom-10 h-52 w-52 rounded-full bg-violet-500/9 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
-              Aus Spielen wird mehr
+              Das steckt in strikr
             </div>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-5xl">
-              Einfach organisieren. Mehr Spaß beim Spielen.
+              Eine App. Viele Gründe, wieder zu spielen.
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
-              Erst Zusagen und Teams organisieren. Dann gemeinsam spielen, Ergebnisse
-              festhalten und sehen, wie sich eure Gruppe entwickelt.
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
+              Alles zusammen – oder genau das Feature, das euer Team gerade braucht.
+              Entdecke, was strikr für eure Runde verändert.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <nav aria-label="strikr Features entdecken" className="mt-9 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+            {featureNavigation.map(({ href, number, title, hint, icon: Icon }) => (
+              <a key={href} href={href}
+                className="group flex min-h-28 flex-col rounded-[19px] border border-cyan-300/20 bg-gradient-to-br from-cyan-300/[0.07] to-violet-300/[0.05] p-3.5 transition hover:border-cyan-300/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cyan-300 sm:p-4">
+                <span className="flex items-center justify-between text-[10px] font-black text-cyan-300/80">
+                  {number}<Icon className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <span className="mt-3 text-sm font-black text-white">{title} ↗</span>
+                <span className="mt-1 text-[11px] leading-4 text-white/50">{hint}</span>
+              </a>
+            ))}
+          </nav>
+
+          <div id="feature-organisation" className="mt-10 scroll-mt-10">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300/85">Organisiert. Aufgestellt. Losgespielt.</div>
+            <h3 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">So läuft ein Training mit strikr.</h3>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {flowSteps.map(({ number, title, text, icon: Icon }) => (
               <div
                 key={number}
@@ -443,23 +471,79 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-[#f5f7fa] py-16 text-slate-950 sm:py-24">
+
+      <section id="feature-fair" className="relative scroll-mt-8 overflow-hidden bg-[#091523] py-16 sm:py-20">
+        <div className="pointer-events-none absolute -right-24 top-0 h-80 w-80 rounded-full bg-cyan-400/10 blur-[85px]" />
+        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-8">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
+              Feature 01 / Faire Teams
+            </div>
+            <h2 className="mt-4 text-4xl font-black leading-[1.02] tracking-[-0.06em] text-white sm:text-5xl">
+              Ein Klick.<span className="block text-cyan-300">Faire Teams.</span>
+            </h2>
+            <p className="mt-5 max-w-lg text-sm leading-7 text-white/65 sm:text-base">
+              Keine ewigen Diskussionen, wer mit wem spielt: strikr berücksichtigt
+              die hinterlegten Spielerstärken und Einstellungen, um möglichst
+              ausgeglichene Teams für euren Trainingsabend zu erstellen.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2 text-xs font-bold text-white/75">
+              <span className="rounded-full border border-white/15 px-3 py-2">Spieler auswählen</span>
+              <span className="rounded-full border border-white/15 px-3 py-2">Teams berechnen</span>
+              <span className="rounded-full border border-white/15 px-3 py-2">Losspielen</span>
+            </div>
+            <Link href="/demo" data-analytics-event="landing_fair_feature_demo_click"
+              className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-white">
+              Selber ausprobieren <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="relative rounded-[28px] border border-white/15 bg-white/[0.045] p-4 shadow-[0_30px_85px_rgba(0,0,0,.3)] sm:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/50">Beispiel · 10 Spieler</span>
+              <span className="rounded-full bg-cyan-300/10 px-3 py-1 text-[10px] font-black text-cyan-200">AUSGEGLICHEN</span>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {[
+                { title: "Team A", color: "border-cyan-300/35 bg-cyan-300/[0.08]", players: ["Alex", "Chris", "Marco", "Flo", "Ben"] },
+                { title: "Team B", color: "border-violet-300/35 bg-violet-300/[0.08]", players: ["Daniel", "Max", "Timo", "Sven", "Luca"] },
+              ].map((team) => (
+                <div key={team.title} className={`min-w-0 rounded-2xl border p-3 sm:p-4 ${team.color}`}>
+                  <p className="text-sm font-black text-white">{team.title}</p>
+                  <div className="mt-4 space-y-2">
+                    {team.players.map((name) => (
+                      <div key={name} className="flex items-center gap-2 text-xs font-semibold text-white/75">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/60" />
+                        <span className="truncate">{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-center text-[11px] font-semibold text-white/45">
+              Dein Kader. Deine Einstellungen. Ein fairerer Start.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="feature-stats" className="relative scroll-mt-8 overflow-hidden bg-[#f5f7fa] py-16 text-slate-950 sm:py-24">
         <div className="pointer-events-none absolute -left-24 top-0 h-80 w-80 rounded-full bg-cyan-300/30 blur-3xl" />
         <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-violet-300/35 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-600">
-                Der strikr-Effekt
+                Feature 02 / Stats, Tabellen & Badges
               </div>
               <h2 className="mt-3 max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.055em] sm:text-5xl">
-                Spielen. Punkten. Vergleichen. Trophäen holen.
+                Jedes Ergebnis erzählt weiter.
               </h2>
             </div>
             <p className="max-w-xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-              Faire Teams sind der Einstieg. Der Wettbewerb danach sorgt dafür,
-              dass aus einem normalen Donnerstag Geschichten, Serien und kleine
-              Rivalitäten im Team entstehen.
+              Nach dem Spiel ist nicht Schluss: Ergebnisse, Tabellen,
+              Karrierestatistiken und Badges machen Fortschritte sichtbar – auch
+              wenn ihr keine Liga spielt.
             </p>
           </div>
 
@@ -490,14 +574,14 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <section className="relative bg-[#05080e] py-16 sm:py-20">
+      <section id="feature-more" className="relative scroll-mt-8 bg-[#05080e] py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-300">
-              Was strikr mitbringt
+              Feature 03 / Alle Möglichkeiten
             </div>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-4xl">
-              Alles für eure Sportgruppe. Ohne Vereinssoftware-Overkill.
+              Auch der Rest eures Trainings läuft einfacher.
             </h2>
           </div>
 
