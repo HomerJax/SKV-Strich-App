@@ -1,5 +1,6 @@
 import NativeAppEntryRedirect from "@/components/native/NativeAppEntryRedirect";
 import LandingPageTracker from "@/components/analytics/LandingPageTracker";
+import ThatsStrikrSection from "@/components/marketing/ThatsStrikrSection";
 import RecoveryLandingRedirect from "@/components/auth/RecoveryLandingRedirect";
 import Image from "next/image";
 import Link from "next/link";
@@ -516,6 +517,8 @@ export default async function LandingPage({
           </div>
         </div>
       </section>
+
+      <ThatsStrikrSection />
 
       <section className="relative overflow-hidden border-y border-white/8 bg-[#0a0f19] py-16 sm:py-20">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-[460px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/16 blur-3xl" />
