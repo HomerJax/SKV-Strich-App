@@ -339,13 +339,13 @@ export default async function LandingPage({
                 data-analytics-event="landing_demo_click"
                 className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs font-black text-white backdrop-blur-md transition hover:bg-white/12"
               >
-                Demo ansehen <ArrowRight className="h-3.5 w-3.5" />
+                Live-Demo <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           </header>
 
-          <div className="mx-auto mt-12 max-w-4xl text-center sm:mt-16 lg:mt-20">
-            <div className="relative mx-auto mb-6 flex h-28 w-28 items-center justify-center sm:h-32 sm:w-32 lg:h-36 lg:w-36">
+          <div className="mx-auto mt-7 max-w-4xl text-center sm:mt-14 lg:mt-16">
+            <div className="relative mx-auto mb-4 flex h-20 w-20 items-center justify-center sm:mb-6 sm:h-28 sm:w-28 lg:h-32 lg:w-32">
               <div className="pointer-events-none absolute inset-[-34px] rounded-full bg-cyan-400/25 blur-3xl strikr-glow" />
               <div className="pointer-events-none absolute inset-[-18px] rounded-full bg-violet-500/20 blur-2xl strikr-glow strikr-delay" />
               <div className="pointer-events-none absolute inset-0 rounded-[34px] border border-cyan-200/15 bg-gradient-to-br from-cyan-300/10 via-white/[0.035] to-violet-400/10 shadow-[0_0_70px_rgba(34,211,238,0.16)]" />
@@ -354,36 +354,36 @@ export default async function LandingPage({
                 alt="strikr Logo"
                 width={150}
                 height={150}
-                className="strikr-logo-pulse relative h-24 w-24 rounded-[25px] object-contain sm:h-28 sm:w-28 lg:h-32 lg:w-32"
+                className="strikr-logo-pulse relative h-[72px] w-[72px] rounded-[20px] object-contain sm:h-24 sm:w-24 lg:h-28 lg:w-28"
                 priority
               />
             </div>
 
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-gradient-to-r from-cyan-300/[0.09] to-violet-400/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 shadow-[0_0_38px_rgba(34,211,238,0.13)]">
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_16px_rgba(103,232,249,1)]" />
-              Training redefined.
+              Jedes Training zählt.
             </div>
 
-            <h1 className="mt-7 text-[3.25rem] font-black leading-[0.94] tracking-[-0.065em] text-white sm:text-7xl lg:text-[5.6rem]">
-              Jedes Training
+            <h1 className="mt-4 text-[2.7rem] font-black leading-[0.98] tracking-[-0.06em] text-white sm:mt-7 sm:text-7xl lg:text-[5.6rem]">
+              Ein Klick.
               <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(103,232,249,0.12)]">
-                zählt.
+                Faire Teams.
               </span>
             </h1>
 
-            <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-7 text-white/62 sm:text-lg sm:leading-8">
-              Ob Sportteam, Hobbyclub oder Freizeitgruppe: Organisiert eure Treffen,
-              bildet faire Teams und macht aus Spielen und Ergebnissen Tabellen,
-              Stats und neue Motivation – ganz ohne Ligabetrieb.
+            <p className="mx-auto mt-4 max-w-2xl text-sm font-medium leading-6 text-white/75 sm:mt-6 sm:text-lg sm:leading-8">
+              Schluss mit der Diskussion, wer mit wem spielt. strikr erstellt
+              ausgeglichene Teams für euren Hobbykick oder Teamsport-Abend.
+              Dazu gibt&apos;s Zusagen, Ergebnisse, Tabellen und Stats.
             </p>
 
-            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+            <div className="mt-5 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
               <Link
                 href="/demo"
                 data-analytics-event="landing_demo_click"
                 className="group inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-black text-slate-950 shadow-[0_0_42px_rgba(103,232,249,0.15)] transition hover:-translate-y-0.5 hover:bg-cyan-50"
               >
-                strikr ausprobieren
+                Faire Teams gratis testen
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
               </Link>
               <Link
@@ -391,12 +391,12 @@ export default async function LandingPage({
                 data-analytics-event="landing_signup_cta_click"
                 className="inline-flex min-h-13 items-center justify-center rounded-2xl border border-violet-300/20 bg-gradient-to-r from-white/[0.065] to-violet-400/[0.07] px-7 py-4 text-sm font-black text-white backdrop-blur-md transition hover:bg-white/10"
               >
-                Team kostenlos starten
+                Eigenes Team kostenlos starten
               </Link>
             </div>
 
-            <p className="mt-4 text-xs font-semibold text-white/35">
-              Ohne Registrierung in die Demo · Free verfügbar · PRO ab 4,99 €
+            <p className="mt-3 text-xs font-semibold text-white/60 sm:mt-4">
+              Demo ohne Anmeldung · Free-Tarif verfügbar · Für Hobby- und Freizeitteams
             </p>
           </div>
 
