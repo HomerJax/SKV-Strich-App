@@ -125,6 +125,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       setAttendanceRosterSignature(window.localStorage.getItem("strikr-attendance-roster-" + props.sessionId) ?? "");
       setTrainingStarted(window.localStorage.getItem("strikr-training-started-" + props.sessionId) === "true");
       setPilotPhotoSkipped(window.localStorage.getItem("strikr-photo-skipped-" + props.sessionId) === "true");
+      setPilotFinished(window.localStorage.getItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId) === "true");
     } catch { /* Storage is optional. */ }
   }, [props.sessionId]);
 
@@ -286,7 +287,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";
   const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
-  const liveOrPrepared = trainingStarted || hasResult;
+  // The pilot completion marker is device-local until wizard progress is stored server-side.
+  // Never show a completed session if its underlying result was removed later.
+  const trainingCompleted = pilotFinished && (hasResult || Boolean(session.tournament_completed_at));
+  const liveOrPrepared = trainingStarted || hasResult || Boolean(session.tournament_completed_at);
   const currentAttendanceSignature = [...draftPresentIds].sort((a,b) => a-b).join(",");
   const attendanceConfirmed = attendanceReviewed && attendanceRosterSignature === currentAttendanceSignature;
   const expectedCount = displayPlayers.filter(p => !p.is_guest && p.rsvp_status === "in").length;
@@ -586,15 +590,17 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           <section className="space-y-4" aria-label="Training vorbereiten">
             <div className="rounded-2xl bg-slate-950 p-5 text-white shadow-md">
               <div className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-teal-300">
-                {liveOrPrepared ? "Training fortsetzen" : "Training ist geplant"}
+                {trainingCompleted ? "Training abgeschlossen" : liveOrPrepared ? "Training fortsetzen" : "Training ist geplant"}
               </div>
               <h2 className="mt-2 text-xl font-black tracking-tight">
-                {liveOrPrepared ? "Bereit für den nächsten Schritt?" : "Alles bereit für den Trainingstag?"}
+                {trainingCompleted ? "Training erledigt!" : liveOrPrepared ? "Bereit für den nächsten Schritt?" : "Alles bereit für den Trainingstag?"}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                {liveOrPrepared
-                  ? "Deine gespeicherten Anwesenheiten, Teams und Ergebnisse bleiben erhalten. Setze den Trainings-Assistenten fort."
-                  : "Die Einheit ist angelegt. Bis zum Trainingsbeginn können die Spieler zu- oder absagen und du kannst den Termin vorbereiten. Erst beim Start geht es in den geführten Ablauf."}
+                {trainingCompleted
+                  ? "Ergebnisse und Teams bleiben gespeichert. Du kannst den Trainings-Assistenten erneut öffnen, um alles anzusehen oder zu korrigieren."
+                  : liveOrPrepared
+                    ? "Deine gespeicherten Anwesenheiten, Teams und Ergebnisse bleiben erhalten. Setze den Trainings-Assistenten fort."
+                    : "Die Einheit ist angelegt. Bis zum Trainingsbeginn können die Spieler zu- oder absagen und du kannst den Termin vorbereiten. Erst beim Start geht es in den geführten Ablauf."}
               </p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <div className="rounded-xl bg-white/10 p-3 text-center"><div className="text-xl font-black">{expectedCount}</div><div className="text-[10px] font-semibold text-slate-300">Zusagen</div></div>
@@ -602,10 +608,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 <div className="rounded-xl bg-white/10 p-3 text-center"><div className="text-xl font-black">{noResponseCount}</div><div className="text-[10px] font-semibold text-slate-300">Noch offen</div></div>
               </div>
               <button type="button" onClick={enterTrainingWizard} className="mt-5 min-h-14 w-full rounded-xl bg-teal-400 px-4 py-3 text-base font-extrabold text-slate-950 shadow-lg transition hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300">
-                {liveOrPrepared ? "▶ Training fortsetzen" : "▶ Training starten"}
+                {trainingCompleted ? "✓ Abgeschlossenes Training ansehen" : liveOrPrepared ? "▶ Training fortsetzen" : "▶ Training starten"}
               </button>
               <p className="mt-2 text-center text-xs text-slate-300">
-                {liveOrPrepared ? "Du kannst den Fullscreen-Assistenten jederzeit wieder verlassen." : "Der Fullscreen-Assistent beginnt mit der Anwesenheitsprüfung."}
+                {trainingCompleted ? "Du kannst die gespeicherten Schritte weiterhin prüfen und ändern." : liveOrPrepared ? "Du kannst den Fullscreen-Assistenten jederzeit wieder verlassen." : "Der Fullscreen-Assistent beginnt mit der Anwesenheitsprüfung."}
               </p>
             </div>
 
@@ -749,6 +755,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 } else {
                   if (!hasWinnerPhoto) setPilotPhotoSkipped(true);
                   setPilotFinished(true);
+                  try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
                   router.push("/sessions");
                 }
               }}
