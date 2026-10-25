@@ -26,8 +26,8 @@ export const WHEEL_SUGGESTIONS: WheelSegment[] = [
 ];
 
 export const WHEEL_COLORS = [
-  "#05A6AE", "#173C56", "#C08737", "#A94D6F", "#375C9C",
-  "#138F65", "#A45B24", "#754B9F", "#18758D", "#8E5D4A",
+  "#0D8896", "#202C4B", "#6954A8", "#146C87", "#385779",
+  "#145F62", "#644C93", "#174D73", "#356B87", "#4D4984",
 ];
 
 export const WHEEL_FIELD_COUNTS = [4, 6, 8] as const;
