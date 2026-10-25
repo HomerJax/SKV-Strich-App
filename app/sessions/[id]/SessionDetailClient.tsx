@@ -11,6 +11,7 @@ import SessionScoreCard from "./SessionScoreCard";
 import SessionMvpCard from "./SessionMvpCard";
 import SessionGameTimerLoader from "./SessionGameTimerLoader";
 import SessionTournamentCard from "./SessionTournamentCard";
+import TrainingSessionWizard from "./TrainingSessionWizard";
 import SessionEndModal from "@/components/SessionEndModal";
 import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionGameResult, SessionRow, TeamMap } from "./session-types";
@@ -54,6 +55,7 @@ type SessionDetailClientProps = {
 const TEAM_BALANCE_REVEAL_PILOT_CLUB_ID = "108590d9-0877-4787-90a5-4679615b3b76";
 
 type SectionKey = "attendance" | "teams" | "photo" | "result" | "mvp";
+type TrainingWizardStepKey = "attendance" | "mode" | "teams" | "result" | "photo" | "winner";
 
 function NoticeCard({
   tone,
@@ -103,16 +105,36 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [pilotView, setPilotView] = useState<"admin" | "leader" | "player">("admin");
   const [pilotFinished, setPilotFinished] = useState(false);
   const [pilotPhotoSkipped, setPilotPhotoSkipped] = useState(false);
-  const [pilotStep, setPilotStep] = useState<"attendance" | "mode" | "teams" | "result" | "photo" | "winner">("attendance");
+  const [pilotStep, setPilotStep] = useState<TrainingWizardStepKey | null>(null);
+  const [wizardManualSelection, setWizardManualSelection] = useState(false);
+  const [normalModeReviewed, setNormalModeReviewed] = useState(false);
+
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(`strikr-wizard-${props.sessionId}`);
-      if (saved && ["attendance", "mode", "teams", "result", "photo", "winner"].includes(saved)) setPilotStep(saved as typeof pilotStep);
-    } catch { /* Private browsing can disable storage. */ }
+      const saved = window.localStorage.getItem("strikr-wizard-" + props.sessionId);
+      const allowed: TrainingWizardStepKey[] = ["attendance", "mode", "teams", "result", "photo", "winner"];
+      if (saved && allowed.includes(saved as TrainingWizardStepKey)) {
+        setPilotStep(saved as TrainingWizardStepKey);
+      }
+      setNormalModeReviewed(window.localStorage.getItem("strikr-mode-reviewed-" + props.sessionId) === "true");
+      setPilotPhotoSkipped(window.localStorage.getItem("strikr-photo-skipped-" + props.sessionId) === "true");
+    } catch { /* Storage is optional. */ }
   }, [props.sessionId]);
+
   useEffect(() => {
-    try { window.localStorage.setItem(`strikr-wizard-${props.sessionId}`, pilotStep); } catch { /* Storage is optional. */ }
+    if (pilotStep === null) return;
+    try { window.localStorage.setItem("strikr-wizard-" + props.sessionId, pilotStep); } catch { /* Storage is optional. */ }
   }, [props.sessionId, pilotStep]);
+
+  useEffect(() => {
+    if (!normalModeReviewed) return;
+    try { window.localStorage.setItem("strikr-mode-reviewed-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
+  }, [props.sessionId, normalModeReviewed]);
+
+  useEffect(() => {
+    if (!pilotPhotoSkipped) return;
+    try { window.localStorage.setItem("strikr-photo-skipped-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
+  }, [props.sessionId, pilotPhotoSkipped]);
   const tournamentWizardRef = useRef<{ next: () => void; ready: boolean; label: string } | null>(null);
   const [tournamentWizardStage, setTournamentWizardStage] = useState<"teams" | "games">("teams");
   const [tournamentTeamsReady, setTournamentTeamsReady] = useState(false);
@@ -509,19 +531,22 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         {playerPreview ? <div className="space-y-4"><div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div> : true && isAdmin && isTrainingSession ? (() => {
           const steps = [
             { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2, summary: `${presentPlayers.length} Spieler dabei` },
-            { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
+            { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || normalModeReviewed || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
             ...(!isTournamentMode ? [
               { key: "teams" as const, title: "Teams erstellen", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
               { key: "result" as const, title: "Spiele & Ergebnisse", done: hasResult, summary: `${results.length} Ergebnis(se) erfasst` },
-              { key: "photo" as const, title: "Siegerfoto", done: hasWinnerPhoto || pilotPhotoSkipped || (hasResult && !dayWinnerSide), summary: hasWinnerPhoto ? "Foto vorhanden" : "Optional" },
+              { key: "photo" as const, title: "Siegerfoto", optional: true, done: hasWinnerPhoto || pilotPhotoSkipped || (hasResult && !dayWinnerSide), summary: hasWinnerPhoto ? "Foto vorhanden" : "Optional" },
             ] : [
               { key: "result" as const, title: "Turnier durchführen", done: Boolean(session.tournament_completed_at), summary: session.tournament_completed_at ? "Turnier abgeschlossen" : "Spielplan & Ergebnisse" },
-              { key: "photo" as const, title: "Siegerfoto", done: hasWinnerPhoto || pilotPhotoSkipped, summary: hasWinnerPhoto ? "Foto vorhanden" : pilotPhotoSkipped ? "Ohne Foto fortgesetzt" : "Optional" },
+              { key: "photo" as const, title: "Siegerfoto", optional: true, done: hasWinnerPhoto || pilotPhotoSkipped, summary: hasWinnerPhoto ? "Foto vorhanden" : pilotPhotoSkipped ? "Ohne Foto fortgesetzt" : "Optional" },
               { key: "winner" as const, title: "Siegercard", done: false, summary: "Turniersieg ansehen" },
             ]),
           ];
           const current = steps.find(s => !s.done)?.key ?? steps[steps.length - 1].key;
-          const selected = steps.some(s => s.key === pilotStep) ? pilotStep : current;
+          const rememberedIndex = steps.findIndex(s => s.key === pilotStep);
+           const rememberedAvailable = rememberedIndex >= 0 && steps.slice(0, rememberedIndex).every(s => s.done);
+           const selected = rememberedAvailable && (wizardManualSelection || !steps[rememberedIndex].done)
+             ? steps[rememberedIndex].key : current;
           const selectedIndex = steps.findIndex(s => s.key === selected);
           const renderStep = (key: typeof steps[number]["key"]) => {
             if (key === "attendance") return renderAttendance();
