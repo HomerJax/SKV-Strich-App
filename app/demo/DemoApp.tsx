@@ -18,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
+import LandingPageTracker from "@/components/analytics/LandingPageTracker";
 import TeamBalanceReveal from "./TeamBalanceReveal";
 import {
   DEFAULT_PRESENT_IDS,
@@ -185,7 +186,7 @@ function HomeView({ onOpenTraining }: { onOpenTraining: () => void }) {
           <DemoPill />
           <span className="text-xs font-semibold text-white/50">Donnerstag · 19:00 Uhr</span>
         </div>
-        <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Training ist vorbereitet.</h1>
+        <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Teste faire Teams in Sekunden.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70 sm:text-base">
           Anwesenheit auswählen, faire Teams generieren und direkt sehen, wie strikr den Trainingsabend organisiert.
         </p>
@@ -194,7 +195,7 @@ function HomeView({ onOpenTraining }: { onOpenTraining: () => void }) {
           onClick={onOpenTraining}
           className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-extrabold text-black transition hover:bg-zinc-100"
         >
-          Training ausprobieren
+          Faire Teams ausprobieren
           <ArrowRight className="h-4 w-4" />
         </button>
       </section>
@@ -316,6 +317,42 @@ function TrainingView({
           <div className="text-right"><div className="text-xs text-white/50">Teamgröße</div><div className="text-xl font-black">{Math.ceil(presentIds.length / 2)} : {Math.floor(presentIds.length / 2)}</div></div>
         </div>
 
+
+        <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-cyan-900">
+            Bereit zum Ausprobieren
+          </p>
+          <p className="mt-1 mb-3 text-sm font-medium leading-6 text-slate-700">
+            {presentPlayers.length} Spieler sind bereits ausgewählt. Ein Klick und du siehst, wie strikr die Teams aufteilt.
+          </p>
+        <button
+          type="button"
+          onClick={generate}
+          data-analytics-event="demo_generate_click"
+          disabled={presentPlayers.length < 2 || isGenerating}
+          className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#0c1822] px-5 py-3.5 text-base font-extrabold text-white shadow-lg transition hover:bg-[#17334a] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+        >
+          {isGenerating ? (
+            <>
+              <Sparkles className="h-4 w-4 animate-pulse" /> Teams werden berechnet …
+            </>
+          ) : (
+            <>
+              <Shuffle className="h-4 w-4" /> Jetzt faire Teams erstellen
+            </>
+          )}
+        </button>
+          <p className="mt-3 text-xs text-slate-600">
+            Alles nur Demo – du brauchst weder Account noch eigene Spieler.
+          </p>
+        </div>
+
+        <details className="group mt-4 rounded-2xl border border-zinc-200 bg-zinc-50">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-extrabold text-zinc-900">
+            <span>Anwesenheit anpassen ({presentPlayers.length} ausgewählt)</span>
+            <span className="text-xl text-zinc-500 transition group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="border-t border-zinc-200 p-3 sm:p-4">
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {DEMO_PLAYERS.map((player) => {
             const active = presentIds.includes(player.id);
@@ -339,23 +376,8 @@ function TrainingView({
             );
           })}
         </div>
-
-        <button
-          type="button"
-          onClick={generate}
-          disabled={presentPlayers.length < 2 || isGenerating}
-          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-        >
-          {isGenerating ? (
-            <>
-              <Sparkles className="h-4 w-4 animate-pulse" /> Teams werden berechnet …
-            </>
-          ) : (
-            <>
-              <Shuffle className="h-4 w-4" /> Teams generieren
-            </>
-          )}
-        </button>
+          </div>
+        </details>
       </section>
 
       {isGenerating ? (
@@ -379,6 +401,23 @@ function TrainingView({
           scoreB={scoreB}
           runId={generationRun}
         />
+      ) : null}
+
+      {teams ? (
+        <div className="rounded-[24px] border border-cyan-200 bg-[#08121d] p-5 text-white shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.15em] text-cyan-300">Das war erst der Anfang.</div>
+          <h2 className="mt-2 text-xl font-black">Jetzt mit deinem eigenen Team spielen.</h2>
+          <p className="mt-2 text-sm leading-6 text-white/70">
+            Alle Zusagen, die fairen Teams und eure Ergebnisse an einem Ort. Starte kostenlos mit deiner Mannschaft.
+          </p>
+          <Link
+            href="/signup?next=%2Fclub-setup"
+            data-analytics-event="demo_signup_after_teams_click"
+            className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-white sm:w-auto"
+          >
+            Eigenes Team kostenlos starten <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       ) : null}
 
       {teams ? (
@@ -479,7 +518,7 @@ function BadgesView() {
 }
 
 export default function DemoApp({ logoUrl }: DemoAppProps) {
-  const [view, setView] = useState<DemoView>("home");
+  const [view, setView] = useState<DemoView>("training");
   const [presentIds, setPresentIdsState] = useState<number[]>(DEFAULT_PRESENT_IDS);
   const [teams, setTeamsState] = useState<TeamMap | null>(null);
 
@@ -487,13 +526,14 @@ export default function DemoApp({ logoUrl }: DemoAppProps) {
 
   return (
     <main className="min-h-[calc(100dvh-4rem)] bg-neutral-100 pb-24 text-zinc-950">
+      <LandingPageTracker />
       <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top)+3px)] z-30 border-b border-amber-200 bg-amber-50/95 backdrop-blur sm:top-[calc(4.5rem+env(safe-area-inset-top)+3px)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <img src={logoUrl} alt="1. FC Strikr 2026" className="h-9 w-9 shrink-0 rounded-xl border border-black/10 bg-white object-contain p-1" />
             <div className="min-w-0"><div className="flex items-center gap-2"><DemoPill /><span className="truncate text-sm font-black">{DEMO_CLUB.name}</span></div><div className="mt-0.5 truncate text-[11px] text-amber-900/70">{selectedLabel} · Änderungen werden nicht gespeichert</div></div>
           </div>
-          <Link href="/signup?next=%2Fclub-setup" className="hidden shrink-0 items-center gap-1 rounded-full bg-black px-3 py-2 text-xs font-bold text-white hover:bg-zinc-800 sm:inline-flex">Eigenes Team starten <ArrowRight className="h-3.5 w-3.5" /></Link>
+          <Link href="/signup?next=%2Fclub-setup" data-analytics-event="demo_signup_header_click" className="hidden shrink-0 items-center gap-1 rounded-full bg-black px-3 py-2 text-xs font-bold text-white hover:bg-zinc-800 sm:inline-flex">Eigenes Team starten <ArrowRight className="h-3.5 w-3.5" /></Link>
         </div>
       </div>
 
@@ -515,7 +555,7 @@ export default function DemoApp({ logoUrl }: DemoAppProps) {
         </div>
       </div>
 
-      <Link href="/signup?next=%2Fclub-setup" className="fixed bottom-24 right-4 z-30 inline-flex items-center gap-2 rounded-full bg-black px-4 py-3 text-xs font-extrabold text-white shadow-xl sm:hidden">Team starten <ArrowRight className="h-3.5 w-3.5" /></Link>
+      <Link href="/signup?next=%2Fclub-setup" data-analytics-event="demo_signup_mobile_click" className="fixed bottom-24 right-4 z-30 inline-flex items-center gap-2 rounded-full bg-black px-4 py-3 text-xs font-extrabold text-white shadow-xl sm:hidden">Team starten <ArrowRight className="h-3.5 w-3.5" /></Link>
     </main>
   );
 }
