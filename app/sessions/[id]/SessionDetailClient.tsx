@@ -573,25 +573,105 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             if (key === "winner") return <TournamentWinnerCard sessionId={props.sessionId} photoUrl={winnerPhotoUrl} onBack={() => setPilotStep("result")} />;
             return null;
           };
-          return <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.07)]">
-            <div className="relative bg-slate-950 px-4 py-3 text-white sm:px-5">
-              <div className="flex items-center justify-between gap-3"><span className="text-[11px] font-bold uppercase tracking-[0.18em] text-teal-300">Session-Assistent</span><span className="text-xs text-slate-300">Schritt {selectedIndex + 1} von {steps.length}</span></div>
-              <nav aria-label="Session-Schritte" className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-5">{steps.map((s,i)=><button type="button" key={s.key} onClick={()=>setPilotStep(s.key)} aria-current={i===selectedIndex?"step":undefined} className={`min-h-16 rounded-lg border px-2 py-2 text-left text-[11px] font-semibold transition ${i===selectedIndex?"border-teal-400 bg-teal-400 text-slate-950":s.done?"border-emerald-400 bg-emerald-900 text-emerald-100":"border-slate-700 bg-slate-900 text-slate-300"}`}><span className="block text-[10px] opacity-70">{s.done?"✓":i+1}</span>{s.title}</button>)}</nav>
-              <h2 className="mt-2 text-base font-extrabold tracking-tight">{steps[selectedIndex].title}</h2>
-
-            </div>
-            <div className="space-y-4 p-4 sm:p-5">
-
-              {pilotFinished ? <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">✓ Session abgeschlossen. Du kannst alle Schritte weiterhin ansehen oder bearbeiten.</div> : null}
-              {selected === "photo" && !isTournamentMode && hasResult ? <div className="overflow-hidden rounded-2xl bg-slate-950 p-5 text-center text-white shadow-lg"><div className="text-[10px] font-black uppercase tracking-[0.24em] text-teal-300">Spielergebnis</div><div className="mt-3 text-5xl font-black tabular-nums tracking-tight">{scoreAValue} <span className="text-teal-400">:</span> {scoreBValue}</div>{winnerPhotoUrl ? <img src={winnerPhotoUrl} alt="Siegerfoto" className="mx-auto mt-4 max-h-72 w-full rounded-xl object-contain" /> : null}<button type="button" onClick={() => setShowSessionEndModal(true)} className="mt-4 rounded-lg bg-teal-400 px-5 py-2.5 text-sm font-bold text-slate-950">{hasWinnerPhoto ? "Ergebnis und Siegerfoto teilen ↗" : "Ergebnis ohne Foto teilen ↗"}</button></div> : null}
-              <div className="rounded-lg border-l-4 border-teal-500 bg-teal-50 p-2 shadow-[0_8px_28px_rgba(13,148,136,0.12)] sm:p-4">{renderStep(selected)}</div>
-              {selected === "attendance" && (attendanceDirty || presentPlayers.length < 2) ? <p className="text-xs font-semibold text-amber-800">Zum Fortfahren mindestens zwei Teilnehmer auswählen und offene Änderungen speichern.</p> : null}
-              {selected === "teams" && !teamsComplete ? <p className="text-xs font-semibold text-amber-800">Bitte zuerst beide Teams vollständig zusammenstellen.</p> : null}
-              {selected === "teams" && teamsComplete && !teamsConfirmed ? <p className="text-xs font-semibold text-amber-800">Bitte die Teams zuerst in der Teamansicht bestätigen. Danach geht es bewusst mit „Fertig & weiter“ weiter.</p> : null}
-              <button type="button" onClick={()=>{if (selected === "mode" && !isTournamentMode) { if (setupWizardRef.current) { setupWizardRef.current.next(); } else { setPilotStep("teams"); } return; } if (selected === "result" && isTournamentMode && tournamentWizardStage === "teams") { tournamentWizardRef.current?.next(); return; } const next=steps[selectedIndex+1];if(next)setPilotStep(next.key);else { setPilotPhotoSkipped(!hasWinnerPhoto); setPilotFinished(true); router.push("/sessions"); }}} disabled={(selected === "attendance" && (attendanceDirty || presentPlayers.length < 2)) || (selected === "mode" && !isTournamentMode && setupWizardRef.current !== null && !setupWizardReady) || (selected === "teams" && !isTournamentMode && (!teamsComplete || !teamsConfirmed || saving || savingTeams)) || (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at))} className="w-full rounded-xl bg-slate-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-40">{selected === "mode" && !isTournamentMode ? (setupWizardRef.current?.label ?? "Fertig & weiter →") : selected === "result" && isTournamentMode && tournamentWizardStage === "teams" ? "Fertig · Turnier starten →" : selectedIndex === steps.length-1 ? "Session abschließen ✓" : "Fertig & weiter →"}</button>
-
-            </div>
-          </div>;
+          const nextDisabled =
+            (selected === "attendance" && (attendanceDirty || presentPlayers.length < 2 || savingPresence)) ||
+            (selected === "mode" && !isTournamentMode && setupWizardRef.current !== null && !setupWizardReady) ||
+            (selected === "teams" && !isTournamentMode && (!teamsComplete || !teamsConfirmed || saving || savingTeams)) ||
+            (selected === "result" && !isTournamentMode && (!hasResult || saving)) ||
+            (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at)) ||
+            (selected === "photo" && isTournamentMode && !session.tournament_completed_at);
+          const helperText = selected === "attendance"
+            ? "Prüfe die tatsächliche Anwesenheit und ergänze bei Bedarf Gäste. Änderungen zuerst speichern."
+            : selected === "mode"
+              ? "Entscheide dich für ein normales Spiel oder richte optional ein Turnier ein."
+              : selected === "teams"
+                ? "Lass strikr faire Teams erstellen, passe sie bei Bedarf an und bestätige die Aufstellung."
+                : selected === "result"
+                  ? isTournamentMode
+                    ? "Spiele dein Turnier durch, trage Ergebnisse ein und schließe es ab."
+                    : "Starte bei Bedarf die Spieluhr und speichere nach dem Spiel das Ergebnis."
+                  : selected === "photo"
+                    ? "Optional: Siegerfoto hinzufügen und Ergebnis teilen. Das Training kann auch ohne Foto beendet werden."
+                    : "Deine Siegerkarte ist bereit.";
+          const statusHint = selected === "attendance" && (attendanceDirty || presentPlayers.length < 2)
+            ? "Mindestens zwei anwesende Spieler auswählen und offene Änderungen speichern."
+            : selected === "teams" && !teamsComplete
+              ? "Erstelle zuerst beide Teams vollständig."
+              : selected === "teams" && !teamsConfirmed
+                ? "Bestätige die Aufstellung in der Teamansicht."
+                : selected === "result" && !isTournamentMode && !hasResult
+                  ? "Erst ein Ergebnis speichern, danach geht es weiter."
+                  : selected === "result" && isTournamentMode && tournamentWizardStage === "games" && !session.tournament_completed_at
+                    ? "Beende zuerst das Turnier."
+                    : null;
+          const nextStep = steps[selectedIndex + 1];
+          const nextLabel = selected === "mode" && !isTournamentMode
+            ? (setupWizardRef.current?.label ?? "Normal spielen · Teams erstellen →")
+            : selected === "result" && isTournamentMode && tournamentWizardStage === "teams"
+              ? "Teams bestätigt · Turnier starten →"
+              : !nextStep ? "Training abschließen ✓"
+              : selected === "photo" ? "Weiter zur Siegerkarte →"
+              : selected === "result" && !isTournamentMode ? "Ergebnis gespeichert · weiter →"
+              : "Weiter →";
+          return (
+            <TrainingSessionWizard
+              steps={steps}
+              selectedIndex={selectedIndex}
+              completed={pilotFinished}
+              helperText={statusHint ?? helperText}
+              nextDisabled={nextDisabled}
+              nextLabel={nextLabel}
+              onSelect={(index) => { setPilotStep(steps[index].key); setWizardManualSelection(true); }}
+              onBack={() => {
+                if (selectedIndex > 0) {
+                  setPilotStep(steps[selectedIndex - 1].key);
+                  setWizardManualSelection(true);
+                }
+              }}
+              onNext={() => {
+                if (nextDisabled) return;
+                if (selected === "mode" && !isTournamentMode) {
+                  if (setupWizardRef.current) setupWizardRef.current.next();
+                  else {
+                    setNormalModeReviewed(true);
+                    setPilotStep("teams");
+                    setWizardManualSelection(true);
+                  }
+                  return;
+                }
+                if (selected === "result" && isTournamentMode && tournamentWizardStage === "teams") {
+                  tournamentWizardRef.current?.next();
+                  return;
+                }
+                if (nextStep) {
+                  setPilotStep(nextStep.key);
+                  setWizardManualSelection(true);
+                } else {
+                  if (!hasWinnerPhoto) setPilotPhotoSkipped(true);
+                  setPilotFinished(true);
+                  router.push("/sessions");
+                }
+              }}
+              beforeContent={selected === "photo" && !isTournamentMode && hasResult ? (
+                <div className="overflow-hidden rounded-xl bg-slate-950 p-4 text-center text-white">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">Spielergebnis</div>
+                  <div className="mt-2 text-4xl font-black tabular-nums">{scoreAValue} <span className="text-teal-400">:</span> {scoreBValue}</div>
+                  {winnerPhotoUrl ? <img src={winnerPhotoUrl} alt="Siegerfoto" className="mx-auto mt-3 max-h-64 w-full rounded-lg object-contain" /> : null}
+                  <button type="button" onClick={() => setShowSessionEndModal(true)} className="mt-3 rounded-lg bg-teal-400 px-4 py-2.5 text-sm font-bold text-slate-950">
+                    {hasWinnerPhoto ? "Ergebnis und Siegerfoto teilen ↗" : "Ergebnis teilen ↗"}
+                  </button>
+                </div>
+              ) : null}
+            >
+              {renderStep(selected)}
+              {selected === "photo" && !isTournamentMode && showMvpSection ? (
+                <details className="rounded-xl border border-slate-200 bg-white p-3">
+                  <summary className="cursor-pointer text-sm font-bold text-slate-900">⭐ MVP-Abstimmung ansehen</summary>
+                  <div className="mt-3">{renderMvp()}</div>
+                </details>
+              ) : null}
+            </TrainingSessionWizard>
+          );
         })() : (
         <>
         {renderWorkflowSection("attendance", renderAttendance())}
