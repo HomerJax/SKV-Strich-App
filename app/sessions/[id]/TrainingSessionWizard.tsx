@@ -25,6 +25,7 @@ type Props = {
   children: ReactNode;
   fullscreen?: boolean;
   onClose?: () => void;
+  overlayContent?: ReactNode;
 };
 
 export default function TrainingSessionWizard({
@@ -41,6 +42,7 @@ export default function TrainingSessionWizard({
   children,
   fullscreen = false,
   onClose,
+  overlayContent,
 }: Props) {
   const [portalReady, setPortalReady] = useState(false);
   useEffect(() => { setPortalReady(true); }, []);
@@ -201,6 +203,7 @@ export default function TrainingSessionWizard({
         </div>
       </header>
       {wizard}
+      {overlayContent}
     </div>,
     document.body,
   );
