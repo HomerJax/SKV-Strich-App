@@ -108,6 +108,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [pilotStep, setPilotStep] = useState<TrainingWizardStepKey | null>(null);
   const [wizardManualSelection, setWizardManualSelection] = useState(false);
   const [normalModeReviewed, setNormalModeReviewed] = useState(false);
+  const [attendanceReviewed, setAttendanceReviewed] = useState(false);
 
   useEffect(() => {
     try {
@@ -117,6 +118,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         setPilotStep(saved as TrainingWizardStepKey);
       }
       setNormalModeReviewed(window.localStorage.getItem("strikr-mode-reviewed-" + props.sessionId) === "true");
+      setAttendanceReviewed(window.localStorage.getItem("strikr-attendance-reviewed-" + props.sessionId) === "true");
       setPilotPhotoSkipped(window.localStorage.getItem("strikr-photo-skipped-" + props.sessionId) === "true");
     } catch { /* Storage is optional. */ }
   }, [props.sessionId]);
@@ -125,6 +127,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     if (pilotStep === null) return;
     try { window.localStorage.setItem("strikr-wizard-" + props.sessionId, pilotStep); } catch { /* Storage is optional. */ }
   }, [props.sessionId, pilotStep]);
+
+  useEffect(() => {
+    if (!attendanceReviewed) return;
+    try { window.localStorage.setItem("strikr-attendance-reviewed-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
+  }, [props.sessionId, attendanceReviewed]);
 
   useEffect(() => {
     if (!normalModeReviewed) return;
@@ -530,7 +537,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
         {playerPreview ? <div className="space-y-4"><div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div> : true && isAdmin && isTrainingSession ? (() => {
           const steps = [
-            { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2, summary: `${presentPlayers.length} Spieler dabei` },
+            { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2 && (attendanceReviewed || teamsComplete || hasResult || isTournamentMode), summary: `${presentPlayers.length} Spieler dabei` },
             { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || normalModeReviewed || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
             ...(!isTournamentMode ? [
               { key: "teams" as const, title: "Teams erstellen", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
@@ -569,7 +576,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               : <div className="space-y-3"><SessionGameTimerLoader sessionId={props.sessionId} />{renderResult()}</div>;
             if (key === "photo") return isTournamentMode && session.tournament_completed_at
               ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => setWinnerPhotoCollapsed(prev => !prev)} title={t("sessionDetail.winnerPhoto")} />
-              : <div className="space-y-3">{hasResult && dayWinnerSide ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => {}} title={t("sessionDetail.winnerPhoto")} /> : <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Bitte zuerst ein Ergebnis mit Sieger erfassen.</p>}</div>;
+              : <div className="space-y-3">{hasResult && dayWinnerSide ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => {}} title={t("sessionDetail.winnerPhoto")} /> : <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{hasResult ? "Unentschieden: Kein Siegerfoto nötig. Du kannst das Training abschließen." : "Bitte zuerst ein Ergebnis mit Sieger erfassen."}</p>}</div>;
             if (key === "winner") return <TournamentWinnerCard sessionId={props.sessionId} photoUrl={winnerPhotoUrl} onBack={() => setPilotStep("result")} />;
             return null;
           };
@@ -609,6 +616,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             ? (setupWizardRef.current?.label ?? "Normal spielen · Teams erstellen →")
             : selected === "result" && isTournamentMode && tournamentWizardStage === "teams"
               ? "Teams bestätigt · Turnier starten →"
+              : selected === "attendance" ? "Anwesenheit passt · weiter →"
               : !nextStep ? "Training abschließen ✓"
               : selected === "photo" ? "Weiter zur Siegerkarte →"
               : selected === "result" && !isTournamentMode ? "Ergebnis gespeichert · weiter →"
@@ -630,6 +638,12 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               }}
               onNext={() => {
                 if (nextDisabled) return;
+                if (selected === "attendance") {
+                  setAttendanceReviewed(true);
+                  setPilotStep("mode");
+                  setWizardManualSelection(true);
+                  return;
+                }
                 if (selected === "mode" && !isTournamentMode) {
                   if (setupWizardRef.current) setupWizardRef.current.next();
                   else {
