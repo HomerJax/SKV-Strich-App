@@ -957,27 +957,34 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             (selected === "attendance" && (attendanceDirty || presentPlayers.length < 2 || savingPresence)) ||
             (selected === "mode" && !isTournamentMode && configuringTournament && !setupWizardReady) ||
             (selected === "teams" && !isTournamentMode && (!teamsComplete || !teamsConfirmed || saving || savingTeams)) ||
-            (selected === "result" && !isTournamentMode && (!hasResult || saving)) ||
+            (selected === "timer" && !clockStarted) ||
+            (selected === "finish" && teamChangedChoice === null) ||
+            (selected === "recheck" && (!teamsComplete || !teamsConfirmed || savingTeams)) ||
+            (selected === "result" && !isTournamentMode && (!hasResult || saving || photoUploadWorking || (Boolean(stagedPhotoFile) && Boolean(dayWinnerSide)))) ||
             (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at)) ||
             (selected === "photo" && isTournamentMode && !session.tournament_completed_at) ||
             (selected === "check" && !closeCheckReady);
           const helperText = selected === "settings"
-            ? "Ein kurzer Check vor dem Start. Hier wird noch nichts gespeichert oder verändert."
+            ? "Prüfe kurz eure Einstellungen. Wenn alles passt, geht es direkt weiter."
             : selected === "attendance"
-            ? "Tippe alle anwesenden Spieler an, speichere die gesamte Auswahl einmal und bestätige danach die Anwesenheit."
-            : selected === "mode"
-              ? "Entscheide dich für ein normales Spiel oder richte optional ein Turnier ein."
-              : selected === "teams"
-                ? "Lass strikr faire Teams erstellen, passe sie bei Bedarf an und bestätige die Aufstellung."
-                : selected === "result"
-                  ? isTournamentMode
-                    ? "Spiele dein Turnier durch, trage Ergebnisse ein und schließe es ab."
-                    : "Starte bei Bedarf die Spieluhr und speichere nach dem Spiel das Ergebnis."
-                  : selected === "photo"
-                    ? "Optional: Siegerfoto hinzufügen und Ergebnis teilen. Das Training kann auch ohne Foto beendet werden."
-                    : selected === "check"
-                      ? "Beantworte drei kurze Fragen, bevor das Training abgeschlossen wird."
-                      : "Deine Siegerkarte ist bereit.";
+              ? "Markiere die tatsächlich anwesenden Spieler und speichere die Auswahl."
+              : selected === "mode"
+                ? "Wählt ein normales Spiel oder richtet bei Bedarf ein Turnier ein."
+                : selected === "teams" || selected === "recheck"
+                  ? "Erstelle ausgeglichene Teams, passe sie bei Bedarf an und bestätige die Aufstellung."
+                  : selected === "timer"
+                    ? "Stelle die Spielzeit ein und tippe anschließend auf „Training starten“."
+                    : selected === "live"
+                      ? "Das Training läuft. Wenn ihr fertig seid, beende die Einheit mit dem Button unten."
+                      : selected === "finish"
+                        ? "Wurden die Teams während des Trainings verändert?"
+                        : selected === "photo"
+                          ? "Optional: Siegerfoto auswählen. Nach dem Ergebnis wird es automatisch gespeichert."
+                          : selected === "result"
+                            ? "Trage das Spielergebnis ein. Erst danach wird das gewählte Siegerfoto hochgeladen."
+                            : selected === "check"
+                              ? "Prüfe zum Abschluss noch Anwesenheit, Pünktlichkeit und besondere Vorkommnisse."
+                              : "Deine Siegerkarte ist bereit.";
           const statusHint = selected === "attendance" && (attendanceDirty || presentPlayers.length < 2)
             ? "Mindestens zwei anwesende Spieler auswählen und offene Änderungen speichern."
             : selected === "teams" && !teamsComplete
@@ -991,6 +998,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                     : null;
           const nextStep = steps[selectedIndex + 1];
           const nextLabel = selected === "check" ? "Training abschließen ✓"
+            : selected === "live" ? "Training beenden →"
+            : selected === "finish" ? (teamChangedChoice === "yes" ? "Teams prüfen →" : "Weiter zum Foto →")
+            : selected === "recheck" ? "Teams passen · Foto auswählen →"
+            : selected === "photo" && !isTournamentMode ? "Weiter zum Ergebnis →"
+            : selected === "timer" ? "Training läuft · weiter →"
             : selected === "settings" ? "Passt · Anwesenheit prüfen →"
             : selected === "mode" && !isTournamentMode
             ? (configuringTournament ? (setupWizardRef.current?.label ?? "Turnier einrichten →") : "Normal spielen · Teams erstellen →")
@@ -1047,8 +1059,30 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   tournamentWizardRef.current?.next();
                   return;
                 }
+                if (selected === "timer") {
+                  setPilotStep("live");
+                  setWizardManualSelection(true);
+                  return;
+                }
+                if (selected === "live") {
+                  setTrainingEnded(true);
+                  try { window.localStorage.setItem("strikr-training-ended-" + props.sessionId, "true"); } catch { /* Optional. */ }
+                  setPilotStep("finish");
+                  setWizardManualSelection(true);
+                  return;
+                }
+                if (selected === "finish") {
+                  setPilotStep(teamChangedChoice === "yes" ? "recheck" : "photo");
+                  setWizardManualSelection(true);
+                  return;
+                }
+                if (selected === "recheck") {
+                  setPilotStep("photo");
+                  setWizardManualSelection(true);
+                  return;
+                }
                 if (nextStep) {
-                  if (selected === "photo" && !hasWinnerPhoto) setPilotPhotoSkipped(true);
+                  if (selected === "photo" && !hasWinnerPhoto && !stagedPhotoFile) setPilotPhotoSkipped(true);
                   if (selected === "winner") {
                     setWinnerReviewed(true);
                     try { window.localStorage.setItem("strikr-winner-reviewed-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
