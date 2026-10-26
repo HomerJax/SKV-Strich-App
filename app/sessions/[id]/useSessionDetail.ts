@@ -664,9 +664,9 @@ export function useSessionDetail({
     setAttendanceMultiSelectEnabled((prev) => !prev);
   }
 
-  async function persistTeamsNow(nextTeams: TeamMap) {
+  async function persistTeamsNow(nextTeams: TeamMap): Promise<boolean> {
     if (!allowTeams || hasResult || deletingSession || deletingGuestPlayerId) {
-      return;
+      return false;
     }
 
     const requestId = ++teamSaveRequestIdRef.current;
@@ -679,8 +679,10 @@ export function useSessionDetail({
       formData.set("manual_teams", JSON.stringify(nextTeams));
 
       await postForm(formData);
+      return true;
     } catch (error: unknown) {
       setErr(getErrorMessage(error, t("sessionHook.teamsSaveFailed")));
+      return false;
     } finally {
       if (requestId === teamSaveRequestIdRef.current) {
         setSavingTeams(false);
@@ -1457,6 +1459,20 @@ ${sessionUrl}`;
     setMsg(t("sessionHook.teamsConfirmed"));
   }
 
+  // The pilot wizard must not advance until the final lineup is safely saved.
+  // The legacy data view keeps its existing synchronous confirmation behavior.
+  async function confirmPilotTeams(): Promise<boolean> {
+    if (!allowTeams || hasResult || !teamsComplete || savingTeams || saving) return false;
+    if (teamSaveTimerRef.current !== null) {
+      window.clearTimeout(teamSaveTimerRef.current);
+      teamSaveTimerRef.current = null;
+    }
+    const saved = await persistTeamsNow({ ...manualTeams });
+    if (!saved) return false;
+    confirmTeams();
+    return true;
+  }
+
   function setSide(playerId: number, side: TeamSide | null) {
     if (!allowTeams) {
       setErr(t("sessionHook.noTeamsEvent"));
@@ -1898,6 +1914,7 @@ ${sessionUrl}`;
     toggleGuestForm,
     toggleAttendanceMultiSelect,
     confirmTeams,
+    confirmPilotTeams,
     handleShareLineup,
     handleShareInternalResult,
     handleShareResult,
