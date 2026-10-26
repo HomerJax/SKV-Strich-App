@@ -311,7 +311,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     setPilotEntryView("overview");
     setTrainingStarted(true);
     // First opening begins with a short check; returning users resume their step.
-    if (pilotStep === null) setPilotStep("settings");
+    if (!settingsReviewed || pilotStep === null) setPilotStep("settings");
     setTrainingWizardOpen(true);
   }
 
