@@ -1065,6 +1065,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   return;
                 }
                 if (selected === "live") {
+                  // Cancel any active game-timer alarms before leaving the live screen.
+                  window.dispatchEvent(new CustomEvent("strikr:training-timer-stop", { detail: { sessionId: props.sessionId } }));
                   setTrainingEnded(true);
                   try { window.localStorage.setItem("strikr-training-ended-" + props.sessionId, "true"); } catch { /* Optional. */ }
                   setPilotStep("finish");
