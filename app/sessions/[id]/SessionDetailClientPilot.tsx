@@ -955,65 +955,75 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               </section>
             );
             if (key === "timer" || key === "live") return (
-              <section className="space-y-3">
-                <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4">
-                  <h3 className="text-lg font-black text-slate-950">
-                    {key === "timer" ? "Wie möchtet ihr starten?" : "Euer Training läuft"}
-                  </h3>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                    {key === "timer"
-                      ? "Die Spieluhr ist freiwillig. Du kannst jederzeit auch ohne Uhr weitermachen."
-                      : "Ihr könnt ganz normal spielen – mit oder ohne Uhr. Wenn ihr fertig seid, tippe unten auf „Training beenden“."}
-                  </p>
-                </div>
+              <section className="space-y-4">
                 {key === "timer" ? (
-                  <button type="button"
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent("strikr:training-timer-stop", { detail: { sessionId: props.sessionId } }));
-                      setTrainingStarted(true);
-                      setClockStarted(true);
-                      setUseGameClock(false);
-                      try {
-                        window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true");
-                        window.localStorage.setItem("strikr-use-game-clock-" + props.sessionId, "false");
-                      } catch { /* Optional storage. */ }
-                      setPilotStep("live");
-                      setWizardManualSelection(true);
-                    }}
-                    className="flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl border-2 border-teal-300 bg-teal-50 px-5 py-4 text-left text-slate-950 shadow-sm transition hover:border-teal-500 hover:bg-teal-100">
-                    <span>
-                      <span className="block text-base font-black">Ohne Spieluhr starten</span>
-                      <span className="mt-1 block text-xs font-medium text-slate-600">Direkt losspielen – keine Zeit einstellen nötig.</span>
-                    </span>
-                    <span aria-hidden="true" className="text-xl font-black text-teal-700">→</span>
-                  </button>
-                ) : null}
-                <div className={key === "timer" ? "space-y-2 border-t border-slate-200 pt-4" : ""}>
-                  {key === "timer" ? (
-                    <p className="text-center text-xs font-black uppercase tracking-wider text-slate-500">
-                      Oder mit Spieluhr spielen
-                    </p>
-                  ) : null}
-                  {key === "timer" || useGameClock ? (
-                    <SessionGameTimerLoader sessionId={props.sessionId}
-                      startLabel="▶ Mit Spieluhr starten"
-                      onStarted={() => {
-                        setTrainingStarted(true);
-                        setClockStarted(true);
-                        setUseGameClock(true);
-                        try {
-                          window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true");
-                          window.localStorage.setItem("strikr-use-game-clock-" + props.sessionId, "true");
-                        } catch { /* Optional. */ }
-                        setPilotStep("live");
-                        setWizardManualSelection(true);
-                      }} />
-                  ) : (
-                    <p className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-slate-600">
-                      Ohne Spieluhr gestartet – beendet wird das Training über den Button unten.
-                    </p>
-                  )}
-                </div>
+                  <>
+                    <div className="rounded-[22px] bg-slate-950 p-5 text-white">
+                      <p className="text-[11px] font-black uppercase tracking-[.18em] text-teal-300">Trainingsstart</p>
+                      <h3 className="mt-2 text-xl font-black tracking-tight">Ihr entscheidet, wie ihr spielt.</h3>
+                      <p className="mt-2 text-sm text-white/65">Beide Wege sind gleichwertig. Die Spieluhr ist freiwillig.</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button type="button" aria-pressed={timerChoice === "with"}
+                        onClick={() => setTimerChoice("with")}
+                        className={"flex min-h-44 flex-col items-start rounded-[20px] border-2 p-4 text-left shadow-sm transition " +
+                          (timerChoice === "with" ? "border-teal-400 bg-[#0d2937] text-white" : "border-slate-200 bg-white text-slate-950 hover:border-teal-300")}>
+                        <span className={"flex h-11 w-11 items-center justify-center rounded-xl " +
+                          (timerChoice === "with" ? "bg-teal-300 text-slate-950" : "bg-teal-50 text-teal-800")}>
+                          <Clock3 className="h-6 w-6" aria-hidden="true" />
+                        </span>
+                        <strong className="mt-4 text-base font-black">Mit Spieluhr</strong>
+                        <span className={"mt-1 text-xs leading-5 " + (timerChoice === "with" ? "text-white/70" : "text-slate-500")}>
+                          Zeit festlegen und losspielen.
+                        </span>
+                        <span className={"mt-auto pt-3 text-xs font-black " + (timerChoice === "with" ? "text-teal-300" : "text-teal-700")}>
+                          {timerChoice === "with" ? "✓ Ausgewählt" : "Zeit einstellen →"}
+                        </span>
+                      </button>
+                      <button type="button" onClick={startWithoutClock}
+                        className="flex min-h-44 flex-col items-start rounded-[20px] border-2 border-slate-200 bg-white p-4 text-left text-slate-950 shadow-sm transition hover:border-teal-300">
+                        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-800">
+                          <Play className="h-6 w-6" aria-hidden="true" />
+                        </span>
+                        <strong className="mt-4 text-base font-black">Ohne Spieluhr</strong>
+                        <span className="mt-1 text-xs leading-5 text-slate-500">Direkt spielen, ohne Timer.</span>
+                        <span className="mt-auto pt-3 text-xs font-black text-teal-700">Direkt starten →</span>
+                      </button>
+                    </div>
+                    {timerChoice === "with" ? (
+                      <div className="overflow-hidden rounded-[22px] border border-teal-200 bg-white shadow-sm">
+                        <div className="bg-teal-50 px-4 py-3">
+                          <h3 className="text-sm font-black text-slate-950">Spielzeit einstellen</h3>
+                          <p className="mt-1 text-xs text-slate-600">Dauer wählen und anschließend den Timer starten.</p>
+                        </div>
+                        <SessionGameTimerLoader sessionId={props.sessionId}
+                          showAvailabilityMessage startLabel="▶ Mit Spieluhr starten" onStarted={handleClockStarted} />
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-[24px] bg-gradient-to-br from-[#081522] to-[#134650] p-5 text-white">
+                      <p className="text-[11px] font-black uppercase tracking-[.18em] text-teal-300">
+                        {useGameClock ? "Training mit Spieluhr" : "Training ohne Spieluhr"}
+                      </p>
+                      <h3 className="mt-2 text-2xl font-black tracking-tight">Euer Training läuft.</h3>
+                      <p className="mt-2 text-sm leading-6 text-white/70">
+                        {useGameClock ? "Die Zeit läuft auch bei einem App-Wechsel weiter." :
+                          "Ganz ohne Timer. Wenn ihr fertig seid, beendet ihr das Training unten."}
+                      </p>
+                    </div>
+                    {useGameClock ? (
+                      <SessionGameTimerLoader sessionId={props.sessionId}
+                        showAvailabilityMessage onStarted={handleClockStarted} />
+                    ) : (
+                      <div className="flex items-center gap-3 rounded-[18px] border border-teal-100 bg-teal-50 p-4">
+                        <Play className="h-6 w-6 shrink-0 text-teal-700" aria-hidden="true" />
+                        <p className="text-sm font-semibold text-slate-800">Ohne Uhr gestartet. Ihr könnt direkt spielen.</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </section>
             );
             if (key === "finish") return <section className="space-y-4">
@@ -1190,6 +1200,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               helperText={statusHint}
               nextDisabled={nextDisabled}
               nextLabel={nextLabel}
+              hideNext={selected === "timer"}
               onSelect={(index) => { setPilotStep(steps[index].key); setWizardManualSelection(true); }}
               onBack={() => {
                 if (selectedIndex > 0) {
@@ -1226,16 +1237,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   return;
                 }
                 if (selected === "timer") {
-                  window.dispatchEvent(new CustomEvent("strikr:training-timer-stop", { detail: { sessionId: props.sessionId } }));
-                  setTrainingStarted(true);
-                  setClockStarted(true);
-                  setUseGameClock(false);
-                  try {
-                    window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true");
-                    window.localStorage.setItem("strikr-use-game-clock-" + props.sessionId, "false");
-                  } catch { /* Optional storage. */ }
-                  setPilotStep("live");
-                  setWizardManualSelection(true);
+                  startWithoutClock();
                   return;
                 }
                 if (selected === "live") {
@@ -1370,6 +1372,23 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         ) : null}
       </div>
 
+      {balanceOverlayOpen && trainingWizardOpen && !playerPreview && typeof document !== "undefined" ? createPortal(
+        <PilotTeamBalanceOverlay
+          teamA={displayTeamA}
+          teamB={displayTeamB}
+          generationRunId={teamGenerationRunId}
+          scoreOptions={{ useStrength: clubSettings?.use_strength ?? true, useCategories: clubSettings?.use_categories ?? true, balanceCategories: props.initialBalanceCategories ?? [] }}
+          showStrengthNumbers={pilotAdmin && pilotView === "admin"}
+          generating={balanceGenerating}
+          saving={balanceSaving}
+          error={balanceError}
+          onAccept={() => { void acceptPilotTeams(); }}
+          onRegenerate={() => { void runPilotTeamGeneration(); }}
+          onManual={() => { setBalanceOverlayOpen(false); setPilotManualTeamsOpen(true); }}
+          onClose={() => setBalanceOverlayOpen(false)}
+        />,
+        document.body
+      ) : null}
       {showProInfo && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[10050] flex items-center justify-center px-4 py-6">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" aria-hidden="true"
