@@ -531,7 +531,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               setPilotStep(pilotStep === "recheck" ? "photo" : "timer");
               setWizardManualSelection(true);
             });
-          }
+          }}
           onShareLineup={handleShareLineup}
           onSetSide={setSide}
         />
