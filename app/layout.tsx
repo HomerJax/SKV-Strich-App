@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.strikr.team"),
   title: marketingTitle,
   description: marketingDescription,
+  verification: {
+    google: "BZnZ2t-1YddO1qJUMYHkGkmOAOIV9J3silGclTOgfgE",
+  },
   openGraph: {
     type: "website",
     locale: "de_DE",
