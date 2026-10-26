@@ -883,7 +883,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   Du kannst es jetzt auswählen oder fotografieren. strikr speichert es nach dem Ergebnis automatisch beim Siegerteam.
                   Bei einem Unentschieden ist kein Siegerfoto erforderlich.
                 </p>
-                <input type="file" accept="image/*" capture="environment"
+                <input type="file" accept="image/*"
                   aria-label="Siegerfoto auswählen"
                   onChange={event => {
                     const file = event.target.files?.[0] ?? null;
