@@ -58,7 +58,7 @@ type SessionDetailClientProps = {
 const TEAM_BALANCE_REVEAL_PILOT_CLUB_ID = "108590d9-0877-4787-90a5-4679615b3b76";
 
 type SectionKey = "attendance" | "teams" | "photo" | "result" | "mvp";
-type TrainingWizardStepKey = "settings" | "attendance" | "mode" | "teams" | "result" | "photo" | "winner" | "check";
+type TrainingWizardStepKey = "settings" | "attendance" | "mode" | "teams" | "timer" | "live" | "finish" | "recheck" | "photo" | "result" | "winner" | "check";
 
 function NoticeCard({
   tone,
@@ -120,11 +120,19 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [attendanceRosterSignature, setAttendanceRosterSignature] = useState("");
   const [trainingStarted, setTrainingStarted] = useState(false);
   const [trainingWizardOpen, setTrainingWizardOpen] = useState(false);
+  const [clockStarted, setClockStarted] = useState(false);
+  const [trainingEnded, setTrainingEnded] = useState(false);
+  const [teamChangedChoice, setTeamChangedChoice] = useState<"yes" | "no" | null>(null);
+  const [stagedPhotoFile, setStagedPhotoFile] = useState<File | null>(null);
+  const [stagedPhotoPreview, setStagedPhotoPreview] = useState<string | null>(null);
+  const [photoUploadWorking, setPhotoUploadWorking] = useState(false);
+  const [photoUploadWarning, setPhotoUploadWarning] = useState("");
+  const photoUploadLock = useRef(false);
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("strikr-wizard-" + props.sessionId);
-      const allowed: TrainingWizardStepKey[] = ["settings", "attendance", "mode", "teams", "result", "photo", "winner", "check"];
+      const allowed: TrainingWizardStepKey[] = ["settings", "attendance", "mode", "teams", "timer", "live", "finish", "recheck", "photo", "result", "winner", "check"];
       if (saved && allowed.includes(saved as TrainingWizardStepKey)) {
         setPilotStep(saved as TrainingWizardStepKey);
       }
@@ -133,6 +141,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       setAttendanceReviewed(window.localStorage.getItem("strikr-attendance-reviewed-" + props.sessionId) === "true");
       setAttendanceRosterSignature(window.localStorage.getItem("strikr-attendance-roster-" + props.sessionId) ?? "");
       setTrainingStarted(window.localStorage.getItem("strikr-training-started-" + props.sessionId) === "true");
+      setClockStarted(window.localStorage.getItem("strikr-clock-started-" + props.sessionId) === "true");
+      setTrainingEnded(window.localStorage.getItem("strikr-training-ended-" + props.sessionId) === "true");
+      const changed = window.localStorage.getItem("strikr-teams-changed-" + props.sessionId);
+      setTeamChangedChoice(changed === "yes" || changed === "no" ? changed : null);
       setPilotPhotoSkipped(window.localStorage.getItem("strikr-photo-skipped-" + props.sessionId) === "true");
       setPilotFinished(window.localStorage.getItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId) === "true");
       setCloseCheckReviewed(window.localStorage.getItem("strikr-closing-reviewed-" + props.sessionId) === "true");
@@ -288,8 +300,46 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     updateResult,
     deleteResult,
     handleWinnerPhotoUpload,
+    uploadWinnerPhotoFile,
     handleWinnerPhotoDelete,
   } = useSessionDetail({ ...props, forceAttendanceBatchMode: true });
+
+  const stagedPhotoUploader = useRef(uploadWinnerPhotoFile);
+  stagedPhotoUploader.current = uploadWinnerPhotoFile;
+  useEffect(() => {
+    if (!stagedPhotoFile) {
+      setStagedPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(stagedPhotoFile);
+    setStagedPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [stagedPhotoFile]);
+
+  useEffect(() => {
+    if (!hasResult || !stagedPhotoFile || !dayWinnerSide || photoUploadLock.current) return;
+    photoUploadLock.current = true;
+    setPhotoUploadWorking(true);
+    setPhotoUploadWarning("");
+    void stagedPhotoUploader.current(stagedPhotoFile).then((saved) => {
+      if (saved) {
+        setStagedPhotoFile(null);
+      } else {
+        setPhotoUploadWarning("Foto konnte nicht hochgeladen werden. Erneut versuchen oder ohne Foto fortfahren.");
+      }
+    }).catch(() => setPhotoUploadWarning("Foto konnte nicht hochgeladen werden."))
+      .finally(() => {
+        setPhotoUploadWorking(false);
+        photoUploadLock.current = false;
+      });
+  }, [hasResult, dayWinnerSide, stagedPhotoFile]);
+
+  useEffect(() => {
+    if (hasResult && stagedPhotoFile && !dayWinnerSide) {
+      setStagedPhotoFile(null);
+      setPhotoUploadWarning("Unentschieden: Kein Siegerfoto nötig.");
+    }
+  }, [hasResult, dayWinnerSide, stagedPhotoFile]);
 
   if (err && !session) {
     return <div className="bg-red-50 p-4 text-sm text-red-700">{err}</div>;
