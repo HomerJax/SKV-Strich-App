@@ -5,6 +5,7 @@ import RecoveryLandingRedirect from "@/components/auth/RecoveryLandingRedirect";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getServerI18n } from "@/lib/i18n/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FREE_HIGHLIGHTS, PRO_HIGHLIGHTS } from "@/lib/billing/product-matrix";
@@ -19,9 +20,23 @@ import {
   Users,
 } from "lucide-react";
 
-export const metadata: Metadata = {
-  alternates: { canonical: "/" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { locale } = await getServerI18n();
+  const isEnglish = locale === "en";
+  const title = isEnglish
+    ? "strikr – Football training app and balanced teams"
+    : "strikr – Fußball-Trainings-App und faire Teams";
+  const description = isEnglish
+    ? "Organize attendance, create balanced teams, record results and follow standings and stats with strikr — for recreational football teams, with no league required."
+    : "Trainings organisieren, Zusagen sammeln, faire Teams bilden und Ergebnisse festhalten: strikr ist die Fußball-App für Hobby- und Freizeitteams – ganz ohne Ligabetrieb.";
+  return {
+    title,
+    description,
+    alternates: { canonical: "/" },
+    openGraph: { type: "website", siteName: "strikr", title, description, url: "/" },
+    twitter: { card: "summary", title, description },
+  };
+}
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -291,6 +306,20 @@ export default async function LandingPage({
       <RecoveryLandingRedirect />
       <NativeAppEntryRedirect />
       <LandingPageTracker />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "strikr",
+            url: "https://www.strikr.team/",
+            applicationCategory: "SportsApplication",
+            operatingSystem: "Web, iOS, Android",
+            description: "Trainings organisieren, faire Teams bilden, Ergebnisse festhalten und Statistiken verfolgen – für Freizeit- und Amateurteams.",
+          }).replace(/</g, "\\u003c"),
+        }}
+      />
 
       <style>{`
         @keyframes strikrGlow {
@@ -725,6 +754,9 @@ export default async function LandingPage({
             <Link href="/impressum" className="hover:text-white">Impressum</Link>
             <Link href="/datenschutz" className="hover:text-white">Datenschutz</Link>
             <Link href="/support" className="hover:text-white">Support</Link>
+            <Link href="/faire-fussballteams" className="hover:text-white">Faire Fußballteams</Link>
+            <Link href="/training-organisieren" className="hover:text-white">Training organisieren</Link>
+            <Link href="/mannschaftskasse-app" className="hover:text-white">Mannschaftskasse-App</Link>
             <Link href="/account-loeschen" className="hover:text-white">Konto löschen</Link>
           </div>
         </div>

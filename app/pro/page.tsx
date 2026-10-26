@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { getServerI18n } from "@/lib/i18n/server";
 import { ArrowRight, Check, Crown } from "lucide-react";
 import { FREE_HIGHLIGHTS, PRODUCT_MATRIX, PRO_HIGHLIGHTS } from "@/lib/billing/product-matrix";
 import { getAuthContext, isActiveClubAdmin } from "@/lib/auth/context";
@@ -8,6 +10,20 @@ import { isStripeCheckoutConfigured } from "@/lib/billing/stripe";
 import { INTRO_PRICING, getAnnualSavingsPercent } from "@/lib/billing/pricing";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { locale } = await getServerI18n();
+  const title = locale === "en" ? "strikr Pro – more flexibility for your team" : "strikr Pro – mehr Möglichkeiten für euer Team";
+  const description = locale === "en"
+    ? "Compare strikr Free and Pro. Pro adds more players, flexible training settings, custom seasons and deeper stats."
+    : "strikr Free und Pro vergleichen: Pro ergänzt mehr Spieler, flexible Trainingseinstellungen, eigene Saisons und tiefere Statistiken.";
+  return {
+    title,
+    description,
+    alternates: { canonical: "/pro" },
+    openGraph: { type: "website", siteName: "strikr", title, description, url: "/pro" },
+  };
+}
 
 export default async function ProPage({
   searchParams,
