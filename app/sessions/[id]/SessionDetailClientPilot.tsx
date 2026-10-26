@@ -515,7 +515,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           enableFieldView={useFieldView}
           onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
           onGenerateTeams={generateTeams}
-          onConfirmTeams={confirmTeams}
+          onConfirmTeams={() => {
+            confirmTeams();
+            if (trainingWizardOpen && !hasResult && teamsComplete) {
+              setPilotStep(pilotStep === "recheck" ? "photo" : "timer");
+              setWizardManualSelection(true);
+            }
+          }}
           onShareLineup={handleShareLineup}
           onSetSide={setSide}
         />
@@ -759,9 +765,15 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2 && (attendanceConfirmed || hasResult), summary: `${presentPlayers.length} Spieler dabei` },
             { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || normalModeReviewed || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
             ...(!isTournamentMode ? [
-              { key: "teams" as const, title: "Teams erstellen", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
-              { key: "result" as const, title: "Spiele & Ergebnisse", done: hasResult, summary: `${results.length} Ergebnis(se) erfasst` },
-              { key: "photo" as const, title: "Siegerfoto", optional: true, done: hasWinnerPhoto || pilotPhotoSkipped || (hasResult && !dayWinnerSide), summary: hasWinnerPhoto ? "Foto vorhanden" : "Optional" },
+              { key: "teams" as const, title: "Faire Teams", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
+              { key: "timer" as const, title: "Spieluhr einstellen", done: clockStarted || hasResult, summary: "Zeit wählen und Training starten" },
+              { key: "live" as const, title: "Training läuft", done: trainingEnded || hasResult, summary: "Spieluhr und Trainingsende" },
+              { key: "finish" as const, title: "Teams prüfen", done: teamChangedChoice !== null || hasResult, summary: "Wurde die Einteilung noch geändert?" },
+              ...(teamChangedChoice === "yes" && !hasResult ? [
+                { key: "recheck" as const, title: "Teams korrigieren", done: teamsComplete && teamsConfirmed, summary: "Änderungen prüfen und bestätigen" },
+              ] : []),
+              { key: "photo" as const, title: "Foto auswählen", optional: true, done: hasWinnerPhoto || pilotPhotoSkipped || stagedPhotoFile !== null || hasResult, summary: "Optional: Siegerfoto vorbereiten" },
+              { key: "result" as const, title: "Ergebnis speichern", done: hasResult, summary: "Spielstand eintragen und speichern" },
             ] : [
               { key: "result" as const, title: "Turnier durchführen", done: Boolean(session.tournament_completed_at), summary: session.tournament_completed_at ? "Turnier abgeschlossen" : "Spielplan & Ergebnisse" },
               { key: "photo" as const, title: "Siegerfoto", optional: true, done: hasWinnerPhoto || pilotPhotoSkipped, summary: hasWinnerPhoto ? "Foto vorhanden" : pilotPhotoSkipped ? "Ohne Foto fortgesetzt" : "Optional" },
@@ -804,7 +816,97 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 </p>
               </section>
             );
-            if (key === "attendance") return renderAttendance();
+            if (key === "timer" || key === "live") return (
+              <section className="space-y-3">
+                <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4">
+                  <h3 className="text-lg font-black text-slate-950">
+                    {key === "timer" ? "Spielzeit einstellen und starten" : "Euer Training läuft"}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    {key === "timer"
+                      ? "Wähle Dauer und Pauseneinstellungen in der Spieluhr. Starte dann euer Training direkt hier."
+                      : "Die Spieluhr läuft auch beim Wechsel der Ansicht weiter. Nach dem Spiel drückst du unten auf „Training beenden“."}
+                  </p>
+                </div>
+                <SessionGameTimerLoader sessionId={props.sessionId}
+                  startLabel="▶ Training starten"
+                  onStarted={() => {
+                    setClockStarted(true);
+                    try { window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true"); } catch { /* Optional. */ }
+                    setPilotStep("live");
+                    setWizardManualSelection(true);
+                  }} />
+                {key === "timer" ? (
+                  <p className="rounded-xl bg-white p-3 text-xs leading-5 text-slate-600">
+                    Falls ihr ohne Spieluhr spielt, kannst du die Einheit auch ohne Timer fortsetzen.
+                    <button type="button" onClick={() => {
+                      setClockStarted(true);
+                      try { window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true"); } catch { /* Optional. */ }
+                      setPilotStep("live");
+                      setWizardManualSelection(true);
+                    }} className="ml-1 font-black text-teal-700 underline underline-offset-2">Ohne Spieluhr starten</button>
+                  </p>
+                ) : null}
+              </section>
+            );
+            if (key === "finish") return <section className="space-y-4">
+              <div className="rounded-2xl bg-slate-950 p-5 text-white">
+                <div className="text-xs font-black uppercase tracking-[0.15em] text-teal-300">Training beendet</div>
+                <h3 className="mt-2 text-xl font-black">Wurden die Teams noch verändert?</h3>
+                <p className="mt-2 text-sm text-white/65">Zum Beispiel, weil jemand später gegangen ist oder Spieler getauscht wurden.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {([{value:"no",title:"Nein",text:"Teams passen"},{value:"yes",title:"Ja",text:"Nochmal prüfen"}] as const).map(item => (
+                  <button key={item.value} type="button" aria-pressed={teamChangedChoice === item.value}
+                    onClick={() => {
+                      setTeamChangedChoice(item.value);
+                      try { window.localStorage.setItem("strikr-teams-changed-" + props.sessionId, item.value); } catch { /* Optional. */ }
+                    }}
+                    className={`min-h-28 rounded-2xl border-2 p-4 text-left transition ${teamChangedChoice === item.value ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-white"}`}>
+                    <span className="block text-lg font-black text-slate-950">{item.title}</span>
+                    <span className="mt-2 block text-xs text-slate-600">{item.text}</span>
+                  </button>
+                ))}
+              </div>
+            </section>;
+            if (key === "recheck") return <section className="space-y-3">
+              <p className="rounded-xl bg-teal-50 p-3 text-sm leading-6 text-slate-700">
+                Prüfe die Teams und passe sie bei Bedarf an. Danach Aufstellung bestätigen.
+              </p>
+              {renderTeams()}
+            </section>;
+            if (key === "photo" && !isTournamentMode && !hasResult) return (
+              <section className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="text-[11px] font-black uppercase tracking-[0.15em] text-teal-700">Optional</div>
+                <h3 className="mt-2 text-lg font-black text-slate-950">Habt ihr ein Siegerfoto gemacht?</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Du kannst es jetzt auswählen oder fotografieren. strikr speichert es nach dem Ergebnis automatisch beim Siegerteam.
+                  Bei einem Unentschieden ist kein Siegerfoto erforderlich.
+                </p>
+                <input type="file" accept="image/*" capture="environment"
+                  aria-label="Siegerfoto auswählen"
+                  onChange={event => {
+                    const file = event.target.files?.[0] ?? null;
+                    event.target.value = "";
+                    if (file && file.type.startsWith("image/") && file.size <= 20 * 1024 * 1024) {
+                      setStagedPhotoFile(file);
+                      setPhotoUploadWarning("");
+                      setPilotPhotoSkipped(false);
+                    } else if (file) {
+                      setPhotoUploadWarning("Bitte ein Foto mit maximal 20 MB auswählen.");
+                    }
+                  }}
+                  className="mt-5 block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-3 file:font-black file:text-white" />
+                {stagedPhotoPreview ? <div className="mt-4 space-y-2">
+                  <img src={stagedPhotoPreview} alt="Ausgewähltes Siegerfoto" className="max-h-64 w-full rounded-xl bg-slate-100 object-contain" />
+                  <p className="text-xs font-semibold text-teal-700">✓ Foto ausgewählt – wird nach dem Ergebnis hochgeladen.</p>
+                  <button type="button" onClick={() => setStagedPhotoFile(null)} className="text-xs font-bold text-slate-600 underline underline-offset-2">Foto entfernen</button>
+                </div> : null}
+                {photoUploadWarning ? <p role="alert" className="mt-3 text-xs font-bold text-rose-700">{photoUploadWarning}</p> : null}
+                <p className="mt-4 text-xs text-slate-500">Kein Foto? Einfach unten auf Weiter tippen.</p>
+              </section>
+            );
+                        if (key === "attendance") return renderAttendance();
             if (key === "mode") return <div className="space-y-3">
               <h3 className="text-base font-black text-slate-950">Wie wollt ihr spielen?</h3>
               <div className={`rounded-xl border-2 bg-white p-3 ${!isTournamentMode ? "border-teal-500" : "border-slate-200"}`}>
@@ -839,7 +941,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                         if (key === "teams") return renderTeams();
             if (key === "result") return isTournamentMode
               ? <SessionTournamentCard sessionId={props.sessionId} enabled={true} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={false} onActivated={() => router.refresh()} tournamentWizardControl={tournamentWizardRef} onTournamentWizardChange={(stage, ready) => { setTournamentWizardStage(stage); setTournamentTeamsReady(ready); }} onFinalized={() => { setPilotStep("photo"); router.refresh(); }} />
-              : <div className="space-y-3"><SessionGameTimerLoader sessionId={props.sessionId} />{renderResult()}</div>;
+              : <div className="space-y-3">
+                {photoUploadWorking ? <p role="status" className="rounded-xl bg-cyan-50 p-3 text-sm font-bold text-cyan-900">Siegerfoto wird gespeichert …</p> : null}
+                {photoUploadWarning ? <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{photoUploadWarning} <button type="button" onClick={() => setStagedPhotoFile(null)} className="font-bold underline">Ohne Foto weiter</button></p> : null}
+                {renderResult()}
+              </div>;
             if (key === "photo") return isTournamentMode && session.tournament_completed_at
               ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => setWinnerPhotoCollapsed(prev => !prev)} title={t("sessionDetail.winnerPhoto")} />
               : <div className="space-y-3">{hasResult && dayWinnerSide ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => {}} title={t("sessionDetail.winnerPhoto")} /> : <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{hasResult ? "Unentschieden: Kein Siegerfoto nötig. Du kannst das Training abschließen." : "Bitte zuerst ein Ergebnis mit Sieger erfassen."}</p>}</div>;
