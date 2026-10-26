@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export type TrainingWizardStep = {
@@ -34,6 +34,7 @@ export default function TrainingSessionWizard({
   fullscreen = false, onClose, overlayContent,
 }: Props) {
   const [portalReady, setPortalReady] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setPortalReady(true); }, []);
   useEffect(() => {
@@ -50,11 +51,13 @@ export default function TrainingSessionWizard({
     };
   }, [fullscreen, onClose]);
 
+  useEffect(() => {
+    if (fullscreen) containerRef.current?.scrollTo({ top: 0 });
+  }, [selectedIndex, fullscreen]);
+
   const current = steps[selectedIndex];
   if (!current) return null;
   const completeCount = steps.filter((step) => step.done).length;
-  const canOpenStep = (index: number) =>
-    index <= selectedIndex || steps.slice(0, index).every((step) => step.done);
 
   const wizard = (
     <section
@@ -63,7 +66,7 @@ export default function TrainingSessionWizard({
         ? "mx-auto min-h-full w-full max-w-3xl bg-slate-50 pb-28"
         : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"}
     >
-      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-teal-950 px-5 pb-6 pt-5 text-white">
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-teal-950 px-5 pb-5 pt-5 text-white">
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs font-extrabold uppercase tracking-[0.16em] text-teal-300">
             Schritt {selectedIndex + 1} von {steps.length}
@@ -81,39 +84,15 @@ export default function TrainingSessionWizard({
             />
           ))}
         </div>
-        <h1 className="mt-5 text-2xl font-black leading-tight tracking-tight sm:text-3xl" aria-live="polite">
+        <h1 className="mt-4 text-2xl font-black leading-tight tracking-tight sm:text-3xl" aria-live="polite">
           {current.title}
         </h1>
         <p className="mt-2 text-sm leading-6 text-slate-300">{current.summary}</p>
       </div>
 
-      <nav
-        aria-label="Schritte im Trainingsablauf"
-        className="flex gap-3 overflow-x-auto border-b border-slate-200 bg-white px-4 py-3"
-      >
-        {steps.map((step, index) => {
-          const active = index === selectedIndex;
-          const unlocked = canOpenStep(index);
-          return (
-            <button
-              key={step.key}
-              type="button"
-              disabled={!unlocked}
-              onClick={() => onSelect(index)}
-              aria-current={active ? "step" : undefined}
-              className={"inline-flex min-w-max items-center gap-2 rounded-lg px-2 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-40 " +
-                (active ? "bg-teal-50 text-teal-950 ring-1 ring-teal-200" : "text-slate-600")}
-            >
-              <span className={"flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black " +
-                (step.done ? "bg-teal-500 text-slate-950" : active ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-600")}
-              >
-                {step.done ? "✓" : index + 1}
-              </span>
-              <span className="text-xs font-bold">{step.title}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <div className="border-b border-slate-100 bg-white px-5 py-3 text-center text-xs font-semibold text-slate-500">
+        Eine Aufgabe nach der anderen. Mit Zurück kannst du jeden Schritt erneut prüfen.
+      </div>
 
       <main className="space-y-4 px-3 pb-6 pt-4 sm:px-6">
         {completed ? (
@@ -165,6 +144,7 @@ export default function TrainingSessionWizard({
       role="dialog"
       aria-modal="true"
       aria-label="Training durchführen"
+      ref={containerRef}
       className="fixed inset-0 z-[9999] overflow-y-auto overscroll-contain bg-slate-50"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
