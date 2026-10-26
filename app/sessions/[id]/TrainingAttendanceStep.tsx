@@ -47,20 +47,18 @@ export default function TrainingAttendanceStep({
 
   return (
     <section aria-label="Anwesenheiten auswählen" className="space-y-4">
-      <div className="rounded-2xl bg-slate-950 p-4 text-white">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-teal-300">
-          Schritt 1 · Wer ist wirklich da?
-        </p>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-3xl font-black tabular-nums">{presentCount} <span className="text-base text-slate-300">anwesend</span></p>
-            <p className="mt-1 text-xs leading-5 text-slate-300">
-              Mehrere Spieler auswählen. Gespeichert wird erst über den Button.
-            </p>
-          </div>
-          <span aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-400 text-2xl font-black text-slate-950">
-            ✓
-          </span>
+      <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-950 p-4 text-white">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-teal-300">
+            Wer ist heute wirklich da?
+          </p>
+          <p className="mt-1 text-xs leading-5 text-slate-300">
+            Tippe Spieler an, um die Liste zu korrigieren.
+          </p>
+        </div>
+        <div className="shrink-0 text-center">
+          <p className="text-3xl font-black tabular-nums">{presentCount}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-300">Dabei</p>
         </div>
       </div>
 
@@ -96,7 +94,7 @@ export default function TrainingAttendanceStep({
           ))}
         </div>
 
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
           {visiblePlayers.map((player) => {
             const checked = selectedSet.has(player.id);
             const name = getPlayerDisplayName(player);
@@ -109,11 +107,11 @@ export default function TrainingAttendanceStep({
                 aria-pressed={checked}
                 aria-label={name + (checked ? " abwählen" : " als anwesend markieren")}
                 className={checked
-                  ? "flex min-h-16 w-full items-center gap-3 rounded-xl border-2 border-teal-500 bg-teal-50 px-3 py-2.5 text-left transition disabled:opacity-60"
-                  : "flex min-h-16 w-full items-center gap-3 rounded-xl border-2 border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-teal-300 disabled:opacity-60"}
+                  ? "flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-teal-500 bg-teal-50 px-3 py-2 text-left transition disabled:opacity-60"
+                  : "flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-teal-300 disabled:opacity-60"}
               >
                 <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 bg-cover bg-center text-sm font-extrabold uppercase text-white"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 bg-cover bg-center text-xs font-extrabold uppercase text-white"
                   style={player.photo_url ? { backgroundImage: "url(" + JSON.stringify(player.photo_url) + ")" } : undefined}
                 >
                   {!player.photo_url ? (name.trim().charAt(0) || "?") : null}
@@ -125,8 +123,8 @@ export default function TrainingAttendanceStep({
                   </span>
                 </span>
                 <span aria-hidden="true" className={checked
-                  ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-lg font-black text-white"
-                  : "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-slate-300 text-white"}
+                  ? "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-base font-black text-white"
+                  : "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border-2 border-slate-300 text-white"}
                 >
                   {checked ? "✓" : ""}
                 </span>
