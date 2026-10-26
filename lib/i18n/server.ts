@@ -16,13 +16,18 @@ type LocaleResult = {
 };
 
 export const getLocaleResult = cache(async (): Promise<LocaleResult> => {
+  const headerStore = await headers();
+  const publicSeoLocale = headerStore.get("x-strikr-public-locale");
+  if (publicSeoLocale === "de" || publicSeoLocale === "en") {
+    return { locale: publicSeoLocale, clubLocaleMode: "auto" };
+  }
+
   const cookieStore = await cookies();
   const manualLocale = cookieStore.get("strikr_locale")?.value;
   if (manualLocale === "de" || manualLocale === "en") {
     return { locale: manualLocale, clubLocaleMode: "auto" };
   }
 
-  const headerStore = await headers();
   const browserLocale = localeFromAcceptLanguage(
     headerStore.get("accept-language"),
   );
