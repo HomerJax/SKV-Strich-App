@@ -41,7 +41,7 @@ export default async function StandingsPage() {
         hallOfFameEnabled={featureFlags.hall_of_fame_badges}
         currentPlayerId={viewPlayerId}
       />
-      <StandingsTop10Share />
+      <StandingsTop10Share clubId={clubId} />
       <StandingsSortAccent />
     </>
   );
