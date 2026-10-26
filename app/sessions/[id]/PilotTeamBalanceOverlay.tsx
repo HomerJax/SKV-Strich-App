@@ -103,7 +103,7 @@ export default function PilotTeamBalanceOverlay({
 
   return (
     <div role="dialog" aria-modal="true" aria-label="strikr Teamverteilung" className="fixed inset-0 z-[10080] flex items-center justify-center bg-[#020913]/95 backdrop-blur-xl sm:p-3">
-      <style>{"@keyframes strikrBalancePop {from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}} @keyframes strikrBarFill {from{transform:scaleX(0)}to{transform:scaleX(1)}} @keyframes strikrScanning {0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}"}</style>
+      <style>{"@keyframes strikrBalancePop {from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}} @keyframes strikrBarFill {from{transform:scaleX(0)}to{transform:scaleX(1)}} @keyframes strikrScanning {0%{transform:translateX(-100%)}100%{transform:translateX(250%)}} @media (prefers-reduced-motion:reduce){.strikr-balance-bar{animation:none!important;transform:scaleX(1)!important}}"}</style>
       <div className="relative flex h-[100dvh] w-full max-w-4xl flex-col overflow-hidden bg-gradient-to-b from-[#0b2631] via-[#081522] to-[#050d19] text-white shadow-[0_35px_110px_rgba(0,0,0,.8)] sm:h-[min(940px,96dvh)] sm:rounded-[32px] sm:border sm:border-teal-300/25">
         <div aria-hidden="true" className="pointer-events-none absolute -right-28 -top-24 h-64 w-64 rounded-full bg-teal-400/15 blur-[80px]" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-28 -left-28 h-64 w-64 rounded-full bg-blue-500/10 blur-[80px]" />
@@ -169,7 +169,7 @@ export default function PilotTeamBalanceOverlay({
                   <div className="relative mt-3 h-5 overflow-hidden rounded-full border border-white/10 bg-[#020b16] shadow-inner sm:h-6" role="progressbar"
                     aria-label={team.title + " Teamstärke"} aria-valuemin={0} aria-valuemax={maximum} aria-valuenow={currentScore}>
                     <div key={team.side + "-" + generationRunId}
-                      className={"h-full origin-left rounded-full shadow-[0_0_22px_rgba(94,234,212,.35)] " + team.tone}
+                      className={"strikr-balance-bar h-full origin-left rounded-full shadow-[0_0_22px_rgba(94,234,212,.35)] " + team.tone}
                       style={{
                         width: finalWidth + "%",
                         transform: generating ? "scaleX(0)" : undefined,
