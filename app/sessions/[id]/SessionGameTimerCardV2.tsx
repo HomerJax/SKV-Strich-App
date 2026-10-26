@@ -44,6 +44,8 @@ type SessionGameTimerCardProps = {
   initialSettings: GameTimerSettings;
   clubDefaultSettings: GameTimerSettings;
   initialUsesOverride: boolean;
+  onStarted?: () => void;
+  startLabel?: string;
 };
 
 const MAX_RUNTIME_AGE_MS = 18 * 60 * 60 * 1000;
@@ -119,6 +121,8 @@ export default function SessionGameTimerCard({
   initialSettings,
   clubDefaultSettings,
   initialUsesOverride,
+  onStarted,
+  startLabel,
 }: SessionGameTimerCardProps) {
   const { t } = useI18n();
   const [settings, setSettings] = useState<GameTimerSettings>(() =>
@@ -579,6 +583,7 @@ export default function SessionGameTimerCard({
       savedAt: Date.now(),
     });
     setRemainingMs(Math.max(0, targetAt - now));
+    onStarted?.();
 
     if (nativeReady.useNative) {
       setMessage(t("gameTimer.runningLock"));
@@ -865,7 +870,7 @@ export default function SessionGameTimerCard({
               disabled={!hydrated}
               className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-50"
             >
-              {t("gameTimer.startGame")}
+              {startLabel ?? t("gameTimer.startGame")}
             </button>
           ) : null}
 
