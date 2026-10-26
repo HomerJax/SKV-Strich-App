@@ -1656,37 +1656,37 @@ ${sessionUrl}`;
   async function uploadWinnerPhotoFile(file: File): Promise<boolean> {
     if (!allowWinnerPhoto && !tournamentPhotoReady) {
       setErr(t("sessionHook.noWinnerPhotoEvent"));
-      return;
+      return false;
     }
 
     if (!hasResult && !tournamentPhotoReady) {
       setErr(t("sessionHook.saveResultFirst"));
-      return;
+      return false;
     }
 
     if (!dayWinnerSide && !tournamentPhotoReady) {
       setErr(t("sessionHook.noClearWinnerPhoto"));
-      return;
+      return false;
     }
 
     if (!session) {
       setErr(t("sessionHook.trainingLoadFailed"));
-      return;
+      return false;
     }
 
     if (!teamsComplete && !tournamentPhotoReady) {
       setErr(
         t("sessionHook.assignTeamsBeforePhoto")
       );
-      return;
+      return false;
     }
 
     if (!teamsConfirmed && !tournamentPhotoReady) {
       setErr(t("sessionHook.confirmTeamsFirst"));
-      return;
+      return false;
     }
 
-    if (photoBusy || saving || deletingSession || deletingGuestPlayerId) return;
+    if (photoBusy || saving || deletingSession || deletingGuestPlayerId) return false;
 
     const restoreScroll = preserveScrollPosition();
 
