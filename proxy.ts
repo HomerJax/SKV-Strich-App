@@ -3,6 +3,15 @@ import { NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
 const NATIVE_IOS_MARKER = "strikr-ios";
+
+const PUBLIC_SEO_LOCALES: Record<string, "de" | "en"> = {
+  "/faire-fussballteams": "de",
+  "/training-organisieren": "de",
+  "/mannschaftskasse-app": "de",
+  "/en/faire-fussballteams": "en",
+  "/en/training-organisieren": "en",
+  "/en/mannschaftskasse-app": "en",
+};
 // Native iOS cold starts must land on Home, not the previous visited path.
 // Protected live games are restored by NativeHomeOnResume after hydration.
 
@@ -19,7 +28,13 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  return updateSession(request);
+  const requestHeaders = new Headers(request.headers);
+  const publicSeoLocale = PUBLIC_SEO_LOCALES[request.nextUrl.pathname];
+  if (publicSeoLocale) {
+    requestHeaders.set("x-strikr-public-locale", publicSeoLocale);
+  }
+
+  return updateSession(request, requestHeaders);
 }
 
 export const config = {
