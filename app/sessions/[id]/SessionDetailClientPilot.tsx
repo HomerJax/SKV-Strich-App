@@ -766,7 +766,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || normalModeReviewed || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
             ...(!isTournamentMode ? [
               { key: "teams" as const, title: "Faire Teams", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
-              { key: "timer" as const, title: "Spieluhr einstellen", done: clockStarted || hasResult, summary: "Zeit wählen und Training starten" },
+              { key: "timer" as const, title: "Training starten", done: clockStarted || hasResult, summary: "Mit oder ohne Spieluhr" },
               { key: "live" as const, title: "Training läuft", done: trainingEnded || hasResult, summary: "Spieluhr und Trainingsende" },
               { key: "finish" as const, title: "Teams prüfen", done: teamChangedChoice !== null || hasResult, summary: "Wurde die Einteilung noch geändert?" },
               ...(teamChangedChoice === "yes" && !hasResult ? [
@@ -820,33 +820,45 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               <section className="space-y-3">
                 <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4">
                   <h3 className="text-lg font-black text-slate-950">
-                    {key === "timer" ? "Spielzeit einstellen und starten" : "Euer Training läuft"}
+                    {key === "timer" ? "Wie möchtet ihr starten?" : "Euer Training läuft"}
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-slate-600">
                     {key === "timer"
-                      ? "Wähle Dauer und Pauseneinstellungen in der Spieluhr. Starte dann euer Training direkt hier."
-                      : "Die Spieluhr läuft auch beim Wechsel der Ansicht weiter. Nach dem Spiel drückst du unten auf „Training beenden“."}
+                      ? "Die Spieluhr ist freiwillig. Du kannst jederzeit auch ohne Uhr weitermachen."
+                      : "Ihr könnt ganz normal spielen – mit oder ohne Uhr. Wenn ihr fertig seid, tippe unten auf „Training beenden“.""}
                   </p>
                 </div>
-                <SessionGameTimerLoader sessionId={props.sessionId}
-                  startLabel="▶ Training starten"
-                  onStarted={() => {
-                    setClockStarted(true);
-                    try { window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true"); } catch { /* Optional. */ }
-                    setPilotStep("live");
-                    setWizardManualSelection(true);
-                  }} />
                 {key === "timer" ? (
-                  <p className="rounded-xl bg-white p-3 text-xs leading-5 text-slate-600">
-                    Falls ihr ohne Spieluhr spielt, kannst du die Einheit auch ohne Timer fortsetzen.
-                    <button type="button" onClick={() => {
+                  <button type="button"
+                    onClick={() => {
+                      setClockStarted(true);
+                      try { window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
+                      setPilotStep("live");
+                      setWizardManualSelection(true);
+                    }}
+                    className="flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl border-2 border-teal-300 bg-teal-50 px-5 py-4 text-left text-slate-950 shadow-sm transition hover:border-teal-500 hover:bg-teal-100">
+                    <span>
+                      <span className="block text-base font-black">Ohne Spieluhr starten</span>
+                      <span className="mt-1 block text-xs font-medium text-slate-600">Direkt losspielen – keine Zeit einstellen nötig.</span>
+                    </span>
+                    <span aria-hidden="true" className="text-xl font-black text-teal-700">→</span>
+                  </button>
+                ) : null}
+                <div className={key === "timer" ? "space-y-2 border-t border-slate-200 pt-4" : ""}>
+                  {key === "timer" ? (
+                    <p className="text-center text-xs font-black uppercase tracking-wider text-slate-500">
+                      Oder mit Spieluhr spielen
+                    </p>
+                  ) : null}
+                  <SessionGameTimerLoader sessionId={props.sessionId}
+                    startLabel="▶ Mit Spieluhr starten"
+                    onStarted={() => {
                       setClockStarted(true);
                       try { window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true"); } catch { /* Optional. */ }
                       setPilotStep("live");
                       setWizardManualSelection(true);
-                    }} className="ml-1 font-black text-teal-700 underline underline-offset-2">Ohne Spieluhr starten</button>
-                  </p>
-                ) : null}
+                    }} />
+                </div>
               </section>
             );
             if (key === "finish") return <section className="space-y-4">
@@ -957,7 +969,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             (selected === "attendance" && (attendanceDirty || presentPlayers.length < 2 || savingPresence)) ||
             (selected === "mode" && !isTournamentMode && configuringTournament && !setupWizardReady) ||
             (selected === "teams" && !isTournamentMode && (!teamsComplete || !teamsConfirmed || saving || savingTeams)) ||
-            (selected === "timer" && !clockStarted) ||
             (selected === "finish" && teamChangedChoice === null) ||
             (selected === "recheck" && (!teamsComplete || !teamsConfirmed || savingTeams)) ||
             (selected === "result" && !isTournamentMode && (!hasResult || saving || photoUploadWorking || (Boolean(stagedPhotoFile) && Boolean(dayWinnerSide)))) ||
@@ -973,7 +984,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 : selected === "teams" || selected === "recheck"
                   ? "Erstelle ausgeglichene Teams, passe sie bei Bedarf an und bestätige die Aufstellung."
                   : selected === "timer"
-                    ? "Stelle die Spielzeit ein und tippe anschließend auf „Training starten“."
+                    ? "Die Spieluhr ist optional. Ohne Uhr direkt starten oder die Spielzeit einstellen."
                     : selected === "live"
                       ? "Das Training läuft. Wenn ihr fertig seid, beende die Einheit mit dem Button unten."
                       : selected === "finish"
@@ -1002,7 +1013,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             : selected === "finish" ? (teamChangedChoice === "yes" ? "Teams prüfen →" : "Weiter zum Foto →")
             : selected === "recheck" ? "Teams passen · Foto auswählen →"
             : selected === "photo" && !isTournamentMode ? "Weiter zum Ergebnis →"
-            : selected === "timer" ? "Training läuft · weiter →"
+            : selected === "timer" ? "Ohne Spieluhr starten →"
             : selected === "settings" ? "Passt · Anwesenheit prüfen →"
             : selected === "mode" && !isTournamentMode
             ? (configuringTournament ? (setupWizardRef.current?.label ?? "Turnier einrichten →") : "Normal spielen · Teams erstellen →")
@@ -1060,6 +1071,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   return;
                 }
                 if (selected === "timer") {
+                  setClockStarted(true);
+                  try { window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
                   setPilotStep("live");
                   setWizardManualSelection(true);
                   return;
