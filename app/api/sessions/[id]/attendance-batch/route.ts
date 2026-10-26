@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canManageClub } from "@/lib/auth/access";
 import { requireSessionAccess } from "@/lib/session-detail/access";
+import { hasGuidedTrainingAssistant } from "@/lib/training-wizard-pilots";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// Isolated to the 1. FC Strikr 2026 training wizard. Other clubs keep their
-// established attendance endpoint and behavior.
-const PILOT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
 
 function fail(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -19,7 +17,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
   const access = await requireSessionAccess(sessionId);
   if ("error" in access) return fail(access.error ?? "Kein Zugriff.", access.status);
-  if (access.clubId !== PILOT_CLUB_ID || access.session.type === "event") return fail("Nicht verfügbar.", 403);
+  if (!hasGuidedTrainingAssistant(access.clubId) || access.session.type === "event") return fail("Nicht verfügbar.", 403);
   if (!canManageClub({ isPowerUser: access.isPowerUser, role: access.membership?.role }) && !access.canLeadTraining) {
     return fail("Keine Berechtigung zur Trainingsleitung.", 403);
   }
