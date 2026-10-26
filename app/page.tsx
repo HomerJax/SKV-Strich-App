@@ -136,7 +136,7 @@ const productBlocks = [
   },
 ];
 
-function StoreButtons() {
+function StoreButtons({ isEnglish }: { isEnglish: boolean }) {
   return (
     <div className="flex w-full flex-wrap items-center justify-center gap-3">
       <a
@@ -144,12 +144,12 @@ function StoreButtons() {
         target="_blank"
         rel="noreferrer"
         data-analytics-event="landing_app_store_click"
-        aria-label="strikr im App Store laden"
+        aria-label={isEnglish ? "Download strikr on the App Store" : "strikr im App Store laden"}
         className="flex h-14 w-[168px] items-center justify-center transition hover:opacity-85"
       >
         <img
-          src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/de-de?size=250x83"
-          alt="Im App Store laden"
+          src={`https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/${isEnglish ? "en-us" : "de-de"}?size=250x83`}
+          alt={isEnglish ? "Download on the App Store" : "Im App Store laden"}
           className="max-h-12 max-w-[160px] object-contain"
           style={{ width: "160px", height: "48px" }}
         />
@@ -159,12 +159,12 @@ function StoreButtons() {
         target="_blank"
         rel="noreferrer"
         data-analytics-event="landing_play_store_click"
-        aria-label="strikr bei Google Play laden"
+        aria-label={isEnglish ? "Get strikr on Google Play" : "strikr bei Google Play laden"}
         className="flex h-14 w-[168px] items-center justify-center overflow-hidden transition hover:opacity-85"
       >
         <img
-          src="https://play.google.com/intl/en_us/badges/static/images/badges/de_badge_web_generic.png"
-          alt="Jetzt bei Google Play"
+          src={`https://play.google.com/intl/en_us/badges/static/images/badges/${isEnglish ? "en" : "de"}_badge_web_generic.png`}
+          alt={isEnglish ? "Get it on Google Play" : "Jetzt bei Google Play"}
           className="object-contain"
           style={{ width: "168px", height: "56px", objectFit: "contain" }}
         />
@@ -173,7 +173,7 @@ function StoreButtons() {
   );
 }
 
-function ProductStage() {
+function ProductStage({ isEnglish }: { isEnglish: boolean }) {
   return (
     <div className="relative mx-auto mt-12 max-w-5xl">
       <div className="pointer-events-none absolute -left-16 top-12 h-64 w-64 rounded-full bg-cyan-400/25 blur-3xl strikr-glow" />
@@ -186,14 +186,14 @@ function ProductStage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300">
-                  Donnerstag · 19:00
+                  {isEnglish ? "Thursday · 19:00" : "Donnerstag · 19:00"}
                 </div>
                 <div className="mt-1 text-xl font-black tracking-tight text-white">
-                  Training · 18 Spieler
+                  {isEnglish ? "Training · 18 players" : "Training · 18 Spieler"}
                 </div>
               </div>
               <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[10px] font-black text-emerald-200">
-                BEREIT
+                {isEnglish ? "READY" : "BEREIT"}
               </div>
             </div>
 
@@ -222,10 +222,10 @@ function ProductStage() {
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <div className="rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-black">
-                Faire Teams erstellt
+                {isEnglish ? "Balanced teams created" : "Faire Teams erstellt"}
               </div>
               <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-white/60">
-                Los geht&apos;s →
+                {isEnglish ? "Let’s play →" : "Los geht&apos;s →"}
               </div>
             </div>
           </div>
@@ -234,16 +234,16 @@ function ProductStage() {
             <div className="relative overflow-hidden rounded-[27px] border border-white/10 bg-gradient-to-br from-[#0b111c] to-[#111827] p-5 text-left">
               <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-cyan-400/25 blur-2xl" />
               <div className="relative text-[10px] font-black uppercase tracking-[0.18em] text-white/40">
-                Ergebnis gespeichert
+                {isEnglish ? "Result saved" : "Ergebnis gespeichert"}
               </div>
               <div className="relative mt-2 flex items-end justify-between gap-4">
                 <div className="text-5xl font-black tracking-[-0.08em] text-white">5:3</div>
                 <div className="rounded-full bg-cyan-300 px-3 py-1 text-[10px] font-black text-slate-950">
-                  +3 PUNKTE
+                  {isEnglish ? "+3 POINTS" : "+3 PUNKTE"}
                 </div>
               </div>
               <div className="relative mt-4 text-xs font-semibold text-white/55">
-                Tabelle & Stats aktualisiert
+                {isEnglish ? "Standings and stats updated" : "Tabelle & Stats aktualisiert"}
               </div>
             </div>
 
@@ -252,26 +252,26 @@ function ProductStage() {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(251,191,36,0.18),transparent_48%)]" />
                 <Image
                   src="/badges/hero/gold.webp"
-                  alt="Gold Trophäe"
+                  alt={isEnglish ? "Gold trophy" : "Gold Trophäe"}
                   width={170}
                   height={170}
                   className="relative mx-auto h-24 w-24 object-contain sm:h-28 sm:w-28"
                 />
                 <div className="relative -mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-200">
-                  Trophäe verdient
+                  {isEnglish ? "Trophy earned" : "Trophäe verdient"}
                 </div>
               </div>
 
               <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-4 text-left">
                 <div className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-200/70">
-                  Karriere
+                  {isEnglish ? "Career" : "Karriere"}
                 </div>
                 <div className="mt-2 text-2xl font-black text-white">67%</div>
-                <div className="text-xs font-semibold text-white/45">Siegquote</div>
+                <div className="text-xs font-semibold text-white/45">{isEnglish ? "Win rate" : "Siegquote"}</div>
                 <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-violet-400" />
                 </div>
-                <div className="mt-2 text-[10px] font-bold text-white/45">12 Siege · 18 Einsätze</div>
+                <div className="mt-2 text-[10px] font-bold text-white/45">{isEnglish ? "12 wins · 18 appearances" : "12 Siege · 18 Einsätze"}</div>
               </div>
             </div>
           </div>
@@ -488,7 +488,7 @@ export default async function LandingPage({
             </a>
           </div>
 
-          <ProductStage />
+          <ProductStage isEnglish={isEnglish} />
         </div>
       </section>
 
@@ -772,7 +772,7 @@ export default async function LandingPage({
             </div>
             <div className="rounded-[27px] bg-slate-950 p-5 text-white">
               <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{isEnglish ? "strikr on your phone" : "strikr aufs Smartphone"}</div>
-              <div className="mt-3"><StoreButtons /></div>
+              <div className="mt-3"><StoreButtons isEnglish={isEnglish} /></div>
               <div className="mt-3 text-center text-[11px] font-semibold text-white/35">iOS · Android · Web</div>
             </div>
           </div>
@@ -787,8 +787,8 @@ export default async function LandingPage({
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             <Link href="/login" className="hover:text-white">Login</Link>
-            <Link href="/impressum" className="hover:text-white">Impressum</Link>
-            <Link href="/datenschutz" className="hover:text-white">Datenschutz</Link>
+            <Link href="/impressum" className="hover:text-white">{isEnglish ? "Imprint" : "Impressum"}</Link>
+            <Link href="/datenschutz" className="hover:text-white">{isEnglish ? "Privacy policy" : "Datenschutz"}</Link>
             <Link href="/support" className="hover:text-white">Support</Link>
             <Link href={isEnglish ? "/en/faire-fussballteams" : "/faire-fussballteams"} className="hover:text-white">{isEnglish ? "Balanced football teams" : "Faire Fußballteams"}</Link>
             <Link href={isEnglish ? "/en/training-organisieren" : "/training-organisieren"} className="hover:text-white">{isEnglish ? "Training organization" : "Training organisieren"}</Link>
