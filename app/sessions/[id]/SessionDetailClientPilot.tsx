@@ -112,6 +112,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [pilotPhotoSkipped, setPilotPhotoSkipped] = useState(false);
   const [closeCheckReviewed, setCloseCheckReviewed] = useState(false);
   const [closeCheckReady, setCloseCheckReady] = useState(false);
+  const [pilotResultSaveWorking, setPilotResultSaveWorking] = useState(false);
+  const [pilotFinalizingResult, setPilotFinalizingResult] = useState(false);
   const [winnerReviewed, setWinnerReviewed] = useState(false);
   const [pilotStep, setPilotStep] = useState<TrainingWizardStepKey | null>(null);
   const [pilotEntryView, setPilotEntryView] = useState<"overview" | "choose" | "data">("overview");
@@ -347,6 +349,20 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         photoUploadLock.current = false;
       });
   }, [hasResult, dayWinnerSide, stagedPhotoFile, saving, photoBusy]);
+
+  // Persisted result is the last normal-training step. Finish without a
+  // second confirmation or follow-up after any selected photo is secured.
+  useEffect(() => {
+    if (!pilotFinalizingResult || !hasResult || saving || photoBusy || photoUploadWorking) return;
+    if (stagedPhotoFile && dayWinnerSide) return; // Waiting for photo or recoverable upload error.
+
+    setPilotFinished(true);
+    try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); }
+    catch { /* Optional storage. */ }
+    setPilotFinalizingResult(false);
+    router.push("/sessions");
+  }, [pilotFinalizingResult, hasResult, saving, photoBusy, photoUploadWorking,
+    stagedPhotoFile, dayWinnerSide, router, props.initialClubId, props.sessionId]);
 
   useEffect(() => {
     if (hasResult && stagedPhotoFile && !dayWinnerSide) {
@@ -694,6 +710,35 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     );
   }
 
+  async function savePilotFinalResult() {
+    if (pilotResultSaveWorking || pilotFinalizingResult || saving || !closeCheckReviewed || !closeCheckReady) return;
+    setPilotResultSaveWorking(true);
+    setPhotoUploadWarning("");
+    try {
+      const saved = await saveResult({ skipFirstConfirmation: true });
+      if (saved) setPilotFinalizingResult(true);
+    } finally {
+      setPilotResultSaveWorking(false);
+    }
+  }
+
+  async function retryPilotPhotoUpload() {
+    if (!stagedPhotoFile || !hasResult || photoUploadWorking || photoBusy || photoUploadLock.current) return;
+    photoUploadLock.current = true;
+    setPhotoUploadWorking(true);
+    setPhotoUploadWarning("");
+    try {
+      const saved = await stagedPhotoUploader.current(stagedPhotoFile);
+      if (saved) setStagedPhotoFile(null);
+      else setPhotoUploadWarning("Siegerfoto konnte nicht gespeichert werden.");
+    } catch {
+      setPhotoUploadWarning("Siegerfoto konnte nicht gespeichert werden.");
+    } finally {
+      setPhotoUploadWorking(false);
+      photoUploadLock.current = false;
+    }
+  }
+
   function renderResult() {
     if (!allowResult) return null;
 
@@ -701,13 +746,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       <div ref={resultRef}>
         <SessionScoreCard
           results={results}
-          saving={saving}
+          saving={saving || (trainingWizardOpen && !isTournamentMode && (pilotResultSaveWorking || pilotFinalizingResult))}
           collapsed={resultCollapsed}
           goalsA={goalsA}
           goalsB={goalsB}
           onGoalsAChange={(value) => setGoalsA(normalizeGoalValue(value))}
           onGoalsBChange={(value) => setGoalsB(normalizeGoalValue(value))}
-          onSaveResult={saveResult}
+          onSaveResult={trainingWizardOpen && !isTournamentMode ? () => { void savePilotFinalResult(); } : () => { void saveResult(); }}
           onUpdateResult={(gameNo, nextA, nextB) => {
             void updateResult(gameNo, nextA, nextB);
           }}
@@ -916,13 +961,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 { key: "recheck" as const, title: "Teams korrigieren", done: teamsComplete && teamsConfirmed, summary: "Änderungen prüfen und bestätigen" },
               ] : []),
               { key: "photo" as const, title: "Foto auswählen", optional: true, done: hasWinnerPhoto || pilotPhotoSkipped || stagedPhotoFile !== null || hasResult, summary: "Optional: Siegerfoto vorbereiten" },
-              { key: "result" as const, title: "Ergebnis speichern", done: hasResult, summary: "Spielstand eintragen und speichern" },
+              { key: "check" as const, title: "Abschlussfragen", done: closeCheckReviewed, summary: "Anwesenheit, Pünktlichkeit & Vorfälle" },
+              { key: "result" as const, title: "Ergebnis speichern", done: hasResult, summary: "Letzter Schritt: speichern und fertig" },
             ] : [
               { key: "result" as const, title: "Turnier durchführen", done: Boolean(session.tournament_completed_at), summary: session.tournament_completed_at ? "Turnier abgeschlossen" : "Spielplan & Ergebnisse" },
               { key: "photo" as const, title: "Siegerfoto", optional: true, done: hasWinnerPhoto || pilotPhotoSkipped, summary: hasWinnerPhoto ? "Foto vorhanden" : pilotPhotoSkipped ? "Ohne Foto fortgesetzt" : "Optional" },
               { key: "winner" as const, title: "Siegercard", done: winnerReviewed, summary: "Turniersieg ansehen" },
+              { key: "check" as const, title: "Abschlusscheck", done: closeCheckReviewed, summary: "Anwesenheit, Pünktlichkeit & Vorfälle" },
             ]),
-            { key: "check" as const, title: "Abschlusscheck", done: closeCheckReviewed, summary: "Anwesenheit, Pünktlichkeit & Vorfälle" },
           ];
           const current = steps.find(s => !s.done)?.key ?? steps[steps.length - 1].key;
           const rememberedIndex = steps.findIndex(s => s.key === pilotStep);
@@ -1125,7 +1171,18 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               ? <SessionTournamentCard sessionId={props.sessionId} enabled={true} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={false} onActivated={() => router.refresh()} tournamentWizardControl={tournamentWizardRef} onTournamentWizardChange={(stage, ready) => { setTournamentWizardStage(stage); setTournamentTeamsReady(ready); }} onFinalized={() => { setPilotStep("photo"); router.refresh(); }} />
               : <div className="space-y-3">
                 {photoUploadWorking ? <p role="status" className="rounded-xl bg-cyan-50 p-3 text-sm font-bold text-cyan-900">Siegerfoto wird gespeichert …</p> : null}
-                {photoUploadWarning ? <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{photoUploadWarning} <button type="button" onClick={() => setStagedPhotoFile(null)} className="font-bold underline">Ohne Foto weiter</button></p> : null}
+                {photoUploadWarning ? <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">
+                  {photoUploadWarning}
+                  {hasResult && stagedPhotoFile && dayWinnerSide ? (
+                    <span className="mt-2 flex flex-wrap gap-3">
+                      <button type="button" onClick={() => { void retryPilotPhotoUpload(); }} className="font-bold underline">Foto erneut hochladen</button>
+                      <button type="button" onClick={() => setStagedPhotoFile(null)} className="font-bold underline">Ohne Foto abschließen</button>
+                    </span>
+                  ) : null}
+                </p> : null}
+                {pilotFinalizingResult && !photoUploadWarning ? <p role="status" className="rounded-xl bg-teal-50 p-3 text-sm font-bold text-teal-900">
+                  {stagedPhotoFile && dayWinnerSide ? "Ergebnis gespeichert. Siegerfoto wird gesichert …" : "Ergebnis gespeichert. Training wird abgeschlossen …"}
+                </p> : null}
                 {renderResult()}
               </div>;
             if (key === "photo") return isTournamentMode && session.tournament_completed_at
