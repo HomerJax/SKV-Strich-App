@@ -11,7 +11,7 @@ type TimerResponse = {
   usesOverride?: boolean;
 };
 
-export default function SessionGameTimerLoader({ sessionId }: { sessionId: number }) {
+export default function SessionGameTimerLoader({ sessionId, onStarted, startLabel }: { sessionId: number; onStarted?: () => void; startLabel?: string }) {
   const [data, setData] = useState<TimerResponse | null>(null);
 
   useEffect(() => {
@@ -56,6 +56,8 @@ export default function SessionGameTimerLoader({ sessionId }: { sessionId: numbe
       initialSettings={data.settings}
       clubDefaultSettings={data.clubDefaultSettings}
       initialUsesOverride={data.usesOverride === true}
+      onStarted={onStarted}
+      startLabel={startLabel}
     />
   );
 }
