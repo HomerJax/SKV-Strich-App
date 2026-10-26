@@ -17,6 +17,9 @@ function sector(start: number, end: number) {
   return `M 160 160 L ${first.x} ${first.y} A 140 140 0 ${sweep > 180 ? 1 : 0} 1 ${last.x} ${last.y} Z`;
 }
 
+// Longer spin with a slow, clearly visible finish before showing the result.
+const SPIN_DURATION_MS = 7200;
+
 type WheelResponse = {
   outcome?: string | null;
   label?: string | null;
@@ -117,13 +120,13 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
       const target = (360 - visibleSegmentMidpoint(nextSegments, data.outcome)) % 360;
       setRotation((prev) => {
         const current = ((prev % 360) + 360) % 360;
-        return prev + 6 * 360 + ((target - current + 360) % 360);
+        return prev + 10 * 360 + ((target - current + 360) % 360);
       });
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => {
         setReveal(true);
         setShowResultPopup(true);
-      }, 3200);
+      }, SPIN_DURATION_MS);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Das Rad konnte nicht gedreht werden.");
     } finally {
@@ -189,7 +192,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
               className="block w-full rounded-full"
               style={{
                 transform: `rotate(${rotation}deg)`,
-                transition: animate ? "transform 3200ms cubic-bezier(.13,.83,.17,1)" : "none",
+                transition: animate ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(.09,.7,.16,1)` : "none",
               }}>
               {segments.map((segment, index) => {
                 // The sectors intentionally have identical visual sizes.
