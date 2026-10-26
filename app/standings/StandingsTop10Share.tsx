@@ -11,6 +11,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 
 const TABLE_ID = "export-standings";
 const PORTAL_ID = "standings-top10-share-portal";
+const PILOT_STORY_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
 
 async function fileToBase64(file: File) {
   const buffer = await file.arrayBuffer();
@@ -25,10 +26,12 @@ async function fileToBase64(file: File) {
   return btoa(binary);
 }
 
-export default function StandingsTop10Share() {
+export default function StandingsTop10Share({ clubId }: { clubId: string }) {
   const { locale, t } = useI18n();
   const searchParams = useSearchParams();
   const season = searchParams.get("season");
+  const canUseStory = clubId === PILOT_STORY_CLUB_ID;
+  const [shareFormat, setShareFormat] = useState<"post" | "story">("post");
   const [preparedFile, setPreparedFile] = useState<File | null>(null);
   const [preparing, setPreparing] = useState(true);
   const [sharing, setSharing] = useState(false);
@@ -81,10 +84,11 @@ export default function StandingsTop10Share() {
 
         const params = new URLSearchParams();
         if (season) params.set("season", season);
+        if (canUseStory && shareFormat === "story") params.set("format", "story");
         params.set("lang", locale);
         params.set("ts", String(Date.now()));
         const imageUrl = `/api/share/standings/image?${params.toString()}`;
-        const file = await fetchImageAsFile(imageUrl, "strikr-top-10.png");
+        const file = await fetchImageAsFile(imageUrl, shareFormat === "story" ? "strikr-top10-story.png" : "strikr-top-10.png");
 
         if (cancelled) return;
         setPreparedFile(file);
@@ -106,7 +110,7 @@ export default function StandingsTop10Share() {
     return () => {
       cancelled = true;
     };
-  }, [season, locale, t]);
+  }, [season, locale, t, shareFormat, canUseStory]);
 
   async function shareNative(file: File) {
     if (!Capacitor.isPluginAvailable("Share") || !Capacitor.isPluginAvailable("Filesystem")) {
@@ -114,7 +118,7 @@ export default function StandingsTop10Share() {
     }
 
     const data = await fileToBase64(file);
-    const path = `share/${Date.now()}-strikr-top-10.png`;
+    const path = `share/${Date.now()}-strikr-top-10-${shareFormat}.png`;
     const written = await Filesystem.writeFile({
       path,
       data,
@@ -199,6 +203,16 @@ export default function StandingsTop10Share() {
           </div>
         </div>
 
+        {canUseStory ? <div role="group" aria-label="Format für Instagram wählen" className="flex gap-1 rounded-xl bg-slate-100 p-1">
+          {(["post", "story"] as const).map(format => (
+            <button key={format} type="button" onClick={() => setShareFormat(format)}
+              aria-pressed={shareFormat === format} disabled={sharing}
+              className={`min-h-10 rounded-lg px-4 text-xs font-black transition ${shareFormat === format
+                ? "bg-slate-950 text-white shadow" : "text-slate-600 hover:bg-white"}`}>
+              {format === "post" ? "Beitrag · 4:5" : "Story · 9:16"}
+            </button>
+          ))}
+        </div> : null}
         <button
           type="button"
           onClick={() => void handleShare()}

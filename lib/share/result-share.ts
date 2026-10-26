@@ -32,6 +32,7 @@ type ResultRow = {
 };
 
 export type ResultSharePayload = ResultShareData & {
+  clubId: string;
   locale: AppLocale;
   sessionId: number;
   clubName?: string | null;
@@ -284,6 +285,7 @@ export async function getResultShareData(
 
   return {
     sessionId: session.id,
+    clubId: session.club_id,
     locale,
     title: translate(locale, "resultShare.resultTitle"),
     subtitle:
@@ -329,7 +331,7 @@ export async function getTournamentShareData(sessionIdRaw: string, locale: AppLo
   if (club?.display_name) branding.clubName = club.display_name;
   if (clubLogoUrl) branding.clubCrestUrl = clubLogoUrl;
   return {
-    sessionId, locale, title: "TURNIERSIEGER", subtitle: "Turnier abgeschlossen",
+    sessionId, clubId: session.club_id, locale, title: "TURNIERSIEGER", subtitle: "Turnier abgeschlossen",
     date: session.date ? formatDate(session.date, locale) : "",
     goalsA: "1", goalsB: "0", teamAName: winnerTeam.name, teamBName: "",
     winnerLabel: winnerTeam.name,

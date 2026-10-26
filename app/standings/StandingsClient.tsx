@@ -323,6 +323,29 @@ export default function StandingsClient({
     return sortDirection === "asc" ? "↑" : "↓";
   }
 
+  async function handleShareTop10Story() {
+    if (initialClubId !== "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60") return;
+    try {
+      setSharingCardIndex(0);
+      setErr(null);
+      setMsg(null);
+      const params = new URLSearchParams({ format: "story", lang: locale, ts: String(Date.now()) });
+      if (selected) params.set("season", selected);
+      const response = await fetch(`/api/share/standings/image?${params}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Story-Export konnte nicht erstellt werden.");
+      const blob = await response.blob();
+      const result = await shareOrDownloadStandingsBlob(
+        blob, "strikr-top10-story", t("standings.shareTitle"), t("standings.shareText"),
+      );
+      setMsg(result === "shared" ? "Story-Bild geteilt." : "Story-Bild heruntergeladen.");
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setErr(getErrorMessage(error, "Story konnte nicht erstellt werden."));
+    } finally {
+      setSharingCardIndex(null);
+    }
+  }
+
   async function handleShareCard(card: RankingCard) {
     try {
       setSharingCardIndex(card.index);
@@ -567,6 +590,13 @@ export default function StandingsClient({
                           >
                             {sharingCardIndex === card.index ? t("standings.sharing") : isTopCard ? t("standings.shareTop10") : t("standings.shareRange", { range: title })}
                           </button>
+                          {initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && isTopCard ? (
+                            <button type="button" onClick={() => void handleShareTop10Story()}
+                              disabled={sharingCardIndex !== null}
+                              className="min-h-10 rounded-lg border border-teal-400 bg-teal-50 px-3 py-2 text-xs font-black text-teal-900 transition hover:bg-teal-100 disabled:opacity-50">
+                              Story · 9:16
+                            </button>
+                          ) : null}
                           <ExportButtons targetId={card.exportId} fileBaseName={card.fileBaseName} />
                         </div>
                       </div>

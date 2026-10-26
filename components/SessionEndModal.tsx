@@ -19,6 +19,7 @@ type SessionEndModalProps = {
   resultShareReady?: boolean;
   preparingResultShare?: boolean;
   resultShareMessage?: string | null;
+  pilotStoryEnabled?: boolean;
   mvpVotingEnabled?: boolean;
   showMvpVotingFollowup?: boolean;
 };
@@ -139,6 +140,7 @@ export default function SessionEndModal({
   resultShareReady = false,
   preparingResultShare = false,
   resultShareMessage = null,
+  pilotStoryEnabled = false,
   mvpVotingEnabled = false,
   showMvpVotingFollowup = false,
 }: SessionEndModalProps) {
@@ -151,6 +153,7 @@ export default function SessionEndModal({
   );
   const [preparingWinnerShare, setPreparingWinnerShare] = useState(false);
   const [winnerShareMessage, setWinnerShareMessage] = useState<string | null>(null);
+  const [shareFormat, setShareFormat] = useState<"post" | "story">("post");
 
   useEffect(() => {
     if (!open || typeof window === "undefined") {
@@ -174,10 +177,10 @@ export default function SessionEndModal({
         setPreparingWinnerShare(true);
         setWinnerShareMessage(null);
 
-        const imageUrl = `/api/share/result/${sessionId}/image?lang=${locale}&modal_prepare_ts=${Date.now()}`;
+        const imageUrl = `/api/share/result/${sessionId}/image?lang=${locale}${pilotStoryEnabled && shareFormat === "story" ? "&format=story" : ""}&modal_prepare_ts=${Date.now()}`;
         const file = await fetchImageAsFile(
           imageUrl,
-          `strikr-result-${sessionId}.png`
+          `strikr-result-${sessionId}-${pilotStoryEnabled && shareFormat === "story" ? "story" : "post"}.png`
         );
 
         if (cancelled) return;
@@ -205,13 +208,13 @@ export default function SessionEndModal({
     return () => {
       cancelled = true;
     };
-  }, [open, scoreA, scoreB, winnerPhotoUrl, t]);
+  }, [open, scoreA, scoreB, winnerPhotoUrl, locale, t, shareFormat, pilotStoryEnabled]);
 
   if (!open) return null;
 
   const headline = getHeadline(scoreA, scoreB, locale);
   const shareBusy = sharingSocial || preparingResultShare || preparingWinnerShare;
-  const shareReady = Boolean(preparedWinnerShareFile) || resultShareReady;
+  const shareReady = Boolean(preparedWinnerShareFile) || ((!pilotStoryEnabled || shareFormat === "post") && resultShareReady);
   const displayedShareMessage = winnerShareMessage ?? resultShareMessage;
 
   async function handleShareWinnerCard() {
@@ -375,6 +378,20 @@ export default function SessionEndModal({
                   {t("sessionEnd.shareWinnerHint")}
                 </div>
 
+                {pilotStoryEnabled ? (
+                  <div className="mt-4 rounded-xl bg-white p-1 ring-1 ring-slate-200">
+                    <div role="group" aria-label="Share-Format wählen" className="grid grid-cols-2 gap-1">
+                      {(["post", "story"] as const).map(format => (
+                        <button type="button" key={format} onClick={() => setShareFormat(format)}
+                          aria-pressed={shareFormat === format}
+                          className={`min-h-12 rounded-lg text-xs font-black transition ${shareFormat === format
+                            ? "bg-slate-950 text-white shadow" : "text-slate-600 hover:bg-slate-50"}`}>
+                          {format === "post" ? "Beitrag · 4:5" : "Story · 9:16"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="mt-4">
                   <Button
                     onClick={() => void handleShareWinnerCard()}
