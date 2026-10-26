@@ -292,6 +292,15 @@ export default async function PowerUserPage() {
           />
 
           <KpiCard
+            href="/power-user/growth"
+            label="Growth Funnel"
+            value="Neu"
+            description="Besuche, erfolgreiche Registrierungen, Vereinsgründungen und Trainingsabschlüsse in einem Funnel."
+            icon={<BarChart3 className="h-6 w-6" strokeWidth={2.1} />}
+            detailsLabel={detailsLabel}
+          />
+
+          <KpiCard
             href="/power-user/pilot-feedback"
             label="Pilotteams Feedback"
             value="Antworten"

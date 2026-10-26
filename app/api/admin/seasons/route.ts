@@ -6,6 +6,7 @@ import { canManageClub } from "@/lib/auth/access";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
 
 type SeasonRow = {
   id: number;
@@ -165,9 +166,11 @@ export async function POST(request: Request) {
     const datesToCreate = generated.dates.filter((currentDate) => !existingDates.has(currentDate));
     const skippedSessionsCount = generated.dates.length - datesToCreate.length;
     if (datesToCreate.length > 0) {
+      const priorTrainingResult = await supabase.from("sessions").select("id").eq("club_id", clubId).or("type.eq.training,type.is.null").limit(1);
       const rowsToInsert = datesToCreate.map((date) => ({ date, club_id: clubId, season_id: createdSeason.id, notes: null as string | null }));
       const { error: sessionInsertError } = await supabase.from("sessions").insert(rowsToInsert);
       if (sessionInsertError) return withMessage(request.url, redirectTo, { error: sessionInsertError.message || t("seasonApi.seriesCreateFailed") });
+      if (!priorTrainingResult.error && !priorTrainingResult.data?.length) await recordGrowthEvent("first_training_created", clubId);
     }
     revalidateSeasonRelatedPages();
     return withMessage(request.url, redirectTo, { message: buildCreateSuccessMessage(createdSeason.name, datesToCreate.length, skippedSessionsCount, t) });

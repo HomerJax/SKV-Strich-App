@@ -19,6 +19,7 @@ import {
 } from "@/lib/session-rsvp-deadline";
 import { getRequiredRsvpReasonError } from "@/lib/rsvp-reason";
 import { getServerI18n } from "@/lib/i18n/server";
+import { recordFirstTrainingCompleted } from "@/lib/analytics/growth-funnel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -172,6 +173,19 @@ export async function POST(
   try {
     const formData = await request.formData();
     const intent = String(formData.get("intent") ?? "").trim();
+
+    if (intent === "complete_training") {
+      if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) {
+        return fail("Keine Berechtigung zur Trainingsleitung.", 403);
+      }
+      if (sessionType !== "training") return fail("Nur Trainings können abgeschlossen werden.", 400);
+      if (session.session_mode === "tournament" && !session.tournament_completed_at) {
+        return fail("Das Turnier muss zuerst abgeschlossen werden.", 409);
+      }
+
+      await recordFirstTrainingCompleted(clubId);
+      return ok({ message: "Training abgeschlossen." });
+    }
 
     if (intent === "toggle_presence") {
       if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.", 403);

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthContext } from "@/lib/auth/context";
 import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
+import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
 
 function getStringValue(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -168,6 +169,8 @@ export async function createClubAction(formData: FormData) {
   if (playerError) {
     redirect("/club-setup?error=player-link-failed");
   }
+
+  await recordGrowthEvent("club_created", clubId);
 
   const cookieStore = await cookies();
 

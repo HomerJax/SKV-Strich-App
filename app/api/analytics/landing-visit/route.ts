@@ -21,6 +21,11 @@ function cleanText(value: unknown, maxLength = 500) {
   return trimmed.slice(0, maxLength);
 }
 
+function cleanCampaignToken(value: unknown, maxLength: number) {
+  const clean = cleanText(value, maxLength)?.replace(/\s+/g, "-");
+  return clean && /^[a-zA-Z0-9._-]+$/.test(clean) ? clean : null;
+}
+
 function getReferrerHost(referrer: string | null) {
   if (!referrer) return null;
 
@@ -30,6 +35,13 @@ function getReferrerHost(referrer: string | null) {
     return null;
   }
 }
+
+const TRACKED_PATHS = new Set([
+  "/", "/en", "/demo", "/pro", "/faire-fussballteams",
+  "/training-organisieren", "/mannschaftskasse-app",
+  "/en/faire-fussballteams", "/en/training-organisieren",
+  "/en/mannschaftskasse-app",
+]);
 
 function getDeviceType(userAgent: string) {
   const ua = userAgent.toLowerCase();
@@ -56,7 +68,9 @@ export async function POST(request: NextRequest) {
   try {
     const payload = (await request.json()) as Payload;
 
-    const path = cleanText(payload.path, 300) ?? "/";
+    const submittedPath = cleanText(payload.path, 300) ?? "/";
+    const path = TRACKED_PATHS.has(submittedPath) ? submittedPath : null;
+    if (!path) return NextResponse.json({ ok: true });
     const referrer = cleanText(payload.referrer, 800);
     const userAgent = request.headers.get("user-agent") ?? "";
 
@@ -69,14 +83,15 @@ export async function POST(request: NextRequest) {
 
     await admin.from("landing_page_visits").insert({
       path,
-      referrer,
+      // Store only the referrer host; query strings can contain personal data.
+      referrer: null,
       referrer_host: getReferrerHost(referrer),
 
-      utm_source: cleanText(payload.utm_source, 120),
-      utm_medium: cleanText(payload.utm_medium, 120),
-      utm_campaign: cleanText(payload.utm_campaign, 160),
-      utm_content: cleanText(payload.utm_content, 160),
-      utm_term: cleanText(payload.utm_term, 160),
+      utm_source: cleanCampaignToken(payload.utm_source, 120),
+      utm_medium: cleanCampaignToken(payload.utm_medium, 120),
+      utm_campaign: cleanCampaignToken(payload.utm_campaign, 160),
+      utm_content: cleanCampaignToken(payload.utm_content, 160),
+      utm_term: cleanCampaignToken(payload.utm_term, 160),
 
       country_code: cleanText(countryCode, 12),
       device_type: getDeviceType(userAgent),

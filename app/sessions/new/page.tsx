@@ -9,6 +9,7 @@ import NewSessionForm from "./NewSessionForm";
 import { getServerI18n } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/config";
+import { recordFirstTrainingCreated, recordGrowthEvent } from "@/lib/analytics/growth-funnel";
 
 type NewSessionPageProps = {
   searchParams?: Promise<{
@@ -297,6 +298,10 @@ export default async function NewSessionPage({
           );
         }
 
+        if (sessionType === "training") {
+          await recordFirstTrainingCreated(actionClubId, Number(created.id));
+        }
+
         try {
           const label = getSessionTypeLabel(sessionType, actionLocale);
           await sendClubPush({
@@ -404,6 +409,15 @@ export default async function NewSessionPage({
         );
       }
 
+      const existingTrainingResult = sessionType === "training"
+        ? await actionSupabase
+            .from("sessions")
+            .select("id")
+            .eq("club_id", actionClubId)
+            .or("type.eq.training,type.is.null")
+            .limit(1)
+        : null;
+
       const existingDates = new Set(
         (((existingDatesResult.data as { date: string }[] | null) ?? []).map(
           (row) => row.date
@@ -442,6 +456,10 @@ export default async function NewSessionPage({
             insertError.message || actionT("newSession.seriesCreateFailed")
           )}`
         );
+      }
+
+      if (sessionType === "training" && !existingTrainingResult?.error && !existingTrainingResult?.data?.length) {
+        await recordGrowthEvent("first_training_created", actionClubId);
       }
 
       try {
