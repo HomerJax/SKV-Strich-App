@@ -825,7 +825,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   <p className="mt-1 text-sm leading-6 text-slate-600">
                     {key === "timer"
                       ? "Die Spieluhr ist freiwillig. Du kannst jederzeit auch ohne Uhr weitermachen."
-                      : "Ihr könnt ganz normal spielen – mit oder ohne Uhr. Wenn ihr fertig seid, tippe unten auf „Training beenden“.""}
+                      : "Ihr könnt ganz normal spielen – mit oder ohne Uhr. Wenn ihr fertig seid, tippe unten auf „Training beenden“."}
                   </p>
                 </div>
                 {key === "timer" ? (
