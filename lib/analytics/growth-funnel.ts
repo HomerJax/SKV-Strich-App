@@ -54,11 +54,12 @@ export async function recordFirstTrainingCompleted(clubId: string) {
     const { data: clubMilestone, error } = await admin
       .from("growth_funnel_events")
       .select("id")
-      .eq("event_name", "club_created")
       .eq("club_id", clubId)
+      .in("event_name", ["club_created", "first_training_created"])
+      .limit(1)
       .maybeSingle();
-    // Only clubs created after tracking went live have a club_created event.
-    // This prevents old clubs' historical sessions from being counted as new conversions.
+    // Only newly created clubs or clubs with a provably first training after rollout
+    // can advance; legacy sessions are never backfilled as new conversions.
     if (!error && clubMilestone) {
       await recordGrowthEvent("first_training_completed", clubId);
     }
