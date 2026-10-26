@@ -1650,9 +1650,10 @@ ${sessionUrl}`;
   async function handleWinnerPhotoUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
+    if (file) await uploadWinnerPhotoFile(file);
+  }
 
-    if (!file) return;
-
+  async function uploadWinnerPhotoFile(file: File): Promise<boolean> {
     if (!allowWinnerPhoto && !tournamentPhotoReady) {
       setErr(t("sessionHook.noWinnerPhotoEvent"));
       return;
@@ -1723,6 +1724,7 @@ ${sessionUrl}`;
             : "";
 
         setMsg(t("sessionHook.photoSaved", { hint: orientationHint }));
+        return true;
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, t("sessionHook.photoUploadFailed")));
@@ -1730,6 +1732,7 @@ ${sessionUrl}`;
       setPhotoBusy(false);
       restoreScroll();
     }
+    return false;
   }
 
   async function handleWinnerPhotoDelete() {
@@ -1909,6 +1912,7 @@ ${sessionUrl}`;
     updateResult,
     deleteResult,
     handleWinnerPhotoUpload,
+    uploadWinnerPhotoFile,
     handleWinnerPhotoDelete,
   };
 }
