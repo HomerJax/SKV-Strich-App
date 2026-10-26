@@ -21,6 +21,7 @@ type Props = {
   onNext: () => void;
   nextDisabled: boolean;
   nextLabel: string;
+  hideNext?: boolean;
   helperText?: string | null;
   beforeContent?: ReactNode;
   children: ReactNode;
@@ -31,7 +32,7 @@ type Props = {
 
 export default function TrainingSessionWizard({
   steps, selectedIndex, completed, onSelect, onBack, onNext,
-  nextDisabled, nextLabel, helperText, beforeContent, children,
+  nextDisabled, nextLabel, hideNext = false, helperText, beforeContent, children,
   fullscreen = false, onClose, overlayContent,
 }: Props) {
   const [portalReady, setPortalReady] = useState(false);
@@ -120,14 +121,14 @@ export default function TrainingSessionWizard({
               ← Zurück
             </button>
           ) : null}
-          <button
+          {!hideNext ? <button
             type="button"
             disabled={nextDisabled}
             onClick={onNext}
             className="min-h-14 min-w-0 flex-1 rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 shadow-sm transition hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-teal-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
           >
             {nextLabel}
-          </button>
+          </button> : null}
         </div>
       </footer>
     </section>
