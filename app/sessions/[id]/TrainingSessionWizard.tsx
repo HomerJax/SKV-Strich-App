@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 
 export type TrainingWizardStep = {
   key: string;
@@ -148,15 +149,13 @@ export default function TrainingSessionWizard({
       className="fixed inset-0 z-[9999] overflow-y-auto overscroll-contain bg-slate-50"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+      <header className="relative z-10 border-b border-slate-200 bg-white px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-xl font-black text-teal-300">
-              S
-            </span>
+            <Image src="/icon-light.png" width={42} height={42} alt="strikr Logo" className="h-10 w-10 rounded-xl object-contain" priority />
             <div>
-              <div className="text-xs font-extrabold uppercase tracking-[0.15em] text-teal-700">strikr</div>
-              <div className="text-sm font-black text-slate-950">Trainings-Wizard</div>
+              <div className="text-lg font-black tracking-[-0.045em] text-slate-950">strikr</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Trainings-Assistent</div>
             </div>
           </div>
           <button
