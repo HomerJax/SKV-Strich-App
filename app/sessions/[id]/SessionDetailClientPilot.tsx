@@ -26,6 +26,7 @@ import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
 import type { BalanceCategory } from "./session-ui";
 import { useSessionDetail } from "./useSessionDetail";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { hasGuidedTrainingAssistant } from "@/lib/training-wizard-pilots";
 
 type SessionDetailClientProps = {
   sessionId: number;
@@ -55,9 +56,6 @@ type SessionDetailClientProps = {
   initialIsPro?: boolean;
 };
 
-// Limited pilot: only SKV Rutesheim Ü32 & AH sees the animated team-balance reveal.
-// This id was verified against public.clubs in the connected production Supabase project.
-const TEAM_BALANCE_REVEAL_PILOT_CLUB_ID = "108590d9-0877-4787-90a5-4679615b3b76";
 
 type SectionKey = "attendance" | "teams" | "photo" | "result" | "mvp";
 type TrainingWizardStepKey = "settings" | "attendance" | "mode" | "teams" | "timer" | "live" | "finish" | "recheck" | "photo" | "result" | "winner" | "check";
@@ -389,7 +387,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   }
 
   const pilotAdmin = props.initialIsClubAdmin === true;
-  const enableBalanceReveal = props.initialClubId === TEAM_BALANCE_REVEAL_PILOT_CLUB_ID || props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
+  const enableBalanceReveal = hasGuidedTrainingAssistant(props.initialClubId);
   const playerPreview = !isAdmin || (pilotAdmin && pilotView === "player");
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";

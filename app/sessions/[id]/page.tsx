@@ -10,12 +10,11 @@ import SessionDetailClientPilot from "./SessionDetailClientPilot";
 import type { Player, SessionRow } from "./session-types";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
+import { hasGuidedTrainingAssistant, STRIKR_TRAINING_WIZARD_CLUB_ID } from "@/lib/training-wizard-pilots";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// Server-only pilot allowlist: 1. FC Strikr 2026 only. Other clubs retain the original session screen.
-const TRAINING_WIZARD_TEST_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
 
 export const metadata = {
   title: "Session in strikr",
@@ -238,12 +237,15 @@ export default async function SessionDetailPage({ params }: PageProps) {
     .filter((category) => category.is_active)
     .map((category) => ({ key: category.key, label: category.label, isStrong: category.is_strong }));
   const winnerPhotoUrl = winnerPhotoError ? null : winnerPhotoData?.signedUrl ?? null;
-  const TrainingDetailComponent =
-    clubId === TRAINING_WIZARD_TEST_CLUB_ID ? SessionDetailClientPilot : SessionDetailClient;
+  // Keep the established strikr pilot behavior, but enable the new wizard
+  // for training sessions only at the two newly invited pilot clubs.
+  const useGuidedTrainingAssistant = clubId === STRIKR_TRAINING_WIZARD_CLUB_ID ||
+    (!isEvent && hasGuidedTrainingAssistant(clubId));
+  const TrainingDetailComponent = useGuidedTrainingAssistant ? SessionDetailClientPilot : SessionDetailClient;
 
   return (
     <HomePullToRefresh>
-      {(isPowerUser || isAdminRole(membership.role) || canLeadTraining) && !(clubId === TRAINING_WIZARD_TEST_CLUB_ID && session.type === "training") && (
+      {(isPowerUser || isAdminRole(membership.role) || canLeadTraining) && !(useGuidedTrainingAssistant && session.type === "training") && (
         <div className="mx-auto flex max-w-5xl flex-wrap gap-2 px-4 pt-3">
           <Link href={`/sessions/${sessionId}/attendance-review`}
             className="inline-flex rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900 ring-1 ring-amber-200">
