@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import TournamentWinnerCard from "./TournamentWinnerCard";
 import SessionHeaderCard from "./SessionHeaderCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
@@ -177,6 +178,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const setupWizardRef = useRef<{ next: () => void; ready: boolean; label: string } | null>(null);
   const [setupWizardReady, setSetupWizardReady] = useState(false);
   const [configuringTournament, setConfiguringTournament] = useState(false);
+  const [showProInfo, setShowProInfo] = useState(false);
   const {
     router,
     resultRef,
@@ -298,7 +300,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   }
 
   const pilotAdmin = props.initialIsClubAdmin === true;
-  const enableBalanceReveal = props.initialClubId === TEAM_BALANCE_REVEAL_PILOT_CLUB_ID;
+  const enableBalanceReveal = props.initialClubId === TEAM_BALANCE_REVEAL_PILOT_CLUB_ID || props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
   const playerPreview = !isAdmin || (pilotAdmin && pilotView === "player");
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";
@@ -781,7 +783,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                       Turnier einrichten →
                     </button>
                   )
-                ) : <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3"><div className="text-sm font-black text-violet-900">🔒 Turniermodus mit PRO</div><p className="mt-1 text-xs text-violet-800">Free enthält ein Spiel pro Training. Der Turniermodus mit mehreren Spielen ist mit PRO verfügbar.</p><a href="/pro" className="mt-2 inline-flex text-xs font-bold text-violet-900 underline">PRO-Funktionen ansehen →</a></div>) : null}
+                ) : <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3"><div className="text-sm font-black text-violet-900">🔒 Turniermodus mit PRO</div><p className="mt-1 text-xs text-violet-800">Free enthält ein Spiel pro Training. Der Turniermodus mit mehreren Spielen ist mit PRO verfügbar.</p><button type="button" onClick={() => setShowProInfo(true)} className="mt-2 inline-flex text-xs font-bold text-violet-900 underline underline-offset-2">PRO-Funktionen ansehen →</button></div>) : null}
               </div>
             </div>;
                         if (key === "teams") return renderTeams();
@@ -1001,6 +1003,29 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         ) : null}
       </div>
 
+      {showProInfo && typeof document !== "undefined" ? createPortal(
+        <div className="fixed inset-0 z-[10050] flex items-center justify-center px-4 py-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" aria-hidden="true"
+            onClick={() => setShowProInfo(false)} />
+          <div role="dialog" aria-modal="true" aria-labelledby="strikr-pro-dialog-title"
+            className="relative w-full max-w-[420px] rounded-[26px] border border-violet-200 bg-white p-6 text-slate-950 shadow-[0_30px_90px_rgba(0,0,0,.45)]">
+            <div className="inline-flex rounded-full bg-violet-100 px-3 py-1.5 text-xs font-black text-violet-800">strikr PRO</div>
+            <h2 id="strikr-pro-dialog-title" className="mt-4 text-2xl font-black tracking-tight">Mehr Möglichkeiten für euer Team</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Der Turniermodus mit mehreren Teams, Spielplan und Live-Tabelle ist in strikr PRO enthalten.
+              Im kostenlosen Tarif könnt ihr weiterhin normale Trainings und faire Teams nutzen.
+            </p>
+            <p className="mt-3 rounded-xl bg-violet-50 p-3 text-sm font-bold text-violet-800">
+              Du bleibst hier im Wizard. Dein Training bleibt unverändert.
+            </p>
+            <button type="button" onClick={() => setShowProInfo(false)}
+              className="mt-5 min-h-12 w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800">
+              Verstanden · zurück zum Training
+            </button>
+          </div>
+        </div>,
+        document.body
+      ) : null}
       {!(trainingWizardOpen && isAdmin && isTrainingSession && !playerPreview) ? sessionEndModal : null}
     </>
   );
