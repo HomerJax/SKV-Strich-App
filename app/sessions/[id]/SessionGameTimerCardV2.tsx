@@ -583,7 +583,6 @@ export default function SessionGameTimerCard({
       savedAt: Date.now(),
     });
     setRemainingMs(Math.max(0, targetAt - now));
-    onStarted?.();
 
     if (nativeReady.useNative) {
       setMessage(t("gameTimer.runningLock"));
@@ -595,6 +594,8 @@ export default function SessionGameTimerCard({
           : t("gameTimer.runningKeepOpen"),
       );
     }
+    // Move the wizard only after audio and native/browser runtime are ready.
+    onStarted?.();
   }
 
   async function stopCurrentAlarm() {
