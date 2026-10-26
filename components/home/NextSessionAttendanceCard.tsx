@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Clock3, ChevronDown, UserCheck, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import LateRsvpModal from "@/components/sessions/LateRsvpModal";
 import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
@@ -144,6 +145,7 @@ export default function NextSessionAttendanceCard({
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [commentOpen, setCommentOpen] = useState(false);
+  const popupOpen = commentOpen || reasonOpen;
   const [comment, setComment] = useState(initialComment ?? "");
   const [commentDraft, setCommentDraft] = useState(initialComment ?? "");
   const [notNominated, setNotNominated] = useState(false);
@@ -165,6 +167,23 @@ export default function NextSessionAttendanceCard({
     setPresentCount(initialPresentCount);
     setAbsentCount(initialAbsentCount);
   }, [initialStatus, initialComment, initialPresentCount, initialAbsentCount, sessionId]);
+
+  useEffect(() => {
+    if (!popupOpen) return;
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) {
+        setCommentOpen(false);
+        setReasonOpen(false);
+      }
+    };
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.body.style.overflow = oldOverflow;
+      document.removeEventListener("keydown", escape);
+    };
+  }, [popupOpen, busy]);
 
   useEffect(() => {
     const refreshWhenVisible = () => {
@@ -321,10 +340,10 @@ export default function NextSessionAttendanceCard({
       {!notNominated ? (
         <div className="relative mt-4 rounded-[22px] bg-slate-50 p-1.5 ring-1 ring-slate-200">
           <div className="grid grid-cols-2 gap-1.5">
-            <button type="button" onClick={() => { if (inActive) void updateStatus("open", "in"); else void updateStatus("in", "in"); }} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[68px] rounded-[18px] px-3 py-2.5 text-left transition disabled:opacity-60", inActive ? "bg-cyan-500 text-white shadow-[0_8px_18px_rgba(6,182,212,0.18)]" : "bg-white text-slate-950 ring-1 ring-slate-200 hover:bg-cyan-50"].join(" ")}>
+            <button type="button" onClick={() => { setReasonOpen(false); setCommentDraft(comment); setCommentOpen(true); setErrorMessage(""); }} disabled={readOnly || busy || (deadlineTone === "passed" && inActive)} aria-busy={pendingAction === "in"} className={["min-h-[68px] rounded-[18px] px-3 py-2.5 text-left transition disabled:opacity-60", inActive ? "bg-cyan-500 text-white shadow-[0_8px_18px_rgba(6,182,212,0.18)]" : "bg-white text-slate-950 ring-1 ring-slate-200 hover:bg-cyan-50"].join(" ")}>
               <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", inActive ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-cyan-50 text-cyan-600 ring-1 ring-cyan-100"].join(" ")}><UserCheck className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "in" ? t("session.saving") : inActive ? t("session.going") : t("session.imGoing")}</span><span className={["mt-0.5 block text-xs font-medium", inActive ? "text-white/75" : "text-slate-500"].join(" ")}>{t("session.goingCount", { count: presentCount })}</span></span></div>
             </button>
-            <button type="button" onClick={() => { if (outActive) void updateStatus("open", "out"); else { setReasonOpen(true); setCommentOpen(false); } }} disabled={readOnly || busy || false} aria-busy={pendingAction === "out"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", outActive ? "bg-rose-500 text-white shadow-[0_8px_18px_rgba(244,63,94,0.16)]" : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70"].join(" ")}>
+            <button type="button" onClick={() => { setCommentOpen(false); setReasonOpen(true); setErrorMessage(""); }} disabled={readOnly || busy || false} aria-busy={pendingAction === "out"} className={["min-h-[76px] rounded-[24px] px-3 py-3 text-left transition disabled:opacity-60", outActive ? "bg-rose-500 text-white shadow-[0_8px_18px_rgba(244,63,94,0.16)]" : "bg-rose-50 text-slate-950 shadow-[0_8px_18px_rgba(244,63,94,0.08)] hover:bg-rose-100/70"].join(" ")}>
               <div className="flex items-center gap-2.5"><span className={["flex h-10 w-10 shrink-0 items-center justify-center rounded-full", outActive ? "bg-white/15 text-white ring-1 ring-white/20" : "bg-white text-rose-500 ring-1 ring-rose-100"].join(" ")}><UserX className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-semibold tracking-[-0.03em]">{pendingAction === "out" ? t("session.saving") : outActive ? t("session.notGoing") : t("session.imOut")}</span><span className={["mt-0.5 block text-xs font-medium", outActive ? "text-white/75" : "text-rose-500"].join(" ")}>{t("session.outCount", { count: absentCount })}</span></span></div>
             </button>
           </div>
@@ -337,81 +356,7 @@ export default function NextSessionAttendanceCard({
               {t("session.commitmentLocked")}
             </div>
           ) : null}
-          {!readOnly && (commentOpen || status === "in") ? (
-            <div className="m-1.5 mt-2">
-              {commentOpen ? (
-                <div className="rounded-[20px] border border-emerald-200 bg-white p-3">
-                  <div className="text-xs font-bold text-emerald-800">
-                    {t("session.attendanceComment")}{" "}
-                    <span className="font-medium text-emerald-600">{t("session.optional")}</span>
-                  </div>
-                  <input
-                    autoFocus
-                    value={commentDraft}
-                    maxLength={120}
-                    onChange={(event) => {
-                      setCommentDraft(event.target.value);
-                      setErrorMessage("");
-                    }}
-                    placeholder={t("session.attendanceCommentPlaceholder")}
-                    className="mt-2 w-full rounded-xl border border-emerald-200 px-3 py-2 text-base sm:text-xs outline-none focus:border-emerald-400"
-                  />
-                  <div className="mt-2 flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCommentOpen(false);
-                        setCommentDraft(comment);
-                        setErrorMessage("");
-                      }}
-                      className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500"
-                    >
-                      {t("common.cancel")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void updateStatus("in", "in", "", commentDraft, status === "in")}
-                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40"
-                    >
-                      {t("session.saveAttendanceComment")}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    setCommentDraft(comment);
-                    setCommentOpen(true);
-                  }}
-                  className="w-full rounded-[18px] border border-emerald-200 bg-white px-3 py-2 text-left text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-50"
-                >
-                  {status === "in" && comment.trim()
-                    ? `💬 „${comment.trim()}“ · ${t("session.editAttendanceComment")}`
-                    : t("session.addAttendanceComment")}
-                </button>
-              )}
-            </div>
-          ) : null}
-          {reasonOpen ? (
-            <div className="m-1.5 mt-2 rounded-[20px] border border-rose-200 bg-white p-3">
-              <div className="text-xs font-bold text-rose-800">
-                {t("session.whyOut")}{" "}
-                <span className="font-medium text-rose-500">
-                  {requireAbsenceReason ? t("session.required") : t("session.optional")}
-                </span>
-              </div>
-              <input autoFocus value={reason} maxLength={80} onChange={(event) => { setReason(event.target.value); setErrorMessage(""); }} placeholder={t("session.reasonPlaceholder")} className="mt-2 w-full rounded-xl border border-rose-200 px-3 py-2 text-base sm:text-xs outline-none focus:border-rose-400" />
-              {requireAbsenceReason ? (
-                <div className={`mt-1.5 text-[10px] font-semibold ${reason.length > 0 && !reasonValid ? "text-rose-700" : "text-slate-500"}`}>
-                  {t("session.reasonHint")}
-                </div>
-              ) : null}
-              <div className="mt-2 flex justify-end gap-2"><button type="button" onClick={() => { setReasonOpen(false); setReason(""); setErrorMessage(""); }} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500">{t("common.cancel")}</button><button type="button" disabled={busy || !reasonValid} onClick={() => void updateStatus("out", "out", reason)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40">{t("session.saveAbsence")}</button></div>
-            </div>
-          ) : null}
+
         </div>
       ) : null}
 
@@ -502,6 +447,56 @@ export default function NextSessionAttendanceCard({
           ) : null}
         </div>
       </div>
+
+      {popupOpen && !readOnly ? createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6">
+          <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm" aria-hidden="true"
+            onClick={() => { if (!busy) { setCommentOpen(false); setReasonOpen(false); } }} />
+          <div role="dialog" aria-modal="true" aria-labelledby="home-rsvp-popup-title"
+            className="relative w-full max-w-[420px] rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_25px_95px_rgba(0,0,0,.4)] sm:p-6">
+            <span className={`inline-block rounded-full px-3 py-1.5 text-xs font-black ${commentOpen ? "bg-cyan-100 text-cyan-800" : "bg-rose-100 text-rose-800"}`}>
+              {commentOpen ? (locale === "de" ? "Ich bin dabei" : "I'm going") : (locale === "de" ? "Ich sage ab" : "I'm not going")}
+            </span>
+            <h2 id="home-rsvp-popup-title" className="mt-4 text-xl font-black text-slate-950">
+              {commentOpen ? (locale === "de" ? "Bemerkung hinzufügen?" : "Add a note?") : t("session.whyOut")}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              {commentOpen ? (locale === "de" ? "Deine Notiz ist freiwillig. Bestätige danach deine Zusage." : "A note is optional. Confirm your attendance below.")
+                : requireAbsenceReason ? t("session.reasonRequired") : (locale === "de" ? "Du kannst freiwillig einen Grund angeben." : "You can optionally add a reason.")}
+            </p>
+            <textarea autoFocus rows={3} maxLength={commentOpen ? 120 : 80}
+              value={commentOpen ? commentDraft : reason}
+              placeholder={commentOpen ? t("session.attendanceCommentPlaceholder") : t("session.reasonPlaceholder")}
+              onChange={event => { if (commentOpen) setCommentDraft(event.target.value); else setReason(event.target.value); setErrorMessage(""); }}
+              className="mt-4 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
+            {reasonOpen && requireAbsenceReason ? <p className="mt-2 text-xs font-semibold text-slate-500">{t("session.reasonHint")}</p> : null}
+            {errorMessage ? <p role="alert" className="mt-2 text-xs font-bold text-rose-700">{errorMessage}</p> : null}
+            <div className="mt-5 flex gap-2">
+              <button type="button" disabled={busy} onClick={() => { setCommentOpen(false); setReasonOpen(false); setErrorMessage(""); }}
+                className="min-h-12 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-700 disabled:opacity-50">
+                {t("common.cancel")}
+              </button>
+              <button type="button" disabled={busy || (reasonOpen && !reasonValid)}
+                onClick={() => commentOpen
+                  ? void updateStatus("in", "in", "", commentDraft, true)
+                  : void updateStatus("out", "out", reason, "", true)}
+                className={`min-h-12 flex-1 rounded-xl px-4 text-sm font-black text-white disabled:opacity-50 ${commentOpen ? "bg-cyan-600 hover:bg-cyan-700" : "bg-rose-600 hover:bg-rose-700"}`}>
+                {busy ? t("session.saving") : commentOpen
+                  ? (locale === "de" ? "Zusage speichern" : "Save attendance")
+                  : (locale === "de" ? "Absage speichern" : "Save absence")}
+              </button>
+            </div>
+            {((inActive && commentOpen && deadlineTone !== "passed") || (outActive && reasonOpen)) ? (
+              <button type="button" disabled={busy}
+                onClick={() => void updateStatus("open", commentOpen ? "in" : "out")}
+                className="mt-3 w-full py-2 text-xs font-semibold text-slate-500 underline underline-offset-2 disabled:opacity-50">
+                {locale === "de" ? "Rückmeldung zurücknehmen" : "Withdraw response"}
+              </button>
+            ) : null}
+          </div>
+        </div>,
+        document.body,
+      ) : null}
 
       <LateRsvpModal
         open={latePenaltyMessage !== null}
