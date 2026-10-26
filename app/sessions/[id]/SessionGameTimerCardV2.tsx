@@ -690,6 +690,15 @@ export default function SessionGameTimerCard({
     handledTargetRef.current = null;
   }
 
+  useEffect(() => {
+    const handleWizardEnd = (event: Event) => {
+      const detail = (event as CustomEvent<{ sessionId: number }>).detail;
+      if (detail?.sessionId === sessionId) void stopTimer();
+    };
+    window.addEventListener("strikr:training-timer-stop", handleWizardEnd);
+    return () => window.removeEventListener("strikr:training-timer-stop", handleWizardEnd);
+  });
+
   async function testSound() {
     setError(null);
     setMessage(null);
