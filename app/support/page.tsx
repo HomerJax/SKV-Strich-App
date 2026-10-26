@@ -1,4 +1,11 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Support | strikr",
+  description: "Hilfe und Kontakt für strikr – die Team-App für Training, Anwesenheit, faire Teams und Statistiken.",
+  alternates: { canonical: "/support" },
+};
 import { getServerI18n } from "@/lib/i18n/server";
 
 export default async function SupportPage() {
