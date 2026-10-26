@@ -32,8 +32,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: "/" },
-    openGraph: { type: "website", siteName: "strikr", title, description, url: "/" },
+    alternates: {
+      canonical: isEnglish ? "/en" : "/",
+      languages: { "de-DE": "/", en: "/en", "x-default": "/" },
+    },
+    openGraph: { type: "website", siteName: "strikr", title, description, url: isEnglish ? "/en" : "/" },
     twitter: { card: "summary", title, description },
   };
 }
@@ -283,6 +286,43 @@ export default async function LandingPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const { locale } = await getServerI18n();
+  const isEnglish = locale === "en";
+  const localizedFlowSteps = isEnglish ? [
+    { number: "01", title: "Who’s in?", text: "Collect attendance with your team instead of chasing chat messages.", icon: Users },
+    { number: "02", title: "Balanced teams", text: "Build balanced sides from your group and get straight to playing.", icon: Sparkles },
+    { number: "03", title: "Play and record", text: "Play together, save the score and keep a record of each session.", icon: Camera },
+    { number: "04", title: "Keep the story going", text: "Tables, player stats, comparisons and trophies grow with every game.", icon: Trophy },
+  ] : flowSteps;
+  const localizedFeatureNavigation = isEnglish ? [
+    { href: "#feature-organisation", number: "01", title: "Organization", hint: "Attendance and planning", icon: Users },
+    { href: "#feature-fair", number: "02", title: "Balanced teams", hint: "Fair sides, less debate", icon: Sparkles },
+    { href: "#feature-stats", number: "03", title: "Stats and badges", hint: "Every session counts", icon: ChartColumn },
+    { href: "#feature-more", number: "04", title: "Explore more", hint: "Results, photos and updates", icon: Trophy },
+  ] : featureNavigation;
+  const localizedGameBlocks = isEnglish ? [
+    { eyebrow: "YOUR CAREER", title: "Stats that stay with you.", text: "Appearances, wins, streaks and career stats turn each session into part of your story.", icon: ChartColumn },
+    { eyebrow: "TROPHIES", title: "Earn them as you play.", text: "Achievements and badges give players goals, progress and moments to celebrate.", icon: Trophy },
+    { eyebrow: "TEAM TALK", title: "More to talk about.", text: "Who’s leading? Who’s on a streak? Friendly rivalries make every game more fun.", icon: Users },
+  ] : gameBlocks;
+  const localizedProductBlocks = isEnglish ? [
+    { title: "Attendance and availability", text: "Who’s in? Who’s out? Plan sessions together without chat chaos.", icon: Users },
+    { title: "Balanced teams", text: "Build balanced teams from your RSVPs and start playing.", icon: Sparkles },
+    { title: "Results and winner photos", text: "Save the score, celebrate the winners and share the moment.", icon: Camera },
+    { title: "Standings and competition", text: "Turn your results into a table — no league needed.", icon: Trophy },
+    { title: "Stats and trophies", text: "Personal stats, comparisons and achievements to collect.", icon: ChartColumn },
+    { title: "On your phone", text: "Push and in-app notifications keep the team up to date.", icon: Bell },
+  ] : productBlocks;
+  const freeHighlights = isEnglish ? [
+    "Up to 25 registered players", "Attendance, balanced teams and one game per session",
+    "Current season, standings and essential stats", "Results, winner photos and share cards",
+    "Team chat, push notifications and announcements", "Team cashbox, beer tabs and payments",
+  ] : FREE_HIGHLIGHTS;
+  const proHighlights = isEnglish ? [
+    "More players, guests, categories and balanced groups", "Second game, tournaments and flexible RSVP deadlines",
+    "Custom seasons, archive and career history", "Win rates, deeper stats, comparisons and career badges",
+    "Advanced team and beer cashbox reports",
+  ] : PRO_HIGHLIGHTS;
   const params = await searchParams;
   const code = typeof params.code === "string" ? params.code : "";
 
@@ -313,10 +353,13 @@ export default async function LandingPage({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
             name: "strikr",
-            url: "https://www.strikr.team/",
+            url: isEnglish ? "https://www.strikr.team/en" : "https://www.strikr.team/",
             applicationCategory: "SportsApplication",
             operatingSystem: "Web, iOS, Android",
-            description: "Trainings organisieren, faire Teams bilden, Ergebnisse festhalten und Statistiken verfolgen – für Freizeit- und Amateurteams.",
+            inLanguage: isEnglish ? "en" : "de-DE",
+            description: isEnglish
+              ? "Organize training, create balanced teams, record results and follow stats — for recreational and amateur teams."
+              : "Trainings organisieren, faire Teams bilden, Ergebnisse festhalten und Statistiken verfolgen – für Freizeit- und Amateurteams.",
           }).replace(/</g, "\\u003c"),
         }}
       />
@@ -350,7 +393,7 @@ export default async function LandingPage({
 
         <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
           <header className="flex items-center justify-between gap-3">
-            <Link href="/" className="flex items-center gap-3">
+            <Link href={isEnglish ? "/en" : "/"} className="flex items-center gap-3">
               <Image
                 src="/icon-light.png"
                 alt="strikr"
@@ -368,6 +411,7 @@ export default async function LandingPage({
             </Link>
 
             <div className="flex items-center gap-2">
+              <Link href={isEnglish ? "/" : "/en"} hrefLang={isEnglish ? "de-DE" : "en"} lang={isEnglish ? "de" : "en"} className="rounded-full border border-white/12 px-3 py-2 text-xs font-bold text-white/70 hover:text-white">{isEnglish ? "Deutsch" : "English"}</Link>
               <Link
                 href="/login"
                 data-analytics-event="landing_login_click"
@@ -380,7 +424,7 @@ export default async function LandingPage({
                 data-analytics-event="landing_demo_click"
                 className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-4 py-2 text-xs font-black text-white backdrop-blur-md transition hover:bg-white/12"
               >
-                Live-Demo <ArrowRight className="h-3.5 w-3.5" />
+                {isEnglish ? "Live demo" : "Live-Demo"} <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           </header>
@@ -402,21 +446,20 @@ export default async function LandingPage({
 
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-gradient-to-r from-cyan-300/[0.09] to-violet-400/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100 shadow-[0_0_38px_rgba(34,211,238,0.13)]">
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_16px_rgba(103,232,249,1)]" />
-              Dein Team. Dein Ding.
+              {isEnglish ? "Your team. Your game." : "Dein Team. Dein Ding."}
             </div>
 
             <h1 className="mt-4 text-[2.7rem] font-black leading-[0.98] tracking-[-0.06em] text-white sm:mt-7 sm:text-7xl lg:text-[5.6rem]">
-              Mehr aus jedem
+              {isEnglish ? "Get more from every" : "Mehr aus jedem"}
               <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(103,232,249,0.12)]">
-                Training.
+                {isEnglish ? "training." : "Training."}
               </span>
             </h1>
 
             <p className="mx-auto mt-4 max-w-2xl text-sm font-medium leading-6 text-white/75 sm:mt-6 sm:text-lg sm:leading-8">
-              strikr ist eure App für Hobby- und Freizeitteams.
-              Zusagen organisieren, faire Teams bilden, Ergebnisse festhalten
-              und mit Tabellen, Stats und Badges für neue Motivation sorgen.
-              Ohne Pflichtliga. Ohne Organisationschaos.
+              {isEnglish
+                ? "strikr is your app for recreational teams. Organize attendance, create balanced teams, record results and keep everyone motivated with tables, stats and badges. No league required. No organizational chaos."
+                : "strikr ist eure App für Hobby- und Freizeitteams. Zusagen organisieren, faire Teams bilden, Ergebnisse festhalten und mit Tabellen, Stats und Badges für neue Motivation sorgen. Ohne Pflichtliga. Ohne Organisationschaos."}
             </p>
 
             <div className="mt-5 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
@@ -425,7 +468,7 @@ export default async function LandingPage({
                 data-analytics-event="landing_demo_click"
                 className="group inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-black text-slate-950 shadow-[0_0_42px_rgba(103,232,249,0.15)] transition hover:-translate-y-0.5 hover:bg-cyan-50"
               >
-                strikr kostenlos ausprobieren
+                {isEnglish ? "Try strikr for free" : "strikr kostenlos ausprobieren"}
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
               </Link>
               <Link
@@ -433,15 +476,15 @@ export default async function LandingPage({
                 data-analytics-event="landing_signup_cta_click"
                 className="inline-flex min-h-13 items-center justify-center rounded-2xl border border-violet-300/20 bg-gradient-to-r from-white/[0.065] to-violet-400/[0.07] px-7 py-4 text-sm font-black text-white backdrop-blur-md transition hover:bg-white/10"
               >
-                Eigenes Team kostenlos starten
+                {isEnglish ? "Start your own team for free" : "Eigenes Team kostenlos starten"}
               </Link>
             </div>
 
             <p className="mt-3 text-xs font-semibold text-white/60 sm:mt-4">
-              Demo ohne Anmeldung · Free-Tarif verfügbar · Für Hobby- und Freizeitteams
+              {isEnglish ? "Demo without sign-up · Free plan available · For recreational teams" : "Demo ohne Anmeldung · Free-Tarif verfügbar · Für Hobby- und Freizeitteams"}
             </p>
             <a href="#features" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-cyan-200/85 underline decoration-cyan-300/30 underline-offset-4 transition hover:text-white">
-              Alle Funktionen entdecken ↓
+              {isEnglish ? "Explore all features ↓" : "Alle Funktionen entdecken ↓"}
             </a>
           </div>
 
@@ -455,19 +498,18 @@ export default async function LandingPage({
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
-              Das steckt in strikr
+              {isEnglish ? "What’s inside strikr" : "Das steckt in strikr"}
             </div>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-5xl">
-              Eine App. Viele Gründe, wieder zu spielen.
+              {isEnglish ? "One app. More reasons to play again." : "Eine App. Viele Gründe, wieder zu spielen."}
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
-              Alles zusammen – oder genau das Feature, das euer Team gerade braucht.
-              Entdecke, was strikr für eure Runde verändert.
+              {isEnglish ? "Everything together — or just the feature your team needs right now. See how strikr can change your game." : "Alles zusammen – oder genau das Feature, das euer Team gerade braucht. Entdecke, was strikr für eure Runde verändert."}
             </p>
           </div>
 
-          <nav aria-label="strikr Features entdecken" className="mt-9 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-            {featureNavigation.map(({ href, number, title, hint, icon: Icon }) => (
+          <nav aria-label={isEnglish ? "Explore strikr features" : "strikr Features entdecken"} className="mt-9 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+            {localizedFeatureNavigation.map(({ href, number, title, hint, icon: Icon }) => (
               <a key={href} href={href}
                 className="group flex min-h-28 flex-col rounded-[19px] border border-cyan-300/20 bg-gradient-to-br from-cyan-300/[0.07] to-violet-300/[0.05] p-3.5 transition hover:border-cyan-300/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cyan-300 sm:p-4">
                 <span className="flex items-center justify-between text-[10px] font-black text-cyan-300/80">
@@ -480,11 +522,11 @@ export default async function LandingPage({
           </nav>
 
           <div id="feature-organisation" className="mt-10 scroll-mt-10">
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300/85">Organisiert. Aufgestellt. Losgespielt.</div>
-            <h3 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">So läuft ein Training mit strikr.</h3>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300/85">{isEnglish ? "Organize. Line up. Play." : "Organisiert. Aufgestellt. Losgespielt."}</div>
+            <h3 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">{isEnglish ? "A training session with strikr." : "So läuft ein Training mit strikr."}</h3>
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {flowSteps.map(({ number, title, text, icon: Icon }) => (
+            {localizedFlowSteps.map(({ number, title, text, icon: Icon }) => (
               <div
                 key={number}
                 className="group rounded-[26px] border border-white/9 bg-white/[0.045] p-5 transition hover:-translate-y-1 hover:border-cyan-300/20 hover:bg-white/[0.065]"
@@ -511,30 +553,28 @@ export default async function LandingPage({
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-8">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
-              Feature 01 / Faire Teams
+              {isEnglish ? "Feature 01 / Balanced teams" : "Feature 01 / Faire Teams"}
             </div>
             <h2 className="mt-4 text-4xl font-black leading-[1.02] tracking-[-0.06em] text-white sm:text-5xl">
-              Ein Klick.<span className="block text-cyan-300">Faire Teams.</span>
+              {isEnglish ? "One tap." : "Ein Klick."}<span className="block text-cyan-300">{isEnglish ? "Balanced teams." : "Faire Teams."}</span>
             </h2>
             <p className="mt-5 max-w-lg text-sm leading-7 text-white/65 sm:text-base">
-              Keine ewigen Diskussionen, wer mit wem spielt: strikr berücksichtigt
-              die hinterlegten Spielerstärken und Einstellungen, um möglichst
-              ausgeglichene Teams für euren Trainingsabend zu erstellen.
+              {isEnglish ? "No more endless debates about who plays with whom. strikr uses player strengths and your settings to create balanced teams for your session." : "Keine ewigen Diskussionen, wer mit wem spielt: strikr berücksichtigt die hinterlegten Spielerstärken und Einstellungen, um möglichst ausgeglichene Teams für euren Trainingsabend zu erstellen."}
             </p>
             <div className="mt-6 flex flex-wrap gap-2 text-xs font-bold text-white/75">
-              <span className="rounded-full border border-white/15 px-3 py-2">Spieler auswählen</span>
-              <span className="rounded-full border border-white/15 px-3 py-2">Teams berechnen</span>
-              <span className="rounded-full border border-white/15 px-3 py-2">Losspielen</span>
+              <span className="rounded-full border border-white/15 px-3 py-2">{isEnglish ? "Select players" : "Spieler auswählen"}</span>
+              <span className="rounded-full border border-white/15 px-3 py-2">{isEnglish ? "Build teams" : "Teams berechnen"}</span>
+              <span className="rounded-full border border-white/15 px-3 py-2">{isEnglish ? "Start playing" : "Losspielen"}</span>
             </div>
             <Link href="/demo" data-analytics-event="landing_fair_feature_demo_click"
               className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-white">
-              Selber ausprobieren <ArrowRight className="h-4 w-4" />
+              {isEnglish ? "Try it yourself" : "Selber ausprobieren"} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="relative rounded-[28px] border border-white/15 bg-white/[0.045] p-4 shadow-[0_30px_85px_rgba(0,0,0,.3)] sm:p-6">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/50">Beispiel · 10 Spieler</span>
-              <span className="rounded-full bg-cyan-300/10 px-3 py-1 text-[10px] font-black text-cyan-200">AUSGEGLICHEN</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/50">{isEnglish ? "Example · 10 players" : "Beispiel · 10 Spieler"}</span>
+              <span className="rounded-full bg-cyan-300/10 px-3 py-1 text-[10px] font-black text-cyan-200">{isEnglish ? "BALANCED" : "AUSGEGLICHEN"}</span>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
               {[
@@ -555,7 +595,7 @@ export default async function LandingPage({
               ))}
             </div>
             <p className="mt-4 text-center text-[11px] font-semibold text-white/45">
-              Dein Kader. Deine Einstellungen. Ein fairerer Start.
+              {isEnglish ? "Your roster. Your settings. A fairer start." : "Dein Kader. Deine Einstellungen. Ein fairerer Start."}
             </p>
           </div>
         </div>
@@ -568,21 +608,19 @@ export default async function LandingPage({
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-600">
-                Feature 02 / Stats, Tabellen & Badges
+                {isEnglish ? "Feature 02 / Stats, tables and badges" : "Feature 02 / Stats, Tabellen & Badges"}
               </div>
               <h2 className="mt-3 max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.055em] sm:text-5xl">
-                Jedes Ergebnis erzählt weiter.
+                {isEnglish ? "Every result moves your story forward." : "Jedes Ergebnis erzählt weiter."}
               </h2>
             </div>
             <p className="max-w-xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-              Nach dem Spiel ist nicht Schluss: Ergebnisse, Tabellen,
-              Karrierestatistiken und Badges machen Fortschritte sichtbar – auch
-              wenn ihr keine Liga spielt.
+              {isEnglish ? "The game doesn’t end at the final whistle. Results, standings, career stats and badges show your progress — even if you don’t play in a league." : "Nach dem Spiel ist nicht Schluss: Ergebnisse, Tabellen, Karrierestatistiken und Badges machen Fortschritte sichtbar – auch wenn ihr keine Liga spielt."}
             </p>
           </div>
 
           <div className="mt-10 grid gap-4 lg:grid-cols-3">
-            {gameBlocks.map(({ eyebrow, title, text, icon: Icon }, index) => (
+            {localizedGameBlocks.map(({ eyebrow, title, text, icon: Icon }, index) => (
               <div
                 key={title}
                 className={`relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.07)] ${
@@ -612,15 +650,15 @@ export default async function LandingPage({
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-300">
-              Feature 03 / Alle Möglichkeiten
+              {isEnglish ? "Feature 03 / Everything else" : "Feature 03 / Alle Möglichkeiten"}
             </div>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-4xl">
-              Auch der Rest eures Trainings läuft einfacher.
+              {isEnglish ? "The rest of your session gets easier, too." : "Auch der Rest eures Trainings läuft einfacher."}
             </h2>
           </div>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {productBlocks.map(({ title, text, icon: Icon }) => (
+            {localizedProductBlocks.map(({ title, text, icon: Icon }) => (
               <div
                 key={title}
                 className="rounded-[25px] border border-white/9 bg-white/[0.045] p-5"
@@ -642,14 +680,13 @@ export default async function LandingPage({
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-[460px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/16 blur-3xl" />
         <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
           <div className="mx-auto inline-flex rounded-full border border-white/10 bg-white/6 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/55">
-            Keine Erklärung nötig
+            {isEnglish ? "No explanation needed" : "Keine Erklärung nötig"}
           </div>
           <h2 className="mt-5 text-4xl font-black tracking-[-0.055em] sm:text-6xl">
-            Klick rein. Erlebe eine gemeinsame Spieleinheit.
+            {isEnglish ? "Jump in. Experience a session together." : "Klick rein. Erlebe eine gemeinsame Spieleinheit."}
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
-            Die Demo zeigt dir strikr mit einem gefüllten Beispielteam – ohne
-            Registrierung und ohne vorher einen Club anzulegen.
+            {isEnglish ? "The demo lets you explore strikr with a sample team — no sign-up or club setup required." : "Die Demo zeigt dir strikr mit einem gefüllten Beispielteam – ohne Registrierung und ohne vorher einen Club anzulegen."}
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
@@ -657,14 +694,14 @@ export default async function LandingPage({
               data-analytics-event="landing_demo_click"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-black text-slate-950 transition hover:bg-cyan-50"
             >
-              Demo öffnen <ArrowRight className="h-4 w-4" />
+              {isEnglish ? "Open demo" : "Demo öffnen"} <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/signup?next=%2Fclub-setup"
               data-analytics-event="landing_signup_cta_click"
               className="inline-flex items-center justify-center rounded-2xl border border-white/12 bg-white/6 px-7 py-4 text-sm font-black text-white transition hover:bg-white/10"
             >
-              Eigenes Team starten
+              {isEnglish ? "Start your own team" : "Eigenes Team starten"}
             </Link>
           </div>
         </div>
@@ -673,29 +710,28 @@ export default async function LandingPage({
       <section id="pricing" className="bg-[#f5f7fa] py-16 text-slate-950 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-600">Free oder PRO</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-600">{isEnglish ? "Free or PRO" : "Free oder PRO"}</div>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-5xl">
-              Kostenlos anfangen. Mehr Tiefe, wenn ihr sie braucht.
+              {isEnglish ? "Start for free. Get more depth when you need it." : "Kostenlos anfangen. Mehr Tiefe, wenn ihr sie braucht."}
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-              Free bleibt ein echtes Team-Produkt. PRO schaltet vor allem mehr Flexibilität,
-              Historie, Karriere-Stats und tiefere Auswertungen frei.
+              {isEnglish ? "Free gives your team the essentials. PRO adds flexibility, history, career stats and deeper insights." : "Free bleibt ein echtes Team-Produkt. PRO schaltet vor allem mehr Flexibilität, Historie, Karriere-Stats und tiefere Auswertungen frei."}
             </p>
           </div>
 
           <div className="mt-10 grid gap-4 lg:grid-cols-2">
             <div className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
               <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">FREE</div>
-              <h3 className="mt-4 text-2xl font-black">Alles für euren Trainingsabend.</h3>
+              <h3 className="mt-4 text-2xl font-black">{isEnglish ? "Everything for your next session." : "Alles für euren Trainingsabend."}</h3>
               <div className="mt-5 space-y-2">
-                {FREE_HIGHLIGHTS.map((feature) => (
+                {freeHighlights.map((feature) => (
                   <div key={feature} className="flex gap-3 rounded-2xl bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">
                     <span className="font-black text-emerald-600">✓</span><span>{feature}</span>
                   </div>
                 ))}
               </div>
               <Link href="/signup?next=%2Fclub-setup" data-analytics-event="landing_signup_cta_click" className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white">
-                Team kostenlos starten
+                {isEnglish ? "Start your team for free" : "Team kostenlos starten"}
               </Link>
             </div>
 
@@ -703,39 +739,39 @@ export default async function LandingPage({
               <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-300/30 blur-3xl" />
               <div className="relative inline-flex rounded-full bg-violet-700 px-3 py-1 text-xs font-black text-white">PRO</div>
               <div className="relative mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
-                <h3 className="text-2xl font-black">Für Teams, die mehr draus machen.</h3>
+                <h3 className="text-2xl font-black">{isEnglish ? "For teams ready for more." : "Für Teams, die mehr draus machen."}</h3>
                 <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-amber-800">{INTRO_PRICING.badge}</span>
               </div>
               <div className="relative mt-4 flex flex-wrap items-end gap-4">
                 <div><span className="text-3xl font-black text-slate-950">{INTRO_PRICING.monthly.label}</span><span className="ml-1 text-sm font-bold text-slate-500">{INTRO_PRICING.monthly.suffix}</span></div>
-                <div className="text-sm font-bold text-violet-700">oder {INTRO_PRICING.yearly.label} {INTRO_PRICING.yearly.suffix} · ca. {getAnnualSavingsPercent()}% sparen</div>
+                <div className="text-sm font-bold text-violet-700">{isEnglish ? "or" : "oder"} {INTRO_PRICING.yearly.label} {INTRO_PRICING.yearly.suffix} · {isEnglish ? "save approx." : "ca."} {getAnnualSavingsPercent()}% {isEnglish ? "per year" : "sparen"}</div>
               </div>
               <div className="relative mt-5 space-y-2">
-                {PRO_HIGHLIGHTS.map((feature) => (
+                {proHighlights.map((feature) => (
                   <div key={feature} className="flex gap-3 rounded-2xl bg-white/80 px-3 py-2.5 text-sm font-semibold text-slate-700">
                     <span className="font-black text-violet-600">✓</span><span>{feature}</span>
                   </div>
                 ))}
               </div>
               <Link href="/pro" data-analytics-event="landing_pro_click" className="relative mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-700 px-5 py-3.5 text-sm font-black text-white transition hover:bg-violet-800">
-                PRO ansehen <ArrowRight className="h-4 w-4" />
+                {isEnglish ? "Explore PRO" : "PRO ansehen"} <ArrowRight className="h-4 w-4" />
               </Link>
               <p className="relative mt-3 text-center text-xs font-semibold text-slate-500">
-                Einführungspreis für frühe Teams. Spätere Neukundenpreise können höher liegen.
+                {isEnglish ? "Introductory price for early teams. Prices for future customers may be higher." : "Einführungspreis für frühe Teams. Spätere Neukundenpreise können höher liegen."}
               </p>
             </div>
           </div>
 
           <div className="mt-8 grid gap-8 rounded-[34px] border border-slate-200 bg-white p-6 shadow-[0_20px_70px_rgba(15,23,42,0.08)] sm:p-9 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Jetzt loslegen</div>
-              <h2 className="mt-3 text-3xl font-black tracking-[-0.045em]">Erst spielen. Dann entscheiden, ob ihr PRO braucht.</h2>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{isEnglish ? "Get started" : "Jetzt loslegen"}</div>
+              <h2 className="mt-3 text-3xl font-black tracking-[-0.045em]">{isEnglish ? "Play first. Decide later if you need PRO." : "Erst spielen. Dann entscheiden, ob ihr PRO braucht."}</h2>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
-                Ihr könnt mit Free direkt starten. PRO wird dort sichtbar angeboten, wo zusätzliche Tiefe oder Flexibilität Sinn ergibt.
+                {isEnglish ? "Start straight away with Free. Upgrade options appear where extra depth or flexibility makes sense." : "Ihr könnt mit Free direkt starten. PRO wird dort sichtbar angeboten, wo zusätzliche Tiefe oder Flexibilität Sinn ergibt."}
               </p>
             </div>
             <div className="rounded-[27px] bg-slate-950 p-5 text-white">
-              <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/40">strikr aufs Smartphone</div>
+              <div className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{isEnglish ? "strikr on your phone" : "strikr aufs Smartphone"}</div>
               <div className="mt-3"><StoreButtons /></div>
               <div className="mt-3 text-center text-[11px] font-semibold text-white/35">iOS · Android · Web</div>
             </div>
@@ -754,10 +790,10 @@ export default async function LandingPage({
             <Link href="/impressum" className="hover:text-white">Impressum</Link>
             <Link href="/datenschutz" className="hover:text-white">Datenschutz</Link>
             <Link href="/support" className="hover:text-white">Support</Link>
-            <Link href="/faire-fussballteams" className="hover:text-white">Faire Fußballteams</Link>
-            <Link href="/training-organisieren" className="hover:text-white">Training organisieren</Link>
-            <Link href="/mannschaftskasse-app" className="hover:text-white">Mannschaftskasse-App</Link>
-            <Link href="/account-loeschen" className="hover:text-white">Konto löschen</Link>
+            <Link href={isEnglish ? "/en/faire-fussballteams" : "/faire-fussballteams"} className="hover:text-white">{isEnglish ? "Balanced football teams" : "Faire Fußballteams"}</Link>
+            <Link href={isEnglish ? "/en/training-organisieren" : "/training-organisieren"} className="hover:text-white">{isEnglish ? "Training organization" : "Training organisieren"}</Link>
+            <Link href={isEnglish ? "/en/mannschaftskasse-app" : "/mannschaftskasse-app"} className="hover:text-white">{isEnglish ? "Team cashbox app" : "Mannschaftskasse-App"}</Link>
+            <Link href="/account-loeschen" className="hover:text-white">{isEnglish ? "Delete account" : "Konto löschen"}</Link>
           </div>
         </div>
       </footer>

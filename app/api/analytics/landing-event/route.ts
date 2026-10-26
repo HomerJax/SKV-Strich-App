@@ -20,6 +20,11 @@ function cleanText(value: unknown, maxLength = 500) {
   return trimmed.slice(0, maxLength);
 }
 
+function cleanCampaignToken(value: unknown, maxLength: number) {
+  const clean = cleanText(value, maxLength)?.replace(/\s+/g, "-");
+  return clean && /^[a-zA-Z0-9._-]+$/.test(clean) ? clean : null;
+}
+
 function getReferrerHost(referrer: string | null) {
   if (!referrer) return null;
 
@@ -29,6 +34,22 @@ function getReferrerHost(referrer: string | null) {
     return null;
   }
 }
+
+const ALLOWED_EVENTS = new Set([
+  "landing_login_click", "landing_demo_click", "landing_signup_cta_click",
+  "landing_fair_feature_demo_click", "landing_pro_click",
+  "landing_app_store_click", "landing_play_store_click",
+  "landing_instagram_click", "landing_whatsapp_channel_click",
+  "seo_demo_click", "seo_signup_click", "demo_generate_click",
+  "demo_signup_after_teams_click", "demo_signup_header_click",
+  "demo_signup_mobile_click",
+]);
+const TRACKED_PATHS = new Set([
+  "/", "/en", "/demo", "/pro", "/faire-fussballteams",
+  "/training-organisieren", "/mannschaftskasse-app",
+  "/en/faire-fussballteams", "/en/training-organisieren",
+  "/en/mannschaftskasse-app",
+]);
 
 function getDeviceType(userAgent: string) {
   const ua = userAgent.toLowerCase();
@@ -58,7 +79,8 @@ export async function POST(request: NextRequest) {
     const payload = (await request.json()) as Payload;
     const eventName = cleanText(payload.event_name, 120);
 
-    if (!eventName) {
+    const submittedPath = cleanText(payload.path, 300) ?? "/";
+    if (!eventName || !ALLOWED_EVENTS.has(eventName) || !TRACKED_PATHS.has(submittedPath)) {
       return NextResponse.json({ ok: true });
     }
 
@@ -73,12 +95,13 @@ export async function POST(request: NextRequest) {
 
     await admin.from("landing_page_events").insert({
       event_name: eventName,
-      path: cleanText(payload.path, 300) ?? "/",
+      path: submittedPath,
 
-      utm_source: cleanText(payload.utm_source, 120),
-      utm_medium: cleanText(payload.utm_medium, 120),
-      utm_campaign: cleanText(payload.utm_campaign, 160),
-      referrer,
+      utm_source: cleanCampaignToken(payload.utm_source, 120),
+      utm_medium: cleanCampaignToken(payload.utm_medium, 120),
+      utm_campaign: cleanCampaignToken(payload.utm_campaign, 160),
+      // Store only the referrer host; query strings can contain personal data.
+      referrer: null,
       referrer_host: getReferrerHost(referrer),
 
       country_code: cleanText(countryCode, 12),

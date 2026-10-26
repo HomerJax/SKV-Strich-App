@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
 import { getServerI18n } from "@/lib/i18n/server";
+import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
 
 export type OnboardingState = {
   error: string;
@@ -330,6 +331,8 @@ export async function completeOnboarding(
         t("onboarding.error.billingCreate"),
     };
   }
+
+  await recordGrowthEvent("club_created", club.id);
 
   const cookieStore = await cookies();
   cookieStore.set("active_club_id", club.id, {

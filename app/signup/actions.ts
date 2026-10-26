@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
 
 export type SignupState = {
   error: string;
@@ -62,6 +63,8 @@ export async function signupAction(
   if (!signUpData.user) {
     return { error: "signup-failed" };
   }
+
+  await recordGrowthEvent("registration_completed");
 
   try {
     await supabase.rpc("link_existing_player_by_email", {

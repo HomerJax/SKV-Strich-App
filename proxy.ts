@@ -5,6 +5,8 @@ import { updateSession } from "@/lib/supabase/proxy";
 const NATIVE_IOS_MARKER = "strikr-ios";
 
 const PUBLIC_SEO_LOCALES: Record<string, "de" | "en"> = {
+  "/": "de",
+  "/en": "en",
   "/faire-fussballteams": "de",
   "/training-organisieren": "de",
   "/mannschaftskasse-app": "de",

@@ -5,7 +5,18 @@ const SITE_URL = "https://www.strikr.team";
 /** Only publicly accessible pages that we want Google to discover. */
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
-    { url: SITE_URL + "/", changeFrequency: "weekly", priority: 1 },
+    {
+      url: SITE_URL + "/",
+      changeFrequency: "weekly",
+      priority: 1,
+      alternates: { languages: { "de-DE": SITE_URL + "/", en: SITE_URL + "/en", "x-default": SITE_URL + "/" } },
+    },
+    {
+      url: SITE_URL + "/en",
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: { languages: { "de-DE": SITE_URL + "/", en: SITE_URL + "/en", "x-default": SITE_URL + "/" } },
+    },
     { url: SITE_URL + "/demo", changeFrequency: "monthly", priority: 0.9 },
     { url: SITE_URL + "/pro", changeFrequency: "monthly", priority: 0.7 },
     {

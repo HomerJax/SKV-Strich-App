@@ -1277,7 +1277,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   setWizardManualSelection(true);
                 }
               }}
-              onNext={() => {
+              onNext={async () => {
                 if (nextDisabled) return;
                 if (selected === "settings") {
                   setSettingsReviewed(true);
@@ -1350,6 +1350,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                     try { window.localStorage.setItem("strikr-closing-reviewed-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
                   }
                   if (!hasWinnerPhoto) setPilotPhotoSkipped(true);
+                  try {
+                    const formData = new FormData();
+                    formData.set("intent", "complete_training");
+                    await fetch(`/api/sessions/${props.sessionId}`, { method: "POST", body: formData });
+                  } catch {
+                    // Funnel instrumentation must not block the training flow.
+                  }
                   setPilotFinished(true);
                   try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
                   router.push("/sessions");

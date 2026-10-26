@@ -161,7 +161,19 @@ export default function DatenschutzPage() {
                     Vercel wird für Hosting, Bereitstellung und technische
                     Protokollierung eingesetzt. Zusätzlich wird Vercel Web
                     Analytics verwendet. Dabei werden nach Angaben von Vercel
-                    anonymisierte Nutzungsdaten ohne Cookies ausgewertet.
+                    anonymisierte Nutzungsdaten ohne Cookies ausgewertet. Für
+                    die Verbesserung unserer Website erfassen wir außerdem
+                    Seitenaufrufe, Marketing-Links und erfolgreiche Schritte wie
+                    Registrierung, Vereinsgründung sowie erstes angelegtes und
+                    abgeschlossenes Training in unserer Supabase-Datenbank.
+                    In diesen neuen Funnel-Ereignissen speichern wir keine
+                    E-Mail-Adressen, Spielernamen, IP-Adressen oder individuellen
+                    Besucher-IDs. Neue Marketing-Aufrufe speichern nur die
+                    Referrer-Domain und syntaktisch begrenzte UTM-Parameter. Die
+                    Herkunft wird nur auf Ebene aggregierter Seitenaufrufe
+                    ausgewertet und nicht mit Konten oder Vereinen verbunden.
+                    Die Zuordnung kann daher keine einzelne Registrierung einer
+                    Werbequelle zuordnen.
                   </p>
                   <a
                     href="https://vercel.com/legal/privacy-notice"

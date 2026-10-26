@@ -1,5 +1,6 @@
 import { ArrowUpRight, Instagram, MessageCircle, Play, Zap } from "lucide-react";
 import InstagramReelEmbed from "./InstagramReelEmbed";
+import { getServerI18n } from "@/lib/i18n/server";
 
 const INSTAGRAM_PROFILE_URL = "https://www.instagram.com/getstrikr/";
 const WHATSAPP_CHANNEL_URL = "https://whatsapp.com/channel/0029VbDksXIHVvTj4RgJs43v";
@@ -111,6 +112,8 @@ async function getAutomaticallyPublishedReels(): Promise<Reel[]> {
 }
 
 export default async function ThatsStrikrSection() {
+  const { locale } = await getServerI18n();
+  const isEnglish = locale === "en";
   const automaticReels = await getAutomaticallyPublishedReels();
   const reels = automaticReels.length ? automaticReels : getManuallyConfiguredReels();
 
@@ -128,7 +131,7 @@ export default async function ThatsStrikrSection() {
               THAT&apos;S STRIKR<span className="text-cyan-300">.</span>
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-7 text-white/55 sm:text-base">
-              Weniger labern. Mehr spielen. Clips, Team-Momente und alles, was strikr ausmacht.
+              {isEnglish ? "Less talk. More play. Clips, team moments and everything that makes strikr." : "Weniger labern. Mehr spielen. Clips, Team-Momente und alles, was strikr ausmacht."}
             </p>
           </div>
           <a
@@ -161,9 +164,9 @@ export default async function ThatsStrikrSection() {
                 <Play className="h-6 w-6" aria-hidden="true" />
               </span>
               <div>
-                <h3 className="text-lg font-black text-white">strikr auf Instagram.</h3>
+                <h3 className="text-lg font-black text-white">{isEnglish ? "strikr on Instagram." : "strikr auf Instagram."}</h3>
                 <p className="mt-1 max-w-lg text-sm leading-6 text-white/55">
-                  Unsere Reels direkt bei @getstrikr. Der nächste Clip wird hier auch auf der Website abspielbar.
+                  {isEnglish ? "Find our Reels at @getstrikr. New clips will also be playable right here." : "Unsere Reels direkt bei @getstrikr. Der nächste Clip wird hier auch auf der Website abspielbar."}
                 </p>
               </div>
             </div>
@@ -173,7 +176,7 @@ export default async function ThatsStrikrSection() {
               rel="noopener noreferrer"
               className="inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-white sm:w-auto"
             >
-              Reels ansehen <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              {isEnglish ? "Watch Reels" : "Reels ansehen"} <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
         )}
@@ -188,9 +191,9 @@ export default async function ThatsStrikrSection() {
                 <Zap className="h-3.5 w-3.5" aria-hidden="true" />
                 Inside strikr
               </p>
-              <h3 className="mt-1 text-xl font-black tracking-tight text-white">Updates direkt aus der Kabine.</h3>
+              <h3 className="mt-1 text-xl font-black tracking-tight text-white">{isEnglish ? "Updates straight from the team." : "Updates direkt aus der Kabine."}</h3>
               <p className="mt-1 text-sm leading-6 text-white/50">
-                Neue Features, Sneak Peeks und Einblicke auf unserem WhatsApp-Kanal.
+                {isEnglish ? "New features, sneak peeks and behind-the-scenes updates on our WhatsApp channel." : "Neue Features, Sneak Peeks und Einblicke auf unserem WhatsApp-Kanal."}
               </p>
             </div>
           </div>
@@ -201,7 +204,7 @@ export default async function ThatsStrikrSection() {
             data-analytics-event="landing_whatsapp_channel_click"
             className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#5bf0b1]/35 bg-[#5bf0b1]/10 px-5 py-3 text-sm font-black text-[#91ffd2] transition hover:bg-[#5bf0b1]/20"
           >
-            Inside strikr auf WhatsApp <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            {isEnglish ? "Inside strikr on WhatsApp" : "Inside strikr auf WhatsApp"} <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </a>
         </div>
       </div>

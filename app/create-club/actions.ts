@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
+import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
 
 export type CreateClubState = {
   error: string;
@@ -222,6 +223,8 @@ export async function createClubAction(
       return { error: "player-create-failed" };
     }
   }
+
+  await recordGrowthEvent("club_created", club.id);
 
   const cookieStore = await cookies();
 
