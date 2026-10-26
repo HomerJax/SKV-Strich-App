@@ -170,6 +170,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [tournamentTeamsReady, setTournamentTeamsReady] = useState(false);
   const setupWizardRef = useRef<{ next: () => void; ready: boolean; label: string } | null>(null);
   const [setupWizardReady, setSetupWizardReady] = useState(false);
+  const [configuringTournament, setConfiguringTournament] = useState(false);
   const {
     router,
     resultRef,
@@ -755,7 +756,25 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 <div className="flex items-center justify-between"><span className="text-sm font-bold">🏆 Turniermodus</span><span className="text-xs font-bold text-teal-700">{isTournamentMode ? "✓ Ausgewählt" : "Optional"}</span></div>
                 <p className="mt-1 text-xs text-slate-500">Mehrere Teams, Spielplan und Turniertabelle</p>
                 {!isTournamentMode && hasResult ? <p className="mt-2 text-xs font-semibold text-amber-700">Wechsel gesperrt: Ergebnisse sind bereits erfasst.</p> : null}
-                {!isTournamentMode && !hasResult ? (props.initialIsPro === true ? <SessionTournamentCard sessionId={props.sessionId} enabled={false} isAdmin={isAdmin} presentCount={presentPlayers.length} hasNormalResult={false} onActivated={() => { setPilotStep("result"); setTournamentWizardStage("teams"); router.refresh(); }} wizardControl={setupWizardRef} onWizardReady={setSetupWizardReady} /> : <div className="rounded-xl border border-violet-200 bg-violet-50 p-3"><div className="text-sm font-black text-violet-900">🔒 Turniermodus mit PRO</div><p className="mt-1 text-xs text-violet-800">Free enthält ein Spiel pro Training. Der Turniermodus mit mehreren Spielen ist mit PRO verfügbar.</p><a href="/pro" className="mt-2 inline-flex text-xs font-bold text-violet-900 underline">PRO-Funktionen ansehen →</a></div>) : null}
+                {!isTournamentMode && !hasResult ? (props.initialIsPro === true ? (
+                  configuringTournament ? (
+                    <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                      <button type="button" onClick={() => { setConfiguringTournament(false); setSetupWizardReady(false); setupWizardRef.current = null; }}
+                        className="text-xs font-bold text-slate-600 underline underline-offset-2">
+                        ← Zur normalen Spielauswahl
+                      </button>
+                      <SessionTournamentCard sessionId={props.sessionId} enabled={false} isAdmin={isAdmin}
+                        presentCount={presentPlayers.length} hasNormalResult={false}
+                        onActivated={() => { setConfiguringTournament(false); setPilotStep("result"); setTournamentWizardStage("teams"); router.refresh(); }}
+                        wizardControl={setupWizardRef} onWizardReady={setSetupWizardReady} />
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setConfiguringTournament(true)}
+                      className="mt-4 min-h-12 w-full rounded-xl border border-teal-200 bg-teal-50 px-4 text-sm font-black text-teal-900 transition hover:bg-teal-100">
+                      Turnier einrichten →
+                    </button>
+                  )
+                ) : <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3"><div className="text-sm font-black text-violet-900">🔒 Turniermodus mit PRO</div><p className="mt-1 text-xs text-violet-800">Free enthält ein Spiel pro Training. Der Turniermodus mit mehreren Spielen ist mit PRO verfügbar.</p><a href="/pro" className="mt-2 inline-flex text-xs font-bold text-violet-900 underline">PRO-Funktionen ansehen →</a></div>) : null}
               </div>
             </div>;
                         if (key === "teams") return renderTeams();
@@ -770,7 +789,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           };
           const nextDisabled =
             (selected === "attendance" && (attendanceDirty || presentPlayers.length < 2 || savingPresence)) ||
-            (selected === "mode" && !isTournamentMode && setupWizardRef.current !== null && !setupWizardReady) ||
+            (selected === "mode" && !isTournamentMode && configuringTournament && !setupWizardReady) ||
             (selected === "teams" && !isTournamentMode && (!teamsComplete || !teamsConfirmed || saving || savingTeams)) ||
             (selected === "result" && !isTournamentMode && (!hasResult || saving)) ||
             (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at)) ||
@@ -804,7 +823,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           const nextStep = steps[selectedIndex + 1];
           const nextLabel = selected === "settings" ? "Passt · Anwesenheit prüfen →"
             : selected === "mode" && !isTournamentMode
-            ? (setupWizardRef.current?.label ?? "Normal spielen · Teams erstellen →")
+            ? (configuringTournament ? (setupWizardRef.current?.label ?? "Turnier einrichten →") : "Normal spielen · Teams erstellen →")
             : selected === "result" && isTournamentMode && tournamentWizardStage === "teams"
               ? "Teams bestätigt · Turnier starten →"
               : selected === "attendance" ? "Anwesenheit passt · weiter →"
@@ -846,7 +865,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   return;
                 }
                 if (selected === "mode" && !isTournamentMode) {
-                  if (setupWizardRef.current) setupWizardRef.current.next();
+                  if (configuringTournament && setupWizardRef.current) setupWizardRef.current.next();
                   else {
                     setNormalModeReviewed(true);
                     setPilotStep("teams");
@@ -954,7 +973,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         </>
         )}
         {pilotEntryView === "data" && isAdmin && isTrainingSession ? (
-          <button type="button" onClick={() => setPilotEntryView("overview")}
+          <button type="button" onClick={() => { setPilotView("admin"); setPilotEntryView("overview"); }}
             className="sticky bottom-4 z-10 mx-auto block rounded-full border border-teal-300 bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-xl">
             ← Zur Trainingsauswahl
           </button>
