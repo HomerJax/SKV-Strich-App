@@ -846,6 +846,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       resultShareReady={resultShareReady}
       preparingResultShare={preparingResultShare}
       resultShareMessage={resultShareMessage}
+      pilotStoryEnabled={props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60"}
       mvpVotingEnabled={mvpVotingEnabled}
     />
   ) : null;
@@ -1197,7 +1198,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             if (key === "photo") return isTournamentMode && session.tournament_completed_at
               ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => setWinnerPhotoCollapsed(prev => !prev)} title={t("sessionDetail.winnerPhoto")} />
               : <div className="space-y-3">{hasResult && dayWinnerSide ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => {}} title={t("sessionDetail.winnerPhoto")} /> : <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{hasResult ? "Unentschieden: Kein Siegerfoto nötig. Du kannst das Training abschließen." : "Bitte zuerst ein Ergebnis mit Sieger erfassen."}</p>}</div>;
-            if (key === "winner") return <TournamentWinnerCard sessionId={props.sessionId} photoUrl={winnerPhotoUrl} onBack={() => setPilotStep("result")} />;
+            if (key === "winner") return <TournamentWinnerCard sessionId={props.sessionId} photoUrl={winnerPhotoUrl} pilotStoryEnabled={props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60"} onBack={() => setPilotStep("result")} />;
             if (key === "check") return <TrainingClosingCheck sessionId={props.sessionId} players={displayPlayers} presentIds={draftPresentIds} onReadyChange={setCloseCheckReady} beforeResult={!isTournamentMode} />;
             return null;
           };
