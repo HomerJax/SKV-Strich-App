@@ -13,6 +13,9 @@ import { getServerI18n } from "@/lib/i18n/server";
 export const runtime = "nodejs";
 
 const TIMER_MODES = new Set(["duration", "end_time"]);
+// The pilot wizard may start its optional timer even before club settings are configured.
+// Other clubs continue honoring their existing club-level timer switch.
+const PILOT_WIZARD_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
 const ALARM_SOUNDS = new Set(["whistle", "horn", "buzzer"]);
 const HALFTIME_BEHAVIORS = new Set(["pause", "signal"]);
 
@@ -164,7 +167,7 @@ export async function GET(
 
   return NextResponse.json({
     ok: true,
-    enabled: clubResult.data?.game_timer_enabled === true,
+    enabled: access.clubId === PILOT_WIZARD_CLUB_ID || clubResult.data?.game_timer_enabled === true,
     clubDefaultSettings: defaults,
     settings: effectiveSettings,
     usesOverride,

@@ -1183,20 +1183,20 @@ ${sessionUrl}`;
     }
   }
 
-  async function generateTeams() {
+  async function generateTeams(): Promise<boolean> {
     if (!allowTeams) {
       setErr(t("sessionHook.noTeamsEvent"));
-      return;
+      return false;
     }
 
     if (hasResult) {
       setErr(t("sessionHook.teamsLocked"));
-      return;
+      return false;
     }
 
     if (attendanceDirty) {
       setErr(t("sessionHook.saveAttendanceFirst"));
-      return;
+      return false;
     }
 
     const restoreScroll = preserveScrollPosition();
@@ -1207,7 +1207,7 @@ ${sessionUrl}`;
     if (present.length < 2) {
       setErr(t("sessionHook.minPlayers"));
       restoreScroll();
-      return;
+      return false;
     }
 
     const targetA = Math.ceil(present.length / 2);
@@ -1353,7 +1353,7 @@ ${sessionUrl}`;
     if (!bestQuality || bestA.length === 0 || bestB.length === 0) {
       setErr(t("sessionHook.noValidSplit"));
       restoreScroll();
-      return;
+      return false;
     }
 
     const maxSwapRounds = Math.min(40, present.length * 2);
@@ -1405,7 +1405,11 @@ ${sessionUrl}`;
     setManualTeams(next);
     setTeamsConfirmed(false);
     setTeamGenerationRunId((run) => run + 1);
-    await persistTeamsNow(next);
+    const saved = await persistTeamsNow(next);
+    if (!saved) {
+      restoreScroll();
+      return false;
+    }
 
     const usesBalanceGroups = present.some((player) =>
       Boolean(player.balance_group?.trim())
@@ -1437,6 +1441,7 @@ ${sessionUrl}`;
 
     setTeamsCollapsed(false);
     restoreScroll();
+    return true;
   }
 
   function confirmTeams() {
