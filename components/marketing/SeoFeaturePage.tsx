@@ -163,16 +163,25 @@ const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
 
 export function getSeoFeatureMetadata(feature: FeatureKey, locale: AppLocale): Metadata {
   const copy = pages[feature][locale];
+  const englishPath = `/en${copy.path}`;
+  const localizedPath = locale === "en" ? englishPath : copy.path;
   return {
     title: copy.title,
     description: copy.description,
-    alternates: { canonical: copy.path },
+    alternates: {
+      canonical: localizedPath,
+      languages: {
+        "de-DE": copy.path,
+        en: englishPath,
+        "x-default": copy.path,
+      },
+    },
     openGraph: {
       type: "website",
       siteName: "strikr",
       title: copy.title,
       description: copy.description,
-      url: copy.path,
+      url: localizedPath,
     },
     twitter: {
       card: "summary",
@@ -197,9 +206,19 @@ export default function SeoFeaturePage({
       <LandingPageTracker />
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
         <Link href="/" className="text-xl font-black tracking-tight text-white">strikr</Link>
-        <Link href="/demo" data-analytics-event="seo_demo_click" className="rounded-full border border-white/15 px-4 py-2 text-xs font-bold text-white/80 hover:bg-white/10">
-          {isGerman ? "Live-Demo" : "Live demo"}
-        </Link>
+        <nav aria-label={isGerman ? "Seitennavigation" : "Page navigation"} className="flex items-center gap-2">
+          <Link
+            href={isGerman ? `/en${copy.path}` : copy.path}
+            lang={isGerman ? "en" : "de"}
+            hrefLang={isGerman ? "en" : "de-DE"}
+            className="rounded-full border border-white/15 px-3 py-2 text-xs font-bold text-white/70 hover:bg-white/10"
+          >
+            {isGerman ? "English" : "Deutsch"}
+          </Link>
+          <Link href="/demo" data-analytics-event="seo_demo_click" className="rounded-full border border-white/15 px-4 py-2 text-xs font-bold text-white/80 hover:bg-white/10">
+            {isGerman ? "Live-Demo" : "Live demo"}
+          </Link>
+        </nav>
       </header>
 
       <section className="relative overflow-hidden border-b border-white/10">
@@ -245,7 +264,11 @@ export default function SeoFeaturePage({
             <h2 className="text-lg font-black">{isGerman ? "strikr entdecken" : "Explore strikr"}</h2>
             <div className="mt-4 flex flex-col gap-3">
               {copy.related.map((item) => (
-                <Link key={item.href} href={item.href} className="font-semibold text-cyan-100 underline decoration-cyan-300/30 underline-offset-4 hover:text-white">
+                <Link
+                  key={item.href}
+                  href={locale === "en" ? `/en${item.href}` : item.href}
+                  className="font-semibold text-cyan-100 underline decoration-cyan-300/30 underline-offset-4 hover:text-white"
+                >
                   {item.label}
                 </Link>
               ))}
