@@ -1080,18 +1080,33 @@ ${sessionUrl}`;
       const toRemove = presentIds.filter((id) => !draftPresentIds.includes(id));
       const toAdd = draftPresentIds.filter((id) => !presentIds.includes(id));
 
-      for (const id of toRemove) {
-        const formData = new FormData();
-        formData.set("intent", "toggle_presence");
-        formData.set("player_id", String(id));
-        await postForm(formData);
-      }
+      if (forceAttendanceBatchMode && clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60") {
+        // One authenticated bulk request for the pilot instead of 1 slow roundtrip
+        // per changed player. Server-side updates still validate results and club.
+        const response = await fetch(`/api/sessions/${sessionId}/attendance-batch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ presentIds: draftPresentIds }),
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null) as { error?: string } | null;
+          throw new Error(payload?.error ?? t("sessionHook.attendanceSaveFailed"));
+        }
+      } else {
+        for (const id of toRemove) {
+          const formData = new FormData();
+          formData.set("intent", "toggle_presence");
+          formData.set("player_id", String(id));
+          await postForm(formData);
+        }
 
-      for (const id of toAdd) {
-        const formData = new FormData();
-        formData.set("intent", "toggle_presence");
-        formData.set("player_id", String(id));
-        await postForm(formData);
+        for (const id of toAdd) {
+          const formData = new FormData();
+          formData.set("intent", "toggle_presence");
+          formData.set("player_id", String(id));
+          await postForm(formData);
+        }
       }
 
       const nextManualTeams = ensurePresentPlayersExistInTeamMap(
@@ -1103,7 +1118,9 @@ ${sessionUrl}`;
       setManualTeams(nextManualTeams);
       setTeamsConfirmed(false);
 
-      if (allowTeams) {
+      if (allowTeams && Object.values(nextManualTeams).some(side => side === "A" || side === "B")) {
+        // Before the first team generation there is no lineup to persist.
+        // Avoid another costly request for an entirely unassigned team map.
         await persistTeamsNow(nextManualTeams);
       }
 
