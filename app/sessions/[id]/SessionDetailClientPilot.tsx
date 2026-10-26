@@ -1198,7 +1198,6 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             (selected === "teams" && !isTournamentMode && (!teamsComplete || !teamsConfirmed || saving || savingTeams)) ||
             (selected === "finish" && teamChangedChoice === null) ||
             (selected === "recheck" && (!teamsComplete || !teamsConfirmed || savingTeams)) ||
-            (selected === "result" && !isTournamentMode && (!hasResult || saving || photoUploadWorking || (Boolean(stagedPhotoFile) && Boolean(dayWinnerSide)))) ||
             (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at)) ||
             (selected === "photo" && isTournamentMode && !session.tournament_completed_at) ||
             (selected === "check" && !closeCheckReady);
@@ -1217,11 +1216,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                       : selected === "finish"
                         ? "Wurden die Teams während des Trainings verändert?"
                         : selected === "photo"
-                          ? "Optional: Siegerfoto auswählen. Nach dem Ergebnis wird es automatisch gespeichert."
+                          ? "Optional: Siegerfoto auswählen. Es wird beim Speichern des Ergebnisses gesichert."
                           : selected === "result"
-                            ? "Trage das Spielergebnis ein. Erst danach wird das gewählte Siegerfoto hochgeladen."
+                            ? "Letzter Schritt: Ergebnis eintragen und speichern. Danach seid ihr fertig."
                             : selected === "check"
-                              ? "Prüfe zum Abschluss noch Anwesenheit, Pünktlichkeit und besondere Vorkommnisse."
+                              ? "Prüfe Anwesenheit, Pünktlichkeit und Vorfälle vor dem Ergebnis."
                               : "Deine Siegerkarte ist bereit.";
           const statusHint = selected === "attendance" && (attendanceDirty || presentPlayers.length < 2)
             ? "Mindestens zwei anwesende Spieler auswählen und offene Änderungen speichern."
@@ -1230,16 +1229,16 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               : selected === "teams" && !teamsConfirmed
                 ? "Bestätige die Aufstellung in der Teamansicht."
                 : selected === "result" && !isTournamentMode && !hasResult
-                  ? "Erst ein Ergebnis speichern, danach geht es weiter."
+                  ? "Ergebnis speichern – danach endet das Training automatisch."
                   : selected === "result" && isTournamentMode && tournamentWizardStage === "games" && !session.tournament_completed_at
                     ? "Beende zuerst das Turnier."
                     : null;
           const nextStep = steps[selectedIndex + 1];
-          const nextLabel = selected === "check" ? "Training abschließen ✓"
+          const nextLabel = selected === "check" ? (isTournamentMode ? "Training abschließen ✓" : "Weiter zum Ergebnis →")
             : selected === "live" ? "Training abschließen →"
             : selected === "finish" ? (teamChangedChoice === "yes" ? "Teams prüfen →" : "Weiter zum Foto →")
             : selected === "recheck" ? "Teams passen · Foto auswählen →"
-            : selected === "photo" && !isTournamentMode ? "Weiter zum Ergebnis →"
+            : selected === "photo" && !isTournamentMode ? "Weiter zu den Abschlussfragen →"
             : selected === "timer" ? "Ohne Spieluhr starten →"
             : selected === "settings" ? "Passt · Anwesenheit prüfen →"
             : selected === "mode" && !isTournamentMode
@@ -1262,7 +1261,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               helperText={statusHint}
               nextDisabled={nextDisabled}
               nextLabel={nextLabel}
-              hideNext={selected === "timer"}
+              hideNext={selected === "timer" || (!isTournamentMode && selected === "result")}
               onSelect={(index) => { setPilotStep(steps[index].key); setWizardManualSelection(true); }}
               onBack={() => {
                 if (selectedIndex > 0) {
@@ -1318,6 +1317,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 }
                 if (selected === "recheck") {
                   setPilotStep("photo");
+                  setWizardManualSelection(true);
+                  return;
+                }
+                if (selected === "check" && !isTournamentMode) {
+                  setCloseCheckReviewed(true);
+                  try { window.localStorage.setItem("strikr-closing-reviewed-" + props.sessionId, "true"); }
+                  catch { /* Optional storage. */ }
+                  setPilotStep("result");
                   setWizardManualSelection(true);
                   return;
                 }
