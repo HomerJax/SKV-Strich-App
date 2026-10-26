@@ -56,35 +56,24 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   const toRemove = [...actual].filter(id => !requested.has(id));
   const toAdd = desired.filter(id => !actual.has(id));
 
-  // Each operation handles multiple players in a single database request.
-  // Keep RSVP and actual-attendance changes consistent with toggle_presence.
+  // Save physical attendance only. RSVP commitments, timestamps and first-in
+  // history MUST NOT be overwritten: the closing check needs them to detect
+  // late cancellations and no-shows correctly.
   if (toRemove.length > 0) {
-    const [removePresence, removeRsvp] = await Promise.all([
-      db.from("session_players").delete().eq("session_id", sessionId).in("player_id", toRemove),
-      db.from("session_rsvps").delete().eq("club_id", access.clubId)
-        .eq("session_id", sessionId).in("player_id", toRemove),
-    ]);
-    if (removePresence.error || removeRsvp.error) {
-      return fail("Abwesende Spieler konnten nicht vollständig gespeichert werden. Bitte erneut versuchen.", 500);
+    const { error } = await db.from("session_players").delete()
+      .eq("session_id", sessionId).in("player_id", toRemove);
+    if (error) {
+      return fail("Abwesende Spieler konnten nicht gespeichert werden. Bitte erneut versuchen.", 500);
     }
   }
 
   if (toAdd.length > 0) {
-    const [insertPresence, insertRsvp] = await Promise.all([
-      db.from("session_players").upsert(
-        toAdd.map(playerId => ({ session_id: sessionId, player_id: playerId })),
-        { onConflict: "session_id,player_id" },
-      ),
-      db.from("session_rsvps").upsert(
-        toAdd.map(playerId => ({
-          club_id: access.clubId, session_id: sessionId, player_id: playerId,
-          status: "in", updated_at: new Date().toISOString(),
-        })),
-        { onConflict: "session_id,player_id" },
-      ),
-    ]);
-    if (insertPresence.error || insertRsvp.error) {
-      return fail("Anwesende Spieler konnten nicht vollständig gespeichert werden. Bitte erneut versuchen.", 500);
+    const { error } = await db.from("session_players").upsert(
+      toAdd.map(playerId => ({ session_id: sessionId, player_id: playerId })),
+      { onConflict: "session_id,player_id" },
+    );
+    if (error) {
+      return fail("Anwesende Spieler konnten nicht gespeichert werden. Bitte erneut versuchen.", 500);
     }
   }
 
