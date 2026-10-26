@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
-type Props = { sessionId: number; photoUrl: string | null; onBack: () => void };
+type Props = { sessionId: number; photoUrl: string | null; onBack: () => void; pilotStoryEnabled?: boolean };
 
-export default function TournamentWinnerCard({ sessionId, photoUrl, onBack }: Props) {
+export default function TournamentWinnerCard({ sessionId, photoUrl, onBack, pilotStoryEnabled = false }: Props) {
   const [winner, setWinner] = useState("Turniersieger");
   const [busy, setBusy] = useState(false);
+  const [shareFormat, setShareFormat] = useState<"post" | "story">("post");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -28,10 +29,11 @@ export default function TournamentWinnerCard({ sessionId, photoUrl, onBack }: Pr
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/share/tournament/${sessionId}/image`, { cache: "no-store" });
+      const story = pilotStoryEnabled && shareFormat === "story";
+      const response = await fetch(`/api/share/tournament/${sessionId}/image${story ? "?format=story" : ""}`, { cache: "no-store" });
       if (!response.ok) throw new Error(await response.text());
       const blob = await response.blob();
-      const file = new File([blob], "strikr-turniersieger.png", { type: "image/png" });
+      const file = new File([blob], story ? "strikr-turniersieger-story.png" : "strikr-turniersieger.png", { type: "image/png" });
       if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
         await navigator.share({ files: [file], title: "strikr Turniersieger" });
       } else {
@@ -55,6 +57,15 @@ export default function TournamentWinnerCard({ sessionId, photoUrl, onBack }: Pr
     <h3 className="text-2xl font-extrabold text-slate-950">{winner}</h3>
     <p className="text-sm text-slate-600">Glückwunsch zum Turniersieg!</p>
     {photoUrl ? <Image src={photoUrl} alt="Siegerfoto" width={960} height={720} unoptimized className="mx-auto w-full rounded-xl object-cover" /> : null}
+    {pilotStoryEnabled ? <div role="group" aria-label="Siegercard-Format" className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+      {(["post", "story"] as const).map(format => (
+        <button type="button" key={format} disabled={busy} onClick={() => setShareFormat(format)}
+          aria-pressed={shareFormat === format}
+          className={`min-h-12 rounded-lg text-xs font-black ${shareFormat === format ? "bg-slate-950 text-white shadow" : "text-slate-600"}`}>
+          {format === "post" ? "Beitrag · 4:5" : "Story · 9:16"}
+        </button>
+      ))}
+    </div> : null}
     <button type="button" onClick={() => void shareCard()} disabled={busy} className="w-full rounded-xl bg-teal-700 px-4 py-4 font-bold text-white disabled:opacity-50">{busy ? "Siegercard wird erstellt …" : "🏆 Siegercard teilen"}</button>
     {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
     <button type="button" onClick={onBack} className="w-full rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 font-bold text-teal-900">Turnier und Abschlusstabelle ansehen →</button>
