@@ -32,6 +32,7 @@ import {
   withDisplayNames,
 } from "./session-detail-helpers";
 import { fetchImageAsFile, shareImageFromUrl } from "@/lib/share/utils";
+import { hasGuidedTrainingAssistant } from "@/lib/training-wizard-pilots";
 import { compressImageFile } from "@/lib/client-images/compress-image";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -1080,8 +1081,8 @@ ${sessionUrl}`;
       const toRemove = presentIds.filter((id) => !draftPresentIds.includes(id));
       const toAdd = draftPresentIds.filter((id) => !presentIds.includes(id));
 
-      if (forceAttendanceBatchMode && clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60") {
-        // One authenticated bulk request for the pilot instead of 1 slow roundtrip
+      if (forceAttendanceBatchMode && hasGuidedTrainingAssistant(clubId)) {
+        // One authenticated bulk request for guided-assistant clubs instead of 1 slow roundtrip
         // per changed player. Server-side updates still validate results and club.
         const response = await fetch(`/api/sessions/${sessionId}/attendance-batch`, {
           method: "POST",
