@@ -1509,44 +1509,45 @@ ${sessionUrl}`;
     rawGoalsA: string,
     rawGoalsB: string,
     isNewGame: boolean,
-  ) {
+    skipFirstConfirmation = false,
+  ): Promise<boolean> {
     if (!allowResult) {
       setErr(t("sessionHook.noResultEvent"));
-      return;
+      return false;
     }
 
-    if (saving || deletingSession || deletingGuestPlayerId) return;
+    if (saving || deletingSession || deletingGuestPlayerId) return false;
 
     const cleanA = normalizeGoalValue(rawGoalsA);
     const cleanB = normalizeGoalValue(rawGoalsB);
 
     if (attendanceDirty) {
       setErr(t("sessionHook.saveAttendanceFirst"));
-      return;
+      return false;
     }
 
     if (!teamsComplete) {
       setErr(
         t("sessionHook.assignPresent")
       );
-      return;
+      return false;
     }
 
     if (!teamsConfirmed) {
       setErr(t("sessionHook.confirmTeamsFirst"));
-      return;
+      return false;
     }
 
     if (cleanA === "" || cleanB === "") {
       setErr(t("sessionHook.enterCompleteResult"));
-      return;
+      return false;
     }
 
-    if (isNewGame && results.length === 0) {
+    if (isNewGame && results.length === 0 && !skipFirstConfirmation) {
       const okConfirm = window.confirm(
         t("sessionHook.firstResultConfirm")
       );
-      if (!okConfirm) return;
+      if (!okConfirm) return false;
     }
 
     const restoreScroll = preserveScrollPosition();
@@ -1595,6 +1596,7 @@ ${sessionUrl}`;
 
         setResultCollapsed(false);
         setShowSessionEndModal(false);
+        return true;
       }
     } catch (e: unknown) {
       setErr(getErrorMessage(e, t("sessionHook.saveFailed")));
@@ -1602,12 +1604,13 @@ ${sessionUrl}`;
       setSaving(false);
       restoreScroll();
     }
+    return false;
   }
 
-  async function saveResult() {
+  async function saveResult(options?: { skipFirstConfirmation?: boolean }): Promise<boolean> {
     const nextGameNo =
       results.reduce((max, entry) => Math.max(max, entry.game_no), 0) + 1;
-    await persistGameResult(nextGameNo, goalsA, goalsB, true);
+    return persistGameResult(nextGameNo, goalsA, goalsB, true, options?.skipFirstConfirmation === true);
   }
 
   async function updateResult(
