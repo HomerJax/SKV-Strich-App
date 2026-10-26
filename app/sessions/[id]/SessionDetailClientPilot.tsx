@@ -162,7 +162,16 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       setTeamChangedChoice(changed === "yes" || changed === "no" ? changed : null);
       setPilotPhotoSkipped(window.localStorage.getItem("strikr-photo-skipped-" + props.sessionId) === "true");
       setPilotFinished(window.localStorage.getItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId) === "true");
-      setCloseCheckReviewed(window.localStorage.getItem("strikr-closing-reviewed-" + props.sessionId) === "true");
+      const wasReviewed = window.localStorage.getItem("strikr-closing-reviewed-" + props.sessionId) === "true";
+      // Previously completed 3-question checks must not silently skip the new
+      // deadline-cancellation question when no result has been saved yet.
+      let hasLateCancelAnswer = false;
+      try {
+        const answers = JSON.parse(window.localStorage.getItem("strikr-closing-check-" + props.sessionId) ?? "null") as
+          { lateCancel?: "yes" | "no" } | null;
+        hasLateCancelAnswer = answers?.lateCancel === "yes" || answers?.lateCancel === "no";
+      } catch { /* Treat old/corrupt answer records as incomplete. */ }
+      setCloseCheckReviewed(wasReviewed && (props.initialHasResult || hasLateCancelAnswer));
       setWinnerReviewed(window.localStorage.getItem("strikr-winner-reviewed-" + props.sessionId) === "true");
     } catch { /* Storage is optional. */ }
   }, [props.sessionId]);
