@@ -711,7 +711,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   }
 
   async function savePilotFinalResult() {
-    if (pilotResultSaveWorking || pilotFinalizingResult || saving || !closeCheckReviewed || !closeCheckReady) return;
+    if (pilotResultSaveWorking || pilotFinalizingResult || saving || !closeCheckReviewed) return;
     setPilotResultSaveWorking(true);
     setPhotoUploadWarning("");
     try {
