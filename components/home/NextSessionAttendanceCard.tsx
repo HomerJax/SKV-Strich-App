@@ -391,7 +391,7 @@ export default function NextSessionAttendanceCard({
                        <span className="min-w-0">
                          <span className="block whitespace-normal break-words text-[12px] font-bold leading-[1.2] text-slate-800">{player.name}</span>
                          {player.comment ? (
-                           <span className="mt-0.5 block text-[11px] font-medium leading-4 text-emerald-700">💬 {player.comment}</span>
+                           <span className="mt-0.5 block text-[11px] font-medium leading-4 text-emerald-700">{player.comment}</span>
                          ) : null}
                        </span>
                      </Link>
@@ -462,7 +462,7 @@ export default function NextSessionAttendanceCard({
             </h2>
             <p className="mt-1 text-sm leading-6 text-slate-500">
               {commentOpen ? (locale === "de" ? "Deine Notiz ist freiwillig. Bestätige danach deine Zusage." : "A note is optional. Confirm your attendance below.")
-                : requireAbsenceReason ? t("session.reasonRequired") : (locale === "de" ? "Du kannst freiwillig einen Grund angeben." : "You can optionally add a reason.")}
+                : requireAbsenceReason ? (locale === "de" ? "Bitte einen Absagegrund eingeben." : "Please enter a reason for declining.") : (locale === "de" ? "Du kannst freiwillig einen Grund angeben." : "You can optionally add a reason.")}
             </p>
             <textarea autoFocus rows={3} maxLength={commentOpen ? 120 : 80}
               value={commentOpen ? commentDraft : reason}
