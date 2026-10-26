@@ -13,6 +13,7 @@ import SessionGameTimerLoader from "./SessionGameTimerLoader";
 import SessionTournamentCard from "./SessionTournamentCard";
 import TrainingSessionWizard from "./TrainingSessionWizard";
 import TrainingAttendanceStep from "./TrainingAttendanceStep";
+import TrainingClosingCheck from "./TrainingClosingCheck";
 import SessionEndModal from "@/components/SessionEndModal";
 import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionGameResult, SessionRow, TeamMap } from "./session-types";
@@ -56,7 +57,7 @@ type SessionDetailClientProps = {
 const TEAM_BALANCE_REVEAL_PILOT_CLUB_ID = "108590d9-0877-4787-90a5-4679615b3b76";
 
 type SectionKey = "attendance" | "teams" | "photo" | "result" | "mvp";
-type TrainingWizardStepKey = "settings" | "attendance" | "mode" | "teams" | "result" | "photo" | "winner";
+type TrainingWizardStepKey = "settings" | "attendance" | "mode" | "teams" | "result" | "photo" | "winner" | "check";
 
 function NoticeCard({
   tone,
@@ -106,6 +107,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [pilotView, setPilotView] = useState<"admin" | "leader" | "player">("admin");
   const [pilotFinished, setPilotFinished] = useState(false);
   const [pilotPhotoSkipped, setPilotPhotoSkipped] = useState(false);
+  const [closeCheckReviewed, setCloseCheckReviewed] = useState(false);
+  const [closeCheckReady, setCloseCheckReady] = useState(false);
+  const [winnerReviewed, setWinnerReviewed] = useState(false);
   const [pilotStep, setPilotStep] = useState<TrainingWizardStepKey | null>(null);
   const [pilotEntryView, setPilotEntryView] = useState<"overview" | "choose" | "data">("overview");
   const [settingsReviewed, setSettingsReviewed] = useState(false);
@@ -119,7 +123,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("strikr-wizard-" + props.sessionId);
-      const allowed: TrainingWizardStepKey[] = ["settings", "attendance", "mode", "teams", "result", "photo", "winner"];
+      const allowed: TrainingWizardStepKey[] = ["settings", "attendance", "mode", "teams", "result", "photo", "winner", "check"];
       if (saved && allowed.includes(saved as TrainingWizardStepKey)) {
         setPilotStep(saved as TrainingWizardStepKey);
       }
@@ -130,6 +134,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       setTrainingStarted(window.localStorage.getItem("strikr-training-started-" + props.sessionId) === "true");
       setPilotPhotoSkipped(window.localStorage.getItem("strikr-photo-skipped-" + props.sessionId) === "true");
       setPilotFinished(window.localStorage.getItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId) === "true");
+      setCloseCheckReviewed(window.localStorage.getItem("strikr-closing-reviewed-" + props.sessionId) === "true");
+      setWinnerReviewed(window.localStorage.getItem("strikr-winner-reviewed-" + props.sessionId) === "true");
     } catch { /* Storage is optional. */ }
   }, [props.sessionId]);
 
@@ -707,8 +713,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             ] : [
               { key: "result" as const, title: "Turnier durchführen", done: Boolean(session.tournament_completed_at), summary: session.tournament_completed_at ? "Turnier abgeschlossen" : "Spielplan & Ergebnisse" },
               { key: "photo" as const, title: "Siegerfoto", optional: true, done: hasWinnerPhoto || pilotPhotoSkipped, summary: hasWinnerPhoto ? "Foto vorhanden" : pilotPhotoSkipped ? "Ohne Foto fortgesetzt" : "Optional" },
-              { key: "winner" as const, title: "Siegercard", done: false, summary: "Turniersieg ansehen" },
+              { key: "winner" as const, title: "Siegercard", done: winnerReviewed, summary: "Turniersieg ansehen" },
             ]),
+            { key: "check" as const, title: "Abschlusscheck", done: closeCheckReviewed, summary: "Anwesenheit, Pünktlichkeit & Vorfälle" },
           ];
           const current = steps.find(s => !s.done)?.key ?? steps[steps.length - 1].key;
           const rememberedIndex = steps.findIndex(s => s.key === pilotStep);
@@ -785,6 +792,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => setWinnerPhotoCollapsed(prev => !prev)} title={t("sessionDetail.winnerPhoto")} />
               : <div className="space-y-3">{hasResult && dayWinnerSide ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => {}} title={t("sessionDetail.winnerPhoto")} /> : <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{hasResult ? "Unentschieden: Kein Siegerfoto nötig. Du kannst das Training abschließen." : "Bitte zuerst ein Ergebnis mit Sieger erfassen."}</p>}</div>;
             if (key === "winner") return <TournamentWinnerCard sessionId={props.sessionId} photoUrl={winnerPhotoUrl} onBack={() => setPilotStep("result")} />;
+            if (key === "check") return <TrainingClosingCheck sessionId={props.sessionId} players={displayPlayers} presentIds={draftPresentIds} onReadyChange={setCloseCheckReady} />;
             return null;
           };
           const nextDisabled =
@@ -793,7 +801,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             (selected === "teams" && !isTournamentMode && (!teamsComplete || !teamsConfirmed || saving || savingTeams)) ||
             (selected === "result" && !isTournamentMode && (!hasResult || saving)) ||
             (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at)) ||
-            (selected === "photo" && isTournamentMode && !session.tournament_completed_at);
+            (selected === "photo" && isTournamentMode && !session.tournament_completed_at) ||
+            (selected === "check" && !closeCheckReady);
           const helperText = selected === "settings"
             ? "Ein kurzer Check vor dem Start. Hier wird noch nichts gespeichert oder verändert."
             : selected === "attendance"
@@ -808,7 +817,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                     : "Starte bei Bedarf die Spieluhr und speichere nach dem Spiel das Ergebnis."
                   : selected === "photo"
                     ? "Optional: Siegerfoto hinzufügen und Ergebnis teilen. Das Training kann auch ohne Foto beendet werden."
-                    : "Deine Siegerkarte ist bereit.";
+                    : selected === "check"
+                      ? "Beantworte drei kurze Fragen, bevor das Training abgeschlossen wird."
+                      : "Deine Siegerkarte ist bereit.";
           const statusHint = selected === "attendance" && (attendanceDirty || presentPlayers.length < 2)
             ? "Mindestens zwei anwesende Spieler auswählen und offene Änderungen speichern."
             : selected === "teams" && !teamsComplete
@@ -821,7 +832,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                     ? "Beende zuerst das Turnier."
                     : null;
           const nextStep = steps[selectedIndex + 1];
-          const nextLabel = selected === "settings" ? "Passt · Anwesenheit prüfen →"
+          const nextLabel = selected === "check" ? "Training abschließen ✓"
+            : selected === "settings" ? "Passt · Anwesenheit prüfen →"
             : selected === "mode" && !isTournamentMode
             ? (configuringTournament ? (setupWizardRef.current?.label ?? "Turnier einrichten →") : "Normal spielen · Teams erstellen →")
             : selected === "result" && isTournamentMode && tournamentWizardStage === "teams"
@@ -878,9 +890,18 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   return;
                 }
                 if (nextStep) {
+                  if (selected === "photo" && !hasWinnerPhoto) setPilotPhotoSkipped(true);
+                  if (selected === "winner") {
+                    setWinnerReviewed(true);
+                    try { window.localStorage.setItem("strikr-winner-reviewed-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
+                  }
                   setPilotStep(nextStep.key);
                   setWizardManualSelection(true);
                 } else {
+                  if (selected === "check") {
+                    setCloseCheckReviewed(true);
+                    try { window.localStorage.setItem("strikr-closing-reviewed-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
+                  }
                   if (!hasWinnerPhoto) setPilotPhotoSkipped(true);
                   setPilotFinished(true);
                   try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
