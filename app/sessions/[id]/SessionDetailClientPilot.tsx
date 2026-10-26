@@ -121,6 +121,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [trainingStarted, setTrainingStarted] = useState(false);
   const [trainingWizardOpen, setTrainingWizardOpen] = useState(false);
   const [clockStarted, setClockStarted] = useState(false);
+  const [useGameClock, setUseGameClock] = useState(false);
   const [trainingEnded, setTrainingEnded] = useState(false);
   const [teamChangedChoice, setTeamChangedChoice] = useState<"yes" | "no" | null>(null);
   const [stagedPhotoFile, setStagedPhotoFile] = useState<File | null>(null);
@@ -140,8 +141,12 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       setNormalModeReviewed(window.localStorage.getItem("strikr-mode-reviewed-" + props.sessionId) === "true");
       setAttendanceReviewed(window.localStorage.getItem("strikr-attendance-reviewed-" + props.sessionId) === "true");
       setAttendanceRosterSignature(window.localStorage.getItem("strikr-attendance-roster-" + props.sessionId) ?? "");
-      setTrainingStarted(window.localStorage.getItem("strikr-training-started-" + props.sessionId) === "true");
-      setClockStarted(window.localStorage.getItem("strikr-clock-started-" + props.sessionId) === "true");
+      const startConfirmed = window.localStorage.getItem("strikr-clock-started-" + props.sessionId) === "true";
+      // Older wizard builds marked a training as started merely by opening it.
+      setTrainingStarted(startConfirmed && window.localStorage.getItem("strikr-training-started-" + props.sessionId) === "true");
+      setClockStarted(startConfirmed);
+      const clockChoice = window.localStorage.getItem("strikr-use-game-clock-" + props.sessionId);
+      setUseGameClock(clockChoice === "true" || (clockChoice === null && startConfirmed));
       setTrainingEnded(window.localStorage.getItem("strikr-training-ended-" + props.sessionId) === "true");
       const changed = window.localStorage.getItem("strikr-teams-changed-" + props.sessionId);
       setTeamChangedChoice(changed === "yes" || changed === "no" ? changed : null);
@@ -287,6 +292,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     toggleGuestForm,
     toggleAttendanceMultiSelect,
     confirmTeams,
+    confirmPilotTeams,
     handleShareLineup,
     handleShareResult,
     handleDeleteGuestPlayer,
@@ -367,7 +373,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   function enterTrainingWizard() {
     setPilotEntryView("overview");
-    setTrainingStarted(true);
+    // Opening the wizard is not the same as starting the actual training.
     // First opening begins with a short check; returning users resume their step.
     if (!settingsReviewed || pilotStep === null) setPilotStep("settings");
     setTrainingWizardOpen(true);
@@ -516,12 +522,16 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
           onGenerateTeams={generateTeams}
           onConfirmTeams={() => {
-            confirmTeams();
-            if (trainingWizardOpen && !hasResult && teamsComplete) {
+            if (!trainingWizardOpen) {
+              confirmTeams();
+              return;
+            }
+            void confirmPilotTeams().then((saved) => {
+              if (!saved) return;
               setPilotStep(pilotStep === "recheck" ? "photo" : "timer");
               setWizardManualSelection(true);
-            }
-          }}
+            });
+          }
           onShareLineup={handleShareLineup}
           onSetSide={setSide}
         />
@@ -766,7 +776,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || normalModeReviewed || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
             ...(!isTournamentMode ? [
               { key: "teams" as const, title: "Faire Teams", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
-              { key: "timer" as const, title: "Training starten", done: clockStarted || hasResult, summary: "Mit oder ohne Spieluhr" },
+              { key: "timer" as const, title: "Training starten", done: trainingStarted || clockStarted || hasResult, summary: "Mit oder ohne Spieluhr" },
               { key: "live" as const, title: "Training läuft", done: trainingEnded || hasResult, summary: "Spieluhr und Trainingsende" },
               { key: "finish" as const, title: "Teams prüfen", done: teamChangedChoice !== null || hasResult, summary: "Wurde die Einteilung noch geändert?" },
               ...(teamChangedChoice === "yes" && !hasResult ? [
@@ -831,8 +841,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 {key === "timer" ? (
                   <button type="button"
                     onClick={() => {
+                      window.dispatchEvent(new CustomEvent("strikr:training-timer-stop", { detail: { sessionId: props.sessionId } }));
+                      setTrainingStarted(true);
                       setClockStarted(true);
-                      try { window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
+                      setUseGameClock(false);
+                      try {
+                        window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true");
+                        window.localStorage.setItem("strikr-use-game-clock-" + props.sessionId, "false");
+                      } catch { /* Optional storage. */ }
                       setPilotStep("live");
                       setWizardManualSelection(true);
                     }}
@@ -850,14 +866,25 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                       Oder mit Spieluhr spielen
                     </p>
                   ) : null}
-                  <SessionGameTimerLoader sessionId={props.sessionId}
-                    startLabel="▶ Mit Spieluhr starten"
-                    onStarted={() => {
-                      setClockStarted(true);
-                      try { window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true"); } catch { /* Optional. */ }
-                      setPilotStep("live");
-                      setWizardManualSelection(true);
-                    }} />
+                  {key === "timer" || useGameClock ? (
+                    <SessionGameTimerLoader sessionId={props.sessionId}
+                      startLabel="▶ Mit Spieluhr starten"
+                      onStarted={() => {
+                        setTrainingStarted(true);
+                        setClockStarted(true);
+                        setUseGameClock(true);
+                        try {
+                          window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true");
+                          window.localStorage.setItem("strikr-use-game-clock-" + props.sessionId, "true");
+                        } catch { /* Optional. */ }
+                        setPilotStep("live");
+                        setWizardManualSelection(true);
+                      }} />
+                  ) : (
+                    <p className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-slate-600">
+                      Ohne Spieluhr gestartet – beendet wird das Training über den Button unten.
+                    </p>
+                  )}
                 </div>
               </section>
             );
@@ -1032,7 +1059,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               fullscreen
               onClose={leaveTrainingWizard}
               overlayContent={sessionEndModal}
-              helperText={statusHint ?? helperText}
+              helperText={statusHint}
               nextDisabled={nextDisabled}
               nextLabel={nextLabel}
               onSelect={(index) => { setPilotStep(steps[index].key); setWizardManualSelection(true); }}
@@ -1071,8 +1098,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   return;
                 }
                 if (selected === "timer") {
+                  window.dispatchEvent(new CustomEvent("strikr:training-timer-stop", { detail: { sessionId: props.sessionId } }));
+                  setTrainingStarted(true);
                   setClockStarted(true);
-                  try { window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
+                  setUseGameClock(false);
+                  try {
+                    window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true");
+                    window.localStorage.setItem("strikr-use-game-clock-" + props.sessionId, "false");
+                  } catch { /* Optional storage. */ }
                   setPilotStep("live");
                   setWizardManualSelection(true);
                   return;
@@ -1126,6 +1159,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 </div>
               ) : null}
             >
+              {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
               {renderStep(selected)}
               {selected === "photo" && !isTournamentMode && showMvpSection ? (
                 <details className="rounded-xl border border-slate-200 bg-white p-3">
