@@ -317,7 +317,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   }, [stagedPhotoFile]);
 
   useEffect(() => {
-    if (!hasResult || !stagedPhotoFile || !dayWinnerSide || photoUploadLock.current) return;
+    if (!hasResult || !stagedPhotoFile || !dayWinnerSide || saving || photoBusy || photoUploadLock.current) return;
     photoUploadLock.current = true;
     setPhotoUploadWorking(true);
     setPhotoUploadWarning("");
@@ -332,7 +332,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         setPhotoUploadWorking(false);
         photoUploadLock.current = false;
       });
-  }, [hasResult, dayWinnerSide, stagedPhotoFile]);
+  }, [hasResult, dayWinnerSide, stagedPhotoFile, saving, photoBusy]);
 
   useEffect(() => {
     if (hasResult && stagedPhotoFile && !dayWinnerSide) {
