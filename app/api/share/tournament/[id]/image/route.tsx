@@ -16,7 +16,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       return new Response("Story-Layout nur für das Pilotteam verfügbar.", { status: 403 });
     }
     return new ImageResponse(
-      story ? <ResultStoryShareCard data={data} tournament /> : <ResultShareCard data={data} />,
+      story ? <ResultStoryShareCard data={data} /> : <ResultShareCard data={data} />,
       { width: 1080, height: story ? 1920 : 1350, headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
