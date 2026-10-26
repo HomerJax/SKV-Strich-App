@@ -243,7 +243,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   return (
     <HomePullToRefresh>
-      {(isPowerUser || isAdminRole(membership.role) || canLeadTraining) && (
+      {(isPowerUser || isAdminRole(membership.role) || canLeadTraining) && !(clubId === TRAINING_WIZARD_TEST_CLUB_ID && session.type === "training") && (
         <div className="mx-auto flex max-w-5xl flex-wrap gap-2 px-4 pt-3">
           <Link href={`/sessions/${sessionId}/attendance-review`}
             className="inline-flex rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900 ring-1 ring-amber-200">
