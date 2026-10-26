@@ -4,6 +4,7 @@ import ThatsStrikrSection from "@/components/marketing/ThatsStrikrSection";
 import RecoveryLandingRedirect from "@/components/auth/RecoveryLandingRedirect";
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FREE_HIGHLIGHTS, PRO_HIGHLIGHTS } from "@/lib/billing/product-matrix";
@@ -17,6 +18,10 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
