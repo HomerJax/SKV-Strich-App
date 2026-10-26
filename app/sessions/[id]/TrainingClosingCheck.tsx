@@ -13,9 +13,10 @@ type Props = {
   players: Player[];
   presentIds: number[];
   onReadyChange: (ready: boolean) => void;
+  beforeResult?: boolean;
 };
 
-export default function TrainingClosingCheck({ sessionId, players, presentIds, onReadyChange }: Props) {
+export default function TrainingClosingCheck({ sessionId, players, presentIds, onReadyChange, beforeResult = false }: Props) {
   const [presentOk, setPresentOk] = useState<Answer>(null);
   const [punctualOk, setPunctualOk] = useState<Answer>(null);
   const [specialEvents, setSpecialEvents] = useState<Answer>(null);
@@ -149,9 +150,9 @@ export default function TrainingClosingCheck({ sessionId, players, presentIds, o
 
   return <div className="space-y-3">
     <div className="rounded-2xl bg-slate-950 p-4 text-white">
-      <div className="text-[11px] font-black uppercase tracking-[.18em] text-teal-300">Letzter Schritt</div>
+      <div className="text-[11px] font-black uppercase tracking-[.18em] text-teal-300">{beforeResult ? "Vor dem Ergebnis" : "Letzter Schritt"}</div>
       <h2 className="mt-2 text-xl font-black">Alles erledigt nach dem Training?</h2>
-      <p className="mt-2 text-sm leading-6 text-white/65">Drei kurze Fragen. Wenn alles passt, bist du fertig.</p>
+      <p className="mt-2 text-sm leading-6 text-white/65">{beforeResult ? "Drei kurze Fragen. Danach nur noch das Ergebnis speichern." : "Drei kurze Fragen. Wenn alles passt, bist du fertig."}</p>
     </div>
 
     <Question number={1} title="Waren alle erwarteten Spieler da?"
@@ -235,7 +236,7 @@ export default function TrainingClosingCheck({ sessionId, players, presentIds, o
     </label> : null}
 
     <div role="status" className={`rounded-xl px-4 py-3 text-sm font-bold ${ready ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
-      {ready ? "✓ Abschlusscheck bestätigt. Du kannst das Training abschließen." :
+      {ready ? (beforeResult ? "✓ Alles geprüft. Weiter zum Ergebnis." : "✓ Abschlusscheck bestätigt. Du kannst das Training abschließen.") :
         !allAnswered ? "Bitte alle drei Fragen beantworten." : "Bitte die Auffälligkeiten bestätigen."}
     </div>
   </div>;
