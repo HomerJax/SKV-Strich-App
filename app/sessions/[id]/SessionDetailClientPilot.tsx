@@ -534,6 +534,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     setBalanceGenerating(true);
     setBalanceError("");
     try {
+      // Give React a paint frame before starting the CPU-intensive optimization.
+      // This makes the generating status visible immediately, even on slow phones.
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => window.setTimeout(resolve, 60));
+      });
       const saved = await generateTeams();
       if (!saved) setBalanceError("Die Teams konnten nicht gespeichert werden. Bitte erneut generieren.");
     } catch {
@@ -1151,7 +1156,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   : selected === "timer"
                     ? "Die Spieluhr ist optional. Ohne Uhr direkt starten oder die Spielzeit einstellen."
                     : selected === "live"
-                      ? "Das Training läuft. Wenn ihr fertig seid, beende die Einheit mit dem Button unten."
+                      ? "Das Training läuft. Wenn ihr fertig seid, schließe die Einheit mit dem Button unten ab."
                       : selected === "finish"
                         ? "Wurden die Teams während des Trainings verändert?"
                         : selected === "photo"
@@ -1174,7 +1179,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                     : null;
           const nextStep = steps[selectedIndex + 1];
           const nextLabel = selected === "check" ? "Training abschließen ✓"
-            : selected === "live" ? "Training beenden →"
+            : selected === "live" ? "Training abschließen →"
             : selected === "finish" ? (teamChangedChoice === "yes" ? "Teams prüfen →" : "Weiter zum Foto →")
             : selected === "recheck" ? "Teams passen · Foto auswählen →"
             : selected === "photo" && !isTournamentMode ? "Weiter zum Ergebnis →"
