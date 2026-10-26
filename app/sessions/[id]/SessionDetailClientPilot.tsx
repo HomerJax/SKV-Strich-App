@@ -15,6 +15,8 @@ import SessionTournamentCard from "./SessionTournamentCard";
 import TrainingSessionWizard from "./TrainingSessionWizard";
 import TrainingAttendanceStep from "./TrainingAttendanceStep";
 import TrainingClosingCheck from "./TrainingClosingCheck";
+import PilotTeamBalanceOverlay from "./PilotTeamBalanceOverlay";
+import { Clock3, Play, Sparkles } from "lucide-react";
 import SessionEndModal from "@/components/SessionEndModal";
 import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionGameResult, SessionRow, TeamMap } from "./session-types";
@@ -129,6 +131,12 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [photoUploadWorking, setPhotoUploadWorking] = useState(false);
   const [photoUploadWarning, setPhotoUploadWarning] = useState("");
   const photoUploadLock = useRef(false);
+  const [timerChoice, setTimerChoice] = useState<"with" | null>(null);
+  const [balanceOverlayOpen, setBalanceOverlayOpen] = useState(false);
+  const [balanceGenerating, setBalanceGenerating] = useState(false);
+  const [balanceSaving, setBalanceSaving] = useState(false);
+  const [balanceError, setBalanceError] = useState("");
+  const [pilotManualTeamsOpen, setPilotManualTeamsOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -495,13 +503,133 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     );
   }
 
+  function startWithoutClock() {
+    window.dispatchEvent(new CustomEvent("strikr:training-timer-stop", { detail: { sessionId: props.sessionId } }));
+    setTrainingStarted(true);
+    setClockStarted(true);
+    setUseGameClock(false);
+    try {
+      window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true");
+      window.localStorage.setItem("strikr-use-game-clock-" + props.sessionId, "false");
+    } catch { /* Optional storage. */ }
+    setPilotStep("live");
+    setWizardManualSelection(true);
+  }
+
+  function handleClockStarted() {
+    setTrainingStarted(true);
+    setClockStarted(true);
+    setUseGameClock(true);
+    try {
+      window.localStorage.setItem("strikr-clock-started-" + props.sessionId, "true");
+      window.localStorage.setItem("strikr-use-game-clock-" + props.sessionId, "true");
+    } catch { /* Optional storage. */ }
+    setPilotStep("live");
+    setWizardManualSelection(true);
+  }
+
+  async function runPilotTeamGeneration() {
+    if (balanceGenerating || balanceSaving || savingTeams || attendanceDirty || hasResult) return;
+    setBalanceOverlayOpen(true);
+    setBalanceGenerating(true);
+    setBalanceError("");
+    try {
+      const saved = await generateTeams();
+      if (!saved) setBalanceError("Die Teams konnten nicht gespeichert werden. Bitte erneut generieren.");
+    } catch {
+      setBalanceError("Die Teamverteilung ist fehlgeschlagen. Bitte erneut versuchen.");
+    } finally {
+      setBalanceGenerating(false);
+    }
+  }
+
+  async function acceptPilotTeams() {
+    if (balanceGenerating || balanceSaving) return;
+    setBalanceSaving(true);
+    setBalanceError("");
+    try {
+      const saved = await confirmPilotTeams();
+      if (!saved) {
+        setBalanceError("Die Teamaufstellung konnte nicht gespeichert werden. Bitte erneut versuchen.");
+        return;
+      }
+      setBalanceOverlayOpen(false);
+      setPilotManualTeamsOpen(false);
+      setPilotStep(pilotStep === "recheck" ? "photo" : "timer");
+      setWizardManualSelection(true);
+    } catch {
+      setBalanceError("Speichern fehlgeschlagen. Bitte erneut versuchen.");
+    } finally {
+      setBalanceSaving(false);
+    }
+  }
+
   function renderTeams() {
     if (!allowTeams) return null;
 
+    if (trainingWizardOpen && !pilotManualTeamsOpen) {
+      return (
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-[24px] bg-gradient-to-br from-[#091525] via-slate-950 to-[#10505a] p-5 text-white shadow-lg">
+            <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[.2em] text-teal-300">
+              <Sparkles className="h-4 w-4" aria-hidden="true" /> strikr balance
+            </div>
+            <h3 className="mt-3 text-2xl font-black tracking-tight">Zwei Teams. Fair verteilt.</h3>
+            <p className="mt-2 text-sm leading-6 text-white/70">strikr berücksichtigt die Spieler und eure Team-Einstellungen.</p>
+            <button type="button" onClick={() => { void runPilotTeamGeneration(); }}
+              disabled={saving || savingTeams || balanceGenerating || attendanceDirty || hasResult || presentPlayers.length < 2}
+              className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-teal-300 px-4 text-base font-black text-slate-950 transition hover:bg-teal-200 disabled:opacity-50">
+              <Sparkles className="h-5 w-5" aria-hidden="true" />
+              {teamsComplete ? "Teams neu generieren" : "Teams generieren"}
+            </button>
+          </div>
+          {teamsComplete ? (
+            <div className="rounded-[20px] border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <span className="text-sm font-black text-slate-900">Eure Aufstellung</span>
+                <span className={"rounded-full px-2.5 py-1 text-[11px] font-bold " + (teamsConfirmed ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800")}>
+                  {teamsConfirmed ? "✓ Bestätigt" : "Noch nicht bestätigt"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {([{ title: "Team A", players: displayTeamA }, { title: "Team B", players: displayTeamB }]).map(team => (
+                  <div key={team.title} className="min-w-0 rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs font-black text-slate-900">{team.title} · {team.players.length}</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-600">
+                      {team.players.slice(0, 3).map(player => player.name?.trim() || player.first_name || "Spieler").join(", ")}
+                      {team.players.length > 3 ? " …" : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {!teamsConfirmed ? (
+                <button type="button" disabled={saving || savingTeams || balanceSaving}
+                  onClick={() => { void acceptPilotTeams(); }}
+                  className="mt-4 min-h-12 w-full rounded-xl bg-slate-950 px-4 text-sm font-black text-white disabled:opacity-50">
+                  {balanceSaving ? "Speichere Teams …" : "Teams übernehmen →"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {teamsComplete && !teamsConfirmed && err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
+          {teamsComplete ? (
+            <button type="button" onClick={() => setPilotManualTeamsOpen(true)}
+              className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700">
+              Spieler manuell anpassen
+            </button>
+          ) : null}
+        </div>
+      );
+    }
+
     return (
-      <div ref={teamsRef}>
+      <div ref={teamsRef} className="space-y-3">
+        {trainingWizardOpen ? (
+          <button type="button" onClick={() => setPilotManualTeamsOpen(false)}
+            className="min-h-11 text-sm font-bold text-slate-600">← Zur kompakten Teamansicht</button>
+        ) : null}
         <SessionTeamsCard
-          enableBalanceReveal={enableBalanceReveal}
+          enableBalanceReveal={enableBalanceReveal && !trainingWizardOpen}
           generationRunId={enableBalanceReveal ? teamGenerationRunId : 0}
           showStrengthNumbers={enableBalanceReveal && pilotAdmin && pilotView === "admin"}
           scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}}
@@ -520,7 +648,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           attendanceDirty={attendanceDirty}
           enableFieldView={useFieldView}
           onToggleCollapsed={() => setTeamsCollapsed((prev) => !prev)}
-          onGenerateTeams={generateTeams}
+          onGenerateTeams={trainingWizardOpen ? () => { void runPilotTeamGeneration(); } : generateTeams}
           onConfirmTeams={() => {
             if (!trainingWizardOpen) {
               confirmTeams();
