@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import ResultShareCard from "@/components/share/result-share/ResultShareCard";
+import { ResultStoryShareCard, isStorySharePilotClub } from "@/components/share/result-share/StoryShareCard";
 import { getResultShareData } from "@/lib/share/result-share";
 import { localeFromAcceptLanguage, normalizeLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/messages";
@@ -18,9 +19,14 @@ export async function GET(
       localeFromAcceptLanguage(request.headers.get("accept-language"));
     const data = await getResultShareData(id, locale);
 
-    return new ImageResponse(<ResultShareCard data={data} />, {
+    const story = url.searchParams.get("format") === "story";
+    if (story && !isStorySharePilotClub(data.clubId)) {
+      return new Response("Story-Layout nur für das Pilotteam verfügbar.", { status: 403 });
+    }
+
+    return new ImageResponse(story ? <ResultStoryShareCard data={data} /> : <ResultShareCard data={data} />, {
       width: 1080,
-      height: 1350,
+      height: story ? 1920 : 1350,
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
       },
