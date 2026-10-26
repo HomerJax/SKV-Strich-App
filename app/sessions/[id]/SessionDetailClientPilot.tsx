@@ -56,7 +56,7 @@ type SessionDetailClientProps = {
 const TEAM_BALANCE_REVEAL_PILOT_CLUB_ID = "108590d9-0877-4787-90a5-4679615b3b76";
 
 type SectionKey = "attendance" | "teams" | "photo" | "result" | "mvp";
-type TrainingWizardStepKey = "attendance" | "mode" | "teams" | "result" | "photo" | "winner";
+type TrainingWizardStepKey = "settings" | "attendance" | "mode" | "teams" | "result" | "photo" | "winner";
 
 function NoticeCard({
   tone,
@@ -107,6 +107,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [pilotFinished, setPilotFinished] = useState(false);
   const [pilotPhotoSkipped, setPilotPhotoSkipped] = useState(false);
   const [pilotStep, setPilotStep] = useState<TrainingWizardStepKey | null>(null);
+  const [pilotEntryView, setPilotEntryView] = useState<"overview" | "choose" | "data">("overview");
+  const [settingsReviewed, setSettingsReviewed] = useState(false);
   const [wizardManualSelection, setWizardManualSelection] = useState(false);
   const [normalModeReviewed, setNormalModeReviewed] = useState(false);
   const [attendanceReviewed, setAttendanceReviewed] = useState(false);
@@ -117,10 +119,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("strikr-wizard-" + props.sessionId);
-      const allowed: TrainingWizardStepKey[] = ["attendance", "mode", "teams", "result", "photo", "winner"];
+      const allowed: TrainingWizardStepKey[] = ["settings", "attendance", "mode", "teams", "result", "photo", "winner"];
       if (saved && allowed.includes(saved as TrainingWizardStepKey)) {
         setPilotStep(saved as TrainingWizardStepKey);
       }
+      setSettingsReviewed(window.localStorage.getItem("strikr-settings-reviewed-" + props.sessionId) === "true");
       setNormalModeReviewed(window.localStorage.getItem("strikr-mode-reviewed-" + props.sessionId) === "true");
       setAttendanceReviewed(window.localStorage.getItem("strikr-attendance-reviewed-" + props.sessionId) === "true");
       setAttendanceRosterSignature(window.localStorage.getItem("strikr-attendance-roster-" + props.sessionId) ?? "");
@@ -147,6 +150,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       window.localStorage.setItem("strikr-attendance-roster-" + props.sessionId, attendanceRosterSignature);
     } catch { /* Storage is optional. */ }
   }, [props.sessionId, attendanceReviewed, attendanceRosterSignature]);
+
+  useEffect(() => {
+    if (!settingsReviewed) return;
+    try { window.localStorage.setItem("strikr-settings-reviewed-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
+  }, [props.sessionId, settingsReviewed]);
 
   useEffect(() => {
     if (!normalModeReviewed) return;
@@ -299,13 +307,25 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const noResponseCount = displayPlayers.filter(p => !p.is_guest && !p.rsvp_status).length;
 
   function enterTrainingWizard() {
+    setPilotEntryView("overview");
     setTrainingStarted(true);
+    // First opening begins with a short check; returning users resume their step.
+    if (pilotStep === null) setPilotStep("settings");
     setTrainingWizardOpen(true);
+  }
+
+  function openTraining() {
+    if (props.initialIsClubAdmin === true) {
+      setPilotEntryView("choose");
+    } else {
+      enterTrainingWizard();
+    }
   }
 
   function leaveTrainingWizard() {
     if (attendanceDirty && !window.confirm("Es gibt noch ungespeicherte Änderungen bei der Anwesenheit. Assistent trotzdem schließen?")) return;
     setTrainingWizardOpen(false);
+    setPilotEntryView("overview");
   }
   const rsvpDeadlineEpochMs = getSessionDeadlineEpochMs({
     date: session.date,
@@ -571,8 +591,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   return (
     <>
       <div className="space-y-4">
-        {pilotAdmin ? <div className="rounded-2xl border border-slate-200 bg-white p-3"><div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{playerPreview ? "Spieleransicht · Vorschau" : pilotView === "leader" || props.initialIsClubAdmin === false ? "Trainingsleitung · Vorschau" : "Adminansicht · Verwaltung"}</div><div className="flex gap-1 rounded-xl bg-slate-100 p-1">{(props.initialIsClubAdmin === false ? [{key:"leader",label:"Trainingsleitung"},{key:"player",label:"Spieler"}] : [{key:"admin",label:"Admin"},{key:"leader",label:"Trainingsleitung"},{key:"player",label:"Spieler"}]).map(item=><button key={item.key} type="button" onClick={()=>setPilotView(item.key as "admin" | "leader" | "player")} aria-pressed={pilotView===item.key} className={`flex-1 rounded-lg px-2 py-2.5 text-xs font-bold sm:text-sm ${pilotView===item.key?"bg-slate-950 text-white shadow-sm":"text-slate-600"}`}>{item.label}</button>)}</div>{pilotView==="leader"&&props.initialIsClubAdmin!==false?<p className="mt-2 text-xs text-slate-500">Vorschau: Trainingsleitung kann Anwesenheiten, Teams und Ergebnisse bearbeiten, aber keine Termine verwalten.</p>:null}</div> : null}
-        <SessionHeaderCard
+        {(pilotEntryView === "data" || playerPreview) && pilotAdmin ? <div className="rounded-2xl border border-slate-200 bg-white p-3"><div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{playerPreview ? "Spieleransicht · Vorschau" : pilotView === "leader" || props.initialIsClubAdmin === false ? "Trainingsleitung · Vorschau" : "Adminansicht · Verwaltung"}</div><div className="flex gap-1 rounded-xl bg-slate-100 p-1">{(props.initialIsClubAdmin === false ? [{key:"leader",label:"Trainingsleitung"},{key:"player",label:"Spieler"}] : [{key:"admin",label:"Admin"},{key:"leader",label:"Trainingsleitung"},{key:"player",label:"Spieler"}]).map(item=><button key={item.key} type="button" onClick={()=>setPilotView(item.key as "admin" | "leader" | "player")} aria-pressed={pilotView===item.key} className={`flex-1 rounded-lg px-2 py-2.5 text-xs font-bold sm:text-sm ${pilotView===item.key?"bg-slate-950 text-white shadow-sm":"text-slate-600"}`}>{item.label}</button>)}</div>{pilotView==="leader"&&props.initialIsClubAdmin!==false?<p className="mt-2 text-xs text-slate-500">Vorschau: Trainingsleitung kann Anwesenheiten, Teams und Ergebnisse bearbeiten, aber keine Termine verwalten.</p>:null}</div> : null}
+        {(pilotEntryView === "data" || playerPreview || !isTrainingSession || !isAdmin) ? <SessionHeaderCard
           sessionId={props.sessionId}
           date={session.date}
           notes={session.notes ?? null}
@@ -609,50 +629,74 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           isPro={props.initialIsPro === true}
           compactPilot={true && isAdmin && isTrainingSession}
           trainingStarted={liveOrPrepared}
-        />
+        /> : null}
 
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
 
-        {playerPreview ? <div className="space-y-4"><div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div> : true && isAdmin && isTrainingSession ? (!trainingWizardOpen ? (
-          <section className="space-y-4" aria-label="Training vorbereiten">
-            <div className="rounded-2xl bg-slate-950 p-5 text-white shadow-md">
-              <div className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-teal-300">
-                {trainingCompleted ? "Training abgeschlossen" : "Neuer Trainings-Wizard · Pilot"}
-              </div>
-              <h2 className="mt-2 text-xl font-black tracking-tight">
-                {trainingCompleted ? "Training erledigt!" : liveOrPrepared ? "Bereit für den nächsten Schritt?" : "Alles bereit für den Trainingstag?"}
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                {trainingCompleted
-                  ? "Ergebnisse und Teams bleiben gespeichert. Du kannst den Trainings-Assistenten erneut öffnen, um alles anzusehen oder zu korrigieren."
-                  : liveOrPrepared
-                    ? "Deine gespeicherten Anwesenheiten, Teams und Ergebnisse bleiben erhalten. Setze den Trainings-Assistenten fort."
-                    : "Die Einheit ist angelegt. Bis zum Trainingsbeginn können die Spieler zu- oder absagen und du kannst den Termin vorbereiten. Erst beim Start geht es in den geführten Ablauf."}
-              </p>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-white/10 p-3 text-center"><div className="text-xl font-black">{expectedCount}</div><div className="text-[10px] font-semibold text-slate-300">Zusagen</div></div>
-                <div className="rounded-xl bg-white/10 p-3 text-center"><div className="text-xl font-black">{declinedCount}</div><div className="text-[10px] font-semibold text-slate-300">Absagen</div></div>
-                <div className="rounded-xl bg-white/10 p-3 text-center"><div className="text-xl font-black">{noResponseCount}</div><div className="text-[10px] font-semibold text-slate-300">Noch offen</div></div>
-              </div>
-              <button type="button" onClick={enterTrainingWizard} className="mt-5 min-h-14 w-full rounded-xl bg-teal-400 px-4 py-3 text-base font-extrabold text-slate-950 shadow-lg transition hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300">
-                {trainingCompleted ? "✓ Training ansehen" : liveOrPrepared ? "▶ Wizard fortsetzen" : "▶ Fullscreen-Wizard starten"}
-              </button>
-              <p className="mt-2 text-center text-xs text-slate-300">
-                {trainingCompleted ? "Du kannst die gespeicherten Schritte weiterhin prüfen und ändern." : liveOrPrepared ? "Du kannst den Fullscreen-Assistenten jederzeit wieder verlassen." : "Der Fullscreen-Assistent beginnt mit der Anwesenheitsprüfung."}
-              </p>
-            </div>
+        {playerPreview ? <div className="space-y-4"><div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div>  : true && isAdmin && isTrainingSession && pilotEntryView !== "data" ? (!trainingWizardOpen ? (
+          <section className="mx-auto max-w-xl space-y-4" aria-label="Training starten">
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <h3 className="text-base font-black text-slate-950">Vorbereitung & Rückmeldungen</h3>
-              <p className="mt-1 text-sm leading-6 text-slate-600">Bis zum Training kannst du Termin, Notizen und Zu-/Absagen wie gewohnt verwalten. Am Spieltag bestätigst du die tatsächliche Anwesenheit im Assistenten.</p>
-              <div className="mt-4">
-                <SessionAdminRsvpCard sessionId={props.sessionId} players={displayPlayers} hasResult={hasResult} isAdmin={props.initialIsClubAdmin === true && pilotView === "admin"} />
+            {pilotEntryView === "choose" ? (
+              <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <button type="button" onClick={() => setPilotEntryView("overview")}
+                  className="mb-5 text-sm font-bold text-slate-500 hover:text-slate-950">← Zurück</button>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-teal-700">Training öffnen</p>
+                <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+                  Wie möchtest du arbeiten?
+                </h1>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Beide Ansichten verwenden dieselben gespeicherten Trainingsdaten.
+                  Du kannst jederzeit wechseln.
+                </p>
+                <div className="mt-6 space-y-3">
+                  <button type="button" onClick={enterTrainingWizard}
+                    className="group flex min-h-28 w-full items-center justify-between gap-4 rounded-2xl border-2 border-teal-400 bg-slate-950 px-5 py-5 text-left text-white shadow-md transition hover:bg-slate-900">
+                    <span>
+                      <span className="block text-lg font-black">✨ Geführter Trainingsstart</span>
+                      <span className="mt-1 block text-sm leading-6 text-white/65">Ein Schritt nach dem anderen. Ideal für den Spieltag.</span>
+                    </span>
+                    <span className="text-2xl text-teal-300">→</span>
+                  </button>
+                  <button type="button" onClick={() => setPilotEntryView("data")}
+                    className="flex min-h-24 w-full items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5 text-left text-slate-950 transition hover:border-slate-400 hover:bg-white">
+                    <span>
+                      <span className="block text-lg font-black">▤ Datenansicht</span>
+                      <span className="mt-1 block text-sm leading-6 text-slate-600">Alles im Überblick. Für erfahrene Admins.</span>
+                    </span>
+                    <span className="text-2xl text-slate-500">→</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-[26px] bg-gradient-to-br from-[#08121f] via-slate-950 to-[#123b43] p-6 text-white shadow-xl sm:p-8">
+                <div className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-300">strikr · Training</div>
+                <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+                  {trainingCompleted ? "Training abgeschlossen." : liveOrPrepared ? "Weiter geht’s." : "Bereit für euer Training?"}
+                </h1>
+                <p className="mt-3 text-sm leading-7 text-white/70">
+                  {trainingCompleted
+                    ? "Die Ergebnisse sind gespeichert. Du kannst sie im Assistenten ansehen oder ändern."
+                    : "Schritt für Schritt durch euren Trainingsabend. Nur das, was du gerade brauchst."}
+                </p>
+                <div className="mt-7 grid grid-cols-3 gap-2 border-y border-white/10 py-4">
+                  <div className="text-center"><div className="text-2xl font-black">{expectedCount}</div><div className="text-xs text-white/60">Zusagen</div></div>
+                  <div className="text-center"><div className="text-2xl font-black">{declinedCount}</div><div className="text-xs text-white/60">Absagen</div></div>
+                  <div className="text-center"><div className="text-2xl font-black">{noResponseCount}</div><div className="text-xs text-white/60">Offen</div></div>
+                </div>
+                <button type="button" onClick={openTraining}
+                  className="mt-6 min-h-14 w-full rounded-xl bg-teal-300 px-5 py-3 text-base font-black text-slate-950 transition hover:bg-white">
+                  {trainingCompleted ? "Training ansehen →" : liveOrPrepared ? "Training fortsetzen →" : "Training starten →"}
+                </button>
+                <p className="mt-3 text-center text-xs text-white/55">
+                  {pilotAdmin ? "Du wählst anschließend zwischen Wizard und Datenansicht." : "Geführt und übersichtlich – jederzeit schließen."}
+                </p>
+              </div>
+            )}
           </section>
         ) : (() => {
           const steps = [
+            { key: "settings" as const, title: "Einstellungen prüfen", done: settingsReviewed, summary: "Termin & Spielregeln kurz kontrollieren" },
             { key: "attendance" as const, title: "Anwesenheit", done: !attendanceDirty && presentPlayers.length >= 2 && (attendanceConfirmed || hasResult), summary: `${presentPlayers.length} Spieler dabei` },
             { key: "mode" as const, title: "Spielmodus", done: isTournamentMode || normalModeReviewed || teamsComplete || hasResult, summary: isTournamentMode ? "Turniermodus" : "Normales Spiel" },
             ...(!isTournamentMode ? [
@@ -672,6 +716,34 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
              ? steps[rememberedIndex].key : current;
           const selectedIndex = steps.findIndex(s => s.key === selected);
           const renderStep = (key: typeof steps[number]["key"]) => {
+            if (key === "settings") return (
+              <section className="space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <h3 className="text-lg font-black text-slate-950">Passt alles für heute?</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Kontrolliere kurz die wichtigsten Daten. Keine Änderungen nötig? Dann einfach weiter.
+                  </p>
+                  <dl className="mt-5 divide-y divide-slate-100">
+                    {[
+                      { title: "Datum", value: new Date(session.date + "T12:00:00").toLocaleDateString("de-DE", {weekday: "short",day:"2-digit",month:"2-digit",year:"numeric"}) },
+                      { title: "Start", value: session.start_time ? session.start_time.slice(0,5) + " Uhr" : "Keine Uhrzeit hinterlegt" },
+                      { title: "Spielart", value: isTournamentMode ? "Turnier" : "Normales Training" },
+                      { title: "Teameinteilung", value: clubSettings?.use_strength === false ? "Ohne Spielerstärken" : "Mit Spielerstärken" },
+                      { title: "Kategorien", value: clubSettings?.use_categories === false ? "Nicht berücksichtigen" : "Berücksichtigen" },
+                      { title: "Aktuelle Zusagen", value: String(expectedCount) + " Spieler" },
+                    ].map(item => (
+                      <div key={item.title} className="flex items-center justify-between gap-3 py-3 text-sm">
+                        <dt className="font-semibold text-slate-500">{item.title}</dt>
+                        <dd className="text-right font-bold text-slate-950">{item.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+                <p className="px-1 text-center text-sm text-slate-500">
+                  Ändern kannst du Details bei Bedarf in der Datenansicht.
+                </p>
+              </section>
+            );
             if (key === "attendance") return renderAttendance();
             if (key === "mode") return <div className="space-y-3">
               <h3 className="text-base font-black text-slate-950">Wie wollt ihr spielen?</h3>
@@ -703,7 +775,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             (selected === "result" && !isTournamentMode && (!hasResult || saving)) ||
             (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at)) ||
             (selected === "photo" && isTournamentMode && !session.tournament_completed_at);
-          const helperText = selected === "attendance"
+          const helperText = selected === "settings"
+            ? "Ein kurzer Check vor dem Start. Hier wird noch nichts gespeichert oder verändert."
+            : selected === "attendance"
             ? "Tippe alle anwesenden Spieler an, speichere die gesamte Auswahl einmal und bestätige danach die Anwesenheit."
             : selected === "mode"
               ? "Entscheide dich für ein normales Spiel oder richte optional ein Turnier ein."
@@ -728,7 +802,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                     ? "Beende zuerst das Turnier."
                     : null;
           const nextStep = steps[selectedIndex + 1];
-          const nextLabel = selected === "mode" && !isTournamentMode
+          const nextLabel = selected === "settings" ? "Passt · Anwesenheit prüfen →"
+            : selected === "mode" && !isTournamentMode
             ? (setupWizardRef.current?.label ?? "Normal spielen · Teams erstellen →")
             : selected === "result" && isTournamentMode && tournamentWizardStage === "teams"
               ? "Teams bestätigt · Turnier starten →"
@@ -757,6 +832,12 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               }}
               onNext={() => {
                 if (nextDisabled) return;
+                if (selected === "settings") {
+                  setSettingsReviewed(true);
+                  setPilotStep("attendance");
+                  setWizardManualSelection(true);
+                  return;
+                }
                 if (selected === "attendance") {
                   setAttendanceRosterSignature(currentAttendanceSignature);
                   setAttendanceReviewed(true);
@@ -872,6 +953,12 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         ) : null}
         </>
         )}
+        {pilotEntryView === "data" && isAdmin && isTrainingSession ? (
+          <button type="button" onClick={() => setPilotEntryView("overview")}
+            className="sticky bottom-4 z-10 mx-auto block rounded-full border border-teal-300 bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-xl">
+            ← Zur Trainingsauswahl
+          </button>
+        ) : null}
       </div>
 
       {!(trainingWizardOpen && isAdmin && isTrainingSession && !playerPreview) ? sessionEndModal : null}
