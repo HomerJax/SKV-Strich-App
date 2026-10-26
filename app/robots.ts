@@ -4,7 +4,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/mannschaftskasse-app"],
+      allow: "/",
       disallow: [
         "/api/",
         "/admin/",
@@ -17,7 +17,7 @@ export default function robots(): MetadataRoute.Robots {
         "/sessions",
         "/players/",
         "/mannschaftskasse/",
-        "/mannschaftskasse",
+        "/mannschaftskasse$",
         "/power-user/",
         "/profile/",
         "/stats",
