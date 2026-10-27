@@ -21,35 +21,6 @@ import {
 import type { TrainingAward } from "./standings-ui";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
-const DEMO_STANDINGS_MOVEMENT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
-
-type SortKey = "rank" | "sessions" | "winRate";
-type SortDirection = "asc" | "desc";
-
-function PlayerBadge(_props: Record<string, unknown>) {
-  return null;
-}
-
-function getTrainingAwards(_row: unknown): TrainingAward[] {
-  return [];
-}
-
-function getDemoMovementValue(rank: number, movement: number | null | undefined) {
-  if (movement && movement !== 0) return movement;
-  if (rank === 1) return 0;
-  if (rank === 2) return 2;
-  if (rank === 3) return -1;
-  if (rank === 4) return 1;
-  if (rank === 5) return -2;
-  if (rank === 6) return 1;
-  if (rank === 7) return -1;
-  if (rank === 8) return 2;
-  if (rank === 9) return -2;
-  if (rank % 4 === 0) return 1;
-  if (rank % 5 === 0) return -1;
-  return 0;
-}
-
 function winRateValue(wins: number, sessions: number) {
   if (sessions <= 0) return -1;
   return wins / sessions;
@@ -501,8 +472,8 @@ export default function StandingsClient({
                         <td className="px-2 py-2 align-middle">
                           <div className="flex items-center gap-1.5">
                             <div className="shrink-0 text-sm font-black leading-none text-slate-700">{row.rank}</div>
-                            <div className={`text-[10px] font-semibold ${movementClass(initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID ? getDemoMovementValue(row.rank, row.deltaRank) : row.deltaRank)}`}>
-                              {movementText(initialClubId === DEMO_STANDINGS_MOVEMENT_CLUB_ID ? getDemoMovementValue(row.rank, row.deltaRank) : row.deltaRank)}
+                            <div className={`text-[10px] font-semibold ${movementClass(row.deltaRank)}`}>
+                              {movementText(row.deltaRank)}
                             </div>
                           </div>
                         </td>
