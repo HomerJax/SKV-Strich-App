@@ -102,6 +102,6 @@ export function buildWeeklyReport(input: {
     leaderChanged, leaderName: top ? playerName(top) : null,
     topGapWins, topNames, upcomingTrainings,
     seasonEndDate: input.seasonEndDate ?? null,
-    headlines: headlines.slice(0, 4),
+    headlines: headlines.slice(0, 5),
   };
 }
