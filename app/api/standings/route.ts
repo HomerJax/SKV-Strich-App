@@ -4,9 +4,19 @@ import { requireClub } from "@/lib/auth/guards";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { addRanks } from "@/app/standings/standings-ui";
 import { getServerI18n } from "@/lib/i18n/server";
+import { buildWeeklyReport } from "@/lib/standings/weekly-report";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const WEEKLY_RECAP_PILOT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
+
+/** Return Berlin calendar date exactly seven calendar days before today. */
+function getWeekCutoffDate() {
+  const [year, month, day] = getTodayInBerlin().split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day - 7)).toISOString().slice(0, 10);
+}
+
 
 type Season = {
   id: number;
@@ -678,10 +688,25 @@ export async function GET(request: NextRequest) {
       ? sessions.filter((session) => session.id !== latestCompletedSession.id)
       : null;
 
-    const [currentStandingRows, previousStandingRows] = await Promise.all([
+    // Pilot only: reconstruct standings from training dates before the rolling
+    // seven-day window. Historic snapshots are not stored; later edits to
+    // earlier results are reflected consistently in both calculations.
+    const isWeeklyPilot = clubId === WEEKLY_RECAP_PILOT_CLUB_ID;
+    const cutoffDate = getWeekCutoffDate();
+    const completedBeforeCutoff = sessions.some(
+      (session) => session.date < cutoffDate && completedSessionIds.has(session.id),
+    );
+    const weeklyPreviousSessions = isWeeklyPilot && completedBeforeCutoff
+      ? sessions.filter((session) => session.date < cutoffDate)
+      : null;
+
+    const [currentStandingRows, previousStandingRows, weeklyPreviousStandingRows] = await Promise.all([
       computeStandings(clubId, sessions, supabase, awardsStartedAt),
       previousSessions
         ? computeStandings(clubId, previousSessions, supabase, awardsStartedAt)
+        : Promise.resolve(null),
+      weeklyPreviousSessions
+        ? computeStandings(clubId, weeklyPreviousSessions, supabase, awardsStartedAt)
         : Promise.resolve(null),
     ]);
 
@@ -689,7 +714,45 @@ export async function GET(request: NextRequest) {
     const previousRows = previousStandingRows
       ? (addRanks(previousStandingRows) as RankRow[])
       : null;
-    const rows = mergeWithPreviousRanks(currentRows, previousRows);
+    const weeklyPreviousRows = weeklyPreviousStandingRows
+      ? (addRanks(weeklyPreviousStandingRows) as RankRow[])
+      : null;
+    // For pilot clubs, rank arrows and recaps must use the same comparison.
+    const rows = mergeWithPreviousRanks(currentRows, isWeeklyPilot ? weeklyPreviousRows : previousRows);
+
+    let weeklyReport = null;
+    if (isWeeklyPilot) {
+      const completedTrainings = sessions.filter(
+        (session) => session.date >= cutoffDate && completedSessionIds.has(session.id),
+      ).length;
+      const selectedSeason = seasons.find((season) => String(season.id) === selected);
+      const seasonEndDate = selectedSeason?.end_date ?? null;
+      let upcomingTrainings: number | null = null;
+      if (seasonEndDate && seasonEndDate >= getTodayInBerlin()) {
+        const { data: plannedSessions, error: plannedError } = await supabase
+          .from("sessions")
+          .select("id,date")
+          .eq("club_id", clubId)
+          .eq("type", "training")
+          .gte("date", getTodayInBerlin())
+          .lte("date", seasonEndDate)
+          .eq("season_id", Number(selected));
+        if (!plannedError) {
+          upcomingTrainings = (plannedSessions ?? []).filter(
+            (planned) => !completedSessionIds.has(planned.id),
+          ).length;
+        }
+      }
+
+      weeklyReport = buildWeeklyReport({
+        current: currentRows,
+        previous: weeklyPreviousRows ?? [],
+        cutoffDate,
+        completedTrainings,
+        upcomingTrainings,
+        seasonEndDate,
+      });
+    }
 
     return NextResponse.json({
       seasons,
@@ -697,6 +760,7 @@ export async function GET(request: NextRequest) {
       awardsStartedAt,
       awardsOfficial,
       rows,
+      ...(isWeeklyPilot ? { weeklyReport } : {}),
       isPro: billingAccess.isPro,
     });
   } catch (error) {
