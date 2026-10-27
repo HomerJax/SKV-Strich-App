@@ -70,7 +70,12 @@ export function buildWeeklyReport(input: {
   const top = current[0] ?? null;
   const second = current[1] ?? null;
   const oldTop = previous[0] ?? null;
-  const leaderChanged = canCompare && !!top && !!oldTop && top.player_id !== oldTop.player_id;
+  const oldLeaders = previous.filter((row) => row.rank === 1);
+  const currentLeaders = current.filter((row) => row.rank === 1);
+  // A rank-1 tie or reordering by name is not an unambiguous new leader.
+  const leaderChanged = canCompare && !!top && !!oldTop
+    && oldLeaders.length === 1 && currentLeaders.length === 1
+    && top.player_id !== oldTop.player_id;
   const topGapWins = top && second ? Math.max(0, top.wins - second.wins) : null;
   const topNames = current.slice(0, 3).map(playerName);
   const upcomingTrainings = Number.isInteger(input.upcomingTrainings) && (input.upcomingTrainings ?? -1) >= 0
