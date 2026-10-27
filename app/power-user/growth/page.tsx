@@ -11,7 +11,7 @@ type FunnelEvent = {
 
 const periods = [7, 30, 90] as const;
 const eventLabels: Record<string, string> = {
-  registration_completed: "Registrierungen abgeschlossen",
+  registration_completed: "Neue Auth-Konten angelegt",
   club_created: "Vereine angelegt",
   first_training_created: "Erstes Training angelegt",
   first_training_completed: "Erstes Training abgeschlossen",
@@ -93,7 +93,7 @@ export default async function GrowthDashboard({
       <Kpi label="SEO-Seiten-Aufrufe*" value={seoVisits} icon={BarChart3} />
       <Kpi label="Demo-Aufrufe*" value={demoVisits} icon={MousePointerClick} />
       <Kpi label="Registrierungs-Klicks*" value={signupClicks} icon={MousePointerClick} />
-      <Kpi label="Registrierungen" value={eventCount("registration_completed")} icon={UserRoundPlus} />
+      <Kpi label="Neue Auth-Konten" value={eventCount("registration_completed")} icon={UserRoundPlus} />
       <Kpi label="Neu angelegte Vereine" value={eventCount("club_created")} icon={Building2} />
       <Kpi label="Erstes Training angelegt" value={eventCount("first_training_created")} icon={CalendarCheck} />
       <Kpi label="Erstes Training abgeschlossen" value={eventCount("first_training_completed")} icon={CheckCircle2} />
@@ -116,7 +116,7 @@ export default async function GrowthDashboard({
     </section>
 
     <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-      <strong>Messgrenzen:</strong> *Website-Aufrufe werden pro Pfad, Tab und Kalendertag per sessionStorage begrenzt, sind aber keine eindeutigen Personen. Klicks, Seitenaufrufe und Conversions haben deshalb unterschiedliche Zähleinheiten; dafür wird keine irreführende Klick-zu-Registrierung-Rate berechnet. Registrierungen werden aus Datenschutzgründen nicht einer Quelle oder einem Verein zugeordnet. Vereinsraten vergleichen nur dieselben neuen Vereins-IDs und erfassen Folgeschritte bis heute. Tracking-Ausfälle bleiben möglich, weil Conversion-Schreibvorgänge best effort sind.
+      <strong>Messgrenzen:</strong> *Website-Aufrufe werden pro Pfad, Tab und Kalendertag per sessionStorage begrenzt, sind aber keine eindeutigen Personen. Klicks, Seitenaufrufe und Conversions haben deshalb unterschiedliche Zähleinheiten; dafür wird keine irreführende Klick-zu-Registrierung-Rate berechnet. „Neue Auth-Konten“ bedeutet, dass Supabase eine neue Identität angelegt hat; E-Mail-Bestätigung und erster erfolgreicher Login können noch ausstehen. Auth-Konten werden aus Datenschutzgründen nicht einer Quelle oder einem Verein zugeordnet. Vereinsraten vergleichen nur dieselben neuen Vereins-IDs und erfassen Folgeschritte bis heute. Tracking-Ausfälle bleiben möglich, weil Conversion-Schreibvorgänge best effort sind.
     </section>
 
     <section className="rounded-2xl border border-slate-200 bg-white p-5">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import TournamentWinnerCard from "./TournamentWinnerCard";
 import SessionHeaderCard from "./SessionHeaderCard";
@@ -131,6 +131,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [photoUploadWorking, setPhotoUploadWorking] = useState(false);
   const [photoUploadWarning, setPhotoUploadWarning] = useState("");
   const photoUploadLock = useRef(false);
+  const completionTrackingRequest = useRef<Promise<void> | null>(null);
+  const completionTrackingRecorded = useRef(false);
+  const completionAutoFinishStarted = useRef(false);
   const [timerChoice, setTimerChoice] = useState<"with" | null>(null);
   const [balanceOverlayOpen, setBalanceOverlayOpen] = useState(false);
   const [balanceGenerating, setBalanceGenerating] = useState(false);
@@ -329,6 +332,33 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   const stagedPhotoUploader = useRef(uploadWinnerPhotoFile);
   stagedPhotoUploader.current = uploadWinnerPhotoFile;
+
+  const requestTrainingCompletionTracking = useCallback(async () => {
+    if (completionTrackingRecorded.current) return;
+    if (completionTrackingRequest.current) return completionTrackingRequest.current;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 2500);
+    const request = (async () => {
+      try {
+        const formData = new FormData();
+        formData.set("intent", "complete_training");
+        const response = await fetch(`/api/sessions/${props.sessionId}`, {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
+        completionTrackingRecorded.current = response.ok;
+      } catch {
+        // Tracking is best effort; the saved training must remain completed.
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    })();
+    completionTrackingRequest.current = request;
+    await request;
+    if (!completionTrackingRecorded.current) completionTrackingRequest.current = null;
+  }, [props.sessionId]);
+
   useEffect(() => {
     if (!stagedPhotoFile) {
       setStagedPhotoPreview(null);
@@ -362,14 +392,20 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   useEffect(() => {
     if (!pilotFinalizingResult || !hasResult || saving || photoBusy || photoUploadWorking) return;
     if (stagedPhotoFile && dayWinnerSide) return; // Waiting for photo or recoverable upload error.
+    if (completionAutoFinishStarted.current) return;
+    completionAutoFinishStarted.current = true;
 
-    setPilotFinished(true);
-    try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); }
-    catch { /* Optional storage. */ }
-    setPilotFinalizingResult(false);
-    router.push("/sessions");
+    void (async () => {
+      await requestTrainingCompletionTracking();
+      setPilotFinished(true);
+      try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); }
+      catch { /* Optional. */ }
+      setPilotFinalizingResult(false);
+      router.push("/sessions");
+    })();
   }, [pilotFinalizingResult, hasResult, saving, photoBusy, photoUploadWorking,
-    stagedPhotoFile, dayWinnerSide, router, props.initialClubId, props.sessionId]);
+    stagedPhotoFile, dayWinnerSide, router, props.initialClubId, props.sessionId,
+    requestTrainingCompletionTracking]);
 
   useEffect(() => {
     if (hasResult && stagedPhotoFile && !dayWinnerSide) {
@@ -1350,13 +1386,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                     try { window.localStorage.setItem("strikr-closing-reviewed-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
                   }
                   if (!hasWinnerPhoto) setPilotPhotoSkipped(true);
-                  try {
-                    const formData = new FormData();
-                    formData.set("intent", "complete_training");
-                    await fetch(`/api/sessions/${props.sessionId}`, { method: "POST", body: formData });
-                  } catch {
-                    // Funnel instrumentation must not block the training flow.
-                  }
+                  await requestTrainingCompletionTracking();
                   setPilotFinished(true);
                   try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
                   router.push("/sessions");
