@@ -41,7 +41,7 @@ test("all balanced groups share one priority behind score and goalkeepers", () =
     positionPenalty: 0,
   };
 
-  // A worse group spread beats neither a better goalkeeper spread nor team strength.
+  // Team score takes precedence over group spread, even when groups are less even.
   assert.ok(compareTeamBalanceQuality({ ...base, groupPenalty: 4 }, { ...base, scoreDiff: 1 }) < 0);
   assert.ok(compareTeamBalanceQuality({ ...base, goalkeeperDiff: 1 }, { ...base, groupPenalty: 4 }) > 0);
   // With higher priorities equal, group balance matters more than fine tuning.
