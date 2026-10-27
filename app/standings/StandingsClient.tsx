@@ -8,6 +8,8 @@ import ExportButtons from "@/components/ExportButtons";
 import PageHero from "@/components/ui/PageHero";
 import { getPlayerDisplayName } from "@/lib/player-display";
 import StandingsShareCard from "./StandingsShareCard";
+import StandingsWeeklyRecap from "./StandingsWeeklyRecap";
+import type { WeeklyReport } from "@/lib/standings/weekly-report";
 import type { RankRow, Season } from "./standings-types";
 import {
   awardClass,
@@ -171,6 +173,7 @@ type StandingsApiResponse = {
   awardsStartedAt?: string | null;
   awardsOfficial?: boolean;
   rows: RankRow[];
+  weeklyReport?: WeeklyReport | null;
   error?: string;
 };
 
@@ -202,6 +205,7 @@ export default function StandingsClient({
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [selected, setSelected] = useState<string>(seasonParam || "");
   const [rows, setRows] = useState<RankRow[]>([]);
+  const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -270,6 +274,7 @@ export default function StandingsClient({
     async function loadStandings() {
       try {
         setLoading(true);
+        setWeeklyReport(null);
         setErr(null);
         setMsg(null);
 
@@ -290,6 +295,7 @@ export default function StandingsClient({
         setSeasons(payload.seasons ?? []);
         setSelected(payload.selected ?? "all");
         setRows(payload.rows ?? []);
+        setWeeklyReport(payload.weeklyReport ?? null);
         setAwardsStartedAt(payload.awardsStartedAt ?? null);
         setAwardsOfficial(payload.awardsOfficial === true);
         setSortKey("rank");
@@ -443,6 +449,13 @@ export default function StandingsClient({
 
         {!loading && !err && rows.length > 0 ? (
           <>
+            {initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && weeklyReport ? (
+              <StandingsWeeklyRecap
+                report={weeklyReport}
+                selectedSeason={selected}
+                seasonName={selectedLabel}
+              />
+            ) : null}
             <div id="export-standings" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
