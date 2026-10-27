@@ -21,6 +21,17 @@ import {
 import type { TrainingAward } from "./standings-ui";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
+type SortKey = "rank" | "sessions" | "winRate";
+type SortDirection = "asc" | "desc";
+
+function PlayerBadge(_props: Record<string, unknown>) {
+  return null;
+}
+
+function getTrainingAwards(_row: unknown): TrainingAward[] {
+  return [];
+}
+
 function winRateValue(wins: number, sessions: number) {
   if (sessions <= 0) return -1;
   return wins / sessions;
