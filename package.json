@@ -8,6 +8,7 @@
     "start": "next start",
     "test:growth": "node --experimental-strip-types --test scripts/growth-funnel-guards.test.mjs",
     "test:balance": "node --experimental-strip-types --test scripts/team-generator-balanced-groups.test.mjs",
+    "test:standings-weekly": "node --experimental-strip-types --test scripts/standings-weekly-report.test.mjs",
     "lint": "eslint",
     "cap:sync": "cap sync",
     "cap:add:android": "cap add android",
