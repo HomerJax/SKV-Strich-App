@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:growth": "node --experimental-strip-types --test scripts/growth-funnel-guards.test.mjs",
     "lint": "eslint",
     "cap:sync": "cap sync",
     "cap:add:android": "cap add android",

@@ -20,6 +20,11 @@ import {
 import { getRequiredRsvpReasonError } from "@/lib/rsvp-reason";
 import { getServerI18n } from "@/lib/i18n/server";
 import { recordFirstTrainingCompleted } from "@/lib/analytics/growth-funnel";
+import {
+  canCompleteTraining,
+  hasValidNormalTrainingResult,
+  hasValidTournamentCompletion,
+} from "@/lib/analytics/growth-funnel-guards";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -175,12 +180,37 @@ export async function POST(
     const intent = String(formData.get("intent") ?? "").trim();
 
     if (intent === "complete_training") {
-      if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) {
+      if (!canCompleteTraining({ isPowerUser, role: membership.role, canLeadTraining })) {
         return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       }
       if (sessionType !== "training") return fail("Nur Trainings können abgeschlossen werden.", 400);
-      if (session.session_mode === "tournament" && !session.tournament_completed_at) {
-        return fail("Das Turnier muss zuerst abgeschlossen werden.", 409);
+
+      if (session.session_mode === "tournament") {
+        const { data: matches, error: matchesError } = await adminSupabase
+          .from("tournament_matches")
+          .select("game_no,team_a_id,team_b_id,goals_team_a,goals_team_b")
+          .eq("session_id", sessionId)
+          .eq("club_id", clubId);
+
+        if (matchesError) return fail("Turnierabschluss konnte nicht geprüft werden.", 500);
+        if (!hasValidTournamentCompletion({
+          completedAt: session.tournament_completed_at,
+          winnerTeamId: session.tournament_winner_team_id,
+          matches: matches ?? [],
+        })) {
+          return fail("Das Turnier muss mit vollständigen Ergebnissen abgeschlossen werden.", 409);
+        }
+      } else {
+        const { data: results, error: resultsError } = await adminSupabase
+          .from("results")
+          .select("game_no,team_a_id,team_b_id,goals_team_a,goals_team_b")
+          .eq("session_id", sessionId)
+          .eq("club_id", clubId);
+
+        if (resultsError) return fail("Trainingsergebnis konnte nicht geprüft werden.", 500);
+        if (!hasValidNormalTrainingResult(results ?? [])) {
+          return fail("Ein gültiges, gespeichertes Trainingsergebnis ist erforderlich.", 409);
+        }
       }
 
       await recordFirstTrainingCompleted(clubId);

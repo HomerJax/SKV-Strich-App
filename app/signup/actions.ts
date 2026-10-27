@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
+import { hasNewAuthIdentity } from "@/lib/analytics/growth-funnel-guards";
 
 export type SignupState = {
   error: string;
@@ -64,7 +65,13 @@ export async function signupAction(
     return { error: "signup-failed" };
   }
 
-  await recordGrowthEvent("registration_completed");
+  // This milestone means a new Supabase Auth identity was created. It does not
+  // imply that email confirmation or the first usable login has completed.
+  // Supabase may return an empty identities array for an existing email to
+  // avoid account enumeration; do not count that as a new registration.
+  if (hasNewAuthIdentity(signUpData.user.identities)) {
+    await recordGrowthEvent("registration_completed");
+  }
 
   try {
     await supabase.rpc("link_existing_player_by_email", {
