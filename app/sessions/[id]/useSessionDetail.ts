@@ -33,6 +33,7 @@ import {
 } from "./session-detail-helpers";
 import { fetchImageAsFile, shareImageFromUrl } from "@/lib/share/utils";
 import { hasGuidedTrainingAssistant } from "@/lib/training-wizard-pilots";
+import { compareTeamBalanceQuality, type TeamBalanceQuality } from "@/lib/team-generator-quality";
 import { compressImageFile } from "@/lib/client-images/compress-image";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -1238,24 +1239,7 @@ ${sessionUrl}`;
     const shouldUseScore = useStrength || useCategories;
     const balanceCategories = initialBalanceCategories ?? [];
 
-    const walkingPlayers = present.filter(
-      (player) => player.balance_group?.trim().toLocaleLowerCase("de-DE") === "gehfußballer"
-    );
-    const targetWalkingA = targetA === targetB
-      ? Math.ceil(walkingPlayers.length / 2)
-      : Math.ceil(walkingPlayers.length / 2);
-    const targetWalkingB = walkingPlayers.length - targetWalkingA;
-
-    type BalanceQuality = {
-      walkingGroupPenalty: number;
-      goalkeeperDiff: number;
-      scoreDiff: number;
-      groupPenalty: number;
-      categoryPositionPenalty: number;
-      positionPenalty: number;
-    };
-
-    function evaluate(A: Player[], B: Player[]): BalanceQuality {
+    function evaluate(A: Player[], B: Player[]): TeamBalanceQuality {
       const scoreDiff = shouldUseScore
         ? Math.abs(
             sumTeamScore(A, { useStrength, useCategories, balanceCategories }) -
@@ -1268,17 +1252,7 @@ ${sessionUrl}`;
           B.filter((player) => player.preferred_position === "goalkeeper").length
       );
 
-      const walkingCountA = A.filter(
-        (player) => player.balance_group?.trim().toLocaleLowerCase("de-DE") === "gehfußballer"
-      ).length;
-      const walkingCountB = B.filter(
-        (player) => player.balance_group?.trim().toLocaleLowerCase("de-DE") === "gehfußballer"
-      ).length;
-
       return {
-        walkingGroupPenalty:
-          Math.abs(walkingCountA - targetWalkingA) +
-          Math.abs(walkingCountB - targetWalkingB),
         goalkeeperDiff,
         scoreDiff,
         groupPenalty: balanceGroupPenalty(A, B),
@@ -1289,28 +1263,9 @@ ${sessionUrl}`;
       };
     }
 
-    function compareQuality(left: BalanceQuality, right: BalanceQuality) {
-      const priorities: (keyof BalanceQuality)[] = [
-        "walkingGroupPenalty",
-        "goalkeeperDiff",
-        "scoreDiff",
-        "groupPenalty",
-        "categoryPositionPenalty",
-        "positionPenalty",
-      ];
-
-      for (const key of priorities) {
-        if (left[key] !== right[key]) {
-          return left[key] - right[key];
-        }
-      }
-
-      return 0;
-    }
-
     let bestA: Player[] = [];
     let bestB: Player[] = [];
-    let bestQuality: BalanceQuality | null = null;
+    let bestQuality: TeamBalanceQuality | null = null;
 
     const attempts = Math.max(1200, Math.min(6000, present.length * 250));
 
@@ -1361,7 +1316,7 @@ ${sessionUrl}`;
 
       const quality = evaluate(A, B);
 
-      if (!bestQuality || compareQuality(quality, bestQuality) < 0) {
+      if (!bestQuality || compareTeamBalanceQuality(quality, bestQuality) < 0) {
         bestQuality = quality;
         bestA = A;
         bestB = B;
@@ -1379,7 +1334,7 @@ ${sessionUrl}`;
     for (let round = 0; round < maxSwapRounds; round += 1) {
       let roundBestA = bestA;
       let roundBestB = bestB;
-      let roundBestQuality: BalanceQuality = bestQuality;
+      let roundBestQuality: TeamBalanceQuality = bestQuality;
       let improved = false;
 
       for (let aIndex = 0; aIndex < bestA.length; aIndex += 1) {
@@ -1394,7 +1349,7 @@ ${sessionUrl}`;
 
           const candidateQuality = evaluate(candidateA, candidateB);
 
-          if (compareQuality(candidateQuality, roundBestQuality) < 0) {
+          if (compareTeamBalanceQuality(candidateQuality, roundBestQuality) < 0) {
             roundBestA = candidateA;
             roundBestB = candidateB;
             roundBestQuality = candidateQuality;

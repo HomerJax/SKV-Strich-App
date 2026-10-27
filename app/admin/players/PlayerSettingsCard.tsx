@@ -156,10 +156,12 @@ export default function PlayerSettingsCard({
                     4. Balance-Gruppen
                   </div>
                   <p className="mt-2">
-                    Balance-Gruppen sind Sondermarker für den Generator. Sie
-                    helfen, bestimmte Spielerprofile fair zu verteilen – zum
-                    Beispiel Torhüter, sehr starke Spieler oder Spieler, die
-                    nicht zufällig alle im selben Team landen sollen.
+                    Balance-Gruppen sind optionale Kennzeichnungen für bestimmte
+                    Spielertypen, zum Beispiel Gehfußballer, Defensivanker oder
+                    Laufstark. Alle Gruppen werden gleich behandelt: Der
+                    Generator versucht, Spieler jeder Gruppe möglichst gleich
+                    auf beide Teams zu verteilen. Das ändert nicht die individuelle
+                    Spielstärke und ist keine feste Garantie.
                   </p>
                   <p className="mt-2">
                     Sie erklären also direkt, warum Spieler im Kader zusätzlich
