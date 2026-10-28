@@ -190,6 +190,109 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     } catch { /* Storage is optional. */ }
   }, [props.sessionId]);
 
+
+  useEffect(() => {
+    if (!props.initialIsAdmin) return;
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch(`/api/sessions/${props.sessionId}/wizard-progress`, {
+          signal: controller.signal, cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Trainingsfortschritt konnte nicht geladen werden.");
+        const data = await response.json() as { state: Record<string, unknown> | null; version: number };
+        if (controller.signal.aborted) return;
+        progressVersion.current = data.version ?? 0;
+        if (data.state) {
+          const saved = data.state;
+          const validSteps = ["settings", "attendance", "mode", "teams", "timer", "live", "finish", "recheck", "photo", "result", "winner", "check"];
+          if (typeof saved.step === "string" && validSteps.includes(saved.step)) {
+            setPilotStep(saved.step as TrainingWizardStepKey);
+            if (!props.initialHasResult && !props.initialSession.tournament_completed_at) {
+              setWizardManualSelection(true);
+              setTrainingWizardOpen(true);
+            }
+          }
+          const checked = (key: string) => saved[key] === true;
+          setSettingsReviewed(checked("settingsReviewed"));
+          setNormalModeReviewed(checked("normalModeReviewed"));
+          setAttendanceReviewed(checked("attendanceReviewed"));
+          setAttendanceRosterSignature(typeof saved.attendanceRosterSignature === "string" ? saved.attendanceRosterSignature : "");
+          setTrainingStarted(checked("trainingStarted"));
+          setClockStarted(checked("clockStarted"));
+          setUseGameClock(checked("useGameClock"));
+          setTrainingEnded(checked("trainingEnded"));
+          setPilotPhotoSkipped(checked("photoSkipped"));
+          setPilotFinished(checked("finished"));
+          setCloseCheckReviewed(checked("closeCheckReviewed"));
+          setWinnerReviewed(checked("winnerReviewed"));
+          setTeamChangedChoice(saved.teamChangedChoice === "yes" || saved.teamChangedChoice === "no" ? saved.teamChangedChoice : null);
+          setClosingAnswers((saved.closingAnswers ?? null) as TrainingClosingAnswers | null);
+        } else if (!props.initialHasResult) {
+          // Migrate locally saved pilot progress to the server on the first visit.
+          if (window.localStorage.getItem("strikr-wizard-" + props.sessionId)) {
+            setWizardManualSelection(true);
+            setTrainingWizardOpen(true);
+          }
+        }
+        setProgressLoaded(true);
+      } catch (cause) {
+        if (controller.signal.aborted) return;
+        setProgressError(cause instanceof Error ? cause.message : "Fortschritt konnte nicht geladen werden.");
+        setProgressLoaded(true);
+      }
+    })();
+    return () => controller.abort();
+  }, [props.sessionId, props.initialIsAdmin, props.initialHasResult, props.initialSession.tournament_completed_at]);
+
+  const progressSnapshot = JSON.stringify({
+    step: pilotStep, settingsReviewed, normalModeReviewed, attendanceReviewed,
+    attendanceRosterSignature, trainingStarted, clockStarted, useGameClock,
+    trainingEnded, teamChangedChoice, photoSkipped: pilotPhotoSkipped,
+    finished: pilotFinished, closeCheckReviewed, winnerReviewed, closingAnswers,
+  });
+  useEffect(() => {
+    if (!props.initialIsAdmin || !progressLoaded || progressConflict.current) return;
+    progressPending.current = progressSnapshot;
+    const timer = window.setTimeout(() => {
+      const flush = async () => {
+        if (progressWriting.current || progressConflict.current) return;
+        progressWriting.current = true;
+        try {
+          while (progressPending.current !== null && !progressConflict.current) {
+            const pending = progressPending.current;
+            progressPending.current = null;
+            if (pending === progressSent.current) continue;
+            const response = await fetch(`/api/sessions/${props.sessionId}/wizard-progress`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ expectedVersion: progressVersion.current, state: JSON.parse(pending) }),
+              keepalive: true,
+            });
+            if (!response.ok) {
+              progressConflict.current = true;
+              setProgressError(response.status === 409
+                ? "Zwischenzeitlich hat jemand anderes diesen Wizard gespeichert. Bitte neu laden, bevor du weiterbearbeitest."
+                : "Fortschritt konnte nicht gespeichert werden. Bitte Verbindung prüfen und neu laden.");
+              break;
+            }
+            const result = await response.json() as { version: number };
+            progressVersion.current = result.version;
+            progressSent.current = pending;
+            setProgressError("");
+          }
+        } catch {
+          progressConflict.current = true;
+          setProgressError("Speichern fehlgeschlagen. Bitte neu laden, um Änderungen abzugleichen.");
+        } finally {
+          progressWriting.current = false;
+        }
+      };
+      void flush();
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [props.initialIsAdmin, props.sessionId, progressLoaded, progressSnapshot]);
+
   useEffect(() => {
     if (pilotStep === null) return;
     try { window.localStorage.setItem("strikr-wizard-" + props.sessionId, pilotStep); } catch { /* Storage is optional. */ }
