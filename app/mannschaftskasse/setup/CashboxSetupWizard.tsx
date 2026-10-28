@@ -490,7 +490,9 @@ export default function CashboxSetupWizard({
                       <Link href="/admin/organization" className="mt-2 inline-flex text-xs font-black text-teal-800 underline underline-offset-2">{locale === "en" ? "Manage parent club" : "Dachverein verwalten"}</Link>
                       <div className="mt-2 text-xs text-teal-800">{pilotStructure.accounts.length === 0
                          ? (locale === "en" ? "No accounts configured yet – add them later under Cashbox → Accounts." : "Noch keine Konten hinterlegt – später unter Mannschaftskasse → Konten einrichten.")
-                         : `${pilotStructure.accounts.length} ${locale === "en" ? "real accounts set up" : "echte Konten erfasst"}`}</div>
+                         : pilotStructure.accounts.length === 1
+                           ? (locale === "en" ? "1 real account set up" : "1 echtes Konto erfasst")
+                           : `${pilotStructure.accounts.length} ${locale === "en" ? "real accounts set up" : "echte Konten erfasst"}`}</div>
                     </div>
                     <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
                       <div className="text-xs font-black text-slate-500">{locale === "en" ? "Cashbox payment options" : "Zahlungswege Mannschaftskasse"}</div>
