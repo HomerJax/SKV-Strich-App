@@ -4,7 +4,9 @@ import { requireClub } from "@/lib/auth/guards";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { addRanks } from "@/app/standings/standings-ui";
 import { getServerI18n } from "@/lib/i18n/server";
-import { buildWeeklyReport, type WeeklyWheelMoment } from "@/lib/standings/weekly-report";
+import { buildWeeklyReport, type WeeklyWheelMoment, type WeeklyPenaltyMoment } from "@/lib/standings/weekly-report";
+import { choosePenaltySpecial, isKistePenalty } from "@/lib/standings/weekly-penalty-special";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -807,6 +809,48 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // A recorded penalty (not a rule/preset) is proof of a real Kabinenmoment.
+      // The service client only reads this authenticated member's club and
+      // never writes or modifies the penalty/payment.
+      let penaltyMoment: WeeklyPenaltyMoment | null = null;
+      const adminDb = createAdminClient();
+      const { data: recentPenalties, error: penaltySpecialError } = await adminDb
+        .from("penalties")
+        .select("id,player_id,reason,type,value,source_key,created_at")
+        .eq("club_id", clubId)
+        .gte("created_at", cutoffDate + "T00:00:00Z")
+        .order("created_at", { ascending: false })
+        .limit(40);
+      if (!penaltySpecialError && recentPenalties?.length) {
+        // A missed penalty wins over birthday entries, then latest by creation.
+        const special = choosePenaltySpecial(recentPenalties);
+        if (special) {
+          const row = currentRows.find((entry) => entry.player_id === special.player_id);
+          const { data: player } = !row
+            ? await adminDb.from("players")
+                .select("id,name,first_name,last_name,nickname,photo_path")
+                .eq("club_id", clubId).eq("id", special.player_id).maybeSingle()
+            : { data: null };
+          const displayName = row
+            ? ([row.first_name, row.last_name].filter(Boolean).join(" ").trim()
+              || row.nickname || row.name)
+            : (player?.nickname || [player?.first_name, player?.last_name]
+                .filter(Boolean).join(" ").trim() || player?.name);
+          if (displayName) {
+            penaltyMoment = {
+              kind: special.specialKind,
+              playerId: special.player_id,
+              playerName: displayName,
+              photoUrl: row?.photoUrl ?? (player?.photo_path
+                ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
+                : null),
+              value: special.value || "Strafe eingetragen",
+              isKiste: isKistePenalty(special),
+            };
+          }
+        }
+      }
+
       weeklyReport = buildWeeklyReport({
         current: currentRows,
         previous: weeklyPreviousRows ?? [],
@@ -815,6 +859,7 @@ export async function GET(request: NextRequest) {
         upcomingTrainings,
         seasonEndDate,
         wheelMoment,
+        penaltyMoment,
       });
     }
 
