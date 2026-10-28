@@ -12,6 +12,7 @@ import { getAuthContext } from "@/lib/auth/context";
 import { buildAbsoluteInviteUrl } from "@/lib/invites/url";
 import { setMemberPermissionAction } from "./permission-actions";
 import { getServerI18n } from "@/lib/i18n/server";
+import TrainingLeaderGuide from "@/components/training-leaders/TrainingLeaderGuide";
 
 function getAdminSupabase() {
   return createAdminClient(
@@ -273,7 +274,9 @@ export default async function AdminMembersPage({
       <SuccessMessage inviteUrl={createdInviteUrl} action={success} locale={locale} />
       <ErrorMessage code={error} locale={locale} />
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <TrainingLeaderGuide locale={locale} placement="members" />
+
+      <section id="club-member-list" className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-5 py-4">
           <h2 className="text-base font-semibold text-slate-900">
             {t("members.clubMembers")}
@@ -310,6 +313,12 @@ export default async function AdminMembersPage({
                       >
                         {getMemberRoleLabel(member.role, locale)}
                       </span>
+
+                      {linkedPlayer?.can_lead_training && member.role !== "admin" ? (
+                        <span className="inline-flex shrink-0 items-center rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-teal-800">
+                          {t("trainingLeaderGuide.active")}
+                        </span>
+                      ) : null}
 
                       {member.role === "admin" || beerManagerUserIds.has(member.user_id) ? (
                         <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
@@ -414,21 +423,31 @@ export default async function AdminMembersPage({
 
                       {linkedPlayer ? (
                         <div className="rounded-2xl bg-white p-3 lg:col-span-2">
-                          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Trainingsleitung</div>
+                          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            {t("trainingLeaderGuide.title")}
+                          </div>
+                          {member.role === "admin" ? (
+                            <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-600">
+                              {t("trainingLeaderGuide.adminAlready")}
+                            </p>
+                          ) : (
                           <form method="POST" action="/api/training-leaders" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <div className="text-sm font-semibold text-slate-900">
-                                {linkedPlayer.can_lead_training ? "✓ Trainingsleiter aktiv" : "Kein Trainingsleiter"}
+                                {linkedPlayer.can_lead_training ? t("trainingLeaderGuide.active") : t("trainingLeaderGuide.inactive")}
                               </div>
-                              <p className="mt-1 text-xs text-slate-500">Darf Anwesenheiten, Teams und Ergebnisse verwalten, ohne vollständige Adminrechte zu erhalten.</p>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">
+                                {t("trainingLeaderGuide.inlineHint")}
+                              </p>
                             </div>
                             <input type="hidden" name="player_id" value={linkedPlayer.id} />
                             <input type="hidden" name="enabled" value={linkedPlayer.can_lead_training ? "false" : "true"} />
                             <input type="hidden" name="return_to" value="members" />
                             <button type="submit" className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold ${linkedPlayer.can_lead_training ? "border border-rose-200 bg-rose-50 text-rose-700" : "bg-slate-950 text-white"}`}>
-                              {linkedPlayer.can_lead_training ? "Trainingsleitung entfernen" : "Zum Trainingsleiter machen"}
+                              {linkedPlayer.can_lead_training ? t("trainingLeaderGuide.remove") : t("trainingLeaderGuide.assign")}
                             </button>
                           </form>
+                          )}
                         </div>
                       ) : null}
 

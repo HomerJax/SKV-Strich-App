@@ -19,6 +19,7 @@ import { createClubAction } from "./actions";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
 import ClubSetupInviteActions from "@/components/club-setup/ClubSetupInviteActions";
+import TrainingLeaderGuide from "@/components/training-leaders/TrainingLeaderGuide";
 import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
 import { buildAbsoluteInviteUrl } from "@/lib/invites/url";
@@ -735,6 +736,10 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                       {t("clubSetup.inviteCreated")}
                     </div>
                   ) : null}
+
+                  <div className="mt-5">
+                    <TrainingLeaderGuide locale={locale} placement="onboarding" />
+                  </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     <Link
