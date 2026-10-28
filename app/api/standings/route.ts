@@ -4,7 +4,8 @@ import { requireClub } from "@/lib/auth/guards";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { addRanks } from "@/app/standings/standings-ui";
 import { getServerI18n } from "@/lib/i18n/server";
-import { buildWeeklyReport, type WeeklyWheelMoment, type WeeklyPenaltyMoment } from "@/lib/standings/weekly-report";
+import { buildWeeklyReport, type WeeklyWheelMoment, type WeeklyPenaltyMoment, type WeeklyBadgeMoment } from "@/lib/standings/weekly-report";
+import { getLocalizedBadgeDefinition } from "@/lib/badges/catalog";
 import { choosePenaltySpecial, isKistePenalty } from "@/lib/standings/weekly-penalty-special";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isWeeklyReportPilotClub } from "@/lib/standings/weekly-report-pilots";
@@ -29,6 +30,7 @@ type Season = {
 
 type ClubSettings = {
   awards_started_at: string | null;
+  badges_started_at: string | null;
 };
 
 type Session = {
@@ -613,7 +615,7 @@ function mergeWithPreviousRanks(
 }
 
 export async function GET(request: NextRequest) {
-  const { t } = await getServerI18n();
+  const { t, locale } = await getServerI18n();
   try {
     const { clubId } = await requireClub();
     const supabase = await createClient();
@@ -631,7 +633,7 @@ export async function GET(request: NextRequest) {
       getClubBillingAccess(supabase, clubId),
       supabase
         .from("club_settings")
-        .select("awards_started_at")
+        .select("awards_started_at,badges_started_at")
         .eq("club_id", clubId)
         .maybeSingle<ClubSettings>(),
     ]);
@@ -851,6 +853,78 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Only persisted, newly earned achievements count as weekly awards.
+      // Keep this section independent from the results/standings and never
+      // invoke badge sync here: reading a recap must not unlock old badges.
+      let badgeMoments: WeeklyBadgeMoment[] = [];
+      if (settingsData?.badges_started_at) {
+        const { data: badgeFlag, error: badgeFlagError } = await adminDb
+          .from("club_feature_flags")
+          .select("enabled")
+          .eq("club_id", clubId)
+          .eq("feature_key", "hall_of_fame_badges")
+          .maybeSingle();
+        if (!badgeFlagError && badgeFlag?.enabled === true) {
+          // Query one extra UTC day to cover the Berlin midnight boundary
+          // (DST included), then filter precisely by Berlin calendar dates.
+          const badgeQueryStart = new Date(
+            Date.parse(cutoffDate + "T00:00:00Z") - 86_400_000,
+          ).toISOString();
+          const { data: recentAwards, error: awardsError } = await adminDb
+            .from("player_achievements")
+            .select("player_id,badge_key,earned_at")
+            .eq("club_id", clubId)
+            .gte("earned_at", badgeQueryStart)
+            .order("earned_at", { ascending: false })
+            .limit(200);
+
+          if (awardsError) {
+            console.error("Weekly badges could not be loaded", awardsError.code);
+          } else if (recentAwards?.length) {
+            const berlinDate = (value: string) => new Intl.DateTimeFormat("en-CA", {
+              timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
+            }).format(new Date(value));
+            const validAwards = recentAwards.flatMap((entry) => {
+              const badge = getLocalizedBadgeDefinition(entry.badge_key, locale);
+              if (!badge || !entry.earned_at) return [];
+              const awardedDate = berlinDate(entry.earned_at);
+              // Exclude the activation day's historical/backfilled awards.
+              if (awardedDate < cutoffDate || awardedDate > getTodayInBerlin() ||
+                  awardedDate <= settingsData.badges_started_at!) return [];
+              return [{ ...entry, badgeTitle: badge.title }];
+            });
+
+            if (validAwards.length) {
+              const ids = [...new Set(validAwards.map(entry => entry.player_id))];
+              const { data: badgePlayers, error: playersError } = await adminDb
+                .from("players")
+                .select("id,name,first_name,last_name,nickname,photo_path")
+                .eq("club_id", clubId)
+                .in("id", ids);
+              if (playersError) {
+                console.error("Weekly badge players could not be loaded", playersError.code);
+              } else {
+                const byId = new Map((badgePlayers ?? []).map(player => [player.id, player]));
+                badgeMoments = validAwards.flatMap((entry): WeeklyBadgeMoment[] => {
+                  const player = byId.get(entry.player_id);
+                  if (!player) return [];
+                  const name = [player.first_name, player.last_name].filter(Boolean).join(" ").trim()
+                    || player.nickname || player.name;
+                  if (!name) return [];
+                  return [{
+                    playerId: player.id, playerName: name, badgeKey: entry.badge_key,
+                    badgeTitle: entry.badgeTitle, earnedAt: entry.earned_at,
+                    photoUrl: player.photo_path
+                      ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
+                      : null,
+                  }];
+                });
+              }
+            }
+          }
+        }
+      }
+
       weeklyReport = buildWeeklyReport({
         current: currentRows,
         previous: weeklyPreviousRows ?? [],
@@ -860,6 +934,7 @@ export async function GET(request: NextRequest) {
         seasonEndDate,
         wheelMoment,
         penaltyMoment,
+        badgeMoments,
       });
     }
 

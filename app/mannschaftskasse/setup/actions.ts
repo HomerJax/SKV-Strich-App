@@ -33,7 +33,7 @@ export async function saveCashboxSetupAction(formData: FormData) {
       redirect(setupUrl({ error: "structure" }));
     }
     const pilot = parsePilotCashboxStructure(input);
-    if (pilot.accounts.length < 1 || pilot.accounts.length > 15) {
+    if (pilot.accounts.length > 15) {
       redirect(setupUrl({ error: "accounts" }));
     }
     if (new Set(pilot.accounts.map(account => account.key)).size !== pilot.accounts.length) {

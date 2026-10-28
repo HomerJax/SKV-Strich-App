@@ -224,3 +224,36 @@ test("weekly recap is enabled only for the test club and SKV Rutesheim AH", () =
   assert.equal(isWeeklyReportPilotClub(null), false);
   assert.equal(isWeeklyReportPilotClub(""), false);
 });
+
+test("weekly badge events remain visible even without training or a standings baseline", () => {
+  const award = {
+    playerId: 2, playerName: "Pey", badgeKey: "career_wins_25",
+    badgeTitle: "25 Siege", earnedAt: "2026-10-28T14:00:00Z",
+  };
+  const report = buildWeeklyReport({
+    current: [], previous: [], cutoffDate: "2026-10-21",
+    completedTrainings: 0, badgeMoments: [award],
+  });
+  assert.equal(report.hasBaseline, false);
+  assert.equal(report.extraHighlight, null);
+  assert.equal(report.newBadgeCount, 1);
+  assert.deepEqual(report.newBadges, [award]);
+});
+
+test("weekly badge presentation is capped without inventing or losing the count", () => {
+  const badges = Array.from({ length: 5 }, (_, index) => ({
+    playerId: index + 1, playerName: `Player ${index + 1}`,
+    badgeKey: "career_appearances_10", badgeTitle: "10 Einsätze",
+    earnedAt: `2026-10-28T12:00:0${index}Z`,
+  }));
+  const report = buildWeeklyReport({
+    current: [], previous: [], cutoffDate: "2026-10-21",
+    completedTrainings: 0, badgeMoments: badges,
+  });
+  assert.equal(report.newBadgeCount, 5);
+  assert.deepEqual(report.newBadges, badges.slice(0, 3));
+  assert.equal(buildWeeklyReport({
+    current: [], previous: [], cutoffDate: "2026-10-21",
+    completedTrainings: 0,
+  }).newBadgeCount, 0);
+});
