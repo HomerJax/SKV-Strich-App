@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isCashboxPilotClub, parsePilotCashboxStructure } from "@/lib/cashbox/pilot-structure";
 import { addOpeningBalanceAction, reportPenaltyAction } from "./actions";
 import BeerCheckoutCard from "./BeerCheckoutCard";
 import { getServerI18n } from "@/lib/i18n/server";
@@ -173,6 +175,12 @@ export default async function Page({ searchParams }: Props) {
   }
   const penaltiesEnabled = settings.cashbox_penalties_enabled === true;
   const contributionsEnabled = settings.cashbox_contributions_enabled === true;
+  const pilotStructure = isCashboxPilotClub(clubId) && canManageCashbox
+    ? await createAdminClient().from("cashbox_pilot_structures").select("config").eq("club_id", clubId).maybeSingle()
+    : null;
+  const pilotConfig = pilotStructure?.data?.config
+    ? parsePilotCashboxStructure(pilotStructure.data.config)
+    : null;
 
   const players = (playersData ?? []) as Player[];
   const penalties = (penaltiesData ?? []) as Penalty[];
@@ -336,6 +344,22 @@ export default async function Page({ searchParams }: Props) {
           </p>
         </div>
 
+        {pilotConfig && canManageCashbox ? (
+          <section className="rounded-2xl border border-teal-200 bg-teal-50 p-4">
+            <div className="text-xs font-black uppercase tracking-[.18em] text-teal-700">{locale === "en" ? "Cashbox pilot · Setup" : "Kassenpilot · Finanzstruktur"}</div>
+            <div className="mt-1 text-lg font-black text-slate-950">{pilotConfig.mode === "umbrella" ? pilotConfig.umbrellaName : locale === "en" ? "Independent team" : "Eigenständige Mannschaft"}</div>
+            <p className="mt-2 text-xs leading-5 text-slate-600">{locale === "en"
+              ? "Your real accounts are saved as a structure. They are not yet linked to cash transactions or live bank balances."
+              : "Deine echten Konten sind als Struktur gespeichert. Sie sind noch nicht mit Kassenbuchungen oder Live-Bankbeständen verknüpft."}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {pilotConfig.accounts.map(account => (
+                <span key={account.key} className="rounded-full border border-teal-200 bg-white px-3 py-1.5 text-xs font-bold text-teal-950">{account.name}</span>
+              ))}
+            </div>
+            {isClubAdmin ? <Link href="/mannschaftskasse/setup?edit=1" className="mt-3 inline-flex text-xs font-black text-teal-800 underline underline-offset-2">{locale === "en" ? "Edit structure" : "Struktur bearbeiten"}</Link> : null}
+          </section>
+        ) : null}
+
         {canManageCashbox ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {contributionsEnabled ? (
@@ -363,7 +387,7 @@ export default async function Page({ searchParams }: Props) {
           </div>
         ) : null}
 
-        {canManageCashbox ? (
+        {canManageCashbox && !isCashboxPilotClub(clubId) ? (
           <details className="rounded-[24px] border border-emerald-200 bg-white p-5 shadow-sm">
             <summary className="cursor-pointer font-black text-slate-950">Startbestand erfassen</summary>
             <p className="mt-2 text-xs font-medium leading-5 text-slate-500">Vorhandenen Bestand übernehmen, ohne Bier- oder Gönnerstatistik zu verändern.</p>
