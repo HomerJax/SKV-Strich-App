@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Capacitor } from "@capacitor/core";
 import { Directory, Filesystem } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
@@ -55,12 +56,25 @@ async function shareRecapFile(file: File) {
   return "downloaded";
 }
 
+function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl?: string | null }) {
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase();
+  return (
+    <span className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 bg-slate-700 text-sm font-black text-white sm:h-14 sm:w-14">
+      {photoUrl ? (
+        <Image src={photoUrl} unoptimized alt={`Foto von ${name}`} fill sizes="56px"
+          className="object-cover" />
+      ) : <span aria-label={`Kein Foto für ${name}`}>{initials || "?"}</span>}
+    </span>
+  );
+}
+
 export default function StandingsWeeklyRecap({ report, selectedSeason, seasonName }: Props) {
   const { locale } = useI18n();
   const [sharing, setSharing] = useState(false);
   const [message, setMessage] = useState("");
   const hasChanges = report.hasBaseline && report.completedTrainings > 0;
   const cutoffLabel = report.cutoffDate.split("-").reverse().join(".");
+  const topNames = report.topNames.slice(0, 2).join(" & ");
   const onShare = async () => {
     if (sharing) return;
     setSharing(true);
@@ -76,7 +90,7 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
         "strikr-wochenrueckblick.png",
       );
       const result = await shareRecapFile(file);
-      setMessage(result === "shared" ? "Story geteilt." : "Story-Bild heruntergeladen.");
+      setMessage(result === "shared" ? "Wochenreport geteilt." : "Wochenreport heruntergeladen.");
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
       setMessage(error instanceof Error ? error.message : "Story konnte nicht erstellt werden.");
@@ -86,62 +100,90 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
   };
 
   return (
-    <section className="overflow-hidden rounded-[24px] border border-slate-800 bg-slate-950 p-4 text-white shadow-lg sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">strikr · Wochenrückblick</div>
-          <h2 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">Was hat sich in der Tabelle getan?</h2>
-          <p className="mt-1 text-xs text-white/55">{seasonName} · Vergleich mit Trainingsterminen vor dem {cutoffLabel}</p>
+    <section className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 px-3 py-4 text-white shadow-lg sm:rounded-[24px] sm:p-5">
+      <div className="min-w-0">
+        <div className="text-[10px] font-black uppercase tracking-[0.15em] text-teal-300">
+          strikr · Wochenrückblick
         </div>
-        <button type="button" onClick={() => void onShare()} disabled={sharing}
-          className="rounded-xl bg-teal-300 px-4 py-3 text-xs font-black text-slate-950 transition hover:bg-teal-200 disabled:opacity-50">
-          {sharing ? "Story wird erstellt …" : "Wochen-Story teilen ↗"}
-        </button>
+        <h2 className="mt-1.5 break-words text-lg font-black leading-tight tracking-tight sm:text-2xl">
+          Was hat sich in der Tabelle getan?
+        </h2>
+        <p className="mt-1.5 break-words text-[11px] leading-5 text-white/60">
+          {seasonName} · Vergleich mit Stand vor dem {cutoffLabel}
+        </p>
       </div>
 
-      {hasChanges && (report.biggestRiser || report.biggestFaller) ? (
-        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {report.biggestRiser ? (
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-300">↑ Größter Aufstieg</div>
-              <div className="mt-1 truncate text-lg font-black">{report.biggestRiser.name}</div>
-              <div className="mt-1 text-sm font-bold text-emerald-300">+{report.biggestRiser.places} Plätze <span className="text-xs text-white/60">({report.biggestRiser.fromRank} → {report.biggestRiser.toRank})</span></div>
-            </div>
+      {hasChanges ? (
+        <>
+          <div className="mt-3 flex min-w-0 flex-col gap-2">
+            {report.biggestRiser ? (
+              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3">
+                <PlayerAvatar name={report.biggestRiser.name} photoUrl={report.biggestRiser.photoUrl} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-black uppercase tracking-wide text-emerald-300">↑ Größter Aufstieg</div>
+                  <div className="mt-1 truncate text-base font-black">{report.biggestRiser.name}</div>
+                  <div className="text-xs font-bold text-emerald-300">
+                    +{report.biggestRiser.places} Plätze <span className="font-medium text-white/60">({report.biggestRiser.fromRank} → {report.biggestRiser.toRank})</span>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            {report.biggestFaller ? (
+              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-rose-400/20 bg-rose-400/10 p-3">
+                <PlayerAvatar name={report.biggestFaller.name} photoUrl={report.biggestFaller.photoUrl} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-black uppercase tracking-wide text-rose-300">↓ Größter Abstieg</div>
+                  <div className="mt-1 truncate text-base font-black">{report.biggestFaller.name}</div>
+                  <div className="text-xs font-bold text-rose-300">
+                    −{Math.abs(report.biggestFaller.places)} Plätze <span className="font-medium text-white/60">({report.biggestFaller.fromRank} → {report.biggestFaller.toRank})</span>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            {report.topGapWins !== null && report.topNames.length >= 2 ? (
+              <div className="min-w-0 rounded-xl border border-violet-400/20 bg-violet-400/10 p-3">
+                <div className="text-[10px] font-black uppercase tracking-wide text-violet-300">🏆 Rennen an der Spitze</div>
+                <p className="mt-1 break-words text-sm font-bold">
+                  {report.topGapWins === 0
+                    ? `${topNames}: nach Siegen gleichauf`
+                    : `${report.topGapWins} ${report.topGapWins === 1 ? "Sieg" : "Siege"} Abstand zwischen Platz 1 und 2`}
+                </p>
+              </div>
+            ) : null}
+            {report.extraHighlight ? (
+              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-sky-400/20 bg-sky-400/10 p-3">
+                {report.extraHighlight.playerId && report.extraHighlight.photoUrl ? (
+                  <PlayerAvatar name={report.extraHighlight.text} photoUrl={report.extraHighlight.photoUrl} />
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-black uppercase tracking-wide text-sky-300">★ {report.extraHighlight.title}</div>
+                  <p className="mt-1 break-words text-sm font-bold">{report.extraHighlight.text}</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+          {!report.biggestRiser && !report.biggestFaller ? (
+            <p className="mt-3 text-xs text-white/65">Keine größeren Platzveränderungen in der letzten Woche.</p>
           ) : null}
-          {report.biggestFaller ? (
-            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-rose-300">↓ Größter Abstieg</div>
-              <div className="mt-1 truncate text-lg font-black">{report.biggestFaller.name}</div>
-              <div className="mt-1 text-sm font-bold text-rose-300">−{Math.abs(report.biggestFaller.places)} Plätze <span className="text-xs text-white/60">({report.biggestFaller.fromRank} → {report.biggestFaller.toRank})</span></div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+        </>
+      ) : (
+        <p className="mt-4 text-sm leading-6 text-white/70">
+          {!report.hasBaseline
+            ? "Für einen echten Vergleich fehlt eine abgeschlossene Einheit vor der Vergleichswoche."
+            : "In den letzten sieben Tagen ist noch kein abgeschlossenes Training erfasst."}
+        </p>
+      )}
 
-      {report.headlines.length > 0 ? (
-        <div className="mt-3 space-y-1.5">
-          {report.headlines
-            .filter((headline) => !headline.startsWith("Aufsteiger:") && !headline.startsWith("Absteiger:"))
-            .map((headline) => (
-              <p key={headline} className="rounded-xl bg-white/[0.07] px-3 py-2.5 text-sm font-semibold text-white/90">
-                {headline.startsWith("Saisonfinale:") ? "🏁 " : "🏆 "}{headline}
-              </p>
-            ))}
-        </div>
-      ) : null}
-
-      {!report.hasBaseline ? (
-        <p className="mt-4 text-sm text-white/70">Für einen echten Vergleich fehlt noch eine abgeschlossene Trainingseinheit vor der Vergleichswoche.</p>
-      ) : report.completedTrainings === 0 ? (
-        <p className="mt-4 text-sm text-white/70">In den letzten sieben Tagen ist noch kein abgeschlossenes Training erfasst.</p>
-      ) : report.headlines.length === 0 ? (
-        <p className="mt-4 text-sm text-white/70">Keine größeren Tabellenbewegungen in dieser Woche.</p>
-      ) : null}
-
-      <p className="mt-3 text-[10px] leading-4 text-white/40">
-        Vergleich nach Trainingsdatum, keine gespeicherten historischen Screenshots. Spätere Ergebniskorrekturen werden rückwirkend berücksichtigt.
+      <p className="mt-3 break-words text-[10px] leading-4 text-white/45">
+        Vergleich nach Trainingsdatum. Spätere Ergebniskorrekturen werden berücksichtigt.
       </p>
-      {message ? <p role="status" className="mt-3 rounded-lg bg-white/10 px-3 py-2 text-xs">{message}</p> : null}
+      <div className="mt-4 border-t border-white/10 pt-4">
+        <button type="button" onClick={() => void onShare()} disabled={sharing}
+          className="w-full rounded-xl bg-teal-300 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-200 disabled:opacity-50">
+          {sharing ? "Wochenreport wird erstellt …" : "Wochenreport teilen"}
+        </button>
+        {message ? <p role="status" className="mt-2 break-words rounded-lg bg-white/10 px-3 py-2 text-xs">{message}</p> : null}
+      </div>
     </section>
   );
 }
