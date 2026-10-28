@@ -3,6 +3,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { CalendarDays, Medal, Star, TrendingUp, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
@@ -453,6 +455,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     isSupportView,
   } = clubAccess;
   const supabase = await createClient();
+  const { data: pilotParentClub } = isCashboxPilotClub(clubId) && !isSupportView
+    ? await createAdminClient().from("pilot_parent_clubs")
+      .select("name,admin_user_ids").eq("owner_club_id", clubId).maybeSingle()
+    : { data: null };
+  const isParentClubAdmin = pilotParentClub?.admin_user_ids?.includes(user.id) === true;
 
   const today = getPartsInBerlin(new Date()).dateKey;
   const isHomeRsvpPilot = true;
@@ -1026,6 +1033,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             hasTrainingLeader={(activationChecks?.[3].count ?? 0) > 0}
             trainingHref={recentSessions.length > 0 ? `/sessions/${recentSessions[0].id}` : "/sessions"}
           />
+        ) : null}
+
+        {isParentClubAdmin ? (
+          <Link href="/admin/organization" className="flex items-center justify-between gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-950">
+            <span>🏛️ {locale === "en" ? "Manage parent club" : "Dachverein verwalten"} · {pilotParentClub?.name}</span>
+            <span aria-hidden>→</span>
+          </Link>
         ) : null}
 
         {myOpenPenalties.length > 0 ? (
