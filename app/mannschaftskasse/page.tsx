@@ -344,19 +344,29 @@ export default async function Page({ searchParams }: Props) {
           </p>
         </div>
 
-        {pilotConfig && canManageCashbox ? (
+        {isCashboxPilotClub(clubId) && isClubAdmin ? (
           <section className="rounded-2xl border border-teal-200 bg-teal-50 p-4">
-            <div className="text-xs font-black uppercase tracking-[.18em] text-teal-700">{locale === "en" ? "Cashbox pilot · Setup" : "Kassenpilot · Finanzstruktur"}</div>
-            <div className="mt-1 text-lg font-black text-slate-950">{locale === "en" ? "Configured financial accounts" : "Konfigurierte Finanzkonten"}</div>
-            <p className="mt-2 text-xs leading-5 text-slate-600">{locale === "en"
-              ? "Your real accounts are saved as a structure. They are not yet linked to cash transactions or live bank balances."
-              : "Deine echten Konten sind als Struktur gespeichert. Sie sind noch nicht mit Kassenbuchungen oder Live-Bankbeständen verknüpft."}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {pilotConfig.accounts.map(account => (
-                <span key={account.key} className="rounded-full border border-teal-200 bg-white px-3 py-1.5 text-xs font-bold text-teal-950">{account.name}</span>
-              ))}
-            </div>
-            {isClubAdmin ? <Link href="/mannschaftskasse/setup?edit=1" className="mt-3 inline-flex text-xs font-black text-teal-800 underline underline-offset-2">{locale === "en" ? "Edit structure" : "Struktur bearbeiten"}</Link> : null}
+            <div className="text-xs font-black uppercase tracking-[.18em] text-teal-700">{locale === "en" ? "Cashbox pilot · Settings" : "Kassenpilot · Einstellungen"}</div>
+            <div className="mt-1 text-lg font-black text-slate-950">{locale === "en" ? "Accounts" : "Konten"}</div>
+            {pilotConfig?.accounts.length ? (
+              <>
+                <p className="mt-2 text-xs leading-5 text-slate-600">{locale === "en"
+                  ? "Your configured accounts are saved. They are not connected to live bank balances or automatic transaction posting."
+                  : "Deine Konten sind als Struktur hinterlegt. Sie sind noch nicht mit Live-Bankbeständen oder automatischen Buchungen verknüpft."}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {pilotConfig.accounts.map(account => (
+                    <span key={account.key} className="rounded-full border border-teal-200 bg-white px-3 py-1.5 text-xs font-bold text-teal-950">{account.name}</span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="mt-2 text-xs leading-5 text-slate-600">{locale === "en"
+                ? "No accounts added yet. You can set them up later without repeating the cashbox setup."
+                : "Noch keine Konten hinterlegt. Du kannst sie jederzeit ergänzen, ohne den gesamten Kassen-Wizard erneut durchzulaufen."}</p>
+            )}
+            <Link href="/mannschaftskasse/konten" className="mt-3 inline-flex rounded-xl bg-teal-900 px-4 py-2.5 text-xs font-black text-white">
+              {pilotConfig?.accounts.length ? (locale === "en" ? "Edit accounts" : "Konten bearbeiten") : (locale === "en" ? "Set up accounts" : "Konten hinterlegen")}
+            </Link>
           </section>
         ) : null}
 
