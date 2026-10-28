@@ -94,9 +94,21 @@ export default function TrainingSessionWizard({
 
       <main className="space-y-4 px-3 pb-6 pt-4 sm:px-6">
         {completed ? (
-          <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
-            ✓ Training abgeschlossen. Gespeicherte Schritte kannst du erneut ansehen und bearbeiten.
-          </div>
+          <section className="space-y-3 rounded-2xl border border-teal-200 bg-white p-4" aria-label="Abgeschlossene Trainingsschritte">
+            <p role="status" className="text-sm font-black text-teal-900">✓ Training abgeschlossen – alle Schritte bleiben erreichbar.</p>
+            <p className="text-xs text-slate-600">Wähle einen Schritt zum Nachsehen. Bereits gespeicherte Ergebnisse werden dadurch nicht zurückgesetzt. Für Korrekturen kannst du auch die Datenansicht öffnen.</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {steps.map((step, index) => (
+                <button key={step.key} type="button" onClick={() => onSelect(index)}
+                  aria-current={index === selectedIndex ? "step" : undefined}
+                  className={`min-h-12 rounded-xl border px-3 py-2 text-left text-xs font-bold transition ${index === selectedIndex
+                    ? "border-teal-500 bg-teal-50 text-teal-950"
+                    : "border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-300"}`}>
+                  {step.done ? "✓ " : "· "}{step.title}
+                </button>
+              ))}
+            </div>
+          </section>
         ) : null}
         {helperText ? (
           <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-6 text-amber-900">
@@ -160,7 +172,7 @@ export default function TrainingSessionWizard({
             onClick={onClose}
             className="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 focus-visible:outline-2 focus-visible:outline-teal-500"
           >
-            Schließen ×
+            {completed ? "Zur Übersicht ×" : "Schließen ×"}
           </button>
         </div>
       </header>
