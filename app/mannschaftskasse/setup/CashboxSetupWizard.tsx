@@ -185,7 +185,7 @@ export default function CashboxSetupWizard({
 
   const canContinue =
     safeStepId === "accounts"
-        ? pilotStructure.accounts.length > 0 && pilotStructure.accounts.every(account => account.name.trim().length > 0)
+        ? pilotStructure.accounts.every(account => account.name.trim().length > 0)
         : safeStepId === "beer_price"
           ? /^\d+(?:[,.]\d{1,2})?$/.test(beerPrice.trim())
           : true;
@@ -488,7 +488,9 @@ export default function CashboxSetupWizard({
                         ? "Parent club and its administrators are managed separately in Club settings."
                         : "Dachverein und Vereinsadmins werden separat in den Club-Einstellungen verwaltet."}</div>
                       <Link href="/admin/organization" className="mt-2 inline-flex text-xs font-black text-teal-800 underline underline-offset-2">{locale === "en" ? "Manage parent club" : "Dachverein verwalten"}</Link>
-                      <div className="mt-2 text-xs text-teal-800">{pilotStructure.accounts.length} {locale === "en" ? "real accounts set up" : "echte Konten erfasst"}</div>
+                      <div className="mt-2 text-xs text-teal-800">{pilotStructure.accounts.length === 0
+                         ? (locale === "en" ? "No accounts configured yet – add them later under Cashbox → Accounts." : "Noch keine Konten hinterlegt – später unter Mannschaftskasse → Konten einrichten.")
+                         : `${pilotStructure.accounts.length} ${locale === "en" ? "real accounts set up" : "echte Konten erfasst"}`}</div>
                     </div>
                     <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
                       <div className="text-xs font-black text-slate-500">{locale === "en" ? "Cashbox payment options" : "Zahlungswege Mannschaftskasse"}</div>
@@ -566,7 +568,9 @@ export default function CashboxSetupWizard({
                 disabled={!canContinue}
                 className="min-h-12 flex-[1.7] rounded-2xl bg-slate-950 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {t("cashSetup.next")}
+                {safeStepId === "accounts" && pilotStructure.accounts.length === 0
+                  ? (locale === "en" ? "Continue without accounts" : "Ohne Konten fortfahren")
+                  : t("cashSetup.next")}
               </button>
             )}
           </div>
