@@ -435,8 +435,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   // Persisted scores / tournament completion also work across devices.
   // A local completion marker without valid saved data never marks a session done.
   const hasSavedNormalResult = results.some(result => result.goals_team_a != null && result.goals_team_b != null);
-  const trainingCompleted = (pilotFinished || hasResult || Boolean(session.tournament_completed_at))
-    && (isTournamentMode ? Boolean(session.tournament_completed_at) : hasSavedNormalResult);
+  // A completed tournament bracket is not the same as a finished close-check.
+  const trainingCompleted = isTournamentMode
+    ? pilotFinished && Boolean(session.tournament_completed_at)
+    : hasSavedNormalResult;
   const liveOrPrepared = trainingStarted || hasResult || Boolean(session.tournament_completed_at);
   const currentAttendanceSignature = [...draftPresentIds].sort((a,b) => a-b).join(",");
   const attendanceConfirmed = attendanceReviewed && attendanceRosterSignature === currentAttendanceSignature;
@@ -469,6 +471,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
   function openCompletedData() {
     setPilotView(props.initialIsClubAdmin === true ? "admin" : "leader");
+    setTrainingWizardOpen(false);
+    setWizardManualSelection(false);
     setPilotEntryView("data");
   }
 
