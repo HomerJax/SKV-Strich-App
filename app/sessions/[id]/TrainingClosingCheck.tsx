@@ -6,6 +6,10 @@ import type { Player } from "./session-types";
 import AttendanceReviewClient from "./attendance-review/AttendanceReviewClient";
 
 type Answer = "yes" | "no" | null;
+export type TrainingClosingAnswers = {
+  presentOk: Answer; lateCancel: Answer; punctualOk: Answer;
+  specialEvents: Answer; exceptionsConfirmed: boolean;
+};
 type Rule = { rule_key: string; label: string; reason: string; type: string; value: string };
 type Incident = { id: number; player_id: number; reason: string; value: string; type: string };
 type Props = {
@@ -16,9 +20,11 @@ type Props = {
   beforeResult?: boolean;
   teamChangedChoice?: Answer;
   onTeamChangedChoice?: (value: "yes" | "no") => void;
+  savedAnswers?: TrainingClosingAnswers | null;
+  onAnswersChange?: (answers: TrainingClosingAnswers) => void;
 };
 
-export default function TrainingClosingCheck({ sessionId, players, presentIds, onReadyChange, beforeResult = false, teamChangedChoice = null, onTeamChangedChoice }: Props) {
+export default function TrainingClosingCheck({ sessionId, players, presentIds, onReadyChange, beforeResult = false, teamChangedChoice = null, onTeamChangedChoice, savedAnswers = null, onAnswersChange }: Props) {
   const [presentOk, setPresentOk] = useState<Answer>(null);
   const [lateCancel, setLateCancel] = useState<Answer>(null);
   const [punctualOk, setPunctualOk] = useState<Answer>(null);
@@ -37,6 +43,16 @@ export default function TrainingClosingCheck({ sessionId, players, presentIds, o
   const requestIdRef = useRef<string | null>(null);
 
   const storageKey = "strikr-closing-check-" + sessionId;
+  // Synced answers take precedence over a different device's local draft.
+  useEffect(() => {
+    if (!savedAnswers) return;
+    setPresentOk(savedAnswers.presentOk);
+    setLateCancel(savedAnswers.lateCancel);
+    setPunctualOk(savedAnswers.punctualOk);
+    setSpecialEvents(savedAnswers.specialEvents);
+    setExceptionsConfirmed(savedAnswers.exceptionsConfirmed);
+    try { window.localStorage.setItem(storageKey, JSON.stringify(savedAnswers)); } catch { /* Optional. */ }
+  }, [savedAnswers, storageKey]);
   useEffect(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem(storageKey) ?? "null") as
@@ -94,11 +110,14 @@ export default function TrainingClosingCheck({ sessionId, players, presentIds, o
     setSpecialEvents(values.specialEvents);
     setExceptionsConfirmed(false);
     try { window.localStorage.setItem(storageKey, JSON.stringify(values)); } catch { /* Optional. */ }
+    onAnswersChange?.(values);
   }
 
   function acknowledge(value: boolean) {
     setExceptionsConfirmed(value);
-    try { window.localStorage.setItem(storageKey, JSON.stringify({ presentOk, lateCancel, punctualOk, specialEvents, exceptionsConfirmed: value })); } catch { /* Optional. */ }
+    const updated = { presentOk, lateCancel, punctualOk, specialEvents, exceptionsConfirmed: value };
+    try { window.localStorage.setItem(storageKey, JSON.stringify(updated)); } catch { /* Optional. */ }
+    onAnswersChange?.(updated);
   }
 
   const attendees = players.filter(player => presentIds.includes(player.id) && !player.is_guest && player.roster_role !== "staff");
