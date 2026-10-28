@@ -14,7 +14,9 @@ import SessionGameTimerLoader from "./SessionGameTimerLoader";
 import SessionTournamentCard from "./SessionTournamentCard";
 import TrainingSessionWizard from "./TrainingSessionWizard";
 import TrainingAttendanceStep from "./TrainingAttendanceStep";
+import SessionCompletedTeamCorrection from "./SessionCompletedTeamCorrection";
 import TrainingClosingCheck from "./TrainingClosingCheck";
+import type { TrainingClosingAnswers } from "./TrainingClosingCheck";
 import PilotTeamBalanceOverlay from "./PilotTeamBalanceOverlay";
 import { Clock3, Play, Sparkles } from "lucide-react";
 import SessionEndModal from "@/components/SessionEndModal";
@@ -140,6 +142,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [balanceSaving, setBalanceSaving] = useState(false);
   const [balanceError, setBalanceError] = useState("");
   const [pilotManualTeamsOpen, setPilotManualTeamsOpen] = useState(false);
+  const [closingAnswers, setClosingAnswers] = useState<TrainingClosingAnswers | null>(null);
+  const [progressLoaded, setProgressLoaded] = useState(!props.initialIsAdmin);
+  const [progressError, setProgressError] = useState("");
+  const progressVersion = useRef(0);
+  const progressSent = useRef("");
+  const progressPending = useRef<string | null>(null);
+  const progressWriting = useRef(false);
+  const progressConflict = useRef(false);
 
   useEffect(() => {
     try {
@@ -174,8 +184,115 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       } catch { /* Treat old/corrupt answer records as incomplete. */ }
       setCloseCheckReviewed(wasReviewed && (props.initialHasResult || hasLateCancelAnswer));
       setWinnerReviewed(window.localStorage.getItem("strikr-winner-reviewed-" + props.sessionId) === "true");
+      try {
+        const answers = JSON.parse(window.localStorage.getItem("strikr-closing-check-" + props.sessionId) ?? "null") as TrainingClosingAnswers | null;
+        if (answers) setClosingAnswers(answers);
+      } catch { /* Optional local fallback. */ }
     } catch { /* Storage is optional. */ }
   }, [props.sessionId]);
+
+
+  useEffect(() => {
+    if (!props.initialIsAdmin) return;
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch(`/api/sessions/${props.sessionId}/wizard-progress`, {
+          signal: controller.signal, cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Trainingsfortschritt konnte nicht geladen werden.");
+        const data = await response.json() as { state: Record<string, unknown> | null; version: number };
+        if (controller.signal.aborted) return;
+        progressVersion.current = data.version ?? 0;
+        if (data.state) {
+          const saved = data.state;
+          const validSteps = ["settings", "attendance", "mode", "teams", "timer", "live", "finish", "recheck", "photo", "result", "winner", "check"];
+          if (typeof saved.step === "string" && validSteps.includes(saved.step)) {
+            setPilotStep(saved.step as TrainingWizardStepKey);
+            if (!props.initialHasResult && !props.initialSession.tournament_completed_at) {
+              setWizardManualSelection(true);
+              setTrainingWizardOpen(true);
+            }
+          }
+          const checked = (key: string) => saved[key] === true;
+          setSettingsReviewed(checked("settingsReviewed"));
+          setNormalModeReviewed(checked("normalModeReviewed"));
+          setAttendanceReviewed(checked("attendanceReviewed"));
+          setAttendanceRosterSignature(typeof saved.attendanceRosterSignature === "string" ? saved.attendanceRosterSignature : "");
+          setTrainingStarted(checked("trainingStarted"));
+          setClockStarted(checked("clockStarted"));
+          setUseGameClock(checked("useGameClock"));
+          setTrainingEnded(checked("trainingEnded"));
+          setPilotPhotoSkipped(checked("photoSkipped"));
+          setPilotFinished(checked("finished"));
+          setCloseCheckReviewed(checked("closeCheckReviewed"));
+          setWinnerReviewed(checked("winnerReviewed"));
+          setTeamChangedChoice(saved.teamChangedChoice === "yes" || saved.teamChangedChoice === "no" ? saved.teamChangedChoice : null);
+          setClosingAnswers((saved.closingAnswers ?? null) as TrainingClosingAnswers | null);
+        } else if (!props.initialHasResult) {
+          // Migrate locally saved pilot progress to the server on the first visit.
+          if (window.localStorage.getItem("strikr-wizard-" + props.sessionId)) {
+            setWizardManualSelection(true);
+            setTrainingWizardOpen(true);
+          }
+        }
+        setProgressLoaded(true);
+      } catch (cause) {
+        if (controller.signal.aborted) return;
+        setProgressError(cause instanceof Error ? cause.message : "Fortschritt konnte nicht geladen werden.");
+        setProgressLoaded(true);
+      }
+    })();
+    return () => controller.abort();
+  }, [props.sessionId, props.initialIsAdmin, props.initialHasResult, props.initialSession.tournament_completed_at]);
+
+  const progressSnapshot = JSON.stringify({
+    step: pilotStep, settingsReviewed, normalModeReviewed, attendanceReviewed,
+    attendanceRosterSignature, trainingStarted, clockStarted, useGameClock,
+    trainingEnded, teamChangedChoice, photoSkipped: pilotPhotoSkipped,
+    finished: pilotFinished, closeCheckReviewed, winnerReviewed, closingAnswers,
+  });
+  useEffect(() => {
+    if (!props.initialIsAdmin || !progressLoaded || progressConflict.current) return;
+    progressPending.current = progressSnapshot;
+    const timer = window.setTimeout(() => {
+      const flush = async () => {
+        if (progressWriting.current || progressConflict.current) return;
+        progressWriting.current = true;
+        try {
+          while (progressPending.current !== null && !progressConflict.current) {
+            const pending = progressPending.current;
+            progressPending.current = null;
+            if (pending === progressSent.current) continue;
+            const response = await fetch(`/api/sessions/${props.sessionId}/wizard-progress`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ expectedVersion: progressVersion.current, state: JSON.parse(pending) }),
+              keepalive: true,
+            });
+            if (!response.ok) {
+              progressConflict.current = true;
+              setProgressError(response.status === 409
+                ? "Zwischenzeitlich hat jemand anderes diesen Wizard gespeichert. Bitte neu laden, bevor du weiterbearbeitest."
+                : "Fortschritt konnte nicht gespeichert werden. Bitte Verbindung prüfen und neu laden.");
+              break;
+            }
+            const result = await response.json() as { version: number };
+            progressVersion.current = result.version;
+            progressSent.current = pending;
+            setProgressError("");
+          }
+        } catch {
+          progressConflict.current = true;
+          setProgressError("Speichern fehlgeschlagen. Bitte neu laden, um Änderungen abzugleichen.");
+        } finally {
+          progressWriting.current = false;
+        }
+      };
+      void flush();
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [props.initialIsAdmin, props.sessionId, progressLoaded, progressSnapshot]);
 
   useEffect(() => {
     if (pilotStep === null) return;
@@ -982,8 +1099,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
+        {progressError && isAdmin && isTrainingSession ? <NoticeCard tone="error">{progressError}</NoticeCard> : null}
 
-        {playerPreview ? <div className="space-y-4">
+        {!progressLoaded && isAdmin && isTrainingSession
+          ? <div className="rounded-2xl bg-white p-6 text-center text-sm font-semibold text-slate-700">Trainingsfortschritt wird geladen …</div>
+          : playerPreview ? <div className="space-y-4">
           <div className="rounded-2xl bg-gradient-to-br from-slate-950 to-teal-950 p-5 text-white">
             <p className="text-xs font-black uppercase tracking-widest text-teal-300">Dein Trainingsüberblick</p>
             <h2 className="mt-2 text-2xl font-black">Alles Wichtige auf einen Blick.</h2>
@@ -1243,6 +1363,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               onReadyChange={setCloseCheckReady}
               beforeResult
               teamChangedChoice={teamChangedChoice}
+              savedAnswers={closingAnswers}
+              onAnswersChange={setClosingAnswers}
               onTeamChangedChoice={value => {
                 setTeamChangedChoice(value);
                 try { window.localStorage.setItem("strikr-teams-changed-" + props.sessionId, value); }
@@ -1341,7 +1463,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => setWinnerPhotoCollapsed(prev => !prev)} title={t("sessionDetail.winnerPhoto")} />
               : <div className="space-y-3">{hasResult && dayWinnerSide ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => {}} title={t("sessionDetail.winnerPhoto")} /> : <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{hasResult ? "Unentschieden: Kein Siegerfoto nötig. Du kannst das Training abschließen." : "Bitte zuerst ein Ergebnis mit Sieger erfassen."}</p>}</div>;
             if (key === "winner") return <TournamentWinnerCard sessionId={props.sessionId} photoUrl={winnerPhotoUrl} pilotStoryEnabled={props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60"} onBack={() => setPilotStep("result")} />;
-            if (key === "check") return <TrainingClosingCheck sessionId={props.sessionId} players={displayPlayers} presentIds={draftPresentIds} onReadyChange={setCloseCheckReady} beforeResult={!isTournamentMode} />;
+            if (key === "check") return <TrainingClosingCheck sessionId={props.sessionId} players={displayPlayers} presentIds={draftPresentIds} onReadyChange={setCloseCheckReady} beforeResult={!isTournamentMode} savedAnswers={closingAnswers} onAnswersChange={setClosingAnswers} />;
             return null;
           };
           const nextDisabled =
@@ -1569,6 +1691,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         ) : null}
 
         {!isTournamentMode && allowTeams ? renderWorkflowSection("teams", renderTeams()) : null}
+        {!isTournamentMode && hasResult && props.initialIsClubAdmin === true ? (
+          <SessionCompletedTeamCorrection
+            sessionId={props.sessionId}
+            teamA={displayTeamA}
+            teamB={displayTeamB}
+          />
+        ) : null}
 
         {!isTournamentMode && isTrainingSession && !hasResult ? (
           <SessionGameTimerLoader sessionId={props.sessionId} />
