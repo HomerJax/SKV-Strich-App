@@ -48,6 +48,7 @@ type StandingRow = {
   currentWinStreak: number;
   currentLossStreak: number;
   currentAttendanceStreak: number;
+  photoUrl?: string | null;
 };
 
 type RankRow = StandingRow & {
@@ -66,6 +67,7 @@ type PlayerStandingSourceRow = {
   first_name: string | null;
   last_name: string | null;
   nickname: string | null;
+  photo_path: string | null;
   is_guest: boolean | null;
 };
 
@@ -439,7 +441,7 @@ async function computeStandings(
   ] = await Promise.all([
     supabase
       .from("players")
-      .select("id, name, first_name, last_name, nickname, is_guest")
+      .select("id, name, first_name, last_name, nickname, photo_path, is_guest")
       .eq("club_id", clubId)
       .in("id", playerIds.length > 0 ? playerIds : [-1]),
     teamPlayersPromise,
@@ -478,6 +480,7 @@ async function computeStandings(
       first_name: string | null;
       last_name: string | null;
       nickname: string | null;
+      photo_path: string | null;
     }
   >();
 
@@ -491,6 +494,7 @@ async function computeStandings(
       first_name: player.first_name,
       last_name: player.last_name,
       nickname: player.nickname,
+      photo_path: player.photo_path,
     });
   }
 
@@ -568,6 +572,9 @@ async function computeStandings(
       first_name: player?.first_name ?? null,
       last_name: player?.last_name ?? null,
       nickname: player?.nickname ?? null,
+      photoUrl: clubId === WEEKLY_RECAP_PILOT_CLUB_ID && player?.photo_path
+        ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
+        : null,
       wins: winsCount.get(playerId) ?? 0,
       sessions: sessionsCount.get(playerId) ?? 0,
       mvps: mvpWinsMap.get(playerId) ?? 0,
