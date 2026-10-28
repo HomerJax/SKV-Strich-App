@@ -148,13 +148,6 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
                 </p>
               </div>
             ) : null}
-
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-black uppercase tracking-wide text-sky-300">★ {report.extraHighlight.title}</div>
-                  <p className="mt-1 break-words text-sm font-bold">{report.extraHighlight.text}</p>
-                </div>
-              </div>
-            ) : null}
           </div>
           {!report.biggestRiser && !report.biggestFaller ? (
             <p className="mt-3 text-xs text-white/65">Keine größeren Platzveränderungen in der letzten Woche.</p>
@@ -169,12 +162,17 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
       )}
 
       {report.extraHighlight ? (
-              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-sky-400/20 bg-sky-400/10 p-3">
-                {report.extraHighlight.playerId ? (
-                  <PlayerAvatar name={report.extraHighlight.playerName || report.extraHighlight.text}
-                    photoUrl={report.extraHighlight.photoUrl} />
+        <div className="mt-3 flex min-w-0 items-center gap-3 rounded-xl border border-sky-400/20 bg-sky-400/10 p-3">
+          {report.extraHighlight.playerId ? (
+            <PlayerAvatar name={report.extraHighlight.playerName || report.extraHighlight.text}
+              photoUrl={report.extraHighlight.photoUrl} />
           ) : null}
-
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-black uppercase tracking-wide text-sky-300">★ {report.extraHighlight.title}</div>
+            <p className="mt-1 break-words text-sm font-bold">{report.extraHighlight.text}</p>
+          </div>
+        </div>
+      ) : null}
       <p className="mt-3 break-words text-[10px] leading-4 text-white/45">
         {seasonName} · Vergleich seit {cutoffLabel} nach Trainingsdatum.
         Spätere Ergebniskorrekturen werden berücksichtigt.
