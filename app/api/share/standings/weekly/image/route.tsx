@@ -5,6 +5,7 @@ import path from "node:path";
 import { requireClub } from "@/lib/auth/guards";
 import { isStorySharePilotClub } from "@/components/share/result-share/StoryShareCard";
 import type { WeeklyReport, WeeklyMover } from "@/lib/standings/weekly-report";
+import { weeklyRaceStory, weeklyStoryScale } from "@/lib/standings/weekly-race-story";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,52 +47,54 @@ async function trustedAvatarData(photoUrl?: string | null): Promise<string | nul
   }
 }
 
-function Avatar({ name, photo, accent }: {
-  name: string; photo: string | null; accent: string;
+function Avatar({ name, photo, accent, size }: {
+  name: string; photo: string | null; accent: string; size: number;
 }) {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2)
     .map((part) => part.slice(0, 1)).join("").toUpperCase();
   return (
     <div style={{
-      display: "flex", width: 106, height: 106, flexShrink: 0,
-      borderRadius: 54, overflow: "hidden",
+      display: "flex", width: size, height: size, flexShrink: 0,
+      borderRadius: size / 2, overflow: "hidden",
       alignItems: "center", justifyContent: "center",
       border: "3px solid " + accent, background: "#1e2d56",
-      color: "#fff", fontSize: 38, fontWeight: 900,
+      color: "#fff", fontSize: size * 0.36, fontWeight: 900,
     }}>
       {photo
-        ? <img src={photo} alt="" width={106} height={106}
-            style={{ width: 106, height: 106, objectFit: "cover" }} />
+        ? <img src={photo} alt="" width={size} height={size}
+            style={{ width: size, height: size, objectFit: "cover" }} />
         : initials || "?"}
     </div>
   );
 }
 
-function MomentCard({ label, value, detail, photo, name, accent, background }: {
+function MomentCard({ label, value, detail, photo, name, accent, background, scale }: {
   label: string; value: string; detail: string; photo?: string | null;
   name?: string; accent: string; background: string;
+  scale: ReturnType<typeof weeklyStoryScale>;
 }) {
   return (
     <div style={{
-      display: "flex", width: "100%", height: 270,
-      padding: "37px 35px", flexShrink: 0, boxSizing: "border-box",
-      gap: 30, alignItems: "center",
+      display: "flex", width: "100%", flex: 1, minHeight: 0,
+      padding: scale.cardPaddingPx, boxSizing: "border-box",
+      gap: 32, alignItems: "center",
       borderRadius: 28, border: "2px solid rgba(255,255,255,.16)",
       background,
     }}>
-      {name ? <Avatar name={name} photo={photo ?? null} accent={accent} /> : null}
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, gap: 12 }}>
-        <div style={{ display: "flex", color: accent, fontSize: 22, fontWeight: 900, letterSpacing: 2 }}>
+      {name ? <Avatar name={name} photo={photo ?? null} accent={accent} size={scale.avatarPx} /> : null}
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, gap: 17, justifyContent: "center" }}>
+        <div style={{ display: "flex", color: accent, fontSize: scale.labelPx, fontWeight: 900, letterSpacing: 1.4 }}>
           {label}
         </div>
         <div style={{
-          display: "flex", color: "#fff", fontSize: value.length > 49 ? 28 : 40,
-          fontWeight: 950, lineHeight: 1.12,
+          display: "flex", color: "#fff",
+          fontSize: value.length > 96 ? scale.headlinePx - 17 : value.length > 60 ? scale.headlinePx - 11 : scale.headlinePx,
+          fontWeight: 950, lineHeight: 1.13,
         }}>
-          {value.length > 100 ? value.slice(0, 97) + "…" : value}
+          {value.length > 180 ? value.slice(0, 177) + "…" : value}
         </div>
-        <div style={{ display: "flex", color: "#e2e8f0", fontSize: 24, lineHeight: 1.2, fontWeight: 750 }}>
-          {detail.length > 90 ? detail.slice(0, 87) + "…" : detail}
+        <div style={{ display: "flex", color: "#e2e8f0", fontSize: scale.detailPx, lineHeight: 1.25, fontWeight: 750 }}>
+          {detail.length > 150 ? detail.slice(0, 147) + "…" : detail}
         </div>
       </div>
     </div>
@@ -106,19 +109,6 @@ function moverText(person: WeeklyMover | null, isRiser: boolean) {
           " Plätze: von " + person.fromRank + " auf " + person.toRank,
       }
     : { value: "Kein Platzwechsel", detail: "Keine Veränderung erfasst" };
-}
-
-function topRaceText(report: WeeklyReport, canCompare: boolean) {
-  if (!canCompare) return "Noch kein aktueller Wochenvergleich";
-  const first = report.topNames[0];
-  const second = report.topNames[1];
-  if (!first || !second || report.topGapWins === null) return "Noch keine zwei Platzierungen";
-  if (report.topGapWins === 0) {
-    return first + " (Platz 1) und " + second + " (Platz 2) haben gleich viele Siege.";
-  }
-  return first + " (Platz 1) hat " + report.topGapWins +
-    (report.topGapWins === 1 ? " Sieg" : " Siege") +
-    " mehr als " + second + " (Platz 2).";
 }
 
 export async function GET(request: NextRequest) {
@@ -157,6 +147,9 @@ export async function GET(request: NextRequest) {
     ]);
     const up = moverText(riser, true);
     const down = moverText(faller, false);
+    const race = weeklyRaceStory(report);
+    const cardCount = [riser, faller, race, extra].filter(Boolean).length || 1;
+    const scale = weeklyStoryScale(cardCount);
     const dateLabel = report.cutoffDate.split("-").reverse().join(".");
     const seasonName = payload.seasons?.find((season) => String(season.id) === payload.selected)?.name
       ?? (payload.selected === "all" ? "Karriere" : "Saison");
@@ -181,7 +174,7 @@ export async function GET(request: NextRequest) {
           }} />
           <div style={{
             display: "flex", flexDirection: "column", flex: 1,
-            padding: "80px 42px 100px", zIndex: 1,
+            padding: "72px 42px 78px", zIndex: 1,
           }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
@@ -211,32 +204,48 @@ export async function GET(request: NextRequest) {
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 45 }}>
-              <MomentCard label="↑ GRÖSSTER AUFSTEIGER" value={up.value} detail={up.detail}
-                name={riser?.name} photo={upPhoto} accent="#f9a8d4"
-                background="linear-gradient(100deg,rgba(236,72,153,.74),rgba(120,35,93,.55))" />
-              <MomentCard label="↓ GRÖSSTER ABSTEIGER" value={down.value} detail={down.detail}
-                name={faller?.name} photo={downPhoto} accent="#c4b5fd"
-                background="linear-gradient(100deg,rgba(79,70,229,.65),rgba(49,46,129,.55))" />
-              <MomentCard label="🏆 RENNEN AN DER SPITZE"
-                value={topRaceText(report, canCompare)}
-                detail="So eng ist die Tabelle nach Siegen."
-                accent="#f9a8d4"
-                background="linear-gradient(100deg,rgba(168,85,247,.46),rgba(49,46,129,.48))" />
+            <div style={{
+              display: "flex", flexDirection: "column", flex: 1, minHeight: 0,
+              gap: cardCount <= 3 ? 25 : 18, marginTop: 42,
+            }}>
+              {riser ? (
+                <MomentCard label="↑ GRÖSSTER AUFSTEIGER" value={up.value} detail={up.detail}
+                  name={riser.name} photo={upPhoto} accent="#f9a8d4" scale={scale}
+                  background="linear-gradient(100deg,rgba(236,72,153,.74),rgba(120,35,93,.55))" />
+              ) : null}
+              {faller ? (
+                <MomentCard label="↓ GRÖSSTER ABSTEIGER" value={down.value} detail={down.detail}
+                  name={faller.name} photo={downPhoto} accent="#c4b5fd" scale={scale}
+                  background="linear-gradient(100deg,rgba(79,70,229,.65),rgba(49,46,129,.55))" />
+              ) : null}
+              {race ? (
+                <MomentCard label="🏆 MEISTERRENNEN" value={race.headline} detail={race.detail}
+                  accent="#f9a8d4" scale={scale}
+                  background="linear-gradient(100deg,rgba(168,85,247,.46),rgba(49,46,129,.48))" />
+              ) : null}
               {extra ? (
-                <MomentCard label={"★ " + extra.title.toUpperCase()} value={extra.text}
+                <MomentCard label={"★ " + extra.title.toUpperCase()}
+                  value={extra.text.split(" – ")[0]}
                   detail={extra.kind === "wheel"
-                    ? "Das Rad-Ergebnis ändert die ursprüngliche Strafe nicht automatisch."
-                    : "Ein weiterer Höhepunkt aus der Saison."}
-                  name={extra.playerName} photo={extraPhoto} accent="#f9a8d4"
+                    ? (extra.text.split(" – ").slice(1).join(" – ") || "Das Glücksrad hat entschieden – die ursprüngliche Strafe bleibt bestehen.")
+                    : extra.kind === "finale" ? "Die Saison biegt auf die Zielgerade ein."
+                    : extra.kind === "leader" ? "Ganz vorne gibt's einen neuen Namen."
+                    : "Neuer Schwung im oberen Tabellenfeld."}
+                  name={extra.playerName} photo={extraPhoto} accent="#f9a8d4" scale={scale}
                   background="linear-gradient(100deg,rgba(131,24,67,.50),rgba(67,56,202,.42))" />
+              ) : null}
+              {cardCount === 1 && !riser && !faller && !race && !extra ? (
+                <MomentCard label="⚽ WOCHENREPORT" value="Diese Woche war's ruhig"
+                  detail="Sobald Ergebnisse oder ein Kabinenmoment vorliegen, gibt's hier echte Geschichten."
+                  accent="#f9a8d4" scale={scale}
+                  background="linear-gradient(100deg,rgba(79,70,229,.65),rgba(49,46,129,.55))" />
               ) : null}
             </div>
 
             <div style={{
               display: "flex", marginTop: "auto", alignItems: "center",
-              justifyContent: "space-between", padding: "20px 6px 0",
-              fontSize: 19, color: "#e2e8f0",
+              justifyContent: "space-between", padding: "24px 6px 0",
+              fontSize: 25, color: "#e2e8f0",
             }}>
               <div style={{ display: "flex" }}>Vergleich nach Trainingsdatum</div>
               <div style={{ display: "flex", fontWeight: 800, color: "#f9a8d4" }}>
@@ -248,7 +257,7 @@ export async function GET(request: NextRequest) {
             display: "flex", position: "absolute", bottom: 0, left: 0, right: 0,
             height: 58, alignItems: "center", justifyContent: "center",
             background: "rgba(7,20,49,.73)", zIndex: 2,
-            fontSize: 17, fontWeight: 900,
+            fontSize: 21, fontWeight: 900,
           }}>
             WENIGER ORGA. MEHR FUSSBALL.
           </div>
