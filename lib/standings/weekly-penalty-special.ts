@@ -29,14 +29,13 @@ export function recognizePenaltySpecial(penalty: RecordedPenalty): RecognizedPen
 }
 
 /** Penalty-kick moments outrank birthdays, newest within the same category. */
-export function choosePenaltySpecial<T extends RecordedPenalty>(
-  recent: T[],
-): (T & RecognizedPenalty) | null {
+export function choosePenaltySpecial(recent: RecordedPenalty[]): RecognizedPenalty | null {
   const recognized = recent.map(recognizePenaltySpecial).filter(
     (p): p is RecognizedPenalty => !!p,
   );
-  return (recognized.find((p) => p.specialKind === "missed_penalty")
-    ?? recognized.find((p) => p.specialKind === "birthday")) as (T & RecognizedPenalty) | undefined ?? null;
+  return recognized.find((p) => p.specialKind === "missed_penalty")
+    ?? recognized.find((p) => p.specialKind === "birthday")
+    ?? null;
 }
 
 export function isKistePenalty(p: Pick<RecordedPenalty, "type" | "value">): boolean {
