@@ -132,7 +132,8 @@ export function buildWeeklyReport(input: {
           playerName: input.penaltyMoment.playerName,
           photoUrl: input.penaltyMoment.photoUrl ?? null }
     : input.penaltyMoment?.kind === "birthday"
-      ? { kind: "birthday", title: "🎂 Geburtstags-Kischde!",
+      ? { kind: "birthday", title: input.penaltyMoment.isKiste
+          ? "🎂 Geburtstags-Kischde!" : "🎂 Geburtstags-Special",
           text: input.penaltyMoment.playerName + " hat Geburtstag!",
           detail: input.penaltyMoment.isKiste
             ? "Eine Kiste für die Truppe ist eingetragen. Prost!"
