@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthContext } from "@/lib/auth/context";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { canManageClub } from "@/lib/auth/access";
@@ -225,7 +226,7 @@ export async function POST(request: NextRequest) {
       updatePayload.strength = null;
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await createAdminClient()
       .from("players")
       .update(updatePayload)
       .eq("id", playerId)
