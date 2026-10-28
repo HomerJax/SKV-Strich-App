@@ -402,7 +402,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); }
       catch { /* Optional. */ }
       setPilotFinalizingResult(false);
-      router.push("/sessions");
+      // Keep the finished session open instead of redirecting to /sessions.
+      setTrainingWizardOpen(false);
+      setPilotEntryView("overview");
+      setWizardManualSelection(false);
     })();
   }, [pilotFinalizingResult, hasResult, saving, photoBusy, photoUploadWorking,
     stagedPhotoFile, dayWinnerSide, router, props.initialClubId, props.sessionId,
@@ -429,9 +432,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";
   const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
-  // The pilot completion marker is device-local until wizard progress is stored server-side.
-  // Never show a completed session if its underlying result was removed later.
-  const trainingCompleted = pilotFinished && (hasResult || Boolean(session.tournament_completed_at));
+  // Persisted scores / tournament completion also work across devices.
+  // A local completion marker without valid saved data never marks a session done.
+  const hasSavedNormalResult = results.some(result => result.goals_team_a != null && result.goals_team_b != null);
+  const trainingCompleted = (pilotFinished || hasResult || Boolean(session.tournament_completed_at))
+    && (isTournamentMode ? Boolean(session.tournament_completed_at) : hasSavedNormalResult);
   const liveOrPrepared = trainingStarted || hasResult || Boolean(session.tournament_completed_at);
   const currentAttendanceSignature = [...draftPresentIds].sort((a,b) => a-b).join(",");
   const attendanceConfirmed = attendanceReviewed && attendanceRosterSignature === currentAttendanceSignature;
@@ -453,6 +458,18 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     } else {
       enterTrainingWizard();
     }
+  }
+
+  function openCompletedSteps() {
+    setPilotView(props.initialIsClubAdmin === true ? "admin" : "leader");
+    setPilotStep("settings");
+    setWizardManualSelection(true);
+    setTrainingWizardOpen(true);
+  }
+
+  function openCompletedData() {
+    setPilotView(props.initialIsClubAdmin === true ? "admin" : "leader");
+    setPilotEntryView("data");
   }
 
   function leaveTrainingWizard() {
@@ -1095,6 +1112,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 </p>
               </section>
             );
+            if (trainingCompleted && (key === "timer" || key === "live")) return (
+              <div className="rounded-2xl border border-teal-200 bg-white p-5">
+                <h3 className="text-lg font-black text-slate-950">Training bereits abgeschlossen</h3>
+                <p className="mt-2 text-sm text-slate-600">Die Spieluhr wird nicht erneut gestartet. Das gespeicherte Ergebnis und die Teams findest du im Datenblatt.</p>
+                <button type="button" onClick={openCompletedData}
+                  className="mt-4 min-h-12 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white">Datenblatt öffnen →</button>
+              </div>
+            );
             if (key === "timer" || key === "live") return (
               <section className="space-y-4">
                 {key === "timer" ? (
@@ -1167,28 +1192,19 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 )}
               </section>
             );
-            if (key === "finish") return <section className="space-y-4">
-              <div className="rounded-2xl bg-slate-950 p-5 text-white">
-                <div className="text-xs font-black uppercase tracking-[0.15em] text-teal-300">Training beendet</div>
-                <h3 className="mt-2 text-xl font-black">Wurden die Teams noch verändert?</h3>
-                <p className="mt-2 text-sm text-white/65">Zum Beispiel, weil jemand später gegangen ist oder Spieler getauscht wurden.</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {([{value:"no",title:"Nein",text:"Teams passen"},{value:"yes",title:"Ja",text:"Nochmal prüfen"}] as const).map(item => (
-                  <button key={item.value} type="button" aria-pressed={teamChangedChoice === item.value}
-                    onClick={() => {
-                      setTeamChangedChoice(item.value);
-                      try { window.localStorage.setItem("strikr-teams-changed-" + props.sessionId, item.value); } catch { /* Optional. */ }
-                    }}
-                    className={`min-h-28 rounded-2xl border-2 p-4 text-left transition ${teamChangedChoice === item.value ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-white"}`}>
-                    <span className="block text-lg font-black text-slate-950">{item.title}</span>
-                    <span className="mt-2 block text-xs text-slate-600">{item.text}</span>
-                  </button>
-                ))}
-              </div>
-              <TrainingClosingCheck sessionId={props.sessionId} players={displayPlayers}
-                presentIds={draftPresentIds} onReadyChange={setCloseCheckReady} beforeResult />
-            </section>;
+            if (key === "finish") return <TrainingClosingCheck
+              sessionId={props.sessionId}
+              players={displayPlayers}
+              presentIds={draftPresentIds}
+              onReadyChange={setCloseCheckReady}
+              beforeResult
+              teamChangedChoice={teamChangedChoice}
+              onTeamChangedChoice={value => {
+                setTeamChangedChoice(value);
+                try { window.localStorage.setItem("strikr-teams-changed-" + props.sessionId, value); }
+                catch { /* Optional progress. */ }
+              }}
+            />;
             if (key === "recheck") return <section className="space-y-3">
               <p className="rounded-xl bg-teal-50 p-3 text-sm leading-6 text-slate-700">
                 Prüfe die Teams und passe sie bei Bedarf an. Danach Aufstellung bestätigen.
