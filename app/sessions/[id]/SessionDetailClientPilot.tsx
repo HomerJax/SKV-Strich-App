@@ -14,6 +14,7 @@ import SessionGameTimerLoader from "./SessionGameTimerLoader";
 import SessionTournamentCard from "./SessionTournamentCard";
 import TrainingSessionWizard from "./TrainingSessionWizard";
 import TrainingAttendanceStep from "./TrainingAttendanceStep";
+import SessionCompletedTeamCorrection from "./SessionCompletedTeamCorrection";
 import TrainingClosingCheck from "./TrainingClosingCheck";
 import type { TrainingClosingAnswers } from "./TrainingClosingCheck";
 import PilotTeamBalanceOverlay from "./PilotTeamBalanceOverlay";
@@ -1690,6 +1691,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         ) : null}
 
         {!isTournamentMode && allowTeams ? renderWorkflowSection("teams", renderTeams()) : null}
+        {!isTournamentMode && hasResult && props.initialIsClubAdmin === true ? (
+          <SessionCompletedTeamCorrection
+            sessionId={props.sessionId}
+            teamA={displayTeamA}
+            teamB={displayTeamB}
+          />
+        ) : null}
 
         {!isTournamentMode && isTrainingSession && !hasResult ? (
           <SessionGameTimerLoader sessionId={props.sessionId} />
