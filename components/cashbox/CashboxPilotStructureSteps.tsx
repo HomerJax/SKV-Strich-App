@@ -3,7 +3,7 @@
 import type { PilotCashboxStructure, PilotAccountKind } from "@/lib/cashbox/pilot-structure";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
-type Step = "structure" | "accounts" | "payments";
+type Step = "accounts" | "payments";
 type Props = {
   step: Step;
   value: PilotCashboxStructure;
@@ -21,42 +21,6 @@ export default function CashboxPilotStructureSteps({ step, value, onChange }: Pr
   const inputClass = "mt-2 w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 focus:border-slate-950 focus:outline-none";
   const sectionTitle = "mt-3 text-3xl font-black tracking-tight sm:text-4xl";
   const description = "mt-3 max-w-xl text-sm font-medium leading-6 text-slate-500";
-
-  if (step === "structure") {
-    return (
-      <section>
-        <div className="text-5xl">🏛️</div>
-        <p className="mt-6 text-xs font-black uppercase tracking-[.2em] text-slate-400">{en ? "Club structure" : "Vereinsstruktur"}</p>
-        <h1 className={sectionTitle}>{en ? "Is there a parent club?" : "Gibt es einen Dachverein?"}</h1>
-        <p className={description}>{en
-          ? "Choose how your team is organized before setting up its cashbox. You can change this later. No other team's records will be linked automatically."
-          : "Bevor wir die Kasse einrichten, legen wir fest, wie eure Mannschaft organisiert ist. Das kannst du später ändern. Andere Mannschaften werden nicht automatisch verbunden."}</p>
-        <div className="mt-7 grid gap-3 sm:grid-cols-2">
-          {([
-            { mode: "single" as const, icon: "⚽", title: en ? "No, just our team" : "Nein, nur unsere Mannschaft", body: en ? "Independent team with its own cashbox." : "Eigenständiges Team mit eigener Mannschaftskasse." },
-            { mode: "umbrella" as const, icon: "🏛️", title: en ? "Yes, a parent club" : "Ja, es gibt einen Dachverein", body: en ? "Multiple teams may share a parent club, with separate real accounts." : "Mehrere Mannschaften gehören zusammen – mit gemeinsamen und eigenen echten Konten." },
-          ]).map(option => (
-            <button type="button" key={option.mode} onClick={() => onChange({ ...value, mode: option.mode })}
-              className={["rounded-2xl border-2 p-5 text-left", value.mode === option.mode ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-950"].join(" ")}>
-              <span className="text-3xl">{option.icon}</span>
-              <div className="mt-3 text-lg font-black">{option.title}</div>
-              <p className={["mt-2 text-sm leading-6", value.mode === option.mode ? "text-white/75" : "text-slate-500"].join(" ")}>{option.body}</p>
-            </button>
-          ))}
-        </div>
-        {value.mode === "umbrella" ? (
-          <label className="mt-6 block text-sm font-black">
-            {en ? "Name of parent club" : "Name des Dachvereins"}
-            <input className={inputClass} value={value.umbrellaName} maxLength={100} placeholder={en ? "e.g. Parent sports club" : "z. B. SKV Rutesheim"}
-              onChange={event => onChange({ ...value, umbrellaName: event.target.value })}/>
-          </label>
-        ) : null}
-        {value.mode ? <p className="mt-4 text-xs leading-5 text-slate-500">{en
-          ? "Pilot: this choice saves your structure; other clubs and their funds are not merged."
-          : "Pilot: Wir speichern zunächst die Struktur. Andere Vereine und deren Geld werden dadurch nicht zusammengelegt."}</p> : null}
-      </section>
-    );
-  }
 
   if (step === "accounts") {
     return (

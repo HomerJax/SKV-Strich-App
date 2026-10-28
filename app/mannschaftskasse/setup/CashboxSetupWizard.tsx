@@ -33,7 +33,6 @@ type Props = {
 };
 
 type StepId =
-  | "structure"
   | "accounts"
   | "payments"
   | "penalties"
@@ -147,11 +146,11 @@ export default function CashboxSetupWizard({
   const [managerIds, setManagerIds] = useState<string[]>(
     players.filter((player) => player.selected).map((player) => player.userId),
   );
-  const [stepId, setStepId] = useState<StepId>(cashboxPilot ? "structure" : "penalties");
+  const [stepId, setStepId] = useState<StepId>(cashboxPilot ? "accounts" : "penalties");
 
   const steps = useMemo<StepId[]>(() => {
     const result: StepId[] = cashboxPilot
-      ? ["structure", "accounts", "payments", "penalties", "contributions", "beer"]
+      ? ["accounts", "payments", "penalties", "contributions", "beer"]
       : ["penalties", "contributions", "beer"];
     if (premiumBeer && beerEnabled) {
       result.push("beer_price", "paypal", "beer_home");
@@ -185,10 +184,7 @@ export default function CashboxSetupWizard({
   }
 
   const canContinue =
-    safeStepId === "structure"
-      ? pilotStructure.mode !== null &&
-        (pilotStructure.mode !== "umbrella" || pilotStructure.umbrellaName.trim().length > 1)
-      : safeStepId === "accounts"
+    safeStepId === "accounts"
         ? pilotStructure.accounts.length > 0 && pilotStructure.accounts.every(account => account.name.trim().length > 0)
         : safeStepId === "beer_price"
           ? /^\d+(?:[,.]\d{1,2})?$/.test(beerPrice.trim())
@@ -260,7 +256,7 @@ export default function CashboxSetupWizard({
             </div>
           ) : null}
 
-          {cashboxPilot && (safeStepId === "structure" || safeStepId === "accounts" || safeStepId === "payments") ? (
+          {cashboxPilot && (safeStepId === "accounts" || safeStepId === "payments") ? (
             <CashboxPilotStructureSteps step={safeStepId} value={pilotStructure} onChange={setPilotStructure} />
           ) : null}
 
@@ -488,8 +484,11 @@ export default function CashboxSetupWizard({
                   <>
                     <div className="rounded-2xl bg-teal-50 px-4 py-3 ring-1 ring-teal-200">
                       <div className="text-xs font-black text-teal-700">{locale === "en" ? "Club structure" : "Vereinsstruktur"}</div>
-                      <div className="mt-1 font-black text-teal-950">{pilotStructure.mode === "umbrella" ? pilotStructure.umbrellaName : locale === "en" ? "Independent team" : "Eigenständige Mannschaft"}</div>
-                      <div className="mt-1 text-xs font-medium text-teal-800">{pilotStructure.accounts.length} {locale === "en" ? "real accounts set up" : "echte Konten erfasst"}</div>
+                      <div className="mt-1 text-sm font-bold text-teal-950">{locale === "en"
+                        ? "Parent club and its administrators are managed separately in Club settings."
+                        : "Dachverein und Vereinsadmins werden separat in den Club-Einstellungen verwaltet."}</div>
+                      <Link href="/admin/organization" className="mt-2 inline-flex text-xs font-black text-teal-800 underline underline-offset-2">{locale === "en" ? "Manage parent club" : "Dachverein verwalten"}</Link>
+                      <div className="mt-2 text-xs text-teal-800">{pilotStructure.accounts.length} {locale === "en" ? "real accounts set up" : "echte Konten erfasst"}</div>
                     </div>
                     <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
                       <div className="text-xs font-black text-slate-500">{locale === "en" ? "Cashbox payment options" : "Zahlungswege Mannschaftskasse"}</div>

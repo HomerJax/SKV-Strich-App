@@ -347,7 +347,7 @@ export default async function Page({ searchParams }: Props) {
         {pilotConfig && canManageCashbox ? (
           <section className="rounded-2xl border border-teal-200 bg-teal-50 p-4">
             <div className="text-xs font-black uppercase tracking-[.18em] text-teal-700">{locale === "en" ? "Cashbox pilot · Setup" : "Kassenpilot · Finanzstruktur"}</div>
-            <div className="mt-1 text-lg font-black text-slate-950">{pilotConfig.mode === "umbrella" ? pilotConfig.umbrellaName : locale === "en" ? "Independent team" : "Eigenständige Mannschaft"}</div>
+            <div className="mt-1 text-lg font-black text-slate-950">{locale === "en" ? "Configured financial accounts" : "Konfigurierte Finanzkonten"}</div>
             <p className="mt-2 text-xs leading-5 text-slate-600">{locale === "en"
               ? "Your real accounts are saved as a structure. They are not yet linked to cash transactions or live bank balances."
               : "Deine echten Konten sind als Struktur gespeichert. Sie sind noch nicht mit Kassenbuchungen oder Live-Bankbeständen verknüpft."}</p>

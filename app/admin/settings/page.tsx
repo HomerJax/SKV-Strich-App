@@ -12,6 +12,7 @@ import { translate } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/config";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
+import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
 
 type PageProps = {
   searchParams?: Promise<{
@@ -346,6 +347,17 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
         <SettingsShell title={t("settings.section.club")} description={t("settings.section.clubHint")}>
           <ClubSettingsCard saved={clubSaved} error={clubError} />
         </SettingsShell>
+
+        {isCashboxPilotClub(clubId) ? (
+          <SettingsShell title={locale === "en" ? "Parent club & teams" : "Dachverein & Mannschaften"}
+            description={locale === "en"
+              ? "Manage your club organization, its teams and organization admins independently of the cashbox."
+              : "Dachverein, untergeordnete Mannschaften und eigene Vereinsadmins verwalten – unabhängig von der Mannschaftskasse."}>
+            <Link href="/admin/organization" className="inline-flex rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">
+              {locale === "en" ? "Open parent-club administration" : "Dachverein verwalten →"}
+            </Link>
+          </SettingsShell>
+        ) : null}
 
         <SettingsShell
           title={t("settings.language.title")}
