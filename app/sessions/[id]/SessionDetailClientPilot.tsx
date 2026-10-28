@@ -215,6 +215,25 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             }
           }
           const checked = (key: string) => saved[key] === true;
+          // Opening the session is read-only: do not create a write/conflict
+          // just because another device loaded the same persisted progress.
+          progressSent.current = JSON.stringify({
+            step: typeof saved.step === "string" && validSteps.includes(saved.step) ? saved.step : null,
+            settingsReviewed: checked("settingsReviewed"),
+            normalModeReviewed: checked("normalModeReviewed"),
+            attendanceReviewed: checked("attendanceReviewed"),
+            attendanceRosterSignature: typeof saved.attendanceRosterSignature === "string" ? saved.attendanceRosterSignature : "",
+            trainingStarted: checked("trainingStarted"),
+            clockStarted: checked("clockStarted"),
+            useGameClock: checked("useGameClock"),
+            trainingEnded: checked("trainingEnded"),
+            teamChangedChoice: saved.teamChangedChoice === "yes" || saved.teamChangedChoice === "no" ? saved.teamChangedChoice : null,
+            photoSkipped: checked("photoSkipped"),
+            finished: checked("finished"),
+            closeCheckReviewed: checked("closeCheckReviewed"),
+            winnerReviewed: checked("winnerReviewed"),
+            closingAnswers: saved.closingAnswers ?? null,
+          });
           setSettingsReviewed(checked("settingsReviewed"));
           setNormalModeReviewed(checked("normalModeReviewed"));
           setAttendanceReviewed(checked("attendanceReviewed"));
