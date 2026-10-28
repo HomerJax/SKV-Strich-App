@@ -17,7 +17,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const id = Number((await context.params).id);
   if (!Number.isSafeInteger(id) || id <= 0) return fail("Ungültige Trainingseinheit.",400);
   const access = await requireSessionAccess(id);
-  if ("error" in access) return fail(access.error ?? "Kein Zugriff.",access.status);
+  if ("error" in access) return fail(access.error ?? "Kein Zugriff.",access.status ?? 403);
   if (!canManageClub({ isPowerUser: access.isPowerUser, role: access.membership.role })
       && !access.canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.",403);
   if (access.session.type === "event" || access.session.session_mode === "tournament")
@@ -74,7 +74,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const id = Number((await context.params).id);
   if (!Number.isSafeInteger(id) || id <= 0) return fail("Ungültige Trainingseinheit.",400);
   const access = await requireSessionAccess(id);
-  if ("error" in access) return fail(access.error ?? "Kein Zugriff.", access.status);
+  if ("error" in access) return fail(access.error ?? "Kein Zugriff.", access.status ?? 403);
   const db = access.adminSupabase;
   const [
     { data: teams, error: teamError },
