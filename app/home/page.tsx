@@ -1246,19 +1246,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         ) : null}
 
 
-
-              {(invitesCount ?? 0) === 0 ? (
-                <Link
-                  href="/admin/invites"
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800"
-                >
-                  {t("home.inviteMembers")}
-                </Link>
-              ) : null}
-            </div>
-          </section>
-        ) : null}
-
       </section>
       </main>
     </HomePullToRefresh>
