@@ -216,6 +216,22 @@ export function useSessionDetail({
   const [manualTeams, setManualTeams] = useState<TeamMap>(initialManualTeams);
   const [teamGenerationRunId, setTeamGenerationRunId] = useState(0);
   const [serverTeamAggregate, setServerTeamAggregate] = useState<{ a: number; b: number } | null>(null);
+
+  async function refreshSavedTeamBalance() {
+    if (initialIsClubAdmin) return;
+    try {
+      const response = await fetch("/api/sessions/" + sessionId + "/balanced-teams", {
+        credentials: "same-origin", cache: "no-store",
+      });
+      if (!response.ok) return;
+      const data = await response.json() as { aggregate?: { a: number; b: number } | null };
+      setServerTeamAggregate(data.aggregate ?? null);
+    } catch { /* Team bar is supplementary; never block edits/results. */ }
+  }
+  useEffect(() => {
+    if (!initialIsClubAdmin) void refreshSavedTeamBalance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, initialIsClubAdmin]);
   const [clubId] = useState<string | null>(initialClubId);
   const [isAdmin] = useState(initialIsAdmin);
   const [clubSettings] = useState<ClubSettings | null>(initialClubSettings);
@@ -684,6 +700,7 @@ export function useSessionDetail({
       formData.set("manual_teams", JSON.stringify(nextTeams));
 
       await postForm(formData);
+      if (!initialIsClubAdmin) await refreshSavedTeamBalance();
       return true;
     } catch (error: unknown) {
       setErr(getErrorMessage(error, t("sessionHook.teamsSaveFailed")));
@@ -1227,7 +1244,7 @@ ${sessionUrl}`;
 
     // A real training leader must never receive individual strength ratings.
     // Optimize their roster with server-only full ratings, not masked client data.
-    if (!initialIsClubAdmin && hasGuidedTrainingAssistant(initialClubId)) {
+    if (!initialIsClubAdmin) {
       try {
         const response = await fetch("/api/sessions/" + sessionId + "/balanced-teams", {
           method: "POST", credentials: "same-origin", cache: "no-store",
@@ -1501,6 +1518,7 @@ ${sessionUrl}`;
 
     setErr(null);
 
+    if (!initialIsClubAdmin) setServerTeamAggregate(null);
     setManualTeams((prev) => {
       const next = { ...prev, [playerId]: side };
       setTeamsConfirmed(false);
