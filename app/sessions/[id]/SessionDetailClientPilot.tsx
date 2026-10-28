@@ -289,6 +289,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     teamA,
     teamB,
     teamGenerationRunId,
+    serverTeamAggregate,
     displayPlayers,
     displayTeamA,
     displayTeamB,
@@ -659,9 +660,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 const scoreOptions = { useStrength: clubSettings?.use_strength ?? true,
                   useCategories: clubSettings?.use_categories ?? true,
                   balanceCategories: props.initialBalanceCategories ?? [] };
-                const totalA = sumTeamScore(displayTeamA, scoreOptions);
-                const totalB = sumTeamScore(displayTeamB, scoreOptions);
-                const max = Math.max(1, totalA, totalB);
+                const totalA = pilotAdmin
+                  ? sumTeamScore(displayTeamA, scoreOptions)
+                  : serverTeamAggregate?.a ?? 0;
+                const totalB = pilotAdmin
+                  ? sumTeamScore(displayTeamB, scoreOptions)
+                  : serverTeamAggregate?.b ?? 0;
+                const max = pilotAdmin ? Math.max(1, totalA, totalB) : 100;
                 return (
                   <div className="mb-4 grid grid-cols-2 gap-3" aria-label="Team-Balance">
                     {([{ title: "Team A", score: totalA }, { title: "Team B", score: totalB }] as const).map(team => (
@@ -669,7 +674,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                         <div className="mb-1 flex items-center justify-between gap-2">
                           <span className="text-xs font-black text-slate-900">{team.title}</span>
                           <span className="text-[11px] font-bold text-slate-600">
-                            {pilotAdmin && pilotView === "admin" ? team.score : Math.round(team.score / max * 100) + " %"}
+                            {!pilotAdmin && !serverTeamAggregate ? "–" : pilotAdmin && pilotView === "admin" ? team.score : Math.round(team.score / max * 100) + " %"}
                           </span>
                         </div>
                         <div role="img" aria-label={team.title + " Gesamtbalance"} className="h-3 overflow-hidden rounded-full bg-slate-200">
@@ -719,7 +724,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             className="min-h-11 text-sm font-bold text-slate-600">← Zur kompakten Teamansicht</button>
         ) : null}
         <SessionTeamsCard
-          enableBalanceReveal={enableBalanceReveal && !trainingWizardOpen}
+          enableBalanceReveal={enableBalanceReveal && pilotAdmin && !trainingWizardOpen}
           generationRunId={enableBalanceReveal ? teamGenerationRunId : 0}
           showStrengthNumbers={enableBalanceReveal && pilotAdmin && pilotView === "admin"}
           scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}}
@@ -957,7 +962,23 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
 
-        {playerPreview ? <div className="space-y-4"><div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div>  : true && isAdmin && isTrainingSession && pilotEntryView !== "data" ? (!trainingWizardOpen ? (
+        {playerPreview ? <div className="space-y-4">
+          <div className="rounded-2xl bg-gradient-to-br from-slate-950 to-teal-950 p-5 text-white">
+            <p className="text-xs font-black uppercase tracking-widest text-teal-300">Dein Trainingsüberblick</p>
+            <h2 className="mt-2 text-2xl font-black">Alles Wichtige auf einen Blick.</h2>
+            <p className="mt-2 text-sm leading-6 text-white/70">
+              {hasResult ? "Das Ergebnis ist da. Hier findest du Teams und Resultate."
+                : teamsComplete ? "Die Teams stehen fest. Schau nach, wo du spielst."
+                  : "Sieh dir Zusagen und die Planung für euer Training an."}
+              {" "}Organisationsfragen und Spielerstärken bleiben ausgeblendet.
+            </p>
+            <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/15 pt-4 text-center">
+              <div><div className="text-xl font-black">{presentPlayers.length}</div><div className="text-[11px] text-white/60">Dabei</div></div>
+              <div><div className="text-xl font-black">{teamsComplete ? displayTeamA.length + " : " + displayTeamB.length : "–"}</div><div className="text-[11px] text-white/60">Teams</div></div>
+              <div><div className="text-xl font-black">{hasResult ? scoreAValue + " : " + scoreBValue : "–"}</div><div className="text-[11px] text-white/60">Ergebnis</div></div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div>  : true && isAdmin && isTrainingSession && pilotEntryView !== "data" ? (!trainingWizardOpen ? (
           <section className="mx-auto max-w-xl space-y-4" aria-label="Training starten">
 
             {pilotEntryView === "choose" ? (
@@ -1549,6 +1570,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           teamB={displayTeamB}
           generationRunId={teamGenerationRunId}
           scoreOptions={{ useStrength: clubSettings?.use_strength ?? true, useCategories: clubSettings?.use_categories ?? true, balanceCategories: props.initialBalanceCategories ?? [] }}
+          teamBalancePercent={!pilotAdmin ? serverTeamAggregate : null}
           showStrengthNumbers={pilotAdmin && pilotView === "admin"}
           generating={balanceGenerating}
           saving={balanceSaving}
