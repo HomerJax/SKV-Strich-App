@@ -45,6 +45,7 @@ type SessionDetailClientProps = {
   initialManualTeams: TeamMap;
   initialClubId: string;
   initialIsAdmin: boolean;
+  initialIsClubAdmin?: boolean;
   initialClubSettings: ClubSettings;
   initialBalanceCategories?: BalanceCategory[];
   initialWinnerPhotoUrl: string | null;
@@ -179,6 +180,7 @@ export function useSessionDetail({
   initialManualTeams,
   initialClubId,
   initialIsAdmin,
+  initialIsClubAdmin = true,
   initialClubSettings,
   initialBalanceCategories,
   initialWinnerPhotoUrl,
@@ -213,6 +215,7 @@ export function useSessionDetail({
 
   const [manualTeams, setManualTeams] = useState<TeamMap>(initialManualTeams);
   const [teamGenerationRunId, setTeamGenerationRunId] = useState(0);
+  const [serverTeamAggregate, setServerTeamAggregate] = useState<{ a: number; b: number } | null>(null);
   const [clubId] = useState<string | null>(initialClubId);
   const [isAdmin] = useState(initialIsAdmin);
   const [clubSettings] = useState<ClubSettings | null>(initialClubSettings);
@@ -1222,6 +1225,35 @@ ${sessionUrl}`;
 
     clearFeedback();
 
+    // A real training leader must never receive individual strength ratings.
+    // Optimize their roster with server-only full ratings, not masked client data.
+    if (!initialIsClubAdmin && hasGuidedTrainingAssistant(initialClubId)) {
+      try {
+        const response = await fetch("/api/sessions/" + sessionId + "/balanced-teams", {
+          method: "POST", credentials: "same-origin", cache: "no-store",
+        });
+        const data = await response.json() as {
+          teams?: TeamMap; aggregate?: { a: number; b: number }; error?: string;
+        };
+        if (!response.ok || !data.teams || !data.aggregate)
+          throw new Error(data.error || "Teamgenerator nicht verfügbar.");
+        setManualTeams(data.teams);
+        setTeamsConfirmed(false);
+        setTeamGenerationRunId(run => run + 1);
+        setServerTeamAggregate(data.aggregate);
+        const saved = await persistTeamsNow(data.teams);
+        if (!saved) { restoreScroll(); return false; }
+        setMsg(t("sessionHook.teamsConfirmed"));
+        setTeamsCollapsed(false);
+        restoreScroll();
+        return true;
+      } catch (error) {
+        setErr(getErrorMessage(error, "Teams konnten nicht serverseitig generiert werden."));
+        restoreScroll();
+        return false;
+      }
+    }
+
     const present = teamGeneratorPlayers;
     if (present.length < 2) {
       setErr(t("sessionHook.minPlayers"));
@@ -1869,6 +1901,7 @@ ${sessionUrl}`;
     teamB,
     unassigned,
     teamGenerationRunId,
+    serverTeamAggregate,
     displayPlayers,
     displayTeamA,
     displayTeamB,
