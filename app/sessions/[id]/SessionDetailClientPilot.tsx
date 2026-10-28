@@ -21,7 +21,7 @@ import SessionEndModal from "@/components/SessionEndModal";
 import { updateSessionTypeAction } from "./session-type-actions";
 import type { Player, SessionGameResult, SessionRow, TeamMap } from "./session-types";
 import type { ClubSettings } from "./session-detail-helpers";
-import { normalizeGoalValue } from "./session-ui";
+import { normalizeGoalValue, sumTeamScore } from "./session-ui";
 import { getSessionDeadlineEpochMs } from "@/lib/session-rsvp-deadline";
 import type { BalanceCategory } from "./session-ui";
 import { useSessionDetail } from "./useSessionDetail";
@@ -105,7 +105,7 @@ function WorkspaceIntro({
 
 export default function SessionDetailClient(props: SessionDetailClientProps) {
   const { t } = useI18n();
-  const [pilotView, setPilotView] = useState<"admin" | "leader" | "player">("admin");
+  const [pilotView, setPilotView] = useState<"admin" | "leader" | "player">(props.initialIsClubAdmin ? "admin" : "leader");
   const [pilotFinished, setPilotFinished] = useState(false);
   const [pilotPhotoSkipped, setPilotPhotoSkipped] = useState(false);
   const [closeCheckReviewed, setCloseCheckReviewed] = useState(false);
@@ -655,6 +655,32 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   {teamsConfirmed ? "✓ Bestätigt" : "Noch nicht bestätigt"}
                 </span>
               </div>
+              {(() => {
+                const scoreOptions = { useStrength: clubSettings?.use_strength ?? true,
+                  useCategories: clubSettings?.use_categories ?? true,
+                  balanceCategories: props.initialBalanceCategories ?? [] };
+                const totalA = sumTeamScore(displayTeamA, scoreOptions);
+                const totalB = sumTeamScore(displayTeamB, scoreOptions);
+                const max = Math.max(1, totalA, totalB);
+                return (
+                  <div className="mb-4 grid grid-cols-2 gap-3" aria-label="Team-Balance">
+                    {([{ title: "Team A", score: totalA }, { title: "Team B", score: totalB }] as const).map(team => (
+                      <div key={team.title} className="min-w-0">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <span className="text-xs font-black text-slate-900">{team.title}</span>
+                          <span className="text-[11px] font-bold text-slate-600">
+                            {pilotAdmin && pilotView === "admin" ? team.score : Math.round(team.score / max * 100) + " %"}
+                          </span>
+                        </div>
+                        <div role="img" aria-label={team.title + " Gesamtbalance"} className="h-3 overflow-hidden rounded-full bg-slate-200">
+                          <div className="h-full rounded-full bg-teal-400"
+                            style={{ width: Math.round(team.score / max * 100) + "%" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
               <div className="grid grid-cols-2 gap-2">
                 {([{ title: "Team A", players: displayTeamA }, { title: "Team B", players: displayTeamB }]).map(team => (
                   <div key={team.title} className="min-w-0 rounded-xl bg-slate-50 p-3">
@@ -1000,12 +1026,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               { key: "teams" as const, title: "Faire Teams", done: teamsComplete && teamsConfirmed, summary: `${displayTeamA.length} : ${displayTeamB.length} Spieler` },
               { key: "timer" as const, title: "Training starten", done: trainingStarted || clockStarted || hasResult, summary: "Mit oder ohne Spieluhr" },
               { key: "live" as const, title: "Training läuft", done: trainingEnded || hasResult, summary: "Spieluhr und Trainingsende" },
-              { key: "finish" as const, title: "Teams prüfen", done: teamChangedChoice !== null || hasResult, summary: "Wurde die Einteilung noch geändert?" },
+              { key: "finish" as const, title: "Abschlusscheck", done: (teamChangedChoice !== null && closeCheckReviewed) || hasResult, summary: "Teams, Anwesenheit, Pünktlichkeit & Vorfälle" },
               ...(teamChangedChoice === "yes" && !hasResult ? [
                 { key: "recheck" as const, title: "Teams korrigieren", done: teamsComplete && teamsConfirmed, summary: "Änderungen prüfen und bestätigen" },
               ] : []),
               { key: "photo" as const, title: "Foto auswählen", optional: true, done: hasWinnerPhoto || pilotPhotoSkipped || stagedPhotoFile !== null || hasResult, summary: "Optional: Siegerfoto vorbereiten" },
-              { key: "check" as const, title: "Abschlussfragen", done: closeCheckReviewed, summary: "Anwesenheit, Pünktlichkeit & Vorfälle" },
               { key: "result" as const, title: "Ergebnis speichern", done: hasResult, summary: "Letzter Schritt: speichern und fertig" },
             ] : [
               { key: "result" as const, title: "Turnier durchführen", done: Boolean(session.tournament_completed_at), summary: session.tournament_completed_at ? "Turnier abgeschlossen" : "Spielplan & Ergebnisse" },
@@ -1140,6 +1165,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   </button>
                 ))}
               </div>
+              <TrainingClosingCheck sessionId={props.sessionId} players={displayPlayers}
+                presentIds={draftPresentIds} onReadyChange={setCloseCheckReady} beforeResult />
             </section>;
             if (key === "recheck") return <section className="space-y-3">
               <p className="rounded-xl bg-teal-50 p-3 text-sm leading-6 text-slate-700">
@@ -1240,7 +1267,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             (selected === "attendance" && (attendanceDirty || presentPlayers.length < 2 || savingPresence)) ||
             (selected === "mode" && !isTournamentMode && configuringTournament && !setupWizardReady) ||
             (selected === "teams" && !isTournamentMode && (!teamsComplete || !teamsConfirmed || saving || savingTeams)) ||
-            (selected === "finish" && teamChangedChoice === null) ||
+            (selected === "finish" && (teamChangedChoice === null || !closeCheckReady)) ||
             (selected === "recheck" && (!teamsComplete || !teamsConfirmed || savingTeams)) ||
             (selected === "result" && isTournamentMode && (tournamentWizardStage === "teams" ? !tournamentTeamsReady : !session.tournament_completed_at)) ||
             (selected === "photo" && isTournamentMode && !session.tournament_completed_at) ||
@@ -1258,7 +1285,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                     : selected === "live"
                       ? "Das Training läuft. Wenn ihr fertig seid, schließe die Einheit mit dem Button unten ab."
                       : selected === "finish"
-                        ? "Wurden die Teams während des Trainings verändert?"
+                        ? "Prüfe Teams, Anwesenheit, Pünktlichkeit und Vorfälle auf dieser Seite."
                         : selected === "photo"
                           ? "Optional: Siegerfoto auswählen. Es wird beim Speichern des Ergebnisses gesichert."
                           : selected === "result"
@@ -1280,9 +1307,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           const nextStep = steps[selectedIndex + 1];
           const nextLabel = selected === "check" ? (isTournamentMode ? "Training abschließen ✓" : "Weiter zum Ergebnis →")
             : selected === "live" ? "Training abschließen →"
-            : selected === "finish" ? (teamChangedChoice === "yes" ? "Teams prüfen →" : "Weiter zum Foto →")
+            : selected === "finish" ? (teamChangedChoice === "yes" ? "Abschluss geprüft · Teams korrigieren →" : "Abschluss geprüft · Foto wählen →")
             : selected === "recheck" ? "Teams passen · Foto auswählen →"
-            : selected === "photo" && !isTournamentMode ? "Weiter zu den Abschlussfragen →"
+            : selected === "photo" && !isTournamentMode ? "Weiter zum Ergebnis →"
             : selected === "timer" ? "Ohne Spieluhr starten →"
             : selected === "settings" ? "Passt · Anwesenheit prüfen →"
             : selected === "mode" && !isTournamentMode
@@ -1355,6 +1382,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   return;
                 }
                 if (selected === "finish") {
+                  setCloseCheckReviewed(true);
+                  try { window.localStorage.setItem("strikr-closing-reviewed-" + props.sessionId, "true"); } catch { /* Optional. */ }
                   setPilotStep(teamChangedChoice === "yes" ? "recheck" : "photo");
                   setWizardManualSelection(true);
                   return;
@@ -1392,7 +1421,34 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   router.push("/sessions");
                 }
               }}
-              beforeContent={selected === "photo" && !isTournamentMode && hasResult ? (
+
+              beforeContent={<>
+                {pilotAdmin ? (
+                  <div className="rounded-xl border border-teal-100 bg-white p-3 shadow-sm">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="text-xs font-black text-slate-700">Ansicht testen</span>
+                      <span className="text-[10px] text-slate-500">Vorschau · keine Änderung der Rechte</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([{ key: "admin", title: "Admin" }, { key: "leader", title: "Trainingsleiter" }] as const).map(option => (
+                        <button key={option.key} type="button" aria-pressed={pilotView === option.key}
+                          onClick={() => setPilotView(option.key)}
+                          className={`min-h-11 rounded-lg border px-3 py-2 text-xs font-bold ${pilotView === option.key
+                            ? "border-teal-500 bg-teal-50 text-teal-950" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+                          {option.title}{pilotView === option.key ? " ✓" : ""}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-[11px] leading-5 text-slate-500">
+                      Vorschau: Einzelstärken werden bei Trainingsleitung ausgeblendet. Berechtigungen vergibt der Club-Admin unter Mitglieder.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-600">
+                    Trainingsleiteransicht · Spieler-Einzelstärken ausgeblendet.
+                  </p>
+                )}
+                {selected === "photo" && !isTournamentMode && hasResult ? (
                 <div className="overflow-hidden rounded-xl bg-slate-950 p-4 text-center text-white">
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">Spielergebnis</div>
                   <div className="mt-2 text-4xl font-black tabular-nums">{scoreAValue} <span className="text-teal-400">:</span> {scoreBValue}</div>
@@ -1402,6 +1458,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   </button>
                 </div>
               ) : null}
+              </>}
             >
               {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
               {renderStep(selected)}
