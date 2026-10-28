@@ -49,6 +49,7 @@ export const PRODUCT_MATRIX: ProductMatrixRow[] = [
   { area: "Bierkasse", feature: "PayPal Pool / PayPal.Me / SumUp / Bar", free: "Enthalten", pro: "Enthalten" },
   { area: "Bierkasse", feature: "Statistik / Rangliste / Badges / Gönner", free: "🔒", pro: "Enthalten" },
   { area: "Admin", feature: "Admins & Kassenwart", free: "Enthalten", pro: "Enthalten" },
+  { area: "Admin", feature: "Trainingsleiter ernennen (ohne volle Adminrechte)", free: "Enthalten", pro: "Enthalten" },
   { area: "Admin", feature: "Logo / Farbe / Sprache", free: "Enthalten", pro: "Enthalten" },
 ];
 
