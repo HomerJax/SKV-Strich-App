@@ -50,7 +50,9 @@ function normalizeState(raw: unknown): Record<string, unknown> | null {
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const result = await getAccess(context.params);
-  if ("error" in result) return response({ error: result.error }, result.status);
+  if (!("access" in result) || !result.access || !("sessionId" in result) || !result.sessionId) {
+    return response({ error: "Keine Berechtigung für diesen Trainingsassistenten." }, 403);
+  }
   const { access, sessionId } = result;
   const { data, error } = await access.adminSupabase.from("training_wizard_progress")
     .select("state,version,updated_at")
@@ -61,7 +63,9 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const result = await getAccess(context.params);
-  if ("error" in result) return response({ error: result.error }, result.status);
+  if (!("access" in result) || !result.access || !("sessionId" in result) || !result.sessionId) {
+    return response({ error: "Keine Berechtigung für diesen Trainingsassistenten." }, 403);
+  }
   const { access, sessionId } = result;
   const raw = await request.text();
   if (raw.length > 10000) return response({ error: "Zu viele Fortschrittsdaten." }, 413);
