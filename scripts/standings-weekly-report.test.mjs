@@ -88,12 +88,37 @@ test("new leader receives a photo reference in the fourth highlight", () => {
   assert.equal(report.extraHighlight?.photoUrl, "https://example.test/photo.jpg");
 });
 
-test("fourth tile uses training count only when there is real activity", () => {
+test("no wheel spin or notable event means no filler fourth tile", () => {
   const base = {
     current: [row(1, 1, 4), row(2, 2, 2)],
     previous: [row(1, 1, 3), row(2, 2, 2)],
     cutoffDate: "2026-10-20",
   };
-  assert.equal(buildWeeklyReport({ ...base, completedTrainings: 1 }).extraHighlight?.kind, "training");
+  assert.equal(buildWeeklyReport({ ...base, completedTrainings: 1 }).extraHighlight, null);
   assert.equal(buildWeeklyReport({ ...base, completedTrainings: 0 }).extraHighlight, null);
+});
+
+test("a genuine wheel result takes fourth-tile priority, with name and photo", () => {
+  const report = buildWeeklyReport({
+    current: [row(2, 1, 9), row(1, 2, 7)],
+    previous: [row(1, 1, 7), row(2, 2, 8)],
+    cutoffDate: "2026-10-20", completedTrainings: 1,
+    wheelMoment: { playerId: 2, playerName: "Sommi", outcomeLabel: "Wäsche waschen",
+      outcomeDetail: "Trikots einsammeln", photoUrl: "https://example.test/player.png" },
+  });
+  assert.equal(report.extraHighlight?.kind, "wheel");
+  assert.equal(report.extraHighlight?.playerName, "Sommi");
+  assert.equal(report.extraHighlight?.photoUrl, "https://example.test/player.png");
+  assert.match(report.extraHighlight?.text ?? "", /Wäsche waschen/);
+  assert.doesNotMatch(report.extraHighlight?.text ?? "", /Strafe entfällt/);
+});
+
+test("a wheel moment may appear even when no match was completed", () => {
+  const report = buildWeeklyReport({
+    current: [row(1, 1, 3)], previous: [row(1, 1, 3)],
+    cutoffDate: "2026-10-20", completedTrainings: 0,
+    wheelMoment: { playerId: 1, playerName: "Alex", outcomeLabel: "Joker" },
+  });
+  assert.equal(report.extraHighlight?.kind, "wheel");
+  assert.equal(report.biggestRiser, null);
 });
