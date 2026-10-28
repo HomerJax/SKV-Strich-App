@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type MembershipRow = {
   club_id: string;
@@ -262,7 +263,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await createAdminClient()
     .from("players")
     .update(updatePayload)
     .eq("id", playerId)
