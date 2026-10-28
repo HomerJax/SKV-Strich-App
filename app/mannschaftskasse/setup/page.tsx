@@ -35,7 +35,7 @@ function errorText(value: string | undefined, locale: AppLocale) {
   if (value === "price") return translate(locale, "cashSetup.errorPrice");
   if (value === "paypal") return translate(locale, "cashSetup.errorPaypal");
   if (value === "manager") return translate(locale, "cashSetup.errorManager");
-  if (value === "accounts") return locale === "en" ? "Please enter at least one real account with a name." : "Bitte mindestens ein echtes Konto mit Namen anlegen.";
+  if (value === "accounts") return locale === "en" ? "Please check the accounts: all added entries need a valid name." : "Bitte die Konten prüfen: Hinzugefügte Konten benötigen einen gültigen Namen.";
   if (value === "payments") return locale === "en" ? "Please check the payment links: only official HTTPS PayPal or SumUp destinations are allowed." : "Bitte die Zahlungslinks prüfen: Erlaubt sind nur offizielle HTTPS-Ziele von PayPal oder SumUp.";
   if (value) return translate(locale, "cashSetup.errorGeneric");
   return "";
