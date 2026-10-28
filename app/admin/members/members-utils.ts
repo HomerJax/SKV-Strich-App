@@ -90,7 +90,9 @@ export function getSuccessText(
         ? "members.successRemoved"
         : action === "beer_permission_updated"
           ? "members.successBeerPermission"
-          : null;
+          : action === "training_leader_saved"
+            ? "trainingLeaderGuide.saved"
+            : null;
 
   return key ? translate(locale, key) : null;
 }
