@@ -25,9 +25,10 @@ export type WeeklyMover = {
 };
 
 export type WeeklyExtraHighlight = {
-  kind: "wheel" | "leader" | "top5" | "finale";
+  kind: "missed_penalty" | "birthday" | "wheel" | "leader" | "top5" | "finale";
   title: string;
   text: string;
+  detail?: string;
   playerId?: number;
   playerName?: string;
   photoUrl?: string | null;
@@ -40,6 +41,15 @@ export type WeeklyWheelMoment = {
   outcomeLabel: string;
   outcomeDetail?: string | null;
   outcomeIcon?: string | null;
+};
+
+export type WeeklyPenaltyMoment = {
+  kind: "missed_penalty" | "birthday";
+  playerId: number;
+  playerName: string;
+  photoUrl?: string | null;
+  value: string;
+  isKiste: boolean;
 };
 
 export type WeeklyReport = {
@@ -72,6 +82,7 @@ export function buildWeeklyReport(input: {
   upcomingTrainings?: number | null;
   seasonEndDate?: string | null;
   wheelMoment?: WeeklyWheelMoment | null;
+  penaltyMoment?: WeeklyPenaltyMoment | null;
 }): WeeklyReport {
   const { current, previous, cutoffDate, completedTrainings } = input;
   const hasBaseline = previous.length > 0;
@@ -108,26 +119,51 @@ export function buildWeeklyReport(input: {
       oldRanks.has(row.player_id) && (oldRanks.get(row.player_id) ?? 0) > 5)
     : null;
   // Do not manufacture extra highlights without supporting data.
+  // Editorial priority: a real Kabinen-Special beats wheel, then table news.
+  // A penalty never implies that a payment was received or a wheel Joker waived it.
   const extraHighlight: WeeklyExtraHighlight | null =
-    input.wheelMoment
+    input.penaltyMoment?.kind === "missed_penalty"
+      ? { kind: "missed_penalty", title: "⚽ Elfer versemmelt!",
+          text: input.penaltyMoment.playerName + " setzt den Elfer daneben!",
+          detail: input.penaltyMoment.isKiste
+            ? "Kischde! 🍺 Die Kabine hat einen Grund zum Grinsen."
+            : "Die Strafe: " + input.penaltyMoment.value,
+          playerId: input.penaltyMoment.playerId,
+          playerName: input.penaltyMoment.playerName,
+          photoUrl: input.penaltyMoment.photoUrl ?? null }
+    : input.penaltyMoment?.kind === "birthday"
+      ? { kind: "birthday", title: input.penaltyMoment.isKiste
+          ? "🎂 Geburtstags-Kischde!" : "🎂 Geburtstags-Special",
+          text: input.penaltyMoment.playerName + " hat Geburtstag!",
+          detail: input.penaltyMoment.isKiste
+            ? "Eine Kiste für die Truppe ist eingetragen. Prost!"
+            : "Die Strafe: " + input.penaltyMoment.value,
+          playerId: input.penaltyMoment.playerId,
+          playerName: input.penaltyMoment.playerName,
+          photoUrl: input.penaltyMoment.photoUrl ?? null }
+    : input.wheelMoment
       ? { kind: "wheel", title: "Glücksrad-Moment",
-          text: input.wheelMoment.playerName + " hat „" + input.wheelMoment.outcomeLabel + "“ gedreht"
+          text: input.wheelMoment.playerName + " dreht am Glücksrad!",
+          detail: "Gezogen: " + input.wheelMoment.outcomeLabel
             + (input.wheelMoment.outcomeDetail ? " – " + input.wheelMoment.outcomeDetail : ""),
           playerId: input.wheelMoment.playerId,
           playerName: input.wheelMoment.playerName,
           photoUrl: input.wheelMoment.photoUrl ?? null }
     : leaderChanged && top
       ? { kind: "leader", title: "Führungswechsel",
-          text: `${playerName(top)} übernimmt Platz 1`,
+          text: `${playerName(top)} erobert die Spitze!`,
+          detail: "Ein neuer Name auf Platz 1.",
           playerId: top.player_id, playerName: playerName(top), photoUrl: top.photoUrl ?? null }
       : newTopFive
         ? { kind: "top5", title: "Neu in den Top 5",
-            text: `${playerName(newTopFive)} ist jetzt auf Platz ${newTopFive.rank}`,
+            text: `${playerName(newTopFive)} stürmt in die Top 5!`,
+            detail: `Jetzt auf Platz ${newTopFive.rank}.`,
             playerId: newTopFive.player_id, playerName: playerName(newTopFive), photoUrl: newTopFive.photoUrl ?? null }
         : upcomingTrainings !== null && upcomingTrainings > 0 && upcomingTrainings <= 3
           && input.seasonEndDate && input.seasonEndDate >= cutoffDate
           ? { kind: "finale", title: "Saisonfinale",
-              text: `Noch ${upcomingTrainings} geplante ${upcomingTrainings === 1 ? "Einheit" : "Einheiten"} bis Saisonende` }
+              text: "Endspurt in der Saison!",
+              detail: `Noch ${upcomingTrainings} ${upcomingTrainings === 1 ? "geplanter Termin" : "geplante Termine"} bis Saisonende.` }
           : null;
 
   if (canCompare) {

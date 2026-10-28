@@ -5,7 +5,7 @@ import path from "node:path";
 import { requireClub } from "@/lib/auth/guards";
 import { isStorySharePilotClub } from "@/components/share/result-share/StoryShareCard";
 import type { WeeklyReport, WeeklyMover } from "@/lib/standings/weekly-report";
-import { weeklyRaceStory, weeklyStoryScale } from "@/lib/standings/weekly-race-story";
+import { weeklyRaceStory } from "@/lib/standings/weekly-race-story";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,47 +68,84 @@ function Avatar({ name, photo, accent, size }: {
   );
 }
 
-function MomentCard({ label, value, detail, photo, name, accent, background, scale }: {
-  label: string; value: string; detail: string; photo?: string | null;
-  name?: string; accent: string; background: string;
-  scale: ReturnType<typeof weeklyStoryScale>;
-}) {
+type StoryMoment = {
+  id: string;
+  label: string;
+  headline: string;
+  detail: string;
+  name?: string;
+  photo?: string | null;
+  accent: string;
+  background: string;
+  icon: string;
+};
+
+function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean }) {
+  const avatarSize = hero ? 240 : 154;
+  const mainSize = hero
+    ? (moment.headline.length > 75 ? 50 : moment.headline.length > 42 ? 61 : 75)
+    : (moment.headline.length > 72 ? 34 : moment.headline.length > 43 ? 42 : 53);
   return (
     <div style={{
-      display: "flex", width: "100%", flex: 1, minHeight: 0,
-      padding: scale.cardPaddingPx, boxSizing: "border-box",
-      gap: 32, alignItems: "center",
-      borderRadius: 28, border: "2px solid rgba(255,255,255,.16)",
-      background,
+      display: "flex", flexDirection: hero ? "row" : "column",
+      width: "100%", height: "100%", boxSizing: "border-box",
+      borderRadius: 32, border: "2px solid rgba(255,255,255,.18)",
+      background: moment.background,
+      padding: hero ? "43px 45px" : "37px 34px",
+      gap: hero ? 42 : 22,
+      alignItems: hero ? "center" : "stretch",
+      justifyContent: "center",
+      overflow: "hidden",
     }}>
-      {name ? <Avatar name={name} photo={photo ?? null} accent={accent} size={scale.avatarPx} /> : null}
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, gap: 17, justifyContent: "center" }}>
-        <div style={{ display: "flex", color: accent, fontSize: scale.labelPx, fontWeight: 900, letterSpacing: 1.4 }}>
-          {label}
+      {hero ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          {moment.name
+            ? <Avatar name={moment.name} photo={moment.photo ?? null}
+                accent={moment.accent} size={avatarSize}/>
+            : <div style={{ display: "flex", fontSize: 150 }}>{moment.icon}</div>}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 24 }}>
+          {moment.name
+            ? <Avatar name={moment.name} photo={moment.photo ?? null}
+                accent={moment.accent} size={avatarSize}/>
+            : <div style={{ display: "flex", width: 154, height: 154,
+                justifyContent: "center", alignItems: "center", fontSize: 106 }}>{moment.icon}</div>}
+          <div style={{ display: "flex", flex: 1, color: moment.accent,
+            fontSize: 27, fontWeight: 900, letterSpacing: 1.2, lineHeight: 1.12 }}>
+            {moment.label}
+          </div>
+        </div>
+      )}
+      <div style={{
+        display: "flex", flexDirection: "column", flex: 1,
+        justifyContent: "center", gap: hero ? 25 : 22, minWidth: 0,
+      }}>
+        {hero ? (
+          <div style={{ display: "flex", color: moment.accent,
+            fontSize: 31, fontWeight: 900, letterSpacing: 1.5 }}>
+            {moment.label}
+          </div>
+        ) : null}
+        <div style={{
+          display: "flex", color: "#fff", fontSize: mainSize,
+          fontWeight: 950, lineHeight: 1.12,
+        }}>
+          {moment.headline.length > 145 ? moment.headline.slice(0, 142) + "…" : moment.headline}
         </div>
         <div style={{
-          display: "flex", color: "#fff",
-          fontSize: value.length > 96 ? scale.headlinePx - 17 : value.length > 60 ? scale.headlinePx - 11 : scale.headlinePx,
-          fontWeight: 950, lineHeight: 1.13,
+          display: "flex", color: "#f1f5f9",
+          fontSize: hero ? 46 : 38, lineHeight: 1.22, fontWeight: 750,
         }}>
-          {value.length > 180 ? value.slice(0, 177) + "…" : value}
-        </div>
-        <div style={{ display: "flex", color: "#e2e8f0", fontSize: scale.detailPx, lineHeight: 1.25, fontWeight: 750 }}>
-          {detail.length > 150 ? detail.slice(0, 147) + "…" : detail}
+          {moment.detail.length > 135 ? moment.detail.slice(0, 132) + "…" : moment.detail}
         </div>
       </div>
+      {!hero ? (
+        <div style={{ display: "flex", height: 5, flexShrink: 0,
+          borderRadius: 4, background: moment.accent, opacity: .82 }} />
+      ) : null}
     </div>
   );
-}
-
-function moverText(person: WeeklyMover | null, isRiser: boolean) {
-  return person
-    ? {
-        value: person.name,
-        detail: (isRiser ? "+" : "−") + Math.abs(person.places) +
-          " Plätze: von " + person.fromRank + " auf " + person.toRank,
-      }
-    : { value: "Kein Platzwechsel", detail: "Keine Veränderung erfasst" };
 }
 
 export async function GET(request: NextRequest) {
@@ -145,122 +182,154 @@ export async function GET(request: NextRequest) {
       trustedAvatarData(faller?.photoUrl),
       trustedAvatarData(extra?.photoUrl),
     ]);
-    const up = moverText(riser, true);
-    const down = moverText(faller, false);
     const race = weeklyRaceStory(report);
-    const cardCount = [riser, faller, race, extra].filter(Boolean).length || 1;
-    const scale = weeklyStoryScale(cardCount);
     const dateLabel = report.cutoffDate.split("-").reverse().join(".");
     const seasonName = payload.seasons?.find((season) => String(season.id) === payload.selected)?.name
       ?? (payload.selected === "all" ? "Karriere" : "Saison");
 
-    // Same pink/violet/indigo design language, logo badge, podium-style panels
-    // and footer as the existing table card, but the SUBJECT is weekly events.
+    const moments: StoryMoment[] = [];
+    // Give real Kabinenmomente precedence as the lead story.
+    if (extra) {
+      const icon = extra.kind === "missed_penalty" ? "⚽"
+        : extra.kind === "birthday" ? "🎂"
+        : extra.kind === "wheel" ? "🎡"
+        : extra.kind === "finale" ? "🏁" : "⭐";
+      moments.push({
+        id: "special", icon, label: extra.title.toUpperCase(),
+        headline: extra.text, detail: extra.detail || "Das ist diese Woche passiert.",
+        name: extra.playerName, photo: extraPhoto, accent: "#f9a8d4",
+        background: "linear-gradient(110deg,rgba(236,72,153,.72),rgba(120,35,93,.5) 58%,rgba(49,46,129,.5))",
+      });
+    }
+    if (riser) moments.push({
+      id: "rise", icon: "📈", label: "↑ GRÖSSTER AUFSTEIGER",
+      headline: riser.name + " klettert " + riser.places + (riser.places === 1 ? " Platz!" : " Plätze!"),
+      detail: "Von Platz " + riser.fromRank + " auf Platz " + riser.toRank + ".",
+      name: riser.name, photo: upPhoto, accent: "#f9a8d4",
+      background: "linear-gradient(110deg,rgba(236,72,153,.69),rgba(120,35,93,.5))",
+    });
+    if (faller) moments.push({
+      id: "fall", icon: "📉", label: "↓ GRÖSSTER ABSTEIGER",
+      headline: faller.name + " rutscht " + Math.abs(faller.places)
+        + (Math.abs(faller.places) === 1 ? " Platz ab!" : " Plätze ab!"),
+      detail: "Von Platz " + faller.fromRank + " auf Platz " + faller.toRank + ".",
+      name: faller.name, photo: downPhoto, accent: "#ddd6fe",
+      background: "linear-gradient(110deg,rgba(79,70,229,.68),rgba(49,46,129,.57))",
+    });
+    if (race) moments.push({
+      id: "race", icon: "🏆", label: "🏆 MEISTERRENNEN",
+      headline: race.headline, detail: race.detail,
+      accent: "#f9a8d4",
+      background: "linear-gradient(110deg,rgba(168,85,247,.5),rgba(49,46,129,.5))",
+    });
+    if (!moments.length) moments.push({
+      id: "quiet", icon: "⚽", label: "KABINENREPORT",
+      headline: "Diese Woche war's ruhig.",
+      detail: "Sobald wieder etwas passiert, gibt's hier echte Geschichten.",
+      accent: "#ddd6fe",
+      background: "linear-gradient(110deg,rgba(79,70,229,.55),rgba(49,46,129,.5))",
+    });
+    // At most four meaningful highlights. One hero + two beneath (3),
+    // or a balanced 2×2 editorial grid (4). Do not stretch empty subcards.
+    const visibleMoments = moments.slice(0, 4);
+    const count = visibleMoments.length;
+    // Exact 1080×1920 story proportions, same indigo/pink artwork as the
+    // standings share card. Preserve safe zones for Instagram story overlays.
     const story = (
       <div style={{
-        display: "flex", width: 1080, height: 1920, padding: 18, boxSizing: "border-box",
+        display: "flex", width: 1080, height: 1920, padding: 18,
+        boxSizing: "border-box", color: "#fff", fontFamily: "sans-serif",
         background: "linear-gradient(145deg,#172554,#312e81 44%,#831843)",
-        color: "#fff", fontFamily: "sans-serif",
       }}>
         <div style={{
           display: "flex", flexDirection: "column", width: "100%", height: "100%",
-          borderRadius: 42, overflow: "hidden", position: "relative",
-          background: "linear-gradient(180deg,#1e3a8a,#172554 32%,#0f2554 70%,#0b1b3f)",
+          overflow: "hidden", borderRadius: 42,
           border: "2px solid rgba(249,168,212,.86)",
+          background: "linear-gradient(180deg,#1e3a8a,#172554 32%,#0f2554 70%,#0b1b3f)",
         }}>
           <div style={{
-            display: "flex", position: "absolute", inset: 0,
-            background: "radial-gradient(circle at 86% 0%,rgba(244,114,182,.70),transparent 30%),radial-gradient(circle at 46% 0%,rgba(129,140,248,.5),transparent 34%)",
-          }} />
-          <div style={{
-            display: "flex", flexDirection: "column", flex: 1,
-            padding: "72px 42px 78px", zIndex: 1,
+            display: "flex", flexDirection: "column", flex: 1, minHeight: 0,
+            padding: "104px 40px 150px", gap: 28,
+            background: "radial-gradient(circle at 89% 2%,rgba(244,114,182,.5),transparent 28%),radial-gradient(circle at 46% 1%,rgba(129,140,248,.35),transparent 30%)",
           }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-                <div style={{
-                  display: "flex", border: "2px solid #f472b6", borderRadius: 24,
-                  padding: "13px 22px", fontSize: 19, fontWeight: 900,
-                  letterSpacing: 2, color: "#f9a8d4", alignSelf: "flex-start",
-                }}>WOCHENREPORT</div>
-                <div style={{ display: "flex", fontSize: 95, fontWeight: 950, lineHeight: 1 }}>
-                  DIE WOCHE<span style={{ color: "#f472b6" }}>.</span>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 22 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+                <div style={{ display: "flex", color: "#f9a8d4",
+                  fontSize: 30, fontWeight: 900, letterSpacing: 3 }}>
+                  DER STRIKR
                 </div>
-                <div style={{ display: "flex", fontSize: 27, color: "#cbd5e1" }}>
-                  {seasonName + " · seit " + dateLabel}
+                <div style={{ display: "flex", color: "#fff",
+                  fontSize: 71, fontWeight: 950, lineHeight: 1.05, letterSpacing: -3 }}>
+                  WOCHENREPORT<span style={{ color: "#f472b6" }}>.</span>
+                </div>
+                <div style={{ display: "flex", color: "#f1f5f9",
+                  fontSize: 40, fontWeight: 850, marginTop: 8 }}>
+                  Was ist diese Woche passiert?
                 </div>
               </div>
               <div style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 9,
-                width: 190, padding: "17px 14px", borderRadius: 24,
-                background: "rgba(255,255,255,.10)", border: "1px solid rgba(255,255,255,.18)",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                width: 156, flexShrink: 0, padding: "15px 12px",
+                borderRadius: 22, background: "rgba(255,255,255,.12)",
+                border: "1px solid rgba(255,255,255,.22)",
               }}>
-                {logo ? <img src={logo} alt="" width={65} height={65}
-                  style={{ width: 65, height: 65, borderRadius: 14, objectFit: "cover" }} /> : null}
-                <div style={{ display: "flex", fontSize: 31, fontWeight: 950 }}>strikr</div>
-                <div style={{ display: "flex", fontSize: 13, letterSpacing: 1, fontWeight: 800, color: "#f9a8d4" }}>
-                  strikr.team
+                {logo ? <img src={logo} alt="" width={69} height={69}
+                  style={{ width: 69, height: 69, borderRadius: 13, objectFit: "cover" }} /> : null}
+                <div style={{ display: "flex", fontSize: 29, fontWeight: 950 }}>strikr</div>
+              </div>
+            </div>
+            <div style={{
+              display: "flex", fontSize: 27, color: "#cbd5e1", fontWeight: 750, marginTop: 4,
+            }}>{seasonName + " · 7 Tage seit " + dateLabel}</div>
+
+            {count === 3 ? (
+              <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: 22 }}>
+                <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+                  <StoryMomentCard moment={visibleMoments[0]} hero />
+                </div>
+                <div style={{ display: "flex", flex: 1.15, minHeight: 0, flexDirection: "row", gap: 22 }}>
+                  {visibleMoments.slice(1).map((moment) => (
+                    <div key={moment.id} style={{ display: "flex", flex: 1, minWidth: 0 }}>
+                      <StoryMomentCard moment={moment} hero={false} />
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-
-            <div style={{
-              display: "flex", flexDirection: "column", flex: 1, minHeight: 0,
-              gap: cardCount <= 3 ? 25 : 18, marginTop: 42,
-            }}>
-              {riser ? (
-                <MomentCard label="↑ GRÖSSTER AUFSTEIGER" value={up.value} detail={up.detail}
-                  name={riser.name} photo={upPhoto} accent="#f9a8d4" scale={scale}
-                  background="linear-gradient(100deg,rgba(236,72,153,.74),rgba(120,35,93,.55))" />
-              ) : null}
-              {faller ? (
-                <MomentCard label="↓ GRÖSSTER ABSTEIGER" value={down.value} detail={down.detail}
-                  name={faller.name} photo={downPhoto} accent="#c4b5fd" scale={scale}
-                  background="linear-gradient(100deg,rgba(79,70,229,.65),rgba(49,46,129,.55))" />
-              ) : null}
-              {race ? (
-                <MomentCard label="🏆 MEISTERRENNEN" value={race.headline} detail={race.detail}
-                  accent="#f9a8d4" scale={scale}
-                  background="linear-gradient(100deg,rgba(168,85,247,.46),rgba(49,46,129,.48))" />
-              ) : null}
-              {extra ? (
-                <MomentCard label={"★ " + extra.title.toUpperCase()}
-                  value={extra.text.split(" – ")[0]}
-                  detail={extra.kind === "wheel"
-                    ? (extra.text.split(" – ").slice(1).join(" – ") || "Das Glücksrad hat entschieden – die ursprüngliche Strafe bleibt bestehen.")
-                    : extra.kind === "finale" ? "Die Saison biegt auf die Zielgerade ein."
-                    : extra.kind === "leader" ? "Ganz vorne gibt's einen neuen Namen."
-                    : "Neuer Schwung im oberen Tabellenfeld."}
-                  name={extra.playerName} photo={extraPhoto} accent="#f9a8d4" scale={scale}
-                  background="linear-gradient(100deg,rgba(131,24,67,.50),rgba(67,56,202,.42))" />
-              ) : null}
-              {cardCount === 1 && !riser && !faller && !race && !extra ? (
-                <MomentCard label="⚽ WOCHENREPORT" value="Diese Woche war's ruhig"
-                  detail="Sobald Ergebnisse oder ein Kabinenmoment vorliegen, gibt's hier echte Geschichten."
-                  accent="#f9a8d4" scale={scale}
-                  background="linear-gradient(100deg,rgba(79,70,229,.65),rgba(49,46,129,.55))" />
-              ) : null}
-            </div>
-
-            <div style={{
-              display: "flex", marginTop: "auto", alignItems: "center",
-              justifyContent: "space-between", padding: "24px 6px 0",
-              fontSize: 25, color: "#e2e8f0",
-            }}>
-              <div style={{ display: "flex" }}>Vergleich nach Trainingsdatum</div>
-              <div style={{ display: "flex", fontWeight: 800, color: "#f9a8d4" }}>
-                @getstrikr · strikr.team
+            ) : count === 4 ? (
+              <div style={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "column", gap: 20 }}>
+                {[0, 2].map((start) => (
+                  <div key={start} style={{ display: "flex", flex: 1, minHeight: 0, flexDirection: "row", gap: 20 }}>
+                    {visibleMoments.slice(start, start + 2).map((moment) => (
+                      <div key={moment.id} style={{ display: "flex", flex: 1, minWidth: 0 }}>
+                        <StoryMomentCard moment={moment} hero={false} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
+            ) : (
+              <div style={{ display: "flex", flex: 1, minHeight: 0,
+                flexDirection: "column", gap: 20 }}>
+                {visibleMoments.map((moment) => (
+                  <div key={moment.id} style={{ display: "flex", flex: 1, minHeight: 0 }}>
+                    <StoryMomentCard moment={moment} hero />
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center",
+              justifyContent: "space-between", marginTop: 2,
+              fontSize: 29, fontWeight: 850, color: "#f9a8d4" }}>
+              <div style={{ display: "flex" }}>@getstrikr</div>
+              <div style={{ display: "flex" }}>strikr.team</div>
             </div>
           </div>
           <div style={{
-            display: "flex", position: "absolute", bottom: 0, left: 0, right: 0,
-            height: 58, alignItems: "center", justifyContent: "center",
-            background: "rgba(7,20,49,.73)", zIndex: 2,
-            fontSize: 21, fontWeight: 900,
-          }}>
-            WENIGER ORGA. MEHR FUSSBALL.
-          </div>
+            display: "flex", height: 64, flexShrink: 0,
+            alignItems: "center", justifyContent: "center",
+            fontSize: 23, fontWeight: 900,
+            background: "rgba(7,20,49,.85)",
+          }}>WENIGER ORGA. MEHR FUSSBALL.</div>
         </div>
       </div>
     );

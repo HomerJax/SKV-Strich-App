@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildWeeklyReport } from "../lib/standings/weekly-report.ts";
 import { weeklyRaceStory, weeklyStoryScale } from "../lib/standings/weekly-race-story.ts";
+import { recognizePenaltySpecial, choosePenaltySpecial, isKistePenalty } from "../lib/standings/weekly-penalty-special.ts";
 
 const row = (player_id, rank, wins, name = `Spieler ${player_id}`) =>
   ({ player_id, rank, wins, sessions: 9, name });
@@ -156,4 +157,61 @@ test("three cards use larger text and avatars than four cards", () => {
   assert.ok(three.detailPx > four.detailPx);
   assert.ok(three.avatarPx > four.avatarPx);
   assert.equal(weeklyStoryScale(2).detailPx, three.detailPx);
+});
+
+test("only a recorded missed-penalty fine can become an Elfer-Special", () => {
+  const penalty = { id: 11, player_id: 3, reason: "Elfmeter verschossen",
+    type: "beer", value: "1 Kiste Bier" };
+  assert.equal(recognizePenaltySpecial(penalty)?.specialKind, "missed_penalty");
+  assert.equal(isKistePenalty(penalty), true);
+  assert.equal(recognizePenaltySpecial({ ...penalty, reason: "Elfmeter geschossen" }), null);
+  assert.equal(recognizePenaltySpecial({ ...penalty, reason: "Verschossen" }), null);
+  assert.equal(recognizePenaltySpecial({ ...penalty, source_key: "test:elfer:1" }), null);
+});
+
+test("Elfer special outranks birthday even when birthday fine is newer", () => {
+  const entries = [
+    { id: 2, player_id: 8, reason: "Geburtstag", type: "beer", value: "1 Kiste Bier" },
+    { id: 1, player_id: 3, reason: "Elfmeter verschossen", type: "money", value: "1 €" },
+  ];
+  assert.equal(choosePenaltySpecial(entries)?.id, 1);
+  assert.equal(choosePenaltySpecial(entries.slice(0, 1))?.specialKind, "birthday");
+  assert.equal(isKistePenalty(entries[1]), false);
+});
+
+test("recorded missed kick creates factual Kischde highlight, without claiming paid", () => {
+  const report = buildWeeklyReport({
+    current: [row(1, 1, 9)],
+    previous: [row(1, 1, 8)],
+    cutoffDate: "2026-10-21",
+    completedTrainings: 0,
+    wheelMoment: { playerId: 1, playerName: "Sommi", outcomeLabel: "Joker" },
+    penaltyMoment: { kind: "missed_penalty", playerId: 1, playerName: "Sommi",
+      value: "1 Kiste Bier", isKiste: true, photoUrl: "https://example.test/sommi.png" },
+  });
+  assert.equal(report.extraHighlight?.kind, "missed_penalty");
+  assert.match(report.extraHighlight?.text ?? "", /Sommi.*Elfer/);
+  assert.match(report.extraHighlight?.detail ?? "", /Kischde/);
+  assert.equal(report.extraHighlight?.photoUrl, "https://example.test/sommi.png");
+  assert.doesNotMatch(report.extraHighlight?.text ?? "", /bezahlt|erlassen/i);
+});
+
+test("money Elfer fine never becomes a fictional Kiste", () => {
+  const report = buildWeeklyReport({
+    current: [row(1, 1, 9)], previous: [row(1, 1, 9)],
+    cutoffDate: "2026-10-21", completedTrainings: 0,
+    penaltyMoment: { kind: "missed_penalty", playerId: 1, playerName: "Alex",
+      value: "1 €", isKiste: false },
+  });
+  assert.equal(report.extraHighlight?.kind, "missed_penalty");
+  assert.match(report.extraHighlight?.detail ?? "", /1 €/);
+  assert.doesNotMatch(report.extraHighlight?.detail ?? "", /Kischde/);
+});
+
+test("ordinary penalties stay out of weekly specials", () => {
+  assert.equal(choosePenaltySpecial([
+    { id: 1, player_id: 1, reason: "Zugesagt, nach Anmeldeschluss abgesagt",
+      type: "money", value: "2 €" },
+    { id: 2, player_id: 2, reason: "Zu spät", type: "money", value: "0,50 €" },
+  ]), null);
 });
