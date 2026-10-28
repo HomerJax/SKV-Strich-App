@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { canManageClub } from "@/lib/auth/access";
-import { requireClub } from "@/lib/auth/guards";
+import { requireClub, requireUser } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
 
@@ -21,6 +21,7 @@ const refresh = () => {
   revalidatePath("/admin/organization");
   revalidatePath("/admin/settings");
   revalidatePath("/mannschaftskasse");
+  revalidatePath("/home");
 };
 
 export async function managePilotOrganizationAction(form: FormData) {
@@ -80,9 +81,14 @@ export async function managePilotOrganizationAction(form: FormData) {
   } else if (action === "admins") {
     const requested = [...new Set(form.getAll("admin_user_ids").map(value => String(value)).filter(Boolean))];
     if (requested.length === 0 || requested.length > 25) redirect(back({ error: "admins" }));
+    const { data: linkedTeams, error: teamsError } = await db.from("pilot_parent_club_team_links")
+      .select("target_club_id").eq("owner_club_id", ctx.clubId).eq("status", "linked");
+    if (teamsError) redirect(back({ error: "admins" }));
+    const clubIds = [ctx.clubId, ...(linkedTeams ?? []).map(row => row.target_club_id)];
     const { data: members, error } = await db.from("club_memberships")
-      .select("user_id").eq("club_id", ctx.clubId).in("user_id", requested);
-    if (error || (members ?? []).length !== requested.length) redirect(back({ error: "admins" }));
+      .select("user_id").in("club_id", clubIds).in("user_id", requested);
+    if (error || new Set((members ?? []).map(row => row.user_id)).size !== requested.length)
+      redirect(back({ error: "admins" }));
     changes.admin_user_ids = requested;
   } else {
     redirect(back({ error: "action" }));
@@ -93,4 +99,89 @@ export async function managePilotOrganizationAction(form: FormData) {
   if (updateError) redirect(back({ error: "save" }));
   refresh();
   redirect(back({ saved: "1" }));
+}
+
+
+/**
+ * The parent-club admin may request a link, but cannot approve for another
+ * team. Approval is a separate, deliberate action by one of its actual admins.
+ * Existing club IDs, members, and financial records are never modified.
+ */
+export async function requestPilotTeamLinkAction(form: FormData) {
+  const ctx = await requireClub();
+  if (!isCashboxPilotClub(ctx.clubId) || ctx.isSupportView) redirect("/home");
+  const db = createAdminClient();
+  const { data: org, error: orgError } = await db.from("pilot_parent_clubs")
+    .select("owner_club_id,admin_user_ids").eq("owner_club_id", ctx.clubId).maybeSingle();
+  if (orgError || !org?.admin_user_ids?.includes(ctx.user.id)) redirect("/home");
+  const targetId = String(form.get("target_club_id") ?? "");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId) ||
+      targetId === ctx.clubId) redirect(back({ error: "team" }));
+  const [{ data: target }, { data: existing }] = await Promise.all([
+    db.from("clubs").select("id").eq("id", targetId).is("deleted_at", null).maybeSingle(),
+    db.from("pilot_parent_club_team_links").select("status").eq("owner_club_id",ctx.clubId)
+      .eq("target_club_id", targetId).maybeSingle(),
+  ]);
+  if (!target || existing?.status === "linked") redirect(back({ error: "team" }));
+  const { error } = await db.from("pilot_parent_club_team_links").upsert({
+    owner_club_id: ctx.clubId, target_club_id: targetId, status: "pending",
+    requested_by: ctx.user.id, requested_at: new Date().toISOString(),
+    decided_by: null, decided_at: null,
+  }, { onConflict: "owner_club_id,target_club_id" });
+  if (error) redirect(back({ error: "team" }));
+  refresh();
+  redirect(back({ saved: "1" }));
+}
+
+export async function decidePilotTeamLinkAction(form: FormData) {
+  // Importantly: no need to switch active club. Permission is checked against
+  // the *target* club's administrator membership, never by a submitted role.
+  const user = await requireUser();
+  const id = String(form.get("link_id") ?? "");
+  const decision = String(form.get("decision") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id) || !["accept", "decline", "leave"].includes(decision))
+    redirect("/home");
+  const db = createAdminClient();
+  const { data: link, error } = await db.from("pilot_parent_club_team_links")
+    .select("id,owner_club_id,target_club_id,status").eq("id", id).maybeSingle();
+  if (error || !link || !isCashboxPilotClub(link.owner_club_id)) redirect("/home");
+  const { data: membership } = await db.from("club_memberships")
+    .select("role").eq("user_id",user.id).eq("club_id",link.target_club_id).eq("role","admin").maybeSingle();
+  if (!membership) redirect("/home");
+  if (decision === "leave" && link.status !== "linked")
+    redirect("/admin/organization/invite/" + id + "?error=invalid");
+  if (decision !== "leave" && link.status !== "pending")
+    redirect("/admin/organization/invite/" + id + "?error=invalid");
+  if (decision === "accept") {
+    const { data: alreadyLinked } = await db.from("pilot_parent_club_team_links")
+      .select("id").eq("target_club_id",link.target_club_id).eq("status","linked")
+      .neq("id",id).maybeSingle();
+    if (alreadyLinked) redirect("/admin/organization/invite/" + id + "?error=linked");
+  }
+  const nextStatus = decision === "accept" ? "linked" : decision === "decline" ? "declined" : "revoked";
+  const { data: updated, error: updateError } = await db.from("pilot_parent_club_team_links")
+    .update({ status: nextStatus, decided_by: user.id, decided_at: new Date().toISOString() })
+    .eq("id",id).eq("status", decision === "leave" ? "linked" : "pending")
+    .select("id").maybeSingle();
+  if (updateError || !updated)
+    redirect("/admin/organization/invite/" + id + "?error=update");
+  refresh();
+  redirect("/admin/organization/invite/" + id + "?saved=1");
+}
+
+export async function cancelPilotTeamLinkAction(form: FormData) {
+  const ctx = await requireClub();
+  if (!isCashboxPilotClub(ctx.clubId) || ctx.isSupportView) redirect("/home");
+  const id = String(form.get("link_id") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) redirect(back({ error: "team" }));
+  const db = createAdminClient();
+  const { data: org } = await db.from("pilot_parent_clubs")
+    .select("admin_user_ids").eq("owner_club_id",ctx.clubId).maybeSingle();
+  if (!org?.admin_user_ids?.includes(ctx.user.id)) redirect("/home");
+  const { error } = await db.from("pilot_parent_club_team_links")
+    .update({status:"revoked",decided_by:ctx.user.id,decided_at:new Date().toISOString()})
+    .eq("id",id).eq("owner_club_id",ctx.clubId).in("status",["pending","linked"]);
+  if (error) redirect(back({error:"team"}));
+  refresh();
+  redirect(back({saved:"1"}));
 }
