@@ -157,6 +157,9 @@ export default async function SessionDetailPage({ params }: PageProps) {
   );
   const isEvent = session.type === "event";
 
+  // Only actual club administrators receive individual ratings in the serialized
+  // session page. Training leaders use the server-side generator instead.
+  const mayReadIndividualStrength = isPowerUser || isAdminRole(membership.role);
   const players = (((playersData ?? []).filter((player) => player.is_active !== false) ?? []) as Player[]).map((player) => {
     const rsvp = rsvpByPlayerId.get(player.id);
     return {
@@ -164,7 +167,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       photo_url: player.photo_path
         ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
         : null,
-      strength: player.strength ?? clubSettings.strength_default ?? 3,
+      strength: mayReadIndividualStrength ? (player.strength ?? clubSettings.strength_default ?? 3) : null,
       roster_role: player.roster_role ?? "player",
       category_label: player.category_key && categoryLabelByKey.has(player.category_key)
         ? categoryLabelByKey.get(player.category_key) ?? null
