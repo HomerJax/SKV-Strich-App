@@ -7,6 +7,7 @@ import { Directory, Filesystem } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { fetchImageAsFile } from "@/lib/share/utils";
 import type { WeeklyReport } from "@/lib/standings/weekly-report";
+import { weeklyRaceStory } from "@/lib/standings/weekly-race-story";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 type Props = { report: WeeklyReport; selectedSeason: string; seasonName: string };
@@ -74,8 +75,7 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
   const [message, setMessage] = useState("");
   const hasChanges = report.hasBaseline && report.completedTrainings > 0;
   const cutoffLabel = report.cutoffDate.split("-").reverse().join(".");
-  const firstName = report.topNames[0] ?? "Platz 1";
-  const secondName = report.topNames[1] ?? "Platz 2";
+  const race = weeklyRaceStory(report);
   const onShare = async () => {
     if (sharing) return;
     setSharing(true);
@@ -138,13 +138,13 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
                 </div>
               </div>
             ) : null}
-            {report.topGapWins !== null && report.topNames.length >= 2 ? (
+            {race ? (
               <div className="min-w-0 rounded-xl border border-violet-400/20 bg-violet-400/10 p-3">
-                <div className="text-[10px] font-black uppercase tracking-wide text-violet-300">🏆 Rennen an der Spitze</div>
-                <p className="mt-1 break-words text-sm font-bold">
-                  {report.topGapWins === 0
-                    ? `${firstName} (Platz 1) und ${secondName} (Platz 2) haben gleich viele Siege.`
-                    : `${firstName} (Platz 1) hat ${report.topGapWins} ${report.topGapWins === 1 ? "Sieg" : "Siege"} mehr als ${secondName} (Platz 2).`}
+                <div className="break-words text-sm font-black leading-5 text-violet-200">
+                  {race.headline}
+                </div>
+                <p className="mt-1 break-words text-xs font-semibold leading-5 text-white/75">
+                  {race.detail}
                 </p>
               </div>
             ) : null}

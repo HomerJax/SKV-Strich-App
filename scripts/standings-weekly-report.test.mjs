@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildWeeklyReport } from "../lib/standings/weekly-report.ts";
+import { weeklyRaceStory, weeklyStoryScale } from "../lib/standings/weekly-race-story.ts";
 
 const row = (player_id, rank, wins, name = `Spieler ${player_id}`) =>
   ({ player_id, rank, wins, sessions: 9, name });
@@ -121,4 +122,38 @@ test("a wheel moment may appear even when no match was completed", () => {
   });
   assert.equal(report.extraHighlight?.kind, "wheel");
   assert.equal(report.biggestRiser, null);
+});
+
+test("a one-win gap reads like a human football headline, with a factual supporting sentence", () => {
+  const report = buildWeeklyReport({
+    current: [row(1, 1, 8, "Sommi"), row(2, 2, 7, "Alex")],
+    previous: [row(1, 1, 7, "Sommi"), row(2, 2, 6, "Alex")],
+    cutoffDate: "2026-10-21", completedTrainings: 1,
+  });
+  const story = weeklyRaceStory(report);
+  assert.equal(story?.headline, "🔥 Heißes Duell an der Spitze!");
+  assert.equal(story?.detail, "Nur 1 Sieg trennt Sommi und Alex.");
+});
+
+test("a tied top spot gets a genuine head-to-head headline", () => {
+  const story = weeklyRaceStory({ hasBaseline: true, completedTrainings: 1, topGapWins: 0,
+    topNames: ["Alex", "Sommi"] });
+  assert.match(story?.headline ?? "", /Kopf an Kopf/);
+  assert.match(story?.detail ?? "", /gleichauf/);
+});
+
+test("no weekly results produce no potentially misleading title-race narrative", () => {
+  assert.equal(weeklyRaceStory({ hasBaseline: true, completedTrainings: 0, topGapWins: 1,
+    topNames: ["Sommi", "Alex"] }), null);
+  assert.equal(weeklyRaceStory({ hasBaseline: false, completedTrainings: 1, topGapWins: 1,
+    topNames: ["Sommi", "Alex"] }), null);
+});
+
+test("three cards use larger text and avatars than four cards", () => {
+  const three = weeklyStoryScale(3);
+  const four = weeklyStoryScale(4);
+  assert.ok(three.headlinePx > four.headlinePx);
+  assert.ok(three.detailPx > four.detailPx);
+  assert.ok(three.avatarPx > four.avatarPx);
+  assert.equal(weeklyStoryScale(2).detailPx, three.detailPx);
 });
