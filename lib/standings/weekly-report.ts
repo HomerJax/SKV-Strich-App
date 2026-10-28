@@ -25,12 +25,21 @@ export type WeeklyMover = {
 };
 
 export type WeeklyExtraHighlight = {
-  kind: "leader" | "top5" | "finale" | "training";
+  kind: "wheel" | "leader" | "top5" | "finale";
   title: string;
   text: string;
   playerId?: number;
   playerName?: string;
   photoUrl?: string | null;
+};
+
+export type WeeklyWheelMoment = {
+  playerId: number;
+  playerName: string;
+  photoUrl?: string | null;
+  outcomeLabel: string;
+  outcomeDetail?: string | null;
+  outcomeIcon?: string | null;
 };
 
 export type WeeklyReport = {
@@ -62,6 +71,7 @@ export function buildWeeklyReport(input: {
   completedTrainings: number;
   upcomingTrainings?: number | null;
   seasonEndDate?: string | null;
+  wheelMoment?: WeeklyWheelMoment | null;
 }): WeeklyReport {
   const { current, previous, cutoffDate, completedTrainings } = input;
   const hasBaseline = previous.length > 0;
@@ -99,7 +109,14 @@ export function buildWeeklyReport(input: {
     : null;
   // Do not manufacture extra highlights without supporting data.
   const extraHighlight: WeeklyExtraHighlight | null =
-    leaderChanged && top
+    input.wheelMoment
+      ? { kind: "wheel", title: "Glücksrad-Moment",
+          text: input.wheelMoment.playerName + " hat „" + input.wheelMoment.outcomeLabel + "“ gedreht"
+            + (input.wheelMoment.outcomeDetail ? " – " + input.wheelMoment.outcomeDetail : ""),
+          playerId: input.wheelMoment.playerId,
+          playerName: input.wheelMoment.playerName,
+          photoUrl: input.wheelMoment.photoUrl ?? null }
+    : leaderChanged && top
       ? { kind: "leader", title: "Führungswechsel",
           text: `${playerName(top)} übernimmt Platz 1`,
           playerId: top.player_id, playerName: playerName(top), photoUrl: top.photoUrl ?? null }
@@ -111,10 +128,7 @@ export function buildWeeklyReport(input: {
           && input.seasonEndDate && input.seasonEndDate >= cutoffDate
           ? { kind: "finale", title: "Saisonfinale",
               text: `Noch ${upcomingTrainings} geplante ${upcomingTrainings === 1 ? "Einheit" : "Einheiten"} bis Saisonende` }
-          : completedTrainings > 0
-            ? { kind: "training", title: "Trainingswoche",
-                text: `${completedTrainings} ${completedTrainings === 1 ? "Training" : "Trainings"} mit Ergebnis in dieser Woche` }
-            : null;
+          : null;
 
   if (canCompare) {
     if (rising[0]) headlines.push(`Aufsteiger: ${rising[0].name} +${rising[0].places} Plätze (${rising[0].fromRank} → ${rising[0].toRank})`);

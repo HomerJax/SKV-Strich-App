@@ -74,7 +74,8 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
   const [message, setMessage] = useState("");
   const hasChanges = report.hasBaseline && report.completedTrainings > 0;
   const cutoffLabel = report.cutoffDate.split("-").reverse().join(".");
-  const topNames = report.topNames.slice(0, 2).join(" & ");
+  const firstName = report.topNames[0] ?? "Platz 1";
+  const secondName = report.topNames[1] ?? "Platz 2";
   const onShare = async () => {
     if (sharing) return;
     setSharing(true);
@@ -108,9 +109,6 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
         <h2 className="mt-1.5 break-words text-lg font-black leading-tight tracking-tight sm:text-2xl">
           Was hat sich in der Tabelle getan?
         </h2>
-        <p className="mt-1.5 break-words text-[11px] leading-5 text-white/60">
-          {seasonName} · Vergleich mit Stand vor dem {cutoffLabel}
-        </p>
       </div>
 
       {hasChanges ? (
@@ -145,20 +143,9 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
                 <div className="text-[10px] font-black uppercase tracking-wide text-violet-300">🏆 Rennen an der Spitze</div>
                 <p className="mt-1 break-words text-sm font-bold">
                   {report.topGapWins === 0
-                    ? `${topNames}: nach Siegen gleichauf`
-                    : `${report.topGapWins} ${report.topGapWins === 1 ? "Sieg" : "Siege"} Abstand zwischen Platz 1 und 2`}
+                    ? `${firstName} (Platz 1) und ${secondName} (Platz 2) haben gleich viele Siege.`
+                    : `${firstName} (Platz 1) hat ${report.topGapWins} ${report.topGapWins === 1 ? "Sieg" : "Siege"} mehr als ${secondName} (Platz 2).`}
                 </p>
-              </div>
-            ) : null}
-            {report.extraHighlight ? (
-              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-sky-400/20 bg-sky-400/10 p-3">
-                {report.extraHighlight.playerId && report.extraHighlight.photoUrl ? (
-                  <PlayerAvatar name={report.extraHighlight.text} photoUrl={report.extraHighlight.photoUrl} />
-                ) : null}
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-black uppercase tracking-wide text-sky-300">★ {report.extraHighlight.title}</div>
-                  <p className="mt-1 break-words text-sm font-bold">{report.extraHighlight.text}</p>
-                </div>
               </div>
             ) : null}
           </div>
@@ -174,8 +161,24 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
         </p>
       )}
 
+      {report.extraHighlight ? (
+        <div className="mt-3 flex min-w-0 items-center gap-3 rounded-xl border border-sky-400/20 bg-sky-400/10 p-3">
+          {report.extraHighlight.playerId ? (
+            <PlayerAvatar name={report.extraHighlight.playerName || report.extraHighlight.text}
+              photoUrl={report.extraHighlight.photoUrl} />
+          ) : null}
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-black uppercase tracking-wide text-sky-300">★ {report.extraHighlight.title}</div>
+            <p className="mt-1 break-words text-sm font-bold">{report.extraHighlight.text}</p>
+          </div>
+        </div>
+      ) : null}
       <p className="mt-3 break-words text-[10px] leading-4 text-white/45">
-        Vergleich nach Trainingsdatum. Spätere Ergebniskorrekturen werden berücksichtigt.
+        {seasonName} · Vergleich seit {cutoffLabel} nach Trainingsdatum.
+        Spätere Ergebniskorrekturen werden berücksichtigt.
+        {report.extraHighlight?.kind === "wheel"
+          ? " Ein Glücksrad-Ergebnis erlässt oder ersetzt die ursprüngliche Strafe nicht automatisch."
+          : ""}
       </p>
       <div className="mt-4 border-t border-white/10 pt-4">
         <button type="button" onClick={() => void onShare()} disabled={sharing}
