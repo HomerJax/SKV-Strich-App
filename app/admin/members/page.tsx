@@ -426,13 +426,18 @@ export default async function AdminMembersPage({
                           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                             {t("trainingLeaderGuide.title")}
                           </div>
+                          {member.role === "admin" ? (
+                            <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-600">
+                              {t("trainingLeaderGuide.adminAlready")}
+                            </p>
+                          ) : (
                           <form method="POST" action="/api/training-leaders" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <div className="text-sm font-semibold text-slate-900">
                                 {linkedPlayer.can_lead_training ? t("trainingLeaderGuide.active") : t("trainingLeaderGuide.inactive")}
                               </div>
                               <p className="mt-1 text-xs leading-5 text-slate-500">
-                                {member.role === "admin" ? t("trainingLeaderGuide.adminAlready") : t("trainingLeaderGuide.inlineHint")}
+                                {t("trainingLeaderGuide.inlineHint")}
                               </p>
                             </div>
                             <input type="hidden" name="player_id" value={linkedPlayer.id} />
@@ -442,6 +447,7 @@ export default async function AdminMembersPage({
                               {linkedPlayer.can_lead_training ? t("trainingLeaderGuide.remove") : t("trainingLeaderGuide.assign")}
                             </button>
                           </form>
+                          )}
                         </div>
                       ) : null}
 
