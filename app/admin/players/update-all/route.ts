@@ -174,9 +174,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const adminPlayersDb = createAdminClient();
     const results = await Promise.all(
       updates.map(({ playerId, payload }) =>
-        supabase
+        adminPlayersDb
           .from("players")
           .update(payload)
           .eq("id", playerId)
