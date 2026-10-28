@@ -107,7 +107,7 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
           strikr · Wochenrückblick
         </div>
         <h2 className="mt-1.5 break-words text-lg font-black leading-tight tracking-tight sm:text-2xl">
-          Was hat sich in der Tabelle getan?
+          Was war diese Woche los?
         </h2>
       </div>
 
@@ -177,6 +177,31 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
             ) : null}
           </div>
         </div>
+      ) : null}
+      {(report.newBadges?.length ?? 0) > 0 ? (
+        <section className="mt-3 rounded-xl border border-amber-300/25 bg-amber-300/10 p-3" aria-label="Neue Badges dieser Woche">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="text-xs font-black uppercase tracking-wide text-amber-200">🏅 Neue Badges diese Woche</h3>
+            <span className="rounded-full bg-amber-200/20 px-2 py-1 text-xs font-black text-amber-100">{report.newBadgeCount}</span>
+          </div>
+          <div className="space-y-2">
+            {report.newBadges.map((entry) => (
+              <div key={entry.playerId + ":" + entry.badgeKey + ":" + entry.earnedAt}
+                className="flex min-w-0 items-center gap-3 rounded-lg border border-white/10 bg-slate-900/55 p-2">
+                <PlayerAvatar name={entry.playerName} photoUrl={entry.photoUrl}/>
+                <div className="min-w-0 flex-1">
+                  <div className="break-words text-sm font-black text-white">{entry.playerName}</div>
+                  <div className="mt-0.5 break-words text-xs font-semibold text-amber-200">🏆 {entry.badgeTitle}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {report.newBadgeCount > report.newBadges.length ? (
+            <p className="mt-2 text-xs font-semibold text-amber-100/80">
+              Und {report.newBadgeCount - report.newBadges.length} weitere freigeschaltete {report.newBadgeCount - report.newBadges.length === 1 ? "Auszeichnung" : "Auszeichnungen"}.
+            </p>
+          ) : null}
+        </section>
       ) : null}
       <p className="mt-3 break-words text-[10px] leading-4 text-white/45">
         {seasonName} · Vergleich seit {cutoffLabel} nach Trainingsdatum.
