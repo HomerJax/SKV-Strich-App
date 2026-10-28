@@ -6,6 +6,7 @@ import CashboxSetupWizard from "./CashboxSetupWizard";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { AppLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/messages";
+import { EMPTY_PILOT_CASHBOX, isCashboxPilotClub, parsePilotCashboxStructure } from "@/lib/cashbox/pilot-structure";
 
 type Props = {
   searchParams?: Promise<{ error?: string }>;
@@ -48,7 +49,8 @@ export default async function Page({ searchParams }: Props) {
   }
 
   const admin = createAdminClient();
-  const [{ data: settings }, { data: playersData }, { data: managersData }] =
+  const cashboxPilot = isCashboxPilotClub(ctx.clubId);
+  const [{ data: settings }, { data: playersData }, { data: managersData }, { data: pilotData }] =
     await Promise.all([
       admin
         .from("club_settings")
@@ -69,6 +71,9 @@ export default async function Page({ searchParams }: Props) {
         .from("cashbox_managers")
         .select("user_id")
         .eq("club_id", ctx.clubId),
+      cashboxPilot
+        ? admin.from("cashbox_pilot_structures").select("config").eq("club_id", ctx.clubId).maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
 
   const managers = new Set(
@@ -86,6 +91,8 @@ export default async function Page({ searchParams }: Props) {
   return (
     <CashboxSetupWizard
       premiumBeer={true}
+      cashboxPilot={cashboxPilot}
+      initialPilotStructure={cashboxPilot && pilotData?.config ? parsePilotCashboxStructure(pilotData.config) : EMPTY_PILOT_CASHBOX}
       initialPenaltiesEnabled={settings?.cashbox_penalties_enabled === true}
       initialContributionsEnabled={settings?.cashbox_contributions_enabled === true}
       initialBeerEnabled={settings?.beerkasse_enabled === true}
