@@ -26,11 +26,11 @@ export default function CashboxPilotStructureSteps({ step, value, onChange }: Pr
     return (
       <section>
         <div className="text-5xl">🏦</div>
-        <p className="mt-6 text-xs font-black uppercase tracking-[.2em] text-slate-400">{en ? "Real accounts" : "Echte Konten"}</p>
-        <h1 className={sectionTitle}>{en ? "Where is the money actually held?" : "Wo liegt euer Geld tatsächlich?"}</h1>
+        <p className="mt-6 text-xs font-black uppercase tracking-[.2em] text-slate-400">{en ? "Accounts" : "Konten"}</p>
+        <h1 className={sectionTitle}>{en ? "Set up accounts now or later?" : "Konten jetzt oder später hinterlegen?"}</h1>
         <p className={description}>{en
-          ? "Add each real bank account, sub-account, cash box or payment account separately. A genuine bank sub-account is not just a virtual budget."
-          : "Erfasse jedes echte Bankkonto, echte Unterkonto, Bargeld- oder Zahlungskonto separat. Ein echtes Ü32-Bank-Unterkonto ist kein virtueller Topf."}</p>
+          ? "You can skip this step and set up accounts later under Cashbox → Accounts. If you already have accounts, record each bank account, real sub-account, cash box or payment account separately."
+          : "Du kannst diesen Schritt überspringen und deine Konten später unter Mannschaftskasse → Konten hinterlegen. Falls du sie jetzt einrichtest, erfasse jedes echte Bankkonto, Unterkonto, Bargeld- oder Zahlungskonto einzeln."}</p>
         <div className="mt-6 space-y-3">
           {value.accounts.map((account, index) => (
             <div key={account.key} className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -65,9 +65,11 @@ export default function CashboxPilotStructureSteps({ step, value, onChange }: Pr
         {value.accounts.length < 15 ? (
           <button type="button" className="mt-4 w-full rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-900" onClick={() => onChange({
             ...value, accounts: [...value.accounts, { key: "account_" + crypto.randomUUID().replace(/-/g, ""), name: "", kind: "bank", reference: "" }],
-          })}>{en ? "+ Add a real account" : "+ Echtes Konto hinzufügen"}</button>
+          })}>{en ? "+ Add an account" : "+ Konto hinzufügen"}</button>
         ) : null}
-        {value.accounts.length === 0 ? <p className="mt-3 text-xs font-bold text-amber-800">{en ? "Add at least one real account to continue." : "Bitte mindestens ein echtes Konto anlegen."}</p> : null}
+        {value.accounts.length === 0 ? <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-700">{en
+          ? "No accounts added yet. Continue without accounts and add them later directly in Cashbox → Accounts."
+          : "Noch keine Konten hinterlegt. Fahre ohne Konten fort und ergänze sie später direkt unter Mannschaftskasse → Konten."}</p> : null}
         {value.accounts.length > 0 ? (
           <div className="mt-6 space-y-3 rounded-2xl border border-teal-200 bg-teal-50 p-4">
             <div className="text-sm font-black text-teal-950">{en ? "Default destination for each type of income" : "Standard-Zuordnung pro Einnahmeart"}</div>
