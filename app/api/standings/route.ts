@@ -7,11 +7,11 @@ import { getServerI18n } from "@/lib/i18n/server";
 import { buildWeeklyReport, type WeeklyWheelMoment, type WeeklyPenaltyMoment } from "@/lib/standings/weekly-report";
 import { choosePenaltySpecial, isKistePenalty } from "@/lib/standings/weekly-penalty-special";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isWeeklyReportPilotClub } from "@/lib/standings/weekly-report-pilots";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const WEEKLY_RECAP_PILOT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
 
 /** Return Berlin calendar date exactly seven calendar days before today. */
 function getWeekCutoffDate() {
@@ -574,7 +574,7 @@ async function computeStandings(
       first_name: player?.first_name ?? null,
       last_name: player?.last_name ?? null,
       nickname: player?.nickname ?? null,
-      photoUrl: clubId === WEEKLY_RECAP_PILOT_CLUB_ID && player?.photo_path
+      photoUrl: isWeeklyReportPilotClub(clubId) && player?.photo_path
         ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
         : null,
       wins: winsCount.get(playerId) ?? 0,
@@ -700,7 +700,7 @@ export async function GET(request: NextRequest) {
     // Pilot only: reconstruct standings from training dates before the rolling
     // seven-day window. Historic snapshots are not stored; later edits to
     // earlier results are reflected consistently in both calculations.
-    const isWeeklyPilot = clubId === WEEKLY_RECAP_PILOT_CLUB_ID;
+    const isWeeklyPilot = isWeeklyReportPilotClub(clubId);
     const cutoffDate = getWeekCutoffDate();
     const completedBeforeCutoff = sessions.some(
       (session) => session.date < cutoffDate && completedSessionIds.has(session.id),
