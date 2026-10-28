@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Player } from "./session-types";
 import { getPlayerDisplayName } from "@/lib/player-display";
 
 type Props = { sessionId: number; teamA: Player[]; teamB: Player[] };
 
 export default function SessionCompletedTeamCorrection({ sessionId, teamA, teamB }: Props) {
+  const router = useRouter();
+  const [notice, setNotice] = useState("");
   const [playerA, setPlayerA] = useState("");
   const [playerB, setPlayerB] = useState("");
   const [saving, setSaving] = useState(false);
@@ -17,6 +20,7 @@ export default function SessionCompletedTeamCorrection({ sessionId, teamA, teamB
     if (!window.confirm("Spieler nachträglich tauschen? Die Änderung wird protokolliert und wirkt sich auf die Statistik dieses Trainings aus.")) return;
     setSaving(true);
     setError("");
+    setNotice("");
     try {
       const response = await fetch(`/api/sessions/${sessionId}/completed-team-correction`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -28,8 +32,12 @@ export default function SessionCompletedTeamCorrection({ sessionId, teamA, teamB
       });
       const body = await response.json() as { error?: string; message?: string };
       if (!response.ok) throw new Error(body.error ?? "Korrektur fehlgeschlagen.");
-      // Rehydrate the real team assignments and stats from the authoritative DB.
-      window.location.reload();
+      // Preserve the mobile viewport and data view; use the fresh server props.
+      setNotice(body.message ?? "Teamkorrektur gespeichert.");
+      setPlayerA("");
+      setPlayerB("");
+      router.refresh();
+      setSaving(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Korrektur fehlgeschlagen.");
       setSaving(false);
@@ -66,6 +74,7 @@ export default function SessionCompletedTeamCorrection({ sessionId, teamA, teamB
         {saving ? "Speichere Korrektur …" : "Spieler tauschen & Änderung protokollieren"}
       </button>
       {error ? <p role="alert" className="mt-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p> : null}
+      {notice ? <p role="status" className="mt-3 rounded-xl bg-teal-50 p-3 text-sm text-teal-900">{notice}</p> : null}
     </details>
   );
 }
