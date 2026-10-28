@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { saveCashboxSetupAction } from "./actions";
+import CashboxPilotStructureSteps from "@/components/cashbox/CashboxPilotStructureSteps";
+import type { PilotCashboxStructure } from "@/lib/cashbox/pilot-structure";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 type PlayerOption = {
@@ -14,6 +16,8 @@ type PlayerOption = {
 
 type Props = {
   premiumBeer: boolean;
+  cashboxPilot: boolean;
+  initialPilotStructure: PilotCashboxStructure;
   initialPenaltiesEnabled: boolean;
   initialContributionsEnabled: boolean;
   initialBeerEnabled: boolean;
@@ -29,6 +33,9 @@ type Props = {
 };
 
 type StepId =
+  | "structure"
+  | "accounts"
+  | "payments"
   | "penalties"
   | "contributions"
   | "beer"
@@ -105,6 +112,8 @@ function ToggleQuestion({
 
 export default function CashboxSetupWizard({
   premiumBeer,
+  cashboxPilot,
+  initialPilotStructure,
   initialPenaltiesEnabled,
   initialContributionsEnabled,
   initialBeerEnabled,
@@ -118,7 +127,8 @@ export default function CashboxSetupWizard({
   error,
   isExistingSetup,
 }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const [pilotStructure, setPilotStructure] = useState<PilotCashboxStructure>(initialPilotStructure);
   const [penaltiesEnabled, setPenaltiesEnabled] = useState(initialPenaltiesEnabled);
   const [contributionsEnabled, setContributionsEnabled] = useState(
     initialContributionsEnabled,
@@ -137,16 +147,18 @@ export default function CashboxSetupWizard({
   const [managerIds, setManagerIds] = useState<string[]>(
     players.filter((player) => player.selected).map((player) => player.userId),
   );
-  const [stepId, setStepId] = useState<StepId>("penalties");
+  const [stepId, setStepId] = useState<StepId>(cashboxPilot ? "structure" : "penalties");
 
   const steps = useMemo<StepId[]>(() => {
-    const result: StepId[] = ["penalties", "contributions", "beer"];
+    const result: StepId[] = cashboxPilot
+      ? ["structure", "accounts", "payments", "penalties", "contributions", "beer"]
+      : ["penalties", "contributions", "beer"];
     if (premiumBeer && beerEnabled) {
       result.push("beer_price", "paypal", "beer_home");
     }
     result.push("managers", "review");
     return result;
-  }, [beerEnabled, premiumBeer]);
+  }, [beerEnabled, premiumBeer, cashboxPilot]);
 
   const safeStepId = steps.includes(stepId) ? stepId : "managers";
   const safeStepIndex = Math.max(0, steps.indexOf(safeStepId));
@@ -173,8 +185,14 @@ export default function CashboxSetupWizard({
   }
 
   const canContinue =
-    safeStepId !== "beer_price" ||
-    /^\d+(?:[,.]\d{1,2})?$/.test(beerPrice.trim());
+    safeStepId === "structure"
+      ? pilotStructure.mode !== null &&
+        (pilotStructure.mode !== "umbrella" || pilotStructure.umbrellaName.trim().length > 1)
+      : safeStepId === "accounts"
+        ? pilotStructure.accounts.length > 0 && pilotStructure.accounts.every(account => account.name.trim().length > 0)
+        : safeStepId === "beer_price"
+          ? /^\d+(?:[,.]\d{1,2})?$/.test(beerPrice.trim())
+          : true;
 
   return (
     <main className="fixed inset-0 z-[500] h-[100dvh] overflow-hidden bg-[#f5f6f8] text-slate-950">
@@ -189,6 +207,9 @@ export default function CashboxSetupWizard({
           <input type="hidden" name="beer_enabled" value="on" />
         ) : null}
         <input type="hidden" name="beer_price" value={beerPrice} />
+        {cashboxPilot ? (
+          <input type="hidden" name="pilot_structure_json" value={JSON.stringify(pilotStructure)} />
+        ) : null}
         <input type="hidden" name="paypal_url" value={paypalUrl} />
         <input type="hidden" name="paypal_me_url" value={paypalMeUrl} />
         <input type="hidden" name="sumup_url" value={sumupUrl} />
@@ -237,6 +258,10 @@ export default function CashboxSetupWizard({
             <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-800">
               {error}
             </div>
+          ) : null}
+
+          {cashboxPilot && (safeStepId === "structure" || safeStepId === "accounts" || safeStepId === "payments") ? (
+            <CashboxPilotStructureSteps step={safeStepId} value={pilotStructure} onChange={setPilotStructure} />
           ) : null}
 
           {safeStepId === "penalties" ? (
@@ -459,6 +484,27 @@ export default function CashboxSetupWizard({
               </p>
 
               <div className="mt-8 space-y-2">
+                {cashboxPilot ? (
+                  <>
+                    <div className="rounded-2xl bg-teal-50 px-4 py-3 ring-1 ring-teal-200">
+                      <div className="text-xs font-black text-teal-700">{locale === "en" ? "Club structure" : "Vereinsstruktur"}</div>
+                      <div className="mt-1 font-black text-teal-950">{pilotStructure.mode === "umbrella" ? pilotStructure.umbrellaName : locale === "en" ? "Independent team" : "Eigenständige Mannschaft"}</div>
+                      <div className="mt-1 text-xs font-medium text-teal-800">{pilotStructure.accounts.length} {locale === "en" ? "real accounts set up" : "echte Konten erfasst"}</div>
+                    </div>
+                    <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
+                      <div className="text-xs font-black text-slate-500">{locale === "en" ? "Cashbox payment options" : "Zahlungswege Mannschaftskasse"}</div>
+                      <div className="mt-1 text-sm font-bold text-slate-900">{[
+                        pilotStructure.payments.paypalPoolUrl && "PayPal-Pool",
+                        pilotStructure.payments.paypalMeUrl && "PayPal.Me",
+                        pilotStructure.payments.sumupUrl && "SumUp",
+                        pilotStructure.payments.cashEnabled && (locale === "en" ? "Cash" : "Bar")
+                      ].filter(Boolean).join(" · ") || "–"}</div>
+                    </div>
+                    <p className="text-xs leading-5 text-slate-500">{locale === "en"
+                      ? "Pilot: saving the structure does not transfer money or link other teams. Real account postings will be enabled only after verification."
+                      : "Pilot: Das Speichern verschiebt kein Geld und verbindet keine anderen Mannschaften. Echte Kontobuchungen schalten wir erst nach Prüfung frei."}</p>
+                  </>
+                ) : null}
                 <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
                   <span className="font-bold">FBZG</span>
                   <b>{penaltiesEnabled ? t("cashSetup.on") : t("cashSetup.off")}</b>

@@ -6,6 +6,7 @@ import { canManageClub } from "@/lib/auth/access";
 import { requireClub } from "@/lib/auth/guards";
 import { parseEuroToCents } from "@/lib/cashbox/money";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isCashboxPilotClub, parsePilotCashboxStructure } from "@/lib/cashbox/pilot-structure";
 
 function setupUrl(params: Record<string, string> = {}) {
   const search = new URLSearchParams(params);
@@ -20,6 +21,62 @@ export async function saveCashboxSetupAction(formData: FormData) {
   }
 
   const admin = createAdminClient();
+  // This new structure path is server-guarded by club ID and additionally
+  // restricted by a database CHECK constraint. No other club is eligible.
+  if (isCashboxPilotClub(ctx.clubId)) {
+    const raw = String(formData.get("pilot_structure_json") ?? "");
+    if (raw.length > 16000) redirect(setupUrl({ error: "structure" }));
+    let input: unknown;
+    try {
+      input = JSON.parse(raw);
+    } catch {
+      redirect(setupUrl({ error: "structure" }));
+    }
+    const pilot = parsePilotCashboxStructure(input);
+    if (!pilot.mode || (pilot.mode === "umbrella" && pilot.umbrellaName.length < 2)) {
+      redirect(setupUrl({ error: "structure" }));
+    }
+    if (pilot.accounts.length < 1 || pilot.accounts.length > 15) {
+      redirect(setupUrl({ error: "accounts" }));
+    }
+    if (new Set(pilot.accounts.map(account => account.key)).size !== pilot.accounts.length) {
+      redirect(setupUrl({ error: "accounts" }));
+    }
+    const candidateAccounts = input && typeof input === "object" && "accounts" in input && Array.isArray(input.accounts)
+      ? input.accounts : [];
+    if (candidateAccounts.length !== pilot.accounts.length) {
+      redirect(setupUrl({ error: "accounts" }));
+    }
+
+    function validPaymentUrl(rawUrl: string, hosts: string[]) {
+      if (!rawUrl) return true;
+      try {
+        const url = new URL(rawUrl);
+        return url.protocol === "https:" &&
+          !url.username && !url.password &&
+          hosts.some(host => url.hostname.toLowerCase() === host);
+      } catch {
+        return false;
+      }
+    }
+    if (!validPaymentUrl(pilot.payments.paypalPoolUrl, ["paypal.com", "www.paypal.com"]) ||
+        !validPaymentUrl(pilot.payments.paypalMeUrl, ["paypal.me", "www.paypal.me"]) ||
+        !validPaymentUrl(pilot.payments.sumupUrl, ["pay.sumup.com", "checkout.sumup.com"])) {
+      redirect(setupUrl({ error: "payments" }));
+    }
+    if (pilot.mode === "single") pilot.umbrellaName = "";
+
+    const { error: pilotError } = await admin.from("cashbox_pilot_structures").upsert({
+      club_id: ctx.clubId,
+      config: pilot,
+      updated_by: ctx.user.id,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "club_id" });
+    if (pilotError) {
+      console.error("Cashbox pilot structure saving failed", pilotError.code);
+      redirect(setupUrl({ error: "save" }));
+    }
+  }
   const penaltiesEnabled = formData.get("penalties_enabled") === "on";
   const contributionsEnabled = formData.get("contributions_enabled") === "on";
   const beerRequested = formData.get("beer_enabled") === "on";
