@@ -4,7 +4,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { addRanks } from "@/app/standings/standings-ui";
 import { getServerI18n } from "@/lib/i18n/server";
-import { buildWeeklyReport } from "@/lib/standings/weekly-report";
+import { buildWeeklyReport, type WeeklyWheelMoment } from "@/lib/standings/weekly-report";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -709,7 +709,7 @@ export async function GET(request: NextRequest) {
 
     const [currentStandingRows, previousStandingRows, weeklyPreviousStandingRows] = await Promise.all([
       computeStandings(clubId, sessions, supabase, awardsStartedAt),
-      previousSessions
+      !isWeeklyPilot && previousSessions
         ? computeStandings(clubId, previousSessions, supabase, awardsStartedAt)
         : Promise.resolve(null),
       weeklyPreviousSessions
@@ -751,6 +751,62 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Find the latest real wheel result in the same rolling week.
+      // Never treat wheel spins as payment/cancellation of the original penalty.
+      // Exclude the two explicit demonstration penalty records (source_key=test:...).
+      let wheelMoment: WeeklyWheelMoment | null = null;
+      const { data: recentSpins, error: spinsError } = await supabase
+        .from("penalty_wheel_spins")
+        .select("player_id,penalty_id,outcome_label,outcome_detail,outcome_icon,spun_at")
+        .eq("club_id", clubId)
+        .gte("spun_at", cutoffDate + "T00:00:00Z")
+        .order("spun_at", { ascending: false })
+        .limit(12);
+      if (!spinsError && recentSpins?.length) {
+        const penaltyIds = [...new Set(recentSpins.map((spin) => spin.penalty_id))];
+        const { data: linkedPenalties, error: linkedError } = await supabase
+          .from("penalties")
+          .select("id,source_key")
+          .eq("club_id", clubId)
+          .in("id", penaltyIds);
+        if (!linkedError && linkedPenalties) {
+          const genuinePenaltyIds = new Set(
+            linkedPenalties
+              .filter((entry) => !entry.source_key?.startsWith("test:"))
+              .map((entry) => entry.id),
+          );
+          const spin = recentSpins.find(
+            (item) => genuinePenaltyIds.has(item.penalty_id) && item.outcome_label?.trim(),
+          );
+          if (spin) {
+            const row = currentRows.find((entry) => entry.player_id === spin.player_id);
+            // Other active players can spin even when they have no standings yet.
+            const { data: player } = !row
+              ? await supabase.from("players")
+                  .select("id,name,first_name,last_name,nickname,photo_path")
+                  .eq("club_id", clubId).eq("id", spin.player_id).maybeSingle()
+              : { data: null };
+            const displayName = row
+              ? ([row.first_name, row.last_name].filter(Boolean).join(" ").trim()
+                || row.nickname || row.name)
+              : (player?.nickname || [player?.first_name, player?.last_name]
+                  .filter(Boolean).join(" ").trim() || player?.name);
+            if (displayName) {
+              wheelMoment = {
+                playerId: spin.player_id,
+                playerName: displayName,
+                photoUrl: row?.photoUrl ?? (player?.photo_path
+                  ? supabase.storage.from("player-photos").getPublicUrl(player.photo_path).data.publicUrl
+                  : null),
+                outcomeLabel: spin.outcome_label,
+                outcomeDetail: spin.outcome_detail,
+                outcomeIcon: spin.outcome_icon,
+              };
+            }
+          }
+        }
+      }
+
       weeklyReport = buildWeeklyReport({
         current: currentRows,
         previous: weeklyPreviousRows ?? [],
@@ -758,6 +814,7 @@ export async function GET(request: NextRequest) {
         completedTrainings,
         upcomingTrainings,
         seasonEndDate,
+        wheelMoment,
       });
     }
 
