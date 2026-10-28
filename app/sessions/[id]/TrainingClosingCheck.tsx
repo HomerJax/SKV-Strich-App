@@ -14,9 +14,11 @@ type Props = {
   presentIds: number[];
   onReadyChange: (ready: boolean) => void;
   beforeResult?: boolean;
+  teamChangedChoice?: Answer;
+  onTeamChangedChoice?: (value: "yes" | "no") => void;
 };
 
-export default function TrainingClosingCheck({ sessionId, players, presentIds, onReadyChange, beforeResult = false }: Props) {
+export default function TrainingClosingCheck({ sessionId, players, presentIds, onReadyChange, beforeResult = false, teamChangedChoice = null, onTeamChangedChoice }: Props) {
   const [presentOk, setPresentOk] = useState<Answer>(null);
   const [lateCancel, setLateCancel] = useState<Answer>(null);
   const [punctualOk, setPunctualOk] = useState<Answer>(null);
@@ -72,7 +74,9 @@ export default function TrainingClosingCheck({ sessionId, players, presentIds, o
   }, [sessionId]);
 
   const hasExceptions = presentOk === "no" || lateCancel === "yes" || punctualOk === "no" || specialEvents === "yes";
-  const allAnswered = presentOk !== null && lateCancel !== null && punctualOk !== null && specialEvents !== null;
+  const includeTeamQuestion = typeof onTeamChangedChoice === "function";
+  const allAnswered = presentOk !== null && lateCancel !== null && punctualOk !== null && specialEvents !== null
+    && (!includeTeamQuestion || teamChangedChoice !== null);
   const ready = allAnswered && (!hasExceptions || exceptionsConfirmed);
   useEffect(() => { onReadyChange(ready); }, [onReadyChange, ready]);
 
@@ -156,14 +160,19 @@ export default function TrainingClosingCheck({ sessionId, players, presentIds, o
     <div className="rounded-2xl bg-slate-950 p-4 text-white">
       <div className="text-[11px] font-black uppercase tracking-[.18em] text-teal-300">{beforeResult ? "Vor dem Ergebnis" : "Letzter Schritt"}</div>
       <h2 className="mt-2 text-xl font-black">Alles erledigt nach dem Training?</h2>
-      <p className="mt-2 text-sm leading-6 text-white/65">{beforeResult ? "Vier kurze Fragen. Danach nur noch das Ergebnis speichern." : "Vier kurze Fragen. Wenn alles passt, bist du fertig."}</p>
+      <p className="mt-2 text-sm leading-6 text-white/65">{includeTeamQuestion ? "Fünf kurze Fragen. Bei Teamänderungen kannst du danach die Aufstellung korrigieren." : beforeResult ? "Vier kurze Fragen. Danach nur noch das Ergebnis speichern." : "Vier kurze Fragen. Wenn alles passt, bist du fertig."}</p>
     </div>
 
-    <Question number={1} title="Waren alle erwarteten Spieler da?"
+    {includeTeamQuestion ? <Question number={1} title="Wurden die Teams noch verändert?"
+      hint="Zum Beispiel durch spätere Abgänge oder einen Spielertausch."
+      answer={teamChangedChoice} yesLabel="Ja, Teams geändert" noLabel="Nein, unverändert"
+      setAnswer={value => { if (value !== null) onTeamChangedChoice?.(value); }}/> : null}
+
+    <Question number={includeTeamQuestion ? 2 : 1} title="Waren alle erwarteten Spieler da?"
       hint="Hat jeder, der fest zugesagt hatte, auch wirklich teilgenommen?"
       answer={presentOk} yesLabel="Ja, alle da" noLabel="Nein, jemand fehlte"
       setAnswer={value => updateAnswers({ presentOk: value })}/>
-    <Question number={2} title="Hat jemand nach der Zusage-Deadline abgesagt?"
+    <Question number={includeTeamQuestion ? 3 : 2} title="Hat jemand nach der Zusage-Deadline abgesagt?"
       hint="Zum Beispiel eine Absage nach Ablauf der Frist, auch per WhatsApp."
       answer={lateCancel} yesLabel="Ja, Spätabsage" noLabel="Nein"
       setAnswer={value => updateAnswers({ lateCancel: value })}/>
@@ -175,12 +184,12 @@ export default function TrainingClosingCheck({ sessionId, players, presentIds, o
       <div className="mt-3"><AttendanceReviewClient sessionId={sessionId} compact /></div>
     </div> : null}
 
-    <Question number={3} title="Waren alle pünktlich?"
+    <Question number={includeTeamQuestion ? 4 : 3} title="Waren alle pünktlich?"
       hint="Kam jemand nach Trainingsbeginn?"
       answer={punctualOk} yesLabel="Ja, pünktlich" noLabel="Nein, Verspätung"
       setAnswer={value => updateAnswers({ punctualOk: value })}/>
 
-    <Question number={4} title="Gab es sonstige Vorfälle?"
+    <Question number={includeTeamQuestion ? 5 : 4} title="Gab es sonstige Vorfälle?"
       hint="Zum Beispiel einen verschossenen Elfmeter oder unangemeldete Teilnehmer."
       answer={specialEvents} yesLabel="Ja, etwas passiert" noLabel="Nein, alles gut"
       setAnswer={value => updateAnswers({ specialEvents: value })}/>
@@ -245,7 +254,7 @@ export default function TrainingClosingCheck({ sessionId, players, presentIds, o
 
     <div role="status" className={`rounded-xl px-4 py-3 text-sm font-bold ${ready ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
       {ready ? (beforeResult ? "✓ Alles geprüft. Weiter zum Ergebnis." : "✓ Abschlusscheck bestätigt. Du kannst das Training abschließen.") :
-        !allAnswered ? "Bitte alle vier Fragen beantworten." : "Bitte die Auffälligkeiten bestätigen."}
+        !allAnswered ? (includeTeamQuestion ? "Bitte alle fünf Fragen beantworten." : "Bitte alle vier Fragen beantworten.") : "Bitte die Auffälligkeiten bestätigen."}
     </div>
   </div>;
 }
