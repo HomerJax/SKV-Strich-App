@@ -50,7 +50,7 @@ export default async function OrganizationPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto max-w-3xl space-y-4 px-4 py-6 pb-24">
-        <Link href="/admin/settings" className="text-sm font-bold text-slate-600">← {en ? "Club settings" : "Club-Einstellungen"}</Link>
+        <Link href={teamAdmin ? "/admin/settings" : "/home"} className="text-sm font-bold text-slate-600">← {teamAdmin ? (en ? "Club settings" : "Club-Einstellungen") : "Home"}</Link>
         <header className="rounded-[28px] bg-slate-950 p-6 text-white">
           <p className="text-xs font-black uppercase tracking-[.18em] text-white/50">{en ? "Organization / parent club" : "Vereinsstruktur / Dachverein"}</p>
           <h1 className="mt-2 text-2xl font-black">{en ? "Manage your parent club" : "Dachverein verwalten"}</h1>
