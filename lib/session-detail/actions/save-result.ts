@@ -65,7 +65,7 @@ export async function handleSaveResult({
       await Promise.all([
         supabase
           .from("results")
-          .select("id")
+          .select("id,team_a_id,team_b_id")
           .eq("session_id", sessionId)
           .eq("game_no", gameNo)
           .maybeSingle(),
@@ -80,13 +80,23 @@ export async function handleSaveResult({
     if (existingResultError) return fail(existingResultError.message, 500);
     if (anyResultError) return fail(anyResultError.message, 500);
 
-    const { teamAId, teamBId } = await persistSessionTeams({
-      supabase,
-      sessionId,
-      clubId,
-      manualTeamsRaw,
-      requireComplete: true,
-    });
+    // Updating a result must NEVER replay a stale client-side team map:
+    // previously audited post-game swaps would otherwise be silently undone.
+    let teamAId: number;
+    let teamBId: number;
+    if (existingResult?.id) {
+      if (!existingResult.team_a_id || !existingResult.team_b_id) {
+        return fail("Gespeicherte Teams sind unvollständig. Bitte neu laden.", 409);
+      }
+      teamAId = existingResult.team_a_id;
+      teamBId = existingResult.team_b_id;
+    } else {
+      const created = await persistSessionTeams({
+        supabase, sessionId, clubId, manualTeamsRaw, requireComplete: true,
+      });
+      teamAId = created.teamAId;
+      teamBId = created.teamBId;
+    }
 
     const payload = {
       session_id: sessionId,
