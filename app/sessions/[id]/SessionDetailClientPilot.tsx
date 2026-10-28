@@ -15,6 +15,7 @@ import SessionTournamentCard from "./SessionTournamentCard";
 import TrainingSessionWizard from "./TrainingSessionWizard";
 import TrainingAttendanceStep from "./TrainingAttendanceStep";
 import TrainingClosingCheck from "./TrainingClosingCheck";
+import type { TrainingClosingAnswers } from "./TrainingClosingCheck";
 import PilotTeamBalanceOverlay from "./PilotTeamBalanceOverlay";
 import { Clock3, Play, Sparkles } from "lucide-react";
 import SessionEndModal from "@/components/SessionEndModal";
@@ -140,6 +141,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [balanceSaving, setBalanceSaving] = useState(false);
   const [balanceError, setBalanceError] = useState("");
   const [pilotManualTeamsOpen, setPilotManualTeamsOpen] = useState(false);
+  const [closingAnswers, setClosingAnswers] = useState<TrainingClosingAnswers | null>(null);
+  const [progressLoaded, setProgressLoaded] = useState(!props.initialIsAdmin);
+  const [progressError, setProgressError] = useState("");
+  const progressVersion = useRef(0);
+  const progressSent = useRef("");
+  const progressPending = useRef<string | null>(null);
+  const progressWriting = useRef(false);
+  const progressConflict = useRef(false);
 
   useEffect(() => {
     try {
@@ -174,6 +183,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       } catch { /* Treat old/corrupt answer records as incomplete. */ }
       setCloseCheckReviewed(wasReviewed && (props.initialHasResult || hasLateCancelAnswer));
       setWinnerReviewed(window.localStorage.getItem("strikr-winner-reviewed-" + props.sessionId) === "true");
+      try {
+        const answers = JSON.parse(window.localStorage.getItem("strikr-closing-check-" + props.sessionId) ?? "null") as TrainingClosingAnswers | null;
+        if (answers) setClosingAnswers(answers);
+      } catch { /* Optional local fallback. */ }
     } catch { /* Storage is optional. */ }
   }, [props.sessionId]);
 
@@ -982,8 +995,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
 
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
+        {progressError && isAdmin && isTrainingSession ? <NoticeCard tone="error">{progressError}</NoticeCard> : null}
 
-        {playerPreview ? <div className="space-y-4">
+        {!progressLoaded && isAdmin && isTrainingSession
+          ? <div className="rounded-2xl bg-white p-6 text-center text-sm font-semibold text-slate-700">Trainingsfortschritt wird geladen …</div>
+          : playerPreview ? <div className="space-y-4">
           <div className="rounded-2xl bg-gradient-to-br from-slate-950 to-teal-950 p-5 text-white">
             <p className="text-xs font-black uppercase tracking-widest text-teal-300">Dein Trainingsüberblick</p>
             <h2 className="mt-2 text-2xl font-black">Alles Wichtige auf einen Blick.</h2>
@@ -1243,6 +1259,8 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               onReadyChange={setCloseCheckReady}
               beforeResult
               teamChangedChoice={teamChangedChoice}
+              savedAnswers={closingAnswers}
+              onAnswersChange={setClosingAnswers}
               onTeamChangedChoice={value => {
                 setTeamChangedChoice(value);
                 try { window.localStorage.setItem("strikr-teams-changed-" + props.sessionId, value); }
@@ -1341,7 +1359,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => setWinnerPhotoCollapsed(prev => !prev)} title={t("sessionDetail.winnerPhoto")} />
               : <div className="space-y-3">{hasResult && dayWinnerSide ? <SessionWinnerPhotoCard sessionId={props.sessionId} hasResult={hasResult} saving={saving} photoBusy={photoBusy} collapsed={false} canUploadWinnerPhoto={canUploadWinnerPhoto} winnerPhotoUrl={winnerPhotoUrl} hasWinnerPhoto={hasWinnerPhoto} winnerPhotoInputRef={winnerPhotoInputRef} onWinnerPhotoUpload={handleWinnerPhotoUpload} onWinnerPhotoDelete={handleWinnerPhotoDelete} onToggleCollapsed={() => {}} title={t("sessionDetail.winnerPhoto")} /> : <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{hasResult ? "Unentschieden: Kein Siegerfoto nötig. Du kannst das Training abschließen." : "Bitte zuerst ein Ergebnis mit Sieger erfassen."}</p>}</div>;
             if (key === "winner") return <TournamentWinnerCard sessionId={props.sessionId} photoUrl={winnerPhotoUrl} pilotStoryEnabled={props.initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60"} onBack={() => setPilotStep("result")} />;
-            if (key === "check") return <TrainingClosingCheck sessionId={props.sessionId} players={displayPlayers} presentIds={draftPresentIds} onReadyChange={setCloseCheckReady} beforeResult={!isTournamentMode} />;
+            if (key === "check") return <TrainingClosingCheck sessionId={props.sessionId} players={displayPlayers} presentIds={draftPresentIds} onReadyChange={setCloseCheckReady} beforeResult={!isTournamentMode} savedAnswers={closingAnswers} onAnswersChange={setClosingAnswers} />;
             return null;
           };
           const nextDisabled =
