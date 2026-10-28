@@ -2,152 +2,215 @@ import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { requireClub } from "@/lib/auth/guards";
 import { isStorySharePilotClub } from "@/components/share/result-share/StoryShareCard";
-import type { WeeklyReport, WeeklyRankRow } from "@/lib/standings/weekly-report";
+import type { WeeklyReport, WeeklyMover } from "@/lib/standings/weekly-report";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// The exact, existing 1080×1350 table card is embedded pixel-for-pixel,
+// not reimplemented or restyled. Weekly highlights live in the free
+// 285px above and below it on the 1080×1920 Story canvas.
 type Payload = {
-  rows?: Array<WeeklyRankRow & { deltaRank?: number | null }>;
   weeklyReport?: WeeklyReport;
   selected?: string;
-  seasons?: Array<{ id: number; name: string }>;
   error?: string;
 };
 
-function name(row: WeeklyRankRow) {
-  return [row.first_name?.trim(), row.last_name?.trim()].filter(Boolean).join(" ")
-    || row.nickname?.trim() || row.name?.trim() || "Spieler";
+async function trustedAvatarData(photoUrl?: string | null): Promise<string | null> {
+  if (!photoUrl) return null;
+  try {
+    const url = new URL(photoUrl);
+    // Never let arbitrary URLs in a player record trigger server-side fetching.
+    if (url.protocol !== "https:" || !url.hostname.endsWith(".supabase.co")
+      || !url.pathname.includes("/storage/v1/object/public/player-photos/")) return null;
+    const response = await fetch(url.toString(), {
+      cache: "no-store", signal: AbortSignal.timeout(3000),
+    });
+    const contentType = response.headers.get("content-type")?.split(";")[0] ?? "";
+    if (!response.ok || !["image/png", "image/jpeg", "image/webp"].includes(contentType)) return null;
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > 1_500_000) return null;
+    return "data:" + contentType + ";base64," + bytes.toString("base64");
+  } catch {
+    return null;
+  }
 }
 
-function movement(delta: number | null | undefined) {
-  return delta == null ? "–" : delta > 0 ? `↑ +${delta}` : delta < 0 ? `↓ ${Math.abs(delta)}` : "→";
-}
-
-function MovementCard({ title, person, tone }: {
-  title: string;
-  person: WeeklyReport["biggestRiser"];
-  tone: "rise" | "fall";
+function Avatar({ name, photo, accent }: {
+  name: string; photo: string | null; accent: string;
 }) {
-  const good = tone === "rise";
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2)
+    .map((segment) => segment.slice(0, 1)).join("").toUpperCase();
   return (
     <div style={{
-      display: "flex", flexDirection: "column", flex: 1, height: 205,
-      background: good ? "rgba(13,148,136,.18)" : "rgba(244,63,94,.14)",
-      border: good ? "2px solid rgba(94,234,212,.45)" : "2px solid rgba(253,164,175,.4)",
-      borderRadius: 28, padding: "22px 24px",
+      display: "flex", width: 70, height: 70, flexShrink: 0,
+      borderRadius: 35, overflow: "hidden",
+      alignItems: "center", justifyContent: "center",
+      border: "3px solid " + accent, background: "#1e2d56",
+      color: "#fff", fontSize: 26, fontWeight: 900,
     }}>
-      <div style={{ display: "flex", fontSize: 21, fontWeight: 800, color: good ? "#5eead4" : "#fda4af" }}>{title}</div>
-      <div style={{ display: "flex", marginTop: 16, fontSize: 32, fontWeight: 900, color: "#ffffff" }}>
-        {person?.name ?? "Keine Veränderung"}
-      </div>
-      <div style={{ display: "flex", marginTop: 7, fontSize: 28, fontWeight: 900, color: good ? "#5eead4" : "#fda4af" }}>
-        {person ? `${good ? "+" : "−"}${Math.abs(person.places)} Plätze` : "–"}
-      </div>
-      {person ? <div style={{ display: "flex", fontSize: 18, color: "#cbd5e1", marginTop: 5 }}>
-        Platz {person.fromRank} → {person.toRank}
-      </div> : null}
+      {photo
+        ? <img src={photo} alt="" width={70} height={70}
+            style={{ width: 70, height: 70, objectFit: "cover" }} />
+        : initials || "?"}
     </div>
   );
+}
+
+function Highlight({ label, value, detail, photo, accent, name }: {
+  label: string; value: string; detail: string;
+  photo?: string | null; accent: string; name?: string;
+}) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "row", alignItems: "center",
+      flex: 1, height: 130, minWidth: 0,
+      padding: "13px 16px", gap: 16, overflow: "hidden",
+      border: "2px solid " + accent, borderRadius: 22,
+      background: "#172554",
+    }}>
+      {name ? <Avatar name={name} photo={photo ?? null} accent={accent} /> : null}
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 4 }}>
+        <div style={{ display: "flex", color: accent, fontSize: 16, fontWeight: 900 }}>
+          {label}
+        </div>
+        <div style={{ display: "flex", color: "#fff", fontSize: 25, fontWeight: 900 }}>
+          {value.length > 28 ? value.slice(0, 27) + "…" : value}
+        </div>
+        <div style={{ display: "flex", color: "#cbd5e1", fontSize: 19, fontWeight: 700 }}>
+          {detail.length > 37 ? detail.slice(0, 36) + "…" : detail}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function movementValue(person: WeeklyMover | null, positive: boolean) {
+  if (!person) return { value: "Kein Wechsel", detail: "Keine Rangveränderung" };
+  const sign = positive ? "+" : "−";
+  return {
+    value: person.name,
+    detail: sign + Math.abs(person.places) + " Plätze · " + person.fromRank + " → " + person.toRank,
+  };
 }
 
 export async function GET(request: NextRequest) {
   try {
     const { clubId } = await requireClub();
     if (!isStorySharePilotClub(clubId)) {
-      return new Response("Wochen-Story nur für das Pilotteam verfügbar.", { status: 403 });
+      return new Response("Wochenreport nur für den Pilotverein verfügbar.", { status: 403 });
     }
-    const url = new URL("/api/standings", request.url);
-    const selected = request.nextUrl.searchParams.get("season");
-    if (selected) url.searchParams.set("season", selected);
-    const response = await fetch(url, {
-      headers: { cookie: request.headers.get("cookie") ?? "" },
-      cache: "no-store",
-    });
-    const payload = (await response.json()) as Payload;
-    if (!response.ok || !payload.weeklyReport) {
-      throw new Error(payload.error || "Wochenreport ist nicht verfügbar.");
-    }
-    const report = payload.weeklyReport;
-    const rows = (payload.rows ?? []).slice(0, 5);
-    if (!rows.length) throw new Error("Noch keine Tabelle vorhanden.");
-    const season = payload.seasons?.find((entry) => String(entry.id) === payload.selected)?.name
-      ?? (payload.selected === "all" ? "Karriere" : "Aktuelle Saison");
-    const referenceDate = report.cutoffDate.split("-").reverse().join(".");
-    const topCaption = report.topGapWins === null
-      ? "Die Tabelle nimmt Gestalt an."
-      : report.topGapWins === 0
-        ? "Die Spitze ist nach Siegen gleichauf!"
-        : report.topGapWins <= 2
-          ? `Nur ${report.topGapWins} ${report.topGapWins === 1 ? "Sieg" : "Siege"} trennen die ersten beiden Plätze!`
-          : `${report.topGapWins} Siege Vorsprung an der Spitze.`;
-    const extra = report.headlines.find((line) => line.startsWith("Saisonfinale:"))
-      ?? (report.leaderChanged ? report.headlines.find((line) => line.startsWith("Führungswechsel:")) : null);
-    const noWeekData = !report.hasBaseline || report.completedTrainings === 0;
+    const season = request.nextUrl.searchParams.get("season");
+    const lang = request.nextUrl.searchParams.get("lang") ?? "de";
+    const headers = { cookie: request.headers.get("cookie") ?? "" };
 
-    const card = (
+    // The report and the original table are generated from the same live data.
+    const dataUrl = new URL("/api/standings", request.url);
+    if (season) dataUrl.searchParams.set("season", season);
+
+    const tableUrl = new URL("/api/share/standings/image", request.url);
+    if (season) tableUrl.searchParams.set("season", season);
+    tableUrl.searchParams.set("lang", lang);
+    // Important: no format=story here — we need the original 1080×1350 image.
+    const [dataResponse, tableResponse] = await Promise.all([
+      fetch(dataUrl, { headers, cache: "no-store" }),
+      fetch(tableUrl, { headers, cache: "no-store" }),
+    ]);
+    const payload = (await dataResponse.json()) as Payload;
+    if (!dataResponse.ok || !payload.weeklyReport) {
+      throw new Error(payload.error || "Wochenrückblick konnte nicht geladen werden.");
+    }
+    if (!tableResponse.ok || !tableResponse.headers.get("content-type")?.includes("image/png")) {
+      throw new Error("Die Original-Tabellenkarte konnte nicht geladen werden.");
+    }
+    const tableBytes = Buffer.from(await tableResponse.arrayBuffer());
+    if (!tableBytes.length || tableBytes.length > 12_000_000) {
+      throw new Error("Ungültige Größe der Tabellenkarte.");
+    }
+    const originalTable = "data:image/png;base64," + tableBytes.toString("base64");
+
+    const report = payload.weeklyReport;
+    const canCompare = report.hasBaseline && report.completedTrainings > 0;
+    const riser = canCompare ? report.biggestRiser : null;
+    const faller = canCompare ? report.biggestFaller : null;
+    const [riserPhoto, fallerPhoto, extraPhoto] = await Promise.all([
+      trustedAvatarData(riser?.photoUrl),
+      trustedAvatarData(faller?.photoUrl),
+      trustedAvatarData(report.extraHighlight?.photoUrl),
+    ]);
+    const up = movementValue(riser, true);
+    const down = movementValue(faller, false);
+    const gap = report.topGapWins;
+    const race = !canCompare
+      ? "Kein Wochenvergleich"
+      : gap == null ? "Noch kein Duell" : gap === 0
+        ? "Gleichauf nach Siegen!" : gap === 1
+          ? "Nur 1 Sieg Abstand" : gap === 2
+            ? "Nur 2 Siege Abstand" : gap + " Siege Vorsprung";
+    const topDetail = canCompare
+      ? report.topNames.slice(0, 2).join(" & ") || "Aktuelle Tabelle"
+      : "Noch keine abgeschlossene Vergleichswoche";
+    const extra = report.extraHighlight;
+    const dateLabel = report.cutoffDate.split("-").reverse().join(".");
+
+    const story = (
       <div style={{
         display: "flex", flexDirection: "column", width: 1080, height: 1920,
-        padding: "165px 62px 150px", boxSizing: "border-box",
-        background: "radial-gradient(circle at 90% 8%,#164e63 0%,transparent 34%),linear-gradient(145deg,#020617 8%,#101c36 62%,#082f35 100%)",
-        color: "#ffffff", fontFamily: "sans-serif",
+        background: "linear-gradient(145deg,#172554,#312e81 44%,#831843)",
+        color: "#fff", fontFamily: "sans-serif", overflow: "hidden",
       }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", fontSize: 55, fontWeight: 900, letterSpacing: -3 }}>strikr<span style={{ color: "#5eead4" }}>.</span></div>
-          <div style={{ display: "flex", padding: "15px 22px", border: "2px solid rgba(94,234,212,.55)", borderRadius: 40, fontSize: 21, fontWeight: 800, letterSpacing: 3, color: "#5eead4" }}>WOCHENREPORT</div>
-        </div>
-        <div style={{ display: "flex", fontSize: 22, marginTop: 45, color: "#94a3b8", fontWeight: 700 }}>{season} · 7-Tage-Vergleich ab {referenceDate}</div>
-        <div style={{ display: "flex", flexDirection: "column", fontSize: 86, fontWeight: 950, lineHeight: 1.02, letterSpacing: -4, marginTop: 20 }}>
-          <div>Was ging</div>
-          <div style={{ color: "#5eead4" }}>diese Woche?</div>
-        </div>
-        <div style={{ display: "flex", marginTop: 50, gap: 18 }}>
-          <MovementCard title="↑ GRÖSSTER AUFSTEIGER" person={noWeekData ? null : report.biggestRiser} tone="rise" />
-          <MovementCard title="↓ GRÖSSTER ABSTEIGER" person={noWeekData ? null : report.biggestFaller} tone="fall" />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", marginTop: 27, borderRadius: 28, padding: "29px 32px", border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.07)" }}>
-          <div style={{ display: "flex", fontSize: 19, fontWeight: 800, letterSpacing: 2, color: "#5eead4" }}>🏆  RENNEN AN DER SPITZE</div>
-          <div style={{ display: "flex", fontSize: 32, fontWeight: 900, lineHeight: 1.2, marginTop: 16 }}>
-            {noWeekData ? (report.hasBaseline ? "Noch kein abgeschlossenes Training diese Woche." : "Noch keine Vergleichswoche verfügbar.") : topCaption}
-          </div>
-          {extra ? <div style={{ display: "flex", marginTop: 15, fontSize: 23, fontWeight: 700, color: "#e2e8f0" }}>{extra}</div> : null}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 40, marginBottom: 13 }}>
-          <div style={{ display: "flex", fontSize: 31, fontWeight: 900 }}>AKTUELLE TOP 5</div>
-          <div style={{ display: "flex", fontSize: 20, color: "#94a3b8" }}>Siege · Δ Platz</div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {rows.map((row) => (
-            <div key={row.player_id} style={{
-              display: "flex", width: "100%", alignItems: "center", height: 84, boxSizing: "border-box",
-              borderRadius: 17, padding: "0 20px",
-              background: row.rank === 1 ? "rgba(94,234,212,.14)" : "rgba(255,255,255,.055)",
-              border: row.rank === 1 ? "1px solid rgba(94,234,212,.42)" : "1px solid rgba(255,255,255,.08)",
-            }}>
-              <div style={{ display: "flex", width: 62, fontSize: 29, fontWeight: 900, color: row.rank === 1 ? "#5eead4" : "#cbd5e1" }}>{row.rank}.</div>
-              <div style={{ display: "flex", flex: 1, fontSize: 29, fontWeight: 800 }}>{name(row)}</div>
-              <div style={{ display: "flex", width: 76, justifyContent: "flex-end", fontSize: 29, fontWeight: 900 }}>{row.wins}</div>
-              <div style={{ display: "flex", width: 120, justifyContent: "flex-end", fontSize: 22, fontWeight: 800,
-                color: row.deltaRank == null ? "#94a3b8" : row.deltaRank > 0 ? "#5eead4" : row.deltaRank < 0 ? "#fda4af" : "#94a3b8" }}>
-                {movement(row.deltaRank)}
-              </div>
+        <div style={{
+          display: "flex", flexDirection: "column", height: 285, flexShrink: 0,
+          padding: "51px 30px 14px",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <div style={{ display: "flex", fontSize: 31, fontWeight: 950, color: "#f9a8d4" }}>
+              WOCHENRÜCKBLICK
             </div>
-          ))}
+            <div style={{ display: "flex", fontSize: 17, color: "#e2e8f0", fontWeight: 800 }}>
+              Seit {dateLabel}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 12, width: "100%" }}>
+            <Highlight label="↑ GRÖSSTER AUFSTIEG" value={up.value}
+              detail={up.detail} name={riser?.name} photo={riserPhoto} accent="#4ade80" />
+            <Highlight label="↓ GRÖSSTER ABSTIEG" value={down.value}
+              detail={down.detail} name={faller?.name} photo={fallerPhoto} accent="#fda4af" />
+          </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", marginTop: "auto", gap: 9, alignItems: "center" }}>
-          <div style={{ display: "flex", fontSize: 24, fontWeight: 900, color: "#5eead4" }}>WENIGER ORGA. MEHR FUSSBALL.</div>
-          <div style={{ display: "flex", fontSize: 24, color: "#cbd5e1" }}>strikr.team · @getstrikr</div>
-          <div style={{ display: "flex", fontSize: 14, color: "#94a3b8", marginTop: 7 }}>Tabellenvergleich nach Trainingsdatum · Datenstand heute</div>
+
+        <div style={{ display: "flex", width: 1080, height: 1350, flexShrink: 0 }}>
+          <img src={originalTable} alt="Unveränderte originale strikr Tabellen-Card"
+            width={1080} height={1350} style={{ width: 1080, height: 1350, objectFit: "contain" }} />
+        </div>
+
+        <div style={{
+          display: "flex", flexDirection: "column", height: 285, flexShrink: 0,
+          padding: "14px 30px 55px",
+        }}>
+          <div style={{ display: "flex", gap: 12, width: "100%" }}>
+            <Highlight label="🏆 RENNEN AN DER SPITZE" value={race}
+              detail={topDetail} accent="#c4b5fd" />
+            <Highlight label={extra ? "★ " + extra.title.toUpperCase() : "★ WOCHENREPORT"}
+              value={extra?.text ?? "Keine weiteren Ereignisse"}
+              detail={extra?.kind === "training" ? "Erfasste Ergebnisse" : "Aus der aktuellen Saison"}
+              name={extra?.playerName}
+              photo={extraPhoto} accent="#f9a8d4" />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13,
+            padding: "0 4px", fontSize: 16, color: "#e2e8f0", fontWeight: 700 }}>
+            <div style={{ display: "flex" }}>Vergleich nach Trainingsdatum</div>
+            <div style={{ display: "flex" }}>made with strikr · @getstrikr</div>
+          </div>
         </div>
       </div>
     );
-    return new ImageResponse(card, {
-      width: 1080,
-      height: 1920,
+    return new ImageResponse(story, {
+      width: 1080, height: 1920,
       headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" },
     });
   } catch (error) {
-    return new Response(error instanceof Error ? error.message : "Wochen-Story fehlgeschlagen.", {
+    return new Response(error instanceof Error ? error.message : "Wochenreport fehlgeschlagen.", {
       status: 500, headers: { "Cache-Control": "no-store" },
     });
   }

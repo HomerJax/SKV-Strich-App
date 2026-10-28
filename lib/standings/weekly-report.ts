@@ -12,6 +12,7 @@ export type WeeklyRankRow = {
   rank: number;
   wins: number;
   sessions: number;
+  photoUrl?: string | null;
 };
 
 export type WeeklyMover = {
@@ -20,6 +21,16 @@ export type WeeklyMover = {
   fromRank: number;
   toRank: number;
   places: number;
+  photoUrl?: string | null;
+};
+
+export type WeeklyExtraHighlight = {
+  kind: "leader" | "top5" | "finale" | "training";
+  title: string;
+  text: string;
+  playerId?: number;
+  playerName?: string;
+  photoUrl?: string | null;
 };
 
 export type WeeklyReport = {
@@ -35,6 +46,7 @@ export type WeeklyReport = {
   upcomingTrainings: number | null;
   seasonEndDate: string | null;
   headlines: string[];
+  extraHighlight: WeeklyExtraHighlight | null;
 };
 
 function playerName(row: WeeklyRankRow): string {
@@ -60,7 +72,7 @@ export function buildWeeklyReport(input: {
       const fromRank = oldRanks.get(row.player_id);
       if (fromRank == null || fromRank === row.rank) return [];
       return [{ player_id: row.player_id, name: playerName(row),
-        fromRank, toRank: row.rank, places: fromRank - row.rank }];
+        fromRank, toRank: row.rank, places: fromRank - row.rank, photoUrl: row.photoUrl ?? null }];
     })
     : [];
   const rising = movers.filter((row) => row.places > 0).sort((a, b) =>
@@ -81,6 +93,28 @@ export function buildWeeklyReport(input: {
   const upcomingTrainings = Number.isInteger(input.upcomingTrainings) && (input.upcomingTrainings ?? -1) >= 0
     ? input.upcomingTrainings! : null;
   const headlines: string[] = [];
+  const newTopFive = canCompare
+    ? current.find((row) => row.rank <= 5 &&
+      oldRanks.has(row.player_id) && (oldRanks.get(row.player_id) ?? 0) > 5)
+    : null;
+  // Do not manufacture extra highlights without supporting data.
+  const extraHighlight: WeeklyExtraHighlight | null =
+    leaderChanged && top
+      ? { kind: "leader", title: "Führungswechsel",
+          text: `${playerName(top)} übernimmt Platz 1`,
+          playerId: top.player_id, playerName: playerName(top), photoUrl: top.photoUrl ?? null }
+      : newTopFive
+        ? { kind: "top5", title: "Neu in den Top 5",
+            text: `${playerName(newTopFive)} ist jetzt auf Platz ${newTopFive.rank}`,
+            playerId: newTopFive.player_id, playerName: playerName(newTopFive), photoUrl: newTopFive.photoUrl ?? null }
+        : upcomingTrainings !== null && upcomingTrainings > 0 && upcomingTrainings <= 3
+          && input.seasonEndDate && input.seasonEndDate >= cutoffDate
+          ? { kind: "finale", title: "Saisonfinale",
+              text: `Noch ${upcomingTrainings} geplante ${upcomingTrainings === 1 ? "Einheit" : "Einheiten"} bis Saisonende` }
+          : completedTrainings > 0
+            ? { kind: "training", title: "Trainingswoche",
+                text: `${completedTrainings} ${completedTrainings === 1 ? "Training" : "Trainings"} mit Ergebnis in dieser Woche` }
+            : null;
 
   if (canCompare) {
     if (rising[0]) headlines.push(`Aufsteiger: ${rising[0].name} +${rising[0].places} Plätze (${rising[0].fromRank} → ${rising[0].toRank})`);
@@ -103,5 +137,6 @@ export function buildWeeklyReport(input: {
     topGapWins, topNames, upcomingTrainings,
     seasonEndDate: input.seasonEndDate ?? null,
     headlines: headlines.slice(0, 5),
+    extraHighlight,
   };
 }

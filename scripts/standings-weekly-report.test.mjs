@@ -67,3 +67,33 @@ test("season-final heading only uses real scheduled remaining training dates", (
   const unknown = buildWeeklyReport({ ...baseline, upcomingTrainings: null });
   assert.ok(!unknown.headlines.some((h) => h.startsWith("Saisonfinale")));
 });
+
+test("fourth tile prefers a real top-five entry over routine weekly counts", () => {
+  const report = buildWeeklyReport({
+    current: [row(1, 1, 9), row(2, 2, 7), row(6, 3, 6), row(3, 4, 5), row(4, 5, 4), row(5, 6, 3)],
+    previous: [row(1, 1, 8), row(2, 2, 7), row(3, 3, 5), row(4, 4, 4), row(5, 5, 3), row(6, 6, 1)],
+    cutoffDate: "2026-10-20", completedTrainings: 1,
+  });
+  assert.equal(report.extraHighlight?.kind, "top5");
+  assert.equal(report.extraHighlight?.playerId, 6);
+});
+
+test("new leader receives a photo reference in the fourth highlight", () => {
+  const report = buildWeeklyReport({
+    current: [{ ...row(2, 1, 8), photoUrl: "https://example.test/photo.jpg" }, row(1, 2, 7)],
+    previous: [row(1, 1, 7), row(2, 2, 7)],
+    cutoffDate: "2026-10-20", completedTrainings: 1,
+  });
+  assert.equal(report.extraHighlight?.kind, "leader");
+  assert.equal(report.extraHighlight?.photoUrl, "https://example.test/photo.jpg");
+});
+
+test("fourth tile uses training count only when there is real activity", () => {
+  const base = {
+    current: [row(1, 1, 4), row(2, 2, 2)],
+    previous: [row(1, 1, 3), row(2, 2, 2)],
+    cutoffDate: "2026-10-20",
+  };
+  assert.equal(buildWeeklyReport({ ...base, completedTrainings: 1 }).extraHighlight?.kind, "training");
+  assert.equal(buildWeeklyReport({ ...base, completedTrainings: 0 }).extraHighlight, null);
+});
