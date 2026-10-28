@@ -16,6 +16,7 @@ import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
 import InsideStrikrChannelModal from "@/components/home/InsideStrikrChannelModal";
 import AppStoreReviewPrompt from "@/components/home/AppStoreReviewPrompt";
+import AdminActivationChecklist from "@/components/home/AdminActivationChecklist";
 import PageHero from "@/components/ui/PageHero";
 import type { LeaderboardEntry } from "@/components/share/mvp-share/mvp-share.types";
 import { getTeamFeedItems } from "@/lib/team-feed";
@@ -31,6 +32,7 @@ type ClubRow = {
   display_name: string | null;
   logo_path: string | null;
   primary_color: string | null;
+  created_at: string | null;
 };
 
 type SessionRow = {
@@ -465,14 +467,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     { data: homeSettingsData },
     { count: invitesCount },
     { count: sessionsCount },
-    { data: seasonExistsData },
     { data: nextSessionData },
     { data: recentSessionsData },
   ] = await Promise.all([
     getFeatureFlagsForClub(clubId),
     supabase
       .from("clubs")
-      .select("id, display_name, logo_path, primary_color")
+      .select("id, display_name, logo_path, primary_color, created_at")
       .eq("id", clubId)
       .maybeSingle<ClubRow>(),
     supabase
@@ -490,12 +491,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       .from("sessions")
       .select("id", { count: "exact", head: true })
       .eq("club_id", clubId),
-    supabase
-      .from("seasons")
-      .select("id")
-      .eq("club_id", clubId)
-      .limit(1)
-      .maybeSingle(),
     supabase
       .from("sessions")
       .select("id, date, start_time, rsvp_deadline_minutes_before, notes")
@@ -622,14 +617,28 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const recentSessions = (recentSessionsData ?? []) as SessionRow[];
   const clubName = club?.display_name?.trim() || t("home.yourTeam");
   const userId = user?.id ?? null;
-  const hasSeason = Boolean(seasonExistsData);
-
-  const showGettingStarted =
-    isAdmin &&
-    !isPowerUser &&
-    ((sessionsCount ?? 0) === 0 ||
-      !hasSeason ||
-      (invitesCount ?? 0) === 0);
+  // Keep the guided first-training journey visible for new clubs, not for
+  // long-standing teams that already manage regular sessions.
+  const clubCreatedAt = club?.created_at ? Date.parse(club.created_at) : NaN;
+  const clubIsNew = Number.isFinite(clubCreatedAt)
+    && clubCreatedAt <= Date.now()
+    && Date.now() - clubCreatedAt < 60 * 24 * 60 * 60 * 1000;
+  const canShowActivation = isAdmin && !isPowerUser && !isSupportView
+    && (clubIsNew || (sessionsCount ?? 0) === 0);
+  const activationChecks = canShowActivation ? await Promise.all([
+    supabase.from("club_memberships").select("user_id", { count: "exact", head: true }).eq("club_id", clubId),
+    supabase.from("results").select("id", { count: "exact", head: true }).eq("club_id", clubId)
+      .not("goals_team_a", "is", null).not("goals_team_b", "is", null),
+    supabase.from("sessions").select("id", { count: "exact", head: true }).eq("club_id", clubId)
+      .eq("type", "training").not("tournament_completed_at", "is", null),
+    supabase.from("players").select("id", { count: "exact", head: true }).eq("club_id", clubId)
+      .eq("can_lead_training", true).eq("is_guest", false),
+  ]) : null;
+  const hasCompletedFirstTraining = (activationChecks?.[1].count ?? 0) > 0
+    || (activationChecks?.[2].count ?? 0) > 0;
+  const showGettingStarted = canShowActivation && Boolean(activationChecks)
+    && !activationChecks?.[1].error && !activationChecks?.[2].error
+    && !hasCompletedFirstTraining;
 
   let clubLogoUrl: string | null = null;
 
@@ -1008,6 +1017,17 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           compact
         />
 
+        {showGettingStarted ? (
+          <AdminActivationChecklist
+            locale={locale}
+            teamInvited={(invitesCount ?? 0) > 0 || (activationChecks?.[0].count ?? 0) > 1}
+            trainingCreated={(sessionsCount ?? 0) > 0}
+            firstTrainingCompleted={hasCompletedFirstTraining}
+            hasTrainingLeader={(activationChecks?.[3].count ?? 0) > 0}
+            trainingHref={recentSessions.length > 0 ? `/sessions/${recentSessions[0].id}` : "/sessions"}
+          />
+        ) : null}
+
         {myOpenPenalties.length > 0 ? (
           <section className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1225,23 +1245,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           />
         ) : null}
 
-        {showGettingStarted ? (
-          <section className="rounded-[24px] border border-black/10 bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-              {t("home.adminSetup")}
-            </div>
-            <h2 className="mt-1 text-lg font-black text-slate-950">
-              {t("home.finishClubSetup")}
-            </h2>
-            <div className="mt-3 grid gap-2">
-              {(sessionsCount ?? 0) === 0 ? (
-                <Link
-                  href="/sessions/new"
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800"
-                >
-                  {t("home.createFirstTraining")}
-                </Link>
-              ) : null}
+
 
               {(invitesCount ?? 0) === 0 ? (
                 <Link

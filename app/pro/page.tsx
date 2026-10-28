@@ -30,6 +30,7 @@ export default async function ProPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const { locale } = await getServerI18n();
   const areas = Array.from(new Set(PRODUCT_MATRIX.map((row) => row.area)));
   const params = (await searchParams) ?? {};
   const checkoutState = typeof params.checkout === "string" ? params.checkout : "";
@@ -223,10 +224,19 @@ export default async function ProPage({
           </div>
         </div>
 
-        <section className="mt-12 overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04]">
+        <section id="feature-matrix" className="mt-12 scroll-mt-5 overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04]">
           <div className="border-b border-white/10 px-5 py-5 sm:px-6">
             <h2 className="text-2xl font-black">Free vs. PRO im Detail</h2>
-            <p className="mt-2 text-sm text-white/50">Nur bereits vorhandene bzw. jetzt technisch getrennte Funktionen.</p>
+            <p className="mt-2 text-sm text-white/65">
+              {locale === "en"
+                ? "Start a club for free: invite teammates, appoint training leaders, arrange sessions, create fair teams and save results. Upgrade only when you need more capacity or advanced features."
+                : "Kostenlos starten: Team einladen, Trainingsleiter benennen, Termine planen, faire Teams bilden und Ergebnisse speichern. PRO lohnt sich erst, wenn ihr mehr Kapazität oder zusätzliche Funktionen braucht."}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-white/40">
+              {locale === "en"
+                ? "The guided training wizard is still limited to selected pilot clubs; Free/PRO does not change this rollout."
+                : "Der geführte Trainingswizard ist unabhängig vom Tarif derzeit nur für ausgewählte Pilotvereine freigeschaltet."}
+            </p>
           </div>
           {areas.map((area) => (
             <div key={area} className="border-b border-white/8 last:border-b-0">
