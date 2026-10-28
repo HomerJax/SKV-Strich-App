@@ -64,7 +64,8 @@ export function generateBalancedTeamMap(
     throw new Error("Keine gültige Teamaufteilung gefunden.");
   for (let round = 0; round < Math.min(40,present.length * 2); round++) {
     let roundA = bestA, roundB = bestB;
-    let quality = bestQuality, improved = false;
+    let quality: TeamBalanceQuality = bestQuality;
+    let improved = false;
     for (let i = 0; i < bestA.length; i++) {
       for (let j = 0; j < bestB.length; j++) {
         const A = [...bestA], B = [...bestB];
