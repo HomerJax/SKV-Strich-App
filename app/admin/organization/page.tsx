@@ -213,7 +213,7 @@ export default async function OrganizationPage({ searchParams }: Props) {
                     <button className="text-xs font-black text-rose-700">{en ? "Cancel invitation" : "Anfrage zurückziehen"}</button>
                   </form> : null}
                 </div>
-              ))}
+              )) : null}
               <p className="mt-3 text-xs leading-5 text-amber-800">{en
                 ? "A planned team is just a placeholder. An existing strikr team becomes linked only after its admin approves the invitation. No finance or sports data is merged."
                 : "Ein vorgemerktes Team ist nur ein Platzhalter. Eine echte strikr-Mannschaft wird erst nach Freigabe ihres Teamadmins verknüpft. Sport- und Finanzdaten werden dabei nicht zusammengeführt."}</p>
