@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireClub } from "@/lib/auth/guards";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { canManageClub } from "@/lib/auth/access";
@@ -82,7 +83,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
       .eq("club_id", clubId)
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
-    supabase
+    createAdminClient()
       .from("players")
       .select(
         "id, club_id, name, first_name, last_name, nickname, email, preferred_position, category_key, balance_group, strength, is_active, is_guest, roster_role"
