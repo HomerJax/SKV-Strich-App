@@ -33,9 +33,6 @@ export async function saveCashboxSetupAction(formData: FormData) {
       redirect(setupUrl({ error: "structure" }));
     }
     const pilot = parsePilotCashboxStructure(input);
-    if (!pilot.mode || (pilot.mode === "umbrella" && pilot.umbrellaName.length < 2)) {
-      redirect(setupUrl({ error: "structure" }));
-    }
     if (pilot.accounts.length < 1 || pilot.accounts.length > 15) {
       redirect(setupUrl({ error: "accounts" }));
     }
@@ -64,7 +61,6 @@ export async function saveCashboxSetupAction(formData: FormData) {
         !validPaymentUrl(pilot.payments.sumupUrl, ["pay.sumup.com", "checkout.sumup.com"])) {
       redirect(setupUrl({ error: "payments" }));
     }
-    if (pilot.mode === "single") pilot.umbrellaName = "";
 
     const { error: pilotError } = await admin.from("cashbox_pilot_structures").upsert({
       club_id: ctx.clubId,
