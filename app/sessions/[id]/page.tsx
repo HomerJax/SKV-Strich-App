@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireClub } from "@/lib/auth/guards";
 import { isAdminRole } from "@/lib/auth/access";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
@@ -66,6 +67,13 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const sessionId = Number(resolvedParams.id);
   const { clubId, membership, isPowerUser, player } = await requireClub();
   const supabase = await createClient();
+  const mayReadIndividualStrength = isPowerUser || isAdminRole(membership.role);
+  const playerQuery = (mayReadIndividualStrength ? createAdminClient() : supabase)
+    .from("players")
+    .select(mayReadIndividualStrength
+      ? "id, name, first_name, last_name, nickname, photo_path, photo_position_x, photo_position_y, photo_zoom, is_active, age_group, category_key, balance_group, roster_role, preferred_position, strength, is_guest"
+      : "id, name, first_name, last_name, nickname, photo_path, photo_position_x, photo_position_y, photo_zoom, is_active, age_group, category_key, balance_group, roster_role, preferred_position, is_guest")
+    .eq("club_id", clubId).order("name");
 
   if (!Number.isFinite(sessionId)) redirect("/sessions");
 
@@ -102,11 +110,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .eq("id", sessionId)
       .eq("club_id", clubId)
       .single(),
-    supabase
-      .from("players")
-      .select("id, name, first_name, last_name, nickname, photo_path, photo_position_x, photo_position_y, photo_zoom, is_active, age_group, category_key, balance_group, roster_role, preferred_position, strength, is_guest")
-      .eq("club_id", clubId)
-      .order("name"),
+    playerQuery,
     supabase
       .from("club_categories")
       .select("key, label, sort_order, is_active, is_strong")
@@ -159,7 +163,6 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
   // Only actual club administrators receive individual ratings in the serialized
   // session page. Training leaders use the server-side generator instead.
-  const mayReadIndividualStrength = isPowerUser || isAdminRole(membership.role);
   const players = (((playersData ?? []).filter((player) => player.is_active !== false) ?? []) as Player[]).map((player) => {
     const rsvp = rsvpByPlayerId.get(player.id);
     return {

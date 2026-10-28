@@ -715,9 +715,12 @@ export default async function StatsPage({ searchParams }: PageProps) {
         new Set(teamPlayers.map((row) => row.player_id).filter(Number.isFinite))
       );
 
-      const { data: playersData, error: playersError } = await supabase
+      // Individual ratings are restricted at the Data API level. Only the
+      // server-side service client reads them for aggregated team statistics.
+      const { data: playersData, error: playersError } = await createAdminClient()
         .from("players")
         .select("id, strength")
+        .eq("club_id", clubId)
         .in("id", playerIds.length > 0 ? playerIds : [-1]);
 
       if (playersError) {

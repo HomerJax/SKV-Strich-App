@@ -146,7 +146,7 @@ export async function completeOnboarding(
 
   const fullName = buildDisplayName(firstName, lastName, nickname, user.email ?? null);
 
-  const { data: existingPlayersData, error: existingPlayerError } = await supabase
+  const { data: existingPlayersData, error: existingPlayerError } = await adminSupabase
     .from("players")
     .select(
       "id, club_id, user_id, email, name, first_name, last_name, nickname, preferred_position, category_key, strength, is_active, age_group"
