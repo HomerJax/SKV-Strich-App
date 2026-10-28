@@ -998,7 +998,45 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           <div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div>  : true && isAdmin && isTrainingSession && pilotEntryView !== "data" ? (!trainingWizardOpen ? (
           <section className="mx-auto max-w-xl space-y-4" aria-label="Training starten">
 
-            {pilotEntryView === "choose" ? (
+            {trainingCompleted ? (
+              <div className="space-y-4 rounded-[26px] border border-teal-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="rounded-2xl bg-gradient-to-br from-slate-950 to-teal-950 p-5 text-white">
+                  <p className="text-xs font-black uppercase tracking-widest text-teal-300">✓ Training abgeschlossen</p>
+                  <h1 className="mt-2 text-2xl font-black">Alles gespeichert.</h1>
+                  <p className="mt-2 text-sm leading-6 text-white/70">
+                    Du kannst das Datenblatt öffnen oder die einzelnen Schritte wieder ansehen.
+                    Ein erneutes Öffnen startet das Training nicht neu.
+                  </p>
+                  {!isTournamentMode && hasResult ? (
+                    <div className="mt-4 border-t border-white/15 pt-4 text-center text-3xl font-black tabular-nums">
+                      {scoreAValue} : {scoreBValue}
+                    </div>
+                  ) : null}
+                </div>
+                <button type="button" onClick={openCompletedData}
+                  className="flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl bg-slate-950 px-5 py-4 text-left text-white">
+                  <span><strong className="block text-base">▤ Datenblatt öffnen</strong>
+                    <span className="mt-1 block text-xs text-white/65">Anwesenheit, Teams, Ergebnisse und Fotos</span></span>
+                  <span aria-hidden="true">→</span>
+                </button>
+                <button type="button" onClick={openCompletedSteps}
+                  className="flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-left text-slate-950">
+                  <span><strong className="block text-base">☷ Einzelne Schritte ansehen</strong>
+                    <span className="mt-1 block text-xs text-slate-600">Direkt zu Einstellungen, Teams, Abschlusscheck und Ergebnis</span></span>
+                  <span aria-hidden="true">→</span>
+                </button>
+                {!isTournamentMode && hasResult ? (
+                  <button type="button" onClick={() => setShowSessionEndModal(true)}
+                    className="min-h-12 w-full rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-900">
+                    Ergebnis teilen ↗
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => router.push("/sessions")}
+                  className="min-h-12 w-full rounded-xl px-4 py-3 text-sm font-bold text-slate-600">
+                  ← Zur Trainingsliste
+                </button>
+              </div>
+            ) : pilotEntryView === "choose" ? (
               <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 <button type="button" onClick={() => setPilotEntryView("overview")}
                   className="mb-5 text-sm font-bold text-slate-500 hover:text-slate-950">← Zurück</button>
@@ -1080,8 +1118,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           const current = steps.find(s => !s.done)?.key ?? steps[steps.length - 1].key;
           const rememberedIndex = steps.findIndex(s => s.key === pilotStep);
            const rememberedAvailable = rememberedIndex >= 0 && steps.slice(0, rememberedIndex).every(s => s.done);
-           const selected = rememberedAvailable && (wizardManualSelection || !steps[rememberedIndex].done)
-             ? steps[rememberedIndex].key : current;
+           const selected = trainingCompleted && wizardManualSelection && rememberedIndex >= 0
+            ? steps[rememberedIndex].key
+            : rememberedAvailable && (wizardManualSelection || !steps[rememberedIndex].done)
+              ? steps[rememberedIndex].key : current;
           const selectedIndex = steps.findIndex(s => s.key === selected);
           const renderStep = (key: typeof steps[number]["key"]) => {
             if (key === "settings") return (
@@ -1362,14 +1402,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             <TrainingSessionWizard
               steps={steps}
               selectedIndex={selectedIndex}
-              completed={pilotFinished}
+              completed={trainingCompleted}
               fullscreen
               onClose={leaveTrainingWizard}
               overlayContent={sessionEndModal}
               helperText={statusHint}
               nextDisabled={nextDisabled}
               nextLabel={nextLabel}
-              hideNext={selected === "timer" || (!isTournamentMode && selected === "result")}
+              hideNext={trainingCompleted || selected === "timer" || (!isTournamentMode && selected === "result")}
               onSelect={(index) => { setPilotStep(steps[index].key); setWizardManualSelection(true); }}
               onBack={() => {
                 if (selectedIndex > 0) {
@@ -1378,7 +1418,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 }
               }}
               onNext={async () => {
-                if (nextDisabled) return;
+                if (trainingCompleted || nextDisabled) return;
                 if (selected === "settings") {
                   setSettingsReviewed(true);
                   setPilotStep("attendance");
@@ -1455,7 +1495,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   await requestTrainingCompletionTracking();
                   setPilotFinished(true);
                   try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
-                  router.push("/sessions");
+                  setTrainingWizardOpen(false);
+                  setPilotEntryView("overview");
+                  setWizardManualSelection(false);
                 }
               }}
 
