@@ -57,8 +57,8 @@ export default async function TeamInvitationPage({ params, searchParams }: Props
           {saved ? <p className="mt-3 text-sm font-bold text-emerald-700">{en?"Saved.":"Entscheidung gespeichert."}</p> : null}
           {error ? <p className="mt-3 text-sm font-bold text-rose-700">{en?"Unable to process request.":"Anfrage konnte nicht verarbeitet werden."}</p> : null}
           <p className="mt-4 text-xs leading-5 text-slate-500">{en
-            ? "Linking only establishes organizational membership. Team admins, players, finances, attendance and statistics remain separate. No shared bank accounts are activated."
-            : "Die Verknüpfung stellt zunächst nur die Vereinszugehörigkeit her. Teamadmins, Spieler, Finanzen, Anwesenheiten und Statistiken bleiben getrennt. Es werden keine gemeinsamen Bankkonten aktiviert."}</p>
+            ? "Approval links your team to the parent club. Parent-club admins can then see team names, members' names and assigned team-admin roles. Team-specific management, training data, stats, finances and bank accounts remain separate."
+            : "Mit der Bestätigung gehört deine Mannschaft zum Dachverein. Vereinsadmins sehen danach Mannschaftsnamen, Mitgliedsnamen und Teamadmin-Zuständigkeiten. Teamverwaltung, Trainingsdaten, Statistiken, Finanzen und Bankkonten bleiben getrennt."}</p>
           {invite.status === "pending" ? (
             <div className="mt-5 flex flex-wrap gap-2">
               <form action={decidePilotTeamLinkAction}>
