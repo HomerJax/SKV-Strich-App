@@ -207,18 +207,20 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         if (data.state) {
           const saved = data.state;
           const validSteps = ["settings", "attendance", "mode", "teams", "timer", "live", "finish", "recheck", "photo", "result", "winner", "check"];
-          if (typeof saved.step === "string" && validSteps.includes(saved.step)) {
-            setPilotStep(saved.step as TrainingWizardStepKey);
-            if (!props.initialHasResult && !props.initialSession.tournament_completed_at) {
-              setWizardManualSelection(true);
-              setTrainingWizardOpen(true);
-            }
+          const restoredStep = typeof saved.step === "string" && validSteps.includes(saved.step)
+            ? saved.step as TrainingWizardStepKey : null;
+          setPilotStep(restoredStep);
+          if (restoredStep && !props.initialHasResult && !props.initialSession.tournament_completed_at) {
+            setWizardManualSelection(true);
+            setTrainingWizardOpen(true);
+          } else {
+            setTrainingWizardOpen(false);
           }
           const checked = (key: string) => saved[key] === true;
           // Opening the session is read-only: do not create a write/conflict
           // just because another device loaded the same persisted progress.
           progressSent.current = JSON.stringify({
-            step: typeof saved.step === "string" && validSteps.includes(saved.step) ? saved.step : null,
+            step: restoredStep,
             settingsReviewed: checked("settingsReviewed"),
             normalModeReviewed: checked("normalModeReviewed"),
             attendanceReviewed: checked("attendanceReviewed"),
