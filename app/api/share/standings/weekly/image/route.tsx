@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
             <Highlight label={extra ? "★ " + extra.title.toUpperCase() : "★ WOCHENREPORT"}
               value={extra?.text ?? "Keine weiteren Ereignisse"}
               detail={extra?.kind === "training" ? "Erfasste Ergebnisse" : "Aus der aktuellen Saison"}
-              name={extra?.photoUrl ? extra.text : undefined}
+              name={extra?.playerName}
               photo={extraPhoto} accent="#f9a8d4" />
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13,
