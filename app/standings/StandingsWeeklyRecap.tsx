@@ -170,6 +170,11 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
           <div className="min-w-0 flex-1">
             <div className="text-[10px] font-black uppercase tracking-wide text-sky-300">★ {report.extraHighlight.title}</div>
             <p className="mt-1 break-words text-sm font-bold">{report.extraHighlight.text}</p>
+            {report.extraHighlight.detail ? (
+              <p className="mt-1 break-words text-xs font-semibold leading-5 text-white/70">
+                {report.extraHighlight.detail}
+              </p>
+            ) : null}
           </div>
         </div>
       ) : null}
