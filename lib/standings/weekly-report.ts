@@ -29,6 +29,7 @@ export type WeeklyExtraHighlight = {
   title: string;
   text: string;
   playerId?: number;
+  playerName?: string;
   photoUrl?: string | null;
 };
 
@@ -101,11 +102,11 @@ export function buildWeeklyReport(input: {
     leaderChanged && top
       ? { kind: "leader", title: "Führungswechsel",
           text: `${playerName(top)} übernimmt Platz 1`,
-          playerId: top.player_id, photoUrl: top.photoUrl ?? null }
+          playerId: top.player_id, playerName: playerName(top), photoUrl: top.photoUrl ?? null }
       : newTopFive
         ? { kind: "top5", title: "Neu in den Top 5",
             text: `${playerName(newTopFive)} ist jetzt auf Platz ${newTopFive.rank}`,
-            playerId: newTopFive.player_id, photoUrl: newTopFive.photoUrl ?? null }
+            playerId: newTopFive.player_id, playerName: playerName(newTopFive), photoUrl: newTopFive.photoUrl ?? null }
         : upcomingTrainings !== null && upcomingTrainings > 0 && upcomingTrainings <= 3
           && input.seasonEndDate && input.seasonEndDate >= cutoffDate
           ? { kind: "finale", title: "Saisonfinale",
