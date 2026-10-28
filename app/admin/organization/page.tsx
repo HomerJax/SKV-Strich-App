@@ -201,7 +201,7 @@ export default async function OrganizationPage({ searchParams }: Props) {
                   ) : <p className="mt-2 text-xs text-teal-700">{en ? "No additional teams available." : "Keine weiteren Mannschaften verfügbar."}</p>}
                 </div>
               ) : null}
-              {links.filter(link => link.status === "pending").map(link => (
+              {orgAdmin ? links.filter(link => link.status === "pending").map(link => (
                 <div key={link.id} className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
                   <div className="text-sm font-black text-amber-950">{clubNames.get(link.target_club_id)}</div>
                   <div className="mt-1 text-xs font-medium text-amber-800">{en ? "Waiting for invited team admin" : "Wartet auf Bestätigung durch den Teamadmin"}</div>
