@@ -17,6 +17,7 @@ type Props = {
   generationRunId: number;
   scoreOptions: ScoreOptions;
   showStrengthNumbers: boolean;
+  teamBalancePercent?: { a: number; b: number } | null;
   generating: boolean;
   saving: boolean;
   error: string;
@@ -32,7 +33,7 @@ function label(player: Player) {
 
 /** Visualizes the already calculated teams; the animation never changes the actual lineup. */
 export default function PilotTeamBalanceOverlay({
-  teamA, teamB, generationRunId, scoreOptions, showStrengthNumbers,
+  teamA, teamB, generationRunId, scoreOptions, showStrengthNumbers, teamBalancePercent,
   generating, saving, error, onAccept, onRegenerate, onManual, onClose,
 }: Props) {
   const sequence: { side: "A" | "B"; player: Player }[] = [];
@@ -92,7 +93,7 @@ export default function PilotTeamBalanceOverlay({
   const shownA = sequence.slice(0, revealed).filter(item => item.side === "A").map(item => item.player);
   const shownB = sequence.slice(0, revealed).filter(item => item.side === "B").map(item => item.player);
   const scoring = scoreOptions.useStrength || scoreOptions.useCategories;
-  const maximum = scoring
+  const maximum = teamBalancePercent ? 100 : scoring
     ? Math.max(1, sumTeamScore(teamA, scoreOptions), sumTeamScore(teamB, scoreOptions))
     : Math.max(1, teamA.length, teamB.length);
 
@@ -151,8 +152,14 @@ export default function PilotTeamBalanceOverlay({
           </div>
           <div className="grid grid-cols-2 gap-3 sm:gap-5">
             {columns.map(team => {
-              const currentScore = scoring ? sumTeamScore(team.visible, scoreOptions) : team.visible.length;
-              const fullScore = scoring ? sumTeamScore(team.players, scoreOptions) : team.players.length;
+              // Real leaders receive only server-aggregated bar percentages.
+              // Never infer or animate per-player ratings from partial rosters.
+              const fullScore = teamBalancePercent
+                ? team.side === "A" ? teamBalancePercent.a : teamBalancePercent.b
+                : scoring ? sumTeamScore(team.players, scoreOptions) : team.players.length;
+              const currentScore = teamBalancePercent
+                ? (complete ? fullScore : 0)
+                : scoring ? sumTeamScore(team.visible, scoreOptions) : team.visible.length;
               const finalWidth = Math.min(100, fullScore / maximum * 100);
               return (
                 <div key={team.side} className={"min-w-0 rounded-[24px] border bg-gradient-to-b from-white/[.09] to-white/[.035] p-3 shadow-[0_12px_35px_rgba(0,0,0,.14)] sm:p-6 " + team.ring}>
