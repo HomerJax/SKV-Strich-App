@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { requireClub } from "@/lib/auth/guards";
-import { isStorySharePilotClub } from "@/components/share/result-share/StoryShareCard";
+import { isWeeklyReportPilotClub } from "@/lib/standings/weekly-report-pilots";
 import type { WeeklyReport, WeeklyMover } from "@/lib/standings/weekly-report";
 import { weeklyRaceStory } from "@/lib/standings/weekly-race-story";
 
@@ -151,7 +151,7 @@ function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean 
 export async function GET(request: NextRequest) {
   try {
     const { clubId } = await requireClub();
-    if (!isStorySharePilotClub(clubId)) {
+    if (!isWeeklyReportPilotClub(clubId)) {
       return new Response("Wochenreport nur für den Pilotverein verfügbar.", { status: 403 });
     }
 

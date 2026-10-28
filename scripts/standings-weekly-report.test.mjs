@@ -3,6 +3,7 @@ import test from "node:test";
 import { buildWeeklyReport } from "../lib/standings/weekly-report.ts";
 import { weeklyRaceStory, weeklyStoryScale } from "../lib/standings/weekly-race-story.ts";
 import { recognizePenaltySpecial, choosePenaltySpecial, isKistePenalty } from "../lib/standings/weekly-penalty-special.ts";
+import { isWeeklyReportPilotClub } from "../lib/standings/weekly-report-pilots.ts";
 
 const row = (player_id, rank, wins, name = `Spieler ${player_id}`) =>
   ({ player_id, rank, wins, sessions: 9, name });
@@ -214,4 +215,12 @@ test("ordinary penalties stay out of weekly specials", () => {
       type: "money", value: "2 €" },
     { id: 2, player_id: 2, reason: "Zu spät", type: "money", value: "0,50 €" },
   ]), null);
+});
+
+test("weekly recap is enabled only for the test club and SKV Rutesheim AH", () => {
+  assert.equal(isWeeklyReportPilotClub("12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60"), true);
+  assert.equal(isWeeklyReportPilotClub("108590d9-0877-4787-90a5-4679615b3b76"), true);
+  assert.equal(isWeeklyReportPilotClub("b8d4b692-baf1-4263-8fdd-64df424114a7"), false);
+  assert.equal(isWeeklyReportPilotClub(null), false);
+  assert.equal(isWeeklyReportPilotClub(""), false);
 });

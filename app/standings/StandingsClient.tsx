@@ -10,6 +10,7 @@ import { getPlayerDisplayName } from "@/lib/player-display";
 import StandingsShareCard from "./StandingsShareCard";
 import StandingsWeeklyRecap from "./StandingsWeeklyRecap";
 import type { WeeklyReport } from "@/lib/standings/weekly-report";
+import { isWeeklyReportPilotClub } from "@/lib/standings/weekly-report-pilots";
 import type { RankRow, Season } from "./standings-types";
 import {
   awardClass,
@@ -431,7 +432,7 @@ export default function StandingsClient({
 
         {!loading && !err && rows.length > 0 ? (
           <>
-            {initialClubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && weeklyReport ? (
+            {isWeeklyReportPilotClub(initialClubId) && weeklyReport ? (
               <StandingsWeeklyRecap
                 report={weeklyReport}
                 selectedSeason={selected}
