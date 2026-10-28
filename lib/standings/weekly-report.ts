@@ -52,6 +52,16 @@ export type WeeklyPenaltyMoment = {
   isKiste: boolean;
 };
 
+/** One previously recorded badge unlock, not a recalculation or inferred event. */
+export type WeeklyBadgeMoment = {
+  playerId: number;
+  playerName: string;
+  badgeKey: string;
+  badgeTitle: string;
+  earnedAt: string;
+  photoUrl?: string | null;
+};
+
 export type WeeklyReport = {
   cutoffDate: string;
   completedTrainings: number;
@@ -66,6 +76,8 @@ export type WeeklyReport = {
   seasonEndDate: string | null;
   headlines: string[];
   extraHighlight: WeeklyExtraHighlight | null;
+  newBadges: WeeklyBadgeMoment[];
+  newBadgeCount: number;
 };
 
 function playerName(row: WeeklyRankRow): string {
@@ -83,6 +95,7 @@ export function buildWeeklyReport(input: {
   seasonEndDate?: string | null;
   wheelMoment?: WeeklyWheelMoment | null;
   penaltyMoment?: WeeklyPenaltyMoment | null;
+  badgeMoments?: WeeklyBadgeMoment[];
 }): WeeklyReport {
   const { current, previous, cutoffDate, completedTrainings } = input;
   const hasBaseline = previous.length > 0;
@@ -188,5 +201,9 @@ export function buildWeeklyReport(input: {
     seasonEndDate: input.seasonEndDate ?? null,
     headlines: headlines.slice(0, 5),
     extraHighlight,
+    // Badge cards are independent from table movements and the one special
+    // moment. Do not invent a badge if no actual award record was supplied.
+    newBadges: (input.badgeMoments ?? []).slice(0, 3),
+    newBadgeCount: input.badgeMoments?.length ?? 0,
   };
 }
