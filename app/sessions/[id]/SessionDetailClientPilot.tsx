@@ -402,7 +402,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); }
       catch { /* Optional. */ }
       setPilotFinalizingResult(false);
-      router.push("/sessions");
+      // Keep the finished session open instead of redirecting to /sessions.
+      setTrainingWizardOpen(false);
+      setPilotEntryView("overview");
+      setWizardManualSelection(false);
     })();
   }, [pilotFinalizingResult, hasResult, saving, photoBusy, photoUploadWorking,
     stagedPhotoFile, dayWinnerSide, router, props.initialClubId, props.sessionId,
@@ -429,9 +432,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const currentSessionType = session.type === "event" ? "event" : "training";
   const isTournamentMode = session.session_mode === "tournament";
   const sessionTypeSwitchEnabled = props.sessionTypesEnabled === true;
-  // The pilot completion marker is device-local until wizard progress is stored server-side.
-  // Never show a completed session if its underlying result was removed later.
-  const trainingCompleted = pilotFinished && (hasResult || Boolean(session.tournament_completed_at));
+  // Persisted scores / tournament completion also work across devices.
+  // A local completion marker without valid saved data never marks a session done.
+  const hasSavedNormalResult = results.some(result => result.goals_team_a != null && result.goals_team_b != null);
+  // A completed tournament bracket is not the same as a finished close-check.
+  const trainingCompleted = isTournamentMode
+    ? pilotFinished && Boolean(session.tournament_completed_at)
+    : hasSavedNormalResult;
   const liveOrPrepared = trainingStarted || hasResult || Boolean(session.tournament_completed_at);
   const currentAttendanceSignature = [...draftPresentIds].sort((a,b) => a-b).join(",");
   const attendanceConfirmed = attendanceReviewed && attendanceRosterSignature === currentAttendanceSignature;
@@ -453,6 +460,20 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     } else {
       enterTrainingWizard();
     }
+  }
+
+  function openCompletedSteps() {
+    setPilotView(props.initialIsClubAdmin === true ? "admin" : "leader");
+    setPilotStep("settings");
+    setWizardManualSelection(true);
+    setTrainingWizardOpen(true);
+  }
+
+  function openCompletedData() {
+    setPilotView(props.initialIsClubAdmin === true ? "admin" : "leader");
+    setTrainingWizardOpen(false);
+    setWizardManualSelection(false);
+    setPilotEntryView("data");
   }
 
   function leaveTrainingWizard() {
@@ -981,7 +1002,45 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           <div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div>  : true && isAdmin && isTrainingSession && pilotEntryView !== "data" ? (!trainingWizardOpen ? (
           <section className="mx-auto max-w-xl space-y-4" aria-label="Training starten">
 
-            {pilotEntryView === "choose" ? (
+            {trainingCompleted ? (
+              <div className="space-y-4 rounded-[26px] border border-teal-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="rounded-2xl bg-gradient-to-br from-slate-950 to-teal-950 p-5 text-white">
+                  <p className="text-xs font-black uppercase tracking-widest text-teal-300">✓ Training abgeschlossen</p>
+                  <h1 className="mt-2 text-2xl font-black">Alles gespeichert.</h1>
+                  <p className="mt-2 text-sm leading-6 text-white/70">
+                    Du kannst das Datenblatt öffnen oder die einzelnen Schritte wieder ansehen.
+                    Ein erneutes Öffnen startet das Training nicht neu.
+                  </p>
+                  {!isTournamentMode && hasResult ? (
+                    <div className="mt-4 border-t border-white/15 pt-4 text-center text-3xl font-black tabular-nums">
+                      {scoreAValue} : {scoreBValue}
+                    </div>
+                  ) : null}
+                </div>
+                <button type="button" onClick={openCompletedData}
+                  className="flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl bg-slate-950 px-5 py-4 text-left text-white">
+                  <span><strong className="block text-base">▤ Datenblatt öffnen</strong>
+                    <span className="mt-1 block text-xs text-white/65">Anwesenheit, Teams, Ergebnisse und Fotos</span></span>
+                  <span aria-hidden="true">→</span>
+                </button>
+                <button type="button" onClick={openCompletedSteps}
+                  className="flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-left text-slate-950">
+                  <span><strong className="block text-base">☷ Einzelne Schritte ansehen</strong>
+                    <span className="mt-1 block text-xs text-slate-600">Direkt zu Einstellungen, Teams, Abschlusscheck und Ergebnis</span></span>
+                  <span aria-hidden="true">→</span>
+                </button>
+                {!isTournamentMode && hasResult ? (
+                  <button type="button" onClick={() => setShowSessionEndModal(true)}
+                    className="min-h-12 w-full rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-900">
+                    Ergebnis teilen ↗
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => router.push("/sessions")}
+                  className="min-h-12 w-full rounded-xl px-4 py-3 text-sm font-bold text-slate-600">
+                  ← Zur Trainingsliste
+                </button>
+              </div>
+            ) : pilotEntryView === "choose" ? (
               <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 <button type="button" onClick={() => setPilotEntryView("overview")}
                   className="mb-5 text-sm font-bold text-slate-500 hover:text-slate-950">← Zurück</button>
@@ -1063,8 +1122,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           const current = steps.find(s => !s.done)?.key ?? steps[steps.length - 1].key;
           const rememberedIndex = steps.findIndex(s => s.key === pilotStep);
            const rememberedAvailable = rememberedIndex >= 0 && steps.slice(0, rememberedIndex).every(s => s.done);
-           const selected = rememberedAvailable && (wizardManualSelection || !steps[rememberedIndex].done)
-             ? steps[rememberedIndex].key : current;
+           const selected = trainingCompleted && wizardManualSelection && rememberedIndex >= 0
+            ? steps[rememberedIndex].key
+            : rememberedAvailable && (wizardManualSelection || !steps[rememberedIndex].done)
+              ? steps[rememberedIndex].key : current;
           const selectedIndex = steps.findIndex(s => s.key === selected);
           const renderStep = (key: typeof steps[number]["key"]) => {
             if (key === "settings") return (
@@ -1094,6 +1155,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   Ändern kannst du Details bei Bedarf in der Datenansicht.
                 </p>
               </section>
+            );
+            if (trainingCompleted && (key === "timer" || key === "live")) return (
+              <div className="rounded-2xl border border-teal-200 bg-white p-5">
+                <h3 className="text-lg font-black text-slate-950">Training bereits abgeschlossen</h3>
+                <p className="mt-2 text-sm text-slate-600">Die Spieluhr wird nicht erneut gestartet. Das gespeicherte Ergebnis und die Teams findest du im Datenblatt.</p>
+                <button type="button" onClick={openCompletedData}
+                  className="mt-4 min-h-12 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white">Datenblatt öffnen →</button>
+              </div>
             );
             if (key === "timer" || key === "live") return (
               <section className="space-y-4">
@@ -1167,28 +1236,19 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 )}
               </section>
             );
-            if (key === "finish") return <section className="space-y-4">
-              <div className="rounded-2xl bg-slate-950 p-5 text-white">
-                <div className="text-xs font-black uppercase tracking-[0.15em] text-teal-300">Training beendet</div>
-                <h3 className="mt-2 text-xl font-black">Wurden die Teams noch verändert?</h3>
-                <p className="mt-2 text-sm text-white/65">Zum Beispiel, weil jemand später gegangen ist oder Spieler getauscht wurden.</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {([{value:"no",title:"Nein",text:"Teams passen"},{value:"yes",title:"Ja",text:"Nochmal prüfen"}] as const).map(item => (
-                  <button key={item.value} type="button" aria-pressed={teamChangedChoice === item.value}
-                    onClick={() => {
-                      setTeamChangedChoice(item.value);
-                      try { window.localStorage.setItem("strikr-teams-changed-" + props.sessionId, item.value); } catch { /* Optional. */ }
-                    }}
-                    className={`min-h-28 rounded-2xl border-2 p-4 text-left transition ${teamChangedChoice === item.value ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-white"}`}>
-                    <span className="block text-lg font-black text-slate-950">{item.title}</span>
-                    <span className="mt-2 block text-xs text-slate-600">{item.text}</span>
-                  </button>
-                ))}
-              </div>
-              <TrainingClosingCheck sessionId={props.sessionId} players={displayPlayers}
-                presentIds={draftPresentIds} onReadyChange={setCloseCheckReady} beforeResult />
-            </section>;
+            if (key === "finish") return <TrainingClosingCheck
+              sessionId={props.sessionId}
+              players={displayPlayers}
+              presentIds={draftPresentIds}
+              onReadyChange={setCloseCheckReady}
+              beforeResult
+              teamChangedChoice={teamChangedChoice}
+              onTeamChangedChoice={value => {
+                setTeamChangedChoice(value);
+                try { window.localStorage.setItem("strikr-teams-changed-" + props.sessionId, value); }
+                catch { /* Optional progress. */ }
+              }}
+            />;
             if (key === "recheck") return <section className="space-y-3">
               <p className="rounded-xl bg-teal-50 p-3 text-sm leading-6 text-slate-700">
                 Prüfe die Teams und passe sie bei Bedarf an. Danach Aufstellung bestätigen.
@@ -1346,14 +1406,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             <TrainingSessionWizard
               steps={steps}
               selectedIndex={selectedIndex}
-              completed={pilotFinished}
+              completed={trainingCompleted}
               fullscreen
               onClose={leaveTrainingWizard}
               overlayContent={sessionEndModal}
               helperText={statusHint}
               nextDisabled={nextDisabled}
               nextLabel={nextLabel}
-              hideNext={selected === "timer" || (!isTournamentMode && selected === "result")}
+              hideNext={trainingCompleted || selected === "timer" || (!isTournamentMode && selected === "result")}
               onSelect={(index) => { setPilotStep(steps[index].key); setWizardManualSelection(true); }}
               onBack={() => {
                 if (selectedIndex > 0) {
@@ -1362,7 +1422,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 }
               }}
               onNext={async () => {
-                if (nextDisabled) return;
+                if (trainingCompleted || nextDisabled) return;
                 if (selected === "settings") {
                   setSettingsReviewed(true);
                   setPilotStep("attendance");
@@ -1439,7 +1499,9 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   await requestTrainingCompletionTracking();
                   setPilotFinished(true);
                   try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
-                  router.push("/sessions");
+                  setTrainingWizardOpen(false);
+                  setPilotEntryView("overview");
+                  setWizardManualSelection(false);
                 }
               }}
 
