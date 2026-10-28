@@ -162,6 +162,8 @@ function canManage(access: Awaited<ReturnType<typeof requireSessionAccess>>) {
 
 async function loadTournament(access: Exclude<Awaited<ReturnType<typeof requireSessionAccess>>, { error: string }>, sessionId: number) {
   const { adminSupabase, clubId } = access;
+  // Ratings stay on the server for non-admin users, even in tournament JSON.
+  const canReadStrength = canManageClub({ isPowerUser: access.isPowerUser, role: access.membership.role });
 
   const [
     { data: sessionConfig, error: sessionConfigError },
@@ -228,7 +230,7 @@ async function loadTournament(access: Exclude<Awaited<ReturnType<typeof requireS
     list.push({
       id: player.id,
       name: playerLabel(player),
-      strength: player.strength,
+      strength: canReadStrength ? player.strength : null,
       preferredPosition: player.preferred_position,
     });
     membersByTeam.set(row.team_id, list);
@@ -257,7 +259,7 @@ async function loadTournament(access: Exclude<Awaited<ReturnType<typeof requireS
   if (unassignedError) throw new Error(unassignedError.message);
   const unassignedPlayers = ((unassignedRows ?? []) as PlayerRow[]).map((player) => ({
     id: player.id, name: playerLabel(player),
-    strength: player.strength, preferredPosition: player.preferred_position,
+    strength: canReadStrength ? player.strength : null, preferredPosition: player.preferred_position,
   }));
 
   return {
