@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
+import { isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-structure";
 
 const target="/mannschaftskasse/strafen";
 export async function pilotPenaltyAction(form:FormData) {
   const access=await requireCashboxAccess();
-  if(!isCashboxPilotClub(access.clubId)||access.isSupportView) redirect("/home");
+  if(!isPenaltyWorkflowClub(access.clubId)||access.isSupportView) redirect("/home");
   const action=String(form.get("action")??"");
   const id=Number(form.get("penalty_id"));
   const method=String(form.get("payment_method")??"");
