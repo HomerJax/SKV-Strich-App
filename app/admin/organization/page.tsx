@@ -5,7 +5,7 @@ import { canManageClub } from "@/lib/auth/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
 import { getServerI18n } from "@/lib/i18n/server";
-import { managePilotOrganizationAction, requestPilotTeamLinkAction, cancelPilotTeamLinkAction } from "./actions";
+import { managePilotOrganizationAction, requestPilotTeamLinkAction, cancelPilotTeamLinkAction, issueNewTeamInviteAction, revokeNewTeamInviteAction } from "./actions";
 
 type Team = { id: string; name: string; status: "linked" | "planned"; clubId: string | null };
 type Organization = {
@@ -17,7 +17,7 @@ type Organization = {
 type Member = { userId: string; label: string; roles: string[] };
 type LinkRow = { id: string; target_club_id: string; status: "pending" | "linked" | "declined" | "revoked" };
 type ClubOption = { id: string; name: string | null; display_name: string | null };
-type Props = { searchParams: Promise<{ saved?: string; error?: string }> };
+type Props = { searchParams: Promise<{ saved?: string; error?: string; new_team_invite?: string }> };
 
 export default async function OrganizationPage({ searchParams }: Props) {
   const q = await searchParams;
@@ -27,13 +27,15 @@ export default async function OrganizationPage({ searchParams }: Props) {
   if (!isCashboxPilotClub(ctx.clubId)) redirect("/admin/settings");
   const teamAdmin = canManageClub({ isPowerUser: ctx.isPowerUser, role: ctx.membership.role });
   const db = createAdminClient();
-  const [orgResult, clubResult, linkResult, candidatesResult] = await Promise.all([
+  const [orgResult, clubResult, linkResult, candidatesResult, newInvitesResult] = await Promise.all([
     db.from("pilot_parent_clubs").select("owner_club_id,name,teams,admin_user_ids").eq("owner_club_id", ctx.clubId).maybeSingle(),
     db.from("clubs").select("id,display_name,name").eq("id",ctx.clubId).maybeSingle(),
     db.from("pilot_parent_club_team_links").select("id,target_club_id,status").eq("owner_club_id",ctx.clubId),
     db.from("clubs").select("id,display_name,name").is("deleted_at",null).order("display_name", {ascending:true}),
+    db.from("pilot_parent_new_team_invites").select("id,name_hint,planned_team_id,created_at,expires_at,status")
+      .eq("owner_club_id",ctx.clubId).order("created_at",{ascending:false}).limit(20),
   ]);
-  if (orgResult.error || clubResult.error || linkResult.error || candidatesResult.error)
+  if (orgResult.error || clubResult.error || linkResult.error || candidatesResult.error || newInvitesResult.error)
     throw new Error("Vereinsverwaltung konnte nicht geladen werden.");
   const org = orgResult.data as Organization | null;
   const orgAdmin = org?.admin_user_ids?.includes(ctx.user.id) === true;
@@ -70,6 +72,7 @@ export default async function OrganizationPage({ searchParams }: Props) {
     roles: roleMap.get(userId) ?? [],
   })).sort((a,b)=>a.label.localeCompare(b.label,en?"en":"de"));
   const teams = org?.teams ?? [];
+  const pendingNewInvites = orgAdmin ? (newInvitesResult.data ?? []).filter(invite => invite.status === "pending") : [];
   const realLinks = links.filter(link => link.status === "linked");
   const candidateTeams = clubs.filter(club => club.id !== ctx.clubId &&
     !links.some(link => link.target_club_id === club.id && ["linked","pending"].includes(link.status)));
@@ -218,6 +221,60 @@ export default async function OrganizationPage({ searchParams }: Props) {
                 ? "A planned team is just a placeholder. An existing strikr team becomes linked only after its admin approves the invitation. No finance or sports data is merged."
                 : "Ein vorgemerktes Team ist nur ein Platzhalter. Eine echte strikr-Mannschaft wird erst nach Freigabe ihres Teamadmins verknüpft. Sport- und Finanzdaten werden dabei nicht zusammengeführt."}</p>
             </section>
+            {canEdit ? (
+              <section className="rounded-2xl border border-cyan-200 bg-white p-5">
+                <h2 className="text-lg font-black">{en ? "Invite a brand new team" : "Neue Mannschaft unter dem Dachverein gründen"}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{en
+                  ? "Generate a private 14-day link. The recipient signs in or registers, creates their own team, and automatically becomes its team admin. Club branding, category settings and training defaults are copied as editable starting values. Players, finances and subscriptions are never copied."
+                  : "Erstelle einen 14 Tage gültigen Link. Der Empfänger meldet sich an oder registriert sich, gründet seine Mannschaft und wird automatisch Teamadmin. Vereinsfarben, Kategorien und Trainingseinstellungen dienen als Vorlage – Spieler, Finanzen und Abos werden nicht übernommen."}</p>
+                {q.new_team_invite && /^[a-f0-9]{64}$/.test(q.new_team_invite) ? (
+                  <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50 p-3">
+                    <p className="text-sm font-black text-teal-950">{en ? "Invitation created – copy this link now" : "Einladung erstellt – Link jetzt kopieren"}</p>
+                    <input readOnly aria-label={en ? "New team invitation URL" : "Einladungslink neue Mannschaft"}
+                      className={input} value={`https://strikr.team/organization/new-team/${q.new_team_invite}`}/>
+                    <a className="mt-3 inline-block text-xs font-black text-teal-900 underline underline-offset-2"
+                      href={`https://wa.me/?text=${encodeURIComponent("Du bist eingeladen, eine Mannschaft bei strikr unter " + org.name + " zu gründen: https://strikr.team/organization/new-team/" + q.new_team_invite)}`}
+                      target="_blank" rel="noopener noreferrer">{en ? "Share via WhatsApp" : "Per WhatsApp verschicken"}</a>
+                    <p className="mt-2 text-xs text-teal-800">{en
+                      ? "The secret link is shown only once. If lost, revoke the invitation and generate a new one."
+                      : "Der geheime Link wird nur jetzt angezeigt. Falls du ihn verlierst, widerrufe die Einladung und erstelle eine neue."}</p>
+                  </div>
+                ) : null}
+                {teams.filter(team => team.status === "planned").map(team => (
+                  <form key={team.id} action={issueNewTeamInviteAction} className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-3">
+                    <input type="hidden" name="name_hint" value={team.name}/>
+                    <input type="hidden" name="planned_team_id" value={team.id}/>
+                    <span className="text-sm font-bold text-slate-800">{team.name}</span>
+                    <button className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white">{en ? "Invite founder" : "Gründung einladen"}</button>
+                  </form>
+                ))}
+                <form action={issueNewTeamInviteAction} className="mt-4 flex flex-wrap items-end gap-2">
+                  <label className="min-w-[175px] flex-1 text-sm font-bold">{en ? "Other new team name" : "Andere neue Mannschaft"}
+                    <input name="name_hint" minLength={2} maxLength={80} required className={input} placeholder={en ? "e.g. U32" : "z. B. Ü32"}/>
+                  </label>
+                  <button className={btn}>{en ? "Create invitation link" : "Einladungslink erzeugen"}</button>
+                </form>
+                {pendingNewInvites.length > 0 ? (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">{en ? "Open invitations" : "Offene Einladungen"}</p>
+                    {pendingNewInvites.map(invite => (
+                      <div key={invite.id} className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 p-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-bold text-slate-950">{invite.name_hint}</div>
+                          <div className="text-xs text-slate-500">{new Date(invite.expires_at) > new Date()
+                            ? (en ? "Expires " : "Gültig bis ") + new Date(invite.expires_at).toLocaleDateString(en?"en-GB":"de-DE")
+                            : (en?"Expired":"Abgelaufen")}</div>
+                        </div>
+                        <form action={revokeNewTeamInviteAction}>
+                          <input type="hidden" name="id" value={invite.id}/>
+                          <button className="text-xs font-black text-rose-700">{en ? "Revoke" : "Widerrufen"}</button>
+                        </form>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
             <section className="rounded-2xl border border-slate-200 bg-white p-5">
               <h2 className="text-lg font-black">{en ? "Organization administrators" : "Vereinsadmins"}</h2>
               <p className="mt-1 text-sm leading-6 text-slate-600">{en

@@ -1,6 +1,6 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { canManageClub } from "@/lib/auth/access";
@@ -182,6 +182,51 @@ export async function cancelPilotTeamLinkAction(form: FormData) {
     .update({status:"revoked",decided_by:ctx.user.id,decided_at:new Date().toISOString()})
     .eq("id",id).eq("owner_club_id",ctx.clubId).in("status",["pending","linked"]);
   if (error) redirect(back({error:"team"}));
+  refresh();
+  redirect(back({saved:"1"}));
+}
+
+/** Create a 14-day invitation to a not-yet-existing strikr team.
+ * The secret is visible only once; only its digest persists in Supabase. */
+export async function issueNewTeamInviteAction(form: FormData) {
+  const ctx = await requireClub();
+  if (ctx.isSupportView || !isCashboxPilotClub(ctx.clubId)) redirect("/home");
+  const db = createAdminClient();
+  const {data: org} = await db.from("pilot_parent_clubs")
+    .select("admin_user_ids,teams").eq("owner_club_id",ctx.clubId).maybeSingle();
+  if (!org?.admin_user_ids?.includes(ctx.user.id)) redirect("/home");
+
+  const nameHint = String(form.get("name_hint") ?? "").trim().slice(0,80);
+  const plannedId = String(form.get("planned_team_id") ?? "").trim();
+  if (nameHint.length < 2 || nameHint.length > 80) redirect(back({error:"name"}));
+  if (plannedId && !(org.teams ?? []).some((t:{id:string;status:string}) =>
+    t.id === plannedId && t.status === "planned")) redirect(back({error:"team"}));
+  const token = randomBytes(32).toString("hex");
+  const hash = createHash("sha256").update(token).digest("hex");
+  const {error} = await db.from("pilot_parent_new_team_invites").insert({
+    owner_club_id:ctx.clubId,source_club_id:ctx.clubId,
+    token_hash:hash,name_hint:nameHint,planned_team_id:plannedId||null,
+    created_by:ctx.user.id,
+  });
+  if (error) redirect(back({error:"invite"}));
+  refresh();
+  // This is a one-time display; do not log or permanently persist the token.
+  redirect(back({new_team_invite:token}));
+}
+
+export async function revokeNewTeamInviteAction(form: FormData) {
+  const ctx = await requireClub();
+  if (ctx.isSupportView || !isCashboxPilotClub(ctx.clubId)) redirect("/home");
+  const db = createAdminClient();
+  const {data: org} = await db.from("pilot_parent_clubs")
+    .select("admin_user_ids").eq("owner_club_id",ctx.clubId).maybeSingle();
+  if (!org?.admin_user_ids?.includes(ctx.user.id)) redirect("/home");
+  const id = String(form.get("id") ?? "");
+  if (!/^[a-f0-9-]{36}$/i.test(id)) redirect(back({error:"invite"}));
+  const {error} = await db.from("pilot_parent_new_team_invites")
+    .update({status:"revoked"}).eq("owner_club_id",ctx.clubId)
+    .eq("id",id).eq("status","pending");
+  if (error) redirect(back({error:"invite"}));
   refresh();
   redirect(back({saved:"1"}));
 }
