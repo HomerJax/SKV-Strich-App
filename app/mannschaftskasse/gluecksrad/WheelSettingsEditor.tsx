@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import {
   DEFAULT_WHEEL_SEGMENTS, WHEEL_COLORS, WHEEL_FIELD_COUNTS,
   equalizeWheelSegments, resizeWheelSegments, applyWheelChancePreset, favorWheelSegments,
-  type WheelSegment,
+  type WheelSegment, type WheelEffect,
 } from "@/lib/cashbox/wheel-config";
 
-export default function WheelSettingsEditor({ initialSegments }: { initialSegments: WheelSegment[] }) {
+export default function WheelSettingsEditor({ initialSegments, scopeKey="", pilot=false }: { initialSegments: WheelSegment[]; scopeKey?:string; pilot?:boolean }) {
   const [segments, setSegments] = useState<WheelSegment[]>(initialSegments.map((s) => ({ ...s })));
   const [preferredIds, setPreferredIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -18,16 +18,17 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
     .reduce((sum, segment) => sum + segment.weight, 0);
   const challengeTotal = total - luckTotal;
   const valid = total === 100 && WHEEL_FIELD_COUNTS.some((count) => count === segments.length) &&
-    segments.every((item) => item.icon.trim() && item.label.trim() &&
+    segments.every((item) => (!pilot || (!!item.effect && (item.effect!=="fixed_money" || /^[0-9]{1,6}([.,][0-9]{1,2})?$/.test(item.effectValue||"")))) && item.icon.trim() && item.label.trim() &&
       Number.isInteger(item.weight) && item.weight > 0 && item.weight <= 99 &&
       item.label.trim().length <= 28 && item.description.length <= 120 &&
       [...item.icon.trim()].length <= 8);
 
-  function edit(id: string, field: "icon"|"label"|"description"|"weight"|"category", value: string) {
+  function edit(id: string, field: "icon"|"label"|"description"|"weight"|"category"|"effect"|"effectValue", value: string) {
     setSaved("");
     setError("");
     setSegments((previous) => previous.map((item) => {
       if (item.id !== id) return item;
+      if (field === "effect") return { ...item, effect:value as WheelEffect, effectValue:value==="fixed_money" ? (item.effectValue||"2") : "" };
       if (field === "category") return {
         ...item, category: value === "luck" ? "luck" as const : "challenge" as const,
       };
@@ -75,7 +76,7 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
       const response = await fetch("/api/penalties/wheel-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ segments }),
+        body: JSON.stringify({ segments, scopeKey }),
       });
       const result = await response.json() as { error?: string; message?: string };
       if (!response.ok) throw new Error(result.error || "Speichern fehlgeschlagen.");
@@ -230,6 +231,28 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
                   <option value="challenge">🔥 Pech · kleine Kabinen-Challenge</option>
                 </select>
               </label>
+              {pilot ? <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50 p-3">
+                <label className="block text-xs font-black text-teal-950">Wirkung auf die ursprüngliche Strafe
+                  <select value={segment.effect||"keep"} onChange={event=>edit(segment.id,"effect",event.target.value)}
+                    className="mt-1 w-full rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm text-slate-900">
+                    <option value="keep">Ursprüngliche Strafe bleibt (keine Zusatzstrafe)</option>
+                    <option value="waive">Strafe entfällt (Joker)</option>
+                    <option value="halve">Geldstrafe halbieren (nur bei Geld)</option>
+                    <option value="fixed_money">Ersetzt durch festen Geldbetrag</option>
+                    <option value="task">Ersetzt durch Aufgabe / Challenge</option>
+                    <option value="goods">Ersetzt durch Sachleistung (z. B. Kiste)</option>
+                  </select>
+                </label>
+                {segment.effect==="fixed_money"?<label className="mt-2 block text-xs font-black text-teal-950">
+                  Neuer Geldbetrag in €
+                  <input className="mt-1 w-full rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm"
+                    inputMode="decimal" value={segment.effectValue||""} placeholder="z. B. 2,50"
+                    onChange={event=>edit(segment.id,"effectValue",event.target.value)}/>
+                </label>:null}
+                {(segment.effect==="task"||segment.effect==="goods")?<p className="mt-2 text-xs text-teal-900">
+                  Die Beschreibung unten wird zur verbindlichen neuen Aufgabe/Sachleistung.
+                </p>:null}
+              </div>:null}
               <label className="mt-2 block text-[11px] font-bold text-slate-600">
                 Was bedeutet dieses Feld?
                 <input value={segment.description} maxLength={120}
@@ -287,9 +310,9 @@ export default function WheelSettingsEditor({ initialSegments }: { initialSegmen
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <h3 className="text-sm font-black text-amber-950">Wichtige Spielregeln</h3>
         <p className="mt-1 text-xs leading-5 text-amber-950">
-          Die Felder legen das sichtbare Spaß-Ergebnis fest. Strafen, Zahlungen und Bier-Schulden
-          werden durch einen Zufallsdreh nicht automatisch verändert. Bereits gedrehte
-          Strafen behalten ihr ursprüngliches Ergebnis, auch wenn du die Felder änderst.
+          {pilot
+            ? "Jedes Feld bestimmt ausdrücklich, was mit der ursprünglichen Strafe geschieht. Es entsteht keine zusätzliche Forderung. Neue Einstellungen gelten erst für künftige Drehungen; alte Ergebnisse bleiben als Snapshot bestehen."
+            : "Die Felder legen das sichtbare Spaß-Ergebnis fest. Bereits gedrehte Strafen behalten ihr ursprüngliches Ergebnis, auch wenn du die Felder änderst."}
         </p>
         <button type="button" onClick={() => { setSegments(equalizeWheelSegments(DEFAULT_WHEEL_SEGMENTS.map((s) => ({...s}))));setPreferredIds([]);setSaved(""); }}
           className="mt-3 text-xs font-bold text-cyan-800 underline underline-offset-2">
