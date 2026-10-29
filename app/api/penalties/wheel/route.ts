@@ -4,6 +4,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DEFAULT_WHEEL_SEGMENTS, parseWheelSegments, pickWheelSegment, type WheelSegment } from "@/lib/cashbox/wheel-config";
 import type { PublicWheelSegment } from "@/lib/cashbox/wheel-public";
+import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
 
 // Do not transmit server-side weights to ordinary players, even through the API.
 // The spin is weighted on the server, while the visual wheel is neutral.
@@ -29,7 +30,22 @@ function mayResetTestWheel(clubId: string, penalty: {
 }
 
 
-async function activeSegments(db: ReturnType<typeof createAdminClient>, clubId: string): Promise<WheelSegment[]> {
+async function activeSegments(db: ReturnType<typeof createAdminClient>, clubId: string, penaltyId:number): Promise<WheelSegment[]> {
+  if(isCashboxPilotClub(clubId)){
+    const {data:override,error:overrideError}=await db.from("pilot_wheel_scoped_configs")
+      .select("segments").eq("club_id",clubId).eq("scope_key",`penalty:${penaltyId}`).maybeSingle();
+    if(overrideError)throw new Error("Individual wheel unavailable");
+    if(override?.segments) return parseWheelSegments(override.segments) ?? DEFAULT_WHEEL_SEGMENTS;
+    const {data:origin,error:originError}=await db.from("pilot_penalty_rule_origins")
+      .select("rule_key").eq("club_id",clubId).eq("penalty_id",penaltyId).maybeSingle();
+    if(originError)throw new Error("Catalog wheel unavailable");
+    if(origin?.rule_key){
+      const {data:catalog,error:catalogError}=await db.from("pilot_wheel_scoped_configs")
+        .select("segments").eq("club_id",clubId).eq("scope_key",`rule:${origin.rule_key}`).maybeSingle();
+      if(catalogError)throw new Error("Catalog wheel unavailable");
+      if(catalog?.segments) return parseWheelSegments(catalog.segments) ?? DEFAULT_WHEEL_SEGMENTS;
+    }
+  }
   const { data, error } = await db.from("penalty_wheel_settings")
     .select("segments").eq("club_id", clubId).maybeSingle();
   if (error) throw new Error(error.message);
@@ -75,7 +91,7 @@ export async function GET(request: NextRequest) {
     db.from("penalty_wheel_spins")
       .select("outcome,outcome_label,outcome_detail,outcome_icon,segments_snapshot")
       .eq("club_id", clubId).eq("penalty_id", penaltyId).maybeSingle(),
-    activeSegments(db, clubId),
+    activeSegments(db, clubId, penaltyId),
   ]);
   if (spinError) return NextResponse.json({ error: "Drehung konnte nicht geladen werden." }, { status: 500 });
   return NextResponse.json(spin
@@ -101,7 +117,7 @@ export async function POST(request: NextRequest) {
   const { data: existing } = await db.from("penalty_wheel_spins")
     .select("outcome,outcome_label,outcome_detail,outcome_icon,segments_snapshot")
     .eq("club_id", clubId).eq("penalty_id", penaltyId).maybeSingle();
-  const segments = await activeSegments(db, clubId);
+  const segments = await activeSegments(db, clubId, penaltyId);
   if (existing) return NextResponse.json(spinPayload(existing as SpinRow, segments, canResetForTest));
   if (penalty.resolved_at) {
     return NextResponse.json({ error: "Nur offene Strafen haben einen Dreh." }, { status: 409 });
