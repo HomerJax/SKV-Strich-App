@@ -783,6 +783,9 @@ export default async function Page({ searchParams }: Props) {
                         ) : null}
                       </div>
                       <div className="flex gap-1">
+                        {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
+                          <Link href="/mannschaftskasse/strafen" className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-black text-emerald-800">Meldung prüfen →</Link>
+                        ) : (<>
                         <form action={resolvePenaltyAction}>
                           <input type="hidden" name="penalty_id" value={entry.id} />
                           <button className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-black text-emerald-800">
@@ -795,6 +798,7 @@ export default async function Page({ searchParams }: Props) {
                             {t("cashAdmin.delete")}
                           </button>
                         </form>
+                        </>)}
                       </div>
                     </div>
                   </div>
@@ -816,10 +820,12 @@ export default async function Page({ searchParams }: Props) {
                       <span>
                         <b>{names.get(entry.player_id)}</b> · {entry.reason} · {entry.value}
                       </span>
-                      <form action={reopenPenaltyAction}>
+                      {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
+                        <Link href="/mannschaftskasse/strafen" className="text-xs font-black text-slate-700">Korrektur prüfen →</Link>
+                      ) : <form action={reopenPenaltyAction}>
                         <input type="hidden" name="penalty_id" value={entry.id} />
                         <button className="text-xs font-black text-slate-600">{t("cashAdmin.reopen")}</button>
-                      </form>
+                      </form>}
                     </div>
                   ))}
                 </div>

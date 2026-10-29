@@ -106,6 +106,16 @@ export async function POST(request: NextRequest) {
   if (penalty.resolved_at) {
     return NextResponse.json({ error: "Nur offene Strafen haben einen Dreh." }, { status: 409 });
   }
+  // Pilot: do not change the wheel outcome after the player has reported the
+  // consequence and the cashier may be reviewing the original snapshot.
+  if (clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60") {
+    const { data: settlement, error: settlementError } = await db.from("pilot_penalty_settlements")
+      .select("state").eq("penalty_id", penaltyId).eq("club_id", clubId).maybeSingle();
+    if (settlementError) return NextResponse.json({ error: "Strafenstatus konnte nicht geprüft werden." }, { status: 500 });
+    if (settlement?.state === "reported" || settlement?.state === "confirmed" || settlement?.state === "cancelled") {
+      return NextResponse.json({ error: "Nach einer Meldung oder Bestätigung ist keine neue Drehung möglich." }, { status: 409 });
+    }
+  }
 
   // Cryptographically secure weighted draw. One immutable result per penalty.
   const choice = pickWheelSegment(segments, randomInt(100));

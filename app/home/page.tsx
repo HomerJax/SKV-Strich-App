@@ -1042,6 +1042,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           </Link>
         ) : null}
 
+        {isCashboxPilotClub(clubId) ? (
+          <Link href="/mannschaftskasse/strafen" className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-950">
+            <span>⚖️ {locale==="en"?"Penalties: report, review & confirm":"Strafen: melden, prüfen & bestätigen"}</span>
+            <span aria-hidden>→</span>
+          </Link>
+        ) : null}
+
         {myOpenPenalties.length > 0 ? (
           <section className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">

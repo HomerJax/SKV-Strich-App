@@ -211,6 +211,11 @@ async function change(
 ) {
   const { t } = await getServerI18n();
   const { supabase, clubId, user } = await ctx();
+  // The pilot uses one atomic, audited settlement path. Prevent the legacy
+  // resolve/reopen/delete handlers from bypassing cashier confirmation.
+  if (clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60") {
+    redirect("/mannschaftskasse/strafen");
+  }
   const id = Number(String(formData.get("penalty_id") ?? ""));
 
   if (!Number.isFinite(id)) {
