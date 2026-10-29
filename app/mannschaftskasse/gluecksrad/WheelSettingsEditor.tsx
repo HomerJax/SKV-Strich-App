@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import {
   DEFAULT_WHEEL_SEGMENTS, WHEEL_COLORS, WHEEL_FIELD_COUNTS,
   equalizeWheelSegments, resizeWheelSegments, applyWheelChancePreset, favorWheelSegments,
-  type WheelSegment, type WheelEffect,
+  type WheelSegment, type WheelEffect, legacyWheelEffect,
 } from "@/lib/cashbox/wheel-config";
 
 export default function WheelSettingsEditor({ initialSegments, scopeKey="", pilot=false }: { initialSegments: WheelSegment[]; scopeKey?:string; pilot?:boolean }) {
-  const [segments, setSegments] = useState<WheelSegment[]>(initialSegments.map((s) => ({ ...s })));
+  const [segments, setSegments] = useState<WheelSegment[]>(initialSegments.map((s) => ({ ...s, effect:s.effect??legacyWheelEffect(s.id,s.label), effectValue:s.effectValue??"" })));
   const [preferredIds, setPreferredIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState("");
@@ -314,7 +314,7 @@ export default function WheelSettingsEditor({ initialSegments, scopeKey="", pilo
             ? "Jedes Feld bestimmt ausdrücklich, was mit der ursprünglichen Strafe geschieht. Es entsteht keine zusätzliche Forderung. Neue Einstellungen gelten erst für künftige Drehungen; alte Ergebnisse bleiben als Snapshot bestehen."
             : "Die Felder legen das sichtbare Spaß-Ergebnis fest. Bereits gedrehte Strafen behalten ihr ursprüngliches Ergebnis, auch wenn du die Felder änderst."}
         </p>
-        <button type="button" onClick={() => { setSegments(equalizeWheelSegments(DEFAULT_WHEEL_SEGMENTS.map((s) => ({...s}))));setPreferredIds([]);setSaved(""); }}
+        <button type="button" onClick={() => { setSegments(equalizeWheelSegments(DEFAULT_WHEEL_SEGMENTS.map((s) => ({...s,effect:s.effect??legacyWheelEffect(s.id,s.label),effectValue:s.effectValue??""}))));setPreferredIds([]);setSaved(""); }}
           className="mt-3 text-xs font-bold text-cyan-800 underline underline-offset-2">
           4 Standardfelder gleichmäßig laden (erst nach Speichern aktiv)
         </button>
