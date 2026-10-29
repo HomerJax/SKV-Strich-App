@@ -348,7 +348,7 @@ export default async function Page({ searchParams }: Props) {
           <Link href="/mannschaftskasse/strafen" className="block rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-black text-amber-950">⚖️ {locale==="en"?"Report / review penalties":"Strafen melden / bestätigen"} →</Link>
         ) : null}
 
-        {isCashboxPilotClub(clubId) && isClubAdmin ? (
+        {isPenaltyWorkflowClub(clubId) && canManageCashbox ? (
           <Link href="/mannschaftskasse/zahlungen" className="block rounded-xl border border-teal-200 bg-white p-3 text-sm font-black text-teal-950">💳 Zahlungswege für Strafen und Beiträge einrichten →</Link>
         ) : null}
 
