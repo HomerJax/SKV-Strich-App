@@ -10,8 +10,8 @@ import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
 export const dynamic = "force-dynamic";
 
 export default async function WheelSettingsPage({searchParams}:{searchParams?:Promise<{penaltyId?:string;ruleKey?:string}>}) {
-  const { clubId, isPowerUser, membership } = await requireClub();
-  if (!canManageClub({ isPowerUser, role: membership.role })) redirect("/mannschaftskasse");
+  const { clubId, isPowerUser, membership, isSupportView } = await requireClub();
+  if (isSupportView || !canManageClub({ isPowerUser, role: membership.role })) redirect("/mannschaftskasse");
   const db=createAdminClient();
   const q=await searchParams;
   const pilot=isCashboxPilotClub(clubId);
