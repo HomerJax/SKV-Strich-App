@@ -52,11 +52,25 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
  const {data:catalog}=ctx.canManageCashbox
    ?await db.from("penalty_rules").select("rule_key,label,type,value").eq("club_id",ctx.clubId).eq("enabled",true).order("sort_order")
    :{data:[]};
- const {data:paymentConfig}=await db.from("cashbox_pilot_structures")
-  .select("config").eq("club_id",ctx.clubId).maybeSingle();
- // Only explicitly approved penalty destinations are exposed to members.
- // The SKV beer pool is pre-filled in admin settings, but not active here until saved.
- const payment=parsePilotCashboxStructure(paymentConfig?.config).payments;
+ const {data:pilotPaymentConfig}=ctx.clubId!==SKV_AH_CLUB_ID
+  ?await db.from("cashbox_pilot_structures")
+    .select("config").eq("club_id",ctx.clubId).maybeSingle()
+  :{data:null};
+ const {data:skvPenaltyPayment}=ctx.clubId===SKV_AH_CLUB_ID
+  ?await db.from("penalty_payment_settings")
+    .select("paypal_me_url,paypal_pool_url,sumup_url,cash_enabled")
+    .eq("club_id",ctx.clubId).maybeSingle()
+  :{data:null};
+ // Only explicitly configured fine payment destinations are exposed to members.
+ // The beer cashbox PayPal pool is never shown here unless separately saved.
+ const payment=ctx.clubId===SKV_AH_CLUB_ID
+   ?{
+      paypalMeUrl:skvPenaltyPayment?.paypal_me_url??"",
+      paypalPoolUrl:skvPenaltyPayment?.paypal_pool_url??"",
+      sumupUrl:skvPenaltyPayment?.sumup_url??"",
+      cashEnabled:skvPenaltyPayment?.cash_enabled===true,
+    }
+   :parsePilotCashboxStructure(pilotPaymentConfig?.config).payments;
  const methods=[
    ...(payment.paypalPoolUrl?[{key:"paypal",label:"PayPal-Pool",url:payment.paypalPoolUrl}]:[]),
    ...(payment.paypalMeUrl?[{key:"paypal_me",label:"PayPal.Me",url:payment.paypalMeUrl}]:[]),
