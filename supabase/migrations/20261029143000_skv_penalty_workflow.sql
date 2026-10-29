@@ -170,10 +170,22 @@ begin
    if v_kind='money' and (v_method is null or v_method not in ('cash','paypal','paypal_me','sumup','other'))
    then raise exception 'payment_method_required' using errcode='P0001';end if;
    -- Only admin-enabled payment methods are accepted by the DB, not just UI.
-   select coalesce(config->'payments','{"cashEnabled":true}'::jsonb) into v_methods
-   from public.cashbox_pilot_structures where club_id=v_penalty.club_id;
-   -- No inherited PayPal pool: only admin-approved penalty settings are active.
-   v_methods:=coalesce(v_methods,'{"cashEnabled":true}'::jsonb);
+   if v_penalty.club_id='108590d9-0877-4787-90a5-4679615b3b76'::uuid then
+     -- SKV Strafzahlungen have independent settings, not the Bierkasse pool.
+     select jsonb_build_object(
+       'cashEnabled',cash_enabled,
+       'paypalPoolUrl',paypal_pool_url,
+       'paypalMeUrl',paypal_me_url,
+       'sumupUrl',sumup_url
+     ) into v_methods from public.penalty_payment_settings
+       where club_id=v_penalty.club_id;
+     v_methods:=coalesce(v_methods,'{"cashEnabled":false}'::jsonb);
+   else
+     -- Keep existing test-club behavior unchanged.
+     select coalesce(config->'payments','{"cashEnabled":true}'::jsonb) into v_methods
+       from public.cashbox_pilot_structures where club_id=v_penalty.club_id;
+     v_methods:=coalesce(v_methods,'{"cashEnabled":true}'::jsonb);
+   end if;
    if v_kind='money' and not (
      (v_method='cash' and coalesce((v_methods->>'cashEnabled')::boolean,true))
      or (v_method='paypal' and coalesce(v_methods->>'paypalPoolUrl','')<>'')
