@@ -125,6 +125,7 @@ export function favorWheelSegments(
 
 export function resizeWheelSegments(segments: WheelSegment[], size: 4 | 6 | 8): WheelSegment[] {
   const next = segments.slice(0, size).map((segment) => ({ ...segment }));
+  // Every new pilot field needs a consequence even before a first save.
   // Keep existing custom field descriptions; provide sensible new defaults.
   for (const suggestion of WHEEL_SUGGESTIONS) {
     if (next.length >= size) break;
@@ -139,7 +140,7 @@ export function resizeWheelSegments(segments: WheelSegment[], size: 4 | 6 | 8): 
     });
   }
   // Field count changes always start with a valid, almost-equal distribution.
-  return equalizeWheelSegments(next);
+  return equalizeWheelSegments(next.map(item=>({...item,effect:item.effect??legacyWheelEffect(item.id,item.label),effectValue:item.effectValue??""})));
 }
 
 export function applyWheelChancePreset(segments: WheelSegment[], luckPercent: 40 | 50 | 60): WheelSegment[] {
