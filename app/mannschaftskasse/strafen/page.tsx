@@ -29,6 +29,9 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
    if(!ctx.player?.id)redirect("/home");
    query.eq("player_id",ctx.player.id);
  }
+ const {data:catalog}=ctx.canManageCashbox
+   ?await db.from("penalty_rules").select("rule_key,label,type,value").eq("club_id",ctx.clubId).eq("enabled",true).order("sort_order")
+   :{data:[]};
  const {data:paymentConfig}=await db.from("cashbox_pilot_structures")
   .select("config").eq("club_id",ctx.clubId).maybeSingle();
  const payment=parsePilotCashboxStructure(paymentConfig?.config).payments;
@@ -72,6 +75,12 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
         <option value="" disabled>{en?"Choose player":"Spieler auswählen"}</option>
         {(players??[]).map(p=><option key={p.id} value={p.id}>{names.get(p.id)||"Spieler"}</option>)}
       </select>
+      <label className="block text-xs font-black text-slate-700">Strafenkatalog (optional)
+        <select name="preset" className={field} defaultValue="">
+          <option value="">Individuelle Strafe</option>
+          {(catalog??[]).map(rule=><option key={rule.rule_key} value={rule.rule_key}>{rule.label} · {rule.value}</option>)}
+        </select>
+      </label>
       <input name="reason" className={field} required maxLength={120} placeholder={en?"Reason":"Grund, z. B. nach Deadline abgesagt"}/>
       <select name="type" className={field} defaultValue="money">
         <option value="money">{en?"Money":"Geld"}</option>
