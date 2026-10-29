@@ -650,11 +650,12 @@ export async function POST(
       const guestStrength = String(formData.get("guest_strength") ?? "");
 
       return handleAddGuestPlayer({
-        supabase,
+        adminSupabase,
         sessionId,
         clubId,
         membership,
         canLeadTraining,
+        isPowerUser,
         guestName,
         guestPosition,
         guestAgeGroup,

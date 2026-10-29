@@ -1,9 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { canManageClub, canManageGuestPlayer, maskGuestStrengthForClient } from "@/lib/auth/access";
 import { fail, ok } from "@/lib/session-detail/response";
 import { getServerI18n } from "@/lib/i18n/server";
 import { canAddGuestToSession, FREE_GUESTS_PER_SESSION_LIMIT } from "@/lib/billing/product-limits";
 
-type SessionDetailSupabase = Awaited<ReturnType<typeof createClient>>;
+type SessionDetailSupabase = SupabaseClient;
 
 type PlayerRow = {
   id: number;
@@ -19,29 +20,27 @@ type PlayerRow = {
 };
 
 type AddGuestPlayerInput = {
-  supabase: SessionDetailSupabase;
+  adminSupabase: SessionDetailSupabase;
   sessionId: number;
   clubId: string;
   membership: {
     role: string | null;
   };
   canLeadTraining?: boolean;
+  isPowerUser?: boolean;
   guestName: string;
   guestPosition: string;
   guestAgeGroup: string;
   guestStrength: string;
 };
 
-function canAddGuestPlayer(role: string | null | undefined) {
-  return role === "admin" || role === "power_user";
-}
-
 export async function handleAddGuestPlayer({
-  supabase,
+  adminSupabase,
   sessionId,
   clubId,
   membership,
   canLeadTraining = false,
+  isPowerUser = false,
   guestName,
   guestPosition,
   guestAgeGroup,
@@ -50,14 +49,14 @@ export async function handleAddGuestPlayer({
   const { t } = await getServerI18n();
   const role = membership.role;
 
-  if (!canAddGuestPlayer(role) && !canLeadTraining) {
+  if (!canManageGuestPlayer({ role, isPowerUser, canLeadTraining })) {
     return fail(
       t("sessionAction.guestAdminOnly"),
       403
     );
   }
 
-  const { data: existingResult, error: existingResultError } = await supabase
+  const { data: existingResult, error: existingResultError } = await adminSupabase
     .from("results")
     .select("id")
     .eq("session_id", sessionId)
@@ -78,7 +77,7 @@ export async function handleAddGuestPlayer({
     return fail(t("sessionAction.guestNameRequired"));
   }
 
-  const guestAllowed = await canAddGuestToSession(supabase, clubId, sessionId);
+  const guestAllowed = await canAddGuestToSession(adminSupabase, clubId, sessionId);
   if (!guestAllowed) {
     return fail(`Im Free-Plan ist ${FREE_GUESTS_PER_SESSION_LIMIT} Gastspieler pro Termin enthalten. Mit PRO kannst du weitere Gäste hinzufügen.`, 403);
   }
@@ -96,7 +95,7 @@ export async function handleAddGuestPlayer({
   const normalizedCategory = guestAgeGroup.trim().toLocaleLowerCase("de-DE");
   const requestedCategoryKey = normalizedCategory === "ah" ? "ah" : normalizedCategory === "ü32" || normalizedCategory === "ue32" ? "ue32" : null;
   const { data: matchingCategory } = requestedCategoryKey
-    ? await supabase.from("club_categories").select("key").eq("club_id", clubId).eq("key", requestedCategoryKey).eq("is_active", true).maybeSingle()
+    ? await adminSupabase.from("club_categories").select("key").eq("club_id", clubId).eq("key", requestedCategoryKey).eq("is_active", true).maybeSingle()
     : { data: null };
 
   const payload = {
@@ -110,7 +109,11 @@ export async function handleAddGuestPlayer({
     strength: parsedStrength,
   };
 
-  const { data: createdPlayer, error: insertPlayerError } = await supabase
+  // The service-role client is safe here only because the API verified session
+  // membership, club scope, and guest-management permission before calling us.
+  // A regular user client cannot SELECT the protected strength column, and
+  // training leaders may not satisfy the admin-only player INSERT RLS policy.
+  const { data: createdPlayer, error: insertPlayerError } = await adminSupabase
     .from("players")
     .insert(payload)
     .select(
@@ -124,7 +127,7 @@ export async function handleAddGuestPlayer({
 
   const typedCreatedPlayer = createdPlayer as PlayerRow;
 
-  const { error: insertSessionPlayerError } = await supabase
+  const { error: insertSessionPlayerError } = await adminSupabase
     .from("session_players")
     .insert({
       session_id: sessionId,
@@ -132,12 +135,12 @@ export async function handleAddGuestPlayer({
     });
 
   if (insertSessionPlayerError) {
-    await supabase.from("players").delete().eq("id", typedCreatedPlayer.id);
+    await adminSupabase.from("players").delete().eq("id", typedCreatedPlayer.id);
     return fail(insertSessionPlayerError.message, 500);
   }
 
   return ok({
     message: t("sessionAction.guestCreated"),
-    player: typedCreatedPlayer,
+    player: maskGuestStrengthForClient(typedCreatedPlayer, canManageClub({ role, isPowerUser })),
   });
 }
