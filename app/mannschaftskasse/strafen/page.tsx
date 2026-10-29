@@ -64,7 +64,9 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
    <p className="mt-2 text-sm text-slate-200">{en?"Only confirmed money payments are posted to the cash ledger.":"Geld wird erst nach bestätigtem Zahlungseingang gebucht."}</p>
    {ctx.canManageCashbox?<p className="mt-2 text-xs font-black">{pending} {en?"pending reports":"Meldungen zu prüfen"}</p>:null}
   </header>
-  {q?.error?<p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{en?"Request could not be saved; check status and fields.":"Aktion nicht möglich – bitte Status und Angaben prüfen."}</p>:null}
+  {q?.error?<p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{q.error==="wheel"?(en?"Spin the configured wheel first.":"Bitte zuerst das hinterlegte Glücksrad drehen.")
+    :q.error==="payment"?(en?"This payment method is disabled.":"Dieser Zahlungsweg ist nicht freigeschaltet.")
+    :en?"Request could not be saved; check status and fields.":"Aktion nicht möglich – bitte Status und Angaben prüfen."}</p>:null}
   {q?.saved?<p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{en?"Saved.":"Gespeichert."}</p>:null}
   {ctx.isClubAdmin?<Link className="block rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm font-black text-teal-950"
     href="/mannschaftskasse/zahlungen">💳 Zahlungswege für Strafen einrichten / bearbeiten →</Link>:null}
