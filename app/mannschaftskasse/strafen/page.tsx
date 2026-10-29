@@ -4,16 +4,35 @@ import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPenaltyWorkflowClub, isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
 import { getServerI18n } from "@/lib/i18n/server";
-import { formatCents } from "@/lib/cashbox/money";
+import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
+import { parseWheelSegments } from "@/lib/cashbox/wheel-config";
+import { SKV_AH_CLUB_ID } from "@/lib/cashbox/pilot-structure";
 import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
 import PenaltyFulfillmentForm from "./PenaltyFulfillmentForm";
 import { pilotPenaltyAction } from "./actions";
 import { addPenaltyAction } from "@/app/admin/penalties/actions";
 import {parsePilotCashboxStructure} from "@/lib/cashbox/pilot-structure";
 
-type Penalty={id:number;player_id:number;reason:string|null;value:string|null;type:string;source_key:string|null;resolved_at:string|null};
+type Penalty={id:number;player_id:number;reason:string|null;value:string|null;type:string;source_key:string|null;resolved_at:string|null;created_at:string};
+type Spin={penalty_id:number;outcome:string;outcome_label:string|null;outcome_detail:string|null;segments_snapshot:unknown};
 type Settlement={penalty_id:number;state:string;effective_label:string;fulfillment_kind:string;amount_cents:number|null;payment_method:string|null;report_note:string;review_note:string};
 type Event={penalty_id:number;action:string;occurred_at:string};
+function effectivePayment(p:Penalty, spin?:Spin) {
+  let isMoney=p.type==="money";
+  let cents=isMoney?parseEuroToCents(p.value):null;
+  const segment=spin?parseWheelSegments(spin.segments_snapshot)?.find((s)=>s.id===spin.outcome):undefined;
+  const effect=segment?.effect;
+  if(effect==="waive" || effect==="task" || effect==="goods"){
+    isMoney=false;cents=null;
+  }else if(effect==="fixed_money"){
+    isMoney=true;cents=parseEuroToCents(segment?.effectValue??"");
+  }else if(effect==="halve" && isMoney && cents!==null){
+    cents=Math.round(cents/2);
+  }else if(effect==="double" && isMoney && cents!==null){
+    cents*=2;
+  }
+  return {isMoney, cents};
+}
 const field="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm";
 const btn="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white";
 const status:Record<string,string>={open:"Offen",reported:"Erfüllung gemeldet · Prüfung ausstehend",
@@ -24,7 +43,7 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
  if(!isPenaltyWorkflowClub(ctx.clubId)||ctx.isSupportView)redirect("/home");
  const {locale}=await getServerI18n();const en=locale==="en";
  const db=createAdminClient();
- const query=db.from("penalties").select("id,player_id,reason,value,type,source_key,resolved_at")
+ const query=db.from("penalties").select("id,player_id,reason,value,type,source_key,resolved_at,created_at")
    .eq("club_id",ctx.clubId).order("created_at",{ascending:false}).limit(250);
  if(!ctx.canManageCashbox){
    if(!ctx.player?.id)redirect("/home");
@@ -59,12 +78,12 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
  const rows=(data??[]) as Penalty[];const ids=rows.map(x=>x.id);
  const [{data:states},{data:spins},{data:events},{data:players}]=await Promise.all([
    ids.length?db.from("pilot_penalty_settlements").select("penalty_id,state,effective_label,fulfillment_kind,amount_cents,payment_method,report_note,review_note").in("penalty_id",ids):Promise.resolve({data:[]}),
-   ids.length?db.from("penalty_wheel_spins").select("penalty_id,outcome_label,outcome_detail").in("penalty_id",ids):Promise.resolve({data:[]}),
+   ids.length?db.from("penalty_wheel_spins").select("penalty_id,outcome,outcome_label,outcome_detail,segments_snapshot").in("penalty_id",ids):Promise.resolve({data:[]}),
    ids.length?db.from("pilot_penalty_settlement_events").select("penalty_id,action,occurred_at").in("penalty_id",ids).order("occurred_at",{ascending:false}).limit(500):Promise.resolve({data:[]}),
    ctx.canManageCashbox?db.from("players").select("id,name,first_name,last_name,nickname").eq("club_id",ctx.clubId):Promise.resolve({data:[]}),
  ]);
  const stateMap=new Map(((states??[]) as Settlement[]).map(x=>[x.penalty_id,x]));
- const spinMap=new Map(((spins??[]) as {penalty_id:number;outcome_label:string|null;outcome_detail:string|null}[]).map(x=>[x.penalty_id,x]));
+ const spinMap=new Map(((spins??[]) as Spin[]).map(x=>[x.penalty_id,x]));
  const names=new Map((players??[]).map(x=>[x.id,x.nickname||[x.first_name,x.last_name].filter(Boolean).join(" ")||x.name]));
  const history=new Map<number,Event[]>();
  for(const e of (events??[]) as Event[])history.set(e.penalty_id,[...(history.get(e.penalty_id)||[]),e]);
@@ -108,6 +127,10 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
   </details>:null}
   {rows.length===0?<p className="rounded-xl bg-white p-4 text-sm text-slate-600">{en?"No penalties yet.":"Noch keine Strafen."}</p>:null}
   {rows.map(p=>{const s=stateMap.get(p.id);const spin=spinMap.get(p.id);
+    const payment=effectivePayment(p,spin);
+    const requiresSpin=ctx.clubId===SKV_AH_CLUB_ID
+      && new Date(p.created_at).getTime()>=Date.parse("2026-10-29T17:30:00Z")
+      && !p.source_key?.startsWith("test:");
     const current=s?.state||(p.resolved_at?"confirmed":"open");
     const canReport=!p.resolved_at&&(!s||["open","rejected"].includes(s.state))&&ctx.player?.id===p.player_id;
     const canReview=ctx.canManageCashbox&&current==="reported";
@@ -126,7 +149,14 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
       {s?.review_note?<p className="mt-1 text-xs text-slate-600">{en?"Reviewed":"Kassenwart"}: {s.review_note}</p>:null}
       {canReport?<div className="mt-4 space-y-2">
         {!s?<PenaltyFunWheel penaltyId={p.id}/>:null}
-        <PenaltyFulfillmentForm penaltyId={p.id} methods={methods} isMoney={p.type==="money"}/></div>:null}
+        {requiresSpin && !spin
+          ? <p role="status" className="rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-900">
+              Erst das Glücksrad drehen (ab heute 20:30 Uhr). Danach erscheint hier die Meldung für die endgültige Strafe.
+            </p>
+          : <PenaltyFulfillmentForm penaltyId={p.id} methods={methods}
+               isMoney={payment.isMoney}
+               amountLabel={payment.isMoney && payment.cents!==null?formatCents(payment.cents,locale):null}/>}
+</div>:null}
       {canReview?<div className="mt-3 grid gap-2 rounded-xl bg-amber-50 p-3 sm:grid-cols-2">
         <form action={pilotPenaltyAction} className="space-y-2">
          <input name="action" type="hidden" value="confirm"/><input name="penalty_id" type="hidden" value={p.id}/>
