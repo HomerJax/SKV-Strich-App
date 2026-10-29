@@ -13,7 +13,7 @@ create table if not exists public.pilot_parent_new_team_invites (
   status text not null default 'pending' check (status in ('pending','revoked','consumed')),
   consumed_by uuid references auth.users(id),
   consumed_at timestamptz,
-  created_club_id uuid unique references public.clubs(id),
+  created_club_id uuid unique references public.clubs(id) on delete cascade,
   constraint pilot_new_team_test_owner check (
     owner_club_id = '12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60'::uuid
     and source_club_id = owner_club_id
