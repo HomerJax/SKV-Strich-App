@@ -1,6 +1,11 @@
 export const CASHBOX_PILOT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
 
 export const isCashboxPilotClub = (clubId: string) => clubId === CASHBOX_PILOT_CLUB_ID;
+// The SKV penalty flow is enabled separately: do not enable the other pilot
+// features (umbrella structure, accounts etc.) for SKV.
+export const SKV_AH_CLUB_ID = "108590d9-0877-4787-90a5-4679615b3b76";
+export const isPenaltyWorkflowClub = (clubId: string) =>
+  isCashboxPilotClub(clubId) || clubId === SKV_AH_CLUB_ID;
 
 export type PilotAccountKind = "bank" | "bank_subaccount" | "cash" | "paypal" | "sumup";
 
