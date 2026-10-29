@@ -66,7 +66,7 @@ export default async function WheelSettingsPage({searchParams}:{searchParams?:Pr
           </div>
           <p className="mt-3 text-xs font-black text-teal-900">Aktuell: {chosenName} {savedSegments?"· Eigene Einstellungen":"· noch Vereinsstandard"}</p>
         </div>:null}
-        <WheelSettingsEditor initialSegments={initialSegments} scopeKey={scopeKey} pilot={pilot}/>
+        <WheelSettingsEditor key={scopeKey||"club"} initialSegments={initialSegments} scopeKey={scopeKey} pilot={pilot}/>
       </div>
     </main>
   );
