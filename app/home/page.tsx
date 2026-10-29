@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { CalendarDays, Medal, Star, TrendingUp, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
+import { isCashboxPilotClub, isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-structure";
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
@@ -1042,7 +1042,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           </Link>
         ) : null}
 
-        {isCashboxPilotClub(clubId) ? (
+        {isPenaltyWorkflowClub(clubId) ? (
           <Link href="/mannschaftskasse/strafen" className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-950">
             <span>⚖️ {locale==="en"?"Penalties: report, review & confirm":"Strafen: melden, prüfen & bestätigen"}</span>
             <span aria-hidden>→</span>
