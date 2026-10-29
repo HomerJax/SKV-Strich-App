@@ -625,7 +625,7 @@ export default async function Page({ searchParams }: Props) {
           </div>
         </section>
 
-        <section className={penaltiesEnabled ? "rounded-[24px] border bg-white p-5" : "hidden"}>
+        <section className={penaltiesEnabled && !isPenaltyWorkflowClub(clubId) ? "rounded-[24px] border bg-white p-5" : "hidden"}>
           <h2 className="text-lg font-black">{t("cashbox.myOpenFbzg")}</h2>
           <div className="mt-3 space-y-2">
             {mine.map((entry) => {
