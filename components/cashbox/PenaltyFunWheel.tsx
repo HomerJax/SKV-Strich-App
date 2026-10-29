@@ -28,6 +28,7 @@ type WheelResponse = {
   segments?: PublicWheelSegment[];
   canResetForTest?: boolean;
   error?: string;
+  lockedReason?: string;
 };
 
 export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
@@ -45,6 +46,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
   const [reveal, setReveal] = useState(true);
   const [showResultPopup, setShowResultPopup] = useState(false);
   const [error, setError] = useState("");
+  const [lockedReason,setLockedReason] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -77,6 +79,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         if (!active) return;
         const next = data.segments ?? [];
         setSegments(next);
+        setLockedReason(data.lockedReason||"");
         setCanResetForTest(data.canResetForTest === true);
         setOutcome(data.outcome || null);
         setMessage(data.label || "");
@@ -164,6 +167,11 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
     }
   }
 
+  if(lockedReason && !outcome){
+    return <p role="status" className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold leading-5 text-slate-600">
+      🎡 {lockedReason}
+    </p>;
+  }
   return (
     <details className="group mt-3 overflow-hidden rounded-[24px] border border-slate-800/15 bg-gradient-to-br from-slate-950 via-[#0b1828] to-[#10384b] p-4 text-white shadow-[0_18px_55px_rgba(2,8,23,.16)]">
       <summary className="cursor-pointer text-sm font-black tracking-tight text-cyan-100 marker:text-cyan-400">
