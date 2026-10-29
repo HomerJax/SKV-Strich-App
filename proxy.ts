@@ -10,9 +10,13 @@ const PUBLIC_SEO_LOCALES: Record<string, "de" | "en"> = {
   "/faire-fussballteams": "de",
   "/training-organisieren": "de",
   "/mannschaftskasse-app": "de",
+  "/freizeitmannschaft-organisieren": "de",
+  "/tabelle-freizeitfussball": "de",
   "/en/faire-fussballteams": "en",
   "/en/training-organisieren": "en",
   "/en/mannschaftskasse-app": "en",
+  "/en/freizeitmannschaft-organisieren": "en",
+  "/en/tabelle-freizeitfussball": "en",
 };
 // Native iOS cold starts must land on Home, not the previous visited path.
 // Protected live games are restored by NativeHomeOnResume after hydration.

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import type { AppLocale } from "@/lib/i18n/config";
 import LandingPageTracker from "@/components/analytics/LandingPageTracker";
 
-type FeatureKey = "fair-teams" | "training" | "team-fund";
+type FeatureKey = "fair-teams" | "training" | "team-fund" | "hobby-teams" | "standings";
 
 type FeatureCopy = {
   path: string;
@@ -18,6 +18,7 @@ type FeatureCopy = {
   detail: string;
   cta: string;
   related: Array<{ href: string; label: string }>;
+  faqs?: Array<{ question: string; answer: string }>;
 };
 
 const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
@@ -41,6 +42,7 @@ const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
       cta: "Teams kostenlos starten",
       related: [
         { href: "/training-organisieren", label: "Trainingsorganisation ansehen" },
+        { href: "/tabelle-freizeitfussball", label: "Tabelle und Stats für Hobbyfußball" },
         { href: "/mannschaftskasse-app", label: "Mannschaftskasse ansehen" },
       ],
     },
@@ -63,7 +65,124 @@ const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
       cta: "Start a team for free",
       related: [
         { href: "/training-organisieren", label: "See training organization" },
+        { href: "/tabelle-freizeitfussball", label: "Track recreational football standings" },
         { href: "/mannschaftskasse-app", label: "See the team fund" },
+      ],
+    },
+  },
+  "hobby-teams": {
+    de: {
+      path: "/freizeitmannschaft-organisieren",
+      title: "Freizeitmannschaft organisieren – Team-App für Hobbysport | strikr",
+      description: "Organisiert eure Freizeitmannschaft: Termine, Zu- und Absagen, Teams, Ergebnisse und Statistiken. Für Hobbygruppen und Sportteams – ohne Ligabetrieb.",
+      eyebrow: "Teamorganisation ohne Vereinsbürokratie",
+      heading: "Freizeitmannschaft organisieren, statt Nachrichten hinterherlaufen",
+      intro: "Ob wöchentlicher Hallenkick, Hobbyvolleyball, Basketballrunde oder Betriebssport: Ihr wollt gemeinsam spielen – nicht jedes Mal im Gruppenchat nachfragen, wer dabei ist. strikr verbindet Terminplanung, Zusagen, Teamaufteilung, Ergebnisse und Motivation in einem Ablauf.",
+      pointsHeading: "So funktioniert eure Hobbyrunde mit strikr",
+      points: [
+        "Gemeinsame Trainingstermine für die Runde anlegen und alle Spieler einladen.",
+        "Zu- und Absagen bündeln: Wer kommt wirklich, wer fehlt, wer kommt als Gast?",
+        "Teilnehmende in möglichst ausgeglichene Mannschaften einteilen und Vorschläge anpassen.",
+        "Nach der Einheit Ergebnisse eintragen und auf Wunsch Tabelle, persönliche Statistiken und Erfolge verfolgen.",
+      ],
+      detailHeading: "Für Teams, die einfach regelmäßig zusammen spielen",
+      detail: "Nicht jede Sportgruppe hat einen Spielplan oder einen Vereinsmanager. Manche Gruppen treffen sich donnerstags in der Halle, andere am Bolzplatz oder in einer Freizeitliga. strikr hilft gerade dann, wenn wechselnde Teilnehmer und der Wunsch nach fairen Spielen zusammenkommen. Für die grundlegende Organisation könnt ihr kostenlos starten; zusätzliche Funktionen sind optional als Pro verfügbar.",
+      cta: "Freizeitteam kostenlos starten",
+      related: [
+        { href: "/training-organisieren", label: "Anwesenheit und Training organisieren" },
+        { href: "/faire-fussballteams", label: "Faire Mannschaften für den Hobbykick" },
+        { href: "/tabelle-freizeitfussball", label: "Tabelle für eure Trainingsrunde" },
+      ],
+      faqs: [
+        { question: "Brauchen wir einen eingetragenen Verein oder Ligabetrieb?", answer: "Nein. Ihr könnt strikr für eine private Hobbygruppe oder eine regelmäßige Trainingsrunde einsetzen. Ein offizieller Ligaspielplan ist nicht Voraussetzung." },
+        { question: "Was ist, wenn jede Woche andere Spieler mitmachen?", answer: "Die tatsächlichen Zu- und Absagen bilden die Basis. So seht ihr vor dem Training, wer mitspielt, und könnt die Teams passend zur anwesenden Gruppe erstellen." },
+        { question: "Können wir kostenlos starten?", answer: "Ja. Free bietet den grundlegenden Ablauf für kleinere Teams. Die verfügbaren Limits und Erweiterungen zeigt strikr transparent im Free-/Pro-Vergleich." },
+      ],
+    },
+    en: {
+      path: "/freizeitmannschaft-organisieren",
+      title: "Organize a recreational sports team | strikr",
+      description: "Organize your recreational team: sessions, RSVPs, balanced lineups, results and standings. A simple app for hobby sports groups outside leagues.",
+      eyebrow: "Team organization without league bureaucracy",
+      heading: "Organize your recreational team, not another group chat",
+      intro: "Weekly five-a-side, casual volleyball, basketball or workplace sports: your group wants to play, not chase people for answers. strikr brings session planning, RSVPs, team selection, results and shared motivation into a straightforward routine.",
+      pointsHeading: "A simpler routine for your sports group",
+      points: [
+        "Create a regular session or a one-off date and invite your team.",
+        "See who is attending, who cannot make it and which guests are joining.",
+        "Build more balanced lineups from attendees, then make adjustments.",
+        "Record the results and optionally track standings, personal stats and achievements.",
+      ],
+      detailHeading: "Built for groups that enjoy playing together",
+      detail: "Not every sports group has a league schedule or a volunteer administrator. Some meet once a week in a sports hall, others at a local pitch. strikr is useful when participation varies and you still want fair games. Start with the Free basics and move to optional Pro features when your group needs more flexibility.",
+      cta: "Start your free sports team",
+      related: [
+        { href: "/training-organisieren", label: "Session planning and attendance" },
+        { href: "/faire-fussballteams", label: "Fair teams for casual football" },
+        { href: "/tabelle-freizeitfussball", label: "Track your training standings" },
+      ],
+      faqs: [
+        { question: "Do we need a registered club or a league?", answer: "No. strikr also works for independent hobby groups and informal weekly training sessions." },
+        { question: "What if different people attend every week?", answer: "The RSVP list reflects who is expected, so organizers can create balanced teams from the people who are actually playing." },
+        { question: "Can we start for free?", answer: "Yes. Free includes the core workflow for smaller teams. Compare current usage limits and optional Pro features before upgrading." },
+      ],
+    },
+  },
+  standings: {
+    de: {
+      path: "/tabelle-freizeitfussball",
+      title: "Fußball-Tabelle fürs Training – Siege & Statistik | strikr",
+      description: "Eigene Tabelle für eure AH- oder Freizeitfußballrunde: Ergebnisse eintragen, Siege verfolgen, MVP wählen und Saisonstatistiken vergleichen – ohne Liga.",
+      eyebrow: "Mehr Spannung beim Freizeitfußball",
+      heading: "Die eigene Fußball-Tabelle – auch ohne Ligaspielplan",
+      intro: "Beim AH- und Freizeitfußball geht es oft um mehr als das Ergebnis des Abends: Wer hat die meisten Siege? Wer holt den nächsten MVP? Und wer steht am Saisonende ganz oben? strikr hält Spiele, Ergebnisse und persönliche Entwicklungen fest, ohne dass ihr eine offizielle Liga dafür braucht.",
+      pointsHeading: "Aus jedem Training entsteht eine kleine Saison",
+      points: [
+        "Nach der Einheit die gespielten Partien und Ergebnisse speichern.",
+        "Die Mannschafts- und Spielerübersichten mit Siegen und Platzierungen verfolgen.",
+        "Persönliche Statistiken und Erfolge als Motivation für den nächsten Termin nutzen.",
+        "Tabellenstände, Siegerbilder und Wochenhighlights im Team teilen.",
+      ],
+      detailHeading: "Das Titelrennen beginnt beim nächsten Training",
+      detail: "Ob zehn Kicker am Donnerstag oder eine größere Ü32-Runde: Ein gemeinsamer Tabellenstand gibt dem lockeren Training einen sportlichen Anreiz. Mit strikr bleiben Ergebnisse aus einzelnen Abenden nicht im Chat verloren. Gleichzeitig unterstützt die App Anwesenheit und Teamzusammenstellung. Die Tabelle basiert auf den tatsächlich erfassten Ergebnissen und zeigt keine erfundenen Spiele.",
+      cta: "Eure Trainingstabelle starten",
+      related: [
+        { href: "/faire-fussballteams", label: "Vor dem Spiel faire Teams erstellen" },
+        { href: "/training-organisieren", label: "Nächstes Fußballtraining planen" },
+        { href: "/freizeitmannschaft-organisieren", label: "Freizeitmannschaft organisieren" },
+      ],
+      faqs: [
+        { question: "Brauchen wir offizielle Pflichtspiele?", answer: "Nein. Die Ergebnisse eurer selbst organisierten Trainingseinheiten können die Grundlage für eure Tabelle bilden." },
+        { question: "Wer pflegt die Ergebnisse?", answer: "Ein berechtigter Organisator erfasst nach der Spieleinheit die Ergebnisse. Die darauf aufbauenden Tabellen und Statistiken werden innerhalb der App aktualisiert." },
+        { question: "Können wir die Tabelle mit anderen teilen?", answer: "strikr unterstützt teilbare Tabellen- und Ergebnisansichten, etwa für eure Vereins- oder Mannschaftsgruppe." },
+      ],
+    },
+    en: {
+      path: "/tabelle-freizeitfussball",
+      title: "Football training standings, results and player stats | strikr",
+      description: "Create a standings table for your recreational football group. Record results, follow wins and player stats, and add a season rivalry without a league.",
+      eyebrow: "Make casual football more memorable",
+      heading: "Your own football training standings – no league required",
+      intro: "Casual football is about more than the final score. Who has the most wins? Who will be the next MVP? Who tops the table this season? strikr helps recreational football groups record results, track players and keep a friendly competition going between training nights.",
+      pointsHeading: "Turn individual training nights into a season",
+      points: [
+        "Record your games and scores after a session.",
+        "Follow wins, rankings and player performance in your group.",
+        "Use personal stats and earned achievements as motivation.",
+        "Share standings, winning moments and weekly highlights with teammates.",
+      ],
+      detailHeading: "A friendly title race with every training session",
+      detail: "Whether you are ten people playing every Thursday or a larger veterans group, a shared table makes casual games more engaging. Rather than losing results in a chat, strikr keeps your recorded sessions in one place. Attendance and fair team selection are available alongside standings. Rankings reflect real saved games, not made-up matches.",
+      cta: "Start your team's standings",
+      related: [
+        { href: "/faire-fussballteams", label: "Build fair football teams" },
+        { href: "/training-organisieren", label: "Plan the next session" },
+        { href: "/freizeitmannschaft-organisieren", label: "Organize a recreational team" },
+      ],
+      faqs: [
+        { question: "Do we need official league matches?", answer: "No. Results from your own training and casual matches can power the standings." },
+        { question: "Who enters the results?", answer: "An authorized organizer records each game's result. The app then updates the related tables and player statistics." },
+        { question: "Can we share the table?", answer: "Yes. strikr provides shareable standings and results views for your team or club channels." },
       ],
     },
   },
@@ -87,6 +206,7 @@ const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
       cta: "Kostenloses Team einrichten",
       related: [
         { href: "/faire-fussballteams", label: "Faire Teamaufteilung ansehen" },
+        { href: "/freizeitmannschaft-organisieren", label: "Mehr zur Hobby-Teamorganisation" },
         { href: "/mannschaftskasse-app", label: "Mannschaftskasse ansehen" },
       ],
     },
@@ -109,6 +229,7 @@ const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
       cta: "Set up a team for free",
       related: [
         { href: "/faire-fussballteams", label: "See fair team selection" },
+        { href: "/freizeitmannschaft-organisieren", label: "Organize a recreational sports team" },
         { href: "/mannschaftskasse-app", label: "See the team fund" },
       ],
     },
@@ -279,6 +400,20 @@ export default function SeoFeaturePage({
           </div>
         </div>
       </section>
+
+      {copy.faqs && copy.faqs.length > 0 ? (
+        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8" aria-label={isGerman ? "Häufige Fragen" : "Frequently asked questions"}>
+          <h2 className="text-2xl font-black">{isGerman ? "Häufige Fragen" : "Frequently asked questions"}</h2>
+          <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+            {copy.faqs.map((faq) => (
+              <div key={faq.question} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                <dt className="font-black leading-6 text-white">{faq.question}</dt>
+                <dd className="mt-2 text-sm leading-7 text-white/70">{faq.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
 
       <footer className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <span>strikr · {isGerman ? "Training redefined." : "Training redefined."}</span>
