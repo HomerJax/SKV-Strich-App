@@ -18,7 +18,7 @@ export default function WheelSettingsEditor({ initialSegments, scopeKey="", pilo
     .reduce((sum, segment) => sum + segment.weight, 0);
   const challengeTotal = total - luckTotal;
   const valid = total === 100 && WHEEL_FIELD_COUNTS.some((count) => count === segments.length) &&
-    segments.every((item) => (!pilot || (!!item.effect && (item.effect!=="fixed_money" || /^[0-9]{1,6}([.,][0-9]{1,2})?$/.test(item.effectValue||"")))) && item.icon.trim() && item.label.trim() &&
+    segments.every((item) => (!pilot || (!!item.effect && (item.effect!=="fixed_money" || /^[0-9]{1,6}([.,][0-9]{1,2})?$/.test(item.effectValue||"") && Number((item.effectValue||"").replace(",","."))>0))) && item.icon.trim() && item.label.trim() &&
       Number.isInteger(item.weight) && item.weight > 0 && item.weight <= 99 &&
       item.label.trim().length <= 28 && item.description.length <= 120 &&
       [...item.icon.trim()].length <= 8);

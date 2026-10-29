@@ -29,7 +29,10 @@ export async function pilotPenaltyAction(form:FormData) {
   });
   if(error){
     console.error("Pilot penalty transition",action,error.code);
-    redirect(target+"?error="+encodeURIComponent(error.code==="P0001"?"state":"save"));
+    const reason=error.message==="wheel_spin_required"?"wheel"
+      :error.message==="payment_method_disabled"?"payment"
+      :error.code==="P0001"?"state":"save";
+    redirect(target+"?error="+encodeURIComponent(reason));
   }
   revalidatePath(target);
   revalidatePath("/mannschaftskasse");

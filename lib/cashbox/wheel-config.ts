@@ -67,7 +67,7 @@ export function parseWheelSegments(input: unknown): WheelSegment[] | null {
       : choices.includes(row.effect as WheelEffect)?row.effect as WheelEffect:null;
     const effectValue = typeof row.effectValue==="string"?row.effectValue.trim():"";
     if(!effect || effectValue.length>100) return null;
-    if(effect==="fixed_money" && !/^[0-9]{1,6}(?:[.,][0-9]{1,2})?$/.test(effectValue))return null;
+    if(effect==="fixed_money" && (!/^[0-9]{1,6}(?:[.,][0-9]{1,2})?$/.test(effectValue) || Number(effectValue.replace(",","."))<=0))return null;
 
     ids.add(row.id);
     total += row.weight;
