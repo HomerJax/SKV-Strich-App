@@ -7,6 +7,7 @@ import { getServerI18n } from "@/lib/i18n/server";
 import { formatCents } from "@/lib/cashbox/money";
 import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
 import { pilotPenaltyAction } from "./actions";
+import { addPenaltyAction } from "@/app/admin/penalties/actions";
 
 type Penalty={id:number;player_id:number;reason:string|null;value:string|null;type:string;source_key:string|null;resolved_at:string|null};
 type Settlement={penalty_id:number;state:string;effective_label:string;fulfillment_kind:string;amount_cents:number|null;payment_method:string|null;report_note:string;review_note:string};
@@ -52,7 +53,23 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
   </header>
   {q?.error?<p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{en?"Request could not be saved; check status and fields.":"Aktion nicht möglich – bitte Status und Angaben prüfen."}</p>:null}
   {q?.saved?<p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{en?"Saved.":"Gespeichert."}</p>:null}
-  {ctx.canManageCashbox?<Link className="block rounded-xl bg-teal-50 p-3 text-sm font-bold text-teal-900" href="/admin/penalties?tab=penalties">{en?"Add a new penalty in admin":"Neue Strafe über die Admin-Maske anlegen"}</Link>:null}
+  {ctx.canManageCashbox?<details className="rounded-xl border border-teal-200 bg-white p-4">
+    <summary className="cursor-pointer text-sm font-black text-teal-950">{en?"Create penalty":"Neue Strafe anlegen"}</summary>
+    <form action={addPenaltyAction} className="mt-3 space-y-2">
+      <select name="player_id" required className={field} defaultValue="">
+        <option value="" disabled>{en?"Choose player":"Spieler auswählen"}</option>
+        {(players??[]).map(p=><option key={p.id} value={p.id}>{names.get(p.id)||"Spieler"}</option>)}
+      </select>
+      <input name="reason" className={field} required maxLength={120} placeholder={en?"Reason":"Grund, z. B. nach Deadline abgesagt"}/>
+      <select name="type" className={field} defaultValue="money">
+        <option value="money">{en?"Money":"Geld"}</option>
+        <option value="beer">{en?"Beer / goods":"Bier / Sachleistung"}</option>
+        <option value="custom">{en?"Other task":"Andere Aufgabe"}</option>
+      </select>
+      <input name="value" className={field} required maxLength={100} placeholder={en?"e.g. 2 or 1 crate":"z. B. 2 oder 1 Kiste Bier"}/>
+      <button className={btn}>{en?"Add penalty":"Strafe speichern"}</button>
+    </form>
+  </details>:null}
   {rows.length===0?<p className="rounded-xl bg-white p-4 text-sm text-slate-600">{en?"No penalties yet.":"Noch keine Strafen."}</p>:null}
   {rows.map(p=>{const s=stateMap.get(p.id);const spin=spinMap.get(p.id);
     const current=s?.state||(p.resolved_at?"confirmed":"open");
