@@ -6,6 +6,7 @@ import { isPenaltyWorkflowClub, isCashboxPilotClub } from "@/lib/cashbox/pilot-s
 import { getServerI18n } from "@/lib/i18n/server";
 import { formatCents } from "@/lib/cashbox/money";
 import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
+import PenaltyFulfillmentForm from "./PenaltyFulfillmentForm";
 import { pilotPenaltyAction } from "./actions";
 import { addPenaltyAction } from "@/app/admin/penalties/actions";
 import {parsePilotCashboxStructure} from "@/lib/cashbox/pilot-structure";
@@ -71,7 +72,7 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
  return <main className="min-h-screen bg-[#f5f6f8] px-4 py-6 pb-24"><div className="mx-auto max-w-3xl space-y-4">
   <Link href="/mannschaftskasse" className="text-sm font-bold text-slate-600">← {en?"Cashbox":"Mannschaftskasse"}</Link>
   <header className="rounded-2xl bg-slate-950 p-5 text-white">
-   <p className="text-xs font-bold uppercase tracking-widest text-teal-300">strikr · Pilot</p>
+   <p className="text-xs font-bold uppercase tracking-widest text-teal-300">strikr · Mannschaftskasse</p>
    <h1 className="mt-2 text-2xl font-black">{ctx.canManageCashbox?(en?"Review penalties":"Strafen prüfen"):(en?"My penalties":"Meine Strafen")}</h1>
    <p className="mt-2 text-sm text-slate-200">{en?"Only confirmed money payments are posted to the cash ledger.":"Geld wird erst nach bestätigtem Zahlungseingang gebucht."}</p>
    {ctx.canManageCashbox?<p className="mt-2 text-xs font-black">{pending} {en?"pending reports":"Meldungen zu prüfen"}</p>:null}
@@ -80,7 +81,7 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
     :q.error==="payment"?(en?"This payment method is disabled.":"Dieser Zahlungsweg ist nicht freigeschaltet.")
     :en?"Request could not be saved; check status and fields.":"Aktion nicht möglich – bitte Status und Angaben prüfen."}</p>:null}
   {q?.saved?<p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{en?"Saved.":"Gespeichert."}</p>:null}
-  {ctx.isClubAdmin?<Link className="block rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm font-black text-teal-950"
+  {ctx.canManageCashbox?<Link className="block rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm font-black text-teal-950"
     href="/mannschaftskasse/zahlungen">💳 Zahlungswege für Strafen einrichten / bearbeiten →</Link>:null}
   {ctx.canManageCashbox?<details className="rounded-xl border border-teal-200 bg-white p-4">
     <summary className="cursor-pointer text-sm font-black text-teal-950">{en?"Create penalty":"Neue Strafe anlegen"}</summary>
@@ -125,21 +126,7 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
       {s?.review_note?<p className="mt-1 text-xs text-slate-600">{en?"Reviewed":"Kassenwart"}: {s.review_note}</p>:null}
       {canReport?<div className="mt-4 space-y-2">
         {!s?<PenaltyFunWheel penaltyId={p.id}/>:null}
-        <form action={pilotPenaltyAction} className="space-y-2 rounded-xl bg-slate-50 p-3">
-         <input type="hidden" name="penalty_id" value={p.id}/><input type="hidden" name="action" value="report"/>
-         {methods.length>0?<label className="block text-xs font-bold">{en?"Payment method if money is owed":"Zahlungsweg (falls Geld geschuldet)"}
-           <select name="payment_method" className={field} defaultValue={methods[0].key}>
-             {methods.map(m=><option key={m.key} value={m.key}>{m.label}</option>)}
-           </select>
-         </label>:<p className="text-xs font-bold text-rose-700">Kein Zahlungsweg freigeschaltet. Bitte Admin kontaktieren.</p>}
-         {methods.some(m=>m.url)?<div className="flex flex-wrap gap-2">
-           {methods.filter(m=>m.url).map(m=><a key={m.key} href={m.url} target="_blank" rel="noopener noreferrer"
-             className="rounded-lg bg-teal-100 px-3 py-2 text-xs font-black text-teal-950">{m.label} öffnen ↗</a>)}
-         </div>:null}
-         <input className={field} name="note" maxLength={500} placeholder={en?"Optional note":"Notiz: wann, wie oder wo bezahlt / abgegeben"}/>
-         <button className={btn}>{en?"Report payment/completion":"Zahlung / Erfüllung melden"}</button>
-         <p className="text-xs text-slate-500">{en?"A report is not proof of payment.":"Erst der Kassenwart bestätigt den Eingang."}</p>
-        </form></div>:null}
+        <PenaltyFulfillmentForm penaltyId={p.id} methods={methods} isMoney={p.type==="money"}/></div>:null}
       {canReview?<div className="mt-3 grid gap-2 rounded-xl bg-amber-50 p-3 sm:grid-cols-2">
         <form action={pilotPenaltyAction} className="space-y-2">
          <input name="action" type="hidden" value="confirm"/><input name="penalty_id" type="hidden" value={p.id}/>
