@@ -506,6 +506,10 @@ export async function cancelBeerConsumptionAction(formData: FormData) {
 }
 
 export async function reportPenaltyAction(formData: FormData) {
+  // SKV and test club use the atomic report/confirm/reject flow instead.
+  const { isPenaltyWorkflowClub } = await import("@/lib/cashbox/pilot-structure");
+  const { clubId: workflowClubId } = await requireClub();
+  if (isPenaltyWorkflowClub(workflowClubId)) redirect("/mannschaftskasse/strafen");
   const { t } = await getServerI18n();
   const { clubId } = await requireClub();
   const supabase = await createClient();
