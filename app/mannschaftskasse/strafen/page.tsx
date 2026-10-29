@@ -49,9 +49,9 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
      paypalMeUrl:skvSettings?.beerkasse_paypal_me_url||"",
      sumupUrl:skvSettings?.beerkasse_sumup_url||""};
  const methods=[
-   ...(payment.cashEnabled?[{key:"cash",label:en?"Cash":"Bar",url:""}]:[]),
    ...(payment.paypalPoolUrl?[{key:"paypal",label:"PayPal-Pool",url:payment.paypalPoolUrl}]:[]),
    ...(payment.paypalMeUrl?[{key:"paypal_me",label:"PayPal.Me",url:payment.paypalMeUrl}]:[]),
+   ...(payment.cashEnabled?[{key:"cash",label:en?"Cash":"Bar",url:""}]:[]),
    ...(payment.sumupUrl?[{key:"sumup",label:"SumUp",url:payment.sumupUrl}]:[]),
  ];
  const {data,error}=await query;
