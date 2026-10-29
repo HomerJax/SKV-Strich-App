@@ -90,7 +90,7 @@ export async function signupAction(
     return { error: "login-after-signup-failed" };
   }
 
-  if (/^\\/organization\\/new-team\\/[a-f0-9]{64}$/.test(next)) {
+  if (/^\/organization\/new-team\/[a-f0-9]{64}$/.test(next)) {
     // This invite provisions a fresh player and team admin atomically. Do not
     // force the generic onboarding to create an unrelated club first.
     redirect(next);
