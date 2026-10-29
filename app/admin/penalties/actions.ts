@@ -136,7 +136,7 @@ export async function addPenaltyAction(formData: FormData) {
     ? preset?.escalation_value ?? (type === "beer" ? "+ 1 Sechserträger" : null)
     : null;
 
-  const { error } = await supabase.from("penalties").insert({
+  const { data:createdPenalty,error } = await supabase.from("penalties").insert({
     club_id: clubId,
     player_id: playerId,
     reason,
@@ -146,9 +146,18 @@ export async function addPenaltyAction(formData: FormData) {
     notes,
     escalation_after_days: escalationDays,
     escalation_value: escalationValue,
-  });
+  }).select("id").single();
 
-  if (error) redirect(url({ error: error.message }));
+  if (error || !createdPenalty) redirect(url({ error: error?.message||"Strafe konnte nicht erstellt werden." }));
+  if (clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" && presetKey && preset) {
+    const { error:originError }=await supabase.from("pilot_penalty_rule_origins")
+      .insert({club_id:clubId,penalty_id:createdPenalty.id,rule_key:presetKey});
+    if(originError){
+      // Do not create a catalog penalty without the matching wheel rule.
+      await supabase.from("penalties").delete().eq("id",createdPenalty.id).eq("club_id",clubId);
+      redirect(url({error:"Strafenkatalog-Zuordnung konnte nicht gespeichert werden."}));
+    }
+  }
 
   refresh();
   redirect(url({ saved: "1" }));
@@ -352,4 +361,26 @@ export async function reopenPenaltyAction(formData: FormData) {
 
 export async function deletePenaltyAction(formData: FormData) {
   return change(formData, "delete");
+}
+
+/** Pilot catalog additions. Existing catalog editing is handled separately. */
+export async function createPilotPenaltyRuleAction(formData:FormData){
+  const {supabase,clubId}=await ctx();
+  if(clubId!=="12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60")redirect("/admin/penalties?tab=rules");
+  const rule_key=String(formData.get("rule_key")??"").trim();
+  const label=String(formData.get("label")??"").trim();
+  const reason=String(formData.get("reason")??"").trim();
+  const value=String(formData.get("value")??"").trim();
+  const raw=String(formData.get("type")??"");
+  const type=raw==="money"||raw==="beer"||raw==="custom"?raw:null;
+  if(!/^[a-zA-Z0-9_-]{1,100}$/.test(rule_key)||label.length<2||label.length>80||
+    reason.length<2||reason.length>150||value.length<1||value.length>100||!type){
+    redirect(url({error:"Katalogeintrag unvollständig."},"rules"));
+  }
+  const {error}=await supabase.from("penalty_rules").insert({
+    club_id:clubId,rule_key,label,reason,type,value,enabled:true,sort_order:100,
+  });
+  if(error)redirect(url({error:"Katalogeintrag konnte nicht gespeichert werden (Schlüssel bereits vorhanden?)."},"rules"));
+  refresh();
+  redirect(url({saved:"1"},"rules"));
 }
