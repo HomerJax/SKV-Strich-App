@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isCashboxPilotClub, parsePilotCashboxStructure } from "@/lib/cashbox/pilot-structure";
+import { isPenaltyWorkflowClub, parsePilotCashboxStructure } from "@/lib/cashbox/pilot-structure";
 
 const back="/mannschaftskasse/zahlungen";
 function validUrl(raw:string,hosts:string[]){
@@ -15,7 +15,7 @@ function validUrl(raw:string,hosts:string[]){
 }
 export async function savePilotPenaltyPaymentsAction(form:FormData){
  const ctx=await requireClub();
- if(ctx.isSupportView||!isCashboxPilotClub(ctx.clubId)||
+ if(ctx.isSupportView||!isPenaltyWorkflowClub(ctx.clubId)||
    !canManageClub({role:ctx.membership.role,isPowerUser:ctx.isPowerUser}))redirect("/home");
  const json=String(form.get("payments_json")??"");
  if(json.length>2400)redirect(back+"?error=invalid");
