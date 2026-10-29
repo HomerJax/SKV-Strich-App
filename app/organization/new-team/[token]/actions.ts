@@ -1,6 +1,6 @@
 "use server";
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -36,6 +36,33 @@ export async function acceptNewTeamInviteAction(form: FormData) {
       !/^[0-9a-f-]{36}$/i.test(clubId)) {
     console.error("New team invitation redemption failed",error?.code);
     redirect(inviteUrl(token,"unavailable"));
+  }
+  // Duplicate logo references are unsafe: removing a logo from one club
+  // deletes the object from storage. Copy the parent's logo to a NEW path
+  // owned by the newly created club, without affecting the atomic creation
+  // if storage has a temporary problem.
+  try {
+    const {data: redeemed} = await db.from("pilot_parent_new_team_invites")
+      .select("source_club_id").eq("token_hash",hash)
+      .eq("created_club_id",clubId).eq("consumed_by",user.id).maybeSingle();
+    if (redeemed) {
+      const {data: source} = await db.from("clubs")
+        .select("logo_path").eq("id",redeemed.source_club_id).maybeSingle();
+      if (source?.logo_path) {
+        const extension = source.logo_path.split(".").pop()?.toLowerCase() || "png";
+        const safeExtension = ["png","jpg","jpeg","webp"].includes(extension) ? extension : "png";
+        const destination = `${clubId}/inherited-${randomUUID()}.${safeExtension}`;
+        const {error: copyError} = await db.storage.from("club-logos")
+          .copy(source.logo_path,destination);
+        if (!copyError) {
+          const {error: updateError} = await db.from("clubs")
+            .update({logo_path:destination}).eq("id",clubId);
+          if (updateError) await db.storage.from("club-logos").remove([destination]);
+        }
+      }
+    }
+  } catch {
+    // New club and membership were committed correctly; logo is optional.
   }
   const store = await cookies();
   store.set("active_club_id",clubId,{
