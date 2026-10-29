@@ -91,6 +91,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
         },
       },
     },
+    ...(["/freizeitmannschaft-organisieren", "/tabelle-freizeitfussball"] as const).flatMap((path) => [
+      {
+        url: SITE_URL + path,
+        changeFrequency: "monthly" as const,
+        priority: 0.75,
+        alternates: {
+          languages: { "de-DE": SITE_URL + path, en: SITE_URL + "/en" + path, "x-default": SITE_URL + path },
+        },
+      },
+      {
+        url: SITE_URL + "/en" + path,
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+        alternates: {
+          languages: { "de-DE": SITE_URL + path, en: SITE_URL + "/en" + path, "x-default": SITE_URL + path },
+        },
+      },
+    ]),
     { url: SITE_URL + "/support", changeFrequency: "monthly", priority: 0.4 },
     { url: SITE_URL + "/impressum", changeFrequency: "yearly", priority: 0.1 },
     { url: SITE_URL + "/datenschutz", changeFrequency: "yearly", priority: 0.1 },
