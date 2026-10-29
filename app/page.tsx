@@ -793,6 +793,8 @@ export default async function LandingPage({
             <Link href={isEnglish ? "/en/faire-fussballteams" : "/faire-fussballteams"} className="hover:text-white">{isEnglish ? "Balanced football teams" : "Faire Fußballteams"}</Link>
             <Link href={isEnglish ? "/en/training-organisieren" : "/training-organisieren"} className="hover:text-white">{isEnglish ? "Training organization" : "Training organisieren"}</Link>
             <Link href={isEnglish ? "/en/mannschaftskasse-app" : "/mannschaftskasse-app"} className="hover:text-white">{isEnglish ? "Team cashbox app" : "Mannschaftskasse-App"}</Link>
+            <Link href={isEnglish ? "/en/freizeitmannschaft-organisieren" : "/freizeitmannschaft-organisieren"} className="hover:text-white">{isEnglish ? "Organize a recreational team" : "Freizeitmannschaft organisieren"}</Link>
+            <Link href={isEnglish ? "/en/tabelle-freizeitfussball" : "/tabelle-freizeitfussball"} className="hover:text-white">{isEnglish ? "Training standings" : "Tabelle für Freizeitfußball"}</Link>
             <Link href="/account-loeschen" className="hover:text-white">{isEnglish ? "Delete account" : "Konto löschen"}</Link>
           </div>
         </div>
