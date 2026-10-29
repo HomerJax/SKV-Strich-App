@@ -42,6 +42,7 @@ const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
       cta: "Teams kostenlos starten",
       related: [
         { href: "/training-organisieren", label: "Trainingsorganisation ansehen" },
+        { href: "/tabelle-freizeitfussball", label: "Tabelle und Stats für Hobbyfußball" },
         { href: "/mannschaftskasse-app", label: "Mannschaftskasse ansehen" },
       ],
     },
@@ -64,6 +65,7 @@ const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
       cta: "Start a team for free",
       related: [
         { href: "/training-organisieren", label: "See training organization" },
+        { href: "/tabelle-freizeitfussball", label: "Track recreational football standings" },
         { href: "/mannschaftskasse-app", label: "See the team fund" },
       ],
     },
@@ -204,6 +206,7 @@ const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
       cta: "Kostenloses Team einrichten",
       related: [
         { href: "/faire-fussballteams", label: "Faire Teamaufteilung ansehen" },
+        { href: "/freizeitmannschaft-organisieren", label: "Mehr zur Hobby-Teamorganisation" },
         { href: "/mannschaftskasse-app", label: "Mannschaftskasse ansehen" },
       ],
     },
@@ -226,6 +229,7 @@ const pages: Record<FeatureKey, Record<AppLocale, FeatureCopy>> = {
       cta: "Set up a team for free",
       related: [
         { href: "/faire-fussballteams", label: "See fair team selection" },
+        { href: "/freizeitmannschaft-organisieren", label: "Organize a recreational sports team" },
         { href: "/mannschaftskasse-app", label: "See the team fund" },
       ],
     },
