@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { parseEuroToCents } from "@/lib/cashbox/money";
 import { getServerI18n } from "@/lib/i18n/server";
+import { isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-structure";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 async function ctx() {
@@ -222,7 +223,7 @@ async function change(
   const { supabase, clubId, user } = await ctx();
   // The pilot uses one atomic, audited settlement path. Prevent the legacy
   // resolve/reopen/delete handlers from bypassing cashier confirmation.
-  if (clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60") {
+  if (isPenaltyWorkflowClub(clubId)) {
     redirect("/mannschaftskasse/strafen");
   }
   const id = Number(String(formData.get("penalty_id") ?? ""));
