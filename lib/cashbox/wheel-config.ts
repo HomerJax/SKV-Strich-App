@@ -1,4 +1,13 @@
 export type WheelCategory = "luck" | "challenge";
+export type WheelEffect = "keep" | "waive" | "halve" | "fixed_money" | "task" | "goods";
+
+export function legacyWheelEffect(id:string,label:string):WheelEffect {
+  if(id==="usual" || /bleibt|keine zusatzaufgabe/i.test(label))return "keep";
+  if(id==="lucky" || /joker/i.test(label))return "waive";
+  if(/halb/i.test(label))return "halve";
+  return "task";
+}
+
 
 export type WheelSegment = {
   id: string;
@@ -7,6 +16,8 @@ export type WheelSegment = {
   description: string;
   weight: number;
   category: WheelCategory;
+  effect?: WheelEffect;
+  effectValue?: string;
 };
 
 // Categories are playful groups for the admin's chance presets, not money prizes.
@@ -50,6 +61,14 @@ export function parseWheelSegments(input: unknown): WheelSegment[] | null {
     const category: WheelCategory = row.category === "luck" || row.category === "challenge"
       ? row.category
       : row.id === "lucky" || row.id === "usual" ? "luck" : "challenge";
+    const choices: WheelEffect[]=["keep","waive","halve","fixed_money","task","goods"];
+    const effect = row.effect === undefined
+      ? legacyWheelEffect(row.id,row.label.trim())
+      : choices.includes(row.effect as WheelEffect)?row.effect as WheelEffect:null;
+    const effectValue = typeof row.effectValue==="string"?row.effectValue.trim():"";
+    if(!effect || effectValue.length>100) return null;
+    if(effect==="fixed_money" && !/^[0-9]{1,6}(?:[.,][0-9]{1,2})?$/.test(effectValue))return null;
+
     ids.add(row.id);
     total += row.weight;
     segments.push({
@@ -58,7 +77,7 @@ export function parseWheelSegments(input: unknown): WheelSegment[] | null {
       label: row.label.trim(),
       description: row.description.trim(),
       weight: row.weight,
-      category,
+      category, effect, effectValue,
     });
   }
   return total === 100 ? segments : null;
@@ -106,6 +125,7 @@ export function favorWheelSegments(
 
 export function resizeWheelSegments(segments: WheelSegment[], size: 4 | 6 | 8): WheelSegment[] {
   const next = segments.slice(0, size).map((segment) => ({ ...segment }));
+  // Every new pilot field needs a consequence even before a first save.
   // Keep existing custom field descriptions; provide sensible new defaults.
   for (const suggestion of WHEEL_SUGGESTIONS) {
     if (next.length >= size) break;
@@ -120,7 +140,7 @@ export function resizeWheelSegments(segments: WheelSegment[], size: 4 | 6 | 8): 
     });
   }
   // Field count changes always start with a valid, almost-equal distribution.
-  return equalizeWheelSegments(next);
+  return equalizeWheelSegments(next.map(item=>({...item,effect:item.effect??legacyWheelEffect(item.id,item.label),effectValue:item.effectValue??""})));
 }
 
 export function applyWheelChancePreset(segments: WheelSegment[], luckPercent: 40 | 50 | 60): WheelSegment[] {
