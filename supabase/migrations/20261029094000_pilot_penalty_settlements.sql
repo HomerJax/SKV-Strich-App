@@ -116,8 +116,8 @@ begin
    v_method:=case when v_kind='money' then p_payment_method else null end;
    if v_kind='money' and (v_method is null or v_method not in ('cash','paypal','paypal_me','sumup','other'))
    then raise exception 'payment_method_required' using errcode='P0001';end if;
-   if v_kind<>'money' and p_payment_method not in ('','in_kind') and p_payment_method is not null
-   then raise exception 'payment_method_invalid' using errcode='P0001';end if;
+   -- A wheel can turn a money fine into a non-money challenge. Ignore
+   -- a preselected payment method in that case, never charge it.
    insert into public.pilot_penalty_settlements(
      penalty_id,club_id,state,fulfillment_kind,effective_label,amount_cents,payment_method,
      report_note,reported_by,reported_at,reviewed_by,reviewed_at,review_note,transaction_id
