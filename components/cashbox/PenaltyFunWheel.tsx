@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import {
   PUBLIC_WHEEL_COLORS, visibleSegmentMidpoint, type PublicWheelSegment,
@@ -32,6 +33,8 @@ type WheelResponse = {
 };
 
 export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
+  const router=useRouter();
+  function closeResult(){setShowResultPopup(false);router.refresh();}
   const [segments, setSegments] = useState<PublicWheelSegment[]>([]);
   const [outcome, setOutcome] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -55,7 +58,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setShowResultPopup(false);
+      if (event.key === "Escape") closeResult();
     };
     window.addEventListener("keydown", onEscape);
     closeButtonRef.current?.focus();
@@ -63,7 +66,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
       document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", onEscape);
     };
-  }, [showResultPopup]);
+  }, [showResultPopup,router]);
 
 
   useEffect(() => {
@@ -281,7 +284,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         ? createPortal(
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8">
             <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md"
-              onClick={() => setShowResultPopup(false)} aria-hidden="true" />
+              onClick={closeResult} aria-hidden="true" />
             <div role="dialog" aria-modal="true" aria-labelledby="wheel-result-title"
               aria-describedby="wheel-result-description"
               data-strikr-wheel-result
@@ -305,9 +308,9 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                   {detail || "Dein Ergebnis wurde gespeichert."}
                 </p>
                 <p className="text-[11px] leading-5 text-slate-500">
-                  Die ursprüngliche Geld- oder Bierstrafe bleibt unverändert.
+                  Das Ergebnis bestimmt die endgültige Strafe. Melde danach deine Zahlung oder Erfüllung – der Kassenwart bestätigt sie.
                 </p>
-                <button ref={closeButtonRef} type="button" onClick={() => setShowResultPopup(false)}
+                <button ref={closeButtonRef} type="button" onClick={closeResult}
                   className="mt-2 w-full rounded-xl bg-cyan-600 px-4 py-3.5 text-sm font-black text-white transition hover:bg-cyan-700">
                   Alles klar! 🙌
                 </button>
