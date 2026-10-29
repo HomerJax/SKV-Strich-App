@@ -58,7 +58,7 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeResult();
+      if (event.key === "Escape") { setShowResultPopup(false); router.refresh(); }
     };
     window.addEventListener("keydown", onEscape);
     closeButtonRef.current?.focus();
