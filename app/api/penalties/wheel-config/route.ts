@@ -8,8 +8,8 @@ import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { clubId, isPowerUser, membership } = await requireClub();
-  if (!canManageClub({ isPowerUser, role: membership.role })) {
+  const { clubId, isPowerUser, membership, isSupportView } = await requireClub();
+  if (isSupportView || !canManageClub({ isPowerUser, role: membership.role })) {
     return NextResponse.json({ error: "Nur Vereinsadmins dürfen das Rad konfigurieren." }, { status: 403 });
   }
   const db = createAdminClient();
@@ -20,8 +20,8 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const { clubId, user, isPowerUser, membership } = await requireClub();
-  if (!canManageClub({ isPowerUser, role: membership.role })) {
+  const { clubId, user, isPowerUser, membership, isSupportView } = await requireClub();
+  if (isSupportView || !canManageClub({ isPowerUser, role: membership.role })) {
     return NextResponse.json({ error: "Nur Vereinsadmins dürfen das Rad konfigurieren." }, { status: 403 });
   }
   const payload = await request.json().catch(() => null) as { segments?: unknown; scopeKey?: unknown } | null;
