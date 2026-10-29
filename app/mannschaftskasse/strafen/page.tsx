@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isPenaltyWorkflowClub, isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
+import { isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-structure";
 import { getServerI18n } from "@/lib/i18n/server";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
 import { parseWheelSegments } from "@/lib/cashbox/wheel-config";
@@ -54,19 +54,9 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
    :{data:[]};
  const {data:paymentConfig}=await db.from("cashbox_pilot_structures")
   .select("config").eq("club_id",ctx.clubId).maybeSingle();
- const {data:skvSettings}=!isCashboxPilotClub(ctx.clubId)
-  ?await db.from("club_settings")
-    .select("beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled")
-    .eq("club_id",ctx.clubId).maybeSingle():{data:null};
-
- const payment=paymentConfig
-  ?parsePilotCashboxStructure(paymentConfig.config).payments
-  :isCashboxPilotClub(ctx.clubId)
-   ?parsePilotCashboxStructure(null).payments
-   :{cashEnabled:skvSettings?.beerkasse_cash_enabled!==false,
-     paypalPoolUrl:skvSettings?.beerkasse_paypal_url||"",
-     paypalMeUrl:skvSettings?.beerkasse_paypal_me_url||"",
-     sumupUrl:skvSettings?.beerkasse_sumup_url||""};
+ // Only explicitly approved penalty destinations are exposed to members.
+ // The SKV beer pool is pre-filled in admin settings, but not active here until saved.
+ const payment=parsePilotCashboxStructure(paymentConfig?.config).payments;
  const methods=[
    ...(payment.paypalPoolUrl?[{key:"paypal",label:"PayPal-Pool",url:payment.paypalPoolUrl}]:[]),
    ...(payment.paypalMeUrl?[{key:"paypal_me",label:"PayPal.Me",url:payment.paypalMeUrl}]:[]),
