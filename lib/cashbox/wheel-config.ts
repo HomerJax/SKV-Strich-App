@@ -1,10 +1,11 @@
 export type WheelCategory = "luck" | "challenge";
-export type WheelEffect = "keep" | "waive" | "halve" | "fixed_money" | "task" | "goods";
+export type WheelEffect = "keep" | "waive" | "halve" | "double" | "fixed_money" | "task" | "goods";
 
 export function legacyWheelEffect(id:string,label:string):WheelEffect {
-  if(id==="usual" || /bleibt|keine zusatzaufgabe/i.test(label))return "keep";
+  if(/bleibt|keine zusatzaufgabe/i.test(label))return "keep";
   if(id==="lucky" || /joker/i.test(label))return "waive";
   if(/halb/i.test(label))return "halve";
+  if(/doppelt/i.test(label))return "double";
   return "task";
 }
 
@@ -61,7 +62,7 @@ export function parseWheelSegments(input: unknown): WheelSegment[] | null {
     const category: WheelCategory = row.category === "luck" || row.category === "challenge"
       ? row.category
       : row.id === "lucky" || row.id === "usual" ? "luck" : "challenge";
-    const choices: WheelEffect[]=["keep","waive","halve","fixed_money","task","goods"];
+    const choices: WheelEffect[]=["keep","waive","halve","double","fixed_money","task","goods"];
     const effect = row.effect === undefined
       ? legacyWheelEffect(row.id,row.label.trim())
       : choices.includes(row.effect as WheelEffect)?row.effect as WheelEffect:null;
