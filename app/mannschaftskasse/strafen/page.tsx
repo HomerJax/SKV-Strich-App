@@ -8,6 +8,7 @@ import { formatCents } from "@/lib/cashbox/money";
 import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
 import { pilotPenaltyAction } from "./actions";
 import { addPenaltyAction } from "@/app/admin/penalties/actions";
+import {parsePilotCashboxStructure} from "@/lib/cashbox/pilot-structure";
 
 type Penalty={id:number;player_id:number;reason:string|null;value:string|null;type:string;source_key:string|null;resolved_at:string|null};
 type Settlement={penalty_id:number;state:string;effective_label:string;fulfillment_kind:string;amount_cents:number|null;payment_method:string|null;report_note:string;review_note:string};
@@ -28,6 +29,15 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
    if(!ctx.player?.id)redirect("/home");
    query.eq("player_id",ctx.player.id);
  }
+ const {data:paymentConfig}=await db.from("cashbox_pilot_structures")
+  .select("config").eq("club_id",ctx.clubId).maybeSingle();
+ const payment=parsePilotCashboxStructure(paymentConfig?.config).payments;
+ const methods=[
+   ...(payment.cashEnabled?[{key:"cash",label:en?"Cash":"Bar",url:""}]:[]),
+   ...(payment.paypalPoolUrl?[{key:"paypal",label:"PayPal-Pool",url:payment.paypalPoolUrl}]:[]),
+   ...(payment.paypalMeUrl?[{key:"paypal_me",label:"PayPal.Me",url:payment.paypalMeUrl}]:[]),
+   ...(payment.sumupUrl?[{key:"sumup",label:"SumUp",url:payment.sumupUrl}]:[]),
+ ];
  const {data,error}=await query;
  if(error)throw new Error("Strafen konnten nicht geladen werden");
  const rows=(data??[]) as Penalty[];const ids=rows.map(x=>x.id);
@@ -53,6 +63,8 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
   </header>
   {q?.error?<p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{en?"Request could not be saved; check status and fields.":"Aktion nicht möglich – bitte Status und Angaben prüfen."}</p>:null}
   {q?.saved?<p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{en?"Saved.":"Gespeichert."}</p>:null}
+  {ctx.isClubAdmin?<Link className="block rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm font-black text-teal-950"
+    href="/mannschaftskasse/zahlungen">💳 Zahlungswege für Strafen einrichten / bearbeiten →</Link>:null}
   {ctx.canManageCashbox?<details className="rounded-xl border border-teal-200 bg-white p-4">
     <summary className="cursor-pointer text-sm font-black text-teal-950">{en?"Create penalty":"Neue Strafe anlegen"}</summary>
     <form action={addPenaltyAction} className="mt-3 space-y-2">
@@ -92,12 +104,15 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
         {!s?<PenaltyFunWheel penaltyId={p.id}/>:null}
         <form action={pilotPenaltyAction} className="space-y-2 rounded-xl bg-slate-50 p-3">
          <input type="hidden" name="penalty_id" value={p.id}/><input type="hidden" name="action" value="report"/>
-         {p.type==="money"?<label className="block text-xs font-bold">{en?"Payment method (if money is owed)":"Zahlungsweg (falls Geld geschuldet)"}
-          <select name="payment_method" className={field} defaultValue="cash">
-            <option value="cash">Bar</option><option value="paypal">PayPal</option><option value="paypal_me">PayPal.Me</option>
-            <option value="sumup">SumUp</option><option value="other">Überweisung / Sonstiges</option>
-          </select>
-         </label>:null}
+         {methods.length>0?<label className="block text-xs font-bold">{en?"Payment method if money is owed":"Zahlungsweg (falls Geld geschuldet)"}
+           <select name="payment_method" className={field} defaultValue={methods[0].key}>
+             {methods.map(m=><option key={m.key} value={m.key}>{m.label}</option>)}
+           </select>
+         </label>:<p className="text-xs font-bold text-rose-700">Kein Zahlungsweg freigeschaltet. Bitte Admin kontaktieren.</p>}
+         {methods.some(m=>m.url)?<div className="flex flex-wrap gap-2">
+           {methods.filter(m=>m.url).map(m=><a key={m.key} href={m.url} target="_blank" rel="noopener noreferrer"
+             className="rounded-lg bg-teal-100 px-3 py-2 text-xs font-black text-teal-950">{m.label} öffnen ↗</a>)}
+         </div>:null}
          <input className={field} name="note" maxLength={500} placeholder={en?"Optional note":"Notiz: wann, wie oder wo bezahlt / abgegeben"}/>
          <button className={btn}>{en?"Report payment/completion":"Zahlung / Erfüllung melden"}</button>
          <p className="text-xs text-slate-500">{en?"A report is not proof of payment.":"Erst der Kassenwart bestätigt den Eingang."}</p>
