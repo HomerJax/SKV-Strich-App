@@ -14,6 +14,27 @@ function playerWheelSegments(segments: WheelSegment[]): PublicWheelSegment[] {
   }));
 }
 
+const SKV_AH_ID="108590d9-0877-4787-90a5-4679615b3b76";
+
+async function skvWheelLockReason(
+  db:ReturnType<typeof createAdminClient>,
+  clubId:string,
+  penaltyCreatedAt:string
+):Promise<string|null>{
+  if(clubId!==SKV_AH_ID)return null;
+  const {data:settings,error}=await db.from("penalty_wheel_pauses")
+    .select("paused_until,eligible_penalties_from")
+    .eq("club_id",clubId).maybeSingle();
+  if(error)throw new Error("Wheel eligibility unavailable");
+  if(!settings)return null;
+  if(settings.paused_until && new Date(settings.paused_until).getTime()>Date.now())
+    return "Das Glücksrad ist heute erst ab 20:30 Uhr freigeschaltet.";
+  if(settings.eligible_penalties_from &&
+      new Date(penaltyCreatedAt).getTime()<new Date(settings.eligible_penalties_from).getTime())
+    return "Das Glücksrad gilt nur für neue Strafen ab dem 29.10.2026 um 18:30 Uhr. Diese Strafe ist älter.";
+  return null;
+}
+
 export const dynamic = "force-dynamic";
 
 // Only these two explicitly marked demonstration penalties can be reset.
@@ -82,9 +103,13 @@ export async function GET(request: NextRequest) {
   }
   const db = createAdminClient();
   const { data: penalty, error: penaltyError } = await db.from("penalties")
-    .select("id,source_key").eq("club_id", clubId).eq("player_id", player.id).eq("id", penaltyId).maybeSingle();
+    .select("id,source_key,created_at").eq("club_id", clubId).eq("player_id", player.id).eq("id", penaltyId).maybeSingle();
   if (penaltyError) return NextResponse.json({ error: "Strafe konnte nicht geladen werden." }, { status: 500 });
   if (!penalty) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
+  const lockReason=await skvWheelLockReason(db,clubId,penalty.created_at);
+  if(lockReason)return NextResponse.json({
+    outcome:null,label:null,detail:null,segments:[],canResetForTest:false,lockedReason:lockReason,
+  });
   const canResetForTest = mayResetTestWheel(clubId, penalty);
 
   const [{ data: spin, error: spinError }, segments] = await Promise.all([
@@ -108,10 +133,12 @@ export async function POST(request: NextRequest) {
   }
   const db = createAdminClient();
   const { data: penalty, error: penaltyError } = await db.from("penalties")
-    .select("id,player_id,resolved_at,source_key")
+    .select("id,player_id,resolved_at,source_key,created_at")
     .eq("club_id", clubId).eq("id", penaltyId).eq("player_id", player.id).maybeSingle();
   if (penaltyError) return NextResponse.json({ error: "Strafe konnte nicht geladen werden." }, { status: 500 });
   if (!penalty) return NextResponse.json({ error: "Strafe nicht gefunden." }, { status: 404 });
+  const lockReason=await skvWheelLockReason(db,clubId,penalty.created_at);
+  if(lockReason)return NextResponse.json({error:lockReason},{status:423});
   const canResetForTest = mayResetTestWheel(clubId, penalty);
 
   const { data: existing } = await db.from("penalty_wheel_spins")
@@ -203,7 +230,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Wheel test reset failed", { penaltyId, code: error.code });
     return NextResponse.json({ error: "Testdreh konnte nicht zurückgesetzt werden." }, { status: 500 });
   }
-  const segments = await activeSegments(db, clubId);
+  const segments = await activeSegments(db, clubId, penaltyId);
   return NextResponse.json({
     outcome: null,
     label: null,
