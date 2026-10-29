@@ -172,9 +172,11 @@ begin
    -- Only admin-enabled payment methods are accepted by the DB, not just UI.
    select coalesce(config->'payments','{"cashEnabled":true}'::jsonb) into v_methods
    from public.cashbox_pilot_structures where club_id=v_penalty.club_id;
-   if v_penalty.club_id='108590d9-0877-4787-90a5-4679615b3b76'::uuid then
-     -- SKV uses its existing configured payment destinations; it has no
-     -- pilot cashbox structure and should not need to configure one.
+   if v_penalty.club_id='108590d9-0877-4787-90a5-4679615b3b76'::uuid
+      and v_methods is null then
+     -- For the first visit, SKV's existing beer payment destinations provide
+     -- a non-destructive default. After settings are saved, the separate
+     -- penalty destinations in cashbox_pilot_structures take precedence.
      select jsonb_build_object(
        'cashEnabled',coalesce(beerkasse_cash_enabled,true),
        'paypalPoolUrl',coalesce(beerkasse_paypal_url,''),
