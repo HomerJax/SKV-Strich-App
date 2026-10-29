@@ -51,11 +51,7 @@ export default async function WheelSettingsPage({searchParams}:{searchParams?:Pr
           <h2 className="font-black text-slate-950">Für welche Strafe gilt das Rad?</h2>
           <p className="mt-1 text-xs text-slate-600">Wähle den Vereinsstandard, einen Katalogeintrag oder eine konkrete Strafe. Deren Rad überschreibt den Standard. Ändert ihr später den Katalog, behalten bereits gedrehte Strafen ihren Ausgang.</p>
           <label className="mt-3 block text-xs font-bold">Individuelle Rad-Konfiguration
-            <select className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm" defaultValue={scopeKey}
-              // Navigation occurs via a regular GET form below, not JavaScript.
-              disabled>
-              <option value={scopeKey}>{chosenName}</option>
-            </select>
+            <p className="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-bold">{chosenName}</p>
           </label>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link href="/mannschaftskasse/gluecksrad" className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black">Vereinsstandard</Link>
