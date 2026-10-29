@@ -3,7 +3,7 @@ import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  addPenaltyAction,
+  addPenaltyAction, createPilotPenaltyRuleAction,
   deletePenaltyAction,
   reopenPenaltyAction,
   resolvePenaltyAction,
@@ -784,6 +784,10 @@ export default async function Page({ searchParams }: Props) {
                       </div>
                       <div className="flex gap-1">
                         {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
+                          <Link href={`/mannschaftskasse/gluecksrad?penaltyId=${entry.id}`}
+                            className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-1.5 text-xs font-black text-violet-800">🎡 Individuell</Link>
+                        ) : null}
+                        {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
                           <Link href="/mannschaftskasse/strafen" className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-black text-emerald-800">Meldung prüfen →</Link>
                         ) : (<>
                         <form action={resolvePenaltyAction}>
@@ -840,6 +844,21 @@ export default async function Page({ searchParams }: Props) {
             <p className="mt-1 text-xs text-slate-500">
               {t("cashAdmin.rulesHint")}
             </p>
+            {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
+              <form action={createPilotPenaltyRuleAction} className="mt-4 grid gap-2 rounded-2xl border border-teal-200 bg-teal-50 p-3 sm:grid-cols-2">
+                <p className="sm:col-span-2 text-sm font-black text-teal-950">Neuen Strafenkatalog-Eintrag erstellen</p>
+                <input name="rule_key" required pattern="[a-zA-Z0-9_-]+" placeholder="Schlüssel: elfmeter" className="rounded-xl border px-3 py-2 text-sm"/>
+                <input name="label" required placeholder="Name: Elfmeter" className="rounded-xl border px-3 py-2 text-sm"/>
+                <input name="reason" required placeholder="Grund: Elfmeter verschossen" className="rounded-xl border px-3 py-2 text-sm"/>
+                <input name="value" required placeholder="Grundstrafe: z. B. 2 oder 1 Kiste" className="rounded-xl border px-3 py-2 text-sm"/>
+                <select name="type" defaultValue="custom" className="rounded-xl border px-3 py-2 text-sm">
+                  <option value="custom">Aufgabe / Sonstiges</option>
+                  <option value="money">Geld</option>
+                  <option value="beer">Bier / Sachleistung</option>
+                </select>
+                <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white">Eintrag anlegen</button>
+              </form>
+            ) : null}
             <div className="mt-4 space-y-3">
               {rules.map((rule) => (
                 <form key={rule.rule_key} action={savePenaltyRuleAction} className="rounded-2xl border bg-slate-50 p-3">
@@ -878,6 +897,12 @@ export default async function Page({ searchParams }: Props) {
                       <span className="mt-1 block text-[10px] font-medium text-slate-500">{t("cashAdmin.escalationHint")}</span>
                     </label>
                   </div>
+                  {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
+                    <Link href={`/mannschaftskasse/gluecksrad?ruleKey=${encodeURIComponent(rule.rule_key)}`}
+                      className="mt-3 inline-block rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-black text-teal-900">
+                      🎡 Glücksrad & konkrete Auswirkung für diesen Katalogeintrag festlegen
+                    </Link>
+                  ) : null}
                   <div className="mt-3 flex items-center justify-between">
                     <label className="flex items-center gap-2 text-xs font-black">
                       <input type="checkbox" name="enabled" defaultChecked={rule.enabled} /> {t("cashAdmin.active")}
