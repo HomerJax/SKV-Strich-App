@@ -171,7 +171,7 @@ export default async function Page({ searchParams }: Props) {
 
   if (settings?.cashbox_setup_completed !== true) {
     if (isClubAdmin) redirect("/mannschaftskasse/setup");
-    return <main className="min-h-screen bg-neutral-100"><section className="mx-auto max-w-3xl space-y-4 px-4 py-6"><Link href="/home" className="text-sm font-semibold text-slate-600">← Home</Link><div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"><div className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">{t("cashbox.title")}</div><h1 className="mt-2 text-2xl font-black text-slate-950">{t("cashbox.notSetUp")}</h1><p className="mt-2 text-sm font-medium leading-6 text-slate-600">{t("cashbox.notSetUpText")}</p></div></section></main>;
+    return <main className="min-h-screen bg-neutral-100"><section className="mx-auto max-w-3xl space-y-4 px-4 py-6"><Link href="/home" className="text-sm font-semibold text-slate-600">← Home</Link>{isCashboxPilotClub(clubId)?<Link href="/mannschaftskasse/strafen" className="block rounded-xl bg-amber-50 p-3 text-sm font-black text-amber-950">⚖️ Strafen melden und bestätigen →</Link>:null}<div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"><div className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">{t("cashbox.title")}</div><h1 className="mt-2 text-2xl font-black text-slate-950">{t("cashbox.notSetUp")}</h1><p className="mt-2 text-sm font-medium leading-6 text-slate-600">{t("cashbox.notSetUpText")}</p></div></section></main>;
   }
   const penaltiesEnabled = settings.cashbox_penalties_enabled === true;
   const contributionsEnabled = settings.cashbox_contributions_enabled === true;
@@ -343,6 +343,10 @@ export default async function Page({ searchParams }: Props) {
             {t("cashbox.balanceHint")}
           </p>
         </div>
+
+        {isCashboxPilotClub(clubId) ? (
+          <Link href="/mannschaftskasse/strafen" className="block rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-black text-amber-950">⚖️ {locale==="en"?"Report / review penalties":"Strafen melden / bestätigen"} →</Link>
+        ) : null}
 
         {isCashboxPilotClub(clubId) && isClubAdmin ? (
           <section className="rounded-2xl border border-teal-200 bg-teal-50 p-4">
