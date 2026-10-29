@@ -77,7 +77,7 @@ export async function handleAddGuestPlayer({
     return fail(t("sessionAction.guestNameRequired"));
   }
 
-  const guestAllowed = await canAddGuestToSession(supabase, clubId, sessionId);
+  const guestAllowed = await canAddGuestToSession(adminSupabase, clubId, sessionId);
   if (!guestAllowed) {
     return fail(`Im Free-Plan ist ${FREE_GUESTS_PER_SESSION_LIMIT} Gastspieler pro Termin enthalten. Mit PRO kannst du weitere Gäste hinzufügen.`, 403);
   }
