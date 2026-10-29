@@ -93,8 +93,10 @@ begin
  where id=v_invite.source_club_id and deleted_at is null;
  if not found then raise exception 'source_unavailable' using errcode='P0001'; end if;
 
- insert into public.clubs(name,display_name,sport_type,primary_color,logo_path)
- values (v_name,v_name,p_sport_type,coalesce(v_source.primary_color,'black'),v_source.logo_path)
+ -- New club gets its own logo file in the follow-up storage copy;
+ -- never reference the source's storage path across clubs.
+ insert into public.clubs(name,display_name,sport_type,primary_color)
+ values (v_name,v_name,p_sport_type,coalesce(v_source.primary_color,'black'))
  returning id into v_club;
 
  insert into public.club_memberships(club_id,user_id,role)
