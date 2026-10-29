@@ -38,12 +38,15 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
   ?await db.from("club_settings")
     .select("beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled")
     .eq("club_id",ctx.clubId).maybeSingle():{data:null};
- const payment=isCashboxPilotClub(ctx.clubId)
-  ?parsePilotCashboxStructure(paymentConfig?.config).payments
-  :{cashEnabled:skvSettings?.beerkasse_cash_enabled!==false,
-    paypalPoolUrl:skvSettings?.beerkasse_paypal_url||"",
-    paypalMeUrl:skvSettings?.beerkasse_paypal_me_url||"",
-    sumupUrl:skvSettings?.beerkasse_sumup_url||""};
+
+ const payment=paymentConfig
+  ?parsePilotCashboxStructure(paymentConfig.config).payments
+  :isCashboxPilotClub(ctx.clubId)
+   ?parsePilotCashboxStructure(null).payments
+   :{cashEnabled:skvSettings?.beerkasse_cash_enabled!==false,
+     paypalPoolUrl:skvSettings?.beerkasse_paypal_url||"",
+     paypalMeUrl:skvSettings?.beerkasse_paypal_me_url||"",
+     sumupUrl:skvSettings?.beerkasse_sumup_url||""};
  const methods=[
    ...(payment.cashEnabled?[{key:"cash",label:en?"Cash":"Bar",url:""}]:[]),
    ...(payment.paypalPoolUrl?[{key:"paypal",label:"PayPal-Pool",url:payment.paypalPoolUrl}]:[]),
