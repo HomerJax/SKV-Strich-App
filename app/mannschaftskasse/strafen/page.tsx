@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
+import { isPenaltyWorkflowClub, isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
 import { getServerI18n } from "@/lib/i18n/server";
 import { formatCents } from "@/lib/cashbox/money";
 import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
@@ -20,7 +20,7 @@ const status:Record<string,string>={open:"Offen",reported:"ErfÃ¼llung gemeldet Â
 export default async function PilotPenaltyPage({searchParams}:{searchParams?:Promise<{saved?:string;error?:string}>}){
  const q=await searchParams;
  const ctx=await requireCashboxAccess();
- if(!isCashboxPilotClub(ctx.clubId)||ctx.isSupportView)redirect("/home");
+ if(!isPenaltyWorkflowClub(ctx.clubId)||ctx.isSupportView)redirect("/home");
  const {locale}=await getServerI18n();const en=locale==="en";
  const db=createAdminClient();
  const query=db.from("penalties").select("id,player_id,reason,value,type,source_key,resolved_at")
@@ -34,7 +34,16 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
    :{data:[]};
  const {data:paymentConfig}=await db.from("cashbox_pilot_structures")
   .select("config").eq("club_id",ctx.clubId).maybeSingle();
- const payment=parsePilotCashboxStructure(paymentConfig?.config).payments;
+ const {data:skvSettings}=!isCashboxPilotClub(ctx.clubId)
+  ?await db.from("club_settings")
+    .select("beerkasse_paypal_url,beerkasse_paypal_me_url,beerkasse_sumup_url,beerkasse_cash_enabled")
+    .eq("club_id",ctx.clubId).maybeSingle():{data:null};
+ const payment=isCashboxPilotClub(ctx.clubId)
+  ?parsePilotCashboxStructure(paymentConfig?.config).payments
+  :{cashEnabled:skvSettings?.beerkasse_cash_enabled!==false,
+    paypalPoolUrl:skvSettings?.beerkasse_paypal_url||"",
+    paypalMeUrl:skvSettings?.beerkasse_paypal_me_url||"",
+    sumupUrl:skvSettings?.beerkasse_sumup_url||""};
  const methods=[
    ...(payment.cashEnabled?[{key:"cash",label:en?"Cash":"Bar",url:""}]:[]),
    ...(payment.paypalPoolUrl?[{key:"paypal",label:"PayPal-Pool",url:payment.paypalPoolUrl}]:[]),
