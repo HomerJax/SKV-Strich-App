@@ -349,6 +349,10 @@ export default async function Page({ searchParams }: Props) {
         ) : null}
 
         {isCashboxPilotClub(clubId) && isClubAdmin ? (
+          <Link href="/mannschaftskasse/zahlungen" className="block rounded-xl border border-teal-200 bg-white p-3 text-sm font-black text-teal-950">💳 Zahlungswege für Strafen und Beiträge einrichten →</Link>
+        ) : null}
+
+        {isCashboxPilotClub(clubId) && isClubAdmin ? (
           <section className="rounded-2xl border border-teal-200 bg-teal-50 p-4">
             <div className="text-xs font-black uppercase tracking-[.18em] text-teal-700">{locale === "en" ? "Cashbox pilot · Settings" : "Kassenpilot · Einstellungen"}</div>
             <div className="mt-1 text-lg font-black text-slate-950">{locale === "en" ? "Accounts" : "Konten"}</div>
