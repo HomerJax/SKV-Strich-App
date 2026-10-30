@@ -97,6 +97,8 @@ function getPlanLabel(planKey: string, locale: AppLocale) {
   switch (planKey) {
     case "supercup_trial":
       return "Supercup Trial";
+    case "pro_trial":
+      return locale === "en" ? "28-day PRO trial" : "28 Tage PRO-Test";
     case "pro_monthly":
       return translate(locale, "powerClubs.planMonthly");
     case "pro_6_months":
@@ -120,7 +122,7 @@ function getBillingTone(planKey: string, status: string) {
     return "border-slate-200 bg-slate-50 text-slate-700";
   }
 
-  if (planKey === "supercup_trial") {
+  if (planKey === "supercup_trial" || planKey === "pro_trial") {
     return "border-amber-200 bg-amber-50 text-amber-900";
   }
 
@@ -136,7 +138,7 @@ function getPlanBadgeTone(planKey: string, status: string) {
     return "border-slate-200 bg-white text-slate-600";
   }
 
-  if (planKey === "supercup_trial") {
+  if (planKey === "supercup_trial" || planKey === "pro_trial") {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
 
@@ -542,7 +544,8 @@ export default async function PowerUserClubsPage({
 
       const hasRecentSession = isRecentlyActive(latestSessionCreatedAt);
       const isPaid =
-        billing.status === "active" && billing.plan_key !== "free";
+        billing.status === "active" &&
+        ["founder", "pro_monthly", "pro_6_months", "pro_yearly"].includes(billing.plan_key);
       const isActive =
         isPaid || hasRecentSession || sessionCount >= 3 || members.length >= 3;
 
