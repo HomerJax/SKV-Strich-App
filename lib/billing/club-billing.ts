@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type ClubBillingPlanKey =
   | "free"
   | "supercup_trial"
+  | "pro_trial"
   | "pro_monthly"
   | "pro_6_months"
   | "pro_yearly"
@@ -34,6 +35,7 @@ export type BillingAccess = {
   isFree: boolean;
   isPro: boolean;
   isFounder: boolean;
+  isTrial: boolean;
   isExpired: boolean;
   planLabel: string;
 };
@@ -57,6 +59,8 @@ export function getPlanLabel(planKey: string) {
   switch (planKey) {
     case "supercup_trial":
       return "Supercup Trial";
+    case "pro_trial":
+      return "Pro 28 Tage testen";
     case "pro_monthly":
       return "Pro monatlich";
     case "pro_6_months":
@@ -118,10 +122,18 @@ export function getBillingAccess(
     (billing.plan_key === "pro_monthly" || billing.plan_key === "pro_yearly") &&
     (billing.pro_ends_at === null || isDateInFuture(billing.pro_ends_at));
 
-  const isPro = isFounder || hasActiveTimedPro;
+  const isTrial =
+    billing.plan_key === "pro_trial" &&
+    billing.status === "active" &&
+    !billing.billing_provider &&
+    !billing.stripe_subscription_id &&
+    isDateInFuture(billing.trial_ends_at);
+
+  const isPro = isFounder || hasActiveTimedPro || isTrial;
 
   const isExpired =
     billing.status !== "active" ||
+    (billing.plan_key === "pro_trial" && !isTrial) ||
     (billing.plan_key !== "free" &&
       billing.plan_key !== "founder" &&
       billing.pro_ends_at !== null &&
@@ -132,6 +144,7 @@ export function getBillingAccess(
     isFree: !isPro,
     isPro,
     isFounder,
+    isTrial,
     isExpired,
     planLabel: getPlanLabel(billing.plan_key),
   };
