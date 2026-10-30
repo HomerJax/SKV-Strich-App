@@ -4,6 +4,11 @@
  */
 export const PRO_TRIAL_DAYS = 28;
 
+/** Opt-in rollout: apply the SQL migration before setting this to true. */
+export function isProTrialEnabled() {
+  return process.env.STRIKR_PRO_TRIAL_ENABLED === "true";
+}
+
 export function buildNewClubTrialBilling(clubId: string, now = new Date()) {
   if (!Number.isFinite(now.getTime())) {
     throw new Error("Invalid trial start date.");
@@ -23,6 +28,30 @@ export function buildNewClubTrialBilling(clubId: string, now = new Date()) {
     stripe_price_id: null,
     cancel_at_period_end: false,
     billing_note: "Einmaliger kostenloser PRO-Test für 28 Tage. Danach automatisch Free, ohne Abo.",
+    updated_at: now.toISOString(),
+  };
+}
+
+/** Club setup stays on Free until the trial rollout is explicitly enabled. */
+export function buildInitialClubBilling(
+  clubId: string,
+  now = new Date(),
+  trialEnabled = isProTrialEnabled(),
+) {
+  if (trialEnabled) return buildNewClubTrialBilling(clubId, now);
+
+  return {
+    club_id: clubId,
+    plan_key: "free" as const,
+    status: "active" as const,
+    trial_ends_at: null,
+    pro_ends_at: null,
+    billing_provider: null,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    stripe_price_id: null,
+    cancel_at_period_end: false,
+    billing_note: "Neuer Club im kostenlosen Startplan.",
     updated_at: now.toISOString(),
   };
 }
