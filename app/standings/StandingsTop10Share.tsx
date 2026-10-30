@@ -32,11 +32,17 @@ export default function StandingsTop10Share({ clubId }: { clubId: string }) {
   const season = searchParams.get("season");
   const canUseStory = clubId === PILOT_STORY_CLUB_ID;
   const [shareFormat, setShareFormat] = useState<"post" | "story">("post");
-  const [preparedFile, setPreparedFile] = useState<File | null>(null);
-  const [preparing, setPreparing] = useState(true);
+  const [preparedFile, setPreparedFile] = useState<{ key: string; file: File } | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  // Preparing a PNG used to happen on every table view, even without a share.
+  // Instead, create it only after the user requests one. Season/locale/format
+  // are included in the key so a previously prepared file is never reused for
+  // a different table variant.
+  const preparedKey = [clubId, season ?? "", locale, shareFormat].join("|");
+  const readyFile = preparedFile?.key === preparedKey ? preparedFile.file : null;
 
   useEffect(() => {
     let observer: MutationObserver | null = null;
@@ -73,44 +79,31 @@ export default function StandingsTop10Share({ clubId }: { clubId: string }) {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
+  async function prepareImage(key: string) {
+    try {
+      setPreparing(true);
+      setPreparedFile(null);
+      setMessage(null);
 
-    async function prepare() {
-      try {
-        setPreparing(true);
-        setPreparedFile(null);
-        setMessage(null);
-
-        const params = new URLSearchParams();
-        if (season) params.set("season", season);
-        if (canUseStory && shareFormat === "story") params.set("format", "story");
-        params.set("lang", locale);
-        params.set("ts", String(Date.now()));
-        const imageUrl = `/api/share/standings/image?${params.toString()}`;
-        const file = await fetchImageAsFile(imageUrl, shareFormat === "story" ? "strikr-top10-story.png" : "strikr-top-10.png");
-
-        if (cancelled) return;
-        setPreparedFile(file);
-      } catch (error) {
-        if (cancelled) return;
-        setPreparedFile(null);
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : t("standings.top10PrepareFailed")
-        );
-      } finally {
-        if (!cancelled) setPreparing(false);
-      }
+      const params = new URLSearchParams();
+      if (season) params.set("season", season);
+      if (canUseStory && shareFormat === "story") params.set("format", "story");
+      params.set("lang", locale);
+      const imageUrl = `/api/share/standings/image?${params.toString()}`;
+      const file = await fetchImageAsFile(
+        imageUrl,
+        shareFormat === "story" ? "strikr-top10-story.png" : "strikr-top-10.png",
+      );
+      setPreparedFile({ key, file });
+      setMessage(locale === "de"
+        ? "Bild bereit – bitte erneut auf „Teilen“ tippen."
+        : "Image ready – tap Share again.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t("standings.top10PrepareFailed"));
+    } finally {
+      setPreparing(false);
     }
-
-    void prepare();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [season, locale, t, shareFormat, canUseStory]);
+  }
 
   async function shareNative(file: File) {
     if (!Capacitor.isPluginAvailable("Share") || !Capacitor.isPluginAvailable("Filesystem")) {
@@ -134,14 +127,19 @@ export default function StandingsTop10Share({ clubId }: { clubId: string }) {
   }
 
   async function handleShare() {
-    if (!preparedFile || sharing) return;
+    if (preparing || sharing) return;
+    if (!readyFile) {
+      await prepareImage(preparedKey);
+      return;
+    }
 
+    const file = readyFile;
     setSharing(true);
     setMessage(null);
 
     try {
       if (Capacitor.isNativePlatform()) {
-        await shareNative(preparedFile);
+        await shareNative(file);
         setMessage(t("standings.top10Shared"));
         return;
       }
@@ -153,7 +151,7 @@ export default function StandingsTop10Share({ clubId }: { clubId: string }) {
 
       if (typeof navigator.canShare === "function") {
         const canShareFiles = navigator.canShare({
-          files: [preparedFile],
+          files: [file],
         });
 
         if (!canShareFiles) {
@@ -164,7 +162,7 @@ export default function StandingsTop10Share({ clubId }: { clubId: string }) {
       }
 
       await navigator.share({
-        files: [preparedFile],
+        files: [file],
       });
 
       setMessage(t("standings.top10Shared"));
@@ -175,7 +173,7 @@ export default function StandingsTop10Share({ clubId }: { clubId: string }) {
       }
 
       if (error instanceof Error && error.name === "AbortError") {
-        const sizeKb = Math.max(1, Math.round(preparedFile.size / 1024));
+        const sizeKb = Math.max(1, Math.round(file.size / 1024));
         const detail = error.message?.trim() || "ohne weitere Meldung";
         setMessage(
           `Share abgebrochen: ${error.name}: ${detail} · ${preparedFile.type || "kein MIME-Type"} · ${sizeKb} KB`
@@ -205,8 +203,8 @@ export default function StandingsTop10Share({ clubId }: { clubId: string }) {
 
         {canUseStory ? <div role="group" aria-label="Format für Instagram wählen" className="flex gap-1 rounded-xl bg-slate-100 p-1">
           {(["post", "story"] as const).map(format => (
-            <button key={format} type="button" onClick={() => setShareFormat(format)}
-              aria-pressed={shareFormat === format} disabled={sharing}
+            <button key={format} type="button" onClick={() => { setShareFormat(format); setPreparedFile(null); setMessage(null); }}
+              aria-pressed={shareFormat === format} disabled={sharing || preparing}
               className={`min-h-10 rounded-lg px-4 text-xs font-black transition ${shareFormat === format
                 ? "bg-slate-950 text-white shadow" : "text-slate-600 hover:bg-white"}`}>
               {format === "post" ? "Beitrag · 4:5" : "Story · 9:16"}
@@ -216,14 +214,16 @@ export default function StandingsTop10Share({ clubId }: { clubId: string }) {
         <button
           type="button"
           onClick={() => void handleShare()}
-          disabled={preparing || sharing || !preparedFile}
+          disabled={preparing || sharing}
           className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-55"
         >
-          {preparing || !preparedFile
+          {preparing
             ? t("standings.top10Preparing")
             : sharing
               ? t("standings.sharing")
-              : t("standings.shareTop10")}
+              : readyFile
+                ? t("standings.shareTop10")
+                : (locale === "de" ? "Bild vorbereiten" : "Prepare image")}
         </button>
       </div>
 
