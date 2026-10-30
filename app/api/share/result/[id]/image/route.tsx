@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { cachedShareImage, shareImageKey, shareImageSourceKey } from "@/lib/share/image-render-cache";
 import ResultShareCard from "@/components/share/result-share/ResultShareCard";
 import { ResultStoryShareCard, isStorySharePilotClub } from "@/components/share/result-share/StoryShareCard";
 import { getResultShareData } from "@/lib/share/result-share";
@@ -24,13 +25,19 @@ export async function GET(
       return new Response("Story-Layout nur für das Pilotteam verfügbar.", { status: 403 });
     }
 
-    return new ImageResponse(story ? <ResultStoryShareCard data={data} /> : <ResultShareCard data={data} />, {
+    // RLS-protected session/result data is loaded afresh before checking the
+    // short-lived render cache. Expiring Supabase signed photo tokens do not
+    // force re-rendering when the underlying image is unchanged.
+    const imageKey = shareImageKey("result-v1", {
+      ...data,
+      story,
+      winnerPhotoUrl: shareImageSourceKey(data.winnerPhotoUrl),
+    });
+
+    return cachedShareImage(imageKey, () => new ImageResponse(story ? <ResultStoryShareCard data={data} /> : <ResultShareCard data={data} />, {
       width: 1080,
       height: story ? 1920 : 1350,
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-      },
-    });
+    }));
   } catch (error) {
     const message =
       error instanceof Error
