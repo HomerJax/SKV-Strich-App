@@ -3,7 +3,7 @@ import test from "node:test";
 import { buildNewClubTrialBilling, buildInitialClubBilling, PRO_TRIAL_DAYS } from "../lib/billing/pro-trial.ts";
 import { getBillingAccess } from "../lib/billing/club-billing.ts";
 
-const NOW = new Date("2026-10-30T20:00:00.000Z");
+const NOW = new Date();
 const CLUB = "00000000-0000-0000-0000-000000000001";
 
 test("new club receives a 28-day, no-payment trial", () => {
@@ -11,7 +11,7 @@ test("new club receives a 28-day, no-payment trial", () => {
   assert.equal(billing.plan_key, "pro_trial");
   assert.equal(billing.billing_provider, null);
   assert.equal(billing.stripe_subscription_id, null);
-  assert.equal(billing.trial_ends_at, "2026-11-27T20:00:00.000Z");
+  assert.equal(billing.trial_ends_at, new Date(NOW.getTime() + 28 * 86400000).toISOString());
   assert.equal((Date.parse(billing.trial_ends_at) - NOW.getTime()) / 86400000, PRO_TRIAL_DAYS);
   assert.deepEqual(
     { isPro: getBillingAccess(billing).isPro, isTrial: getBillingAccess(billing).isTrial },
