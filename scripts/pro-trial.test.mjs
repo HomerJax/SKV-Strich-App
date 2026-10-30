@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildNewClubTrialBilling, PRO_TRIAL_DAYS } from "../lib/billing/pro-trial.ts";
+import { buildNewClubTrialBilling, buildInitialClubBilling, PRO_TRIAL_DAYS } from "../lib/billing/pro-trial.ts";
 import { getBillingAccess } from "../lib/billing/club-billing.ts";
 
 const NOW = new Date("2026-10-30T20:00:00.000Z");
@@ -58,4 +58,15 @@ test("the trial helper is deterministic and does not extend a reused billing rec
   const after = getBillingAccess(first);
   assert.equal(after.billing.trial_ends_at, first.trial_ends_at);
   assert.equal(after.billing.updated_at, NOW.toISOString());
+});
+
+test("rollout flag defaults to Free and allows explicit trial for new clubs", () => {
+  const free = buildInitialClubBilling(CLUB, NOW, false);
+  assert.equal(free.plan_key, "free");
+  assert.equal(free.trial_ends_at, null);
+  assert.equal(getBillingAccess(free).isPro, false);
+
+  const trial = buildInitialClubBilling(CLUB, NOW, true);
+  assert.equal(trial.plan_key, "pro_trial");
+  assert.equal(getBillingAccess(trial).isPro, true);
 });
