@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FREE_HIGHLIGHTS, PRO_HIGHLIGHTS } from "@/lib/billing/product-matrix";
 import { INTRO_PRICING, getAnnualSavingsPercent } from "@/lib/billing/pricing";
+import { isProTrialEnabled } from "@/lib/billing/pro-trial";
 import {
   ArrowRight,
   Bell,
@@ -288,6 +289,7 @@ export default async function LandingPage({
 }) {
   const { locale } = await getServerI18n();
   const isEnglish = locale === "en";
+  const trialEnabled = isProTrialEnabled();
   const localizedFlowSteps = isEnglish ? [
     { number: "01", title: "Who’s in?", text: "Collect attendance with your team instead of chasing chat messages.", icon: Users },
     { number: "02", title: "Balanced teams", text: "Build balanced sides from your group and get straight to playing.", icon: Sparkles },
@@ -481,7 +483,13 @@ export default async function LandingPage({
             </div>
 
             <p className="mt-3 text-xs font-semibold text-white/60 sm:mt-4">
-              {isEnglish ? "Demo without sign-up · Free plan available · For recreational teams" : "Demo ohne Anmeldung · Free-Tarif verfügbar · Für Hobby- und Freizeitteams"}
+              {trialEnabled
+                ? (isEnglish
+                    ? "Demo without sign-up · 28 days of PRO for new teams · No card or subscription"
+                    : "Demo ohne Anmeldung · Neue Teams: 28 Tage PRO · Ohne Kreditkarte oder Abo")
+                : (isEnglish
+                    ? "Demo without sign-up · Free plan available · For recreational teams"
+                    : "Demo ohne Anmeldung · Free-Tarif verfügbar · Für Hobby- und Freizeitteams")}
             </p>
             <a href="#features" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-cyan-200/85 underline decoration-cyan-300/30 underline-offset-4 transition hover:text-white">
               {isEnglish ? "Explore all features ↓" : "Alle Funktionen entdecken ↓"}
@@ -717,6 +725,13 @@ export default async function LandingPage({
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
               {isEnglish ? "Free gives your team the essentials. PRO adds flexibility, history, career stats and deeper insights." : "Free bleibt ein echtes Team-Produkt. PRO schaltet vor allem mehr Flexibilität, Historie, Karriere-Stats und tiefere Auswertungen frei."}
             </p>
+            {trialEnabled ? (
+              <p className="mx-auto mt-5 max-w-2xl rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-900">
+                {isEnglish
+                  ? "New teams get 28 days of PRO at no cost. No credit card or automatic subscription. Afterwards you can keep playing on Free."
+                  : "Neue Teams testen 28 Tage alle PRO-Funktionen kostenlos. Ohne Kreditkarte, ohne automatisches Abo. Danach könnt ihr Free dauerhaft weiternutzen."}
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-10 grid gap-4 lg:grid-cols-2">
@@ -731,7 +746,9 @@ export default async function LandingPage({
                 ))}
               </div>
               <Link href="/signup?next=%2Fclub-setup" data-analytics-event="landing_signup_cta_click" className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white">
-                {isEnglish ? "Start your team for free" : "Team kostenlos starten"}
+                {trialEnabled
+                  ? (isEnglish ? "Start 28-day PRO trial" : "28 Tage PRO kostenlos testen")
+                  : (isEnglish ? "Start your team for free" : "Team kostenlos starten")}
               </Link>
             </div>
 
@@ -767,7 +784,13 @@ export default async function LandingPage({
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{isEnglish ? "Get started" : "Jetzt loslegen"}</div>
               <h2 className="mt-3 text-3xl font-black tracking-[-0.045em]">{isEnglish ? "Play first. Decide later if you need PRO." : "Erst spielen. Dann entscheiden, ob ihr PRO braucht."}</h2>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
-                {isEnglish ? "Start straight away with Free. Upgrade options appear where extra depth or flexibility makes sense." : "Ihr könnt mit Free direkt starten. PRO wird dort sichtbar angeboten, wo zusätzliche Tiefe oder Flexibilität Sinn ergibt."}
+                {trialEnabled
+                  ? (isEnglish
+                      ? "New teams start with 28 days of PRO. No payment method is required, and no paid plan starts automatically. When the trial ends, your team continues on Free unless you choose to upgrade."
+                      : "Neue Teams starten mit 28 Tagen PRO. Ihr braucht keine Zahlungsart und es beginnt kein Abo automatisch. Danach nutzt ihr Free weiter – nur wenn ihr möchtet, wechselt ihr freiwillig zu PRO.")
+                  : (isEnglish
+                      ? "Start straight away with Free. Upgrade options appear where extra depth or flexibility makes sense."
+                      : "Ihr könnt mit Free direkt starten. PRO wird dort sichtbar angeboten, wo zusätzliche Tiefe oder Flexibilität Sinn ergibt.")}
               </p>
             </div>
             <div className="rounded-[27px] bg-slate-950 p-5 text-white">
