@@ -6,6 +6,7 @@ import { FREE_HIGHLIGHTS, PRODUCT_MATRIX, PRO_HIGHLIGHTS } from "@/lib/billing/p
 import { getAuthContext, isActiveClubAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { isProTrialEnabled } from "@/lib/billing/pro-trial";
 import { isStripeCheckoutConfigured } from "@/lib/billing/stripe";
 import { INTRO_PRICING, getAnnualSavingsPercent } from "@/lib/billing/pricing";
 
@@ -46,6 +47,7 @@ export default async function ProPage({
     isStripeCheckoutConfigured("pro_monthly"),
     isStripeCheckoutConfigured("pro_yearly"),
   ]);
+  const trialEnabled = isProTrialEnabled();
   const trialEndsAt = billingAccess?.isTrial
     ? billingAccess.billing.trial_ends_at
     : null;
@@ -81,6 +83,13 @@ export default async function ProPage({
             Mehr Spieler, mehr Flexibilität, Saisonhistorie, Karriere-Stats und tiefere Auswertungen.
             Die Kernfunktionen bleiben bewusst auch in Free nutzbar.
           </p>
+          {trialEnabled ? (
+            <p className="mx-auto mt-4 text-sm font-bold text-violet-200">
+              {locale === "en"
+                ? "New teams: try all PRO features for 28 days. No credit card, no automatic subscription."
+                : "Für neue Teams: 28 Tage alle PRO-Funktionen testen. Ohne Kreditkarte, ohne Abo-Automatik."}
+            </p>
+          ) : null}
         </div>
 
         {checkoutState === "success" ? (
