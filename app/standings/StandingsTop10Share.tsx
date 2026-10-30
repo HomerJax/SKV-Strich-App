@@ -176,7 +176,7 @@ export default function StandingsTop10Share({ clubId }: { clubId: string }) {
         const sizeKb = Math.max(1, Math.round(file.size / 1024));
         const detail = error.message?.trim() || "ohne weitere Meldung";
         setMessage(
-          `Share abgebrochen: ${error.name}: ${detail} · ${preparedFile.type || "kein MIME-Type"} · ${sizeKb} KB`
+          `Share abgebrochen: ${error.name}: ${detail} · ${file.type || "kein MIME-Type"} · ${sizeKb} KB`
         );
         return;
       }
