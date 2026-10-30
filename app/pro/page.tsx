@@ -6,6 +6,7 @@ import { FREE_HIGHLIGHTS, PRODUCT_MATRIX, PRO_HIGHLIGHTS } from "@/lib/billing/p
 import { getAuthContext, isActiveClubAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
+import { isProTrialEnabled } from "@/lib/billing/pro-trial";
 import { isStripeCheckoutConfigured } from "@/lib/billing/stripe";
 import { INTRO_PRICING, getAnnualSavingsPercent } from "@/lib/billing/pricing";
 
@@ -46,6 +47,13 @@ export default async function ProPage({
     isStripeCheckoutConfigured("pro_monthly"),
     isStripeCheckoutConfigured("pro_yearly"),
   ]);
+  const trialEnabled = isProTrialEnabled();
+  const trialEndsAt = billingAccess?.isTrial
+    ? billingAccess.billing.trial_ends_at
+    : null;
+  const trialDaysLeft = trialEndsAt
+    ? Math.max(1, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000))
+    : 0;
   const hasStripeSubscription = Boolean(
     billingAccess?.billing.billing_provider === "stripe" &&
       billingAccess.billing.stripe_customer_id,
@@ -75,6 +83,13 @@ export default async function ProPage({
             Mehr Spieler, mehr Flexibilität, Saisonhistorie, Karriere-Stats und tiefere Auswertungen.
             Die Kernfunktionen bleiben bewusst auch in Free nutzbar.
           </p>
+          {trialEnabled ? (
+            <p className="mx-auto mt-4 text-sm font-bold text-violet-200">
+              {locale === "en"
+                ? "New teams: try all PRO features for 28 days. No credit card, no automatic subscription."
+                : "Für neue Teams: 28 Tage alle PRO-Funktionen testen. Ohne Kreditkarte, ohne Abo-Automatik."}
+            </p>
+          ) : null}
         </div>
 
         {checkoutState === "success" ? (
@@ -120,6 +135,23 @@ export default async function ProPage({
           </div>
         ) : null}
 
+        {billingAccess?.isTrial ? (
+          <div className="mb-6 rounded-2xl border border-violet-300/25 bg-violet-400/10 px-5 py-4 text-sm text-violet-100">
+            <div className="font-black">
+              {locale === "en" ? `Your 28-day PRO trial is active – ${trialDaysLeft} days left` : `Euer 28-Tage-PRO-Test läuft – noch ${trialDaysLeft} Tage`}
+            </div>
+            <p className="mt-1 text-white/70">
+              {locale === "en"
+                ? "No payment method needed. After the trial, your team continues on Free unless you choose PRO."
+                : "Keine Zahlungsart nötig. Danach läuft euer Team kostenlos mit Free weiter, außer ihr entscheidet euch für PRO."}
+            </p>
+          </div>
+        ) : billingAccess?.billing.plan_key === "pro_trial" ? (
+          <div className="mb-6 rounded-2xl border border-white/15 bg-white/[0.04] px-5 py-4 text-sm text-white/70">
+            {locale === "en" ? "Your PRO trial has ended. Your team continues on Free; upgrade only if you want to." : "Euer PRO-Test ist abgelaufen. Euer Team nutzt weiterhin Free – ein Upgrade ist freiwillig."}
+          </div>
+        ) : null}
+
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
             <div className="text-xs font-black uppercase tracking-[0.16em] text-white/45">FREE</div>
@@ -158,7 +190,7 @@ export default async function ProPage({
               ))}
             </div>
             <div className="relative mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
-              {billingAccess?.isPro ? (
+              {billingAccess?.isPro && !billingAccess.isTrial ? (
                 <div className="text-center">
                   <div className="text-sm font-black text-emerald-200">✓ PRO ist für euren Club aktiv</div>
                   <div className="mt-1 text-xs leading-5 text-white/50">

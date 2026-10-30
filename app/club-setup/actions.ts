@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthContext } from "@/lib/auth/context";
 import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
 import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
+import { buildInitialClubBilling } from "@/lib/billing/pro-trial";
 
 function getStringValue(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -131,16 +132,11 @@ export async function createClubAction(formData: FormData) {
     .from("club_billing")
     .upsert(
       {
-        club_id: clubId,
-        plan_key: "free",
-        status: "active",
-        trial_ends_at: null,
-        pro_ends_at: null,
-        billing_note: "Automatisch beim Club-Setup im kostenlosen Startplan angelegt.",
-        updated_at: new Date().toISOString(),
+        ...buildInitialClubBilling(clubId),
       },
       {
         onConflict: "club_id",
+        ignoreDuplicates: true,
       }
     );
 

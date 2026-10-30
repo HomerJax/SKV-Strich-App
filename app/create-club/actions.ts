@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
 import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
+import { buildInitialClubBilling } from "@/lib/billing/pro-trial";
 
 export type CreateClubState = {
   error: string;
@@ -176,16 +177,11 @@ export async function createClubAction(
     .from("club_billing")
     .upsert(
       {
-        club_id: club.id,
-        plan_key: "free",
-        status: "active",
-        trial_ends_at: null,
-        pro_ends_at: null,
-        billing_note: "Automatisch beim Club-Erstellen im kostenlosen Startplan angelegt.",
-        updated_at: new Date().toISOString(),
+        ...buildInitialClubBilling(club.id),
       },
       {
         onConflict: "club_id",
+        ignoreDuplicates: true,
       }
     );
 

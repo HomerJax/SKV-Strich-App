@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test:growth": "node --experimental-strip-types --test scripts/growth-funnel-guards.test.mjs",
+    "test:trial": "node --experimental-strip-types --test scripts/pro-trial.test.mjs",
     "test:guest": "node --experimental-strip-types --test scripts/guest-player-permissions.test.mjs",
     "test:balance": "node --experimental-strip-types --test scripts/team-generator-balanced-groups.test.mjs",
     "test:standings-weekly": "node --experimental-strip-types --test scripts/standings-weekly-report.test.mjs",
