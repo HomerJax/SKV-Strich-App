@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthContext } from "@/lib/auth/context";
 import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
 import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
-import { buildNewClubTrialBilling } from "@/lib/billing/pro-trial";
+import { buildInitialClubBilling } from "@/lib/billing/pro-trial";
 
 function getStringValue(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -132,7 +132,7 @@ export async function createClubAction(formData: FormData) {
     .from("club_billing")
     .upsert(
       {
-        ...buildNewClubTrialBilling(clubId),
+        ...buildInitialClubBilling(clubId),
       },
       {
         onConflict: "club_id",
