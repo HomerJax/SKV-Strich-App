@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { ensureDefaultSeasonForClub } from "@/lib/seasons/default-season";
 import { recordGrowthEvent } from "@/lib/analytics/growth-funnel";
-import { buildNewClubTrialBilling } from "@/lib/billing/pro-trial";
+import { buildInitialClubBilling } from "@/lib/billing/pro-trial";
 
 export type CreateClubState = {
   error: string;
@@ -177,7 +177,7 @@ export async function createClubAction(
     .from("club_billing")
     .upsert(
       {
-        ...buildNewClubTrialBilling(club.id),
+        ...buildInitialClubBilling(club.id),
       },
       {
         onConflict: "club_id",
