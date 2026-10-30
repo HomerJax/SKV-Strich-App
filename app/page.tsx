@@ -746,9 +746,7 @@ export default async function LandingPage({
                 ))}
               </div>
               <Link href="/signup?next=%2Fclub-setup" data-analytics-event="landing_signup_cta_click" className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white">
-                {trialEnabled
-                  ? (isEnglish ? "Start 28-day PRO trial" : "28 Tage PRO kostenlos testen")
-                  : (isEnglish ? "Start your team for free" : "Team kostenlos starten")}
+                {isEnglish ? "Start your team for free" : "Team kostenlos starten"}
               </Link>
             </div>
 
@@ -770,9 +768,21 @@ export default async function LandingPage({
                   </div>
                 ))}
               </div>
-              <Link href="/pro" data-analytics-event="landing_pro_click" className="relative mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-700 px-5 py-3.5 text-sm font-black text-white transition hover:bg-violet-800">
-                {isEnglish ? "Explore PRO" : "PRO ansehen"} <ArrowRight className="h-4 w-4" />
+              {trialEnabled ? (
+                <p className="relative mt-5 text-center text-sm font-bold text-violet-800">
+                  {isEnglish ? "New teams: 28 days of PRO for free, then Free unless you upgrade." : "Neue Teams: 28 Tage PRO kostenlos testen, danach Free ohne Abo-Zwang."}
+                </p>
+              ) : null}
+              <Link href={trialEnabled ? "/signup?next=%2Fclub-setup" : "/pro"} data-analytics-event={trialEnabled ? "landing_signup_cta_click" : "landing_pro_click"} className="relative mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-700 px-5 py-3.5 text-sm font-black text-white transition hover:bg-violet-800">
+                {trialEnabled
+                  ? (isEnglish ? "Try PRO free for 28 days" : "28 Tage PRO kostenlos testen")
+                  : (isEnglish ? "Explore PRO" : "PRO ansehen")} <ArrowRight className="h-4 w-4" />
               </Link>
+              {trialEnabled ? (
+                <Link href="/pro" data-analytics-event="landing_pro_click" className="relative mt-3 block text-center text-xs font-bold text-violet-800 underline underline-offset-2">
+                  {isEnglish ? "Compare Free and PRO" : "Free und PRO vergleichen"}
+                </Link>
+              ) : null}
               <p className="relative mt-3 text-center text-xs font-semibold text-slate-500">
                 {isEnglish ? "Introductory price for early teams. Prices for future customers may be higher." : "Einführungspreis für frühe Teams. Spätere Neukundenpreise können höher liegen."}
               </p>
