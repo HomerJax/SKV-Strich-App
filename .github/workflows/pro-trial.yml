@@ -1,0 +1,27 @@
+name: PRO trial guards
+
+on:
+  pull_request:
+    paths:
+      - 'lib/billing/club-billing.ts'
+      - 'lib/billing/pro-trial.ts'
+      - 'app/create-club/actions.ts'
+      - 'app/club-setup/actions.ts'
+      - 'app/onboarding/actions.ts'
+      - 'scripts/pro-trial.test.mjs'
+      - 'package.json'
+      - '.github/workflows/pro-trial.yml'
+  workflow_dispatch:
+
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: PRO trial regression tests
+        run: npm run test:trial
