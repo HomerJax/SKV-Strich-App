@@ -93,42 +93,60 @@ function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean 
     ? (moment.headline.match(/[0-9]+[ ]+Plätze?/)?.[0] ?? "")
     : "";
   const name = moment.name ?? "";
-  const headline = metric && name ? metric : moment.headline;
   return (
     <div style={{
       display: "flex", flexDirection: "column", width: "100%", height: "100%",
-      boxSizing: "border-box", overflow: "hidden", borderRadius: 28,
-      padding: hero ? "35px 40px" : "26px 27px",
-      border: "2px solid rgba(255,255,255,.22)",
+      boxSizing: "border-box", overflow: "hidden",
+      borderRadius: 34, padding: hero ? "44px 46px" : "35px 34px",
+      border: "2px solid rgba(255,255,255,.25)",
       background: moment.background,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 13, flexShrink: 0 }}>
-        <div style={{ display: "flex", color: moment.accent, fontSize: hero ? 43 : 34, fontWeight: 900 }}>{symbol}</div>
-        <div style={{ display: "flex", color: "#fff", fontSize: hero ? 27 : 23, fontWeight: 850, letterSpacing: 1.1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+        <div style={{ display: "flex", fontSize: hero ? 49 : 39, color: moment.accent, fontWeight: 900 }}>{symbol}</div>
+        <div style={{ display: "flex", fontSize: hero ? 31 : 27, color: "#fff", fontWeight: 900, letterSpacing: 1 }}>
           {moment.label}
         </div>
       </div>
       {hero ? (
-        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 24, marginTop: 23 }}>
-          {name ? <Avatar name={name} photo={moment.photo ?? null} accent={moment.accent} size={108} /> : null}
-          <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", color: "#fff", fontSize: name.length > 23 ? 40 : 48, fontWeight: 900, lineHeight: 1.1 }}>{name || moment.headline}</div>
-            {metric ? <div style={{ display: "flex", color: "#fff", fontSize: 48, fontWeight: 850, marginTop: 8 }}>{symbol} {metric}</div> : null}
+        <>
+          <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 32, marginTop: 33 }}>
+            {name ? <Avatar name={name} photo={moment.photo ?? null} accent={moment.accent} size={200} /> : null}
+            <div style={{
+              display: "flex", flexDirection: "column", minWidth: 0, flexGrow: 1,
+              fontSize: name.length > 24 ? 43 : 52, fontWeight: 900,
+              lineHeight: 1.12, color: "#fff",
+            }}>{name || moment.headline}</div>
           </div>
-        </div>
+          <div style={{
+            display: "flex", fontSize: metric ? 96 : 62, fontWeight: 950,
+            letterSpacing: -2, color: "#fff", marginTop: 30,
+          }}>{metric ? symbol + " " + metric.toUpperCase() : moment.headline}</div>
+          <div style={{
+            display: "flex", fontSize: 34, color: "#ffe9fa", marginTop: 10,
+          }}>{moment.detail}</div>
+        </>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", marginTop: 16, gap: 10 }}>
-          {name ? <Avatar name={name} photo={moment.photo ?? null} accent={moment.accent} size={72} /> : null}
-          <div style={{ display: "flex", color: "#fff", fontSize: name ? 32 : 35, fontWeight: 850, lineHeight: 1.1 }}>
-            {name || headline}
-          </div>
-          {metric ? <div style={{ display: "flex", color: "#fff", fontSize: 32, fontWeight: 850 }}>{symbol} {metric}</div> : null}
-        </div>
+        <>
+          {name ? (
+            <div style={{ display: "flex", marginTop: 32 }}>
+              <Avatar name={name} photo={moment.photo ?? null} accent={moment.accent} size={145} />
+            </div>
+          ) : null}
+          <div style={{
+            display: "flex", fontSize: name ? (name.length > 20 ? 35 : 41) : 46,
+            fontWeight: 900, lineHeight: 1.1, color: "#fff",
+            marginTop: name ? 20 : 49,
+          }}>{name || moment.headline}</div>
+          {metric ? <div style={{
+            display: "flex", fontSize: 57, fontWeight: 950,
+            color: "#fff", marginTop: 17,
+          }}>{symbol + " " + metric.toUpperCase()}</div> : null}
+          <div style={{
+            display: "flex", fontSize: 30, lineHeight: 1.24,
+            color: "#f4e9ff", marginTop: 17,
+          }}>{moment.detail}</div>
+        </>
       )}
-      <div style={{
-        display: "flex", marginTop: hero ? 18 : 13, color: "#f6eefd",
-        fontSize: hero ? 29 : 24, lineHeight: 1.2,
-      }}>{moment.detail}</div>
     </div>
   );
 }
@@ -220,39 +238,45 @@ export async function GET(request: NextRequest) {
     const story = (
       <div style={{
         display: "flex", width: 1080, height: 1920, boxSizing: "border-box",
-        background: "linear-gradient(145deg,#102d73,#25256f 58%,#54217b)",
+        background: "linear-gradient(145deg,#102c70,#24236f 58%,#562078)",
         color: "#fff", fontFamily: "sans-serif",
       }}>
         <div style={{
           display: "flex", flexDirection: "column", width: "100%", height: "100%",
-          boxSizing: "border-box", padding: "215px 48px 225px",
+          boxSizing: "border-box", padding: "190px 46px 190px",
         }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 13, flexShrink: 0 }}>
-            <div style={{ display: "flex", color: "#f2a0db", fontSize: 27, fontWeight: 800, letterSpacing: 2 }}>BEI STRIKR</div>
-            <div style={{ display: "flex", fontSize: 69, fontWeight: 900, letterSpacing: -2 }}>WOCHENREPORT.</div>
-            <div style={{ display: "flex", fontSize: 34, color: "#dce4ff" }}>Die Highlights der Woche</div>
+          <div style={{ display: "flex", flexDirection: "column", flexShrink: 0, gap: 11 }}>
+            <div style={{ display: "flex", color: "#f5a4dc", fontSize: 28, fontWeight: 850, letterSpacing: 2 }}>BEI STRIKR</div>
+            <div style={{ display: "flex", color: "#fff", fontSize: 73, fontWeight: 950, letterSpacing: -2 }}>WOCHENREPORT.</div>
+            <div style={{ display: "flex", color: "#e0e4ff", fontSize: 35 }}>Die Highlights der Woche</div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 58, flexShrink: 0 }}>
-            <div style={{ display: "flex", height: 385 }}>
+          <div style={{
+            display: "flex", flexDirection: "column", gap: 24,
+            marginTop: 45, flexShrink: 0,
+          }}>
+            <div style={{ display: "flex", width: 988, height: 575 }}>
               <StoryMomentCard moment={visibleMoments[0]} hero />
             </div>
             {visibleMoments.length > 1 ? (
-              <div style={{ display: "flex", flexDirection: "row", gap: 22, height: 410 }}>
+              <div style={{ display: "flex", flexDirection: "row", gap: 24, height: 615 }}>
                 {visibleMoments.slice(1).map((moment) => (
-                  <div key={moment.id} style={{ display: "flex", width: 480, height: 410 }}>
+                  <div key={moment.id} style={{ display: "flex", width: 482, height: 615 }}>
                     <StoryMomentCard moment={moment} hero={false} />
                   </div>
                 ))}
               </div>
             ) : null}
           </div>
-          <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between",
-            alignItems: "center", marginTop: 46, fontSize: 27, color: "#e9d9fa" }}>
+          <div style={{
+            display: "flex", flexDirection: "row", alignItems: "center",
+            justifyContent: "space-between", marginTop: 37,
+            color: "#f0dcf8", fontSize: 28,
+          }}>
             <div style={{ display: "flex" }}>@getstrikr</div>
-            <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 12 }}>
-              {logo ? <img src={logo} alt="" width={58} height={58}
-                style={{ width: 58, height: 58, borderRadius: 12 }} /> : null}
-              <div style={{ display: "flex", color: "#fff", fontSize: 37, fontWeight: 850 }}>strikr</div>
+            <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 11 }}>
+              {logo ? <img src={logo} alt="" width={61} height={61}
+                style={{ width: 61, height: 61, borderRadius: 13 }} /> : null}
+              <div style={{ display: "flex", fontSize: 40, fontWeight: 850, color: "#fff" }}>strikr</div>
             </div>
             <div style={{ display: "flex" }}>strikr.team</div>
           </div>
