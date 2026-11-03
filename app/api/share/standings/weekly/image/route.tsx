@@ -88,9 +88,9 @@ type StoryMoment = {
 function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean }) {
   const nameLength = moment.headline.length;
   const headlineSize = hero
-    ? nameLength > 75 ? 46 : nameLength > 55 ? 52 : nameLength > 40 ? 59 : 69
-    : nameLength > 80 ? 30 : nameLength > 54 ? 34 : nameLength > 37 ? 40 : 48;
-  const avatarSize = hero ? 200 : 120;
+    ? nameLength > 75 ? 43 : nameLength > 55 ? 48 : nameLength > 40 ? 54 : 62
+    : nameLength > 80 ? 29 : nameLength > 54 ? 32 : nameLength > 37 ? 36 : 43;
+  const avatarSize = hero ? 150 : 104;
   const labelSize = hero ? 30 : 26;
   const labelIcon = moment.id === "rise" ? "↑"
     : moment.id === "fall" ? "↓"
@@ -126,17 +126,17 @@ function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean 
 
       <div style={{
         display: "flex", flex: 1, minHeight: 0, minWidth: 0,
-        flexDirection: hero ? "row" : "column",
-        gap: hero ? 34 : 19,
-        alignItems: hero ? "center" : "flex-start",
-        justifyContent: "center",
+        flexDirection: "column",
+        gap: hero ? 24 : 18,
+        alignItems: "flex-start",
+        justifyContent: "flex-start",
       }}>
         {moment.name ? (
           <Avatar name={moment.name} photo={moment.photo ?? null}
             size={avatarSize} accent={moment.accent} />
         ) : null}
         <div style={{
-          display: "flex", minWidth: 0, flexGrow: hero ? 1 : 0,
+          display: "flex", minWidth: 0, width: "100%", flexGrow: 0,
           flexDirection: "column", justifyContent: "center",
           gap: hero ? 15 : 13,
         }}>
@@ -149,7 +149,7 @@ function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean 
           </div>
           <div style={{
             display: "flex", color: "#f1f1fe",
-            fontSize: hero ? 35 : moment.detail.length > 95 ? 26 : 29,
+            fontSize: hero ? 31 : moment.detail.length > 95 ? 25 : 28,
             fontWeight: 550, lineHeight: 1.2, overflowWrap: "break-word",
           }}>
             {moment.detail.length > 110 ? moment.detail.slice(0, 107) + "…" : moment.detail}
