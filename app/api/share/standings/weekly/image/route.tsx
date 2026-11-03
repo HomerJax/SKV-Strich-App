@@ -90,7 +90,7 @@ function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean 
   const isFall = moment.id === "fall";
   const symbol = isRise ? "↑" : isFall ? "↓" : moment.id === "race" ? "★" : "•";
   const metric = isRise || isFall
-    ? (moment.headline.match(/\\d+\\s+Plätze?/)?.[0] ?? "")
+    ? (moment.headline.match(/[0-9]+[ ]+Plätze?/)?.[0] ?? "")
     : "";
   const name = moment.name ?? "";
   const headline = metric && name ? metric : moment.headline;
