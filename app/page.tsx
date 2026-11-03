@@ -682,6 +682,39 @@ export default async function LandingPage({
         </div>
       </section>
 
+      <section aria-label={isEnglish ? "Press coverage" : "Pressebericht"} className="border-y border-white/10 bg-[#080d16] px-4 py-10 sm:px-6">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 text-center sm:flex-row sm:justify-center sm:gap-8 sm:text-left">
+          <a
+            href="https://startupvalley.news/de/strikr-app-faire-mannschaften-training/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={isEnglish ? "Read the strikr interview on StartupValley" : "strikr-Interview bei StartupValley lesen"}
+            className="shrink-0 rounded-xl bg-white px-4 py-3 transition hover:bg-slate-100"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/StartupValley-logo.png"
+              alt="StartupValley"
+              width={184}
+              height={72}
+              loading="lazy"
+              className="h-auto w-[150px] object-contain sm:w-[184px]"
+            />
+          </a>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300/80">
+              {isEnglish ? "Featured in StartupValley" : "strikr im StartupValley-Interview"}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-white/80">
+              {isEnglish ? "From recreational football to our own sports app." : "Vom Hobbykick zur eigenen Sport-App – unsere Geschichte."}
+            </p>
+            <a href="https://startupvalley.news/de/strikr-app-faire-mannschaften-training/" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-cyan-300 underline-offset-4 hover:underline">
+              {isEnglish ? "Read the interview" : "Interview lesen"} <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        </div>
+      </section>
+
       <ThatsStrikrSection />
 
       <section className="relative overflow-hidden border-y border-white/8 bg-[#0a0f19] py-16 sm:py-20">
