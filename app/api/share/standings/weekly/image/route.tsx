@@ -98,7 +98,7 @@ function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean 
     <div style={{
       display: "flex", flexDirection: "column", width: "100%", height: "100%",
       boxSizing: "border-box", overflow: "hidden", borderRadius: 28,
-      padding: hero ? "40px 43px" : "29px 29px",
+      padding: hero ? "35px 40px" : "26px 27px",
       border: "2px solid rgba(255,255,255,.22)",
       background: moment.background,
     }}>
@@ -109,25 +109,25 @@ function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean 
         </div>
       </div>
       {hero ? (
-        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 25, marginTop: 34 }}>
-          {name ? <Avatar name={name} photo={moment.photo ?? null} accent={moment.accent} size={120} /> : null}
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 24, marginTop: 23 }}>
+          {name ? <Avatar name={name} photo={moment.photo ?? null} accent={moment.accent} size={108} /> : null}
           <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", color: "#fff", fontSize: name.length > 23 ? 42 : 49, fontWeight: 900, lineHeight: 1.1 }}>{name || moment.headline}</div>
-            {metric ? <div style={{ display: "flex", color: "#fff", fontSize: 43, fontWeight: 850, marginTop: 9 }}>{symbol} {metric}</div> : null}
+            <div style={{ display: "flex", color: "#fff", fontSize: name.length > 23 ? 40 : 48, fontWeight: 900, lineHeight: 1.1 }}>{name || moment.headline}</div>
+            {metric ? <div style={{ display: "flex", color: "#fff", fontSize: 48, fontWeight: 850, marginTop: 8 }}>{symbol} {metric}</div> : null}
           </div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", marginTop: 23, gap: 14 }}>
-          {name ? <Avatar name={name} photo={moment.photo ?? null} accent={moment.accent} size={86} /> : null}
-          <div style={{ display: "flex", color: "#fff", fontSize: name ? 35 : 39, fontWeight: 850, lineHeight: 1.1 }}>
+        <div style={{ display: "flex", flexDirection: "column", marginTop: 16, gap: 10 }}>
+          {name ? <Avatar name={name} photo={moment.photo ?? null} accent={moment.accent} size={72} /> : null}
+          <div style={{ display: "flex", color: "#fff", fontSize: name ? 32 : 35, fontWeight: 850, lineHeight: 1.1 }}>
             {name || headline}
           </div>
-          {metric ? <div style={{ display: "flex", color: "#fff", fontSize: 33, fontWeight: 850 }}>{symbol} {metric}</div> : null}
+          {metric ? <div style={{ display: "flex", color: "#fff", fontSize: 32, fontWeight: 850 }}>{symbol} {metric}</div> : null}
         </div>
       )}
       <div style={{
-        display: "flex", marginTop: hero ? 23 : 18, color: "#f6eefd",
-        fontSize: hero ? 31 : 26, lineHeight: 1.2,
+        display: "flex", marginTop: hero ? 18 : 13, color: "#f6eefd",
+        fontSize: hero ? 29 : 24, lineHeight: 1.2,
       }}>{moment.detail}</div>
     </div>
   );
@@ -225,21 +225,21 @@ export async function GET(request: NextRequest) {
       }}>
         <div style={{
           display: "flex", flexDirection: "column", width: "100%", height: "100%",
-          boxSizing: "border-box", padding: "160px 48px 235px",
+          boxSizing: "border-box", padding: "215px 48px 225px",
         }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 13, flexShrink: 0 }}>
             <div style={{ display: "flex", color: "#f2a0db", fontSize: 27, fontWeight: 800, letterSpacing: 2 }}>BEI STRIKR</div>
-            <div style={{ display: "flex", fontSize: 72, fontWeight: 900, letterSpacing: -2 }}>WOCHENREPORT.</div>
+            <div style={{ display: "flex", fontSize: 69, fontWeight: 900, letterSpacing: -2 }}>WOCHENREPORT.</div>
             <div style={{ display: "flex", fontSize: 34, color: "#dce4ff" }}>Die Highlights der Woche</div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 55, flexShrink: 0 }}>
-            <div style={{ display: "flex", height: 490 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 58, flexShrink: 0 }}>
+            <div style={{ display: "flex", height: 385 }}>
               <StoryMomentCard moment={visibleMoments[0]} hero />
             </div>
             {visibleMoments.length > 1 ? (
-              <div style={{ display: "flex", flexDirection: "row", gap: 22, height: 520 }}>
+              <div style={{ display: "flex", flexDirection: "row", gap: 22, height: 410 }}>
                 {visibleMoments.slice(1).map((moment) => (
-                  <div key={moment.id} style={{ display: "flex", width: 480, height: 520 }}>
+                  <div key={moment.id} style={{ display: "flex", width: 480, height: 410 }}>
                     <StoryMomentCard moment={moment} hero={false} />
                   </div>
                 ))}
@@ -247,7 +247,7 @@ export async function GET(request: NextRequest) {
             ) : null}
           </div>
           <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between",
-            alignItems: "center", marginTop: 53, fontSize: 27, color: "#e9d9fa" }}>
+            alignItems: "center", marginTop: 46, fontSize: 27, color: "#e9d9fa" }}>
             <div style={{ display: "flex" }}>@getstrikr</div>
             <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 12 }}>
               {logo ? <img src={logo} alt="" width={58} height={58}
