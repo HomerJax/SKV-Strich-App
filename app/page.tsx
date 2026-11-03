@@ -691,10 +691,9 @@ export default async function LandingPage({
             aria-label={isEnglish ? "Read the strikr interview on StartupValley" : "strikr-Interview bei StartupValley lesen"}
             className="shrink-0 rounded-xl bg-white px-4 py-3 transition hover:bg-slate-100"
           >
-            {/* Official StartupValley-hosted logo; replace with the supplied press asset if stored locally later. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://startupvalley.news/de/wp-content/uploads/sites/2/2020/12/StartupValley-LOGO-neu-retina.png"
+              src="/StartupValley-logo.png"
               alt="StartupValley"
               width={184}
               height={72}
