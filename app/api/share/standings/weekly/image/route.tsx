@@ -136,7 +136,7 @@ function StoryMomentCard({ moment, hero }: { moment: StoryMoment; hero: boolean 
             size={avatarSize} accent={moment.accent} />
         ) : null}
         <div style={{
-          display: "flex", minWidth: 0, flex: hero ? 1 : undefined,
+          display: "flex", minWidth: 0, flexGrow: hero ? 1 : 0,
           flexDirection: "column", justifyContent: "center",
           gap: hero ? 15 : 13,
         }}>
