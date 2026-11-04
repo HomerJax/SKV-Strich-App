@@ -32,6 +32,7 @@ type Props = {
   onScrollToResult: () => void;
   onOpenResultModal?: () => void;
   sessionType: SessionType;
+  eventKind?: "event" | "match" | null;
   sessionTypesEnabled: boolean;
   onSessionTypeChange: (formData: FormData) => void | Promise<void>;
   scoreA?: number;
@@ -159,6 +160,7 @@ export default function SessionHeaderCard({
   onScrollToResult,
   onOpenResultModal,
   sessionType,
+  eventKind = "event",
   sessionTypesEnabled,
   onSessionTypeChange,
   scoreA = 0,
@@ -181,7 +183,7 @@ export default function SessionHeaderCard({
       <section className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={onBack} className="text-xs font-semibold text-slate-500 hover:text-slate-900">← {t("sessionHeader.back")}</button>
-          <span className="rounded-full bg-teal-50 px-3 py-1 text-[11px] font-semibold text-teal-800">{isEvent ? "Event" : hasResult ? t("sessionHeader.completed") : trainingStarted === undefined ? t("sessionHeader.running") : trainingStarted ? "In Durchführung" : "Geplant"}</span>
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-[11px] font-semibold text-teal-800">{isEvent ? (eventKind === "match" ? "Spiel" : "Event") : hasResult ? t("sessionHeader.completed") : trainingStarted === undefined ? t("sessionHeader.running") : trainingStarted ? "In Durchführung" : "Geplant"}</span>
         </div>
         <div className="mt-2 flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -197,7 +199,7 @@ export default function SessionHeaderCard({
         <details className="mt-3 border-t border-slate-100 pt-2">
           <summary className="cursor-pointer text-xs font-semibold text-slate-500">Session-Details & Einstellungen bearbeiten</summary>
           <div className="mt-3 space-y-3 rounded-xl bg-slate-950 p-3 text-white">
-            <SessionTypeSwitcher sessionId={sessionId} currentType={sessionType} action={onSessionTypeChange} disabled={!sessionTypesEnabled} embedded />
+            <SessionTypeSwitcher sessionId={sessionId} currentType={sessionType} eventKind={eventKind} action={onSessionTypeChange} disabled={!sessionTypesEnabled} embedded />
             <SessionScheduleEditor sessionId={sessionId} date={date} startTime={startTime} isSeries={Boolean(seriesId)} compact />
             <SessionNoteEditor sessionId={sessionId} notes={notes} isAdmin={isAdmin} />
             {!hasResult ? <SessionRsvpDeadlineEditor sessionId={sessionId} date={date} startTime={startTime} sessionOverrideMinutes={sessionRsvpDeadlineMinutesBefore} clubDefaultMinutes={clubRsvpDeadlineMinutesBefore} isAdmin={isAdmin} isSeries={Boolean(seriesId)} isPro={isPro} /> : null}
@@ -224,7 +226,7 @@ export default function SessionHeaderCard({
 
             <SessionTypeSwitcher
               sessionId={sessionId}
-              currentType={sessionType}
+              currentType={sessionType} eventKind={eventKind}
               action={onSessionTypeChange}
               disabled={!sessionTypesEnabled}
               embedded
@@ -234,7 +236,7 @@ export default function SessionHeaderCard({
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/54">
-                {isEvent ? "Event" : t("sessionHeader.completed")}
+                {isEvent ? (eventKind === "match" ? "Spiel" : "Event") : t("sessionHeader.completed")}
               </div>
 
               <div className="mt-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl">
@@ -339,7 +341,7 @@ export default function SessionHeaderCard({
           {isAdmin ? (
             <SessionTypeSwitcher
               sessionId={sessionId}
-              currentType={sessionType}
+              currentType={sessionType} eventKind={eventKind}
               action={onSessionTypeChange}
               disabled={!sessionTypesEnabled}
               embedded
@@ -349,7 +351,7 @@ export default function SessionHeaderCard({
 
         <div className="mt-5">
           <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/44">
-            {isEvent ? "Event" : t("sessionHeader.running")}
+            {isEvent ? (eventKind === "match" ? "Spiel" : "Event") : t("sessionHeader.running")}
           </div>
           <h1 className="mt-2 text-2xl font-extrabold tracking-[-0.035em] text-white sm:text-3xl">
             {fmtLongDate(date, locale)}
