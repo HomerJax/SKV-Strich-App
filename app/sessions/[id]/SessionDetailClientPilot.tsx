@@ -1106,6 +1106,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           }
           onOpenResultModal={() => setShowSessionEndModal(true)}
           sessionType={currentSessionType}
+          eventKind={session.event_kind ?? "event"}
           sessionTypesEnabled={sessionTypeSwitchEnabled}
           onSessionTypeChange={updateSessionTypeAction}
           scoreA={scoreAValue}
