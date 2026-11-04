@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import TournamentWinnerCard from "./TournamentWinnerCard";
 import SessionHeaderCard from "./SessionHeaderCard";
+import SessionEventReportCard from "./SessionEventReportCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionAdminRsvpCard from "./SessionAdminRsvpCard";
 import SessionTeamsCard from "./SessionTeamsCard";
@@ -34,6 +35,7 @@ type SessionDetailClientProps = {
   initialClubSettings: ClubSettings;
   initialBalanceCategories?: BalanceCategory[];
   initialWinnerPhotoUrl: string | null;
+  initialEventPhotoUrl?: string | null;
   initialGoalsA: string;
   initialGoalsB: string;
   initialHasResult: boolean;
@@ -502,6 +504,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           isPro={props.initialIsPro === true}
           compactPilot={true && isAdmin && isTrainingSession}
         />
+        {isEventSession ? (
+          <SessionEventReportCard
+            sessionId={props.sessionId}
+            data={session}
+            initialPhotoUrl={props.initialEventPhotoUrl ?? null}
+            canEdit={isAdmin && !playerPreview}
+          />
+        ) : null}
 
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}
