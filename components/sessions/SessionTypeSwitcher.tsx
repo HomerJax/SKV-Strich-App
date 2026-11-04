@@ -7,6 +7,7 @@ type SessionType = "training" | "event";
 type SessionTypeSwitcherProps = {
   sessionId: number;
   currentType: SessionType;
+  eventKind?: "event" | "match" | null;
   action: (formData: FormData) => void | Promise<void>;
   disabled?: boolean;
   embedded?: boolean;
@@ -47,6 +48,7 @@ function SubmitButton({
 export default function SessionTypeSwitcher({
   sessionId,
   currentType,
+  eventKind = "event",
   action,
   disabled = false,
   embedded = false,
@@ -78,9 +80,21 @@ export default function SessionTypeSwitcher({
           <form action={action}>
             <input type="hidden" name="sessionId" value={sessionId} />
             <input type="hidden" name="type" value="event" />
+            <input type="hidden" name="event_kind" value="match" />
+            <SubmitButton
+              label="Spiel"
+              active={currentType === "event" && eventKind === "match"}
+              embedded={embedded}
+            />
+          </form>
+
+          <form action={action}>
+            <input type="hidden" name="sessionId" value={sessionId} />
+            <input type="hidden" name="type" value="event" />
+            <input type="hidden" name="event_kind" value="event" />
             <SubmitButton
               label="Event"
-              active={currentType === "event"}
+              active={currentType === "event" && eventKind !== "match"}
               embedded={embedded}
             />
           </form>
