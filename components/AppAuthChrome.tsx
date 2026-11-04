@@ -1,4 +1,4 @@
-import AppBottomNav from "@/components/AppBottomNav";
+import FirstRunTour from "@/components/onboarding/FirstRunTour";\nimport AppBottomNav from "@/components/AppBottomNav";
 import BigUpdateLaunchModal from "@/components/notifications/BigUpdateLaunchModal";
 import CareerBadgeLaunchModal from "@/components/notifications/CareerBadgeLaunchModal";
 import { NotificationToastCenter } from "@/components/notifications/NotificationToastCenter";
@@ -26,7 +26,7 @@ export default async function AppAuthChrome() {
     <>
       <BigUpdateLaunchModal />
       <CareerBadgeLaunchModal />
-      <NotificationToastCenter />
+      {ctx.activeClubId && ctx.user.created_at && new Date(ctx.user.created_at).getTime() >= Date.parse("2026-11-04T00:00:00Z") ? (\n        <FirstRunTour userId={ctx.user.id} role={isAdmin ? "admin" : "player"} />\n      ) : null}\n      <NotificationToastCenter />
       <NativePushRegistration />
       <AppBottomNav isAdmin={isAdmin} />
     </>
