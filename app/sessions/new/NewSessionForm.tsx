@@ -99,6 +99,7 @@ export default function NewSessionForm({
   const [mode, setMode] = useState<CreateMode>("single");
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
   const [sessionType, setSessionType] = useState<SessionType>("training");
+  const [eventKind, setEventKind] = useState<"event" | "match">("event");
 
   const defaultSeasonId = seasons.length > 0 ? String(seasons[0].id) : "";
   const [seriesSeasonId, setSeriesSeasonId] = useState(defaultSeasonId);
@@ -130,10 +131,14 @@ export default function NewSessionForm({
             <div><div className="font-semibold text-slate-900">{t("newSession.training")}</div><div className="text-xs text-slate-500">{t("newSession.trainingShortHint")}</div></div>
           </label>
           <label className="flex items-start gap-2 rounded-lg border border-slate-200 px-3 py-3 text-sm text-slate-700">
-            <input type="radio" name="type" value="event" checked={sessionType === "event"} onChange={() => setSessionType("event")} className="mt-1" />
+            <input type="radio" name="type" value="event" checked={sessionType === "event" && eventKind === "match"} onChange={() => { setSessionType("event"); setEventKind("match"); }} className="mt-1" />
+            <div><div className="font-semibold text-slate-900">{locale === "de" ? "Spiel" : "Match"}</div><div className="text-xs text-slate-500">{locale === "de" ? "Begegnung mit optionalem Ergebnis und Foto – ohne Trainingsstatistik." : "Fixture with optional score and photo, excluded from training stats."}</div></div>
+          </label>
+          <label className="flex items-start gap-2 rounded-lg border border-slate-200 px-3 py-3 text-sm text-slate-700">
+            <input type="radio" name="type" value="event" checked={sessionType === "event" && eventKind === "event"} onChange={() => { setSessionType("event"); setEventKind("event"); }} className="mt-1" />
             <div><div className="font-semibold text-slate-900">{t("newSession.event")}</div><div className="text-xs text-slate-500">{t("newSession.eventShortHint")}</div></div>
           </label>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">{getSessionTypeDescription(sessionType, t)}</div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">{sessionType === "event" && eventKind === "match" ? (locale === "de" ? "Begegnung organisieren; der Spielbericht ist nachher freiwillig." : "Organize a match; the report can be added later.") : getSessionTypeDescription(sessionType, t)}</div>
         </fieldset>
       ) : <input type="hidden" name="type" value="training" />}
 
@@ -186,6 +191,13 @@ export default function NewSessionForm({
         </div>
       ) : null}
 
+      <input type="hidden" name="event_kind" value={sessionType === "event" ? eventKind : "event"} />
+      {sessionType === "event" ? (
+        <label className="block">
+          <div className="mb-1 text-xs font-semibold text-slate-700">{eventKind === "match" ? (locale === "de" ? "Begegnung (optional)" : "Fixture (optional)") : (locale === "de" ? "Event-Titel (optional)" : "Event title (optional)")}</div>
+          <input name="event_title" maxLength={160} placeholder={eventKind === "match" ? (locale === "de" ? "z. B. SKV Rutesheim – TSV Münchingen" : "e.g. Home team – Away team") : (locale === "de" ? "z. B. Mannschaftsausflug" : "e.g. Team outing")} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+        </label>
+      ) : null}
       <label className="block"><div className="mb-1 text-xs font-semibold text-slate-700">{notesLabel}</div><input name="notes" placeholder={notesPlaceholder} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" /></label>
 
       {!pilotWizard || wizardStep === 2 ? <SubmitButton sessionType={sessionType} blocked={mode === "series" && seasons.length === 0} /> : null}
