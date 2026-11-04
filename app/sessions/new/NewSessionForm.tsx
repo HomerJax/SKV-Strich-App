@@ -36,14 +36,16 @@ const WEEKDAY_OPTIONS: Array<{ value: string; labelKey: MessageKey }> = [
 
 function SubmitButton({
   sessionType,
+  eventKind,
   blocked,
 }: {
   sessionType: SessionType;
+  eventKind: "event" | "match";
   blocked: boolean;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const { pending } = useFormStatus();
-  const label = sessionType === "event" ? t("newSession.event") : t("newSession.training");
+  const label = sessionType === "event" && eventKind === "match" ? (locale === "de" ? "Spiel" : "Match") : sessionType === "event" ? t("newSession.event") : t("newSession.training");
 
   return (
     <button
@@ -200,7 +202,7 @@ export default function NewSessionForm({
       ) : null}
       <label className="block"><div className="mb-1 text-xs font-semibold text-slate-700">{notesLabel}</div><input name="notes" placeholder={notesPlaceholder} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" /></label>
 
-      {!pilotWizard || wizardStep === 2 ? <SubmitButton sessionType={sessionType} blocked={mode === "series" && seasons.length === 0} /> : null}
+      {!pilotWizard || wizardStep === 2 ? <SubmitButton sessionType={sessionType} eventKind={eventKind} blocked={mode === "series" && seasons.length === 0} /> : null}
       </div>
       {pilotWizard ? <div className="flex gap-2">{wizardStep === 2 ? <button type="button" onClick={() => setWizardStep(1)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700">Zurück</button> : null}{wizardStep === 1 ? <button type="button" onClick={() => setWizardStep(2)} className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">Weiter →</button> : null}</div> : null}
     </form>
