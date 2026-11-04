@@ -33,6 +33,12 @@ export type SessionRow = {
   notes: string | null;
   type?: SessionType | null;
   winner_photo_path?: string | null;
+  event_kind?: "event" | "match" | null;
+  event_title?: string | null;
+  event_score_for?: number | null;
+  event_score_against?: number | null;
+  event_report?: string | null;
+  event_photo_path?: string | null;
   start_time?: string | null;
   rsvp_deadline_minutes_before?: number | null;
   series_id?: string | null;
