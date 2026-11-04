@@ -18,7 +18,7 @@ import { formatDateOnly } from "@/lib/date-only";
 type SessionsPageProps = { searchParams?: Promise<{ success?: string }> };
 type Season = { id: number; name: string; start_date: string | null; end_date: string | null };
 type SessionType = "training" | "event";
-type SessionRow = { id: number; date: string; start_time: string | null; rsvp_deadline_minutes_before: number | null; notes: string | null; season_id: number | null; type: SessionType | null };
+type SessionRow = { id: number; date: string; start_time: string | null; rsvp_deadline_minutes_before: number | null; notes: string | null; season_id: number | null; type: SessionType | null; event_kind: "event" | "match" | null; event_title: string | null; event_score_for: number | null; event_score_against: number | null };
 type ClubRow = { id: string; display_name: string | null; primary_color: string | null };
 type PresenceStatus = "in" | "out" | "open";
 
@@ -88,11 +88,12 @@ function SessionCard({
                 {deadlineLabel ? ` · ${t("session.registrationDeadline", { deadline: deadlineLabel })}` : ""}
               </div>
             ) : null}
+            {session.event_title ? <div className="mt-1 truncate text-sm font-semibold text-slate-800">{session.event_title}</div> : null}
             <div className={`mt-1 text-sm ${session.notes ? "text-slate-500" : "text-slate-400"}`}>
               {session.notes || t("session.noNote")}
             </div>
           </div>
-          <div className="shrink-0"><SessionTypeBadge type={session.type ?? "training"} /></div>
+          <div className="shrink-0">{session.type === "event" && session.event_kind === "match" ? <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-800">{locale === "de" ? "Spiel" : "Match"}</span> : <SessionTypeBadge type={session.type ?? "training"} />}</div>
         </div>
       </Link>
       {allowRsvp && rsvpStatus ? (
@@ -137,7 +138,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
   ] = await Promise.all([
     supabase.from("clubs").select("id, display_name, primary_color").eq("id", clubId).maybeSingle<ClubRow>(),
     supabase.from("seasons").select("id, name, start_date, end_date").eq("club_id", clubId).order("start_date", { ascending: false }),
-    supabase.from("sessions").select("id, date, start_time, rsvp_deadline_minutes_before, notes, season_id, type").eq("club_id", clubId).order("date", { ascending: false }),
+    supabase.from("sessions").select("id, date, start_time, rsvp_deadline_minutes_before, notes, season_id, type, event_kind, event_title, event_score_for, event_score_against").eq("club_id", clubId).order("date", { ascending: false }),
     supabase.from("club_settings").select("rsvp_deadline_minutes_before, require_rsvp_reason_on_absence").eq("club_id", clubId).maybeSingle(),
   ]);
 

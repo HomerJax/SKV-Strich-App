@@ -247,6 +247,9 @@ export default async function NewSessionPage({
     const startTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(startTimeRaw)
       ? startTimeRaw
       : null;
+    const eventKind = sessionType === "event" && formData.get("event_kind") === "match" ? "match" : "event";
+    const eventTitleRaw = String(formData.get("event_title") ?? "").trim();
+    const eventTitle = sessionType === "event" ? (eventTitleRaw.slice(0, 160) || null) : null;
     const notesRaw = String(formData.get("notes") ?? "").trim();
     const notes = notesRaw === "" ? null : notesRaw;
 
@@ -286,6 +289,7 @@ export default async function NewSessionPage({
             season_id: seasonId,
             club_id: actionClubId,
             type: sessionType,
+            ...(sessionType === "event" ? { event_kind: eventKind, event_title: eventTitle } : {}),
           })
           .select("id")
           .single();
@@ -303,7 +307,7 @@ export default async function NewSessionPage({
         }
 
         try {
-          const label = getSessionTypeLabel(sessionType, actionLocale);
+          const label = sessionType === "event" && eventKind === "match" ? (actionLocale === "de" ? "Spiel" : "match") : getSessionTypeLabel(sessionType, actionLocale);
           await sendClubPush({
             clubId: actionClubId,
             title: actionT("newSession.pushNew", { type: label }),
@@ -442,6 +446,7 @@ export default async function NewSessionPage({
         season_id: season.id,
         club_id: actionClubId,
         type: sessionType,
+        ...(sessionType === "event" ? { event_kind: eventKind, event_title: eventTitle } : {}),
         series_id: seriesId,
         series_index: index + 1,
       }));
@@ -463,7 +468,7 @@ export default async function NewSessionPage({
       }
 
       try {
-        const pluralLabel = getSessionTypePlural(sessionType, actionLocale);
+        const pluralLabel = sessionType === "event" && eventKind === "match" ? (actionLocale === "de" ? "Spiele" : "matches") : getSessionTypePlural(sessionType, actionLocale);
         await sendClubPush({
           clubId: actionClubId,
           title: actionT("newSession.pushMany", {

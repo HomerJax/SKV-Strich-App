@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import TournamentWinnerCard from "./TournamentWinnerCard";
 import SessionHeaderCard from "./SessionHeaderCard";
+import SessionEventReportCard from "./SessionEventReportCard";
 import SessionAttendanceCard from "./SessionAttendanceCard";
 import SessionAdminRsvpCard from "./SessionAdminRsvpCard";
 import SessionTeamsCard from "./SessionTeamsCard";
@@ -43,6 +44,7 @@ type SessionDetailClientProps = {
   initialClubSettings: ClubSettings;
   initialBalanceCategories?: BalanceCategory[];
   initialWinnerPhotoUrl: string | null;
+  initialEventPhotoUrl?: string | null;
   initialGoalsA: string;
   initialGoalsB: string;
   initialHasResult: boolean;
@@ -1104,6 +1106,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           }
           onOpenResultModal={() => setShowSessionEndModal(true)}
           sessionType={currentSessionType}
+          eventKind={session.event_kind ?? "event"}
           sessionTypesEnabled={sessionTypeSwitchEnabled}
           onSessionTypeChange={updateSessionTypeAction}
           scoreA={scoreAValue}
@@ -1117,6 +1120,14 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           compactPilot={true && isAdmin && isTrainingSession}
           trainingStarted={liveOrPrepared}
         /> : null}
+        {isEventSession ? (
+          <SessionEventReportCard
+            sessionId={props.sessionId}
+            data={session}
+            initialPhotoUrl={props.initialEventPhotoUrl ?? null}
+            canEdit={isAdmin && !playerPreview}
+          />
+        ) : null}
 
         {err ? <NoticeCard tone="error">{err}</NoticeCard> : null}
         {msg ? <NoticeCard tone="success">{msg}</NoticeCard> : null}

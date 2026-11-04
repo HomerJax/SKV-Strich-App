@@ -109,7 +109,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .maybeSingle(),
     supabase
       .from("sessions")
-      .select("id, date, notes, type, winner_photo_path, start_time, rsvp_deadline_minutes_before, series_id, series_index, club_id, session_mode, tournament_team_count, tournament_match_minutes, tournament_winner_team_id, tournament_completed_at")
+      .select("id, date, notes, type, winner_photo_path, event_kind, event_title, event_score_for, event_score_against, event_report, event_photo_path, start_time, rsvp_deadline_minutes_before, series_id, series_index, club_id, session_mode, tournament_team_count, tournament_match_minutes, tournament_winner_team_id, tournament_completed_at")
       .eq("id", sessionId)
       .eq("club_id", clubId)
       .single(),
@@ -229,10 +229,15 @@ export default async function SessionDetailPage({ params }: PageProps) {
           .createSignedUrl(sessionForClient.winner_photo_path, 60 * 60)
       : Promise.resolve({ data: null as { signedUrl: string } | null, error: null });
 
+  const eventPhotoPromise = isEvent && session.event_photo_path
+    ? supabase.storage.from("session-photos").createSignedUrl(session.event_photo_path, 60 * 60)
+    : Promise.resolve({ data: null as { signedUrl: string } | null, error: null });
+
   const [
     { data: teamPlayersData, error: teamPlayersError },
     { data: winnerPhotoData, error: winnerPhotoError },
-  ] = await Promise.all([teamPlayersPromise, winnerPhotoPromise]);
+    { data: eventPhotoData, error: eventPhotoError },
+  ] = await Promise.all([teamPlayersPromise, winnerPhotoPromise, eventPhotoPromise]);
 
   if (teamPlayersError) throw new Error(`Team-Zuordnungen konnten nicht geladen werden: ${teamPlayersError.message}`);
 
@@ -275,6 +280,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       initialClubSettings={clubSettings}
       initialBalanceCategories={balanceCategories}
       initialWinnerPhotoUrl={winnerPhotoUrl}
+      initialEventPhotoUrl={eventPhotoError ? null : eventPhotoData?.signedUrl ?? null}
       initialGoalsA={goalsA}
       initialGoalsB={goalsB}
       initialHasResult={hasResult}

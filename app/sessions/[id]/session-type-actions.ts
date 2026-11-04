@@ -23,6 +23,7 @@ export async function updateSessionTypeAction(formData: FormData) {
 
   const sessionIdRaw = String(formData.get("sessionId") ?? "").trim();
   const nextType = normalizeSessionType(formData.get("type"));
+  const nextEventKind = nextType === "event" && formData.get("event_kind") === "match" ? "match" : "event";
 
   if (!sessionIdRaw) {
     throw new Error(t("sessionEdit.idMissing"));
@@ -48,10 +49,10 @@ export async function updateSessionTypeAction(formData: FormData) {
 
   const { data: sessionRow, error: sessionLoadError } = await supabase
     .from("sessions")
-    .select("id, club_id, type")
+    .select("id, club_id, type, event_kind")
     .eq("id", sessionId)
     .eq("club_id", clubId)
-    .maybeSingle<{ id: number; club_id: string; type: SessionType | null }>();
+    .maybeSingle<{ id: number; club_id: string; type: SessionType | null; event_kind: "match" | "event" | null }>();
 
   if (sessionLoadError) {
     throw new Error(t("sessionEdit.loadFailed", { error: sessionLoadError.message }));
@@ -63,7 +64,7 @@ export async function updateSessionTypeAction(formData: FormData) {
 
   const currentType: SessionType = sessionRow.type === "event" ? "event" : "training";
 
-  if (currentType === nextType) {
+  if (currentType === nextType && (nextType !== "event" || (sessionRow.event_kind ?? "event") === nextEventKind)) {
     revalidatePath(`/sessions/${sessionId}`);
     revalidatePath("/sessions");
     revalidatePath("/home");
@@ -74,6 +75,8 @@ export async function updateSessionTypeAction(formData: FormData) {
     .from("sessions")
     .update({
       type: nextType,
+      event_kind: nextEventKind,
+      ...(nextEventKind === "event" ? { event_score_for: null, event_score_against: null } : {}),
     })
     .eq("id", sessionId)
     .eq("club_id", clubId);
