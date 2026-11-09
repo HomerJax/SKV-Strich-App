@@ -184,7 +184,7 @@ export default function ClubSetupClubStep({
       </div>
 
       <form
-        method="post"
+        method={qaPreview ? undefined : "post"}
         action={qaPreview ? undefined : "/api/admin/club"}
         encType={qaPreview ? undefined : "multipart/form-data"}
         onSubmit={qaPreview ? (event) => {
