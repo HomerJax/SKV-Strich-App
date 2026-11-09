@@ -5,9 +5,11 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2, RotateCcw, ShieldCheck, Smartphone, Users } from "lucide-react";
 import SignupForm from "@/app/signup/SignupForm";
 import OnboardingForm from "@/app/onboarding/OnboardingForm";
+import AdminSetupPreview from "./AdminSetupPreview";
+import AdminFirstHomePreview from "./AdminFirstHomePreview";
 
 type Scenario = "admin" | "invited" | "waiting" | "second-club";
-type Stage = "signup" | "onboarding" | "after";
+type Stage = "signup" | "onboarding" | "club-setup" | "after";
 type PreviewSize = "desktop" | "narrow";
 
 const SCENARIOS: Record<Scenario, { title: string; description: string; flow: string; expected: string[] }> = {
@@ -38,8 +40,8 @@ const SCENARIOS: Record<Scenario, { title: string; description: string; flow: st
 };
 
 function Progress({ stage, scenario }: { stage: Stage; scenario: Scenario }) {
-  const items = scenario === "second-club" ? ["Einladung", "Vereinswechsel"] : ["Registrierung", "Onboarding", "Erster Einstieg"];
-  const position = stage === "signup" ? 0 : stage === "onboarding" ? 1 : items.length - 1;
+  const items = scenario === "second-club" ? ["Einladung", "Vereinswechsel"] : scenario === "admin" ? ["Registrierung", "Profil", "Vereins-Setup", "Erster Einstieg"] : ["Registrierung", "Onboarding", "Erster Einstieg"];
+  const position = stage === "signup" ? 0 : stage === "onboarding" ? 1 : stage === "club-setup" ? 2 : items.length - 1;
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
       {items.map((item, index) => (
@@ -153,7 +155,7 @@ export default function FirstRunQA() {
         </div>
       </section>
 
-      <section className="rounded-[24px] border border-slate-200 bg-white p-4 sm:p-5">
+      <section className="rounded-[24px] border border-slate-200 bg-white p-3 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-950"><Users className="h-4 w-4" /> {info.title}</div>
           <div className="flex items-center gap-2">
@@ -161,7 +163,7 @@ export default function FirstRunQA() {
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700">
               <Smartphone className="h-4 w-4" /> {previewSize === "desktop" ? "Schmale Vorschau" : "Volle Breite"}
             </button>
-            {stage !== "signup" && scenario !== "second-club" ? <button type="button" onClick={() => { setStage(stage === "after" ? "onboarding" : "signup"); setRunId((id) => id + 1); }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700"><ArrowLeft className="h-4 w-4" /> Zurück</button> : null}
+            {stage !== "signup" && scenario !== "second-club" ? <button type="button" onClick={() => { setStage(stage === "after" && scenario === "admin" ? "club-setup" : stage === "club-setup" ? "onboarding" : stage === "after" ? "onboarding" : "signup"); setRunId((id) => id + 1); }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700"><ArrowLeft className="h-4 w-4" /> Zurück</button> : null}
           </div>
         </div>
         <div className="mx-auto mt-5 max-w-xl"><Progress stage={stage} scenario={scenario} /></div>
@@ -175,8 +177,14 @@ export default function FirstRunQA() {
               qaPreview={{ onComplete: (input) => {
                 setFirstName(input.firstName);
                 setClubName(input.clubName);
-                setStage("after");
+                if (scenario === "admin" && input.intention === "create-team") setStage("club-setup");
+                else if (scenario === "admin" && input.intention === "wait-for-invite") { setScenario("waiting"); setStage("after"); }
+                else setStage("after");
               } }} />
+          ) : stage === "club-setup" && scenario === "admin" ? (
+            <AdminSetupPreview key={`club-setup-${runId}`} name={clubName} onDone={() => setStage("after")} />
+          ) : scenario === "admin" ? (
+            <AdminFirstHomePreview key={`home-${runId}`} firstName={firstName} name={clubName} onRestart={() => restart()} />
           ) : (
             <Completion scenario={scenario} firstName={firstName} clubName={clubName} onRestart={() => restart()} />
           )}
@@ -185,7 +193,7 @@ export default function FirstRunQA() {
       </section>
 
       <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-950">
-        <strong>Abnahmegrenze:</strong> Nur Registrierung und Onboarding sind hier die echten Produktkomponenten. Autorisierung, E-Mail-Verifizierung, Vereinserstellung, Beitritt, Home und RLS werden nicht simuliert und müssen mit isolierten Testkonten in Staging geprüft werden. Es wird niemals mit echten fremden Vereinen experimentiert.
+        <strong>Abnahmegrenze:</strong> Registrierung, persönliches Onboarding und der erste Club-Einstellungsschritt nutzen die echten Produktkomponenten. Team-/Kategorie-Setup und der erste Vereinsstart sind ausdrücklich vereinfachte Ablaufmodelle. Autorisierung, E-Mail-Verifizierung, Beitritt, echtes Home und RLS müssen mit isolierten Testkonten in Staging geprüft werden. Es werden keine produktiven Konten, Termine oder Vereinsdaten verändert.
       </div>
       <Link href="/power-user" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">Zurück zur Power-User-Verwaltung <ArrowRight className="h-4 w-4" /></Link>
     </div>
