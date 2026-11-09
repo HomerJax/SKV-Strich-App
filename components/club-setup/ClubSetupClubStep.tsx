@@ -27,6 +27,7 @@ type ClubSetupClubStepProps = {
   initialLogoUrl: string | null;
   useNicknames: boolean;
   variant?: "default" | "onboarding";
+  qaPreview?: { onComplete: (club: { name: string; sportType: string; primaryColor: string }) => void };
 };
 
 const COLOR_OPTIONS: Array<{ value: string; labelKey: MessageKey; color: string }> = [
@@ -84,6 +85,7 @@ export default function ClubSetupClubStep({
   initialLogoUrl,
   useNicknames,
   variant = "default",
+  qaPreview,
 }: ClubSetupClubStepProps) {
   const { t } = useI18n();
   const [displayName, setDisplayName] = useState(initialDisplayName);
@@ -183,8 +185,12 @@ export default function ClubSetupClubStep({
 
       <form
         method="post"
-        action="/api/admin/club"
-        encType="multipart/form-data"
+        action={qaPreview ? undefined : "/api/admin/club"}
+        encType={qaPreview ? undefined : "multipart/form-data"}
+        onSubmit={qaPreview ? (event) => {
+          event.preventDefault();
+          if (displayName.trim()) qaPreview.onComplete({ name: displayName.trim(), sportType, primaryColor });
+        } : undefined}
         className="space-y-5"
       >
         <input type="hidden" name="redirect_to" value={redirectTo} />
@@ -352,7 +358,7 @@ export default function ClubSetupClubStep({
         </button>
       </form>
 
-      {initialLogoUrl ? (
+      {!qaPreview && initialLogoUrl ? (
         <form method="post" action="/api/admin/club">
           <input
             type="hidden"
