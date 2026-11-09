@@ -1,3 +1,4 @@
+import OnboardingExamples from "@/components/club-setup/OnboardingExamples";
 import { getServerI18n } from "@/lib/i18n/server";
 import { translate, type MessageKey } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/config";
@@ -99,17 +100,7 @@ export default async function TeamGeneratorSettingsCard({
         </div>
       )}
 
-      {variant === "onboarding" ? (
-        <details className="rounded-2xl border border-slate-200 bg-white p-4">
-          <summary className="cursor-pointer text-sm font-bold text-cyan-800">Beispiel: So entstehen faire Teams</summary>
-          <p className="mt-2 text-xs leading-5 text-slate-600">Sechs Spieler mit Stärken von 1 bis 5: strikr verteilt sie möglichst ausgeglichen, statt alle starken Spieler in ein Team zu setzen.</p>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-xl bg-cyan-50 p-3"><strong>Team Cyan</strong><p className="mt-2">Alex (5)</p><p>Sam (3)</p><p>Kim (2)</p><strong className="mt-2 block">10 Punkte</strong></div>
-            <div className="rounded-xl bg-slate-100 p-3"><strong>Team Navy</strong><p className="mt-2">Jo (4)</p><p>Robin (4)</p><p>Pat (2)</p><strong className="mt-2 block">10 Punkte</strong></div>
-          </div>
-          <p className="mt-2 text-xs text-slate-500">Beispielwerte, keine echten Spielerdaten. Du kannst die Einstellungen jederzeit ändern.</p>
-        </details>
-      ) : null}
+      {variant === "onboarding" ? <OnboardingExamples kind="teams" /> : null}
       <form method="post" action="/api/admin/settings" className="space-y-4">
         <input type="hidden" name="redirect_to" value={redirectTo} />
         <input type="hidden" name="settings_scope" value="team_generator" />
