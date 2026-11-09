@@ -542,7 +542,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       if (!recorded) {
         completionAutoFinishStarted.current = false;
         setPilotFinalizingResult(false);
-        setErr("Das Trainingsergebnis ist gespeichert, aber der Abschluss konnte nicht bestätigt werden. Bitte erneut abschließen.");
+        setProgressError("Das Trainingsergebnis ist gespeichert, aber der Abschluss konnte nicht bestätigt werden. Bitte erneut abschließen.");
         return;
       }
       setPilotFinished(true);
@@ -1659,7 +1659,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                   if (!hasWinnerPhoto) setPilotPhotoSkipped(true);
                   const recorded = await requestTrainingCompletionTracking();
                   if (!recorded) {
-                    setErr("Der Trainingsabschluss wurde nicht gespeichert. Bitte erneut versuchen.");
+                    setProgressError("Der Trainingsabschluss wurde nicht gespeichert. Bitte erneut versuchen.");
                     return;
                   }
                   setPilotFinished(true);
