@@ -1,3 +1,4 @@
+import OnboardingExamples from "@/components/club-setup/OnboardingExamples";
 "use client";
 
 import { useState } from "react";
@@ -17,7 +18,6 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
   const [strength, setStrength] = useState(true);
   const [groups, setGroups] = useState(false);
   const [categories, setCategories] = useState(false);
-  const [example, setExample] = useState<"team" | "categories" | null>(null);
   const [recurring, setRecurring] = useState(true);
   const [season, setSeason] = useState(false);
   const [sport, setSport] = useState("football");
@@ -77,12 +77,7 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
               <input type="checkbox" checked={groups} onChange={e => setGroups(e.target.checked)} className="mt-1 h-5 w-5 accent-cyan-600"/>
               <span><strong className="block text-sm text-slate-950">Spielergruppen ausgleichen (optional)</strong><span className="text-xs text-slate-600">Beispiel: Torhüter oder besonders erfahrene Spieler sollen nicht alle im selben Team landen.</span></span>
             </label>
-            <button type="button" onClick={() => setExample(example === "team" ? null : "team")} className="text-sm font-bold text-cyan-700 underline underline-offset-4">{example === "team" ? "Beispiel schließen" : "Beispiel-Einteilung ansehen"}</button>
-            {example === "team" && <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-xl bg-cyan-50 p-3"><strong>Team Cyan</strong><p className="mt-2">Alex · Stärke 5</p><p>Sam · Stärke 3</p><p>Kim · Stärke 2</p><p className="mt-2 font-bold">Summe: 10</p></div>
-              <div className="rounded-xl bg-slate-100 p-3"><strong>Team Navy</strong><p className="mt-2">Jo · Stärke 4</p><p>Robin · Stärke 4</p><p>Pat · Stärke 2</p><p className="mt-2 font-bold">Summe: 10</p></div>
-              <p className="col-span-2 text-xs text-slate-500">Nur ein Beispiel – die echte Einteilung berücksichtigt weitere Faktoren.</p>
-            </div>}
+            <OnboardingExamples kind="teams" />
           </div>
         ) : null}
 
@@ -94,8 +89,7 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
               <input type="checkbox" checked={categories} onChange={e => setCategories(e.target.checked)} className="h-5 w-5 accent-cyan-600"/>
               Kategorien verwenden
             </label>
-            <button type="button" onClick={() => setExample(example === "categories" ? null : "categories")} className="text-sm font-bold text-cyan-700 underline underline-offset-4">{example === "categories" ? "Beispiel schließen" : "Beispiel AH / Ü32 ansehen"}</button>
-            {example === "categories" && <div className="grid grid-cols-2 gap-2 text-sm"><div className="rounded-xl bg-cyan-50 p-3"><strong>AH</strong><p className="mt-1 text-xs">Alex, Sam, Kim</p></div><div className="rounded-xl bg-slate-100 p-3"><strong>Ü32</strong><p className="mt-1 text-xs">Jo, Robin, Pat</p></div><p className="col-span-2 text-xs text-slate-500">So kannst du Spielergruppen gezielt verwalten. Namen und Zuordnung lassen sich später ändern.</p></div>}
+            <OnboardingExamples kind="categories" />
           </div>
         ) : null}
 
