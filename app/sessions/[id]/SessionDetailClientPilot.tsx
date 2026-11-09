@@ -135,7 +135,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [photoUploadWorking, setPhotoUploadWorking] = useState(false);
   const [photoUploadWarning, setPhotoUploadWarning] = useState("");
   const photoUploadLock = useRef(false);
-  const completionTrackingRequest = useRef<Promise<void> | null>(null);
+  const completionTrackingRequest = useRef<Promise<boolean> | null>(null);
   const completionTrackingRecorded = useRef(false);
   const completionAutoFinishStarted = useRef(false);
   const [timerChoice, setTimerChoice] = useState<"with" | null>(null);
@@ -475,10 +475,10 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   stagedPhotoUploader.current = uploadWinnerPhotoFile;
 
   const requestTrainingCompletionTracking = useCallback(async () => {
-    if (completionTrackingRecorded.current) return;
+    if (completionTrackingRecorded.current) return true;
     if (completionTrackingRequest.current) return completionTrackingRequest.current;
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 2500);
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
     const request = (async () => {
       try {
         const formData = new FormData();
@@ -490,10 +490,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         });
         completionTrackingRecorded.current = response.ok;
       } catch {
-        // Tracking is best effort; the saved training must remain completed.
+        // Never claim the training is completed if the server did not confirm it.
       } finally {
         window.clearTimeout(timeout);
       }
+      return completionTrackingRecorded.current;
     })();
     completionTrackingRequest.current = request;
     await request;
@@ -537,7 +538,13 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     completionAutoFinishStarted.current = true;
 
     void (async () => {
-      await requestTrainingCompletionTracking();
+      const recorded = await requestTrainingCompletionTracking();
+      if (!recorded) {
+        completionAutoFinishStarted.current = false;
+        setPilotFinalizingResult(false);
+        setErr("Das Trainingsergebnis ist gespeichert, aber der Abschluss konnte nicht bestätigt werden. Bitte erneut abschließen.");
+        return;
+      }
       setPilotFinished(true);
       try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); }
       catch { /* Optional. */ }
@@ -1650,7 +1657,11 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                     try { window.localStorage.setItem("strikr-closing-reviewed-" + props.sessionId, "true"); } catch { /* Optional storage. */ }
                   }
                   if (!hasWinnerPhoto) setPilotPhotoSkipped(true);
-                  await requestTrainingCompletionTracking();
+                  const recorded = await requestTrainingCompletionTracking();
+                  if (!recorded) {
+                    setErr("Der Trainingsabschluss wurde nicht gespeichert. Bitte erneut versuchen.");
+                    return;
+                  }
                   setPilotFinished(true);
                   try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); } catch { /* Storage is optional. */ }
                   setTrainingWizardOpen(false);
