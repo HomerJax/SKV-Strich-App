@@ -131,7 +131,7 @@ export default function FirstRunQA() {
           <div>
             <div className="text-[11px] font-black uppercase tracking-[.17em] text-cyan-300">Interne Produkt-QA · Power User</div>
             <h1 className="mt-2 text-2xl font-extrabold sm:text-3xl">First-Run-Simulator</h1>
-            <p className="mt-2 max-w-3xl text-sm text-white/65">So sieht der Einstieg für einen ganz neuen Nutzer aus. Signup- und Onboarding-Formulare stammen aus dem echten Produkt – Aktionen sind hier deaktiviert.</p>
+            <p className="mt-2 max-w-3xl text-sm text-white/65">Teste den Einstieg neuer Nutzer mit den echten Registrierungs- und Onboarding-Formularen. Die Registrierung lässt sich mit einem Klick simulieren – ohne Account oder Datenbankänderungen.</p>
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-bold text-emerald-200"><ShieldCheck className="h-4 w-4" /> Keine Writes</span>
         </div>
