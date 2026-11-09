@@ -39,7 +39,7 @@ export default async function TeamGeneratorSettingsCard({
   const resolvedSubmitLabel = submitLabel ?? t("teamGenerator.save");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {saved ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {t("teamGenerator.saved")}
@@ -53,7 +53,7 @@ export default async function TeamGeneratorSettingsCard({
       ) : null}
 
       {variant === "onboarding" ? (
-        <div className="rounded-[24px] border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-4 sm:p-5">
+        <div className="rounded-[18px] border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-4 sm:p-5">
           <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
             {t("teamGenerator.autoTitle")}
           </div>
@@ -99,6 +99,17 @@ export default async function TeamGeneratorSettingsCard({
         </div>
       )}
 
+      {variant === "onboarding" ? (
+        <details className="rounded-2xl border border-slate-200 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-bold text-cyan-800">Beispiel: So entstehen faire Teams</summary>
+          <p className="mt-2 text-xs leading-5 text-slate-600">Sechs Spieler mit Stärken von 1 bis 5: strikr verteilt sie möglichst ausgeglichen, statt alle starken Spieler in ein Team zu setzen.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-xl bg-cyan-50 p-3"><strong>Team Cyan</strong><p className="mt-2">Alex (5)</p><p>Sam (3)</p><p>Kim (2)</p><strong className="mt-2 block">10 Punkte</strong></div>
+            <div className="rounded-xl bg-slate-100 p-3"><strong>Team Navy</strong><p className="mt-2">Jo (4)</p><p>Robin (4)</p><p>Pat (2)</p><strong className="mt-2 block">10 Punkte</strong></div>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Beispielwerte, keine echten Spielerdaten. Du kannst die Einstellungen jederzeit ändern.</p>
+        </details>
+      ) : null}
       <form method="post" action="/api/admin/settings" className="space-y-4">
         <input type="hidden" name="redirect_to" value={redirectTo} />
         <input type="hidden" name="settings_scope" value="team_generator" />
