@@ -70,3 +70,4 @@ left join mvp_wins m on m.player_id=p.id and m.club_id=p.club_id;
 
 -- Preserve consumer access to player MVP stats while enforcing invoker RLS.
 grant select on public.player_mvp_stats to authenticated, service_role;
+notify pgrst, 'reload schema';
