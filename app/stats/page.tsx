@@ -385,7 +385,7 @@ export default async function StatsPage({ searchParams }: PageProps) {
       .eq("id", viewPlayer.id)
       .maybeSingle<PlayerMetaRow>(),
     supabase
-      .from("session_players")
+      .from("stats_session_players")
       .select("session_id")
       .eq("player_id", viewPlayer.id),
     supabase
