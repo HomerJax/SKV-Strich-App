@@ -30,3 +30,12 @@ test("guest endpoint uses the already authorized server-side client", () => {
   assert.match(handler, /\.insert\(payload\)[\s\S]*?\.select\([\s\S]*?strength/);
   assert.match(handler, /player: maskGuestStrengthForClient/);
 });
+
+test("bulk roster audit uses the already authorized admin client, not user RLS", () => {
+  const route = readFileSync(new URL("../app/admin/players/update-all/route.ts", import.meta.url), "utf8");
+  assert.match(route, /requireAdminClubContext\(\)/);
+  assert.match(route, /const adminPlayersDb = createAdminClient\(\)/);
+  assert.match(route, /const \{ error: auditError \} = await adminPlayersDb\s*\.from\("balance_group_audit_log"\)/);
+  assert.doesNotMatch(route, /const \{ error: auditError \} = await supabase\s*\.from\("balance_group_audit_log"\)/);
+  assert.match(route, /club_id: access\.clubId,[\s\S]*?changed_by: access\.userId/);
+});
