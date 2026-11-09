@@ -12,6 +12,7 @@ type SignupFormProps = {
   initialEmail?: string;
   initialError?: string;
   initialNext?: string;
+  qaPreview?: { onComplete: () => void };
 };
 
 function getErrorMessage(
@@ -46,6 +47,7 @@ export default function SignupForm({
   initialEmail = "",
   initialError = "",
   initialNext = "",
+  qaPreview,
 }: SignupFormProps) {
   const { t } = useI18n();
   const [email, setEmail] = useState(initialEmail);
@@ -167,6 +169,8 @@ export default function SignupForm({
                   : t("auth.signupInviteNext")}
               </p>
 
+              {qaPreview ? <div className="mt-5 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-xs font-bold text-cyan-900">QA-Vorschau: Registrierung wird nicht ausgeführt. Keine E-Mail, kein Benutzerkonto.</div> : null}
+
               {errorMessage ? (
                 <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
                   {errorMessage}
@@ -174,8 +178,15 @@ export default function SignupForm({
               ) : null}
 
               <form
-                action={formAction}
-                onSubmit={() => setHasEditedSinceSubmit(false)}
+                action={qaPreview ? undefined : formAction}
+                onSubmit={(event) => {
+                  setHasEditedSinceSubmit(false);
+                  if (qaPreview) {
+                    event.preventDefault();
+                    if (password !== passwordConfirm || password.length < 8) return;
+                    qaPreview.onComplete();
+                  }
+                }}
                 className="mt-7 space-y-4"
               >
                 <input type="hidden" name="next" value={initialNext} />
@@ -258,7 +269,7 @@ export default function SignupForm({
                 </button>
               </form>
 
-              <div className="mt-6 text-center text-sm font-medium text-neutral-500">
+              {!qaPreview ? <div className="mt-6 text-center text-sm font-medium text-neutral-500">
                 {t("auth.alreadyRegistered")}{" "}
                 <Link
                   href={loginHref}
@@ -266,7 +277,7 @@ export default function SignupForm({
                 >
                   {t("auth.toLogin")}
                 </Link>
-              </div>
+              </div> : null}
             </div>
           </div>
         </div>
