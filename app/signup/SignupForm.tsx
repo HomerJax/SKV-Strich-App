@@ -179,6 +179,7 @@ export default function SignupForm({
 
               <form
                 action={qaPreview ? undefined : formAction}
+                method={qaPreview ? "post" : undefined}
                 onSubmit={(event) => {
                   setHasEditedSinceSubmit(false);
                   if (qaPreview) {
