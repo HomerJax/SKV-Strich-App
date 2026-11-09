@@ -147,6 +147,9 @@ export async function handleSaveResult({
         .eq("id", sessionId)
         .eq("club_id", clubId)
         .eq("type", "training")
+        .lte("date", new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
+        }).format(new Date()))
         .is("completed_at", null);
       if (completionError) return fail("Ergebnis gespeichert, aber Trainingsabschluss konnte nicht bestätigt werden.", 500);
     }
