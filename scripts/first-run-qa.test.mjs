@@ -20,6 +20,9 @@ test("first-run previews use the real product forms without a live submit", () =
   assert.match(signup, /action=\{qaPreview \? undefined : formAction\}/);
   assert.match(onboarding, /action=\{qaPreview \? undefined : formAction\}/);
   assert.match(signup, /event\.preventDefault\(\)/);
+  assert.match(signup, /onClick=\{qaPreview\.onComplete\}/);
+  assert.match(signup, /Registrierung simulieren/);
+  assert.match(signup, /type="button"/);
   assert.match(onboarding, /event\.preventDefault\(\)/);
 });
 
