@@ -7,6 +7,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 type OnboardingFormProps = {
   initialNext?: string;
   inviteFlow?: boolean;
+  qaPreview?: { onComplete: (input: { intention: "create-team" | "wait-for-invite"; clubName: string; firstName: string }) => void };
 };
 
 const INITIAL_STATE: OnboardingState = {
@@ -16,6 +17,7 @@ const INITIAL_STATE: OnboardingState = {
 export default function OnboardingForm({
   initialNext = "",
   inviteFlow = false,
+  qaPreview,
 }: OnboardingFormProps) {
   const { t } = useI18n();
   const [firstName, setFirstName] = useState("");
@@ -57,6 +59,8 @@ export default function OnboardingForm({
           )}
         </div>
 
+        {qaPreview ? <div className="mb-4 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-xs font-semibold text-cyan-900">QA-Vorschau: Dieses Formular ist das echte Onboarding-UI. Speichern und Vereinsgründung sind in dieser Vorschau deaktiviert.</div> : null}
+
         {errorMessage ? (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMessage}
@@ -64,8 +68,14 @@ export default function OnboardingForm({
         ) : null}
 
         <form
-          action={formAction}
-          onSubmit={() => setHasEditedSinceSubmit(false)}
+          action={qaPreview ? undefined : formAction}
+          onSubmit={(event) => {
+            setHasEditedSinceSubmit(false);
+            if (qaPreview) {
+              event.preventDefault();
+              qaPreview.onComplete({ intention: inviteFlow ? "wait-for-invite" : intention, clubName, firstName });
+            }
+          }}
           className="space-y-5"
         >
           <input type="hidden" name="next" value={initialNext} />
