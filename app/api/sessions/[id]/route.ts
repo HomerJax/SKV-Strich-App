@@ -213,6 +213,16 @@ export async function POST(
         }
       }
 
+      // Completion is authoritative for every statistical view. RSVP/roster alone
+      // must never increase appearances, streaks, badges or leaderboard totals.
+      const { error: completionError } = await adminSupabase
+        .from("sessions")
+        .update({ completed_at: new Date().toISOString(), completed_by: currentUserId })
+        .eq("id", sessionId)
+        .eq("club_id", clubId)
+        .eq("type", "training");
+      if (completionError) return fail("Trainingsabschluss konnte nicht gespeichert werden.", 500);
+
       await recordFirstTrainingCompleted(clubId);
       return ok({ message: "Training abgeschlossen." });
     }
