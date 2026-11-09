@@ -169,7 +169,24 @@ export default function SignupForm({
                   : t("auth.signupInviteNext")}
               </p>
 
-              {qaPreview ? <div className="mt-5 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-xs font-bold text-cyan-900">QA-Vorschau: Registrierung wird nicht ausgeführt. Keine E-Mail, kein Benutzerkonto.</div> : null}
+              {qaPreview ? (
+                <div className="mt-5 space-y-3">
+                  <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-xs font-bold text-cyan-900">
+                    Interner Testmodus: Keine echte Registrierung, keine E-Mail und keine Datenbankänderungen.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={qaPreview.onComplete}
+                    className="flex w-full items-center justify-between rounded-2xl bg-cyan-600 px-5 py-4 text-left text-sm font-black text-white transition hover:bg-cyan-700"
+                  >
+                    Registrierung simulieren
+                    <ArrowRight className="h-5 w-5" />
+                  </button>
+                  <p className="text-xs leading-5 text-neutral-500">
+                    Ohne E-Mail oder Passwort direkt zum nächsten Schritt. Das Formular darunter kannst du alternativ testen – ebenfalls ohne Account anzulegen.
+                  </p>
+                </div>
+              ) : null}
 
               {errorMessage ? (
                 <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
