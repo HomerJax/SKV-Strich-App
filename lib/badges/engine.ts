@@ -580,6 +580,7 @@ export async function syncClubAchievements(
       .from("sessions")
       .select("id, date, season_id, type")
       .eq("club_id", clubId)
+      .not("completed_at", "is", null)
       .order("date", { ascending: true }),
     supabase
       .from("player_achievements")
@@ -618,7 +619,7 @@ export async function syncClubAchievements(
     { data: resultsData, error: resultsError },
   ] = await Promise.all([
     supabase
-      .from("session_players")
+      .from("stats_session_players")
       .select("session_id, player_id")
       .in("session_id", sessionIds),
     supabase
