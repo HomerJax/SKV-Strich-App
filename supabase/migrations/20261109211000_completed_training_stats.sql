@@ -1,5 +1,6 @@
 -- A RSVP/attendance roster is NOT proof that a training was played.
--- Historical result/tournament records are the only conservative completion evidence.
+-- Only results recorded on/after the training date or verified tournaments are conservative completion evidence.
+-- Results prefilled before the training (12 such sessions in the 09.11. production audit) are not proof.
 -- Sessions without proof remain pending review; do not delete RSVP or roster history.
 alter table public.sessions
   add column if not exists completed_at timestamptz,
@@ -11,7 +12,8 @@ set completed_at = coalesce(
   (select max(r.created_at) from public.results r
    where r.session_id = s.id
      and r.goals_team_a is not null and r.goals_team_b is not null
-     and r.team_a_id is not null and r.team_b_id is not null)
+     and r.team_a_id is not null and r.team_b_id is not null
+     and r.created_at >= (s.date::timestamp at time zone 'Europe/Berlin'))
 )
 where s.type = 'training'
   and s.completed_at is null
@@ -21,6 +23,7 @@ where s.type = 'training'
     where r.session_id = s.id
       and r.goals_team_a is not null and r.goals_team_b is not null
       and r.team_a_id is not null and r.team_b_id is not null
+     and r.created_at >= (s.date::timestamp at time zone 'Europe/Berlin')
   ));
 
 -- Explicitly completed trainings alone are eligible for statistical attendance.
