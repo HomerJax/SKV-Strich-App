@@ -49,3 +49,30 @@ test("full admin first-run continues safely through club settings and first home
     assert.doesNotMatch(component, /createAdminClient|\.from\(|signUp\(|\.rpc\(/);
   }
 });
+
+test("internal simulator runs through first setup without writes or global app chrome", () => {
+  const qa = read("app/power-user/onboarding-simulator/FirstRunQA.tsx");
+  const shell = read("components/RouteAwareAppShell.tsx");
+  const club = read("components/club-setup/ClubSetupClubStep.tsx");
+  const setup = read("app/power-user/onboarding-simulator/AdminSetupPreview.tsx");
+  const home = read("app/power-user/onboarding-simulator/AdminFirstHomePreview.tsx");
+  assert.match(shell, /pathname === "\/power-user\/onboarding-simulator"/);
+  assert.match(qa, /<AdminSetupPreview/);
+  assert.match(qa, /<AdminFirstHomePreview/);
+  assert.match(qa, /<WaitingForInviteContent qaPreview/);
+  assert.match(setup, /<ClubSetupClubStep/);
+  assert.match(club, /action=\{qaPreview \? undefined : "\/api\/admin\/club"\}/);
+  assert.match(club, /event\.preventDefault\(\)/);
+  assert.match(home, /Keine Aktionen hier speichern Daten/);
+  assert.doesNotMatch(setup, /\.from\(|fetch\(|createAdminClient\(|\.rpc\(/);
+  assert.doesNotMatch(home, /\.from\(|fetch\(|createAdminClient\(|\.rpc\(/);
+});
+
+test("real waiting-for-invite screen is reused and QA buttons cannot navigate", () => {
+  const page = read("app/waiting-for-invite/page.tsx");
+  const waiting = read("components/onboarding/WaitingForInviteContent.tsx");
+  assert.match(page, /getAuthContext\(\)/);
+  assert.match(page, /<WaitingForInviteContent/);
+  assert.match(waiting, /qaPreview \?/);
+  assert.match(waiting, /type="button" disabled/);
+});
