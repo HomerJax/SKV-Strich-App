@@ -20,6 +20,7 @@ import {
 import { getRequiredRsvpReasonError } from "@/lib/rsvp-reason";
 import { getServerI18n } from "@/lib/i18n/server";
 import { recordFirstTrainingCompleted } from "@/lib/analytics/growth-funnel";
+import { syncClubAchievements } from "@/lib/badges/engine";
 import {
   canCompleteTraining,
   hasValidNormalTrainingResult,
@@ -223,6 +224,12 @@ export async function POST(
         .eq("type", "training");
       if (completionError) return fail("Trainingsabschluss konnte nicht gespeichert werden.", 500);
 
+      // Badge progress must be recomputed AFTER completion becomes eligible.
+      try {
+        await syncClubAchievements(clubId);
+      } catch (error) {
+        console.error("Badge sync after training completion failed", error);
+      }
       await recordFirstTrainingCompleted(clubId);
       return ok({ message: "Training abgeschlossen." });
     }
