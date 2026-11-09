@@ -17,8 +17,9 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
       - name: First-run safeguards
         run: node --test scripts/first-run-qa.test.mjs
+      - name: Install dependencies without changing lockfile
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund
       - name: Type check
         run: npx tsc --noEmit
