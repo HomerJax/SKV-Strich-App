@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { hasGuidedTrainingAssistant, STRIKR_TRAINING_WIZARD_CLUB_ID } from "@/lib/training-wizard-pilots";
 import { syncClubAchievements } from "@/lib/badges/engine";
 import { fail, ok } from "@/lib/session-detail/response";
 import { getServerI18n } from "@/lib/i18n/server";
@@ -134,6 +136,19 @@ export async function handleSaveResult({
           console.error("Result push failed", error);
         }
       }
+    }
+
+    // The classic (non-wizard) flow ends when an authorized leader saves a
+    // valid result. Guided clubs are only completed by the wizard finish action.
+    if (clubId !== STRIKR_TRAINING_WIZARD_CLUB_ID && !hasGuidedTrainingAssistant(clubId)) {
+      const { error: completionError } = await createAdminClient()
+        .from("sessions")
+        .update({ completed_at: new Date().toISOString(), completed_by: actorUserId })
+        .eq("id", sessionId)
+        .eq("club_id", clubId)
+        .eq("type", "training")
+        .is("completed_at", null);
+      if (completionError) return fail("Ergebnis gespeichert, aber Trainingsabschluss konnte nicht bestätigt werden.", 500);
     }
 
     try {
