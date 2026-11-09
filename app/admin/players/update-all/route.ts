@@ -204,7 +204,9 @@ export async function POST(request: NextRequest) {
       }));
 
     if (balanceGroupChanges.length > 0) {
-      const { error: auditError } = await supabase
+      // Membership and club scope were verified above. Use the same scoped server
+      // admin client as the player updates; authenticated RLS has no INSERT policy.
+      const { error: auditError } = await adminPlayersDb
         .from("balance_group_audit_log")
         .insert(balanceGroupChanges);
       if (auditError) {
