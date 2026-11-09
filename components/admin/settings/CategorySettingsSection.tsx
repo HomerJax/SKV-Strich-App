@@ -89,6 +89,16 @@ export async function CategorySettingsSection({
         </div>
       )}
 
+      {variant === "onboarding" ? (
+        <details className="rounded-2xl border border-slate-200 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-bold text-cyan-800">Beispiel: Kategorien im Teamgenerator</summary>
+          <p className="mt-2 text-xs leading-5 text-slate-600">Beispiel: „Erfahren“ und „Einsteiger“. strikr kann diese Spieler beim Aufteilen berücksichtigen, damit möglichst faire Teams entstehen. Die Namen und Zuordnungen lassen sich später ändern.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-xl bg-cyan-50 p-3"><strong>Erfahren</strong><p className="mt-1">Alex · Jo · Sam</p></div>
+            <div className="rounded-xl bg-slate-100 p-3"><strong>Einsteiger</strong><p className="mt-1">Kim · Pat · Robin</p></div>
+          </div>
+        </details>
+      ) : null}
       <div className={variant === "onboarding" ? "rounded-[22px] border border-slate-200 bg-slate-50 p-3" : "rounded-xl border border-black/10 bg-neutral-50 p-3"}>
         <form action={addCategoryAction} className="flex gap-2">
           <input type="hidden" name="redirect_to" value={redirectTo} />
