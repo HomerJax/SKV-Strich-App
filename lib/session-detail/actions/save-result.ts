@@ -136,6 +136,9 @@ export async function handleSaveResult({
       }
     }
 
+    // Saving a result is NOT the same as finishing training.
+    // The leader must explicitly complete the session (with or without score).
+
     try {
       await syncClubAchievements(clubId);
     } catch (error) {

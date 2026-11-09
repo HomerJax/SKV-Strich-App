@@ -171,7 +171,8 @@ async function loadCareerStatsForPlayers(clubId: string, playerIds: number[]) {
   const { data: sessionsData, error: sessionsError } = await supabase
     .from("sessions")
     .select("id, type")
-    .eq("club_id", clubId);
+    .eq("club_id", clubId)
+    .not("completed_at", "is", null);
 
   if (sessionsError) {
     throw new Error(`Sessions konnten für den Vergleich nicht geladen werden: ${sessionsError.message}`);
@@ -188,7 +189,7 @@ async function loadCareerStatsForPlayers(clubId: string, playerIds: number[]) {
     { data: resultData, error: resultError },
   ] = await Promise.all([
     supabase
-      .from("session_players")
+      .from("stats_session_players")
       .select("session_id, player_id")
       .in("session_id", trainingSessionIds)
       .in("player_id", playerIds),

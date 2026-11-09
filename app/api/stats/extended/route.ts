@@ -63,7 +63,7 @@ export async function GET(request: Request) {
   const sessionIds = Array.from(new Set(teams.map((team) => team.session_id)));
   if (sessionIds.length === 0) return NextResponse.json({ enabled: true, bestMonth: null, teammates: { mostPlayed: [], mostWins: [], mostLosses: [] } });
 
-  const { data: sessionsData, error: sessionsError } = await supabase.from("sessions").select("id, date, season_id").eq("club_id", clubId).in("id", sessionIds);
+  const { data: sessionsData, error: sessionsError } = await supabase.from("sessions").select("id, date, season_id").eq("club_id", clubId).eq("type", "training").not("completed_at", "is", null).in("id", sessionIds);
   if (sessionsError) return NextResponse.json({ error: sessionsError.message }, { status: 500 });
 
   const seasons = (seasonsData ?? []) as SeasonRow[];

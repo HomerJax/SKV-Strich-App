@@ -8,6 +8,7 @@ import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import SessionDetailClient from "./SessionDetailClient";
 import SessionDetailClientPilot from "./SessionDetailClientPilot";
+import ConfirmPlayedTrainingButton from "./ConfirmPlayedTrainingButton";
 import type { Player, SessionRow } from "./session-types";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
@@ -109,7 +110,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .maybeSingle(),
     supabase
       .from("sessions")
-      .select("id, date, notes, type, winner_photo_path, event_kind, event_title, event_score_for, event_score_against, event_report, event_photo_path, start_time, rsvp_deadline_minutes_before, series_id, series_index, club_id, session_mode, tournament_team_count, tournament_match_minutes, tournament_winner_team_id, tournament_completed_at")
+      .select("id, date, notes, type, winner_photo_path, event_kind, event_title, event_score_for, event_score_against, event_report, event_photo_path, start_time, rsvp_deadline_minutes_before, series_id, series_index, club_id, session_mode, tournament_team_count, tournament_match_minutes, tournament_winner_team_id, tournament_completed_at, completed_at")
       .eq("id", sessionId)
       .eq("club_id", clubId)
       .single(),
@@ -144,7 +145,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const useFieldView = featureFlags.use_field_view === true;
   const homeSessionRsvpEnabled = featureFlags.home_session_rsvp === true;
   const sessionTypesEnabled = featureFlags.session_types === true;
-  const session = sessionData as SessionRow;
+  const session = sessionData as SessionRow & { completed_at: string | null };
 
   const clubSettings: ClubSettings = {
     ...DEFAULT_CLUB_SETTINGS,
@@ -267,6 +268,12 @@ export default async function SessionDetailPage({ params }: PageProps) {
           </Link>
         </div>
       )}
+      {(isPowerUser || isAdminRole(membership.role) || canLeadTraining) &&
+        session.type !== "event" && session.session_mode !== "tournament" &&
+        !session.completed_at && !hasResult && presentIds.length >= 2 &&
+        session.date <= new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
+        }).format(new Date()) ? <ConfirmPlayedTrainingButton sessionId={sessionId} /> : null}
       <TrainingDetailComponent
       sessionId={sessionId}
       initialSession={sessionForClient}
