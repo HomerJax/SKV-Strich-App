@@ -78,8 +78,8 @@ export default function SignupForm({
   return (
     <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_12%_10%,rgba(34,211,238,.10),transparent_28%),radial-gradient(circle_at_86%_14%,rgba(124,58,237,.12),transparent_30%),#f5f7fb]">
       <section className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-6 sm:px-6 sm:py-10">
-        <div className="grid w-full gap-5 lg:grid-cols-[1.02fr_.98fr]">
-          <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-[#070b12] p-6 text-white shadow-[0_30px_90px_rgba(2,6,23,.25)] sm:p-8 lg:min-h-[640px]">
+        <div className="grid w-full gap-3 sm:gap-5 lg:grid-cols-[1.02fr_.98fr]">
+          <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[#070b12] p-4 text-white sm:rounded-[34px] sm:p-8 shadow-[0_30px_90px_rgba(2,6,23,.25)] sm:p-8 lg:min-h-[640px]">
             <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-20 left-0 h-60 w-60 rounded-full bg-cyan-400/15 blur-3xl" />
 
@@ -101,13 +101,13 @@ export default function SignupForm({
                 </div>
               </div>
 
-              <div className="my-auto py-10">
+              <div className="my-auto py-2 sm:py-10">
                 <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.18em] text-cyan-200">
                   <Sparkles className="h-3.5 w-3.5" />
                   {isTeamStart ? t("auth.teamStartsHere") : t("auth.welcome")}
                 </div>
 
-                <h1 className="mt-5 max-w-xl text-4xl font-black leading-[.98] tracking-[-.055em] sm:text-5xl">
+                <h1 className="mt-3 max-w-xl text-3xl font-black leading-tight tracking-[-.055em] sm:mt-5 sm:text-5xl">
                   {isTeamStart ? (
                     <>
                       {t("auth.oneMoreAccount")}
@@ -125,14 +125,14 @@ export default function SignupForm({
                   )}
                 </h1>
 
-                <p className="mt-5 max-w-xl text-sm font-medium leading-7 text-white/58 sm:text-base">
+                <p className="mt-2 max-w-xl text-xs font-medium leading-5 text-white/65 sm:mt-5 sm:text-base sm:leading-7">
                   {isTeamStart
                     ? t("auth.signupTeamHint")
                     : t("auth.signupHint")}
                 </p>
 
                 {isTeamStart ? (
-                  <div className="mt-8 space-y-3">
+                  <div className="mt-8 hidden space-y-3 sm:block">
                     {[
                       t("auth.signupBenefit1"),
                       t("auth.signupBenefit2"),
@@ -149,13 +149,13 @@ export default function SignupForm({
                 ) : null}
               </div>
 
-              <div className="text-[10px] font-bold uppercase tracking-[.18em] text-white/25">
+              <div className="hidden text-[10px] font-bold uppercase tracking-[.18em] text-white/25 sm:block">
                 {t("auth.everyTrainingCounts")}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center rounded-[34px] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,.10)] sm:p-8">
+          <div className="flex items-center rounded-[24px] border border-slate-200 bg-white p-5 sm:rounded-[34px] shadow-[0_24px_70px_rgba(15,23,42,.10)] sm:p-8">
             <div className="mx-auto w-full max-w-md">
               <div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-600">
                 {isTeamStart ? t("auth.accountStep") : t("auth.createAccount")}
@@ -179,6 +179,7 @@ export default function SignupForm({
 
               <form
                 action={qaPreview ? undefined : formAction}
+                method={qaPreview ? "post" : undefined}
                 onSubmit={(event) => {
                   setHasEditedSinceSubmit(false);
                   if (qaPreview) {
