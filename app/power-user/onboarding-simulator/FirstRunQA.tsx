@@ -7,6 +7,7 @@ import SignupForm from "@/app/signup/SignupForm";
 import OnboardingForm from "@/app/onboarding/OnboardingForm";
 import AdminSetupPreview from "./AdminSetupPreview";
 import AdminFirstHomePreview from "./AdminFirstHomePreview";
+import WaitingForInviteContent from "@/components/onboarding/WaitingForInviteContent";
 
 type Scenario = "admin" | "invited" | "waiting" | "second-club";
 type Stage = "signup" | "onboarding" | "club-setup" | "after";
@@ -183,6 +184,8 @@ export default function FirstRunQA() {
               } }} />
           ) : stage === "club-setup" && scenario === "admin" ? (
             <AdminSetupPreview key={`club-setup-${runId}`} name={clubName} onDone={() => setStage("after")} />
+          ) : scenario === "waiting" ? (
+            <WaitingForInviteContent qaPreview />
           ) : scenario === "admin" ? (
             <AdminFirstHomePreview key={`home-${runId}`} firstName={firstName} name={clubName} onRestart={() => restart()} />
           ) : (
