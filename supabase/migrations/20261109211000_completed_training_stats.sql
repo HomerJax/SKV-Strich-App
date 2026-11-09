@@ -1,30 +1,22 @@
--- A RSVP/attendance roster is NOT proof that a training was played.
--- Only results recorded on/after the training date or verified tournaments are conservative completion evidence.
--- Results prefilled before the training (12 such sessions in the 09.11. production audit) are not proof.
--- Sessions without proof remain pending review; do not delete RSVP or roster history.
+-- Preserve every historical training through 2026-11-09 as previously counted,
+-- except SKV Rutesheim AH session 888 (2026-11-05), which was not played.
+-- This is a statistical compatibility marker, not an assertion of a verified finish.
+-- From 2026-11-10 onward, only explicit completion qualifies.
 alter table public.sessions
   add column if not exists completed_at timestamptz,
   add column if not exists completed_by uuid;
 
 update public.sessions s
-set completed_at = coalesce(
-  s.tournament_completed_at,
-  (select max(r.created_at) from public.results r
-   where r.session_id = s.id
-     and r.goals_team_a is not null and r.goals_team_b is not null
-     and r.team_a_id is not null and r.team_b_id is not null
-     and r.created_at >= (s.date::timestamp at time zone 'Europe/Berlin'))
-)
+set completed_at = (s.date::timestamp at time zone 'Europe/Berlin') + interval '23 hours'
 where s.type = 'training'
   and s.completed_at is null
-  and s.date <= (now() at time zone 'Europe/Berlin')::date
-  and (s.tournament_completed_at is not null or exists (
-    select 1 from public.results r
-    where r.session_id = s.id
-      and r.goals_team_a is not null and r.goals_team_b is not null
-      and r.team_a_id is not null and r.team_b_id is not null
-     and r.created_at >= (s.date::timestamp at time zone 'Europe/Berlin')
-  ));
+  and s.date <= date '2026-11-09'
+  and s.id <> 888;
+
+-- The four RSVPs and session_players for session 888 remain untouched.
+-- Only its statistical eligibility is excluded.
+update public.sessions set completed_at = null, completed_by = null
+where id = 888 and date = date '2026-11-05' and type = 'training';
 
 -- Explicitly completed trainings alone are eligible for statistical attendance.
 -- The invoker view honors both underlying session/player RLS policies.
