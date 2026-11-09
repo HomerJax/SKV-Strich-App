@@ -234,6 +234,37 @@ export async function POST(
       return ok({ message: "Training abgeschlossen." });
     }
 
+    if (intent === "complete_training_no_score") {
+      if (!canCompleteTraining({ isPowerUser, role: membership.role, canLeadTraining })) {
+        return fail("Keine Berechtigung zur Trainingsleitung.", 403);
+      }
+      if (sessionType !== "training" || session.session_mode === "tournament") {
+        return fail("Nur reguläre Trainings können ohne Ergebnis bestätigt werden.", 400);
+      }
+      const todayBerlin = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date());
+      if (session.date > todayBerlin) return fail("Zukünftige Trainings können nicht abgeschlossen werden.", 409);
+      const { count: presentCount, error: presentError } = await adminSupabase
+        .from("session_players")
+        .select("id", { count: "exact", head: true })
+        .eq("session_id", sessionId);
+      if (presentError) return fail("Anwesenheit konnte nicht geprüft werden.", 500);
+      if ((presentCount ?? 0) < 2) return fail("Mindestens zwei tatsächliche Teilnehmer müssen bestätigt sein.", 409);
+
+      // This is an explicit real-world attestation by a training leader,
+      // never an automatic conversion of pre-event RSVP commitments.
+      const { error: completionError } = await adminSupabase.from("sessions")
+        .update({ completed_at: new Date().toISOString(), completed_by: currentUserId })
+        .eq("id", sessionId).eq("club_id", clubId).eq("type", "training")
+        .is("completed_at", null);
+      if (completionError) return fail("Abschluss konnte nicht gespeichert werden.", 500);
+      try { await syncClubAchievements(clubId); }
+      catch (error) { console.error("Badge sync after no-score completion failed", error); }
+      await recordFirstTrainingCompleted(clubId);
+      return ok({ message: "Training ohne Ergebnis als durchgeführt bestätigt." });
+    }
+
     if (intent === "toggle_presence") {
       if (!canManageClub({ isPowerUser, role: membership.role }) && !canLeadTraining) return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       const requestedPlayerId = Number(String(formData.get("player_id") ?? ""));
