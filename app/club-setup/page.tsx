@@ -221,7 +221,7 @@ function StepHero({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#070b12] p-5 text-white shadow-[0_28px_80px_rgba(2,6,23,0.28)] sm:p-7">
+    <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[#070b12] p-4 text-white shadow-[0_28px_80px_rgba(2,6,23,0.28)] sm:p-7">
       <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 left-10 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" />
       <div className="relative">
@@ -246,19 +246,19 @@ function StepHero({
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-3">
           <div className="text-[10px] font-black uppercase tracking-[.22em] text-cyan-300">
             {copy.eyebrow}
           </div>
-          <h1 className="mt-2 max-w-2xl text-3xl font-black leading-[1.03] tracking-[-.045em] sm:text-4xl">
+          <h1 className="mt-1 max-w-2xl text-2xl font-black leading-[1.03] tracking-[-.045em] sm:text-4xl">
             {copy.title}
           </h1>
-          <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/55">
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-5 text-white/55">
             {copy.text}
           </p>
         </div>
 
-        <div className="mt-7 grid grid-cols-4 gap-2">
+        <div className="mt-4 grid grid-cols-4 gap-1.5">
           {STEP_ORDER.map((step, index) => {
             const done = index < stepIndex;
             const active = index === stepIndex;
@@ -277,7 +277,7 @@ function StepHero({
                   ) : (
                     <Circle className={`h-2.5 w-2.5 shrink-0 ${active ? "fill-white text-white" : "text-white/20"}`} />
                   )}
-                  <span className={`truncate text-[9px] font-bold ${active ? "text-white" : done ? "text-white/55" : "text-white/25"}`}>
+                  <span className={`hidden sm:block truncate text-[9px] font-bold ${active ? "text-white" : done ? "text-white/55" : "text-white/25"}`}>
                     {translate(locale, STEP_LABEL_KEYS[step])}
                   </span>
                 </div>
@@ -285,6 +285,7 @@ function StepHero({
             );
           })}
         </div>
+        <p className="mt-3 text-xs font-medium text-white/65">Alle Einstellungen kannst du später ändern.</p>
       </div>
     </div>
   );
