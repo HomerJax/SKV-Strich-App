@@ -185,6 +185,10 @@ export async function POST(
         return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       }
       if (sessionType !== "training") return fail("Nur Trainings können abgeschlossen werden.", 400);
+      const todayBerlin = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date());
+      if (session.date > todayBerlin) return fail("Zukünftige Trainings können nicht abgeschlossen werden.", 409);
 
       if (session.session_mode === "tournament") {
         const { data: matches, error: matchesError } = await adminSupabase
