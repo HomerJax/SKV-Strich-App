@@ -36,6 +36,7 @@ const COLOR_OPTIONS: Array<{ value: string; labelKey: MessageKey; color: string 
   { value: "blue", labelKey: "clubSetup.colorBlue", color: "#1d4ed8" },
   { value: "red", labelKey: "clubSetup.colorRed", color: "#dc2626" },
   { value: "green", labelKey: "clubSetup.colorGreen", color: "#16a34a" },
+  { value: "yellow", labelKey: "clubSetup.colorYellow", color: "#eab308" },
 ];
 
 const SPORT_OPTIONS: Array<{
@@ -309,7 +310,7 @@ export default function ClubSetupClubStep({
             {t("clubSetup.clubColor")}
           </div>
 
-          <div className="grid grid-cols-4 gap-2 sm:flex sm:flex-wrap">
+          <div className="grid grid-cols-5 gap-1.5 sm:flex sm:flex-wrap">
             {COLOR_OPTIONS.map((option) => (
               <label
                 key={option.value}
