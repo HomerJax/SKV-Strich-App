@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Download, Megaphone, Share2, X } from "lucide-react";
+import { Megaphone, Share2, X } from "lucide-react";
 
 type Tone = "motivation" | "reminder" | "casual";
 const variants: Record<Tone, { label: string; kicker: string; headline: string; subline: string; text: string }> = {
@@ -29,29 +29,45 @@ export default function TrainingAnnouncementCard({ clubName, date, startTime, se
   const shareText = v.text + "\n\n" + clubName + "\n" + when + " · " + time + "\n\nHier zu- oder absagen: " + url;
 
   function buildSvg() {
-    const club = svgEscape(fit(clubName, 38));
-    const day = svgEscape(fit(when, 38));
+    const club = svgEscape(fit(clubName, 32));
+    const day = svgEscape(fit(when, 34));
     const headline = svgEscape(v.headline);
     const subline = svgEscape(v.subline);
+    const fontSize = v.headline.length > 18 ? 76 : 100;
+    const dateParts = when.split(", ");
+    const dateLarge = svgEscape(dateParts[1] || when);
+    const dateSmall = svgEscape(dateParts[0] || "TRAINING");
     return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
-      <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#061827"/><stop offset=".65" stop-color="#0c2b3c"/><stop offset="1" stop-color="#063f48"/></linearGradient><linearGradient id="line" x1="0" x2="1"><stop stop-color="#2ee6df"/><stop offset="1" stop-color="#82f6c4"/></linearGradient></defs>
-      <rect width="1080" height="1350" fill="url(#bg)"/>
-      <circle cx="1030" cy="180" r="380" fill="#14b8a6" opacity=".08"/><circle cx="-90" cy="1110" r="420" fill="#22d3ee" opacity=".06"/>
-      <path d="M0 330 L1080 100 M0 720 L1080 490 M0 1110 L1080 880" stroke="#ffffff" opacity=".035" stroke-width="3"/>
-      <rect x="70" y="70" width="940" height="1210" rx="44" fill="none" stroke="#ffffff" stroke-opacity=".19" stroke-width="3"/>
-      <text x="125" y="178" fill="#ffffff" font-size="73" font-weight="900" font-family="Arial, sans-serif" letter-spacing="-4">strikr<tspan fill="#3ce3d8">.</tspan></text>
-      <rect x="125" y="240" width="830" height="3" fill="url(#line)"/>
-      <text x="125" y="330" fill="#63e5da" font-size="28" font-weight="800" font-family="Arial, sans-serif" letter-spacing="6">${svgEscape(v.kicker)}</text>
-      <text x="125" y="455" fill="#ffffff" font-size="72" font-weight="900" font-family="Arial, sans-serif">${headline}</text>
-      <text x="125" y="524" fill="#a9c9d1" font-size="31" font-weight="500" font-family="Arial, sans-serif">${subline}</text>
-      <rect x="125" y="620" width="830" height="365" rx="35" fill="#ffffff" fill-opacity=".09" stroke="#ffffff" stroke-opacity=".14" stroke-width="2"/>
-      <text x="170" y="698" fill="#63e5da" font-size="25" font-weight="800" font-family="Arial, sans-serif" letter-spacing="3">DEIN NÄCHSTES TRAINING</text>
-      <text x="170" y="774" fill="#ffffff" font-size="38" font-weight="800" font-family="Arial, sans-serif">${club}</text>
-      <text x="170" y="852" fill="#ffffff" font-size="35" font-weight="600" font-family="Arial, sans-serif">${day}</text>
-      <text x="170" y="924" fill="#ffffff" font-size="35" font-weight="600" font-family="Arial, sans-serif">${svgEscape(time)}</text>
-      <rect x="125" y="1040" width="830" height="104" rx="25" fill="#38dfd3"/>
-      <text x="540" y="1106" text-anchor="middle" fill="#062b38" font-size="35" font-weight="900" font-family="Arial, sans-serif">JETZT ZU- ODER ABSAGEN</text>
-      <text x="540" y="1205" text-anchor="middle" fill="#a9c9d1" font-size="29" font-family="Arial, sans-serif">strikr.team · Deine Mannschaft. Dein Training.</text>
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#020617"/><stop offset=".58" stop-color="#101c48"/><stop offset="1" stop-color="#28206b"/></linearGradient>
+        <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5cf0ca"/><stop offset="1" stop-color="#40c4ee"/></linearGradient>
+        <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1d3678"/><stop offset="1" stop-color="#28246e"/></linearGradient>
+      </defs>
+      <rect width="1080" height="1350" fill="#020617"/>
+      <rect x="24" y="24" width="1032" height="1302" rx="44" fill="url(#bg)" stroke="#ffffff" stroke-opacity=".15" stroke-width="2"/>
+      <circle cx="1030" cy="430" r="410" fill="#5e5ce6" opacity=".12"/>
+      <path d="M-40 1010 L1140 690 M-40 1080 L1140 760 M-40 1150 L1140 830" stroke="#ffffff" stroke-opacity=".055" stroke-width="3"/>
+      <g opacity=".16" fill="none" stroke="#9bafff" stroke-width="5"><circle cx="875" cy="555" r="250"/><circle cx="875" cy="555" r="160"/><path d="M620 555H1080 M875 300V810"/></g>
+      <rect x="78" y="80" width="116" height="116" rx="27" fill="#050914" stroke="#ffffff" stroke-opacity=".17" stroke-width="2"/>
+      <g stroke="#ffffff" stroke-width="9" stroke-linecap="round"><path d="M110 110L105 164 M131 106L126 160 M152 105L147 157 M173 105L168 156 M99 128L182 118 M96 151L179 140"/></g>
+      <text x="218" y="151" fill="#ffffff" font-size="67" font-weight="900" font-family="Arial,sans-serif" letter-spacing="-4">strikr</text>
+      <text x="82" y="245" fill="#6df3d6" font-size="24" font-weight="900" font-family="Arial,sans-serif" letter-spacing="7">TEAM TRAINING. REDEFINED.</text>
+      <rect x="82" y="292" width="916" height="3" fill="#ffffff" opacity=".18"/>
+      <text x="82" y="375" fill="#6df3d6" font-size="28" font-weight="900" font-family="Arial,sans-serif" letter-spacing="5">${svgEscape(v.kicker)}</text>
+      <text x="76" y="515" fill="#ffffff" font-size="${fontSize}" font-weight="900" font-family="Arial,sans-serif" letter-spacing="-3" textLength="${Math.min(924,v.headline.length*fontSize*.65)}" lengthAdjust="spacingAndGlyphs">${headline}</text>
+      <rect x="82" y="557" width="128" height="11" rx="5" fill="url(#accent)"/>
+      <text x="82" y="638" fill="#d7defa" font-size="31" font-weight="500" font-family="Arial,sans-serif">${subline}</text>
+      <rect x="78" y="715" width="924" height="415" rx="35" fill="url(#panel)" stroke="#ffffff" stroke-opacity=".22" stroke-width="2"/>
+      <rect x="78" y="715" width="13" height="415" rx="6" fill="url(#accent)"/>
+      <text x="126" y="783" fill="#7ef4df" font-size="25" font-weight="900" font-family="Arial,sans-serif" letter-spacing="4">NÄCHSTES TRAINING</text>
+      <text x="126" y="856" fill="#ffffff" font-size="43" font-weight="900" font-family="Arial,sans-serif" textLength="${Math.min(806,clubName.length*26)}" lengthAdjust="spacingAndGlyphs">${club}</text>
+      <text x="126" y="924" fill="#d8e4ff" font-size="29" font-weight="800" font-family="Arial,sans-serif" letter-spacing="2">${dateSmall.toUpperCase()}</text>
+      <text x="126" y="984" fill="#ffffff" font-size="45" font-weight="900" font-family="Arial,sans-serif" textLength="${Math.min(800,dateLarge.length*27)}" lengthAdjust="spacingAndGlyphs">${dateLarge}</text>
+      <rect x="126" y="1021" width="330" height="70" rx="19" fill="#6df3d6"/>
+      <text x="291" y="1067" text-anchor="middle" fill="#07152b" font-size="33" font-weight="900" font-family="Arial,sans-serif">${svgEscape(time)}</text>
+      <text x="82" y="1215" fill="#ffffff" font-size="31" font-weight="900" font-family="Arial,sans-serif">DEINE ZUSAGE ZÄHLT.</text>
+      <text x="82" y="1266" fill="#a7b6d9" font-size="24" font-weight="700" font-family="Arial,sans-serif">strikr.team</text>
+      <text x="996" y="1266" text-anchor="end" fill="#a7b6d9" font-size="24" font-weight="700" font-family="Arial,sans-serif">@getstrikr</text>
     </svg>`;
   }
   async function imageFile() {
@@ -67,11 +83,6 @@ export default function TrainingAnnouncementCard({ clubName, date, startTime, se
       return new File([blob], `strikr-training-${date}.png`, { type: "image/png" });
     } finally { URL.revokeObjectURL(objectUrl); }
   }
-  async function download() {
-    setBusy(true); setFeedback("");
-    try { const file = await imageFile(); const u = URL.createObjectURL(file); const a = document.createElement("a"); a.href = u; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 5000); setFeedback("Karte gespeichert. Den Anmeldelink kannst du zusätzlich kopieren."); }
-    catch { setFeedback("Bild konnte nicht erstellt werden. Bitte erneut versuchen."); } finally { setBusy(false); }
-  }
   async function share() {
     setBusy(true); setFeedback("");
     try {
@@ -84,7 +95,7 @@ export default function TrainingAnnouncementCard({ clubName, date, startTime, se
         await navigator.clipboard.writeText(shareText);
         setFeedback("Ankündigung mit Trainingslink kopiert.");
       }
-    } catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setFeedback("Teilen nicht möglich. Nutze Bild speichern oder Link kopieren."); } finally { setBusy(false); }
+    } catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) setFeedback("Teilen nicht möglich. Nutze Text + Link kopieren."); } finally { setBusy(false); }
   }
   async function copy() {
     try { await navigator.clipboard.writeText(shareText); setFeedback("Text mit Trainingslink kopiert."); } catch { setFeedback("Kopieren fehlgeschlagen."); }
