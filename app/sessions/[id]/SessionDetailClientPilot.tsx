@@ -1574,6 +1574,12 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               fullscreen
               onClose={leaveTrainingWizard}
               overlayContent={sessionEndModal}
+              beforeContent={!trainingCompleted && props.announcementSlot ? (
+                <details className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                  <summary className="cursor-pointer text-sm font-bold text-slate-800">Training ankündigen / teilen</summary>
+                  <div className="mt-3 border-t border-slate-100 pt-3">{props.announcementSlot}</div>
+                </details>
+              ) : null}
               helperText={statusHint}
               nextDisabled={nextDisabled}
               nextLabel={nextLabel}
