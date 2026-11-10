@@ -204,7 +204,9 @@ export async function POST(request: NextRequest) {
       }));
 
     if (balanceGroupChanges.length > 0) {
-      const { error: auditError } = await supabase
+      // Authorized club/admin context was checked before the privileged writes.
+      // Audit inserts require the same scoped server client as player updates.
+      const { error: auditError } = await adminPlayersDb
         .from("balance_group_audit_log")
         .insert(balanceGroupChanges);
       if (auditError) {
