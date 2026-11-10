@@ -107,7 +107,7 @@ export default async function TeamGeneratorSettingsCard({
         {variant === "onboarding" ? (
           <TeamGeneratorOnboardingFields useStrength={useStrength} useCategories={useCategories} />
         ) : (
-        <div className={variant === "onboarding" ? "space-y-3" : "rounded-[20px] border border-black/10 bg-neutral-50 p-4"}>
+        <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
           <div className={"mb-3 text-sm font-semibold text-slate-500"}>
             {t("teamGenerator.balanceQuestion")}
           </div>
