@@ -9,6 +9,7 @@ import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import SessionDetailClient from "./SessionDetailClient";
 import SessionDetailClientPilot from "./SessionDetailClientPilot";
 import ConfirmPlayedTrainingButton from "./ConfirmPlayedTrainingButton";
+import TrainingAnnouncementCard from "./TrainingAnnouncementCard";
 import type { Player, SessionRow } from "./session-types";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
@@ -53,7 +54,7 @@ const DEFAULT_CLUB_SETTINGS: ClubSettings = {
   require_rsvp_reason_on_absence: false,
 };
 
-type ClubRow = { id: string; primary_color: string | null };
+type ClubRow = { id: string; primary_color: string | null; display_name: string | null; name: string | null };
 type ResultRow = { id: number; game_no: number; team_a_id: number | null; team_b_id: number | null; goals_team_a: number | null; goals_team_b: number | null };
 type TeamRow = { id: number; name: string };
 type TeamPlayerRow = { team_id: number; player_id: number };
@@ -101,7 +102,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       : Promise.resolve({ data: null }),
     getFeatureFlagsForClub(clubId),
     getClubBillingAccess(supabase, clubId),
-    supabase.from("clubs").select("id, primary_color").eq("id", clubId).maybeSingle<ClubRow>(),
+    supabase.from("clubs").select("id, primary_color, display_name, name").eq("id", clubId).maybeSingle<ClubRow>(),
     supabase
       .from("club_settings")
       .select("use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence")
@@ -274,6 +275,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
         session.date <= new Intl.DateTimeFormat("en-CA", {
           timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
         }).format(new Date()) ? <ConfirmPlayedTrainingButton sessionId={sessionId} /> : null}
+      {(isPowerUser || isAdminRole(membership.role) || canLeadTraining) && !session.completed_at && session.type === "training" ? <TrainingAnnouncementCard sessionId={sessionId} clubName={clubData?.display_name || clubData?.name || "Dein Team"} date={session.date} startTime={session.start_time ?? null} /> : null}
       <TrainingDetailComponent
       sessionId={sessionId}
       initialSession={sessionForClient}
