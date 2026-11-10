@@ -271,7 +271,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
       )}
       {(isPowerUser || isAdminRole(membership.role) || canLeadTraining) &&
         session.type !== "event" && session.session_mode !== "tournament" &&
-        !session.completed_at && !hasResult && presentIds.length >= 2 &&
+        !session.completed_at && !hasResult && session.date >= "2026-11-10" && presentIds.length >= 2 &&
         session.date <= new Intl.DateTimeFormat("en-CA", {
           timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
         }).format(new Date()) ? <ConfirmPlayedTrainingButton sessionId={sessionId} /> : null}
