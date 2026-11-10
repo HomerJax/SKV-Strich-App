@@ -3,6 +3,7 @@ export const COLOR_MAP: Record<string, string> = {
   blue: "#1d4ed8",
   red: "#dc2626",
   green: "#16a34a",
+  yellow: "#eab308",
 };
 
 export function getClubHeroStyles(primaryColorKey?: string | null) {
