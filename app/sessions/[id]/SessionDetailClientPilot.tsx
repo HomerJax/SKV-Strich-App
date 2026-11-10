@@ -117,6 +117,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   const [closeCheckReady, setCloseCheckReady] = useState(false);
   const [pilotResultSaveWorking, setPilotResultSaveWorking] = useState(false);
   const [pilotFinalizingResult, setPilotFinalizingResult] = useState(false);
+  const [pilotNoScoreClosing, setPilotNoScoreClosing] = useState(false);
   const [winnerReviewed, setWinnerReviewed] = useState(false);
   const [pilotStep, setPilotStep] = useState<TrainingWizardStepKey | null>(null);
   const [pilotEntryView, setPilotEntryView] = useState<"overview" | "choose" | "data">("overview");
@@ -586,7 +587,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
   // A completed tournament bracket is not the same as a finished close-check.
   const trainingCompleted = isTournamentMode
     ? pilotFinished && Boolean(session.tournament_completed_at)
-    : hasSavedNormalResult;
+    : hasSavedNormalResult || pilotFinished;
   const liveOrPrepared = trainingStarted || hasResult || Boolean(session.tournament_completed_at);
   const currentAttendanceSignature = [...draftPresentIds].sort((a,b) => a-b).join(",");
   const attendanceConfirmed = attendanceReviewed && attendanceRosterSignature === currentAttendanceSignature;
@@ -951,6 +952,32 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
         title={t("sessionDetail.winnerPhoto")}
       />
     );
+  }
+
+  async function closePilotTrainingWithoutResult() {
+    if (pilotNoScoreClosing || saving || savingTeams || attendanceDirty || presentPlayers.length < 2) return;
+    if (!window.confirm("Training wirklich ohne Ergebnis abschließen? Die tatsächliche Anwesenheit wird bestätigt.")) return;
+    setPilotNoScoreClosing(true);
+    setProgressError("");
+    try {
+      const form = new FormData();
+      form.set("intent", "complete_training_no_score");
+      const response = await fetch(`/api/sessions/${props.sessionId}`, {
+        method: "POST", body: form, credentials: "same-origin",
+      });
+      const payload = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Trainingsabschluss fehlgeschlagen.");
+      setPilotFinished(true);
+      try { window.localStorage.setItem("strikr-training-finished-" + props.initialClubId + "-" + props.sessionId, "true"); } catch { /* Optional */ }
+      setTrainingWizardOpen(false);
+      setPilotEntryView("overview");
+      setWizardManualSelection(false);
+      router.refresh();
+    } catch (error) {
+      setProgressError(error instanceof Error ? error.message : "Trainingsabschluss fehlgeschlagen.");
+    } finally {
+      setPilotNoScoreClosing(false);
+    }
   }
 
   async function savePilotFinalResult() {
@@ -1674,6 +1701,17 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
               }}
 
               beforeContent={<>
+                {selected === "result" && !isTournamentMode && !trainingCompleted && session.date >= "2026-11-10" ? (
+                  <div className="rounded-xl border border-teal-200 bg-white p-4">
+                    <p className="text-sm font-bold text-slate-900">Kein Ergebnis gespielt oder erfasst?</p>
+                    <p className="mt-1 text-xs text-slate-600">Du kannst das Training auch ohne Ergebnis abschließen. Die bestätigte Anwesenheit bleibt erhalten.</p>
+                    <button type="button" onClick={() => void closePilotTrainingWithoutResult()}
+                      disabled={pilotNoScoreClosing || saving || savingTeams || attendanceDirty || presentPlayers.length < 2}
+                      className="mt-3 min-h-12 w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 disabled:opacity-50">
+                      {pilotNoScoreClosing ? "Abschluss wird gespeichert…" : "Training ohne Ergebnis abschließen ✓"}
+                    </button>
+                  </div>
+                ) : null}
                 {pilotAdmin ? (
                   <div className="rounded-xl border border-teal-100 bg-white p-3 shadow-sm">
                     <div className="mb-2 flex items-center justify-between gap-2">
