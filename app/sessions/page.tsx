@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PilotSessionsList from "@/components/sessions/PilotSessionsList";
+import SessionAnnouncementPicker from "@/components/sessions/SessionAnnouncementPicker";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
@@ -235,6 +236,7 @@ export default async function SessionsPage({ searchParams }: SessionsPageProps) 
     const attendeePeopleById=new Map(((attendeePeople??[]) as PilotPerson[]).map(p=>[p.id,p]));
     return <main className="min-h-screen bg-neutral-100"><section className="mx-auto w-full max-w-3xl space-y-4 px-4 py-4 sm:px-6">
       <PageHero eyebrow={locale === "de" ? "Übersicht" : "Overview"} title={locale === "de" ? "Termine" : "Sessions"} description={locale === "de" ? "Alle Trainings und Spiele auf einen Blick." : "All training sessions and matches."} primaryColorKey={club?.primary_color} backLabel={t("session.back")} backHref="/" compact/>
+      {canCreateTraining ? <SessionAnnouncementPicker clubName={club?.display_name || "Dein Team"} sessions={sessions.filter(s => s.date >= todayIso && (s.type !== "event" || s.event_kind === "match")).sort(sortAscByDate).map(s => ({ id: s.id, date: s.date, startTime: s.start_time, title: s.event_kind === "match" ? (s.event_title || "Spiel") : "Training", kind: s.event_kind === "match" ? "match" as const : "training" as const }))} /> : null}
       <PilotSessionsList locale={locale} isAdmin={isAdmin} canCreateTraining={canCreateTraining} readOnly={isSupportView} clubDeadline={clubDeadlineMinutes} requireAbsenceReason={requireAbsenceReason} sessions={sessions.map(s=>{
         const members=membersBySession.get(s.id) ?? [];
         const replies=repliesBySession.get(s.id) ?? [];
