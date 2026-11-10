@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Megaphone, Share2, ChevronDown } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Download, Megaphone, Share2, X } from "lucide-react";
 
 type Tone = "motivation" | "reminder" | "casual";
 const variants: Record<Tone, { label: string; kicker: string; headline: string; subline: string; text: string }> = {
@@ -88,21 +89,27 @@ export default function TrainingAnnouncementCard({ clubName, date, startTime, se
   async function copy() {
     try { await navigator.clipboard.writeText(shareText); setFeedback("Text mit Trainingslink kopiert."); } catch { setFeedback("Kopieren fehlgeschlagen."); }
   }
-  return <section className="mt-3">
-    <div className="overflow-hidden rounded-xl border border-white/15 bg-white/[0.06]">
-      <button type="button" onClick={() => setExpanded(value => !value)} aria-expanded={expanded} className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left">
-        <span className="inline-flex items-center gap-2 text-xs font-semibold text-white"><Megaphone className="h-4 w-4 text-teal-300" /> Ankündigung</span>
-        <span className="inline-flex items-center gap-2 text-[11px] font-medium text-white/60">Für WhatsApp <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} /></span>
-      </button>
-      {expanded ? <div className="border-t border-white/10 px-3 pb-3 pt-3">
-        <div className="flex flex-wrap gap-2">{(Object.keys(variants) as Tone[]).map(key => <button type="button" key={key} onClick={() => { setTone(key); setFeedback(""); }} aria-pressed={tone === key} className={`rounded-xl px-3 py-2 text-xs font-bold ${tone === key ? "bg-teal-300 text-slate-950" : "border border-white/20 bg-white/10 text-white"}`}>{variants[key].label}</button>)}</div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" disabled={busy} onClick={share} className="inline-flex items-center gap-2 rounded-xl bg-teal-300 px-4 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-50"><Share2 className="h-4 w-4"/> Teilen</button>
-          <button type="button" disabled={busy} onClick={download} className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-50"><Download className="h-4 w-4"/> Bild</button>
-          <button type="button" onClick={copy} className="rounded-xl border border-white/20 px-3 py-2.5 text-sm font-semibold text-white">Text + Link</button>
+  return <>
+    <button type="button" onClick={() => setExpanded(true)} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15">
+      <Megaphone className="h-4 w-4 text-teal-300"/> Ankündigung teilen
+    </button>
+    {expanded && typeof document !== "undefined" ? createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4" onMouseDown={event => { if (event.target === event.currentTarget) setExpanded(false); }}>
+        <div role="dialog" aria-modal="true" aria-label="Trainingsankündigung teilen" className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-base font-extrabold text-slate-950"><Megaphone className="h-5 w-5 text-teal-600"/> Ankündigung teilen</h2>
+            <button type="button" onClick={() => setExpanded(false)} aria-label="Schließen" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5"/></button>
+          </div>
+          <p className="mt-2 text-sm text-slate-600">Welche Variante möchtest du teilen?</p>
+          <div className="mt-4 grid grid-cols-3 gap-2">{(Object.keys(variants) as Tone[]).map(key => <button type="button" key={key} onClick={() => { setTone(key); setFeedback(""); }} aria-pressed={tone === key} className={`rounded-xl px-2 py-3 text-xs font-bold ${tone === key ? "bg-slate-950 text-white" : "border border-slate-200 bg-slate-50 text-slate-700"}`}>{variants[key].label}</button>)}</div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" disabled={busy} onClick={share} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Share2 className="h-4 w-4"/> Teilen</button>
+            <button type="button" disabled={busy} onClick={download} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-800 disabled:opacity-50"><Download className="h-4 w-4"/> Bild speichern</button>
+            <button type="button" onClick={copy} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-800">Text + Link</button>
+          </div>
+          {feedback ? <p role="status" className="mt-3 text-xs text-slate-600">{feedback}</p> : null}
         </div>
-        {feedback ? <p role="status" className="mt-2 text-xs text-white/80">{feedback}</p> : null}
-      </div> : null}
-    </div>
-  </section>;
+      </div>, document.body
+    ) : null}
+  </>;
 }
