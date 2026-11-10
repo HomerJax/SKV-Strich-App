@@ -45,6 +45,7 @@ type Props = {
   isPro?: boolean;
   compactPilot?: boolean;
   trainingStarted?: boolean;
+  announcementSlot?: React.ReactNode;
 };
 
 function fmtLongDate(iso: string, locale: AppLocale) {
@@ -173,6 +174,7 @@ export default function SessionHeaderCard({
   isPro = false,
   compactPilot = false,
   trainingStarted,
+  announcementSlot,
 }: Props) {
   const { locale, t } = useI18n();
   const isEvent = sessionType === "event";
@@ -196,6 +198,7 @@ export default function SessionHeaderCard({
           </div>
           {hasResult && winnerPhotoUrl ? <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl"><Image src={winnerPhotoUrl} alt={t("winnerPhoto.alt")} width={48} height={48} className="h-full w-full object-cover" /></div> : null}
         </div>
+        {announcementSlot}
         <details className="mt-3 border-t border-slate-100 pt-2">
           <summary className="cursor-pointer text-xs font-semibold text-slate-500">Session-Details & Einstellungen bearbeiten</summary>
           <div className="mt-3 space-y-3 rounded-xl bg-slate-950 p-3 text-white">
@@ -349,6 +352,7 @@ export default function SessionHeaderCard({
           ) : null}
         </div>
 
+        {announcementSlot}
         <div className="mt-5">
           <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/44">
             {isEvent ? (eventKind === "match" ? "Spiel" : "Event") : t("sessionHeader.running")}
