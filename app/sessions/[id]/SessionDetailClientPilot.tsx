@@ -1236,24 +1236,25 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             ) : (
               <div className="rounded-2xl bg-gradient-to-br from-[#08121f] via-slate-950 to-[#123b43] p-4 text-white shadow-md sm:p-6">
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-300">strikr · Training</div>
-                <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
+                <h1 className="mt-1 text-xl font-black tracking-tight sm:text-2xl">
                   {trainingCompleted ? "Training abgeschlossen." : liveOrPrepared ? "Weiter geht’s." : "Bereit für euer Training?"}
                 </h1>
-                <p className="mt-2 text-sm leading-5 text-white/70">
+                <p className="mt-1 text-xs leading-5 text-white/65">
                   {trainingCompleted
                     ? "Die Ergebnisse sind gespeichert. Du kannst sie im Assistenten ansehen oder ändern."
                     : "Schritt für Schritt durch euren Trainingsabend. Nur das, was du gerade brauchst."}
                 </p>
-                <div className="mt-4 grid grid-cols-3 gap-2 border-y border-white/10 py-3">
-                  <div className="text-center"><div className="text-2xl font-black">{expectedCount}</div><div className="text-xs text-white/60">Zusagen</div></div>
+                <div className="mt-3 grid grid-cols-3 gap-2 border-y border-white/10 py-2">
+                  <div className="text-center"><div className="text-xl font-black">{expectedCount}</div><div className="text-xs text-white/60">Zusagen</div></div>
                   <div className="text-center"><div className="text-2xl font-black">{declinedCount}</div><div className="text-xs text-white/60">Absagen</div></div>
                   <div className="text-center"><div className="text-2xl font-black">{noResponseCount}</div><div className="text-xs text-white/60">Offen</div></div>
                 </div>
+                {!trainingCompleted ? props.announcementSlot : null}
                 <button type="button" onClick={openTraining}
-                  className="mt-4 min-h-12 w-full rounded-xl bg-teal-300 px-5 py-3 text-base font-black text-slate-950 transition hover:bg-white">
+                  className="mt-3 min-h-11 w-full rounded-xl bg-teal-300 px-5 py-3 text-base font-black text-slate-950 transition hover:bg-white">
                   {trainingCompleted ? "Training ansehen →" : liveOrPrepared ? "Training fortsetzen →" : "Training starten →"}
                 </button>
-                <p className="mt-3 text-center text-xs text-white/55">
+                <p className="mt-2 text-center text-[11px] text-white/55">
                   {pilotAdmin ? "Du wählst anschließend zwischen Wizard und Datenansicht." : "Geführt und übersichtlich – jederzeit schließen."}
                 </p>
               </div>
