@@ -7,14 +7,14 @@ import { useState } from "react";
 import { ArrowRight, Check, ClipboardCheck, Users, RotateCcw } from "lucide-react";
 import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
 
-type Props = { name: string; onDone: () => void };
+type Props = { name: string; categorySetup: React.ReactNode; onDone: () => void };
 type SetupStep = "club" | "team" | "categories" | "done";
 const ORDER: SetupStep[] = ["club", "team", "categories", "done"];
 const LABELS: Record<SetupStep, string> = {
   club: "Team", team: "Fairness", categories: "Gruppen", done: "Fertig",
 };
 
-export default function AdminSetupPreview({ name, onDone }: Props) {
+export default function AdminSetupPreview({ name, categorySetup, onDone }: Props) {
   const [step, setStep] = useState<SetupStep>("club");
   const [club, setClub] = useState(name || "Mein neues Team");
   const [strength, setStrength] = useState(true);
@@ -77,14 +77,9 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
         ) : null}
 
         {step === "categories" ? (
-          <div className="space-y-4">
-            <h3 className="text-xl font-black text-slate-950">Spielt ihr in mehreren Gruppen?</h3>
-            <p className="text-sm leading-6 text-slate-600">Kategorien helfen, Spieler zu unterscheiden – etwa AH und Ü32. Wenn ihr nur eine Gruppe habt, brauchst du das zunächst nicht.</p>
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-900">
-              <input type="checkbox" checked={categories} onChange={e => setCategories(e.target.checked)} className="h-5 w-5 accent-cyan-600"/>
-              Kategorien verwenden
-            </label>
-            <OnboardingExamples kind="categories" />
+          <div onSubmitCapture={(event) => { event.preventDefault(); event.stopPropagation(); }} className="space-y-3">
+            <p className="text-xs font-bold text-amber-700">Simulation: Eingaben werden nicht gespeichert.</p>
+            {categorySetup}
           </div>
         ) : null}
 
@@ -109,7 +104,7 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
       </div>
       <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-900">
         <RotateCcw className="mt-0.5 h-4 w-4 shrink-0"/>
-        Vereinsgründung und Team-Einstellungen verwenden gemeinsame Produktkomponenten. Die Kategorienansicht ist noch eine Vorschau; echte Schreibaktionen sind deaktiviert.
+        Die Kategorie-Einstellungen werden direkt aus dem echten Onboarding gerendert. Formulare werden im Simulationsmodus vor der Serveraktion abgefangen; Änderungen bleiben nicht gespeichert.
       </div>
     </div>
   );
