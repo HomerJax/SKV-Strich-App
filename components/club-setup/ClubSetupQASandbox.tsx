@@ -35,10 +35,15 @@ export default function ClubSetupQASandbox({ children }: { children: ReactNode }
         const index = -Number(existingId) - 1;
         if (index >= 0 && index < current.length && label) {
           current[index] = label.replaceAll("|", " ");
-          navigate("categories", { qa_labels: current.join("|") });
+          const active = (params.get("qa_active") || "").split(",");
+          while (active.length < current.length) active.push("1");
+          active[index] = data.has("is_active") ? "1" : "0";
+          const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+          const strong = submitter?.name === "make_strong" ? String(index) : (params.get("qa_strong") || "");
+          navigate("categories", { qa_labels: current.join("|"), qa_active: active.join(","), qa_strong: strong });
         }
       } else if (label && current.length < 2) {
-        navigate("categories", { qa_labels: [...current, label.replaceAll("|", " ")].join("|") });
+        navigate("categories", { qa_labels: [...current, label.replaceAll("|", " ")].join("|"), qa_active: (params.get("qa_active") || current.map(() => "1").join(",")) + (current.length ? "," : "") + "1" });
       }
     } else if (step === "done") {
       navigate("done", { qa_invite: "1" });
