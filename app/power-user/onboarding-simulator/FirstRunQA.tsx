@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2, RotateCcw, ShieldCheck, Smartphone, Users } from "lucide-react";
 import SignupForm from "@/app/signup/SignupForm";
 import OnboardingForm from "@/app/onboarding/OnboardingForm";
-import AdminSetupPreview from "./AdminSetupPreview";
+
 import AdminFirstHomePreview from "./AdminFirstHomePreview";
 import WaitingForInviteContent from "@/components/onboarding/WaitingForInviteContent";
 
@@ -106,7 +106,7 @@ function Completion({
   );
 }
 
-export default function FirstRunQA({ categorySetup, teamSetup }: { categorySetup: React.ReactNode; teamSetup: React.ReactNode }) {
+export default function FirstRunQA() {
   const [scenario, setScenario] = useState<Scenario>("admin");
   const [stage, setStage] = useState<Stage>("signup");
   const [runId, setRunId] = useState(0);
@@ -183,7 +183,7 @@ export default function FirstRunQA({ categorySetup, teamSetup }: { categorySetup
                 else setStage("after");
               } }} />
           ) : stage === "club-setup" && scenario === "admin" ? (
-            <AdminSetupPreview key={`club-setup-${runId}`} name={clubName} teamSetup={teamSetup} categorySetup={categorySetup} onDone={() => setStage("after")} />
+            <div className="space-y-4 bg-white p-6"><h2 className="text-xl font-black text-slate-950">Jetzt folgt das echte Vereins-Onboarding</h2><p className="text-sm text-slate-600">Der nächste Schritt öffnet dieselbe Club-Setup-Seite wie für neue Nutzer, jedoch ohne Datenbank-Schreibzugriffe.</p><Link href={`/club-setup?qa=1&created=1&step=club&qa_name=${encodeURIComponent(clubName)}`} className="inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Echtes Onboarding starten</Link></div>
           ) : scenario === "waiting" ? (
             <WaitingForInviteContent qaPreview />
           ) : scenario === "admin" ? (
