@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import FirstRunQA from "./FirstRunQA";
+import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
 
 export default async function PowerUserOnboardingSimulatorPage() {
@@ -14,7 +15,7 @@ export default async function PowerUserOnboardingSimulatorPage() {
             ← Power User
           </Link>
         </div>
-        <FirstRunQA categorySetup={<CategorySettingsSection categories={[]} useCategories={true} redirectTo="/club-setup?created=1&step=done" variant="onboarding" isPro={false} />} />
+        <FirstRunQA teamSetup={<TeamGeneratorSettingsCard useStrength={true} useCategories={false} redirectTo="/club-setup?created=1&step=categories" variant="onboarding" />} categorySetup={<CategorySettingsSection categories={[]} useCategories={true} redirectTo="/club-setup?created=1&step=done" variant="onboarding" isPro={false} />} />
       </section>
     </main>
   );
