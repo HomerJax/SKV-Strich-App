@@ -3,7 +3,7 @@
 import OnboardingExamples from "@/components/club-setup/OnboardingExamples";
 
 import { useState } from "react";
-import { ArrowRight, Check, ClipboardCheck, Users } from "lucide-react";
+import { ArrowRight, Check, ClipboardCheck, Users, RotateCcw } from "lucide-react";
 import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
 
 type Props = { name: string; onDone: () => void };
