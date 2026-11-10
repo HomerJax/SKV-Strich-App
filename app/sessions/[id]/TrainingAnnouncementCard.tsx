@@ -28,50 +28,62 @@ export default function TrainingAnnouncementCard({ clubName, date, startTime, se
   const url = typeof window === "undefined" ? "https://strikr.team/sessions/" + sessionId : window.location.origin + "/sessions/" + sessionId;
   const shareText = v.text + "\n\n" + clubName + "\n" + when + " · " + time + "\n\nHier zu- oder absagen: " + url;
 
-  function buildSvg() {
+  function buildSvg(logoData: string) {
     const club = svgEscape(fit(clubName, 32));
     const day = svgEscape(fit(when, 34));
     const headline = svgEscape(v.headline);
     const subline = svgEscape(v.subline);
-    const fontSize = v.headline.length > 18 ? 76 : 100;
-    const dateParts = when.split(", ");
-    const dateLarge = svgEscape(dateParts[1] || when);
-    const dateSmall = svgEscape(dateParts[0] || "TRAINING");
+    const title = tone === "motivation" ? "TRAINING." : tone === "reminder" ? "BIST DU DABEI?" : "GAME ON.";
+    const mainSize = title.length > 13 ? 87 : 121;
+    const logo = logoData ? `<image href="${logoData}" x="798" y="77" width="84" height="84" preserveAspectRatio="xMidYMid meet"/>` : "";
     return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
       <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#020617"/><stop offset=".58" stop-color="#101c48"/><stop offset="1" stop-color="#28206b"/></linearGradient>
-        <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5cf0ca"/><stop offset="1" stop-color="#40c4ee"/></linearGradient>
-        <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1d3678"/><stop offset="1" stop-color="#28246e"/></linearGradient>
+        <linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0e1c38"/><stop offset="1" stop-color="#172b58"/></linearGradient>
+        <linearGradient id="middle" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#1e293b"/><stop offset=".65" stop-color="#0f172a"/><stop offset="1" stop-color="#020617"/></linearGradient>
+        <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#020617" stop-opacity="0"/><stop offset="1" stop-color="#020617"/></linearGradient>
       </defs>
       <rect width="1080" height="1350" fill="#020617"/>
-      <rect x="24" y="24" width="1032" height="1302" rx="44" fill="url(#bg)" stroke="#ffffff" stroke-opacity=".15" stroke-width="2"/>
-      <circle cx="1030" cy="430" r="410" fill="#5e5ce6" opacity=".12"/>
-      <path d="M-40 1010 L1140 690 M-40 1080 L1140 760 M-40 1150 L1140 830" stroke="#ffffff" stroke-opacity=".055" stroke-width="3"/>
-      <g opacity=".16" fill="none" stroke="#9bafff" stroke-width="5"><circle cx="875" cy="555" r="250"/><circle cx="875" cy="555" r="160"/><path d="M620 555H1080 M875 300V810"/></g>
-      <rect x="78" y="80" width="116" height="116" rx="27" fill="#050914" stroke="#ffffff" stroke-opacity=".17" stroke-width="2"/>
-      <g stroke="#ffffff" stroke-width="9" stroke-linecap="round"><path d="M110 110L105 164 M131 106L126 160 M152 105L147 157 M173 105L168 156 M99 128L182 118 M96 151L179 140"/></g>
-      <text x="218" y="151" fill="#ffffff" font-size="67" font-weight="900" font-family="Arial,sans-serif" letter-spacing="-4">strikr</text>
-      <text x="82" y="245" fill="#6df3d6" font-size="24" font-weight="900" font-family="Arial,sans-serif" letter-spacing="7">TEAM TRAINING. REDEFINED.</text>
-      <rect x="82" y="292" width="916" height="3" fill="#ffffff" opacity=".18"/>
-      <text x="82" y="375" fill="#6df3d6" font-size="28" font-weight="900" font-family="Arial,sans-serif" letter-spacing="5">${svgEscape(v.kicker)}</text>
-      <text x="76" y="515" fill="#ffffff" font-size="${fontSize}" font-weight="900" font-family="Arial,sans-serif" letter-spacing="-3" textLength="${Math.min(924,v.headline.length*fontSize*.65)}" lengthAdjust="spacingAndGlyphs">${headline}</text>
-      <rect x="82" y="557" width="128" height="11" rx="5" fill="url(#accent)"/>
-      <text x="82" y="638" fill="#d7defa" font-size="31" font-weight="500" font-family="Arial,sans-serif">${subline}</text>
-      <rect x="78" y="715" width="924" height="415" rx="35" fill="url(#panel)" stroke="#ffffff" stroke-opacity=".22" stroke-width="2"/>
-      <rect x="78" y="715" width="13" height="415" rx="6" fill="url(#accent)"/>
-      <text x="126" y="783" fill="#7ef4df" font-size="25" font-weight="900" font-family="Arial,sans-serif" letter-spacing="4">NÄCHSTES TRAINING</text>
-      <text x="126" y="856" fill="#ffffff" font-size="43" font-weight="900" font-family="Arial,sans-serif" textLength="${Math.min(806,clubName.length*26)}" lengthAdjust="spacingAndGlyphs">${club}</text>
-      <text x="126" y="924" fill="#d8e4ff" font-size="29" font-weight="800" font-family="Arial,sans-serif" letter-spacing="2">${dateSmall.toUpperCase()}</text>
-      <text x="126" y="984" fill="#ffffff" font-size="45" font-weight="900" font-family="Arial,sans-serif" textLength="${Math.min(800,dateLarge.length*27)}" lengthAdjust="spacingAndGlyphs">${dateLarge}</text>
-      <rect x="126" y="1021" width="330" height="70" rx="19" fill="#6df3d6"/>
-      <text x="291" y="1067" text-anchor="middle" fill="#07152b" font-size="33" font-weight="900" font-family="Arial,sans-serif">${svgEscape(time)}</text>
-      <text x="82" y="1215" fill="#ffffff" font-size="31" font-weight="900" font-family="Arial,sans-serif">DEINE ZUSAGE ZÄHLT.</text>
-      <text x="82" y="1266" fill="#a7b6d9" font-size="24" font-weight="700" font-family="Arial,sans-serif">strikr.team</text>
-      <text x="996" y="1266" text-anchor="end" fill="#a7b6d9" font-size="24" font-weight="700" font-family="Arial,sans-serif">@getstrikr</text>
+      <rect x="20" y="20" width="1040" height="1310" rx="42" fill="#020617" stroke="#ffffff" stroke-opacity=".12" stroke-width="2"/>
+      <path d="M20 62Q20 20 62 20H1018Q1060 20 1060 62V350H20Z" fill="url(#top)"/>
+      <rect x="20" y="350" width="1040" height="980" fill="url(#middle)"/>
+      <rect x="56" y="54" width="470" height="118" rx="24" fill="#020617" fill-opacity=".65" stroke="#ffffff" stroke-opacity=".13"/>
+      <text x="86" y="102" fill="#ffffff" font-size="24" font-weight="900" font-family="Arial,sans-serif" letter-spacing="2">TRAINING · ${svgEscape(fit(clubName.toUpperCase(),24))}</text>
+      <text x="86" y="143" fill="#aabbd6" font-size="21" font-weight="700" font-family="Arial,sans-serif">TRAININGSANKÜNDIGUNG</text>
+      <rect x="758" y="54" width="266" height="146" rx="24" fill="#020617" fill-opacity=".65" stroke="#ffffff" stroke-opacity=".13"/>
+      ${logo}
+      <text x="902" y="117" fill="#ffffff" font-size="34" font-weight="900" font-family="Arial,sans-serif">strikr</text>
+      <text x="902" y="146" fill="#b7c6dc" font-size="15" font-weight="700" font-family="Arial,sans-serif">@getstrikr</text>
+      <text x="902" y="172" fill="#5de4ba" font-size="16" font-weight="800" font-family="Arial,sans-serif">strikr.team</text>
+      <text x="56" y="304" fill="#ffffff" font-size="${mainSize}" font-weight="900" font-family="Arial,sans-serif" letter-spacing="-4" textLength="${Math.min(955,title.length*mainSize*.67)}" lengthAdjust="spacingAndGlyphs">${svgEscape(title)}</text>
+      <rect x="20" y="350" width="1040" height="700" fill="url(#middle)"/>
+      <text x="540" y="536" text-anchor="middle" fill="#b3c5df" font-size="27" font-weight="900" font-family="Arial,sans-serif" letter-spacing="5">${svgEscape(v.kicker)}</text>
+      <text x="540" y="655" text-anchor="middle" fill="#ffffff" font-size="69" font-weight="900" font-family="Arial,sans-serif" textLength="${Math.min(925,v.headline.length*43)}" lengthAdjust="spacingAndGlyphs">${headline}</text>
+      <text x="540" y="721" text-anchor="middle" fill="#b8c8df" font-size="29" font-weight="500" font-family="Arial,sans-serif">${subline}</text>
+      <rect x="95" y="790" width="890" height="2" fill="#ffffff" opacity=".18"/>
+      <text x="540" y="870" text-anchor="middle" fill="#ffffff" font-size="43" font-weight="900" font-family="Arial,sans-serif" textLength="${Math.min(850,clubName.length*27)}" lengthAdjust="spacingAndGlyphs">${club}</text>
+      <text x="540" y="940" text-anchor="middle" fill="#e5ebf6" font-size="36" font-weight="700" font-family="Arial,sans-serif" textLength="${Math.min(870,when.length*22)}" lengthAdjust="spacingAndGlyphs">${day}</text>
+      <text x="540" y="1015" text-anchor="middle" fill="#5de4ba" font-size="52" font-weight="900" font-family="Arial,sans-serif">${svgEscape(time)}</text>
+      <rect x="20" y="1080" width="1040" height="250" fill="url(#fade)"/>
+      <text x="74" y="1222" fill="#5de4ba" font-size="61" font-weight="900" font-family="Arial,sans-serif" letter-spacing="-1">DEINE ZUSAGE ZÄHLT.</text>
+      <text x="76" y="1285" fill="#b5c3d9" font-size="25" font-weight="700" font-family="Arial,sans-serif">Jetzt in strikr zu- oder absagen.</text>
     </svg>`;
   }
+  async function loadBrandLogo() {
+    try {
+      const response = await fetch("/brand/strikr-mark.png");
+      if (!response.ok) return "";
+      const blob = await response.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch { return ""; }
+  }
   async function imageFile() {
-    const svg = new Blob([buildSvg()], { type: "image/svg+xml;charset=utf-8" });
+    const logoData = await loadBrandLogo();
+    const svg = new Blob([buildSvg(logoData)], { type: "image/svg+xml;charset=utf-8" });
     const objectUrl = URL.createObjectURL(svg);
     try {
       const img = new Image();
