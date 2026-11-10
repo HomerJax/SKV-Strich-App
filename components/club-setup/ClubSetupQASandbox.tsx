@@ -29,9 +29,16 @@ export default function ClubSetupQASandbox({ children }: { children: ReactNode }
       });
     } else if (step === "categories") {
       const label = String(data.get("label") || "").trim();
-      if (label) {
-        const current = (params.get("qa_labels") || "").split("|").filter(Boolean);
-        if (current.length < 2) navigate("categories", { qa_labels: [...current, label].join("|") });
+      const current = (params.get("qa_labels") || "").split("|").filter(Boolean);
+      const existingId = data.get("id");
+      if (existingId !== null) {
+        const index = -Number(existingId) - 1;
+        if (index >= 0 && index < current.length && label) {
+          current[index] = label.replaceAll("|", " ");
+          navigate("categories", { qa_labels: current.join("|") });
+        }
+      } else if (label && current.length < 2) {
+        navigate("categories", { qa_labels: [...current, label.replaceAll("|", " ")].join("|") });
       }
     } else if (step === "done") {
       navigate("done", { qa_invite: "1" });
