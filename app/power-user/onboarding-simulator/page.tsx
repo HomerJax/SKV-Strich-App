@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePowerUser } from "@/lib/auth/power-user";
 import FirstRunQA from "./FirstRunQA";
+import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
 
 export default async function PowerUserOnboardingSimulatorPage() {
   await requirePowerUser();
@@ -13,7 +14,7 @@ export default async function PowerUserOnboardingSimulatorPage() {
             ← Power User
           </Link>
         </div>
-        <FirstRunQA />
+        <FirstRunQA categorySetup={<CategorySettingsSection categories={[]} useCategories={true} redirectTo="/club-setup?created=1&step=done" variant="onboarding" isPro={false} />} />
       </section>
     </main>
   );
