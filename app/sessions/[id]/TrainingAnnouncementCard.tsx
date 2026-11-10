@@ -90,7 +90,7 @@ export default function TrainingAnnouncementCard({ clubName, date, startTime, se
     try { await navigator.clipboard.writeText(shareText); setFeedback("Text mit Trainingslink kopiert."); } catch { setFeedback("Kopieren fehlgeschlagen."); }
   }
   return <>
-    <button type="button" onClick={() => setExpanded(true)} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15">
+    <button type="button" onClick={() => setExpanded(true)} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-teal-300/40 bg-teal-300/15 px-4 py-3 text-sm font-bold text-teal-100 hover:bg-teal-300/25">
       <Megaphone className="h-4 w-4 text-teal-300"/> Ankündigung teilen
     </button>
     {expanded && typeof document !== "undefined" ? createPortal(
