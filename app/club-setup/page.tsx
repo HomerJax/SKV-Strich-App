@@ -367,6 +367,10 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
     }
   }
 
+  if (qa) {
+    categories = (getSearchParam(resolvedSearchParams.qa_labels) || "").split("|").filter(Boolean).slice(0, 2).map((label, index) => ({ id: -(index + 1), key: `qa_${index}`, label, sort_order: index, is_active: true }));
+  }
+
   if (!qa && !created && hasClub) {
     redirect("/");
   }
