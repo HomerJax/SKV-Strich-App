@@ -46,7 +46,7 @@ const ALLOWED_TYPES = [
 ];
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
-const ALLOWED_COLORS = new Set(["black", "blue", "red", "green"]);
+const ALLOWED_COLORS = new Set(["black", "blue", "red", "green", "yellow"]);
 const ALLOWED_SPORT_TYPES = new Set<SportType>([
   "football",
   "handball",
