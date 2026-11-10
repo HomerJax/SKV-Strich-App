@@ -1162,6 +1162,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="mb-2 text-base font-bold text-slate-950">Anwesenheiten</h2><p className="mb-3 text-xs text-slate-500">Alle Zusagen im Überblick. Nur deine eigene Teilnahme kannst du ändern.</p>{renderAttendance()}</div>{teamsComplete ? <SessionTeamsCard generationRunId={0} showStrengthNumbers={false} scoreOptions={{useStrength:clubSettings?.use_strength??true,useCategories:clubSettings?.use_categories??true,balanceCategories:props.initialBalanceCategories??[]}} teamA={displayTeamA} teamB={displayTeamB} unassigned={displayUnassigned} metaA={metaA} metaB={metaB} hasResult={hasResult} saving={false} teamsComplete={teamsComplete} teamsConfirmed={teamsConfirmed} canShareLineup={false} sharingLineup={false} collapsed={false} attendanceDirty={false} enableFieldView={useFieldView} readOnly onToggleCollapsed={() => {}} onGenerateTeams={() => {}} onConfirmTeams={() => {}} onShareLineup={() => {}} onSetSide={() => {}} /> : null}{hasResult ? <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="mb-2 text-base font-bold">Ergebnisse</h2>{results.map(r => <div key={r.id} className="py-1 text-sm">Spiel {r.game_no}: {r.goals_team_a ?? "–"} : {r.goals_team_b ?? "–"}</div>)}</div> : null}</div>  : true && isAdmin && isTrainingSession && pilotEntryView !== "data" ? (!trainingWizardOpen ? (
           <section className="mx-auto max-w-xl space-y-4" aria-label="Training starten">
+            {!trainingCompleted && props.announcementSlot ? <div className="flex justify-end">{props.announcementSlot}</div> : null}
 
             {trainingCompleted ? (
               <div className="space-y-4 rounded-[26px] border border-teal-200 bg-white p-5 shadow-sm sm:p-6">
@@ -1233,23 +1234,23 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
                 </div>
               </div>
             ) : (
-              <div className="rounded-[26px] bg-gradient-to-br from-[#08121f] via-slate-950 to-[#123b43] p-6 text-white shadow-xl sm:p-8">
+              <div className="rounded-2xl bg-gradient-to-br from-[#08121f] via-slate-950 to-[#123b43] p-4 text-white shadow-md sm:p-6">
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-300">strikr · Training</div>
-                <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+                <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
                   {trainingCompleted ? "Training abgeschlossen." : liveOrPrepared ? "Weiter geht’s." : "Bereit für euer Training?"}
                 </h1>
-                <p className="mt-3 text-sm leading-7 text-white/70">
+                <p className="mt-2 text-sm leading-5 text-white/70">
                   {trainingCompleted
                     ? "Die Ergebnisse sind gespeichert. Du kannst sie im Assistenten ansehen oder ändern."
                     : "Schritt für Schritt durch euren Trainingsabend. Nur das, was du gerade brauchst."}
                 </p>
-                <div className="mt-7 grid grid-cols-3 gap-2 border-y border-white/10 py-4">
+                <div className="mt-4 grid grid-cols-3 gap-2 border-y border-white/10 py-3">
                   <div className="text-center"><div className="text-2xl font-black">{expectedCount}</div><div className="text-xs text-white/60">Zusagen</div></div>
                   <div className="text-center"><div className="text-2xl font-black">{declinedCount}</div><div className="text-xs text-white/60">Absagen</div></div>
                   <div className="text-center"><div className="text-2xl font-black">{noResponseCount}</div><div className="text-xs text-white/60">Offen</div></div>
                 </div>
                 <button type="button" onClick={openTraining}
-                  className="mt-6 min-h-14 w-full rounded-xl bg-teal-300 px-5 py-3 text-base font-black text-slate-950 transition hover:bg-white">
+                  className="mt-4 min-h-12 w-full rounded-xl bg-teal-300 px-5 py-3 text-base font-black text-slate-950 transition hover:bg-white">
                   {trainingCompleted ? "Training ansehen →" : liveOrPrepared ? "Training fortsetzen →" : "Training starten →"}
                 </button>
                 <p className="mt-3 text-center text-xs text-white/55">
