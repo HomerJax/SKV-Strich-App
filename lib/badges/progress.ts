@@ -172,6 +172,7 @@ export async function getPlayerBadgeProgress(
       .from("sessions")
       .select("id, date, season_id, type")
       .eq("club_id", clubId)
+      .not("completed_at", "is", null)
       .lte("date", today)
       .order("date", { ascending: true }),
     supabase
@@ -226,7 +227,7 @@ export async function getPlayerBadgeProgress(
     { data: resultsData, error: resultsError },
   ] = await Promise.all([
     supabase
-      .from("session_players")
+      .from("stats_session_players")
       .select("session_id")
       .eq("player_id", playerId)
       .in("session_id", sessionIds),
