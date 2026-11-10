@@ -33,6 +33,7 @@ import { hasGuidedTrainingAssistant } from "@/lib/training-wizard-pilots";
 
 type SessionDetailClientProps = {
   sessionId: number;
+  announcementSlot?: React.ReactNode;
   initialSession: SessionRow;
   initialPlayers: Player[];
   initialPresentIds: number[];
@@ -1089,6 +1090,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
       <div className="space-y-4">
         {(pilotEntryView === "data" || playerPreview) && pilotAdmin ? <div className="rounded-2xl border border-slate-200 bg-white p-3"><div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{playerPreview ? "Spieleransicht · Vorschau" : pilotView === "leader" || props.initialIsClubAdmin === false ? "Trainingsleitung · Vorschau" : "Adminansicht · Verwaltung"}</div><div className="flex gap-1 rounded-xl bg-slate-100 p-1">{(props.initialIsClubAdmin === false ? [{key:"leader",label:"Trainingsleitung"},{key:"player",label:"Spieler"}] : [{key:"admin",label:"Admin"},{key:"leader",label:"Trainingsleitung"},{key:"player",label:"Spieler"}]).map(item=><button key={item.key} type="button" onClick={()=>setPilotView(item.key as "admin" | "leader" | "player")} aria-pressed={pilotView===item.key} className={`flex-1 rounded-lg px-2 py-2.5 text-xs font-bold sm:text-sm ${pilotView===item.key?"bg-slate-950 text-white shadow-sm":"text-slate-600"}`}>{item.label}</button>)}</div>{pilotView==="leader"&&props.initialIsClubAdmin!==false?<p className="mt-2 text-xs text-slate-500">Vorschau: Trainingsleitung kann Anwesenheiten, Teams und Ergebnisse bearbeiten, aber keine Termine verwalten.</p>:null}</div> : null}
         {(pilotEntryView === "data" || playerPreview || !isTrainingSession || !isAdmin) ? <SessionHeaderCard
+          announcementSlot={props.announcementSlot}
           sessionId={props.sessionId}
           date={session.date}
           notes={session.notes ?? null}
