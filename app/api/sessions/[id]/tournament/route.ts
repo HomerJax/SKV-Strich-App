@@ -516,6 +516,7 @@ export async function POST(
           tournament_match_minutes: matchMinutes,
           tournament_winner_team_id: null,
           tournament_completed_at: null,
+          completed_at: null,
           winner_photo_path: null,
         })
         .eq("id", sessionId)
@@ -555,6 +556,7 @@ export async function POST(
         tournament_match_minutes: null,
         tournament_winner_team_id: null,
         tournament_completed_at: null,
+          completed_at: null,
         winner_photo_path: null,
       }).eq("id", sessionId).eq("club_id", access.clubId);
       if (resetError) throw new Error(resetError.message);
@@ -628,7 +630,8 @@ export async function POST(
         .eq("session_id", sessionId).eq("club_id", access.clubId);
       if (deleteError) throw new Error(deleteError.message);
       const { error: reopenError } = await access.adminSupabase.from("sessions")
-        .update({ tournament_completed_at: null, tournament_winner_team_id: null })
+        .update({ tournament_completed_at: null,
+          completed_at: null, tournament_winner_team_id: null })
         .eq("id", sessionId).eq("club_id", access.clubId);
       if (reopenError) throw new Error(reopenError.message);
       return NextResponse.json({ ok: true, message: "Turnier wieder geöffnet.", ...(await loadTournament(access, sessionId)) });
@@ -738,6 +741,7 @@ export async function POST(
         .update({
           tournament_winner_team_id: winner.teamId,
           tournament_completed_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
         })
         .eq("id", sessionId)
         .eq("club_id", access.clubId);
