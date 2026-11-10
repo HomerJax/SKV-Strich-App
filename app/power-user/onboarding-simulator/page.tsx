@@ -15,6 +15,11 @@ export default async function PowerUserOnboardingSimulatorPage() {
             ← Power User
           </Link>
         </div>
+        <div className="rounded-2xl border border-cyan-200 bg-white p-5">
+          <h1 className="text-lg font-black">Echtes Vereins-Onboarding testen</h1>
+          <p className="mt-2 text-sm text-slate-600">Öffnet die originale Club-Setup-Seite im abgesicherten Simulationsmodus. Keine Daten werden gespeichert.</p>
+          <Link href="/club-setup?qa=1&created=1&step=club" className="mt-4 inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Original-Onboarding durchspielen</Link>
+        </div>
         <FirstRunQA teamSetup={<TeamGeneratorSettingsCard useStrength={true} useCategories={false} redirectTo="/club-setup?created=1&step=categories" variant="onboarding" />} categorySetup={<CategorySettingsSection categories={[]} useCategories={true} redirectTo="/club-setup?created=1&step=done" variant="onboarding" isPro={false} />} />
       </section>
     </main>
