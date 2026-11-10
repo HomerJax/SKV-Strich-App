@@ -28,6 +28,7 @@ const COLOR_OPTIONS: Array<{ value: string; labelKey: MessageKey; color: string 
   { value: "blue", labelKey: "settings.club.colorBlue", color: "#1d4ed8" },
   { value: "red", labelKey: "settings.club.colorRed", color: "#dc2626" },
   { value: "green", labelKey: "settings.club.colorGreen", color: "#16a34a" },
+  { value: "yellow", labelKey: "settings.club.colorYellow", color: "#eab308" },
 ];
 
 function getErrorMessage(error: string | undefined, locale: AppLocale) {
