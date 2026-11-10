@@ -169,6 +169,23 @@ export default function FirstRunQA() {
         </div>
         <div className="mx-auto mt-5 max-w-xl"><Progress stage={stage} scenario={scenario} /></div>
         <p className="mt-3 text-center text-xs text-slate-500">Schmale Breite ist nur eine Layout-Vorschau; CSS-Breakpoints bitte zusätzlich auf einem echten Mobilgerät prüfen.</p>
+        {scenario !== "second-club" && (stage === "signup" || stage === "onboarding" || stage === "club-setup") ? (
+          <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+            <p className="text-xs font-bold text-slate-800">Schnelltest · ohne Eingaben</p>
+            <p className="mt-1 text-xs text-slate-600">Mit Testwerten direkt zum nächsten Schritt. Es wird nichts gespeichert.</p>
+            <button type="button" className="mt-2 w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
+              onClick={() => {
+                if (stage === "signup") setStage("onboarding");
+                else if (stage === "onboarding") {
+                  setFirstName("Alex");
+                  setClubName("Testverein");
+                  setStage(scenario === "admin" ? "club-setup" : "after");
+                } else window.location.assign("/club-setup?qa=1&created=1&step=club&qa_name=Testverein");
+              }}>
+              {stage === "signup" ? "Registrierung simulieren →" : stage === "onboarding" ? "Profil mit Testdaten simulieren →" : "Vereins-Setup mit Testdaten öffnen →"}
+            </button>
+          </div>
+        ) : null}
         <div className={`mx-auto mt-5 overflow-hidden rounded-[24px] border border-slate-200 bg-neutral-100 ${previewSize === "narrow" ? "max-w-[390px]" : "w-full"}`}>
           {stage === "signup" ? (
             <SignupForm key={`signup-${runId}`} initialNext={scenario === "admin" ? "/club-setup" : inviteFlow ? "/join?token=qa-preview" : ""}
