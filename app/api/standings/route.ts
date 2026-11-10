@@ -112,6 +112,7 @@ async function fetchSessions(
     .select("id, date, season_id, mvp_voting_finalized_at")
     .eq("club_id", clubId)
     .eq("type", "training")
+    .not("completed_at", "is", null)
     .lte("date", getTodayInBerlin())
     .order("date", { ascending: true });
 
@@ -397,7 +398,7 @@ async function computeStandings(
     { data: mvpVotesData, error: mvpVotesError },
   ] = await Promise.all([
     supabase
-      .from("session_players")
+      .from("stats_session_players")
       .select("session_id, player_id")
       .in("session_id", sessionIds),
     supabase
