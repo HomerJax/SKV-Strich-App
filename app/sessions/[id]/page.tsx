@@ -9,7 +9,6 @@ import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import SessionDetailClient from "./SessionDetailClient";
 import SessionDetailClientPilot from "./SessionDetailClientPilot";
 import ConfirmPlayedTrainingButton from "./ConfirmPlayedTrainingButton";
-import TrainingAnnouncementCard from "./TrainingAnnouncementCard";
 import type { Player, SessionRow } from "./session-types";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { FREE_RSVP_DEADLINE_MINUTES } from "@/lib/billing/product-limits";
@@ -276,7 +275,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
           timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
         }).format(new Date()) ? <ConfirmPlayedTrainingButton sessionId={sessionId} /> : null}
       <TrainingDetailComponent
-      announcementSlot={(isPowerUser || isAdminRole(membership.role) || canLeadTraining) && !session.completed_at && session.type === "training" ? <TrainingAnnouncementCard sessionId={sessionId} clubName={clubData?.display_name || clubData?.name || "Dein Team"} date={session.date} startTime={session.start_time ?? null} /> : null}
+      announcementSlot={null}
       sessionId={sessionId}
       initialSession={sessionForClient}
       initialPlayers={players}
