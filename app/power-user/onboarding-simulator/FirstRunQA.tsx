@@ -106,7 +106,7 @@ function Completion({
   );
 }
 
-export default function FirstRunQA() {
+export default function FirstRunQA({ categorySetup }: { categorySetup: React.ReactNode }) {
   const [scenario, setScenario] = useState<Scenario>("admin");
   const [stage, setStage] = useState<Stage>("signup");
   const [runId, setRunId] = useState(0);
@@ -183,7 +183,7 @@ export default function FirstRunQA() {
                 else setStage("after");
               } }} />
           ) : stage === "club-setup" && scenario === "admin" ? (
-            <AdminSetupPreview key={`club-setup-${runId}`} name={clubName} onDone={() => setStage("after")} />
+            <AdminSetupPreview key={`club-setup-${runId}`} name={clubName} categorySetup={categorySetup} onDone={() => setStage("after")} />
           ) : scenario === "waiting" ? (
             <WaitingForInviteContent qaPreview />
           ) : scenario === "admin" ? (
