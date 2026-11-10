@@ -126,32 +126,32 @@ export default function FirstRunQA() {
   const inviteFlow = scenario === "invited";
   return (
     <div className="space-y-5">
-      <section className="rounded-[28px] bg-[#071522] p-5 text-white sm:p-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-[11px] font-black uppercase tracking-[.17em] text-cyan-300">Interne Produkt-QA · Power User</div>
-            <h1 className="mt-2 text-2xl font-extrabold sm:text-3xl">First-Run-Simulator</h1>
-            <p className="mt-2 max-w-3xl text-sm text-white/65">Teste den Einstieg neuer Nutzer mit den echten Registrierungs- und Onboarding-Formularen. Die Registrierung lässt sich mit einem Klick simulieren – ohne Account oder Datenbankänderungen.</p>
+      <header className="rounded-2xl bg-[#071522] px-4 py-4 text-white sm:px-6 sm:py-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-cyan-300">Power User · Produkt-Test</div>
+            <h1 className="mt-1 text-xl font-black sm:text-2xl">Einstieg simulieren</h1>
+            <p className="mt-1 text-xs leading-5 text-white/70 sm:text-sm">Registrierung und Vereinsstart ohne echte Änderungen testen.</p>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-bold text-emerald-200"><ShieldCheck className="h-4 w-4" /> Keine Writes</span>
+          <span className="shrink-0 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-2.5 py-1.5 text-[10px] font-bold text-emerald-200">Nur Vorschau</span>
         </div>
-      </section>
+      </header>
 
-      <section className="rounded-[24px] border border-slate-200 bg-white p-5">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-black uppercase tracking-[.12em] text-slate-600">Einstiegsszenario</h2>
           <button type="button" onClick={() => restart()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700"><RotateCcw className="h-3.5 w-3.5" /> Zurücksetzen</button>
         </div>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {(Object.keys(SCENARIOS) as Scenario[]).map((key) => (
             <button key={key} type="button" onClick={() => restart(key)} aria-pressed={key === scenario}
-              className={`rounded-xl border p-3 text-left transition ${scenario === key ? "border-cyan-500 bg-cyan-50 ring-1 ring-cyan-500" : "border-slate-200 bg-slate-50 hover:bg-white"}`}>
+              className={`rounded-xl border px-3 py-3 text-left transition ${scenario === key ? "border-cyan-500 bg-cyan-50 ring-1 ring-cyan-500" : "border-slate-200 bg-slate-50 hover:bg-white"}`}>
               <div className="text-sm font-bold text-slate-950">{SCENARIOS[key].title}</div>
               <div className="mt-1 text-xs leading-5 text-slate-600">{SCENARIOS[key].description}</div>
             </button>
           ))}
         </div>
-        <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-700">
+        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] leading-5 text-slate-600">
           <span className="font-bold">Reale Produktstrecke:</span> {info.flow}
         </div>
       </section>
