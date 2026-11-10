@@ -261,9 +261,9 @@ export async function POST(request: Request) {
     }
   }
 
-  const response = buildRedirect(requestUrl, "/", {
-    message: t("joinAction.joined"),
-  });
+  const response = !existingPlayerInTargetClub
+    ? buildRedirect(requestUrl, "/profile", { welcome: "1" })
+    : buildRedirect(requestUrl, "/", { message: t("joinAction.joined") });
 
   response.cookies.set("active_club_id", invite.club_id, {
     path: "/",
