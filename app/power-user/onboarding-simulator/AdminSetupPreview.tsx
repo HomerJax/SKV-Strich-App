@@ -8,10 +8,10 @@ import { ArrowRight, Check, ClipboardCheck, Users, RotateCcw } from "lucide-reac
 import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
 
 type Props = { name: string; onDone: () => void };
-type SetupStep = "club" | "team" | "categories" | "training" | "done";
-const ORDER: SetupStep[] = ["club", "team", "categories", "training", "done"];
+type SetupStep = "club" | "team" | "categories" | "done";
+const ORDER: SetupStep[] = ["club", "team", "categories", "done"];
 const LABELS: Record<SetupStep, string> = {
-  club: "Team", team: "Fairness", categories: "Gruppen", training: "Training", done: "Fertig",
+  club: "Team", team: "Fairness", categories: "Gruppen", done: "Fertig",
 };
 
 export default function AdminSetupPreview({ name, onDone }: Props) {
@@ -19,8 +19,6 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
   const [club, setClub] = useState(name || "Mein neues Team");
   const [strength, setStrength] = useState(true);
   const [categories, setCategories] = useState(false);
-  const [recurring, setRecurring] = useState(true);
-  const [season, setSeason] = useState(false);
   const [sport, setSport] = useState("football");
   const [color, setColor] = useState("black");
   const index = ORDER.indexOf(step);
@@ -90,29 +88,13 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
           </div>
         ) : null}
 
-        {step === "training" ? (
-          <div className="space-y-4">
-            <h3 className="text-xl font-black text-slate-950">Bereit für euer erstes Training?</h3>
-            <p className="text-sm leading-6 text-slate-600">Du kannst direkt loslegen oder die Planung später in strikr erledigen. Hier wird noch nichts gespeichert.</p>
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3">
-              <input type="checkbox" checked={recurring} onChange={e => setRecurring(e.target.checked)} className="mt-1 h-5 w-5 accent-cyan-600"/>
-              <span><strong className="block text-sm">Wiederkehrende Trainingsserie</strong><span className="text-xs text-slate-600">Zum Beispiel jeden Donnerstag um 20 Uhr – statt jede Woche einen Termin anzulegen.</span></span>
-            </label>
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3">
-              <input type="checkbox" checked={season} onChange={e => setSeason(e.target.checked)} className="mt-1 h-5 w-5 accent-cyan-600"/>
-              <span><strong className="block text-sm">Saison anlegen (optional)</strong><span className="text-xs text-slate-600">Zum Beispiel Saison 2026/27 – für Ergebnisse und Statistiken innerhalb eines Zeitraums.</span></span>
-            </label>
-            <p className="text-xs text-slate-500">Beide Einstellungen kannst du später hinzufügen oder ändern.</p>
-          </div>
-        ) : null}
-
         {step === "done" ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-emerald-700"><ClipboardCheck className="h-6 w-6" /><span className="text-xs font-black uppercase tracking-[.12em]">QA-Setup abgeschlossen</span></div>
             <h3 className="text-2xl font-black text-slate-950">{club} ist als Testzustand vorbereitet.</h3>
             <p className="text-sm leading-6 text-slate-600">In der echten App folgen Einladung und erstes Training. Hier bleiben alle Werte lokal im Simulator.</p>
             <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-              Spielerstärken: <strong>{strength ? "Aktiv" : "Inaktiv"}</strong> · Kategorien: <strong>{categories ? "Aktiv" : "Inaktiv"}</strong> · Trainingsserie: <strong>{recurring ? "Ja" : "Nein"}</strong> · Saison: <strong>{season ? "Ja" : "Nein"}</strong>
+              Spielerstärken: <strong>{strength ? "Aktiv" : "Inaktiv"}</strong> · Kategorien: <strong>{categories ? "Aktiv" : "Inaktiv"}</strong>
             </div>
             <button type="button" onClick={onDone} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-4 text-sm font-black text-white">
               <Users className="h-4 w-4"/> Ersten Vereinseinstieg ansehen <ArrowRight className="h-4 w-4"/>
@@ -127,7 +109,7 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
       </div>
       <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-900">
         <RotateCcw className="mt-0.5 h-4 w-4 shrink-0"/>
-        Nur der erste Club-Setup-Schritt nutzt bereits die echte Produktkomponente. Team-/Kategorienansichten sind bis zum vollständigen Staging-Test bewusst als vereinfachte Vorschau gekennzeichnet.
+        Vereinsgründung und Team-Einstellungen verwenden gemeinsame Produktkomponenten. Die Kategorienansicht ist noch eine Vorschau; echte Schreibaktionen sind deaktiviert.
       </div>
     </div>
   );
