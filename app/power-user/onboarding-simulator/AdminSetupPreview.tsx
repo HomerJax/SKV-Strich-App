@@ -1,20 +1,19 @@
 "use client";
 
-import TeamGeneratorOnboardingFields from "@/components/club-setup/TeamGeneratorOnboardingFields";
 import OnboardingExamples from "@/components/club-setup/OnboardingExamples";
 
 import { useState } from "react";
 import { ArrowRight, Check, ClipboardCheck, Users, RotateCcw } from "lucide-react";
 import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
 
-type Props = { name: string; categorySetup: React.ReactNode; onDone: () => void };
+type Props = { name: string; teamSetup: React.ReactNode; categorySetup: React.ReactNode; onDone: () => void };
 type SetupStep = "club" | "team" | "categories" | "done";
 const ORDER: SetupStep[] = ["club", "team", "categories", "done"];
 const LABELS: Record<SetupStep, string> = {
   club: "Team", team: "Fairness", categories: "Gruppen", done: "Fertig",
 };
 
-export default function AdminSetupPreview({ name, categorySetup, onDone }: Props) {
+export default function AdminSetupPreview({ name, teamSetup, categorySetup, onDone }: Props) {
   const [step, setStep] = useState<SetupStep>("club");
   const [club, setClub] = useState(name || "Mein neues Team");
   const [strength, setStrength] = useState(true);
@@ -65,14 +64,17 @@ export default function AdminSetupPreview({ name, categorySetup, onDone }: Props
         ) : null}
 
         {step === "team" ? (
-          <div className="space-y-4">
-            <h3 className="text-xl font-black text-slate-950">Faire Teams einrichten</h3>
-            <TeamGeneratorOnboardingFields
-              useStrength={strength}
-              useCategories={categories}
-              onStrengthChange={setStrength}
-              onCategoriesChange={setCategories}
-            />
+          <div onSubmitCapture={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const form = event.target as HTMLFormElement;
+            const values = new FormData(form);
+            setStrength(values.has("use_strength"));
+            setCategories(values.has("use_categories"));
+            moveNext();
+          }} className="space-y-3">
+            <p className="text-xs font-bold text-amber-700">Simulation: Die echten Team-Einstellungen werden nicht gespeichert.</p>
+            {teamSetup}
           </div>
         ) : null}
 
