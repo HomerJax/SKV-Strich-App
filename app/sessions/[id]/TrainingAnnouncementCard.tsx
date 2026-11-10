@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Megaphone, Share2 } from "lucide-react";
+import { Download, Megaphone, Share2, ChevronDown } from "lucide-react";
 
 type Tone = "motivation" | "reminder" | "casual";
 const variants: Record<Tone, { label: string; kicker: string; headline: string; subline: string; text: string }> = {
@@ -18,6 +18,7 @@ function fit(value: string, max: number) { return value.length > max ? value.sli
 
 export default function TrainingAnnouncementCard({ clubName, date, startTime, sessionId }: { clubName: string; date: string; startTime: string | null; sessionId: number }) {
   const [tone, setTone] = useState<Tone>("motivation");
+  const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState("");
   const v = variants[tone];
@@ -87,24 +88,21 @@ export default function TrainingAnnouncementCard({ clubName, date, startTime, se
   async function copy() {
     try { await navigator.clipboard.writeText(shareText); setFeedback("Text mit Trainingslink kopiert."); } catch { setFeedback("Kopieren fehlgeschlagen."); }
   }
-  return <section className="mx-auto mt-4 w-full max-w-5xl px-4">
-    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-      <div className="flex items-center gap-2"><Megaphone className="h-5 w-5 text-teal-600"/><h2 className="text-lg font-black text-slate-950">Trainingsankündigung teilen</h2></div>
-      <p className="mt-1 text-sm text-slate-600">Eine strikr-Card für eure WhatsApp-Gruppe. Ohne Push oder In-App-Nachricht.</p>
-      <div className="mt-4 flex flex-wrap gap-2">{(Object.keys(variants) as Tone[]).map(key => <button type="button" key={key} onClick={() => { setTone(key); setFeedback(""); }} aria-pressed={tone===key} className={`rounded-xl px-4 py-2 text-sm font-bold ${tone===key?"bg-slate-950 text-white":"border border-slate-200 bg-slate-50 text-slate-700"}`}>{variants[key].label}</button>)}</div>
-      <div className="mt-4 max-w-md overflow-hidden rounded-[26px] bg-gradient-to-br from-[#061827] via-[#0c2b3c] to-[#063f48] p-5 text-white shadow-lg">
-        <div className="text-3xl font-black tracking-tighter">strikr<span className="text-teal-300">.</span></div>
-        <div className="mt-4 h-0.5 bg-teal-300"/>
-        <div className="mt-5 text-[10px] font-black uppercase tracking-[.24em] text-teal-300">{v.kicker}</div>
-        <div className="mt-2 text-2xl font-black">{v.headline}</div>
-        <p className="mt-1 text-sm text-slate-300">{v.subline}</p>
-        <div className="mt-5 space-y-2 rounded-2xl border border-white/15 bg-white/10 p-4"><div className="text-[10px] font-black uppercase tracking-widest text-teal-300">Dein nächstes Training</div><div className="font-bold">{clubName}</div><div className="text-sm">{when}</div><div className="text-sm">{time}</div></div>
-        <div className="mt-5 rounded-xl bg-teal-300 px-3 py-3 text-center text-sm font-black text-slate-950">JETZT ZU- ODER ABSAGEN</div>
-        <div className="mt-4 text-center text-[11px] text-slate-300">strikr.team · Deine Mannschaft. Dein Training.</div>
-      </div>
-      <p className="mt-3 text-xs text-slate-500">Der Link zur Zu-/Absage wird beim Teilen im Nachrichtentext mitgegeben; die Bildkarte selbst ist nicht anklickbar.</p>
-      <div className="mt-4 flex flex-wrap gap-2"><button disabled={busy} onClick={share} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"><Share2 className="h-4 w-4"/> Teilen</button><button disabled={busy} onClick={download} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-800 disabled:opacity-50"><Download className="h-4 w-4"/> Bild speichern</button><button onClick={copy} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-800">Text + Link kopieren</button></div>
-      {feedback?<p role="status" className="mt-3 text-sm text-slate-700">{feedback}</p>:null}
+  return <section className="mx-auto w-full max-w-5xl px-4 pt-3">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <button type="button" onClick={() => setExpanded(value => !value)} aria-expanded={expanded} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+        <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-900"><Megaphone className="h-4 w-4 text-teal-600" /> Ankündigung</span>
+        <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-500">Für WhatsApp <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} /></span>
+      </button>
+      {expanded ? <div className="border-t border-slate-100 px-4 pb-4 pt-3">
+        <div className="flex flex-wrap gap-2">{(Object.keys(variants) as Tone[]).map(key => <button type="button" key={key} onClick={() => { setTone(key); setFeedback(""); }} aria-pressed={tone === key} className={`rounded-xl px-3 py-2 text-xs font-bold ${tone === key ? "bg-slate-950 text-white" : "border border-slate-200 bg-slate-50 text-slate-700"}`}>{variants[key].label}</button>)}</div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" disabled={busy} onClick={share} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Share2 className="h-4 w-4"/> Teilen</button>
+          <button type="button" disabled={busy} onClick={download} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-800 disabled:opacity-50"><Download className="h-4 w-4"/> Bild</button>
+          <button type="button" onClick={copy} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-800">Text + Link</button>
+        </div>
+        {feedback ? <p role="status" className="mt-2 text-xs text-slate-600">{feedback}</p> : null}
+      </div> : null}
     </div>
   </section>;
 }
