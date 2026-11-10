@@ -107,12 +107,12 @@ export default async function TeamGeneratorSettingsCard({
         {variant === "onboarding" ? (
           <TeamGeneratorOnboardingFields useStrength={useStrength} useCategories={useCategories} />
         ) : (
-        <div className={false ? "space-y-3" : "rounded-[20px] border border-black/10 bg-neutral-50 p-4"}>
-          <div className={false ? "text-xs font-black uppercase tracking-[.14em] text-slate-500" : "mb-3 text-sm font-semibold text-slate-500"}>
+        <div className={variant === "onboarding" ? "space-y-3" : "rounded-[20px] border border-black/10 bg-neutral-50 p-4"}>
+          <div className={"mb-3 text-sm font-semibold text-slate-500"}>
             {t("teamGenerator.balanceQuestion")}
           </div>
           <div className="space-y-3">
-            <label className={false ? "flex cursor-pointer items-start gap-4 rounded-[22px] border border-violet-100 bg-violet-50/60 px-4 py-4 transition hover:border-violet-200" : "flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3"}>
+            <label className={"flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3"}>
               <input type="checkbox" name="use_strength" value="1" defaultChecked={useStrength} className="mt-1 h-5 w-5 rounded border-neutral-300 accent-slate-950" />
               <div>
                 <div className="flex items-center gap-2 text-sm font-black text-slate-950">
@@ -123,7 +123,7 @@ export default async function TeamGeneratorSettingsCard({
               </div>
             </label>
 
-            <label className={false ? "flex cursor-pointer items-start gap-4 rounded-[22px] border border-cyan-100 bg-cyan-50/60 px-4 py-4 transition hover:border-cyan-200" : "flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3"}>
+            <label className={"flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3"}>
               <input type="checkbox" name="use_categories" value="1" defaultChecked={useCategories} className="mt-1 h-5 w-5 rounded border-neutral-300 accent-slate-950" />
               <div>
                 <div className="text-sm font-black text-slate-950">{t("teamGenerator.categories")}</div>
