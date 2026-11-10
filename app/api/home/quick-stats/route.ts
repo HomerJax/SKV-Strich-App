@@ -65,6 +65,8 @@ export async function GET() {
     .from("sessions")
     .select("id")
     .eq("club_id", clubId)
+    .not("completed_at", "is", null)
+    .eq("type", "training")
     .eq("season_id", currentSeason.id)
     .lte("date", today);
 
@@ -97,7 +99,7 @@ export async function GET() {
       .in("session_id", sessionIds),
     clubPlayerIds.length
       ? supabase
-          .from("session_players")
+          .from("stats_session_players")
           .select("player_id")
           .in("player_id", clubPlayerIds)
           .in("session_id", sessionIds)
