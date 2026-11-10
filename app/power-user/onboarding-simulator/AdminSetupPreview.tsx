@@ -1,5 +1,6 @@
 "use client";
 
+import TeamGeneratorOnboardingFields from "@/components/club-setup/TeamGeneratorOnboardingFields";
 import OnboardingExamples from "@/components/club-setup/OnboardingExamples";
 
 import { useState } from "react";
@@ -17,7 +18,6 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
   const [step, setStep] = useState<SetupStep>("club");
   const [club, setClub] = useState(name || "Mein neues Team");
   const [strength, setStrength] = useState(true);
-  const [groups, setGroups] = useState(false);
   const [categories, setCategories] = useState(false);
   const [recurring, setRecurring] = useState(true);
   const [season, setSeason] = useState(false);
@@ -68,17 +68,13 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
 
         {step === "team" ? (
           <div className="space-y-4">
-            <h3 className="text-xl font-black text-slate-950">Faire Teams – ganz einfach</h3>
-            <p className="text-sm leading-6 text-slate-600">strikr teilt eure anwesenden Spieler in möglichst ausgeglichene Teams ein. Du entscheidest, welche Informationen dabei helfen sollen.</p>
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3">
-              <input type="checkbox" checked={strength} onChange={e => setStrength(e.target.checked)} className="mt-1 h-5 w-5 accent-cyan-600"/>
-              <span><strong className="block text-sm text-slate-950">Spielstärke berücksichtigen</strong><span className="text-xs text-slate-600">Du kannst Spielern später eine Stärke von 1–5 geben. strikr verteilt stärkere und schwächere Spieler möglichst fair.</span></span>
-            </label>
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3">
-              <input type="checkbox" checked={groups} onChange={e => setGroups(e.target.checked)} className="mt-1 h-5 w-5 accent-cyan-600"/>
-              <span><strong className="block text-sm text-slate-950">Spielergruppen ausgleichen (optional)</strong><span className="text-xs text-slate-600">Beispiel: Torhüter oder besonders erfahrene Spieler sollen nicht alle im selben Team landen.</span></span>
-            </label>
-            <OnboardingExamples kind="teams" />
+            <h3 className="text-xl font-black text-slate-950">Faire Teams einrichten</h3>
+            <TeamGeneratorOnboardingFields
+              useStrength={strength}
+              useCategories={categories}
+              onStrengthChange={setStrength}
+              onCategoriesChange={setCategories}
+            />
           </div>
         ) : null}
 
@@ -116,7 +112,7 @@ export default function AdminSetupPreview({ name, onDone }: Props) {
             <h3 className="text-2xl font-black text-slate-950">{club} ist als Testzustand vorbereitet.</h3>
             <p className="text-sm leading-6 text-slate-600">In der echten App folgen Einladung und erstes Training. Hier bleiben alle Werte lokal im Simulator.</p>
             <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-              Spielerstärken: <strong>{strength ? "Aktiv" : "Inaktiv"}</strong> · Spielergruppen: <strong>{groups ? "Aktiv" : "Inaktiv"}</strong> · Kategorien: <strong>{categories ? "Aktiv" : "Inaktiv"}</strong> · Trainingsserie: <strong>{recurring ? "Ja" : "Nein"}</strong> · Saison: <strong>{season ? "Ja" : "Nein"}</strong>
+              Spielerstärken: <strong>{strength ? "Aktiv" : "Inaktiv"}</strong> · Kategorien: <strong>{categories ? "Aktiv" : "Inaktiv"}</strong> · Trainingsserie: <strong>{recurring ? "Ja" : "Nein"}</strong> · Saison: <strong>{season ? "Ja" : "Nein"}</strong>
             </div>
             <button type="button" onClick={onDone} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-4 text-sm font-black text-white">
               <Users className="h-4 w-4"/> Ersten Vereinseinstieg ansehen <ArrowRight className="h-4 w-4"/>
