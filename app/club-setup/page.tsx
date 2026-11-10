@@ -14,6 +14,8 @@ import {
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth/context";
+import { requirePowerUser } from "@/lib/auth/power-user";
+import ClubSetupQASandbox from "@/components/club-setup/ClubSetupQASandbox";
 import { createClient } from "@/lib/supabase/server";
 import { createClubAction } from "./actions";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
@@ -291,6 +293,10 @@ function StepHero({
   );
 }
 
+function ClubSetupQASandboxWrapper({ qa, children }: { qa: boolean; children: React.ReactNode }) {
+  return qa ? <ClubSetupQASandbox>{children}</ClubSetupQASandbox> : <>{children}</>;
+}
+
 export default async function ClubSetupPage({ searchParams }: PageProps) {
   const { locale, t } = await getServerI18n();
   const resolvedSearchParams = (await searchParams) ?? {};
@@ -302,17 +308,19 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
     getSearchParam(resolvedSearchParams.invite_created) === "1";
   const inviteError = getSearchParam(resolvedSearchParams.invite_error);
 
-  const auth = await getAuthContext();
+  const qa = getSearchParam(resolvedSearchParams.qa) === "1";
+  if (qa) await requirePowerUser();
+  const auth = qa ? null : await getAuthContext();
 
-  if (!auth.user) {
+  if (!qa && !auth?.user) {
     redirect("/login");
   }
 
-  const memberships = auth.memberships ?? [];
+  const memberships = auth?.memberships ?? [];
   const hasClub = memberships.length > 0;
 
   const supabase = await createClient();
-  const activeClubId = auth.activeClubId ?? memberships[0]?.club_id ?? null;
+  const activeClubId = qa ? null : (auth?.activeClubId ?? memberships[0]?.club_id ?? null);
 
   let club: ClubRow | null = null;
   let settings: ClubSettingsRow | null = null;
@@ -359,12 +367,12 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
     }
   }
 
-  if (!created && hasClub) {
+  if (!qa && !created && hasClub) {
     redirect("/");
   }
 
   const origin = await getRequestOrigin();
-  const clubName = club?.display_name?.trim() || t("clubSetup.yourTeam");
+  const clubName = (qa ? getSearchParam(resolvedSearchParams.qa_name) : club?.display_name?.trim()) || t("clubSetup.yourTeam");
   const errorMessage = getErrorMessage(error, locale);
   const inviteUrl = inviteToken
     ? buildAbsoluteInviteUrl(origin, inviteToken)
@@ -385,15 +393,16 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
     getSearchParam(resolvedSearchParams.category_saved) === "1";
   const categoryError = getSearchParam(resolvedSearchParams.category_error) ?? "";
 
-  const useCategories = settings?.use_categories === true;
+  const useCategories = qa ? getSearchParam(resolvedSearchParams.qa_categories) === "1" : settings?.use_categories === true;
 
-  if (currentStep === "categories" && !useCategories) {
+  if (!qa && currentStep === "categories" && !useCategories) {
     redirect(buildWizardUrl("done"));
   }
 
   const previousStep = getPreviousStep(currentStep);
 
   return (
+    <ClubSetupQASandboxWrapper qa={qa}>
     <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_12%_8%,rgba(34,211,238,.10),transparent_28%),radial-gradient(circle_at_88%_12%,rgba(124,58,237,.10),transparent_30%),#f5f7fb] text-neutral-950">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 sm:py-6">
         {!created ? (
@@ -560,12 +569,13 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     redirectTo={buildWizardUrl("team")}
                     submitLabel={t("clubSetup.continueTeams")}
                     removeLogoRedirectTo={buildWizardUrl("club")}
-                    initialDisplayName={club?.display_name ?? ""}
+                    initialDisplayName={qa ? clubName : (club?.display_name ?? "")}
                     initialPrimaryColor={club?.primary_color ?? "black"}
                     initialSportType={club?.sport_type ?? "football"}
                     initialLogoUrl={currentLogoUrl}
                     useNicknames={useNicknames}
                     variant="onboarding"
+                    {...(qa ? { qaPreview: { onComplete: () => {} } } : {})}
                   />
                 </div>
               ) : null}
@@ -590,7 +600,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                   </div>
 
                   <TeamGeneratorSettingsCard
-                    useStrength={settings?.use_strength ?? false}
+                    useStrength={qa ? getSearchParam(resolvedSearchParams.qa_strength) !== "0" : (settings?.use_strength ?? false)}
                     useCategories={useCategories}
                     redirectTo={buildWizardUrl("categories")}
                     submitLabel={t("clubSetup.continueCategories")}
@@ -772,5 +782,6 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
         )}
       </div>
     </main>
+    </ClubSetupQASandboxWrapper>
   );
 }
