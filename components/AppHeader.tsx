@@ -34,6 +34,7 @@ const COLOR_MAP: Record<string, string> = {
   blue: "#1d4ed8",
   red: "#dc2626",
   green: "#16a34a",
+  yellow: "#eab308",
 };
 
 function getInitial(value: string | null) {
