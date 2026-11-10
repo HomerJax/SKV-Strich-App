@@ -1,4 +1,4 @@
-import OnboardingExamples from "@/components/club-setup/OnboardingExamples";
+import TeamGeneratorOnboardingFields from "@/components/club-setup/TeamGeneratorOnboardingFields";
 import { getServerI18n } from "@/lib/i18n/server";
 import { translate, type MessageKey } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/config";
@@ -100,11 +100,13 @@ export default async function TeamGeneratorSettingsCard({
         </div>
       )}
 
-      {variant === "onboarding" ? <OnboardingExamples kind="teams" /> : null}
       <form method="post" action="/api/admin/settings" className="space-y-4">
         <input type="hidden" name="redirect_to" value={redirectTo} />
         <input type="hidden" name="settings_scope" value="team_generator" />
 
+        {variant === "onboarding" ? (
+          <TeamGeneratorOnboardingFields useStrength={useStrength} useCategories={useCategories} />
+        ) : (
         <div className={variant === "onboarding" ? "space-y-3" : "rounded-[20px] border border-black/10 bg-neutral-50 p-4"}>
           <div className={variant === "onboarding" ? "text-xs font-black uppercase tracking-[.14em] text-slate-500" : "mb-3 text-sm font-semibold text-slate-500"}>
             {t("teamGenerator.balanceQuestion")}
@@ -130,6 +132,8 @@ export default async function TeamGeneratorSettingsCard({
             </label>
           </div>
         </div>
+
+        )}
 
         <button type="submit" className={variant === "onboarding" ? "flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(15,23,42,.14)] transition hover:-translate-y-0.5 hover:bg-slate-900" : "inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"}>
           {resolvedSubmitLabel}
