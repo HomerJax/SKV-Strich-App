@@ -239,6 +239,8 @@ export async function POST(
     }
 
     if (intent === "complete_training_no_score") {
+      // Preserve all historical sessions and their existing statistics.
+      if (session.date < "2026-11-10") return fail("Historische Trainings bleiben unverändert.", 409);
       if (!canCompleteTraining({ isPowerUser, role: membership.role, canLeadTraining })) {
         return fail("Keine Berechtigung zur Trainingsleitung.", 403);
       }
