@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { ImagePlus, Check } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/messages";
 
@@ -131,57 +132,73 @@ export default function ClubSetupClubStep({
         </div>
       ) : null}
 
-      <div className={variant === "onboarding" ? "rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5" : "rounded-[20px] border border-black/10 bg-neutral-50 p-4"}>
-        <div className={variant === "onboarding" ? "mb-3 text-[10px] font-black uppercase tracking-[.16em] text-slate-500" : "mb-3 text-sm font-semibold text-slate-500"}>
-          {t("clubSetup.livePreview")}
-        </div>
-
-        <div
-          className={variant === "onboarding" ? "relative overflow-hidden rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm" : "rounded-2xl border border-slate-200 bg-white p-4"}
-          style={{ borderTop: `4px solid ${previewColor}` }}
-        >
+      {variant === "onboarding" ? (
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
           <div className="flex items-center gap-3">
-            {previewLogoUrl ? (
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
-                <Image
-                  src={previewLogoUrl}
-                  alt={displayName || t("clubSetup.clubLogo")}
-                  width={80}
-                  height={80}
-                  unoptimized
-                  className="h-full w-full object-contain"
-                />
-              </div>
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
-                Logo
-              </div>
-            )}
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-white">
+              {previewLogoUrl ? <Image src={previewLogoUrl} alt="Vereinslogo" width={56} height={56} unoptimized className="h-full w-full object-contain p-1" /> : <span className="text-xl font-black">#</span>}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">So sieht euer Club aus</p>
+              <p className="truncate text-base font-black text-slate-950">{displayName.trim() || t("home.yourTeam")}</p>
+              <p className="text-xs text-slate-500">{t(selectedSport.labelKey)} · strikr</p>
+            </div>
+            <div className="h-8 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: previewColor }} />
+          </div>
+        </div>
+      ) : (
+<div className={variant === "onboarding" ? "rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5" : "rounded-[20px] border border-black/10 bg-neutral-50 p-4"}>
+          <div className={variant === "onboarding" ? "mb-3 text-[10px] font-black uppercase tracking-[.16em] text-slate-500" : "mb-3 text-sm font-semibold text-slate-500"}>
+            {t("clubSetup.livePreview")}
+          </div>
 
-            <div className="min-w-0">
-              <div className="truncate text-lg font-bold text-slate-950">
-                {displayName.trim() || t("home.yourTeam")}
-              </div>
-              <div className="text-sm text-slate-500">
-                {t("clubSetup.clubInStrikr", { sport: t(selectedSport.labelKey) })}
-              </div>
-              {variant === "default" ? (
-                <div className="mt-1 text-xs text-slate-500">
-                  {t("clubSetup.playerNames")}{" "}
-                  <span className="font-semibold text-slate-700">
-                    {playerNameModeLabel}
-                  </span>
+          <div
+            className={variant === "onboarding" ? "relative overflow-hidden rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm" : "rounded-2xl border border-slate-200 bg-white p-4"}
+            style={{ borderTop: `4px solid ${previewColor}` }}
+          >
+            <div className="flex items-center gap-3">
+              {previewLogoUrl ? (
+                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm">
+                  <Image
+                    src={previewLogoUrl}
+                    alt={displayName || t("clubSetup.clubLogo")}
+                    width={80}
+                    height={80}
+                    unoptimized
+                    className="h-full w-full object-contain"
+                  />
                 </div>
-              ) : null}
-              {selectedFileName ? (
-                <div className="mt-2 text-xs font-medium text-emerald-700">
-                  {t("clubSetup.selectedFile", { file: selectedFileName })}
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white text-xs font-semibold text-neutral-400">
+                  Logo
                 </div>
-              ) : null}
+              )}
+
+              <div className="min-w-0">
+                <div className="truncate text-lg font-bold text-slate-950">
+                  {displayName.trim() || t("home.yourTeam")}
+                </div>
+                <div className="text-sm text-slate-500">
+                  {t("clubSetup.clubInStrikr", { sport: t(selectedSport.labelKey) })}
+                </div>
+                {variant === "default" ? (
+                  <div className="mt-1 text-xs text-slate-500">
+                    {t("clubSetup.playerNames")}{" "}
+                    <span className="font-semibold text-slate-700">
+                      {playerNameModeLabel}
+                    </span>
+                  </div>
+                ) : null}
+                {selectedFileName ? (
+                  <div className="mt-2 text-xs font-medium text-emerald-700">
+                    {t("clubSetup.selectedFile", { file: selectedFileName })}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <form
         method={qaPreview ? undefined : "post"}
@@ -248,15 +265,26 @@ export default function ClubSetupClubStep({
             htmlFor="logo"
             className={variant === "onboarding" ? "block text-xs font-black uppercase tracking-[.12em] text-slate-500" : "block text-sm font-medium text-slate-900"}
           >
-            {t("clubSetup.clubLogoOptional")}
+            {variant === "onboarding" ? "Euer Logo (optional)" : t("clubSetup.clubLogoOptional")}
           </label>
 
+          {variant === "onboarding" ? (
+            <label htmlFor="logo" className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 transition hover:border-cyan-500 hover:bg-cyan-50">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
+                {previewLogoUrl ? <Check className="h-6 w-6" /> : <ImagePlus className="h-6 w-6" />}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-black text-slate-950">{previewLogoUrl ? "Logo ausgewählt · ändern" : "Vereinslogo hochladen"}</span>
+                <span className="mt-0.5 block truncate text-xs text-slate-500">{selectedFileName || "Tippen und Bild aus Fotos oder Dateien wählen"}</span>
+              </span>
+            </label>
+          ) : null}
           <input
             id="logo"
             name="logo"
             type="file"
             accept="image/png,image/jpeg,image/webp,image/jpg"
-            className={variant === "onboarding" ? "block w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-2 text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2.5 file:text-sm file:font-black file:text-white hover:file:bg-slate-800" : "block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"}
+            className={variant === "onboarding" ? "sr-only" : "block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"}
             onChange={(event) => {
               const file = event.target.files?.[0] ?? null;
 
@@ -281,13 +309,14 @@ export default function ClubSetupClubStep({
             {t("clubSetup.clubColor")}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-4 gap-2 sm:flex sm:flex-wrap">
             {COLOR_OPTIONS.map((option) => (
               <label
                 key={option.value}
-                className={variant === "onboarding" ? `flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2.5 text-sm font-bold transition ${primaryColor === option.value ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}` : "flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"}
+                className={variant === "onboarding" ? `flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border px-1 py-2.5 text-xs font-bold transition ${primaryColor === option.value ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}` : "flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"}
               >
                 <input
+                  className={variant === "onboarding" ? "sr-only" : ""}
                   type="radio"
                   name="primary_color"
                   value={option.value}
@@ -295,7 +324,7 @@ export default function ClubSetupClubStep({
                   onChange={() => setPrimaryColor(option.value)}
                 />
                 <span
-                  className="h-4 w-4 rounded-full border border-black/10"
+                  className={variant === "onboarding" ? "h-6 w-6 rounded-full border border-black/10" : "h-4 w-4 rounded-full border border-black/10"}
                   style={{ backgroundColor: option.color }}
                 />
                 <span>{t(option.labelKey)}</span>
