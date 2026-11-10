@@ -1,5 +1,6 @@
-import OnboardingExamples from "@/components/club-setup/OnboardingExamples";
 "use client";
+
+import OnboardingExamples from "@/components/club-setup/OnboardingExamples";
 
 import { useState } from "react";
 import { ArrowRight, Check, ClipboardCheck, Users } from "lucide-react";
