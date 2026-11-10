@@ -275,8 +275,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
         session.date <= new Intl.DateTimeFormat("en-CA", {
           timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
         }).format(new Date()) ? <ConfirmPlayedTrainingButton sessionId={sessionId} /> : null}
-      {(isPowerUser || isAdminRole(membership.role) || canLeadTraining) && !session.completed_at && session.type === "training" ? <TrainingAnnouncementCard sessionId={sessionId} clubName={clubData?.display_name || clubData?.name || "Dein Team"} date={session.date} startTime={session.start_time ?? null} /> : null}
       <TrainingDetailComponent
+      announcementSlot={(isPowerUser || isAdminRole(membership.role) || canLeadTraining) && !session.completed_at && session.type === "training" ? <TrainingAnnouncementCard sessionId={sessionId} clubName={clubData?.display_name || clubData?.name || "Dein Team"} date={session.date} startTime={session.start_time ?? null} /> : null}
       sessionId={sessionId}
       initialSession={sessionForClient}
       initialPlayers={players}
