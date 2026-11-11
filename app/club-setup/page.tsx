@@ -550,23 +550,6 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
               {currentStep === "club" ? (
                 <div className="rounded-[26px] border border-slate-200 bg-white p-4 shadow-[0_12px_36px_rgba(15,23,42,0.06)] sm:p-7">
-                  <div className="mb-6 flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
-                      <WandSparkles className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[.18em] text-violet-600">
-                        {t("clubSetup.step1")}
-                      </div>
-                      <h2 className="mt-1 text-2xl font-black tracking-[-.035em] text-neutral-950">
-                        {t("clubSetup.step1Title")}
-                      </h2>
-                      <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
-                        {t("clubSetup.step1Text")}
-                      </p>
-                    </div>
-                  </div>
-
                   <ClubSetupClubStep
                     saved={clubSaved}
                     error={clubError}
@@ -611,23 +594,6 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
               {currentStep === "categories" ? (
                 <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
-                  <div className="mb-6 flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
-                        {t("clubSetup.step3")}
-                      </div>
-                      <h2 className="mt-1 text-2xl font-black tracking-[-.035em] text-neutral-950">
-                        {t("clubSetup.step3Title")}
-                      </h2>
-                      <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
-                        {t("clubSetup.step3Text")}
-                      </p>
-                    </div>
-                  </div>
-
                   <CategorySettingsSection
                     categories={categories}
                     useCategories={useCategories}
