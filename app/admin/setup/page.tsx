@@ -17,14 +17,14 @@ export default async function AdminSetupPage() {
     db.from("clubs").select("display_name").eq("id", clubId).maybeSingle(),
     db.from("seasons").select("id").eq("club_id", clubId).limit(1),
     db.from("sessions").select("id").eq("club_id", clubId).not("series_id", "is", null).limit(1),
-    db.from("club_memberships").select("id").eq("club_id", clubId).eq("role", "training_leader").limit(1),
+    db.from("players").select("id").eq("club_id", clubId).eq("can_lead_training", true).limit(1),
     db.from("players").select("id").eq("club_id", clubId).limit(2),
   ]);
   const items = [
-    { title: "Saison definieren", detail: "Lege euren Saisonzeitraum fest.", done: (seasonsResult.data?.length ?? 0) > 0, href: "/admin/settings" },
-    { title: "Trainingsserie erstellen", detail: "Richte einen regelmäßigen Trainingstermin ein.", done: (seriesResult.data?.length ?? 0) > 0, href: "/sessions/new" },
-    { title: "Trainingsleiter bestimmen", detail: "Bestimme, wer eure Trainings leiten darf.", done: (leadersResult.data?.length ?? 0) > 0, href: "/admin/members" },
-    { title: "Spieler hinzufügen", detail: "Füge weitere Spieler zu eurem Kader hinzu.", done: (playersResult.data?.length ?? 0) >= 2, href: "/admin/players" },
+    { title: "Saison definieren", detail: "Lege euren Saisonzeitraum fest.", done: (seasonsResult.data?.length ?? 0) > 0, href: "/admin/settings?from=setup" },
+    { title: "Trainingsserie erstellen", detail: "Richte einen regelmäßigen Trainingstermin ein.", done: (seriesResult.data?.length ?? 0) > 0, href: "/sessions/new?from=setup" },
+    { title: "Trainingsleiter bestimmen", detail: "Bestimme, wer eure Trainings leiten darf.", done: (leadersResult.data?.length ?? 0) > 0, href: "/admin/members?from=setup" },
+    { title: "Spieler hinzufügen", detail: "Füge weitere Spieler zu eurem Kader hinzu.", done: (playersResult.data?.length ?? 0) >= 2, href: "/admin/players?from=setup" },
   ];
   const count = items.filter(i => i.done).length;
   return <main className="min-h-screen bg-slate-100 px-4 py-6">
@@ -41,7 +41,7 @@ export default async function AdminSetupPage() {
         <div className="min-w-0 flex-1"><h2 className="text-sm font-bold text-slate-950">{item.title}</h2><p className="mt-1 text-xs text-slate-500">{item.done ? "Erledigt" : item.detail}</p></div>
         <Link href={item.href} className="flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-900">{item.done ? "Ansehen" : "Erledigen"} <ArrowRight className="h-3.5 w-3.5"/></Link>
       </div>)}</div>
-      <p className="text-xs leading-5 text-slate-500">Die Häkchen werden bei jedem Aufruf anhand der Vereinsdaten neu geprüft. Nach dem Speichern kommst du über den Admin-Bereich jederzeit hierher zurück.</p>
+      <p className="text-xs leading-5 text-slate-500">Die Häkchen werden bei jedem Aufruf anhand der Vereinsdaten neu geprüft. Die Häkchen aktualisieren sich nach dem Speichern und erneuten Öffnen dieser Seite.</p>
     </div>
   </main>;
 }
