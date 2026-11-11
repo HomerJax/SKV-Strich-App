@@ -581,6 +581,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     initialLogoUrl={currentLogoUrl}
                     useNicknames={useNicknames}
                     variant="onboarding"
+                    qaMode={qa}
                   />
                 </div>
               ) : null}
