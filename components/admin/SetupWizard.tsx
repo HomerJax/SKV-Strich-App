@@ -4,12 +4,13 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, Circle, LockKeyhole } from "lucide-react";
 
 type Step = { id:string; title:string; description:string; href:string; required:boolean; done:boolean; pro?:boolean };
-export default function SetupWizard({ clubId, clubName, steps, initial, allowTest=false }: { clubId:string; clubName:string; steps:Step[]; initial?:{current_step:string;skipped:string[];test_mode:boolean;test_completed:string[]}|null; allowTest?:boolean }) {
+export default function SetupWizard({ clubId, clubName, steps, initial, allowTest=false }: { clubId:string; clubName:string; steps:Step[]; initial?:{current_step:string;skipped:string[];test_mode:boolean;test_completed:string[];reviewed:string[]}|null; allowTest?:boolean }) {
   
   const [ready,setReady]=useState(false);
   const [testMode,setTestMode]=useState(initial?.test_mode??false);
   const [testCompleted,setTestCompleted]=useState<string[]>(initial?.test_completed??[]);
   const [index,setIndex]=useState(0);
+  const [reviewed,setReviewed]=useState<string[]>(initial?.reviewed??[]);
   const [skipped,setSkipped]=useState<string[]>([]);
   const [saveError,setSaveError]=useState(false);
   useEffect(()=>{
@@ -20,14 +21,14 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
     setIndex(idx>=0?idx:next>=0?next:0);
     setReady(true);
   },[clubId]);
-  const save=async(step:string,nextSkipped:string[],mode=testMode,completed=testCompleted)=>{
-    try{const response=await fetch("/api/admin/setup-progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({current_step:step,skipped:nextSkipped,test_mode:mode,test_completed:completed})});setSaveError(!response.ok);}catch{setSaveError(true)}
+  const save=async(step:string,nextSkipped:string[],mode=testMode,completed=testCompleted,nextReviewed=reviewed)=>{
+    try{const response=await fetch("/api/admin/setup-progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({current_step:step,skipped:nextSkipped,test_mode:mode,test_completed:completed,reviewed:nextReviewed})});setSaveError(!response.ok);}catch{setSaveError(true)}
   };
   const persist=(nextIndex:number,nextSkipped:string[])=>{
     setIndex(nextIndex);setSkipped(nextSkipped);
     void save(steps[nextIndex]?.id||"club",nextSkipped);
   };
-  const actualSteps=steps.map(s=>({...s,done:testMode?testCompleted.includes(s.id):s.done}));
+  const actualSteps=steps.map(s=>({...s,done:testMode?testCompleted.includes(s.id):s.done||(!s.required&&reviewed.includes(s.id))}));
   const required=actualSteps.filter(s=>s.required);
   const requiredDone=required.every(s=>s.done);
   const done=actualSteps.filter(s=>s.done).length;
@@ -54,10 +55,11 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
         {index<steps.length-1 && (current.done || !current.required)?<button type="button" onClick={()=>persist(index+1,current.required?skipped:[...new Set([...skipped,current.id])])} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">{current.done?"Weiter":"Überspringen"}</button>:null}
       </div>
     </div>
+    {!current.required&&!current.done?<button type="button" className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900" onClick={()=>{const next=[...new Set([...reviewed,current.id])];setReviewed(next);void save(current.id,skipped,testMode,testCompleted,next)}}>Diesen optionalen Bereich als angesehen markieren</button>:null}
     {requiredDone?<div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><strong>Dein Verein ist startklar!</strong> Du kannst jetzt loslegen oder die optionalen Bereiche später einrichten.</div>:null}
     <div className="flex flex-wrap items-center justify-between gap-3"><Link href="/admin" className="text-sm font-bold text-slate-700">Einrichtung beenden · Zum Admin-Bereich</Link><button type="button" onClick={()=>{persist(0,[])}} className="text-xs text-slate-500 underline">Wizard von vorne ansehen</button></div>
     {allowTest?<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm"><strong>Testmodus 1. FC Strikr</strong><p className="mt-1 text-xs">Simuliert einen neuen Verein, ohne echte Vereinsdaten zu verändern.</p><button type="button" className="mt-2 rounded-lg bg-amber-900 px-3 py-2 font-bold text-white" onClick={()=>{setTestMode(!testMode);setTestCompleted([]);setIndex(0);void save("club",[],!testMode,[])}}>{testMode?"Testmodus beenden":"Testmodus mit 0 erledigten Schritten starten"}</button>{testMode?<button type="button" className="ml-2 rounded-lg border border-amber-500 px-3 py-2" onClick={()=>{const next=[...new Set([...testCompleted,current.id])];setTestCompleted(next);void save(current.id,skipped,true,next)}}>Testschritt als erledigt markieren</button>:null}</div>:null}
     <div className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="text-sm font-bold">Alle Bereiche</h3><div className="mt-3 grid gap-2 sm:grid-cols-2">{actualSteps.map((s,i)=><button key={s.id} onClick={()=>persist(i,skipped)} className="flex items-center gap-2 rounded-xl border border-slate-100 p-3 text-left text-xs"><span className={s.done?"text-emerald-600":"text-slate-400"}>{s.done?"✓":"○"}</span><span className="flex-1">{s.title}</span><span className="text-slate-400">{s.required?"Pflicht":"Optional"}</span></button>)}</div></div>
-    <p className="text-xs text-slate-500">Dein Wizard-Fortschritt wird in deinem Benutzerkonto gespeichert. Der tatsächliche Einrichtungsstatus wird bei jedem Aufruf aus den Vereinsdaten neu geladen.</p>
+    <p className="text-xs text-slate-500">Dein Wizard-Fortschritt wird in deinem Benutzerkonto gespeichert. Pflichtschritte werden anhand der Vereinsdaten geprüft. Optionale Bereiche können zusätzlich ausdrücklich als angesehen markiert werden.</p>
   </div>;
 }
