@@ -396,7 +396,17 @@ export default function ClubSetupClubStep({
         )}
 
         <button
-          type="submit"
+          type={qaMode ? "button" : "submit"}
+          onClick={qaMode ? () => {
+            const next = new URLSearchParams(window.location.search);
+            next.set("qa", "1");
+            next.set("created", "1");
+            next.set("step", "team");
+            next.set("qa_name", displayName.trim() || "Testverein");
+            next.set("qa_color", primaryColor);
+            next.set("qa_sport", sportType);
+            window.location.assign("/club-setup?" + next.toString());
+          } : undefined}
           className={variant === "onboarding" ? "flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(15,23,42,.14)] transition hover:-translate-y-0.5 hover:bg-slate-900" : "inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"}
         >
           {submitLabel}
