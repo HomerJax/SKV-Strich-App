@@ -320,6 +320,12 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const activeClubId = qa ? null : (auth?.activeClubId ?? memberships[0]?.club_id ?? null);
 
+  // The legacy four-screen setup must not finish before the season, players,
+  // and first training are configured. Keep QA previews intact.
+  if (!qa && created && activeClubId) {
+    redirect("/admin/setup");
+  }
+
   let club: ClubRow | null = null;
   let settings: ClubSettingsRow | null = null;
   let categories: CategoryRow[] = [];
