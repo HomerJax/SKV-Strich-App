@@ -307,7 +307,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
   const inviteError = getSearchParam(resolvedSearchParams.invite_error);
 
   const qa = getSearchParam(resolvedSearchParams.qa) === "1";
-  if (qa) await requirePowerUser();
+  if (qa) {\n    await requirePowerUser();\n    redirect("/power-user/onboarding-simulator/wizard");\n  }
   const auth = qa ? null : await getAuthContext();
 
   if (!qa && !auth?.user) {
