@@ -223,7 +223,7 @@ function StepHero({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[#070b12] p-4 text-white shadow-[0_28px_80px_rgba(2,6,23,0.28)] sm:p-7">
+    <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[#070b12] p-4 text-white shadow-[0_16px_42px_rgba(2,6,23,0.18)] sm:p-6">
       <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 left-10 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" />
       <div className="relative">
@@ -252,12 +252,10 @@ function StepHero({
           <div className="text-[10px] font-black uppercase tracking-[.22em] text-cyan-300">
             {copy.eyebrow}
           </div>
-          <h1 className="mt-1 max-w-2xl text-2xl font-black leading-[1.03] tracking-[-.045em] sm:text-4xl">
+          <h1 className="mt-1 max-w-2xl text-xl font-black leading-tight tracking-[-.035em] sm:text-3xl">
             {copy.title}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm font-medium leading-5 text-white/55">
-            {copy.text}
-          </p>
+          {currentStep !== "team" ? <p className="mt-2 max-w-2xl text-sm font-medium leading-5 text-white/55">{copy.text}</p> : null}
         </div>
 
         <div className="mt-4 grid grid-cols-4 gap-1.5">
@@ -287,7 +285,7 @@ function StepHero({
             );
           })}
         </div>
-        <p className="mt-3 text-xs font-medium text-white/65">Alle Einstellungen kannst du später ändern.</p>
+
       </div>
     </div>
   );
@@ -551,7 +549,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
               <StepHero clubName={clubName} currentStep={currentStep} locale={locale} />
 
               {currentStep === "club" ? (
-                <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
+                <div className="rounded-[26px] border border-slate-200 bg-white p-4 shadow-[0_12px_36px_rgba(15,23,42,0.06)] sm:p-7">
                   <div className="mb-6 flex items-start gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
                       <WandSparkles className="h-5 w-5" />
@@ -588,23 +586,6 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
 
               {currentStep === "team" ? (
                 <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
-                  <div className="mb-6 flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-500 text-white">
-                      <Sparkles className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
-                        {t("clubSetup.step2")}
-                      </div>
-                      <h2 className="mt-1 text-2xl font-black tracking-[-.035em] text-neutral-950">
-                        {t("clubSetup.step2Title")}
-                      </h2>
-                      <p className="mt-2 text-sm font-medium leading-6 text-neutral-500">
-                        {t("clubSetup.step2Text")}
-                      </p>
-                    </div>
-                  </div>
-
                   <TeamGeneratorSettingsCard
                     useStrength={qa ? getSearchParam(resolvedSearchParams.qa_strength) !== "0" : (settings?.use_strength ?? false)}
                     useCategories={useCategories}
