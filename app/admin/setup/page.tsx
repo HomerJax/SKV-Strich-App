@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import SetupWizard from "@/components/admin/SetupWizard";
+import ClubSettingsCard from "@/components/admin/settings/ClubSettingsCard";
+import SeasonSettingsCard from "@/components/admin/settings/SeasonSettingsCard";
+import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
 
 export default async function AdminSetupPage() {
  const ctx=await getAuthContext();
@@ -11,12 +14,13 @@ export default async function AdminSetupPage() {
  const membership=ctx.memberships.find(m=>m.club_id===ctx.activeClubId);
  if(!ctx.isPowerUser && membership?.role!=="admin") redirect("/home");
  const db=await createClient(),clubId=ctx.activeClubId;
- const [club,seasons,players,sessions,leaders,progress]=await Promise.all([
+ const [club,seasons,players,sessions,leaders,settings,progress]=await Promise.all([
   db.from("clubs").select("display_name").eq("id",clubId).maybeSingle(),
   db.from("seasons").select("id").eq("club_id",clubId).limit(1),
   db.from("players").select("id").eq("club_id",clubId).limit(2),
   db.from("sessions").select("id,series_id").eq("club_id",clubId).limit(100),
   db.from("players").select("id").eq("club_id",clubId).eq("can_lead_training",true).limit(1),
+  db.from("club_settings").select("use_strength,use_categories").eq("club_id",clubId).maybeSingle(),
   db.from("admin_setup_progress").select("current_step,skipped,test_mode,test_completed,reviewed").eq("club_id",clubId).eq("user_id",ctx.user.id).maybeSingle()
  ]);
  const hasSeason=(seasons.data?.length??0)>0;
@@ -39,5 +43,5 @@ export default async function AdminSetupPage() {
   {id:"notifications",title:"Kommunikation",description:"Entdecke Ankündigungen und Benachrichtigungen.",required:false,done:false,href:"/admin/announcements?from=setup"},
   {id:"pro",title:"PRO-Funktionen",description:"Sieh dir zusätzliche Möglichkeiten für euren Verein an.",required:false,done:false,href:"/admin/settings?from=setup",pro:true},
  ];
- return <main className="min-h-screen bg-slate-100 px-4 py-6"><div className="mx-auto max-w-3xl"><Link href="/admin" className="mb-4 inline-block text-sm font-semibold text-slate-600">← Admin-Bereich</Link><SetupWizard clubId={clubId} clubName={club.data?.display_name||"Dein Verein"} steps={steps} initial={progress.data} allowTest={ctx.isPowerUser&&club.data?.display_name==="1. FC Strikr 2026"}/></div></main>;
+ return <main className="min-h-screen bg-slate-100 px-4 py-6"><div className="mx-auto max-w-3xl"><Link href="/admin" className="mb-4 inline-block text-sm font-semibold text-slate-600">← Admin-Bereich</Link><SetupWizard clubId={clubId} clubName={club.data?.display_name||"Dein Verein"} steps={steps} inlinePanels={{club:<ClubSettingsCard redirectTo="/admin/setup?step=club" removeLogoRedirectTo="/admin/setup?step=club"/>,season:<SeasonSettingsCard redirectTo="/admin/setup?step=season"/>,teams:<TeamGeneratorSettingsCard useStrength={settings.data?.use_strength??false} useCategories={settings.data?.use_categories??false} redirectTo="/admin/setup?step=teams"/>}} initial={progress.data} allowTest={ctx.isPowerUser&&club.data?.display_name==="1. FC Strikr 2026"}/></div></main>;
 }
