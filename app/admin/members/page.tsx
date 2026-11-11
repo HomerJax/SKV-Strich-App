@@ -1,3 +1,4 @@
+import WizardReturn from "@/components/admin/WizardReturn";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -517,6 +518,7 @@ export default async function AdminMembersPage({
 
                 return (
                   <div key={invite.id} className="flex flex-col gap-4 px-5 py-4">
+      <WizardReturn />
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
