@@ -148,13 +148,13 @@ export default function ClubSetupClubStep({
           </div>
         </div>
       ) : (
-<div className={variant === "onboarding" ? "rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5" : "rounded-[20px] border border-black/10 bg-neutral-50 p-4"}>
-          <div className={variant === "onboarding" ? "mb-3 text-[10px] font-black uppercase tracking-[.16em] text-slate-500" : "mb-3 text-sm font-semibold text-slate-500"}>
+<div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+          <div className="mb-3 text-sm font-semibold text-slate-500">
             {t("clubSetup.livePreview")}
           </div>
 
           <div
-            className={variant === "onboarding" ? "relative overflow-hidden rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm" : "rounded-2xl border border-slate-200 bg-white p-4"}
+            className="rounded-2xl border border-slate-200 bg-white p-4"
             style={{ borderTop: `4px solid ${previewColor}` }}
           >
             <div className="flex items-center gap-3">
