@@ -1,3 +1,4 @@
+import WizardReturn from "@/components/admin/WizardReturn";
 import Link from "next/link";
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
@@ -129,6 +130,7 @@ export default async function ClubAnnouncementsPage({ searchParams }: PageProps)
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-5 sm:px-6">
+      <WizardReturn />
       <Link
         href="/admin"
         className="text-xs font-semibold text-slate-500 hover:text-slate-800"
