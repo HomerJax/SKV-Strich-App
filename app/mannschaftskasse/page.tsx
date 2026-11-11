@@ -1,3 +1,4 @@
+import WizardReturn from "@/components/admin/WizardReturn";
 import Link from "next/link";
 import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
 import { redirect } from "next/navigation";
@@ -636,6 +637,7 @@ export default async function Page({ searchParams }: Props) {
               );
               return (
                 <div key={entry.id} className="rounded-xl border p-3">
+      <WizardReturn />
                   <div className="font-black">{entry.reason}</div>
                   <div className="text-sm text-slate-600">
                     <b>{entry.value}</b>
