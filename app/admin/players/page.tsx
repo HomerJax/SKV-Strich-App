@@ -1,3 +1,4 @@
+import WizardReturn from "@/components/admin/WizardReturn";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -150,6 +151,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 pb-24">
+      <WizardReturn />
       <div className="mb-4 flex items-center">
         <Link
           href="/admin"
