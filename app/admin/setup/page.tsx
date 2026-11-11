@@ -36,17 +36,30 @@ export default async function AdminSetupPage() {
   redirect("/admin/setup?step=players&saved=1");
  }
 
- const [club,seasons,players,sessions,leaders,settings,categories,billing,progress]=await Promise.all([
+ const [club,seasons,players,sessions,leaders,leaderCandidates,settings,categories,billing,progress]=await Promise.all([
   db.from("clubs").select("display_name").eq("id",clubId).maybeSingle(),
   db.from("seasons").select("id").eq("club_id",clubId).limit(1),
   db.from("players").select("id").eq("club_id",clubId).limit(2),
   db.from("sessions").select("id,series_id").eq("club_id",clubId).limit(100),
   db.from("players").select("id").eq("club_id",clubId).eq("can_lead_training",true).limit(1),
+  db.from("players").select("id,name,can_lead_training").eq("club_id",clubId).eq("is_active",true).order("name").limit(100),
   db.from("club_settings").select("use_strength,use_categories,rsvp_deadline_minutes_before,require_rsvp_reason_on_absence").eq("club_id",clubId).maybeSingle(),
   db.from("club_categories").select("id,key,label,sort_order,is_active,is_strong").eq("club_id",clubId).order("sort_order",{ascending:true}),
   getClubBillingAccess(db,clubId),
   db.from("admin_setup_progress").select("current_step,skipped,test_mode,test_completed,reviewed").eq("club_id",clubId).eq("user_id",ctx.user.id).maybeSingle()
  ]);
+ async function updateWizardLeader(formData:FormData){
+  "use server";
+  const auth=await getAuthContext();
+  if(!auth.user||!auth.activeClubId)redirect("/login");
+  const member=auth.memberships.find(m=>m.club_id===auth.activeClubId);
+  if(!auth.isPowerUser&&member?.role!=="admin")redirect("/home");
+  const playerId=String(formData.get("player_id")??"");
+  const enabled=formData.get("enabled")==="1";
+  const supabase=await createClient();
+  const {error}=await supabase.from("players").update({can_lead_training:enabled}).eq("club_id",auth.activeClubId).eq("id",playerId);
+  redirect(error?"/admin/setup?step=leaders&error=save":"/admin/setup?step=leaders&saved=1");
+ }
  const hasSeason=(seasons.data?.length??0)>0;
  const hasPlayers=(players.data?.length??0)>=2;
  const hasTraining=(sessions.data?.length??0)>0;
@@ -67,5 +80,5 @@ export default async function AdminSetupPage() {
   {id:"notifications",title:"Kommunikation",description:"Entdecke Ankündigungen und Benachrichtigungen.",required:false,done:false,href:"/admin/announcements?from=setup"},
   {id:"pro",title:"PRO-Funktionen",description:"Sieh dir zusätzliche Möglichkeiten für euren Verein an.",required:false,done:false,href:"/admin/settings?from=setup",pro:true},
  ];
- return <main className="min-h-screen bg-slate-100 px-4 py-6"><div className="mx-auto max-w-3xl"><Link href="/admin" className="mb-4 inline-block text-sm font-semibold text-slate-600">← Admin-Bereich</Link><SetupWizard clubId={clubId} clubName={club.data?.display_name||"Dein Verein"} steps={steps} inlinePanels={{club:<ClubSettingsCard redirectTo="/admin/setup?step=club" removeLogoRedirectTo="/admin/setup?step=club"/>,players:<form action={addWizardPlayer} className="space-y-3"><p className="text-sm font-bold">Spieler direkt hinzufügen</p><input name="first_name" placeholder="Vorname" className="w-full rounded-xl border p-3"/><input name="last_name" placeholder="Nachname" className="w-full rounded-xl border p-3"/><input name="nickname" placeholder="Spitzname (optional)" className="w-full rounded-xl border p-3"/><button type="submit" className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white">Spieler speichern</button></form>,season:<SeasonSettingsCard redirectTo="/admin/setup?step=season"/>,teams:<TeamGeneratorSettingsCard useStrength={settings.data?.use_strength??false} useCategories={settings.data?.use_categories??false} redirectTo="/admin/setup?step=teams"/>,categories:<CategorySettingsSection categories={categories.data??[]} useCategories={settings.data?.use_categories??false} isPro={billing.isPro} redirectTo="/admin/setup?step=categories"/>,rsvp:<WizardRsvpForm value={settings.data?.rsvp_deadline_minutes_before??30} reason={settings.data?.require_rsvp_reason_on_absence??false} isPro={billing.isPro}/>}} initial={progress.data} allowTest={ctx.isPowerUser&&club.data?.display_name==="1. FC Strikr 2026"}/></div></main>;
+ return <main className="min-h-screen bg-slate-100 px-4 py-6"><div className="mx-auto max-w-3xl"><Link href="/admin" className="mb-4 inline-block text-sm font-semibold text-slate-600">← Admin-Bereich</Link><SetupWizard clubId={clubId} clubName={club.data?.display_name||"Dein Verein"} steps={steps} inlinePanels={{club:<ClubSettingsCard redirectTo="/admin/setup?step=club" removeLogoRedirectTo="/admin/setup?step=club"/>,players:<form action={addWizardPlayer} className="space-y-3"><p className="text-sm font-bold">Spieler direkt hinzufügen</p><input name="first_name" placeholder="Vorname" className="w-full rounded-xl border p-3"/><input name="last_name" placeholder="Nachname" className="w-full rounded-xl border p-3"/><input name="nickname" placeholder="Spitzname (optional)" className="w-full rounded-xl border p-3"/><button type="submit" className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white">Spieler speichern</button></form>,season:<SeasonSettingsCard redirectTo="/admin/setup?step=season"/>,teams:<TeamGeneratorSettingsCard useStrength={settings.data?.use_strength??false} useCategories={settings.data?.use_categories??false} redirectTo="/admin/setup?step=teams"/>,categories:<CategorySettingsSection categories={categories.data??[]} useCategories={settings.data?.use_categories??false} isPro={billing.isPro} redirectTo="/admin/setup?step=categories"/>,leaders:<div className="space-y-3"><p className="text-sm font-bold">Trainingsleiter festlegen</p>{(leaderCandidates.data??[]).map(player=><form key={player.id} action={updateWizardLeader} className="flex items-center justify-between gap-3 rounded-xl border p-3"><span className="text-sm">{player.name} {player.can_lead_training?"· Leiter":""}</span><input type="hidden" name="player_id" value={player.id}/><input type="hidden" name="enabled" value={player.can_lead_training?"0":"1"}/><button type="submit" className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">{player.can_lead_training?"Entfernen":"Als Leiter einsetzen"}</button></form>)}</div>,rsvp:<WizardRsvpForm value={settings.data?.rsvp_deadline_minutes_before??30} reason={settings.data?.require_rsvp_reason_on_absence??false} isPro={billing.isPro}/>}} initial={progress.data} allowTest={ctx.isPowerUser&&club.data?.display_name==="1. FC Strikr 2026"}/></div></main>;
 }
