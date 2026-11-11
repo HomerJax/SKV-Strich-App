@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Award, Users, UserRound, Settings, Shield, ToggleLeft, Megaphone, Timer, WalletCards } from "lucide-react";
+import { Award, Users, UserRound, ClipboardCheck, Settings, Shield, ToggleLeft, Megaphone, Timer, WalletCards } from "lucide-react";
 import ProFeatureLock from "@/components/billing/ProFeatureLock";
 import PageHero from "@/components/ui/PageHero";
 import { createClient } from "@/lib/supabase/server";
@@ -26,6 +26,7 @@ export default async function AdminPage(){
   <PageHero primaryColorKey={club.primary_color} eyebrow={t("admin.eyebrow")} title={clubName} description={t("admin.description")} backLabel={t("admin.back")} backHref="/" topRightSlot={<div className="inline-flex min-h-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/88">{roleLabel}</div>} actionsSlot={ctx.isPowerUser?<div className="inline-flex min-h-7 items-center justify-center rounded-full border border-sky-200/30 bg-sky-400/10 px-2.5 py-1 text-[10px] font-semibold text-sky-100">{t("admin.powerMode")}</div>:null} compact/>
   {billingAccess.isPro?null:<ProStatusPanel clubName={clubName} isPro={billingAccess.isPro} locale={locale}/>}
   <div className="grid gap-4 md:grid-cols-2">
+   <AdminCard href="/admin/setup" eyebrow="Einrichtung" title="Setup-Checkliste" description="Sieh deinen Fortschritt und erledige offene Schritte für deinen Verein." openLabel="Checkliste öffnen" icon={<ClipboardCheck className="h-6 w-6" strokeWidth={2.1}/>}/>
    <AdminCard href="/admin/members" eyebrow={t("admin.membersEyebrow")} title={t("admin.membersTitle")} description={t("admin.membersDescription")} openLabel={t("admin.open")} icon={<Users className="h-6 w-6" strokeWidth={2.1}/>}/>
    <AdminCard href="/admin/players" eyebrow={t("admin.gameEyebrow")} title={t("admin.rosterTitle")} description={t("admin.rosterDescription")} openLabel={t("admin.open")} icon={<UserRound className="h-6 w-6" strokeWidth={2.1}/>}/>
    <AdminCard href="/admin/game-timer" eyebrow={t("admin.trainingEyebrow")} title={t("admin.timerTitle")} description={t("admin.timerDescription")} openLabel={t("admin.open")} icon={<Timer className="h-6 w-6" strokeWidth={2.1}/>}/>
