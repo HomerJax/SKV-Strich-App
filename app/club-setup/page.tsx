@@ -255,7 +255,7 @@ function StepHero({
           <h1 className="mt-1 max-w-2xl text-xl font-black leading-tight tracking-[-.035em] sm:text-3xl">
             {copy.title}
           </h1>
-          {currentStep !== "team" ? <p className="mt-2 max-w-2xl text-sm font-medium leading-5 text-white/55">{copy.text}</p> : null}
+          {currentStep === "done" ? <p className="mt-2 max-w-2xl text-sm font-medium leading-5 text-white/55">{copy.text}</p> : null}
         </div>
 
         <div className="mt-4 grid grid-cols-4 gap-1.5">
