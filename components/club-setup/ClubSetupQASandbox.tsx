@@ -48,7 +48,7 @@ export default function ClubSetupQASandbox({ children }: { children: ReactNode }
     } else if (step === "done") {
       navigate("done", { qa_invite: "1" });
     } else {
-      navigate("club", { qa_name: String(data.get("display_name") || data.get("name") || "Testverein") });
+      navigate("team", { qa_name: String(data.get("display_name") || data.get("name") || params.get("qa_name") || "Testverein") });
     }
   }
   function onClick(event: MouseEvent<HTMLDivElement>) {
