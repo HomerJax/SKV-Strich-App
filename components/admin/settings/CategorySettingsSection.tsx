@@ -98,9 +98,9 @@ export async function CategorySettingsSection({
             name="label"
             required
             placeholder={t("categories.newPlaceholder")}
-            className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm"
+            className={variant === "onboarding" ? "min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-950 outline-none transition focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100" : "flex-1 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm"}
           />
-          <button type="submit" className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white">
+          <button type="submit" className={variant === "onboarding" ? "rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800" : "rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white"}>
             {t("categories.add")}
           </button>
         </form>
@@ -116,7 +116,7 @@ export async function CategorySettingsSection({
             <form
               key={category.id}
               action={updateCategoryAction}
-              className={`flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center ${
+              className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center ${
                 category.is_strong === true
                   ? "border-amber-300 bg-amber-50"
                   : "border-black/10 bg-white"
