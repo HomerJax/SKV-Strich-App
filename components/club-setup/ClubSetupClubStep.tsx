@@ -157,22 +157,22 @@ export default function ClubSetupClubStep({
           event.preventDefault();
           if (displayName.trim()) qaPreview.onComplete({ name: displayName.trim(), sportType, primaryColor });
         } : undefined}
-        className="space-y-5"
+        className="space-y-6"
       >
         <input type="hidden" name="redirect_to" value={redirectTo} />
 
       {variant === "onboarding" ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+        <div className="relative overflow-hidden rounded-[24px] border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-cyan-50/60 px-4 py-5 shadow-[0_8px_28px_rgba(15,23,42,0.05)] sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-white">
-              {previewLogoUrl ? <Image src={previewLogoUrl} alt="Vereinslogo" width={56} height={56} unoptimized className="h-full w-full object-contain p-1" /> : <span className="text-xl font-black">#</span>}
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-slate-950 text-white shadow-[0_8px_20px_rgba(15,23,42,0.16)]">
+              {previewLogoUrl ? <Image src={previewLogoUrl} alt="Vereinslogo" width={64} height={64} unoptimized className="h-full w-full object-contain p-1" /> : <span className="text-xl font-black">#</span>}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">So sieht euer Club aus</p>
-              <p className="truncate text-base font-black text-slate-950">{displayName.trim() || t("home.yourTeam")}</p>
+              <p className="text-[10px] font-black uppercase tracking-[.16em] text-cyan-700">Live-Vorschau</p>
+              <p className="mt-1 truncate text-lg font-black tracking-tight text-slate-950">{displayName.trim() || t("home.yourTeam")}</p>
               <p className="text-xs text-slate-500">{t(selectedSport.labelKey)} · strikr</p>
             </div>
-            <div className="h-8 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: previewColor }} />
+            <div className="h-10 w-1.5 shrink-0 rounded-full shadow-sm" style={{ backgroundColor: previewColor }} />
           </div>
         </div>
       ) : (
@@ -238,8 +238,8 @@ export default function ClubSetupClubStep({
           </label>
 
           {variant === "onboarding" ? (
-            <label htmlFor="logo" className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 transition hover:border-cyan-500 hover:bg-cyan-50">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
+            <label htmlFor="logo" className="group flex min-h-[72px] cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-3 transition hover:border-cyan-400 hover:bg-cyan-50/60 focus-within:border-cyan-500 focus-within:ring-4 focus-within:ring-cyan-100">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-slate-800 ring-1 ring-slate-200 transition group-hover:ring-cyan-300">
                 {previewLogoUrl ? <Check className="h-6 w-6" /> : <ImagePlus className="h-6 w-6" />}
               </span>
               <span className="min-w-0">
@@ -253,7 +253,7 @@ export default function ClubSetupClubStep({
             name="logo"
             type="file"
             accept="image/png,image/jpeg,image/webp,image/jpg"
-            className={variant === "onboarding" ? "sr-only" : "block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"}
+            className={variant === "onboarding" ? "sr-only peer" : "block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"}
             onChange={(event) => {
               const file = event.target.files?.[0] ?? null;
 
@@ -332,7 +332,7 @@ export default function ClubSetupClubStep({
             {COLOR_OPTIONS.map((option) => (
               <label
                 key={option.value}
-                className={variant === "onboarding" ? `flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border px-1 py-2.5 text-xs font-bold transition ${primaryColor === option.value ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"}` : "flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"}
+                className={variant === "onboarding" ? `flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-3 text-xs font-bold transition focus-within:ring-4 focus-within:ring-cyan-100 ${primaryColor === option.value ? "border-slate-950 bg-slate-950 text-white shadow-[0_6px_16px_rgba(15,23,42,0.14)]" : "border-slate-200 bg-slate-50/60 text-slate-700 hover:border-cyan-300 hover:bg-white"}` : "flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"}
               >
                 <input
                   className={variant === "onboarding" ? "sr-only" : ""}
@@ -358,7 +358,7 @@ export default function ClubSetupClubStep({
 
         {variant === "onboarding" ? (
           <details className="rounded-[20px] border border-slate-200 bg-slate-50">
-            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-slate-600 [&::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-slate-700 [&::-webkit-details-marker]:hidden">
               {t("clubSetup.optionalDisplay")}
             </summary>
             <div className="border-t border-slate-200 p-3">
