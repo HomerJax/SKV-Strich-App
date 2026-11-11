@@ -11,15 +11,8 @@ type Props = {
   onCategoriesChange?: (value: boolean) => void;
 };
 
-export default function TeamGeneratorOnboardingFields({
-  useStrength, useCategories, onStrengthChange, onCategoriesChange,
-}: Props) {
-  const [localStrength, setLocalStrength] = useState(useStrength);
-  const [localCategories, setLocalCategories] = useState(useCategories);
-  const strength = onStrengthChange ? useStrength : localStrength;
-  const categories = onCategoriesChange ? useCategories : localCategories;
+export function TeamGeneratorOnboardingHero() {
   return (
-    <div className="space-y-4">
       <div className="relative overflow-hidden rounded-[26px] bg-[#0b1220] px-5 py-6 text-white sm:px-7">
         <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-violet-500/25 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 left-0 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl" />
@@ -40,6 +33,18 @@ export default function TeamGeneratorOnboardingFields({
         </div>
       </div>
 
+  );
+}
+
+export default function TeamGeneratorOnboardingFields({
+  useStrength, useCategories, onStrengthChange, onCategoriesChange,
+}: Props) {
+  const [localStrength, setLocalStrength] = useState(useStrength);
+  const [localCategories, setLocalCategories] = useState(useCategories);
+  const strength = onStrengthChange ? useStrength : localStrength;
+  const categories = onCategoriesChange ? useCategories : localCategories;
+  return (
+    <div className="space-y-4">
       <div>
         <h3 className="text-lg font-black tracking-tight text-slate-950">Was soll strikr berücksichtigen?</h3>
         <p className="mt-1 text-sm leading-6 text-slate-600">Wähle aus, was für eure Gruppe wichtig ist. Du kannst alles später ändern.</p>
