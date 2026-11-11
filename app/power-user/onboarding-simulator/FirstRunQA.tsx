@@ -182,7 +182,7 @@ export default function FirstRunQA() {
                   setStage(scenario === "admin" ? "club-setup" : "after");
                 }
               }}>
-              {stage === "signup" ? "Registrierung simulieren →" : stage === "onboarding" ? "Profil mit Testdaten simulieren →"}
+              {stage === "signup" ? "Registrierung simulieren →" : "Profil mit Testdaten simulieren →"}
             </button>
           </div>
         ) : null}
