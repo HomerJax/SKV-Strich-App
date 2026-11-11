@@ -639,6 +639,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       .eq("type", "training").not("tournament_completed_at", "is", null),
     supabase.from("players").select("id", { count: "exact", head: true }).eq("club_id", clubId)
       .eq("can_lead_training", true).eq("is_guest", false),
+    supabase.from("seasons").select("id", { count: "exact", head: true }).eq("club_id", clubId),
   ]) : null;
   const hasCompletedFirstTraining = (activationChecks?.[1].count ?? 0) > 0
     || (activationChecks?.[2].count ?? 0) > 0;
@@ -1027,7 +1028,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           <AdminActivationChecklist
             locale={locale}
             storageKey={`strikr:setup-checklist:${clubId}:${user?.id ?? "unknown"}`}
-            seasonDefined={seasons.length > 0}
+            seasonDefined={(activationChecks?.[4].count ?? 0) > 0}
             teamInvited={(invitesCount ?? 0) > 0 || (activationChecks?.[0].count ?? 0) > 1}
             trainingCreated={(sessionsCount ?? 0) > 0}
             firstTrainingCompleted={hasCompletedFirstTraining}
