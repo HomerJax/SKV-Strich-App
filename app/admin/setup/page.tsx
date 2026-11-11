@@ -17,7 +17,7 @@ export default async function AdminSetupPage() {
   db.from("players").select("id").eq("club_id",clubId).limit(2),
   db.from("sessions").select("id,series_id").eq("club_id",clubId).limit(100),
   db.from("players").select("id").eq("club_id",clubId).eq("can_lead_training",true).limit(1),
-  db.from("club_settings").select("use_strength,use_categories,cashbox_setup_completed").eq("club_id",clubId).maybeSingle()
+  db.from("club_settings").select("use_strength,use_categories").eq("club_id",clubId).maybeSingle()
  ]);
  const hasSeason=(seasons.data?.length??0)>0;
  const hasPlayers=(players.data?.length??0)>=2;
@@ -35,7 +35,7 @@ export default async function AdminSetupPage() {
   {id:"rsvp",title:"Zu- und Absagen",description:"Passe die Fristen und Rückmeldungen für eure Termine an.",required:false,done:false,href:"/admin/settings"},
   {id:"games",title:"Spiele, Turniere und Spieluhr",description:"Entdecke die Möglichkeiten für Spiele und Ergebnisse.",required:false,done:false,href:"/admin/game-timer",pro:true},
   {id:"stats",title:"Statistiken und Auszeichnungen",description:"Lerne Tabellen, MVP und Saisonstatistiken kennen.",required:false,done:false,href:"/admin/settings"},
-  {id:"cashbox",title:"Mannschaftskasse",description:"Richte Beiträge und Strafen für euer Team ein.",required:false,done:!!settings.data?.cashbox_setup_completed,href:"/mannschaftskasse"},
+  {id:"cashbox",title:"Mannschaftskasse",description:"Richte Beiträge und Strafen für euer Team ein.",required:false,done:false,href:"/mannschaftskasse"},
   {id:"notifications",title:"Kommunikation",description:"Entdecke Ankündigungen und Benachrichtigungen.",required:false,done:false,href:"/admin/announcements"},
   {id:"pro",title:"PRO-Funktionen",description:"Sieh dir zusätzliche Möglichkeiten für euren Verein an.",required:false,done:false,href:"/admin/settings",pro:true},
  ];
