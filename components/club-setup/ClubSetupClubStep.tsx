@@ -28,6 +28,7 @@ type ClubSetupClubStepProps = {
   initialLogoUrl: string | null;
   useNicknames: boolean;
   variant?: "default" | "onboarding";
+  qaMode?: boolean;
   qaPreview?: { onComplete: (club: { name: string; sportType: string; primaryColor: string }) => void };
 };
 
@@ -88,6 +89,7 @@ export default function ClubSetupClubStep({
   useNicknames,
   variant = "default",
   qaPreview,
+  qaMode = false,
 }: ClubSetupClubStepProps) {
   const { t } = useI18n();
   const [displayName, setDisplayName] = useState(initialDisplayName);
@@ -202,10 +204,23 @@ export default function ClubSetupClubStep({
       )}
 
       <form
-        method={qaPreview ? undefined : "post"}
-        action={qaPreview ? undefined : "/api/admin/club"}
-        encType={qaPreview ? undefined : "multipart/form-data"}
-        onSubmit={qaPreview ? (event) => {
+        method={qaPreview || qaMode ? undefined : "post"}
+        action={qaPreview || qaMode ? undefined : "/api/admin/club"}
+        encType={qaPreview || qaMode ? undefined : "multipart/form-data"}
+        onSubmit={qaMode ? (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const name = displayName.trim();
+          if (!name) return;
+          const next = new URLSearchParams(window.location.search);
+          next.set("qa", "1");
+          next.set("created", "1");
+          next.set("step", "team");
+          next.set("qa_name", name);
+          next.set("qa_color", primaryColor);
+          next.set("qa_sport", sportType);
+          window.location.assign("/club-setup?" + next.toString());
+        } : qaPreview ? (event) => {
           event.preventDefault();
           if (displayName.trim()) qaPreview.onComplete({ name: displayName.trim(), sportType, primaryColor });
         } : undefined}
