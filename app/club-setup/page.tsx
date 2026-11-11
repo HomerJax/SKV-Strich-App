@@ -568,7 +568,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
               ) : null}
 
               {currentStep === "team" ? (
-                <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
+                <div className="rounded-[26px] border border-slate-200 bg-white p-4 shadow-[0_12px_36px_rgba(15,23,42,0.06)] sm:p-7">
                   <TeamGeneratorSettingsCard
                     useStrength={qa ? getSearchParam(resolvedSearchParams.qa_strength) !== "0" : (settings?.use_strength ?? false)}
                     useCategories={useCategories}
@@ -593,7 +593,7 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
               ) : null}
 
               {currentStep === "categories" ? (
-                <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-7">
+                <div className="rounded-[26px] border border-slate-200 bg-white p-4 shadow-[0_12px_36px_rgba(15,23,42,0.06)] sm:p-7">
                   <CategorySettingsSection
                     categories={categories}
                     useCategories={useCategories}
