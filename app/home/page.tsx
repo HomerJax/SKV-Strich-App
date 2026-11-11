@@ -630,8 +630,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const clubIsNew = Number.isFinite(clubCreatedAt)
     && clubCreatedAt <= Date.now()
     && Date.now() - clubCreatedAt < 60 * 24 * 60 * 60 * 1000;
-  const canShowActivation = isAdmin && !isPowerUser && !isSupportView
-    && (clubIsNew || (sessionsCount ?? 0) === 0);
+  const canShowActivation = isAdmin && !isPowerUser && !isSupportView;
   const activationChecks = canShowActivation ? await Promise.all([
     supabase.from("club_memberships").select("user_id", { count: "exact", head: true }).eq("club_id", clubId),
     supabase.from("results").select("id", { count: "exact", head: true }).eq("club_id", clubId)
@@ -645,7 +644,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     || (activationChecks?.[2].count ?? 0) > 0;
   const showGettingStarted = canShowActivation && Boolean(activationChecks)
     && !activationChecks?.[1].error && !activationChecks?.[2].error
-    && !hasCompletedFirstTraining;
+    ;
 
   let clubLogoUrl: string | null = null;
 
@@ -1027,6 +1026,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         {showGettingStarted ? (
           <AdminActivationChecklist
             locale={locale}
+            storageKey={`strikr:setup-checklist:${clubId}:${user?.id ?? "unknown"}`}
+            seasonDefined={seasons.length > 0}
             teamInvited={(invitesCount ?? 0) > 0 || (activationChecks?.[0].count ?? 0) > 1}
             trainingCreated={(sessionsCount ?? 0) > 0}
             firstTrainingCompleted={hasCompletedFirstTraining}
