@@ -11,6 +11,7 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
   const [testCompleted,setTestCompleted]=useState<string[]>(initial?.test_completed??[]);
   const [index,setIndex]=useState(0);
   const [skipped,setSkipped]=useState<string[]>([]);
+  const [saveError,setSaveError]=useState(false);
   useEffect(()=>{
     const saved=initial?.skipped||[];
     setSkipped(saved);
@@ -20,7 +21,7 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
     setReady(true);
   },[clubId]);
   const save=async(step:string,nextSkipped:string[],mode=testMode,completed=testCompleted)=>{
-    try{await fetch("/api/admin/setup-progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({current_step:step,skipped:nextSkipped,test_mode:mode,test_completed:completed})});}catch{}
+    try{const response=await fetch("/api/admin/setup-progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({current_step:step,skipped:nextSkipped,test_mode:mode,test_completed:completed})});setSaveError(!response.ok);}catch{setSaveError(true)}
   };
   const persist=(nextIndex:number,nextSkipped:string[])=>{
     setIndex(nextIndex);setSkipped(nextSkipped);
@@ -33,6 +34,7 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
   const current=actualSteps[index]||actualSteps[0];
   if(!ready)return <div className="rounded-3xl bg-white p-6 text-slate-600">Einrichtung wird geladen …</div>;
   return <div className="space-y-4">
+    {saveError?<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">Fortschritt konnte nicht gespeichert werden. Bitte die Seite erneut öffnen und prüfen.</p>:null}
     <div className="rounded-[26px] bg-[#070b12] p-5 text-white shadow-lg sm:p-7">
       <div className="text-xs font-black uppercase tracking-[.2em] text-cyan-300">strikr · Admin-Wizard</div>
       <h1 className="mt-2 text-2xl font-black tracking-tight">{clubName} einrichten</h1>
@@ -45,11 +47,11 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
       <div className="mt-5 flex items-center gap-3">{current.done?<Check className="h-7 w-7 text-emerald-600"/>:<Circle className="h-7 w-7 text-slate-300"/>}<h2 className="text-xl font-black text-slate-950">{current.title}</h2></div>
       <p className="mt-3 text-sm leading-6 text-slate-600">{current.description}</p>
       {current.pro?<p className="mt-3 flex items-center gap-2 text-xs font-semibold text-violet-700"><LockKeyhole className="h-4 w-4"/> Erweiterte Einstellungen mit PRO</p>:null}
-      <p className="mt-3 text-xs text-slate-500">{current.done?"Bereits eingerichtet. Du kannst die Einstellungen jederzeit ändern.":"Noch nicht eingerichtet. Nach dem Speichern wird der Status anhand deiner Vereinsdaten geprüft."}</p>
+      <p className="mt-3 text-xs text-slate-500">{current.done?"Bereits eingerichtet. Du kannst die Einstellungen jederzeit ändern.":"Noch offen. Für einige optionale Bereiche ist die automatische Prüfung noch nicht verfügbar."}</p>
       <div className="mt-6 flex flex-wrap gap-2">
         <Link href={current.href} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white"> {current.done?"Einstellungen öffnen":"Jetzt einrichten"} <ArrowRight className="h-4 w-4"/></Link>
         <button type="button" disabled={index===0} onClick={()=>persist(index-1,skipped)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold disabled:opacity-30"><ArrowLeft className="h-4 w-4"/> Zurück</button>
-        {index<steps.length-1?<button type="button" onClick={()=>persist(index+1,current.required?skipped:[...new Set([...skipped,current.id])])} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">{current.done?"Weiter":current.required?"Nächsten Schritt ansehen":"Überspringen"}</button>:null}
+        {index<steps.length-1 && (current.done || !current.required)?<button type="button" onClick={()=>persist(index+1,current.required?skipped:[...new Set([...skipped,current.id])])} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">{current.done?"Weiter":"Überspringen"}</button>:null}
       </div>
     </div>
     {requiredDone?<div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><strong>Dein Verein ist startklar!</strong> Du kannst jetzt loslegen oder die optionalen Bereiche später einrichten.</div>:null}
