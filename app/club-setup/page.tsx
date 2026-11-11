@@ -701,26 +701,12 @@ export default async function ClubSetupPage({ searchParams }: PageProps) {
                     </div>
                   ) : null}
 
-                  <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
                     <h3 className="text-lg font-black text-slate-950">Deine nächsten Schritte</h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">Damit euer Verein startklar wird, kannst du diese Punkte jetzt oder später erledigen. Alles findest du auch im Admin-Bereich.</p>
-                    <div className="mt-4 space-y-2">
-                      {[
-                        { title: "Saison definieren", description: "Lege fest, für welchen Zeitraum eure Trainings und Auswertungen gelten.", href: "/admin/settings" },
-                        { title: "Trainingsserie erstellen", description: "Richte eure regelmäßigen Trainingstage und Termine ein.", href: "/sessions/new" },
-                        { title: "Trainingsleiter bestimmen", description: "Lege fest, wer Trainings organisieren und durchführen darf.", href: "/admin/settings" },
-                        { title: "Spieler einladen", description: "Hole deine Mannschaft in strikr.", href: "/admin/members" },
-                      ].map((item, index) => (
-                        <div key={item.title} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3">
-                          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-xs font-black text-slate-500">{index + 1}</span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-black text-slate-950">{item.title}</p>
-                            <p className="mt-0.5 text-xs leading-5 text-slate-600">{item.description}</p>
-                          </div>
-                          <Link href={item.href} className="shrink-0 rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold text-white">Öffnen</Link>
-                        </div>
-                      ))}
-                    </div>
+                    <p className="mt-1 text-sm text-slate-600">Verfolge die Einrichtung im Admin-Bereich. Erledigte Aufgaben werden automatisch erkannt.</p>
+                    <Link href={qa ? "/power-user/onboarding-simulator" : "/admin/setup"} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white">
+                      {qa ? "Simulator verlassen" : "Einrichtungs-Checkliste öffnen"} <ArrowRight className="h-4 w-4" />
+                    </Link>
                   </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
