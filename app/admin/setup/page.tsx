@@ -11,13 +11,12 @@ export default async function AdminSetupPage() {
  const membership=ctx.memberships.find(m=>m.club_id===ctx.activeClubId);
  if(!ctx.isPowerUser && membership?.role!=="admin") redirect("/home");
  const db=await createClient(),clubId=ctx.activeClubId;
- const [club,seasons,players,sessions,leaders,settings,progress]=await Promise.all([
+ const [club,seasons,players,sessions,leaders,progress]=await Promise.all([
   db.from("clubs").select("display_name").eq("id",clubId).maybeSingle(),
   db.from("seasons").select("id").eq("club_id",clubId).limit(1),
   db.from("players").select("id").eq("club_id",clubId).limit(2),
   db.from("sessions").select("id,series_id").eq("club_id",clubId).limit(100),
   db.from("players").select("id").eq("club_id",clubId).eq("can_lead_training",true).limit(1),
-  db.from("club_settings").select("use_strength,use_categories").eq("club_id",clubId).maybeSingle(),
   db.from("admin_setup_progress").select("current_step,skipped,test_mode,test_completed").eq("club_id",clubId).eq("user_id",ctx.user.id).maybeSingle()
  ]);
  const hasSeason=(seasons.data?.length??0)>0;
@@ -31,8 +30,8 @@ export default async function AdminSetupPage() {
   {id:"training",title:"Erstes Training planen",description:"Erstelle einen Termin, damit eure Mannschaft loslegen kann.",required:true,done:hasTraining,href:"/sessions/new?from=setup"},
   {id:"series",title:"Regelmäßige Trainings",description:"Richte eine Trainingsserie ein, damit nicht jede Woche ein neuer Termin nötig ist.",required:false,done:hasSeries,href:"/sessions/new?from=setup"},
   {id:"leaders",title:"Trainingsleiter",description:"Erlaube weiteren Spielern, Trainings durchzuführen.",required:false,done:(leaders.data?.length??0)>0,href:"/admin/members?from=setup"},
-  {id:"teams",title:"Faire Teams und Spielstärken",description:"Bestimme, wie strikr eure Teams fair einteilt.",required:false,done:!!settings.data?.use_strength,href:"/admin/settings?from=setup"},
-  {id:"categories",title:"Spielerkategorien",description:"Ordne Spieler in passende Gruppen ein.",required:false,done:!!settings.data?.use_categories,href:"/admin/settings?from=setup"},
+  {id:"teams",title:"Faire Teams und Spielstärken",description:"Bestimme, wie strikr eure Teams fair einteilt.",required:false,done:false,href:"/admin/settings?from=setup"},
+  {id:"categories",title:"Spielerkategorien",description:"Ordne Spieler in passende Gruppen ein.",required:false,done:false,href:"/admin/settings?from=setup"},
   {id:"rsvp",title:"Zu- und Absagen",description:"Passe die Fristen und Rückmeldungen für eure Termine an.",required:false,done:false,href:"/admin/settings?from=setup"},
   {id:"games",title:"Spiele, Turniere und Spieluhr",description:"Entdecke die Möglichkeiten für Spiele und Ergebnisse.",required:false,done:false,href:"/admin/game-timer",pro:true},
   {id:"stats",title:"Statistiken und Auszeichnungen",description:"Lerne Tabellen, MVP und Saisonstatistiken kennen.",required:false,done:false,href:"/admin/settings?from=setup"},
