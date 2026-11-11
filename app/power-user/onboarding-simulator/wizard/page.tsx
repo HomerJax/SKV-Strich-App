@@ -4,9 +4,8 @@ import SetupWizard from "@/components/admin/SetupWizard";
 
 const definitions = [
 ["club","Vereinsgrunddaten","Name, Sportart, Logo und Vereinsfarbe festlegen.",true],
-["players","Spieler hinzufügen","Kader anlegen oder Mitspieler einladen.",true],
-["training","Erstes Training planen","Den ersten Termin erstellen.",true],
-["series","Regelmäßige Trainings","Eine wiederkehrende Trainingsserie planen.",false],
+["players","Mitspieler einladen","Einladungslink per WhatsApp teilen; Mitspieler treten selbst bei.",false],
+["training","Trainingsbetrieb einrichten","Wochentage und Uhrzeiten für die Saison festlegen.",true],
 ["leaders","Trainingsleiter","Weitere Trainingsleiter bestimmen.",false],
 ["teams","Faire Teams und Spielstärken","Einstellungen für die Teamaufteilung kennenlernen.",false],
 ["categories","Spielerkategorien","Spielgruppen und Kategorien kennenlernen.",false],
