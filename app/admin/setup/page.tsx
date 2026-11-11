@@ -72,7 +72,8 @@ export default async function AdminSetupPage() {
   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time))redirect("/admin/setup?step=training&error=date");
   const supabase=await createClient();
   const {data:season}=await supabase.from("seasons").select("id").eq("club_id",auth.activeClubId).lte("start_date",date).gte("end_date",date).limit(1).maybeSingle();
-  const {error}=await supabase.from("sessions").insert({club_id:auth.activeClubId,date,start_time:time,season_id:season?.id??null,type:"training",notes:String(formData.get("notes")??"").slice(0,500)||null});
+  if(!season)redirect("/admin/setup?step=training&error=season");
+  const {error}=await supabase.from("sessions").insert({club_id:auth.activeClubId,date,start_time:time,season_id:season.id,type:"training",notes:String(formData.get("notes")??"").slice(0,500)||null});
   redirect(error?"/admin/setup?step=training&error=save":"/admin/setup?step=training&saved=1");
  }
  async function addWizardSeries(formData:FormData){
@@ -89,6 +90,7 @@ export default async function AdminSetupPage() {
   const db=await createClient();
   const {data:season}=await db.from("seasons").select("id,start_date,end_date").eq("club_id",auth.activeClubId).lte("start_date",start).gte("end_date",end).limit(1).maybeSingle();
   if(!season)redirect("/admin/setup?step=series&error=season");
+  if(end>season.end_date||start<season.start_date)redirect("/admin/setup?step=series&error=season_range");
   const dates:string[]=[];
   const cursor=new Date(start+"T12:00:00Z"),last=new Date(end+"T12:00:00Z");
   while(cursor<=last&&dates.length<53){if(cursor.getUTCDay()===Number(weekdays))dates.push(cursor.toISOString().slice(0,10));cursor.setUTCDate(cursor.getUTCDate()+1)}
