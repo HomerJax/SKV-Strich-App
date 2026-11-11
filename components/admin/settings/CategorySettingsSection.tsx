@@ -72,7 +72,7 @@ export async function CategorySettingsSection({
       </div>
 
       {variant === "onboarding" ? (
-        <div className="rounded-[22px] border border-cyan-100 bg-gradient-to-br from-cyan-50 to-white p-4 text-sm leading-6 text-slate-700">
+        <div className="rounded-[22px] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-cyan-50 p-5 text-sm leading-6 text-slate-700">
           <div className="font-black text-slate-950">{t("categories.shortExplain")}</div>
           <p className="mt-1">
             {t("categories.shortExplainText")}
@@ -91,7 +91,7 @@ export async function CategorySettingsSection({
       )}
 
       {variant === "onboarding" ? <OnboardingExamples kind="categories" /> : null}
-      <div className={variant === "onboarding" ? "rounded-[22px] border border-slate-200 bg-slate-50 p-3" : "rounded-xl border border-black/10 bg-neutral-50 p-3"}>
+      <div className={variant === "onboarding" ? "rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm" : "rounded-xl border border-black/10 bg-neutral-50 p-3"}>
         <form action={addCategoryAction} className="flex gap-2">
           <input type="hidden" name="redirect_to" value={redirectTo} />
           <input
