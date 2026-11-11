@@ -60,7 +60,7 @@ export default async function TeamGeneratorSettingsCard({
       {variant === "onboarding" ? (
         <div className="rounded-[22px] border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-4 sm:p-5">
           <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">SO FUNKTIONIERT DIE FAIRE EINTEILUNG</div>
-          <p className="mt-2 text-xs leading-5 text-slate-600">Das berücksichtigt strikr automatisch. Die folgenden Punkte sind nur eine Erklärung – hier musst du nichts auswählen.</p>
+          <p className="mt-2 text-xs leading-5 text-slate-600">Diese drei Grundlagen übernimmt strikr automatisch.</p>
           <div className="mt-4 divide-y divide-slate-200/80 rounded-2xl border border-slate-200/80 bg-white/70 px-4">
             {[
               { title: t("teamGenerator.equalSize"), hint: t("teamGenerator.equalSizeHint") },
@@ -73,7 +73,6 @@ export default async function TeamGeneratorSettingsCard({
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs font-semibold text-slate-700">Deine Einstellungen wählst du im nächsten Bereich aus.</p>
         </div>
       ) : (
         <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
