@@ -59,6 +59,7 @@ export default function ClubSetupQASandbox({ children }: { children: ReactNode }
     const href = anchor.getAttribute("href") || "";
     event.preventDefault();
     event.stopPropagation();
+    if (href.startsWith("/club-setup?qa=1&created=1&step=team")) return;
     if (href.startsWith("/club-setup")) {
       const url = new URL(href, "https://strikr.team");
       navigate(url.searchParams.get("step") || "club");
