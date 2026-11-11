@@ -17,7 +17,7 @@ export default async function AdminSetupPage() {
   db.from("players").select("id").eq("club_id",clubId).limit(2),
   db.from("sessions").select("id,series_id").eq("club_id",clubId).limit(100),
   db.from("players").select("id").eq("club_id",clubId).eq("can_lead_training",true).limit(1),
-  db.from("admin_setup_progress").select("current_step,skipped,test_mode,test_completed").eq("club_id",clubId).eq("user_id",ctx.user.id).maybeSingle()
+  db.from("admin_setup_progress").select("current_step,skipped,test_mode,test_completed,reviewed").eq("club_id",clubId).eq("user_id",ctx.user.id).maybeSingle()
  ]);
  const hasSeason=(seasons.data?.length??0)>0;
  const hasPlayers=(players.data?.length??0)>=2;
