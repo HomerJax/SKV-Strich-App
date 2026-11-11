@@ -17,7 +17,7 @@ const SCENARIOS: Record<Scenario, { title: string; description: string; flow: st
   admin: {
     title: "Neuer Vereinsgründer",
     description: "Erster Account, erster Verein, danach Vereinseinrichtung.",
-    flow: "/signup → /onboarding → /club-setup?created=1",
+    flow: "/signup → /onboarding → /admin/setup",
     expected: ["Vereinsname ist Pflicht", "Admin wird dem neuen Verein zugeordnet", "Club-Setup ist der nächste echte Schritt", "Einladungsweg und erster Termin sind auffindbar"],
   },
   invited: {
@@ -200,7 +200,7 @@ export default function FirstRunQA() {
                 else setStage("after");
               } }} />
           ) : stage === "club-setup" && scenario === "admin" ? (
-            <div className="space-y-4 bg-white p-6"><h2 className="text-xl font-black text-slate-950">Jetzt folgt das echte Vereins-Onboarding</h2><p className="text-sm text-slate-600">Der nächste Schritt öffnet dieselbe Club-Setup-Seite wie für neue Nutzer, jedoch ohne Datenbank-Schreibzugriffe.</p><Link href={`/club-setup?qa=1&created=1&step=club&qa_name=${encodeURIComponent(clubName)}`} className="inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Echtes Onboarding starten</Link></div>
+            <div className="space-y-4 bg-white p-6"><h2 className="text-xl font-black text-slate-950">Jetzt folgt das echte Vereins-Onboarding</h2><p className="text-sm text-slate-600">Der nächste Schritt öffnet den neuen 14-Schritte-Admin-Wizard als isolierte Vorschau ohne Vereinsbindung oder Datenbank-Schreibzugriffe.</p><Link href="/power-user/onboarding-simulator/wizard" className="inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Echtes Onboarding starten</Link></div>
           ) : scenario === "waiting" ? (
             <WaitingForInviteContent qaPreview />
           ) : scenario === "admin" ? (
