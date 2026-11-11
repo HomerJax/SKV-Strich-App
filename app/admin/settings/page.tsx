@@ -1,3 +1,4 @@
+import WizardReturn from "@/components/admin/WizardReturn";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -322,6 +323,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
   return (
     <main className="min-h-screen bg-neutral-100">
+      <WizardReturn />
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6">
         <SetupChecklistVisibility storageKey={`strikr:setup-checklist:${clubId}:${checklistUser?.id ?? "unknown"}`} />
         <div className="flex items-center">
