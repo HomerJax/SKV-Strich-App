@@ -110,9 +110,8 @@ export default async function AdminSetupPage() {
  const hasSeries=(sessions.data??[]).some(s=>s.series_id!==null);
  const steps=[
   {id:"club",title:"Vereinsgrunddaten",description:"Name, Sportart, Logo und Vereinsfarbe festlegen.",required:true,done:!!club.data?.display_name,href:"/admin/settings?from=setup"},
-  {id:"players",title:"Spieler hinzufügen",description:"Lege euren Kader an oder lade deine Mitspieler ein.",required:true,done:hasPlayers,href:"/admin/players?from=setup"},
-  {id:"training",title:"Erstes Training planen",description:"Erstelle einen Termin, damit eure Mannschaft loslegen kann.",required:true,done:hasTraining,href:"/sessions/new?from=setup"},
-  {id:"series",title:"Regelmäßige Trainings",description:"Richte eine Trainingsserie ein, damit nicht jede Woche ein neuer Termin nötig ist.",required:false,done:hasSeries,href:"/sessions/new?from=setup"},
+  {id:"players",title:"Mitspieler einladen",description:"Teile den Einladungslink über WhatsApp. Deine Mitspieler treten selbst bei – kein manuelles Anlegen nötig.",required:false,done:hasPlayers,href:"/admin/players?from=setup"},
+  {id:"training",title:"Trainingsbetrieb einrichten",description:"Lege Wochentage und Uhrzeiten fest und plane die Trainingsserie innerhalb der strikr-Saison.",required:true,done:hasSeries||hasTraining,href:"/sessions/new?from=setup"},
   {id:"leaders",title:"Trainingsleiter",description:"Erlaube weiteren Spielern, Trainings durchzuführen.",required:false,done:(leaders.data?.length??0)>0,href:"/admin/members?from=setup"},
   {id:"teams",title:"Faire Teams und Spielstärken",description:"Bestimme, wie strikr eure Teams fair einteilt.",required:false,done:false,href:"/admin/settings?from=setup"},
   {id:"categories",title:"Spielerkategorien",description:"Ordne Spieler in passende Gruppen ein.",required:false,done:false,href:"/admin/settings?from=setup"},
