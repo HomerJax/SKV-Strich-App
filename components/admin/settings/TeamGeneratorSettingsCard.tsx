@@ -54,24 +54,22 @@ export default async function TeamGeneratorSettingsCard({
       ) : null}
 
       {variant === "onboarding" ? (
-        <div className="rounded-[18px] border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-4 sm:p-5">
-          <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">
-            {t("teamGenerator.autoTitle")}
+        <div className="rounded-[22px] border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-4 sm:p-5">
+          <div className="text-[10px] font-black uppercase tracking-[.18em] text-cyan-700">SO FUNKTIONIERT DIE FAIRE EINTEILUNG</div>
+          <p className="mt-2 text-xs leading-5 text-slate-600">Das berücksichtigt strikr automatisch. Die folgenden Punkte sind nur eine Erklärung – hier musst du nichts auswählen.</p>
+          <div className="mt-4 divide-y divide-slate-200/80 rounded-2xl border border-slate-200/80 bg-white/70 px-4">
+            {[
+              { title: t("teamGenerator.equalSize"), hint: t("teamGenerator.equalSizeHint") },
+              { title: t("teamGenerator.goalkeepers"), hint: t("teamGenerator.goalkeepersHint") },
+              { title: t("teamGenerator.balance"), hint: t("teamGenerator.balanceHint") },
+            ].map((item, index) => (
+              <div key={index} className="flex items-start gap-3 py-3">
+                <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-xs font-black text-cyan-800">{index + 1}</span>
+                <div><div className="text-sm font-black text-slate-950">{item.title}</div><p className="mt-0.5 text-xs leading-5 text-slate-500">{item.hint}</p></div>
+              </div>
+            ))}
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-2xl bg-white/80 p-3 ring-1 ring-slate-200/70">
-              <div className="text-sm font-black text-slate-950">{t("teamGenerator.equalSize")}</div>
-              <div className="mt-1 text-xs font-medium leading-5 text-slate-500">{t("teamGenerator.equalSizeHint")}</div>
-            </div>
-            <div className="rounded-2xl bg-white/80 p-3 ring-1 ring-slate-200/70">
-              <div className="text-sm font-black text-slate-950">{t("teamGenerator.goalkeepers")}</div>
-              <div className="mt-1 text-xs font-medium leading-5 text-slate-500">{t("teamGenerator.goalkeepersHint")}</div>
-            </div>
-            <div className="rounded-2xl bg-white/80 p-3 ring-1 ring-slate-200/70">
-              <div className="text-sm font-black text-slate-950">{t("teamGenerator.balance")}</div>
-              <div className="mt-1 text-xs font-medium leading-5 text-slate-500">{t("teamGenerator.balanceHint")}</div>
-            </div>
-          </div>
+          <p className="mt-3 text-xs font-semibold text-slate-700">Deine Einstellungen wählst du im nächsten Bereich aus.</p>
         </div>
       ) : (
         <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
