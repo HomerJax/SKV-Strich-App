@@ -1,3 +1,4 @@
+import WizardReturn from "@/components/admin/WizardReturn";
 import { randomUUID } from "crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -510,6 +511,7 @@ export default async function NewSessionPage({
 
   return (
     <div className="space-y-4">
+      <WizardReturn />
       <Link
         href="/sessions"
         className="text-xs text-slate-500 hover:text-slate-700"
