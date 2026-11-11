@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Check, Circle, LockKeyhole } from "lucide-react"
 
 type Step = { id:string; title:string; description:string; href:string; required:boolean; done:boolean; pro?:boolean };
 export default function SetupWizard({ clubId, clubName, steps, initial, allowTest=false }: { clubId:string; clubName:string; steps:Step[]; initial?:{current_step:string;skipped:string[];test_mode:boolean;test_completed:string[]}|null; allowTest?:boolean }) {
-  const key = `strikr-admin-wizard-v1:${clubId}`;
+  
   const [ready,setReady]=useState(false);
   const [testMode,setTestMode]=useState(initial?.test_mode??false);
   const [testCompleted,setTestCompleted]=useState<string[]>(initial?.test_completed??[]);
