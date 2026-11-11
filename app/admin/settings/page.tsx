@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
+import SetupChecklistVisibility from "@/components/admin/settings/SetupChecklistVisibility";
 import ClubSettingsCard from "@/components/admin/settings/ClubSettingsCard";
 import SeasonSettingsCard from "@/components/admin/settings/SeasonSettingsCard";
 import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGeneratorSettingsCard";
@@ -317,9 +318,12 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
   const seasonError =
     resolvedSearchParams?.season_error ?? resolvedSearchParams?.error ?? "";
 
+  const { data: { user: checklistUser } } = await supabase.auth.getUser();
+
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6">
+        <SetupChecklistVisibility storageKey={`strikr:setup-checklist:${clubId}:${checklistUser?.id ?? "unknown"}`} />
         <div className="flex items-center">
           <Link
             href="/admin"
