@@ -13,23 +13,23 @@ type Props = {
 
 export function TeamGeneratorOnboardingHero() {
   return (
-      <div className="relative overflow-hidden rounded-[26px] bg-[#0b1220] px-4 py-4 text-white sm:px-6 sm:py-5">
-        <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-violet-500/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-0 h-32 w-32 rounded-full bg-cyan-400/20 blur-3xl" />
+      <div className="relative overflow-hidden rounded-[26px] border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-cyan-50 px-4 py-4 text-slate-950 sm:px-6 sm:py-5">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-violet-300/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-0 h-32 w-32 rounded-full bg-cyan-300/25 blur-3xl" />
         <div className="relative">
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.18em] text-cyan-300"><Sparkles className="h-4 w-4" /> Das Herzstück von strikr</div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.18em] text-violet-700"><Sparkles className="h-4 w-4" /> Das Herzstück von strikr</div>
           <h2 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">Faire Teams. Mehr Spielspaß.</h2>
 
           <div className="mt-3 flex items-center justify-center gap-2 sm:gap-3">
             {[0, 1].map((team) => (
-              <div key={team} className="w-[46%] max-w-[190px] rounded-xl border border-white/15 bg-white/[.07] p-2.5 sm:p-3">
-                <div className="mb-2 flex items-center justify-between text-[11px] font-bold"><span>TEAM {team === 0 ? "A" : "B"}</span><Users className="h-4 w-4 text-white/60" /></div>
-                <div className="flex justify-center gap-1.5">{[0, 1, 2, 3].map((player) => <div key={player} className={`flex h-6 w-6 items-center justify-center rounded-full sm:h-8 sm:w-8 border border-white/15 ${team === 0 ? "bg-cyan-400/20 text-cyan-200" : "bg-violet-400/20 text-violet-200"}`}><Users className="h-3.5 w-3.5" /></div>)}</div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"><div className={`h-full w-[88%] rounded-full ${team === 0 ? "bg-cyan-300" : "bg-violet-300"}`} /></div>
+              <div key={team} className="w-[46%] max-w-[190px] rounded-xl border border-slate-200 bg-white/85 shadow-sm p-2.5 sm:p-3">
+                <div className="mb-2 flex items-center justify-between text-[11px] font-bold"><span>TEAM {team === 0 ? "A" : "B"}</span><Users className="h-4 w-4 text-slate-500" /></div>
+                <div className="flex justify-center gap-1.5">{[0, 1, 2, 3].map((player) => <div key={player} className={`flex h-6 w-6 items-center justify-center rounded-full sm:h-8 sm:w-8 border border-white/15 ${team === 0 ? "bg-cyan-100 text-cyan-700" : "bg-violet-100 text-violet-700"}`}><Users className="h-3.5 w-3.5" /></div>)}</div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full w-[88%] rounded-full ${team === 0 ? "bg-cyan-300" : "bg-violet-300"}`} /></div>
               </div>
             ))}
           </div>
-          <p className="mt-2 text-center text-[10px] font-medium text-white/50">Beispielansicht · keine echten Spielerdaten</p>
+          <p className="mt-2 text-center text-[10px] font-medium text-slate-500">Beispielansicht · keine echten Spielerdaten</p>
         </div>
       </div>
 
