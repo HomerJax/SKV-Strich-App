@@ -46,8 +46,8 @@ export default function TeamGeneratorOnboardingFields({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-black tracking-tight text-slate-950">Was soll strikr berücksichtigen?</h3>
-        <p className="mt-1 text-sm leading-6 text-slate-600">Wähle aus, was für eure Gruppe wichtig ist. Du kannst alles später ändern.</p>
+        <h3 className="text-lg font-black tracking-tight text-slate-950">Was soll der Teamgenerator zusätzlich berücksichtigen?</h3>
+        <p className="mt-1 text-sm leading-6 text-slate-600">Die Grundlagen übernimmt strikr automatisch. Hier legst du fest, ob auch Spielstärken und Kategorien in die Einteilung einfließen sollen. Das kannst du später ändern.</p>
       </div>
 
       <label className={`group flex cursor-pointer items-start gap-3 rounded-[22px] border-2 p-4 transition sm:p-5 ${strength ? "border-violet-400 bg-violet-50/70 shadow-[0_8px_30px_rgba(139,92,246,.08)]" : "border-slate-200 bg-white hover:border-violet-200"}`}>
