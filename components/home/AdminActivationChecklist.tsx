@@ -1,10 +1,15 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, Circle, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Circle, Sparkles, X } from "lucide-react";
 import { translate } from "@/lib/i18n/messages";
 import type { AppLocale } from "@/lib/i18n/config";
 
 type Props = {
   locale: AppLocale;
+  storageKey: string;
+  seasonDefined: boolean;
   teamInvited: boolean;
   trainingCreated: boolean;
   firstTrainingCompleted: boolean;
@@ -13,17 +18,24 @@ type Props = {
 };
 
 export default function AdminActivationChecklist({
-  locale, teamInvited, trainingCreated, firstTrainingCompleted, hasTrainingLeader, trainingHref,
+  locale, storageKey, seasonDefined, teamInvited, trainingCreated, firstTrainingCompleted, hasTrainingLeader, trainingHref,
 }: Props) {
+  const [dismissed, setDismissed] = useState(true);
+  useEffect(() => {
+    setDismissed(window.localStorage.getItem(storageKey) === "hidden");
+  }, [storageKey]);
   const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   const steps = [
-    { key: "club", title: t("activation.clubTitle"), hint: t("activation.clubHint"), done: true, href: "/admin", cta: t("activation.clubCta") },
-    { key: "invite", title: t("activation.inviteTitle"), hint: t("activation.inviteHint"), done: teamInvited, href: "/admin/members", cta: t("activation.inviteCta") },
-    { key: "training", title: t("activation.trainingTitle"), hint: t("activation.trainingHint"), done: trainingCreated, href: "/sessions/new", cta: t("activation.trainingCta") },
-    { key: "finish", title: t("activation.finishTitle"), hint: t("activation.finishHint"), done: firstTrainingCompleted, href: trainingHref, cta: t("activation.finishCta") },
+    { key: "club", title: "Verein erstellen", hint: "Dein Verein ist angelegt.", done: true, href: "/admin/settings", cta: "Verein ansehen" },
+    { key: "season", title: "Saison definieren", hint: "Lege den Zeitraum eurer Saison fest.", done: seasonDefined, href: "/admin/settings", cta: "Saison einrichten" },
+    { key: "training", title: "Training oder Trainingsserie erstellen", hint: "Plane euren ersten oder wiederkehrende Termine.", done: trainingCreated, href: "/sessions/new", cta: "Training planen" },
+    { key: "invite", title: "Spieler einladen", hint: "Hole deine Mannschaft in strikr.", done: teamInvited, href: "/admin/members", cta: "Spieler einladen" },
+    { key: "leader", title: "Trainingsleiter bestimmen", hint: "Lege fest, wer Trainings durchführen darf.", done: hasTrainingLeader, href: "/admin/members#training-leader-info", cta: "Trainingsleiter verwalten" },
   ];
   const done = steps.filter(step => step.done).length;
   const nextStep = steps.find(step => !step.done);
+
+  if (dismissed || done === steps.length) return null;
 
   return (
     <section aria-labelledby="admin-activation-heading" className="rounded-[26px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -38,9 +50,7 @@ export default function AdminActivationChecklist({
           </h2>
           <p className="mt-1 text-xs leading-5 text-slate-600">{t("activation.subheading")}</p>
         </div>
-        <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black tabular-nums text-slate-700">
-          {done}/{steps.length}
-        </span>
+        <div className="flex shrink-0 items-center gap-2"><span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black tabular-nums text-slate-700">{done}/{steps.length}</span><button type="button" aria-label="Checkliste dauerhaft ausblenden" title="Dauerhaft ausblenden" onClick={() => { if (window.confirm("Checkliste dauerhaft ausblenden? Du kannst sie in den Vereinseinstellungen wieder aktivieren.")) { window.localStorage.setItem(storageKey, "hidden"); setDismissed(true); } }} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
       </div>
 
       <div role="progressbar" aria-label={t("activation.heading")} aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={done}
@@ -66,22 +76,6 @@ export default function AdminActivationChecklist({
         ))}
       </ol>
 
-      <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
-        <div className="rounded-xl bg-slate-50 p-3">
-          <p className="text-xs font-black text-slate-900">{t("activation.leaderOptional")}</p>
-          <p className="mt-1 text-xs leading-5 text-slate-600">{hasTrainingLeader ? t("activation.leaderDone") : t("activation.leaderHint")}</p>
-          <Link href="/admin/members#training-leader-info" className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-teal-800 underline underline-offset-2">
-            {t("activation.leaderCta")} <ArrowRight className="h-3 w-3" aria-hidden="true"/>
-          </Link>
-        </div>
-        <div className="rounded-xl bg-slate-50 p-3">
-          <p className="text-xs font-black text-slate-900">{t("activation.planTitle")}</p>
-          <p className="mt-1 text-xs leading-5 text-slate-600">{t("activation.planHint")}</p>
-          <Link href="/pro#feature-matrix" className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-teal-800 underline underline-offset-2">
-            {t("activation.planCta")} <ArrowRight className="h-3 w-3" aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
     </section>
   );
 }
