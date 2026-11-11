@@ -135,6 +135,32 @@ export default function ClubSetupClubStep({
         </div>
       ) : null}
 
+
+      <form
+        method={qaPreview || qaMode ? undefined : "post"}
+        action={qaPreview || qaMode ? undefined : "/api/admin/club"}
+        encType={qaPreview || qaMode ? undefined : "multipart/form-data"}
+        onSubmit={qaMode ? (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const name = displayName.trim();
+          if (!name) return;
+          const next = new URLSearchParams(window.location.search);
+          next.set("qa", "1");
+          next.set("created", "1");
+          next.set("step", "team");
+          next.set("qa_name", name);
+          next.set("qa_color", primaryColor);
+          next.set("qa_sport", sportType);
+          window.location.assign("/club-setup?" + next.toString());
+        } : qaPreview ? (event) => {
+          event.preventDefault();
+          if (displayName.trim()) qaPreview.onComplete({ name: displayName.trim(), sportType, primaryColor });
+        } : undefined}
+        className="space-y-5"
+      >
+        <input type="hidden" name="redirect_to" value={redirectTo} />
+
       {variant === "onboarding" ? (
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
           <div className="flex items-center gap-3">
@@ -203,30 +229,50 @@ export default function ClubSetupClubStep({
         </div>
       )}
 
-      <form
-        method={qaPreview || qaMode ? undefined : "post"}
-        action={qaPreview || qaMode ? undefined : "/api/admin/club"}
-        encType={qaPreview || qaMode ? undefined : "multipart/form-data"}
-        onSubmit={qaMode ? (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const name = displayName.trim();
-          if (!name) return;
-          const next = new URLSearchParams(window.location.search);
-          next.set("qa", "1");
-          next.set("created", "1");
-          next.set("step", "team");
-          next.set("qa_name", name);
-          next.set("qa_color", primaryColor);
-          next.set("qa_sport", sportType);
-          window.location.assign("/club-setup?" + next.toString());
-        } : qaPreview ? (event) => {
-          event.preventDefault();
-          if (displayName.trim()) qaPreview.onComplete({ name: displayName.trim(), sportType, primaryColor });
-        } : undefined}
-        className="space-y-5"
-      >
-        <input type="hidden" name="redirect_to" value={redirectTo} />
+        <div className="space-y-2">
+          <label
+            htmlFor="logo"
+            className={variant === "onboarding" ? "block text-xs font-black uppercase tracking-[.12em] text-slate-500" : "block text-sm font-medium text-slate-900"}
+          >
+            {variant === "onboarding" ? "Euer Logo (optional)" : t("clubSetup.clubLogoOptional")}
+          </label>
+
+          {variant === "onboarding" ? (
+            <label htmlFor="logo" className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 transition hover:border-cyan-500 hover:bg-cyan-50">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
+                {previewLogoUrl ? <Check className="h-6 w-6" /> : <ImagePlus className="h-6 w-6" />}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-black text-slate-950">{previewLogoUrl ? "Logo ausgewählt · ändern" : "Vereinslogo hochladen"}</span>
+                <span className="mt-0.5 block truncate text-xs text-slate-500">{selectedFileName || "Tippen und Bild aus Fotos oder Dateien wählen"}</span>
+              </span>
+            </label>
+          ) : null}
+          <input
+            id="logo"
+            name="logo"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/jpg"
+            className={variant === "onboarding" ? "sr-only" : "block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"}
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+
+              if (!file) {
+                setSelectedFileName("");
+                setSelectedPreviewUrl(null);
+                return;
+              }
+
+              setSelectedFileName(file.name);
+              setSelectedPreviewUrl(URL.createObjectURL(file));
+            }}
+          />
+
+          <p className="text-xs text-slate-500">
+            {t("clubSetup.allowedFiles")}
+          </p>
+        </div>
+
 
         <div className="space-y-2">
           <label
@@ -276,49 +322,6 @@ export default function ClubSetupClubStep({
           />
         </div>
 
-        <div className="space-y-2">
-          <label
-            htmlFor="logo"
-            className={variant === "onboarding" ? "block text-xs font-black uppercase tracking-[.12em] text-slate-500" : "block text-sm font-medium text-slate-900"}
-          >
-            {variant === "onboarding" ? "Euer Logo (optional)" : t("clubSetup.clubLogoOptional")}
-          </label>
-
-          {variant === "onboarding" ? (
-            <label htmlFor="logo" className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 transition hover:border-cyan-500 hover:bg-cyan-50">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
-                {previewLogoUrl ? <Check className="h-6 w-6" /> : <ImagePlus className="h-6 w-6" />}
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-black text-slate-950">{previewLogoUrl ? "Logo ausgewählt · ändern" : "Vereinslogo hochladen"}</span>
-                <span className="mt-0.5 block truncate text-xs text-slate-500">{selectedFileName || "Tippen und Bild aus Fotos oder Dateien wählen"}</span>
-              </span>
-            </label>
-          ) : null}
-          <input
-            id="logo"
-            name="logo"
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/jpg"
-            className={variant === "onboarding" ? "sr-only" : "block w-full text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"}
-            onChange={(event) => {
-              const file = event.target.files?.[0] ?? null;
-
-              if (!file) {
-                setSelectedFileName("");
-                setSelectedPreviewUrl(null);
-                return;
-              }
-
-              setSelectedFileName(file.name);
-              setSelectedPreviewUrl(URL.createObjectURL(file));
-            }}
-          />
-
-          <p className="text-xs text-slate-500">
-            {t("clubSetup.allowedFiles")}
-          </p>
-        </div>
 
         <div className="space-y-2">
           <div className={variant === "onboarding" ? "block text-xs font-black uppercase tracking-[.12em] text-slate-500" : "block text-sm font-medium text-slate-900"}>
