@@ -13,10 +13,13 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
   const [reviewed,setReviewed]=useState<string[]>(initial?.reviewed??[]);
   const [skipped,setSkipped]=useState<string[]>([]);
   const [saveError,setSaveError]=useState(false);
+  const [formResult,setFormResult]=useState<{saved:boolean;error:string}>({saved:false,error:""});
   useEffect(()=>{
     const saved=initial?.skipped||[];
     setSkipped(saved);
-    const queryStep=new URLSearchParams(window.location.search).get("step");
+    const query=new URLSearchParams(window.location.search);
+    setFormResult({saved:query.get("saved")==="1",error:query.get("error")||""});
+    const queryStep=query.get("step");
     const idx=steps.findIndex(s=>s.id===(queryStep||initial?.current_step));
     const next=steps.findIndex(s=>!s.done&&!saved.includes(s.id));
     setIndex(idx>=0?idx:next>=0?next:0);
@@ -50,6 +53,8 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
       <p className="mt-3 text-sm leading-6 text-slate-600">{current.description}</p>
       {current.pro?<p className="mt-3 flex items-center gap-2 text-xs font-semibold text-violet-700"><LockKeyhole className="h-4 w-4"/> Erweiterte Einstellungen mit PRO</p>:null}
       <p className="mt-3 text-xs text-slate-500">{current.done?"Bereits eingerichtet. Du kannst die Einstellungen jederzeit ändern.":"Noch offen. Für einige optionale Bereiche ist die automatische Prüfung noch nicht verfügbar."}</p>
+      {formResult.error?<p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">Speichern nicht möglich ({formResult.error}). Bitte Eingaben und Berechtigungen prüfen.</p>:null}
+      {formResult.saved?<p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Änderungen gespeichert.</p>:null}
       {inlinePanels[current.id]?<div className="mt-5 border-t border-slate-100 pt-5">{inlinePanels[current.id]}</div>:null}
       <div className="mt-6 flex flex-wrap gap-2">
         <Link href={current.href} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white"> {inlinePanels[current.id]?"Erweiterte Einstellungen öffnen":current.done?"Einstellungen öffnen":"Jetzt einrichten"} <ArrowRight className="h-4 w-4"/></Link>
