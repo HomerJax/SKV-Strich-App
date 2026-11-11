@@ -16,7 +16,8 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
   useEffect(()=>{
     const saved=initial?.skipped||[];
     setSkipped(saved);
-    const idx=steps.findIndex(s=>s.id===initial?.current_step);
+    const queryStep=new URLSearchParams(window.location.search).get("step");
+    const idx=steps.findIndex(s=>s.id===(queryStep||initial?.current_step));
     const next=steps.findIndex(s=>!s.done&&!saved.includes(s.id));
     setIndex(idx>=0?idx:next>=0?next:0);
     setReady(true);
