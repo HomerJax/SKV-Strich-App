@@ -4,10 +4,10 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, Circle, LockKeyhole } from "lucide-react";
 
 type Step = { id:string; title:string; description:string; href:string; required:boolean; done:boolean; pro?:boolean };
-export default function SetupWizard({ clubId, clubName, steps, initial, allowTest=false, inlinePanels={} }: { clubId:string; clubName:string; steps:Step[]; initial?:{current_step:string;skipped:string[];test_mode:boolean;test_completed:string[];reviewed:string[]}|null; allowTest?:boolean; inlinePanels?:Record<string,ReactNode> }) {
+export default function SetupWizard({ clubId, clubName, steps, initial, allowTest=false, inlinePanels={}, preview=false }: { clubId:string; clubName:string; steps:Step[]; initial?:{current_step:string;skipped:string[];test_mode:boolean;test_completed:string[];reviewed:string[]}|null; allowTest?:boolean; preview?:boolean; inlinePanels?:Record<string,ReactNode> }) {
   
   const [ready,setReady]=useState(false);
-  const [testMode,setTestMode]=useState(initial?.test_mode??false);
+  const [testMode,setTestMode]=useState(preview || (initial?.test_mode??false));
   const [testCompleted,setTestCompleted]=useState<string[]>(initial?.test_completed??[]);
   const [index,setIndex]=useState(0);
   const [reviewed,setReviewed]=useState<string[]>(initial?.reviewed??[]);
@@ -26,6 +26,7 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
     setReady(true);
   },[clubId]);
   const save=async(step:string,nextSkipped:string[],mode=testMode,completed=testCompleted,nextReviewed=reviewed)=>{
+    if(preview)return;
     try{const response=await fetch("/api/admin/setup-progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({current_step:step,skipped:nextSkipped,test_mode:mode,test_completed:completed,reviewed:nextReviewed})});setSaveError(!response.ok);}catch{setSaveError(true)}
   };
   const persist=(nextIndex:number,nextSkipped:string[])=>{
