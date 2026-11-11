@@ -33,42 +33,39 @@ test("scenario coverage and reset, no production data writes from the QA surface
   assert.doesNotMatch(qa, /createAdminClient|\.from\(|signUp\(|fetch\(|\.rpc\(/);
 });
 
-test("full admin first-run continues safely through club settings and first home", () => {
+test("admin first-run opens the real Power-User-gated club setup in QA mode", () => {
   const qa = read("app/power-user/onboarding-simulator/FirstRunQA.tsx");
-  const setup = read("app/power-user/onboarding-simulator/AdminSetupPreview.tsx");
-  const home = read("app/power-user/onboarding-simulator/AdminFirstHomePreview.tsx");
+  const page = read("app/club-setup/page.tsx");
+  const sandbox = read("components/club-setup/ClubSetupQASandbox.tsx");
   const form = read("components/club-setup/ClubSetupClubStep.tsx");
   const shell = read("components/RouteAwareAppShell.tsx");
-  assert.match(qa, /<AdminSetupPreview/);
-  assert.match(qa, /<AdminFirstHomePreview/);
   assert.match(qa, /setStage\("club-setup"\)/);
-  assert.match(setup, /<ClubSetupClubStep/);
-  assert.match(setup, /qaPreview=\{\{ onComplete:/);
+  assert.match(qa, /\/club-setup\?qa=1&created=1&step=club/);
+  assert.match(page, /if \(qa\) await requirePowerUser\(\)/);
+  assert.match(page, /const auth = qa \? null : await getAuthContext\(\)/);
+  assert.match(page, /<ClubSetupQASandbox/);
+  assert.match(page, /<ClubSetupClubStep/);
   assert.match(form, /action=\{qaPreview \? undefined : "\/api\/admin\/club"\}/);
-  assert.match(form, /event\.preventDefault\(\)/);
-  assert.match(home, /QA-Ablaufmodell/);
+  assert.match(sandbox, /event\.preventDefault\(\)/);
+  assert.match(sandbox, /event\.stopPropagation\(\)/);
+  assert.match(sandbox, /onSubmitCapture=\{onSubmit\}/);
   assert.match(shell, /pathname === "\/power-user\/onboarding-simulator"/);
-  for (const component of [qa, setup, home]) {
-    assert.doesNotMatch(component, /createAdminClient|\.from\(|signUp\(|\.rpc\(/);
-  }
+  assert.doesNotMatch(sandbox, /createAdminClient|\.from\(|signUp\(|\.rpc\(|fetch\(/);
 });
 
-test("internal simulator runs through first setup without writes or global app chrome", () => {
+test("simulator retains read-only previews and clearly separates real setup from home model", () => {
   const qa = read("app/power-user/onboarding-simulator/FirstRunQA.tsx");
-  const shell = read("components/RouteAwareAppShell.tsx");
-  const club = read("components/club-setup/ClubSetupClubStep.tsx");
-  const setup = read("app/power-user/onboarding-simulator/AdminSetupPreview.tsx");
   const home = read("app/power-user/onboarding-simulator/AdminFirstHomePreview.tsx");
-  assert.match(shell, /pathname === "\/power-user\/onboarding-simulator"/);
-  assert.match(qa, /<AdminSetupPreview/);
-  assert.match(qa, /<AdminFirstHomePreview/);
+  const sandbox = read("components/club-setup/ClubSetupQASandbox.tsx");
   assert.match(qa, /<WaitingForInviteContent qaPreview/);
-  assert.match(setup, /<ClubSetupClubStep/);
-  assert.match(club, /action=\{qaPreview \? undefined : "\/api\/admin\/club"\}/);
-  assert.match(club, /event\.preventDefault\(\)/);
+  assert.match(qa, /<AdminFirstHomePreview/);
+  assert.match(qa, /Echtes Onboarding starten/);
+  assert.match(home, /QA-Ablaufmodell/);
   assert.match(home, /Keine Aktionen hier speichern Daten/);
-  assert.doesNotMatch(setup, /\.from\(|fetch\(|createAdminClient\(|\.rpc\(/);
-  assert.doesNotMatch(home, /\.from\(|fetch\(|createAdminClient\(|\.rpc\(/);
+  assert.match(sandbox, /Keine Speicherung/);
+  for (const component of [qa, home, sandbox]) {
+    assert.doesNotMatch(component, /createAdminClient|\.from\(|signUp\(|\.rpc\(|fetch\(/);
+  }
 });
 
 test("real waiting-for-invite screen is reused and QA buttons cannot navigate", () => {
