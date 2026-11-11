@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, Circle, LockKeyhole } from "lucide-react";
 
 type Step = { id:string; title:string; description:string; href:string; required:boolean; done:boolean; pro?:boolean };
-export default function SetupWizard({ clubId, clubName, steps, initial, allowTest=false }: { clubId:string; clubName:string; steps:Step[]; initial?:{current_step:string;skipped:string[];test_mode:boolean;test_completed:string[];reviewed:string[]}|null; allowTest?:boolean }) {
+export default function SetupWizard({ clubId, clubName, steps, initial, allowTest=false, inlinePanels={} }: { clubId:string; clubName:string; steps:Step[]; initial?:{current_step:string;skipped:string[];test_mode:boolean;test_completed:string[];reviewed:string[]}|null; allowTest?:boolean; inlinePanels?:Record<string,ReactNode> }) {
   
   const [ready,setReady]=useState(false);
   const [testMode,setTestMode]=useState(initial?.test_mode??false);
@@ -49,8 +49,9 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
       <p className="mt-3 text-sm leading-6 text-slate-600">{current.description}</p>
       {current.pro?<p className="mt-3 flex items-center gap-2 text-xs font-semibold text-violet-700"><LockKeyhole className="h-4 w-4"/> Erweiterte Einstellungen mit PRO</p>:null}
       <p className="mt-3 text-xs text-slate-500">{current.done?"Bereits eingerichtet. Du kannst die Einstellungen jederzeit ändern.":"Noch offen. Für einige optionale Bereiche ist die automatische Prüfung noch nicht verfügbar."}</p>
+      {inlinePanels[current.id]?<div className="mt-5 border-t border-slate-100 pt-5">{inlinePanels[current.id]}</div>:null}
       <div className="mt-6 flex flex-wrap gap-2">
-        <Link href={current.href} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white"> {current.done?"Einstellungen öffnen":"Jetzt einrichten"} <ArrowRight className="h-4 w-4"/></Link>
+        <Link href={current.href} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white"> {inlinePanels[current.id]?"Erweiterte Einstellungen öffnen":current.done?"Einstellungen öffnen":"Jetzt einrichten"} <ArrowRight className="h-4 w-4"/></Link>
         <button type="button" disabled={index===0} onClick={()=>persist(index-1,skipped)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold disabled:opacity-30"><ArrowLeft className="h-4 w-4"/> Zurück</button>
         {index<steps.length-1 && (current.done || !current.required)?<button type="button" onClick={()=>persist(index+1,current.required?skipped:[...new Set([...skipped,current.id])])} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">{current.done?"Weiter":"Überspringen"}</button>:null}
       </div>
