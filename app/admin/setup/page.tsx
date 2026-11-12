@@ -78,8 +78,8 @@ export default async function AdminSetupPage({searchParams}:{searchParams?:Promi
   const secondTime=String(formData.get("start_time_two")??"");
   const weekday=Number(weekdayRaw);
   const secondWeekday=secondWeekdayRaw===""?null:Number(secondWeekdayRaw);
-  const dateFormat=/^\\d{4}-\\d{2}-\\d{2}$/;
-  const timeFormat=/^([01]\\d|2[0-3]):[0-5]\\d$/;
+  const dateFormat=/^\d{4}-\d{2}-\d{2}$/;
+  const timeFormat=/^([01]\d|2[0-3]):[0-5]\d$/;
   if(!dateFormat.test(start)||!dateFormat.test(end)||end<start
     ||!timeFormat.test(time)||! /^[0-6]$/.test(weekdayRaw)
     ||new Date(start+"T12:00:00Z").getUTCDay()!==weekday
