@@ -45,7 +45,7 @@ export function generateBalancedTeamMap(
       const protectedPlayer = present.find(p => p.id === protectedId)!;
       A.push(protectedPlayer);
     }
-    let keepersA = 0;
+    let keepersA = A.filter(p => p.preferred_position === "goalkeeper").length;
     let keepersB = 0;
     for (const keeper of shuffle(keepers.filter(p => p.id !== protectedId))) {
       if (A.length >= targetA) { B.push(keeper); keepersB++; }
