@@ -29,6 +29,7 @@ type ClubSetupClubStepProps = {
   useNicknames: boolean;
   variant?: "default" | "onboarding";
   qaMode?: boolean;
+  qaInWizard?: boolean;
   qaPreview?: { onComplete: (club: { name: string; sportType: string; primaryColor: string }) => void };
 };
 
