@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ClubSetupClubStep from "@/components/club-setup/ClubSetupClubStep";
 import { ArrowRight, CalendarDays, Check, Clock3, Crown, Goal, Layers3, ShieldCheck, Sparkles, Trophy, Users, WandSparkles } from "lucide-react";
 
 type StepId = "club" | "season" | "training" | "rsvp" | "teams" | "categories" | "games" | "pro";
@@ -23,9 +24,6 @@ function Option({ selected, onClick, title, description }: { selected: boolean; 
 }
 
 export default function SetupWizardPreview({ stepId, completed, onComplete, finalStep }: Props) {
-  const [clubName, setClubName] = useState("FC Musterstadt");
-  const [sport, setSport] = useState("football");
-  const [color, setColor] = useState("cyan");
   const [seasonName, setSeasonName] = useState("strikr Standardsaison");
   const [customSeason, setCustomSeason] = useState(false);
   const [selectedDays, setSelectedDays] = useState([3]);
@@ -36,20 +34,22 @@ export default function SetupWizardPreview({ stepId, completed, onComplete, fina
   const [mode, setMode] = useState<"match"|"tournament">("match");
   const [timer, setTimer] = useState(false);
   const [duration, setDuration] = useState(60);
-  const [hasEdited, setHasEdited] = useState(false);
   const step = stepId as StepId;
   return <div className="space-y-5">
     {step === "club" ? <>
-      <Heading eyebrow="01 · Euer Team bekommt ein Zuhause" title="So sieht euer Verein in strikr aus">Wähle einen Namen, eure Sportart und die Vereinsfarbe. Das siehst du später in eurer App.</Heading>
-      <div className="relative overflow-hidden rounded-[24px] bg-[#071522] p-5 text-white">
-        <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-cyan-400/20 blur-3xl" />
-        <div className="relative flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-2xl font-black">{clubName.trim().slice(0,2).toUpperCase() || "FC"}</div><div><div className="text-lg font-black">{clubName || "Euer Vereinsname"}</div><div className="text-xs text-cyan-200">Euer Verein · strikr</div></div></div>
-        <div className="mt-4 h-1.5 rounded-full" style={{background:color==="cyan"?"#22d3ee":color==="violet"?"#a78bfa":color==="green"?"#4ade80":"#f87171"}}/>
-      </div>
-      <label className="block text-sm font-black text-slate-800">Vereinsname<input value={clubName} maxLength={80} onChange={e=>{setClubName(e.target.value);setHasEdited(true)}} className={fieldClass}/></label>
-      <label className="block text-sm font-black text-slate-800">Sportart<select value={sport} onChange={e=>setSport(e.target.value)} className={fieldClass}><option value="football">Fußball</option><option value="volleyball">Volleyball</option><option value="basketball">Basketball</option><option value="handball">Handball</option><option value="other">Weitere Sportart</option></select></label>
-      <div><p className="mb-2 text-sm font-black text-slate-800">Teamfarbe</p><div className="flex gap-3">{[["cyan","#22d3ee"],["violet","#a78bfa"],["green","#4ade80"],["red","#f87171"]].map(([id,hex])=><button key={id} aria-label={"Farbe "+id} aria-pressed={color===id} type="button" onClick={()=>setColor(id)} className={"flex h-11 w-11 items-center justify-center rounded-2xl border-4 "+(color===id?"border-slate-900":"border-white")} style={{backgroundColor:hex}}>{color===id?<Check className="h-5 w-5 text-slate-950"/>:null}</button>)}</div></div>
-      <Note>Das Vereinslogo lässt sich im echten Setup hochladen. Im Simulator zeigen wir ein Kürzel statt einer echten Datei.</Note>
+      <Heading eyebrow="01 · Euer Verein" title="Gebt eurem Verein ein Gesicht">Hier trägst du den echten Vereinsnamen ein, wählst die Sportart und die Vereinsfarbe und kannst direkt euer Logo auswählen. Die Vorschau reagiert sofort auf deine Eingaben.</Heading>
+      <ClubSetupClubStep
+        variant="onboarding"
+        initialDisplayName=""
+        initialPrimaryColor="black"
+        initialSportType="football"
+        initialLogoUrl={null}
+        useNicknames={false}
+        redirectTo="/power-user/onboarding-simulator/wizard"
+        submitLabel="Speichern und weiter →"
+        qaPreview={{ onComplete: () => onComplete() }}
+      />
+      <p className="rounded-xl bg-cyan-50 px-4 py-3 text-xs leading-5 text-cyan-900">Simulationsmodus: Du kannst auch eine Bilddatei als Logo auswählen und sofort ansehen. Sie wird nicht hochgeladen oder gespeichert. Genau dieselbe Formular-Komponente wird im echten Vereinsstart verwendet.</p>
     </> : null}
     {step === "season" ? <>
       <Heading eyebrow="02 · Die Grundlage für eure Tabelle" title="Erst die Saison – dann eure Trainings">Trainings, Ergebnisse, Statistiken und Auszeichnungen gehören immer zu einer Saison. strikr legt deshalb automatisch eine Jahressaison an.</Heading>
@@ -96,12 +96,12 @@ export default function SetupWizardPreview({ stepId, completed, onComplete, fina
       <div className="space-y-3">{["Automatische Jahressaison und feste Frist bleiben in Free","Individuelle Saisonzeiträume und flexible Fristen benötigen PRO","Mehr Spielmodi und erweiterte Teamoptionen mit PRO","Eure bestehenden Ergebnisse und Statistiken sollen erhalten bleiben"].map(s=><div key={s} className="flex items-start gap-3 text-sm leading-6 text-slate-700"><Check className="mt-1 h-4 w-4 shrink-0 text-cyan-700"/>{s}</div>)}</div>
       <Note>Dies ist eine Vorschau. Die tatsächlichen 28 Tage und das genaue Ablaufdatum ergeben sich aus dem jeweiligen Vereinsabo. Die technischen Downgrade-Rücksetzungen stehen noch im Backlog.</Note>
     </> : null}
-    <div className="border-t border-slate-100 pt-5">
+    {step !== "club" ? <div className="border-t border-slate-100 pt-5">
       {completed?<div role="status" className="mb-3 flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800"><Check className="h-5 w-5"/> Im Test durchlaufen</div>:null}
-      <button type="button" disabled={step==="club"&&!clubName.trim()||step==="training"&&!selectedDays.length} onClick={onComplete} className="group flex w-full items-center justify-between gap-3 rounded-2xl bg-[#071522] px-5 py-4 text-left text-white shadow-[0_12px_32px_rgba(2,6,23,.18)] transition hover:bg-[#10283d] disabled:cursor-not-allowed disabled:opacity-40">
+      <button type="button" disabled={step==="training"&&!selectedDays.length} onClick={onComplete} className="group flex w-full items-center justify-between gap-3 rounded-2xl bg-[#071522] px-5 py-4 text-left text-white shadow-[0_12px_32px_rgba(2,6,23,.18)] transition hover:bg-[#10283d] disabled:cursor-not-allowed disabled:opacity-40">
         <span><span className="block text-[10px] font-black uppercase tracking-[.14em] text-cyan-300">{finalStep?"Fast geschafft":"Nächster Schritt"}</span><span className="mt-0.5 block text-base font-black">{finalStep?"Simulation abschließen":"Speichern und weiter"}</span></span><ArrowRight className="h-5 w-5 transition group-hover:translate-x-1"/>
       </button>
       <p className="mt-3 text-center text-xs text-slate-500">Power-User-Vorschau · Alle Eingaben bleiben lokal und werden nicht gespeichert.</p>
-    </div>
+    </div> : null}
   </div>;
 }
