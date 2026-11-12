@@ -62,7 +62,7 @@ test("simulator blocks all form writes and shares exact real setup panels", () =
   assert.match(wizard, /onSubmitCapture=\{preview\?/);
   assert.match(wizard, /event.preventDefault\(\)/);
   assert.match(wizard, /event.stopPropagation\(\)/);
-  assert.match(wizard, /if\(preview\)return;/);
+  assert.match(wizard, /if\(preview\)return true;/);
   assert.match(club, /qaPreview \|\| qaMode \|\| qaInWizard \? undefined :/);
   assert.match(wizard, /Simulation erfolgreich abgeschlossen/);
   assert.match(wizard, /Es wurden keine Vereinsdaten gespeichert/);
