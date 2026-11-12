@@ -119,7 +119,7 @@ export default async function SeasonSettingsCard({
           </div> : <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">Es wurde noch keine Saison angelegt. Bitte die Vereinsgründung prüfen, bevor du Trainings erstellst.</p>}
           <p className="mt-3 text-xs leading-5 text-slate-500">Trainingstage und Uhrzeiten folgen erst auf der nächsten Seite „Trainingsbetrieb“.</p>
         </div>
-        {season && billingAccess.isPro ? <details className="group min-w-0 overflow-hidden rounded-[22px] border border-violet-200 bg-white">
+        {season && (billingAccess.isPro || qaPreview) ? <details className="group min-w-0 overflow-hidden rounded-[22px] border border-violet-200 bg-white">
           <summary className="cursor-pointer px-4 py-4 text-sm font-black text-violet-800 focus-visible:outline-offset-[-3px]">Saison-Einstellungen ändern (PRO) <span className="block pt-1 text-xs font-normal text-slate-500">Name, Startdatum und Enddatum individuell festlegen</span></summary>
           <form action="/api/admin/seasons" method="post" className="min-w-0 space-y-4 border-t border-violet-100 p-4">
             <input type="hidden" name="intent" value="update"/>
