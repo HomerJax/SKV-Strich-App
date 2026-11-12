@@ -35,6 +35,7 @@ type ClubSettingsRow = {
   rsvp_deadline_minutes_before: number | null;
   require_rsvp_reason_on_absence: boolean | null;
   home_team_feed_enabled: boolean | null;
+  protected_player_id: number | null;
 };
 
 function LanguageSettingsCard({
@@ -291,10 +292,10 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
   const supabase = await createClient();
 
-  const [{ data: settingsData }, { data: categoriesData }, billingAccess] = await Promise.all([
+  const [{ data: settingsData }, { data: categoriesData }, billingAccess, { data: protectedCandidates }] = await Promise.all([
     supabase
       .from("club_settings")
-      .select("default_locale, use_strength, use_categories, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled")
+      .select("default_locale, use_strength, use_categories, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled, protected_player_id")
       .eq("club_id", clubId)
       .maybeSingle(),
     supabase
@@ -303,6 +304,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
       .eq("club_id", clubId)
       .order("sort_order", { ascending: true }),
     getClubBillingAccess(supabase, clubId),
+    supabase.from("players").select("id,name,first_name,last_name").eq("club_id", clubId).eq("is_active", true).neq("roster_role", "staff").order("name"),
   ]);
 
   const settings = (settingsData as ClubSettingsRow | null) ?? null;
@@ -403,6 +405,22 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
             useStrength={settings?.use_strength ?? false}
             useCategories={settings?.use_categories ?? false}
           />
+        </SettingsShell>
+
+        <SettingsShell title="Unterzahl-Schutz" description="Optional: Ein Spieler soll bei ungerader Teilnehmerzahl im größeren Team spielen.">
+          <form method="post" action="/api/admin/settings" className="space-y-3">
+            <input type="hidden" name="redirect_to" value="/admin/settings" />
+            <input type="hidden" name="settings_scope" value="protected_player" />
+            <label htmlFor="protected_player_id" className="block text-sm font-semibold text-slate-900">Spieler auswählen</label>
+            <select id="protected_player_id" name="protected_player_id" defaultValue={settings?.protected_player_id ?? ""} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3">
+              <option value="">Kein Unterzahl-Schutz</option>
+              {(protectedCandidates ?? []).map(player => (
+                <option key={player.id} value={player.id}>{[player.first_name, player.last_name].filter(Boolean).join(" ") || player.name || `Spieler #${player.id}`}</option>
+              ))}
+            </select>
+            <p className="text-sm text-slate-600">Nur bei ungerader Anzahl und Anwesenheit des Spielers. Die Mannschaftsstärken werden weiterhin möglichst fair verteilt. Manuelle Änderungen bleiben möglich.</p>
+            <button type="submit" className="rounded-xl bg-slate-950 px-4 py-2.5 font-semibold text-white">Speichern</button>
+          </form>
         </SettingsShell>
 
         <SettingsShell title={t("settings.section.rsvp")} description={t("settings.section.rsvpHint")}>

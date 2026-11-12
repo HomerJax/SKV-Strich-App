@@ -38,8 +38,13 @@ type Props = {
   categories: ClubCategoryRow[];
 };
 
-const BALANCE_GROUP_OPTIONS: Array<{ value: string; labelKey: MessageKey }> = [
+const BALANCE_GROUP_OPTIONS: Array<{ value: string; labelKey?: MessageKey; label?: string }> = [
   { value: "Gehfußballer", labelKey: "roster.balanceWalking" },
+  { value: "Offensive Topspieler", label: "Offensive Topspieler" },
+  { value: "Defensive Topspieler", label: "Defensive Topspieler" },
+];
+
+const LEGACY_BALANCE_GROUP_OPTIONS: Array<{ value: string; labelKey: MessageKey }> = [
   { value: "Defensivanker", labelKey: "roster.balanceDefense" },
   { value: "Offensivfokus", labelKey: "roster.balanceAttack" },
   { value: "Laufstark", labelKey: "roster.balanceRunner" },
@@ -73,6 +78,12 @@ export default async function RosterBulkEditor({
   categories,
 }: Props) {
   const { t } = await getServerI18n();
+  // Preserve legacy choices only in clubs where players already use them.
+  const assignedGroups = new Set(players.map((player) => player.balance_group).filter(Boolean));
+  const availableBalanceGroups = [
+    ...BALANCE_GROUP_OPTIONS,
+    ...LEGACY_BALANCE_GROUP_OPTIONS.filter((group) => assignedGroups.has(group.value)),
+  ];
 
   function positionLabel(player: PlayerRow) {
     if (player.preferred_position === "attack") {
@@ -317,13 +328,13 @@ export default async function RosterBulkEditor({
                         className={fieldClass}
                       >
                         <option value="">{t("roster.noBalanceGroup")}</option>
-                        {BALANCE_GROUP_OPTIONS.map((group) => (
+                        {availableBalanceGroups.map((group) => (
                           <option key={group.value} value={group.value}>
-                            {t(group.labelKey)}
+                            {group.labelKey ? t(group.labelKey) : group.label}
                           </option>
                         ))}
                         {player.balance_group &&
-                        !BALANCE_GROUP_OPTIONS.some(
+                        !availableBalanceGroups.some(
                           (group) => group.value === player.balance_group,
                         ) ? (
                           <option value={player.balance_group}>

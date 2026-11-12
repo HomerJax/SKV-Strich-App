@@ -157,8 +157,9 @@ export default function PlayerSettingsCard({
                   </div>
                   <p className="mt-2">
                     Balance-Gruppen sind optionale Kennzeichnungen für bestimmte
-                    Spielertypen, zum Beispiel Gehfußballer, Defensivanker oder
-                    Laufstark. Alle Gruppen werden gleich behandelt: Der
+                    Spielertypen, zum Beispiel Gehfußballer, Offensive Topspieler
+                    oder Defensive Topspieler. Bestehende Vereine können ihre
+                    bereits verwendeten älteren Gruppen weiter nutzen. Der
                     Generator versucht, Spieler jeder Gruppe möglichst gleich
                     auf beide Teams zu verteilen. Das ändert nicht die individuelle
                     Spielstärke und ist keine feste Garantie.

@@ -25,6 +25,7 @@ export const metadata = {
 
 type ClubSettings = {
   use_strength: boolean;
+  protected_player_id?: number | null;
   strength_default: number;
   use_categories: boolean;
   category_label: string | null;
@@ -104,7 +105,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     supabase.from("clubs").select("id, primary_color, display_name, name").eq("id", clubId).maybeSingle<ClubRow>(),
     supabase
       .from("club_settings")
-      .select("use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence")
+      .select("protected_player_id, use_strength, strength_default, use_categories, category_label, position_label, attack_label, defense_label, goalkeeper_label, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence")
       .eq("club_id", clubId)
       .limit(1)
       .maybeSingle(),

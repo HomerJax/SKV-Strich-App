@@ -894,6 +894,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
             className="min-h-11 text-sm font-bold text-slate-600">← Zur kompakten Teamansicht</button>
         ) : null}
         <SessionTeamsCard
+          protectedPlayerId={clubSettings?.protected_player_id ?? null}
           enableBalanceReveal={enableBalanceReveal && pilotAdmin && !trainingWizardOpen}
           generationRunId={enableBalanceReveal ? teamGenerationRunId : 0}
           showStrengthNumbers={enableBalanceReveal && pilotAdmin && pilotView === "admin"}

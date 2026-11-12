@@ -329,6 +329,7 @@ export default function SessionDetailClient(props: SessionDetailClientProps) {
     return (
       <div ref={teamsRef}>
         <SessionTeamsCard
+          protectedPlayerId={clubSettings?.protected_player_id ?? null}
           enableBalanceReveal={enableBalanceReveal}
           generationRunId={enableBalanceReveal ? teamGenerationRunId : 0}
           showStrengthNumbers={enableBalanceReveal && pilotAdmin && pilotView === "admin"}

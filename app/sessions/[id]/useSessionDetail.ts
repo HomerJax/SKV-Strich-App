@@ -14,10 +14,6 @@ import {
   buildLineupShareText,
   getErrorMessage,
   normalizeGoalValue,
-  balanceGroupPenalty,
-  categoryPositionBalancePenalty,
-  positionBalancePenalty,
-  shuffle,
   sumTeamScore,
 } from "./session-ui";
 import type { BalanceCategory } from "./session-ui";
@@ -33,7 +29,6 @@ import {
 } from "./session-detail-helpers";
 import { fetchImageAsFile, shareImageFromUrl } from "@/lib/share/utils";
 import { hasGuidedTrainingAssistant } from "@/lib/training-wizard-pilots";
-import { compareTeamBalanceQuality, type TeamBalanceQuality } from "@/lib/team-generator-quality";
 import { compressImageFile } from "@/lib/client-images/compress-image";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -1223,247 +1218,37 @@ ${sessionUrl}`;
   }
 
   async function generateTeams(): Promise<boolean> {
-    if (!allowTeams) {
-      setErr(t("sessionHook.noTeamsEvent"));
-      return false;
-    }
-
-    if (hasResult) {
-      setErr(t("sessionHook.teamsLocked"));
-      return false;
-    }
-
-    if (attendanceDirty) {
-      setErr(t("sessionHook.saveAttendanceFirst"));
-      return false;
-    }
-
+    if (!allowTeams) { setErr(t("sessionHook.noTeamsEvent")); return false; }
+    if (hasResult) { setErr(t("sessionHook.teamsLocked")); return false; }
+    if (attendanceDirty) { setErr(t("sessionHook.saveAttendanceFirst")); return false; }
     const restoreScroll = preserveScrollPosition();
-
     clearFeedback();
-
-    // A real training leader must never receive individual strength ratings.
-    // Optimize their roster with server-only full ratings, not masked client data.
-    if (!initialIsClubAdmin) {
-      try {
-        const response = await fetch("/api/sessions/" + sessionId + "/balanced-teams", {
-          method: "POST", credentials: "same-origin", cache: "no-store",
-        });
-        const data = await response.json() as {
-          teams?: TeamMap; aggregate?: { a: number; b: number }; error?: string;
-        };
-        if (!response.ok || !data.teams || !data.aggregate)
-          throw new Error(data.error || "Teamgenerator nicht verfügbar.");
-        setManualTeams(data.teams);
-        setTeamsConfirmed(false);
-        setTeamGenerationRunId(run => run + 1);
-        setServerTeamAggregate(data.aggregate);
-        const saved = await persistTeamsNow(data.teams);
-        if (!saved) { restoreScroll(); return false; }
-        setMsg(t("sessionHook.teamsConfirmed"));
-        setTeamsCollapsed(false);
-        restoreScroll();
-        return true;
-      } catch (error) {
-        setErr(getErrorMessage(error, "Teams konnten nicht serverseitig generiert werden."));
-        restoreScroll();
-        return false;
-      }
-    }
-
-    const present = teamGeneratorPlayers;
-    if (present.length < 2) {
-      setErr(t("sessionHook.minPlayers"));
-      restoreScroll();
-      return false;
-    }
-
-    const targetA = Math.ceil(present.length / 2);
-    const targetB = Math.floor(present.length / 2);
-
-    const keepers = present.filter((p) => p.preferred_position === "goalkeeper");
-    const field = present.filter((p) => p.preferred_position !== "goalkeeper");
-    const useStrength = clubSettings?.use_strength ?? true;
-    const useCategories = clubSettings?.use_categories ?? true;
-    const shouldUseScore = useStrength || useCategories;
-    const balanceCategories = initialBalanceCategories ?? [];
-
-    function evaluate(A: Player[], B: Player[]): TeamBalanceQuality {
-      const scoreDiff = shouldUseScore
-        ? Math.abs(
-            sumTeamScore(A, { useStrength, useCategories, balanceCategories }) -
-              sumTeamScore(B, { useStrength, useCategories, balanceCategories })
-          )
-        : 0;
-
-      const goalkeeperDiff = Math.abs(
-        A.filter((player) => player.preferred_position === "goalkeeper").length -
-          B.filter((player) => player.preferred_position === "goalkeeper").length
-      );
-
-      return {
-        goalkeeperDiff,
-        scoreDiff,
-        groupPenalty: balanceGroupPenalty(A, B),
-        categoryPositionPenalty: useCategories
-          ? categoryPositionBalancePenalty(A, B, balanceCategories)
-          : 0,
-        positionPenalty: positionBalancePenalty(A, B),
+    try {
+      // A single server-side generator enforces the same fairness rules for all roles.
+      // Individual strengths remain server-side for non-admin training leaders.
+      const response = await fetch("/api/sessions/" + sessionId + "/balanced-teams", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+      });
+      const data = await response.json() as {
+        teams?: TeamMap; aggregate?: { a: number; b: number }; error?: string;
       };
-    }
-
-    let bestA: Player[] = [];
-    let bestB: Player[] = [];
-    let bestQuality: TeamBalanceQuality | null = null;
-
-    const attempts = Math.max(1200, Math.min(6000, present.length * 250));
-
-    for (let k = 0; k < attempts; k += 1) {
-      const A: Player[] = [];
-      const B: Player[] = [];
-      let keeperCountA = 0;
-      let keeperCountB = 0;
-
-      for (const goalkeeper of shuffle(keepers)) {
-        if (A.length >= targetA) {
-          B.push(goalkeeper);
-          keeperCountB += 1;
-          continue;
-        }
-
-        if (B.length >= targetB) {
-          A.push(goalkeeper);
-          keeperCountA += 1;
-          continue;
-        }
-
-        if (keeperCountA < keeperCountB) {
-          A.push(goalkeeper);
-          keeperCountA += 1;
-        } else if (keeperCountB < keeperCountA) {
-          B.push(goalkeeper);
-          keeperCountB += 1;
-        } else if (Math.random() < 0.5) {
-          A.push(goalkeeper);
-          keeperCountA += 1;
-        } else {
-          B.push(goalkeeper);
-          keeperCountB += 1;
-        }
-      }
-
-      const shuffledField = shuffle(field);
-      const remainingA = targetA - A.length;
-      const remainingB = targetB - B.length;
-
-      A.push(...shuffledField.slice(0, remainingA));
-      B.push(...shuffledField.slice(remainingA, remainingA + remainingB));
-
-      if (!(A.length === targetA && B.length === targetB)) {
-        continue;
-      }
-
-      const quality = evaluate(A, B);
-
-      if (!bestQuality || compareTeamBalanceQuality(quality, bestQuality) < 0) {
-        bestQuality = quality;
-        bestA = A;
-        bestB = B;
-      }
-    }
-
-    if (!bestQuality || bestA.length === 0 || bestB.length === 0) {
-      setErr(t("sessionHook.noValidSplit"));
+      if (!response.ok || !data.teams || !data.aggregate)
+        throw new Error(data.error || "Teamgenerator nicht verfügbar.");
+      setManualTeams(data.teams);
+      setTeamsConfirmed(false);
+      setTeamGenerationRunId(run => run + 1);
+      setServerTeamAggregate(data.aggregate);
+      const saved = await persistTeamsNow(data.teams);
+      if (!saved) { restoreScroll(); return false; }
+      setMsg(t("sessionHook.teamsConfirmed"));
+      setTeamsCollapsed(false);
+      restoreScroll();
+      return true;
+    } catch (error) {
+      setErr(getErrorMessage(error, "Teams konnten nicht serverseitig generiert werden."));
       restoreScroll();
       return false;
     }
-
-    const maxSwapRounds = Math.min(40, present.length * 2);
-
-    for (let round = 0; round < maxSwapRounds; round += 1) {
-      let roundBestA = bestA;
-      let roundBestB = bestB;
-      let roundBestQuality: TeamBalanceQuality = bestQuality;
-      let improved = false;
-
-      for (let aIndex = 0; aIndex < bestA.length; aIndex += 1) {
-        for (let bIndex = 0; bIndex < bestB.length; bIndex += 1) {
-          const candidateA = [...bestA];
-          const candidateB = [...bestB];
-
-          const playerA = candidateA[aIndex];
-          const playerB = candidateB[bIndex];
-          candidateA[aIndex] = playerB;
-          candidateB[bIndex] = playerA;
-
-          const candidateQuality = evaluate(candidateA, candidateB);
-
-          if (compareTeamBalanceQuality(candidateQuality, roundBestQuality) < 0) {
-            roundBestA = candidateA;
-            roundBestB = candidateB;
-            roundBestQuality = candidateQuality;
-            improved = true;
-          }
-        }
-      }
-
-      if (!improved) {
-        break;
-      }
-
-      bestA = roundBestA;
-      bestB = roundBestB;
-      bestQuality = roundBestQuality;
-    }
-
-    const next: TeamMap = {};
-    present.forEach((player) => {
-      next[player.id] = null;
-    });
-
-    for (const player of bestA) next[player.id] = "A";
-    for (const player of bestB) next[player.id] = "B";
-
-    setManualTeams(next);
-    setTeamsConfirmed(false);
-    setTeamGenerationRunId((run) => run + 1);
-    const saved = await persistTeamsNow(next);
-    if (!saved) {
-      restoreScroll();
-      return false;
-    }
-
-    const usesBalanceGroups = present.some((player) =>
-      Boolean(player.balance_group?.trim())
-    );
-
-    const balanceGroupText = usesBalanceGroups
-      ? locale === "de"
-        ? " und Balance-Gruppen"
-        : " and balance groups"
-      : "";
-
-    if (useStrength && useCategories) {
-      setMsg(
-        t("sessionHook.optimizedAll", { groups: balanceGroupText })
-      );
-    } else if (useStrength && !useCategories) {
-      setMsg(
-        t("sessionHook.optimizedStrength", { groups: balanceGroupText })
-      );
-    } else if (!useStrength && useCategories) {
-      setMsg(
-        t("sessionHook.optimizedCategories", { groups: balanceGroupText })
-      );
-    } else {
-      setMsg(
-        t("sessionHook.optimizedPositions", { groups: balanceGroupText })
-      );
-    }
-
-    setTeamsCollapsed(false);
-    restoreScroll();
-    return true;
   }
 
   function confirmTeams() {

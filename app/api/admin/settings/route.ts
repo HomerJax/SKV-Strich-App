@@ -27,6 +27,7 @@ type ClubSettingsRow = {
   rsvp_deadline_minutes_before: number | null;
   require_rsvp_reason_on_absence: boolean | null;
   home_team_feed_enabled: boolean | null;
+  protected_player_id: number | null;
 };
 
 function redirectWithParams(
@@ -220,6 +221,7 @@ export async function POST(request: Request) {
     settingsScope === "rsvp" || hasField(formData, "rsvp_deadline_minutes_before");
 
   const submitsHomeSettings = settingsScope === "home";
+  const submitsProtectedPlayer = settingsScope === "protected_player";
 
   const submitsLanguageSettings =
     settingsScope === "language" || hasField(formData, "default_locale");
@@ -230,6 +232,7 @@ export async function POST(request: Request) {
     !submitsAwardSettings &&
     !submitsRsvpSettings &&
     !submitsHomeSettings &&
+    !submitsProtectedPlayer &&
     !submitsLanguageSettings
   ) {
     return redirectWithParams(request, redirectTo, { error: "nothing_to_save" });
@@ -240,7 +243,7 @@ export async function POST(request: Request) {
   const { data: existingSettings, error: existingSettingsError } = await supabase
     .from("club_settings")
     .select(
-      "club_id, default_locale, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled"
+      "club_id, default_locale, use_strength, use_categories, season_start_day, season_start_month, season_end_day, season_end_month, season_year_mode, awards_started_at, rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, home_team_feed_enabled, protected_player_id"
     )
     .eq("club_id", activeClubId)
     .maybeSingle<ClubSettingsRow>();
@@ -263,6 +266,7 @@ export async function POST(request: Request) {
     rsvp_deadline_minutes_before: FREE_RSVP_DEADLINE_MINUTES,
     require_rsvp_reason_on_absence: false,
     home_team_feed_enabled: false,
+    protected_player_id: null,
   };
 
   const rawDefaultLocale = String(formData.get("default_locale") ?? "")
@@ -372,6 +376,18 @@ export async function POST(request: Request) {
     ? parseBoolean(formData.get("home_team_feed_enabled"))
     : (currentSettings.home_team_feed_enabled ?? false);
 
+  let protectedPlayerId = currentSettings.protected_player_id;
+  if (submitsProtectedPlayer) {
+    const raw = String(formData.get("protected_player_id") ?? "").trim();
+    if (raw) {
+      const id = Number(raw);
+      if (!Number.isSafeInteger(id) || id <= 0) return redirectWithParams(request, redirectTo, { error: "invalid_protected_player" });
+      const { data: player } = await supabase.from("players").select("id").eq("club_id", activeClubId).eq("id", id).eq("is_active", true).neq("roster_role", "staff").maybeSingle();
+      if (!player) return redirectWithParams(request, redirectTo, { error: "invalid_protected_player" });
+      protectedPlayerId = id;
+    } else protectedPlayerId = null;
+  }
+
   const { error: upsertError } = await supabase.from("club_settings").upsert(
     {
       club_id: activeClubId,
@@ -387,6 +403,7 @@ export async function POST(request: Request) {
       rsvp_deadline_minutes_before: rsvpDeadlineMinutesBefore,
       require_rsvp_reason_on_absence: requireRsvpReasonOnAbsence,
       home_team_feed_enabled: homeTeamFeedEnabled,
+      protected_player_id: protectedPlayerId,
     },
     {
       onConflict: "club_id",
