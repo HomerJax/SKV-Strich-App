@@ -104,3 +104,19 @@ test("onboarding season has a default continue path and only optional PRO editin
   assert.match(season, /if \(variant === "onboarding"\)/);
   assert.match(setup, /variant="onboarding" qaPreview=\{qaMode\}/);
 });
+
+test("category onboarding explains its effects, uses real forms and offers explicit continue", () => {
+  const categories = read("components/admin/settings/CategorySettingsSection.tsx");
+  const wizard = read("components/admin/SetupWizard.tsx");
+  const setup = read("app/admin/setup/page.tsx");
+  assert.match(categories, /Spieler sinnvoll in Gruppen einteilen/);
+  assert.match(categories, /Beispiel: Acht Spieler, zwei Teams/);
+  assert.match(categories, /2 Erfahrene/);
+  assert.match(categories, /2 Einsteiger/);
+  assert.match(categories, /Stärkere Gruppe/);
+  assert.match(categories, /Dieser Schritt ist optional/);
+  assert.match(categories, /action=\{addCategoryAction\}/);
+  assert.match(categories, /action=\{updateCategoryAction\}/);
+  assert.match(wizard, /Weiter zum Spielmodus/);
+  assert.match(setup, /categories=\{qaMode\?\[\]:\(categories.data\?\?\[\]\)\}/);
+});
