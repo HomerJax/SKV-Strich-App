@@ -120,3 +120,40 @@ test("category onboarding explains its effects, uses real forms and offers expli
   assert.match(wizard, /Weiter zum Spielmodus/);
   assert.match(setup, /categories=\{qaMode\?\[\]:\(categories.data\?\?\[\]\)\}/);
 });
+
+test("weekly training uses selected season and Thursday 19:00 as editable preset", () => {
+  const helper = read("lib/onboarding/training-template.ts");
+  const form = read("components/admin/TrainingSeriesOnboardingForm.tsx");
+  const setup = read("app/admin/setup/page.tsx");
+  const seasons = read("components/admin/settings/SeasonSettingsCard.tsx");
+  assert.match(helper, /getWeeklyTrainingTemplate\(season: OnboardingSeasonRange, weekday = 4\)/);
+  assert.match(helper, /weekday - base.getUTCDay\(\) \+ 7/);
+  assert.match(helper, /51 \* 7/);
+  assert.match(helper, /startTime: "19:00"/);
+  assert.match(form, /1 × pro Woche/);
+  assert.match(form, /Erstes Training/);
+  assert.match(form, /Trainingsserie anlegen und weiter/);
+  assert.match(form, /value=\{weekday\}/);
+  assert.match(form, /value=\{startDate\}/);
+  assert.match(form, /min=\{activeSeasonStart\}/);
+  assert.match(setup, /selectOnboardingSeason\(seasons.data\?\?\[\]\)/);
+  assert.match(setup, /qaMode\?\{name:"strikr Standardsaison",\.\.\.getQaSeasonRange\(\)\}/);
+  assert.match(setup, /<TrainingSeriesOnboardingForm/);
+  assert.match(setup, /step=rsvp&saved=1/);
+  assert.match(setup, /end_date.is.null,end_date.gte/);
+  assert.match(seasons, /getQaSeasonRange\(\)/);
+  assert.doesNotMatch(setup, /training:<form action=\{addWizardSeries\}/);
+});
+
+test("simulated edited season dates flow into the same training defaults without a write", () => {
+  const wizard = read("components/admin/SetupWizard.tsx");
+  const training = read("components/admin/TrainingSeriesOnboardingForm.tsx");
+  const context = read("components/admin/OnboardingQaSeasonContext.tsx");
+  assert.match(wizard, /new FormData\(form\)/);
+  assert.match(wizard, /setQaSeason\(\{name:/);
+  assert.match(wizard, /OnboardingQaSeasonContext.Provider/);
+  assert.match(training, /useContext\(OnboardingQaSeasonContext\)/);
+  assert.match(training, /qaSeason\?\.start_date \?\? seasonStart/);
+  assert.match(training, /qaSeason \? qaSeason.end_date : seasonEnd/);
+  assert.match(context, /createContext/);
+});

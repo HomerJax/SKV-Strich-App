@@ -7,6 +7,7 @@ import type { AppLocale } from "@/lib/i18n/config";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import ProFeatureLock from "@/components/billing/ProFeatureLock";
+import { getQaSeasonRange } from "@/lib/onboarding/training-template";
 
 type Season = {
   id: number;
@@ -98,7 +99,7 @@ export default async function SeasonSettingsCard({
 
   if (queryError) throw new Error(queryError.message);
 
-  const seasons = (qaPreview ? [{id:-1,club_id:clubId,name:"strikr Standardsaison",start_date:todayIso(),end_date:new Date(new Date(todayIso()+"T12:00:00").getTime()+364*86400000).toISOString().slice(0,10)}] : (data ?? [])) as Season[];
+  const seasons = (qaPreview ? [{id:-1,club_id:clubId,name:"strikr Standardsaison",...getQaSeasonRange()}] : (data ?? [])) as Season[];
   const sessions = (sessionData ?? []) as SessionSummary[];
   const createLabel = createSubmitLabel ?? t("settings.season.create");
 
