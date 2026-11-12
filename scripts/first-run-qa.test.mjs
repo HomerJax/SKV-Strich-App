@@ -116,7 +116,7 @@ test("category onboarding explains its effects, uses real forms and offers expli
   assert.match(categories, /Kategorien\?/);
   assert.match(categories, /Torwart, Abwehr, Angriff/);
   assert.match(categories, /Wie stark ein einzelner Spieler ist/);
-  assert.match(categories, /strikr erkennt das nicht am Alter/);
+  assert.match(categories, /strikr bewertet Spieler nicht automatisch nach ihrem Alter/);
   assert.match(categories, /placeholder=\{copy\("z. B. Jung"/);
   assert.match(setup, /Torhüter und Feldspieler gehören zur Einstellung/);
   assert.doesNotMatch(setup, /etwa Torhüter und Feldspieler/);
