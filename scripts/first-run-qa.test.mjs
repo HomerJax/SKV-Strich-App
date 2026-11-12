@@ -62,6 +62,11 @@ test("preview wizard never saves progress or redirects into the live admin area"
   assert.match(wizard, /Vorschau abgeschlossen!/);
   const preview = read("components/admin/SetupWizardPreview.tsx");
   assert.match(wizard, /<SetupWizardPreview/);
+  assert.match(preview, /import ClubSetupClubStep/);
+  assert.match(preview, /<ClubSetupClubStep/);
+  assert.ok(preview.includes("qaPreview={{ onComplete:"));
+  assert.ok(preview.includes("initialLogoUrl={null}"));
+  assert.ok(!preview.includes("FC Musterstadt"));
   assert.match(preview, /Simulation abschließen/);
   assert.match(preview, /Speichern und weiter/);
   for (const step of ["club", "season", "training", "rsvp", "teams", "categories", "games", "pro"]) {
