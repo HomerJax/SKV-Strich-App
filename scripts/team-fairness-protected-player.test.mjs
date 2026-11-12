@@ -35,3 +35,11 @@ test("admin announcement persists read receipts cross-device", () => {
   assert.match(modal, /admin_feature_announcement_receipts/);
   assert.match(home, /isAdmin && !isSupportView \? <TeamFairnessAdminLaunchModal/);
 });
+\ntest("offensive and defensive top players are balanced separately without score bonuses", async () => {
+  const { balanceGroupPenalty } = await import("../lib/team-generator-quality.ts");
+  const offensive = { balance_group: "Offensive Topspieler" };
+  const defensive = { balance_group: "Defensive Topspieler" };
+  assert.equal(balanceGroupPenalty([offensive, defensive], [offensive, defensive]), 0);
+  assert.equal(balanceGroupPenalty([offensive, offensive], [defensive, defensive]), 8);
+  assert.equal(balanceGroupPenalty([offensive], [offensive]), 0);
+});
