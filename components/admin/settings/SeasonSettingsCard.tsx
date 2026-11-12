@@ -28,6 +28,7 @@ type Props = {
   redirectTo?: string;
   createSubmitLabel?: string;
   variant?: "default" | "onboarding";
+  qaPreview?: boolean;
 };
 
 const WEEKDAY_OPTIONS: Array<{ value: string; labelKey: MessageKey }> = [
@@ -71,6 +72,7 @@ export default async function SeasonSettingsCard({
   redirectTo = "/admin/settings",
   createSubmitLabel,
   variant = "default",
+  qaPreview = false,
 }: Props) {
   const { locale, t } = await getServerI18n();
   const { clubId, membership, isPowerUser } = await requireClub();
@@ -96,9 +98,45 @@ export default async function SeasonSettingsCard({
 
   if (queryError) throw new Error(queryError.message);
 
-  const seasons = (data ?? []) as Season[];
+  const seasons = (qaPreview ? [{id:-1,club_id:clubId,name:"strikr Standardsaison",start_date:todayIso(),end_date:new Date(new Date(todayIso()+"T12:00:00").getTime()+364*86400000).toISOString().slice(0,10)}] : (data ?? [])) as Season[];
   const sessions = (sessionData ?? []) as SessionSummary[];
   const createLabel = createSubmitLabel ?? t("settings.season.create");
+
+  if (variant === "onboarding") {
+    const season = seasons.find(s => isCurrentSeason(s.start_date,s.end_date)) ?? seasons[0];
+    return (
+      <div className="min-w-0 space-y-4">
+        {message ? <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</div> : null}
+        {error ? <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div> : null}
+        <div className="min-w-0 rounded-[24px] border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-4 sm:p-5">
+          <p className="text-[10px] font-black uppercase tracking-[.16em] text-cyan-700">Eure Saison · Schon vorbereitet</p>
+          <h3 className="mt-2 text-xl font-black tracking-tight text-slate-950">Eine Saison für eure Spiele und Statistiken</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-600">strikr legt beim Vereinsstart automatisch eine einjährige Saison an. Alle Trainings, Ergebnisse und Statistiken werden ihr zugeordnet. Du musst nichts zusätzlich anlegen.</p>
+          {season ? <div className="mt-4 min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{qaPreview ? "Simulierte Standardsaison" : "Eure aktive Saison"}</p>
+            <p className="mt-1 break-words text-lg font-black text-slate-950">{season.name}</p>
+            <p className="mt-1 text-sm text-slate-600">{formatDate(season.start_date,locale,t("settings.season.notSet"))} – {season.end_date?formatDate(season.end_date,locale,t("settings.season.notSet")):t("settings.season.open")}</p>
+          </div> : <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">Es wurde noch keine Saison angelegt. Bitte die Vereinsgründung prüfen, bevor du Trainings erstellst.</p>}
+          <p className="mt-3 text-xs leading-5 text-slate-500">Trainingstage und Uhrzeiten folgen erst auf der nächsten Seite „Trainingsbetrieb“.</p>
+        </div>
+        {season && (billingAccess.isPro || qaPreview) ? <details className="group min-w-0 overflow-hidden rounded-[22px] border border-violet-200 bg-white">
+          <summary className="cursor-pointer px-4 py-4 text-sm font-black text-violet-800 focus-visible:outline-offset-[-3px]">Saison-Einstellungen ändern (PRO) <span className="block pt-1 text-xs font-normal text-slate-500">Name, Startdatum und Enddatum individuell festlegen</span></summary>
+          <form action="/api/admin/seasons" method="post" className="min-w-0 space-y-4 border-t border-violet-100 p-4">
+            <input type="hidden" name="intent" value="update"/>
+            <input type="hidden" name="season_id" value={String(season.id)}/>
+            <input type="hidden" name="redirect_to" value={redirectTo}/>
+            <label className="block min-w-0 text-sm font-bold text-slate-800">Saisonname<input required name="name" maxLength={100} defaultValue={season.name} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-950 outline-none focus:border-cyan-400"/></label>
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block min-w-0 text-sm font-bold text-slate-800">Startdatum<input required type="date" name="start_date" defaultValue={toDateInputValue(season.start_date)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-2 py-3 text-base text-slate-950"/></label>
+              <label className="block min-w-0 text-sm font-bold text-slate-800">Enddatum<input type="date" name="end_date" defaultValue={toDateInputValue(season.end_date)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-2 py-3 text-base text-slate-950"/></label>
+            </div>
+            <p className="text-xs leading-5 text-slate-500">{qaPreview?"Simulation: Änderungen werden nicht gespeichert.":"Änderungen an einer Saison können die Zuordnung vorhandener Trainings beeinflussen."}</p>
+            <button type="submit" className="w-full rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white hover:bg-violet-800">Saison-Einstellungen speichern</button>
+          </form>
+        </details> : <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><strong>Mit PRO:</strong> Eigener Saisonname und individueller Zeitraum. Die Standardsaison funktioniert ohne Anpassungen.</div>}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -118,23 +156,7 @@ export default async function SeasonSettingsCard({
         <p className="mt-1">{t("settings.season.hint")}</p>
       </div>
 
-      {variant === "onboarding" ? (
-        <div className="rounded-[24px] border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-5">
-          <div className="text-[10px] font-black uppercase tracking-[.16em] text-cyan-700">Schritt 2 · Saison</div>
-          <h3 className="mt-2 text-xl font-black tracking-tight text-slate-950">Eure Saison ist die Basis für Tabellen und Statistiken</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">strikr legt beim Vereinsstart automatisch eine einjährige Standardsaison an. Alle Trainings und Ergebnisse werden dieser Saison zugeordnet. Mit PRO können Name und Zeitraum individuell angepasst werden.</p>
-          {seasons.map(season=>(
-            <div key={season.id} className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Bereits angelegte Saison</p>
-              <p className="mt-1 text-lg font-black text-slate-950">{season.name}</p>
-              <p className="mt-1 text-xs text-slate-600">{formatDate(season.start_date,locale,t("settings.season.notSet"))} – {season.end_date?formatDate(season.end_date,locale,t("settings.season.notSet")):t("settings.season.open")}</p>
-            </div>
-          ))}
-          <p className="mt-3 text-xs leading-5 text-slate-600">An welchen Wochentagen und zu welchen Uhrzeiten ihr trainiert, legst du erst auf der nächsten Seite „Trainingsbetrieb“ fest.</p>
-        </div>
-      ) : null}
-
-      {variant !== "onboarding" && seasons.length > 0 ? (
+      {seasons.length > 0 ? (
         <div className="space-y-3">
           <div className="text-sm font-semibold text-slate-900">
             {t("settings.season.manageSeries")}
@@ -252,7 +274,7 @@ export default async function SeasonSettingsCard({
                     </label>
                   </div>
           
-                  {variant !== "onboarding" ? <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  {<div className="rounded-2xl border border-slate-200 bg-white p-4">
                     <div className="text-sm font-semibold text-slate-900">
                       {t("settings.season.recurring")}
                     </div>
@@ -282,7 +304,7 @@ export default async function SeasonSettingsCard({
                         </label>
                       ))}
                     </div>
-                  </div> : null}
+                  </div>}
           
                   <button
                     type="submit"

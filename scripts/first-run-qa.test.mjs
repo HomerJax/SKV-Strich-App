@@ -91,3 +91,16 @@ test("real waiting-for-invite screen is reused and QA buttons cannot navigate", 
   assert.match(waiting, /qaPreview \?/);
   assert.match(waiting, /type="button" disabled/);
 });
+
+test("onboarding season has a default continue path and only optional PRO editing", () => {
+  const season = read("components/admin/settings/SeasonSettingsCard.tsx");
+  const wizard = read("components/admin/SetupWizard.tsx");
+  const setup = read("app/admin/setup/page.tsx");
+  assert.match(wizard, /Standardsaison übernehmen und weiter/);
+  assert.match(season, /Saison-Einstellungen ändern \(PRO\)/);
+  assert.match(season, /name="intent" value="update"/);
+  assert.match(season, /qaPreview \? \[/);
+  assert.match(season, /min-w-0 max-w-full/);
+  assert.match(season, /if \(variant === "onboarding"\)/);
+  assert.match(setup, /variant="onboarding" qaPreview=\{qaMode\}/);
+});
