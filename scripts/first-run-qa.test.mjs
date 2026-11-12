@@ -47,9 +47,11 @@ test("admin simulation opens the isolated Power-User wizard with the same areas 
     .map((match) => match[1]);
   const realIds = [...realSetup.matchAll(/\{id:"([^"]+)",title:/g)]
     .map((match) => match[1]);
-  assert.equal(ids.length, 13);
-  assert.deepEqual(ids, realIds);
-  assert.match(wizard, /Alle 13 Bereiche/);
+  assert.equal(ids.length, 8);
+  assert.deepEqual(ids, ["club", "season", "training", "rsvp", "teams", "categories", "games", "pro"]);
+  const realOnboardingIds = realIds.filter((id) => ids.includes(id));
+  assert.deepEqual(ids, realOnboardingIds);
+  assert.match(wizard, /Alle 8 Onboarding-Schritte/);
   assert.doesNotMatch(wizard, /createAdminClient|\.from\(|signUp\(|\.rpc\(|fetch\(/);
 });
 
@@ -58,6 +60,8 @@ test("preview wizard never saves progress or redirects into the live admin area"
   assert.match(wizard, /if\(preview\)return;/);
   assert.match(wizard, /href=\{preview \? "\/power-user\/onboarding-simulator" : "\/admin"\}/);
   assert.match(wizard, /Vorschau abgeschlossen!/);
+  assert.match(wizard, /Simulation abschließen/);
+  assert.match(wizard, /Simulation erfolgreich abgeschlossen/);
   assert.match(wizard, /Es wurden keine Vereinsdaten gespeichert/);
 });
 
