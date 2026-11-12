@@ -46,7 +46,7 @@ test("Power-User simulator renders the actual admin setup rather than separate e
   assert.match(route, /<AdminSetupPage searchParams=\{Promise.resolve\(\{ qa: "1" \}\)\}/);
   assert.doesNotMatch(route, /const definitions|<SetupWizard|Beispielfelder/);
   const ids = [...realSetup.matchAll(/\{id:"([^"]+)",title:/g)].map(match => match[1]);
-  assert.deepEqual(ids, ["club", "season", "training", "rsvp", "teams", "categories", "games", "pro"]);
+  assert.deepEqual(ids, ["club", "season", "training", "rsvp", "teams", "categories", "pro"]);
   assert.match(realSetup, /preview=\{qaMode\}/);
   assert.match(realSetup, /qaMode\?null:progress.data/);
   assert.match(realSetup, /<ClubSetupClubStep/);
@@ -127,7 +127,7 @@ test("category onboarding explains the stronger-category bonus with a short, acc
   assert.match(categories, /Als stärker gewichtet/);
   assert.match(categories, /action=\{addCategoryAction\}/);
   assert.match(categories, /action=\{updateCategoryAction\}/);
-  assert.match(wizard, /Weiter zum Spielmodus/);
+  assert.match(wizard, /Weiter zum Abschluss/);
   assert.match(setup, /Markiere eine Kategorie als stärker/);
   assert.match(generator, /eine Kategorie als stärker markieren/);
   assert.match(scoring, /generatorCategoryClass\(player, balanceCategories\) === "strong" \? 5 : 0/);
@@ -192,4 +192,20 @@ test("second weekly onboarding training is optional with separate weekday and st
   assert.match(setup, /secondNew\.map\(/);
   assert.match(setup, /\.insert\(newSessions\)/);
   assert.match(matrix, /1 oder 2 Trainingstage \/ Woche/);
+});
+
+test("onboarding omits nonfunctional game-mode step without affecting app game features", () => {
+  const setup=read("app/admin/setup/page.tsx");
+  const wizard=read("components/admin/SetupWizard.tsx");
+  const categories=read("components/admin/settings/CategorySettingsSection.tsx");
+  const steps=[...setup.matchAll(/\{id:"([^"]+)",title:/g)].map(m=>m[1]);
+  assert.deepEqual(steps,["club","season","training","rsvp","teams","categories","pro"]);
+  assert.doesNotMatch(setup, /\{id:"games",title:/);
+  assert.match(wizard,/In sieben Schritten startklar/);
+  assert.match(wizard,/Weiter zum Abschluss/);
+  assert.match(wizard,/steps\[index\+1\]\?\.id\|\|"pro"/);
+  assert.match(wizard,/requestedStep=\(queryStep\|\|initial\?\.current_step\)==="games"\?"pro"/);
+  assert.match(wizard,/Alle sieben Onboarding-Schritte sind durchlaufen/);
+  assert.match(categories,/direkt zum Abschluss weitergehen/);
+  assert.doesNotMatch(categories,/mit dem Spielmodus weitermachen/);
 });
