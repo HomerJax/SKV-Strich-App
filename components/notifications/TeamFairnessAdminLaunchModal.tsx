@@ -41,7 +41,7 @@ export default function TeamFairnessAdminLaunchModal() {
     if (!userId || saving) return;
     setSaving(true);
     const { error } = await createClient().from("admin_feature_announcement_receipts")
-      .upsert({ user_id: userId, release_key: RELEASE_KEY }, { onConflict: "user_id,release_key" });
+      .insert({ user_id: userId, release_key: RELEASE_KEY });
     if (!error) setVisible(false);
     setSaving(false);
   }
