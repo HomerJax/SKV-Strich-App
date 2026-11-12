@@ -43,6 +43,10 @@ test("admin simulation opens the isolated Power-User wizard with the same areas 
   assert.match(wizard, /await requirePowerUser\(\)/);
   assert.match(wizard, /<SetupWizard[\s\S]*preview allowTest/);
   assert.match(shell, /pathname === "\/power-user\/onboarding-simulator"/);
+  assert.ok(shell.includes('pathname.startsWith("/power-user/onboarding-simulator/")'));
+  assert.ok(shell.includes('pathname === "/admin/setup"'));
+  assert.ok(shell.includes('pathname === "/club-setup"'));
+  assert.match(wizard, /Design V3/);
   const ids = [...wizard.matchAll(/\["([^"]+)","[^"]+","[^"]+",(?:true|false)\]/g)]
     .map((match) => match[1]);
   const realIds = [...realSetup.matchAll(/\{id:"([^"]+)",title:/g)]
