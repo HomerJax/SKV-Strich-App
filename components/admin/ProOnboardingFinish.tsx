@@ -22,7 +22,6 @@ function formatEndDate(iso: string | null) {
 export default function ProOnboardingFinish({ billing, preview, trialAvailableForNewClubs }: Props) {
   const simulatedTrial = preview && trialAvailableForNewClubs;
   const isTrial = preview ? simulatedTrial : billing.isTrial;
-  const isPro = preview ? simulatedTrial : billing.isPro;
   const isPaidOrFounderPro = !preview && billing.isPro && !billing.isTrial;
   const wasTrial = !preview && billing.billing.plan_key === "pro_trial" && !billing.isTrial;
   const trialEnd = !preview && billing.isTrial ? formatEndDate(billing.billing.trial_ends_at) : null;
