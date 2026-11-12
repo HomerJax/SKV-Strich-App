@@ -62,7 +62,7 @@ test("simulator blocks all form writes and shares exact real setup panels", () =
   assert.match(wizard, /onSubmitCapture=\{preview\?/);
   assert.match(wizard, /event.preventDefault\(\)/);
   assert.match(wizard, /event.stopPropagation\(\)/);
-  assert.match(wizard, /if\(preview\)return;/);
+  assert.match(wizard, /if\(preview\)return true;/);
   assert.match(club, /qaPreview \|\| qaMode \|\| qaInWizard \? undefined :/);
   assert.match(wizard, /Simulation erfolgreich abgeschlossen/);
   assert.match(wizard, /Es wurden keine Vereinsdaten gespeichert/);
@@ -208,4 +208,41 @@ test("onboarding omits nonfunctional game-mode step without affecting app game f
   assert.match(wizard,/Alle sieben Onboarding-Schritte sind durchlaufen/);
   assert.match(categories,/direkt zum Abschluss weitergehen/);
   assert.doesNotMatch(categories,/mit dem Spielmodus weitermachen/);
+});
+
+test("PRO final onboarding step uses the true billing status and has an explicit finish action", () => {
+  const setup=read("app/admin/setup/page.tsx");
+  const wizard=read("components/admin/SetupWizard.tsx");
+  const finish=read("components/admin/ProOnboardingFinish.tsx");
+  const pricing=read("lib/billing/pricing.ts");
+  const billing=read("lib/billing/club-billing.ts");
+  const trial=read("lib/billing/pro-trial.ts");
+
+  assert.match(setup, /pro:<ProOnboardingFinish billing=\{billing\} preview=\{qaMode\} trialAvailableForNewClubs=\{isProTrialEnabled\(\)\}/);
+  assert.match(setup, /id:"pro",title:"PRO-Testphase und Abschluss"/);
+  assert.match(finish, /billing\.isTrial/);
+  assert.match(finish, /billing\.isFounder/);
+  assert.match(finish, /billing\.billing\.trial_ends_at/);
+  assert.match(finish, /billing\.billing\.cancel_at_period_end/);
+  assert.match(finish, /isPaidOrFounderPro/);
+  assert.match(finish, /trialAvailableForNewClubs/);
+  assert.match(finish, /Keine Zahlungsart|Ohne Kreditkarte/);
+  assert.match(finish, /Danach geht es automatisch mit Free weiter/);
+  assert.match(finish, /Eure Vereinsdaten bleiben bestehen/);
+  assert.match(finish, /INTRO_PRICING\.monthly\.label/);
+  assert.match(finish, /INTRO_PRICING\.yearly\.label/);
+  assert.match(finish, /href="\/pro"/);
+  assert.doesNotMatch(finish, /\/api\/billing\/checkout/);
+  assert.doesNotMatch(finish, /createAdminClient|\.from\(|signUp\(|\.rpc\(/);
+  assert.match(pricing, /cents: 4999/);
+  assert.match(billing, /isTrial:/);
+  assert.match(trial, /PRO_TRIAL_DAYS = 28/);
+
+  assert.match(wizard, /const completeOnboarding=async\(\)=>/);
+  assert.match(wizard, /if\(preview\|\|testMode\)/);
+  assert.match(wizard, /if\(!preview\)void save\("pro",skipped,true,completed,reviewed\)/);
+  assert.match(wizard, /await save\("pro",skipped,false,testCompleted,nextReviewed\)/);
+  assert.match(wizard, /if\(saved\)\{setReviewed\(nextReviewed\);router\.push\("\/admin\/members"\);\}/);
+  assert.match(wizard, /Einrichtung abschließen & Mitspieler einladen/);
+  assert.match(wizard, /Simulation abschließen/);
 });
