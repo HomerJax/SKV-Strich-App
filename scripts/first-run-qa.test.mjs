@@ -33,24 +33,32 @@ test("scenario coverage and reset, no production data writes from the QA surface
   assert.doesNotMatch(qa, /createAdminClient|\.from\(|signUp\(|fetch\(|\.rpc\(/);
 });
 
-test("admin first-run opens the real Power-User-gated club setup in QA mode", () => {
+test("admin simulation opens the isolated Power-User wizard with the same areas as real setup", () => {
   const qa = read("app/power-user/onboarding-simulator/FirstRunQA.tsx");
-  const page = read("app/club-setup/page.tsx");
-  const sandbox = read("components/club-setup/ClubSetupQASandbox.tsx");
-  const form = read("components/club-setup/ClubSetupClubStep.tsx");
+  const wizard = read("app/power-user/onboarding-simulator/wizard/page.tsx");
+  const realSetup = read("app/admin/setup/page.tsx");
   const shell = read("components/RouteAwareAppShell.tsx");
   assert.match(qa, /setStage\("club-setup"\)/);
-  assert.match(qa, /\/club-setup\?qa=1&created=1&step=club/);
-  assert.match(page, /if \(qa\) await requirePowerUser\(\)/);
-  assert.match(page, /const auth = qa \? null : await getAuthContext\(\)/);
-  assert.match(page, /<ClubSetupQASandbox/);
-  assert.match(page, /<ClubSetupClubStep/);
-  assert.match(form, /action=\{qaPreview \? undefined : "\/api\/admin\/club"\}/);
-  assert.match(sandbox, /event\.preventDefault\(\)/);
-  assert.match(sandbox, /event\.stopPropagation\(\)/);
-  assert.match(sandbox, /onSubmitCapture=\{onSubmit\}/);
+  assert.match(qa, /href="\/power-user\/onboarding-simulator\/wizard"/);
+  assert.match(wizard, /await requirePowerUser\(\)/);
+  assert.match(wizard, /<SetupWizard[\s\S]*preview allowTest/);
   assert.match(shell, /pathname === "\/power-user\/onboarding-simulator"/);
-  assert.doesNotMatch(sandbox, /createAdminClient|\.from\(|signUp\(|\.rpc\(|fetch\(/);
+  const ids = [...wizard.matchAll(/\["([^"]+)","[^"]+","[^"]+",(?:true|false)\]/g)]
+    .map((match) => match[1]);
+  const realIds = [...realSetup.matchAll(/\{id:"([^"]+)",title:/g)]
+    .map((match) => match[1]);
+  assert.equal(ids.length, 13);
+  assert.deepEqual(ids, realIds);
+  assert.match(wizard, /Alle 13 Bereiche/);
+  assert.doesNotMatch(wizard, /createAdminClient|\.from\(|signUp\(|\.rpc\(|fetch\(/);
+});
+
+test("preview wizard never saves progress or redirects into the live admin area", () => {
+  const wizard = read("components/admin/SetupWizard.tsx");
+  assert.match(wizard, /if\(preview\)return;/);
+  assert.match(wizard, /href=\{preview \? "\/power-user\/onboarding-simulator" : "\/admin"\}/);
+  assert.match(wizard, /Vorschau abgeschlossen!/);
+  assert.match(wizard, /Es wurden keine Vereinsdaten gespeichert/);
 });
 
 test("simulator retains read-only previews and clearly separates real setup from home model", () => {
