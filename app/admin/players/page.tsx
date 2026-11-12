@@ -8,6 +8,7 @@ import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { canManageClub } from "@/lib/auth/access";
 import PlayerSettingsCard from "@/components/admin/PlayerSettingsCard";
 import RosterBulkEditor from "@/components/admin/RosterBulkEditor";
+import BalanceGroupManager from "@/components/admin/BalanceGroupManager";
 import { getServerI18n } from "@/lib/i18n/server";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { FREE_FIXED_PLAYER_LIMIT, FREE_BALANCE_GROUP_LIMIT } from "@/lib/billing/product-limits";
@@ -202,6 +203,11 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
             .map(playerDisplayName)
             .sort((a, b) => a.localeCompare(b, "de")),
         }))}
+      />
+
+      <BalanceGroupManager
+        isPro={billingAccess.isPro}
+        players={generatorPlayers.filter(player => player.is_guest !== true).map(player => ({ id: player.id, name: playerDisplayName(player), balance_group: player.balance_group }))}
       />
 
       <RosterBulkEditor
