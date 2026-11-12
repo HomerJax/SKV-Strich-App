@@ -48,7 +48,7 @@ function authorName(params: {
 
 async function requireTeamChat(clubId: string) {
   const flags = await getFeatureFlagsForClub(clubId);
-  return flags.team_chat === true;
+  return false; // Team chat temporarily disabled for every club.
 }
 
 async function listMessages(clubId: string) {
