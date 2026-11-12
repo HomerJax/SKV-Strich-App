@@ -63,7 +63,7 @@ test("simulator blocks all form writes and shares exact real setup panels", () =
   assert.match(wizard, /event.preventDefault\(\)/);
   assert.match(wizard, /event.stopPropagation\(\)/);
   assert.match(wizard, /if\(preview\)return;/);
-  assert.match(club, /qaInWizard \? undefined :/);
+  assert.match(club, /qaPreview \|\| qaMode \|\| qaInWizard \? undefined :/);
   assert.match(wizard, /Simulation erfolgreich abgeschlossen/);
   assert.match(wizard, /Es wurden keine Vereinsdaten gespeichert/);
 });
@@ -74,7 +74,7 @@ test("simulator retains read-only previews and clearly separates real setup from
   const sandbox = read("components/club-setup/ClubSetupQASandbox.tsx");
   assert.match(qa, /<WaitingForInviteContent qaPreview/);
   assert.match(qa, /<AdminFirstHomePreview/);
-  assert.match(qa, /Echtes Onboarding starten/);
+  assert.match(qa, /Echte Einrichtung simulieren/);
   assert.match(home, /QA-Ablaufmodell/);
   assert.match(home, /Keine Aktionen hier speichern Daten/);
   assert.match(sandbox, /Keine Speicherung/);
