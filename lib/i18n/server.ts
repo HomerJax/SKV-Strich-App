@@ -32,36 +32,47 @@ export const getLocaleResult = cache(async (): Promise<LocaleResult> => {
     headerStore.get("accept-language"),
   );
 
-  let clubLocaleMode: ClubLocaleMode = "auto";
+  // Locale is presentation-only. A stalled auth/database request must not
+  // prevent the root layout (including /login) from rendering indefinitely.
+  const fallback: LocaleResult = {
+    locale: browserLocale,
+    clubLocaleMode: "auto",
+  };
 
-  try {
-    const ctx = await getAuthContext();
+  async function resolveClubLocale(): Promise<LocaleResult> {
+    try {
+      const ctx = await getAuthContext();
+      if (!ctx.activeClubId) return fallback;
 
-    if (ctx.activeClubId) {
       const supabase = await createClient();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("club_settings")
         .select("default_locale")
         .eq("club_id", ctx.activeClubId)
         .maybeSingle<{ default_locale: string | null }>();
 
-      clubLocaleMode = normalizeClubLocaleMode(data?.default_locale);
+      if (error) return fallback;
 
-      if (clubLocaleMode !== "auto") {
-        return {
-          locale: clubLocaleMode,
-          clubLocaleMode,
-        };
-      }
+      const clubLocaleMode = normalizeClubLocaleMode(data?.default_locale);
+      return clubLocaleMode === "auto"
+        ? fallback
+        : { locale: clubLocaleMode, clubLocaleMode };
+    } catch {
+      return fallback;
     }
-  } catch {
-    // Public/unauthenticated routes should still resolve from browser language.
   }
 
-  return {
-    locale: browserLocale,
-    clubLocaleMode,
-  };
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      resolveClubLocale(),
+      new Promise<LocaleResult>((resolve) => {
+        timeout = setTimeout(() => resolve(fallback), 2000);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 });
 
 export async function getServerI18n() {
