@@ -3,6 +3,7 @@ import { getPlayerDisplayName } from "@/lib/player-display";
 
 export type ClubSettings = {
   use_strength: boolean;
+  protected_player_id?: number | null;
   strength_default: number;
   use_categories: boolean;
   category_label: string | null;
