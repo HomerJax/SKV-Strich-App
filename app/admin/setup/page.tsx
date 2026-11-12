@@ -12,7 +12,7 @@ import TeamGeneratorSettingsCard from "@/components/admin/settings/TeamGenerator
 import { CategorySettingsSection } from "@/components/admin/settings/CategorySettingsSection";
 import WizardRsvpForm from "@/components/admin/WizardRsvpForm";
 import TrainingSeriesOnboardingForm from "@/components/admin/TrainingSeriesOnboardingForm";
-import { getQaSeasonRange, selectOnboardingSeason } from "@/lib/onboarding/training-template";
+import { getQaSeasonRange, selectOnboardingSeason, getSecondTrainingStart, getWeeklyTrainingDates } from "@/lib/onboarding/training-template";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 export default async function AdminSetupPage({searchParams}:{searchParams?:Promise<Record<string,string|string[]|undefined>>}) {
@@ -73,23 +73,53 @@ export default async function AdminSetupPage({searchParams}:{searchParams?:Promi
   const start=String(formData.get("start_date")??"");
   const end=String(formData.get("end_date")??"");
   const time=String(formData.get("start_time")??"");
-  const weekdays=String(formData.get("weekday")??"");
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(start)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(end)||!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time)||! /^[0-6]$/.test(weekdays)||end<start)redirect("/admin/setup?step=training&error=date");
+  const weekdayRaw=String(formData.get("weekday")??"");
+  const secondWeekdayRaw=String(formData.get("weekday_two")??"");
+  const secondTime=String(formData.get("start_time_two")??"");
+  const weekday=Number(weekdayRaw);
+  const secondWeekday=secondWeekdayRaw===""?null:Number(secondWeekdayRaw);
+  const dateFormat=/^\\d{4}-\\d{2}-\\d{2}$/;
+  const timeFormat=/^([01]\\d|2[0-3]):[0-5]\\d$/;
+  if(!dateFormat.test(start)||!dateFormat.test(end)||end<start
+    ||!timeFormat.test(time)||! /^[0-6]$/.test(weekdayRaw)
+    ||new Date(start+"T12:00:00Z").getUTCDay()!==weekday
+    ||(secondWeekday!==null && (! /^[0-6]$/.test(secondWeekdayRaw)||secondWeekday===weekday||!timeFormat.test(secondTime)))
+  )redirect("/admin/setup?step=training&error=date");
   const db=await createClient();
-  const {data:season}=await db.from("seasons").select("id,start_date,end_date").eq("club_id",auth.activeClubId).lte("start_date",start).or(`end_date.is.null,end_date.gte.${end}`).limit(1).maybeSingle();
-  if(!season)redirect("/admin/setup?step=training&error=season");
-  if((season.end_date && end>season.end_date)||start<season.start_date)redirect("/admin/setup?step=training&error=season_range");
-  const dates:string[]=[];
-  const cursor=new Date(start+"T12:00:00Z"),last=new Date(end+"T12:00:00Z");
-  while(cursor<=last&&dates.length<53){if(cursor.getUTCDay()===Number(weekdays))dates.push(cursor.toISOString().slice(0,10));cursor.setUTCDate(cursor.getUTCDate()+1)}
-  if(!dates.length||dates.length>52||cursor<=last)redirect("/admin/setup?step=training&error=range");
-  const {data:existing,error:lookupError}=await db.from("sessions").select("date").eq("club_id",auth.activeClubId).in("date",dates).or("type.eq.training,type.is.null");
+  const {data:season}=await db.from("seasons").select("id,start_date,end_date")
+    .eq("club_id",auth.activeClubId).lte("start_date",start)
+    .or(`end_date.is.null,end_date.gte.${end}`).limit(1).maybeSingle();
+  if(!season||!season.start_date)redirect("/admin/setup?step=training&error=season");
+  if((season.end_date&&end>season.end_date)||start<season.start_date)
+    redirect("/admin/setup?step=training&error=season_range");
+  const secondStart=secondWeekday!==null
+    ?getSecondTrainingStart(season.start_date,start,weekday,secondWeekday):null;
+  if(secondWeekday!==null&&(!secondStart||secondStart>end))
+    redirect("/admin/setup?step=training&error=range");
+  const firstDates=getWeeklyTrainingDates(start,end,weekday);
+  const secondDates=secondWeekday!==null&&secondStart
+    ?getWeeklyTrainingDates(secondStart,end,secondWeekday):[];
+  if(!firstDates.length||firstDates.length>52
+    ||(secondWeekday!==null&&(!secondDates.length||secondDates.length>52)))
+    redirect("/admin/setup?step=training&error=range");
+  const allDates=[...new Set([...firstDates,...secondDates])];
+  const {data:existing,error:lookupError}=await db.from("sessions").select("date")
+    .eq("club_id",auth.activeClubId).in("date",allDates)
+    .or("type.eq.training,type.is.null");
   if(lookupError)redirect("/admin/setup?step=training&error=save");
   const seen=new Set((existing??[]).map(x=>x.date));
-  const newDates=dates.filter(x=>!seen.has(x));
-  if(!newDates.length)redirect("/admin/setup?step=training&error=existing");
-  const seriesId=randomUUID();
-  const {error}=await db.from("sessions").insert(newDates.map((date,i)=>({club_id:auth.activeClubId,date,start_time:time,season_id:season.id,type:"training",series_id:seriesId,series_index:i+1})));
+  const firstNew=firstDates.filter(date=>!seen.has(date));
+  const secondNew=secondDates.filter(date=>!seen.has(date));
+  if(!firstNew.length&&!secondNew.length)
+    redirect("/admin/setup?step=training&error=existing");
+  const firstSeriesId=randomUUID();
+  const secondSeriesId=secondNew.length?randomUUID():null;
+  const newSessions=[
+    ...firstNew.map((date,i)=>({club_id:auth.activeClubId,date,start_time:time,season_id:season.id,type:"training",series_id:firstSeriesId,series_index:i+1})),
+    ...secondNew.map((date,i)=>({club_id:auth.activeClubId,date,start_time:secondTime,season_id:season.id,type:"training",series_id:secondSeriesId!,series_index:i+1}))
+  ];
+  // Insert both optional weekday series in one request, not sequential saves.
+  const {error}=await db.from("sessions").insert(newSessions);
   redirect(error?"/admin/setup?step=training&error=save":"/admin/setup?step=rsvp&saved=1");
  }
  const seasonForTraining=qaMode?{name:"strikr Standardsaison",...getQaSeasonRange()}:selectOnboardingSeason(seasons.data??[]);
