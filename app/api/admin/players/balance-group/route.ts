@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   const nextGroup = typeof balanceGroup === "string" ? balanceGroup.trim() : null;
   if (nextGroup) {
     const { data: groupRows, error: groupError } = await supabase.from("players")
-      .select("balance_group").eq("club_id", clubId).not("balance_group", "is", null);
+      .select("id,balance_group").eq("club_id", clubId).not("balance_group", "is", null);
     if (groupError) return NextResponse.json({ error: "Gruppen konnten nicht geprüft werden." }, { status: 500 });
     const existingGroups = new Set((groupRows || []).map(row => row.balance_group).filter(Boolean));
     const permitted = new Set(["Gehfußballer", "Offensive Topspieler", "Defensive Topspieler", ...existingGroups]);
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Diese Balance-Gruppe ist für den Verein nicht verfügbar." }, { status: 400 });
     }
     const billing = await getClubBillingAccess(supabase, clubId);
-    const groupsOtherPlayers = new Set((groupRows || []).map(row => row.balance_group).filter(group => !!group && group !== player.balance_group));
+    const groupsOtherPlayers = new Set((groupRows || []).filter(row => row.id !== playerId).map(row => row.balance_group).filter(Boolean));
     if (!billing.isPro && groupsOtherPlayers.size > 0 && !groupsOtherPlayers.has(nextGroup)) {
       return NextResponse.json({ error: "Free erlaubt nur eine aktive Balance-Gruppe. Mehrere Gruppen gibt es mit PRO." }, { status: 403 });
     }
