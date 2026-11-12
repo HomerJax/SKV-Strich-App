@@ -48,81 +48,61 @@ export async function CategorySettingsSection({
         {saved ? <p role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{t("categories.saved")}</p> : null}
         {error ? <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p> : null}
 
-        <section className="min-w-0 overflow-hidden rounded-[24px] border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-4 sm:p-6">
+        <section className="min-w-0 rounded-[24px] border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-4 sm:p-5">
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-cyan-800">
-            <Users className="h-4 w-4" />{copy("Was sind Kategorien?", "What are categories?")}
+            <Users className="h-4 w-4" />{copy("Einfach erklärt", "Quick explanation")}
           </div>
           <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">
-            {copy("Jung und Alt fair auf die Teams verteilen", "Balance younger and older players across teams")}
+            {copy("Kategorien für fairere Teams", "Categories for fairer teams")}
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-700">
             {copy(
-              "Spielen bei euch zum Beispiel Jüngere und Ältere zusammen? Dann kannst du die Kategorien „Jung“ und „Alt“ anlegen. Bei der Teamaufteilung versucht strikr, diese Gruppen möglichst ausgewogen zu berücksichtigen. Das ist freiwillig – ihr könnt auch ohne Kategorien spielen.",
-              "If younger and older players train together, you can create categories such as “Younger” and “Older”. The team generator can take these groups into account when aiming for balanced teams. Categories are optional."
+              "Mit Kategorien gruppierst du eure Spieler, z. B. „Jung“ und „Alt“. Eine Kategorie kannst du als stärker markieren. strikr gewichtet diese Spieler dann beim Teamausgleich zusätzlich zu ihrer individuellen Spielstärke.",
+              "Group your players into categories, e.g. “Younger” and “Older”. You can mark one category as stronger. strikr then gives players in that category extra weight when balancing teams, in addition to their individual ratings."
             )}
           </p>
 
-          <div className="mt-4 min-w-0 space-y-2 rounded-2xl border border-white bg-white/90 p-3.5 sm:p-4">
-            <p className="text-xs font-black uppercase tracking-wider text-slate-700">{copy("Wichtig: Das sind drei verschiedene Dinge", "Important: three different settings")}</p>
-            <div className="grid min-w-0 gap-2 text-xs leading-5 sm:grid-cols-3">
-              <div className="min-w-0 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
-                <strong className="block text-sm text-cyan-950">{copy("Kategorie", "Category")}</strong>
-                <span className="mt-1 block text-slate-700">{copy("Jung / Alt – welche Gruppe ein Spieler gehört.", "Younger / Older – which group a player belongs to.")}</span>
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-4">
+            <p className="text-xs font-black uppercase tracking-wider text-slate-600">
+              {copy("Beispiel: „Jung“ ist als stärkere Kategorie markiert", "Example: “Younger” is marked as the stronger category")}
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+                <div className="text-xs font-bold text-cyan-950">{copy("Alex · Jung · Stärke 5", "Alex · Younger · rating 5")}</div>
+                <div className="mt-1 text-lg font-black tabular-nums text-slate-950">5 + 5 = 10 <span className="text-xs font-medium">{copy("Punkte", "points")}</span></div>
               </div>
-              <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <strong className="block text-sm text-slate-950">{copy("Position", "Position")}</strong>
-                <span className="mt-1 block text-slate-700">{copy("Torwart, Abwehr, Angriff – das stellst du separat ein.", "Goalkeeper, defense, attack – configured separately.")}</span>
-              </div>
-              <div className="min-w-0 rounded-xl border border-violet-200 bg-violet-50 p-3">
-                <strong className="block text-sm text-violet-950">{copy("Spielstärke", "Player strength")}</strong>
-                <span className="mt-1 block text-slate-700">{copy("Wie stark ein einzelner Spieler ist – unabhängig von seinem Alter.", "How strong an individual player is – regardless of age.")}</span>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="text-xs font-bold text-slate-800">{copy("Ben · Alt · Stärke 5", "Ben · Older · rating 5")}</div>
+                <div className="mt-1 text-lg font-black tabular-nums text-slate-950">5 + 0 = 5 <span className="text-xs font-medium">{copy("Punkte", "points")}</span></div>
               </div>
             </div>
-          </div>
-
-          <div className="mt-4 min-w-0 rounded-[22px] border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-xs font-black uppercase tracking-wider text-slate-700">{copy("Beispiel: 4 Junge + 4 Alte", "Example: 4 younger + 4 older players")}</div>
-              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">{copy("Beispiel, keine Garantie", "Illustration, not guaranteed")}</span>
-            </div>
-            <div className="mt-3 grid min-w-0 grid-cols-2 gap-2.5">
-              {[
-                { title: "TEAM A", border: "border-cyan-200", bg: "bg-cyan-50", dot: "bg-cyan-500" },
-                { title: "TEAM B", border: "border-violet-200", bg: "bg-violet-50", dot: "bg-violet-500" }
-              ].map((team) => (
-                <div key={team.title} className={`min-w-0 rounded-2xl border ${team.border} ${team.bg} p-3`}>
-                  <div className="flex items-center gap-2 text-xs font-black text-slate-950"><span className={`h-2 w-2 rounded-full ${team.dot}`}/>{team.title}</div>
-                  <div className="mt-3 space-y-2 text-xs font-semibold text-slate-800">
-                    <div className="rounded-lg bg-white/90 px-2 py-2">{copy("2 Junge", "2 younger")}</div>
-                    <div className="rounded-lg bg-white/90 px-2 py-2">{copy("2 Alte", "2 older")}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-700">
+            <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-slate-600">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-cyan-700" />
               {copy(
-                "So kann aus einer gemischten Gruppe eine ausgewogenere Aufteilung entstehen. strikr berücksichtigt dabei auch die anderen gewählten Einstellungen, etwa Positionen und Spielstärken.",
-                "This can help mix the groups more evenly. The generator also considers other enabled settings, such as positions and individual strengths."
+                "Bei aktivierten Kategorien und Spielstärken: +5 Gewichtung für die stärkere Kategorie. Das sind Punkte für den Teamgenerator, keine Aussage darüber, wer tatsächlich besser spielt.",
+                "With both categories and player ratings enabled: +5 weighting for the stronger category. These are team-balancing points, not a claim about who actually plays better."
               )}
             </p>
           </div>
           <p className="mt-3 text-xs leading-5 text-slate-600">
-            {copy("Keine altersgemischte Gruppe oder kein Bedarf? Dieser Schritt ist optional. Du kannst Kategorien jederzeit später anlegen.", "No need to split your group? This step is optional and can be configured later.")}
+            {copy(
+              "Positionen (z. B. Torwart) sind etwas anderes und werden separat eingestellt. Kategorien sind optional.",
+              "Positions (e.g. goalkeeper) are configured separately. Categories are optional."
+            )}
           </p>
         </section>
 
         <section className="min-w-0 space-y-3">
           <div>
             <h3 className="text-lg font-black tracking-tight text-slate-950">{copy("Eure Gruppen benennen", "Name your groups")}</h3>
-            <p className="mt-1 text-sm leading-6 text-slate-600">{copy("Starte zum Beispiel mit „Jung“ und füge danach „Alt“ hinzu. Du kannst auch ganz andere Gruppen wählen.", "Start with “Younger” and add “Older” afterwards, or choose different group names.")}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{copy("Lege eure Gruppen fest, zum Beispiel „Jung“ und „Alt“ oder „Erfahren“ und „Einsteiger“.", "Name your groups, e.g. “Younger” and “Older” or “Experienced” and “Beginner”.")}</p>
           </div>
           <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
             <form action={addCategoryAction} className="min-w-0 space-y-3">
               <input type="hidden" name="redirect_to" value={redirectTo}/>
               <label htmlFor="onboarding-category-name" className="block text-sm font-black text-slate-900">{copy("Neue Kategorie", "New category")}</label>
               <input id="onboarding-category-name" name="label" maxLength={60} required placeholder={copy("z. B. Jung", "e.g. Younger")} className="block w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold text-slate-950 outline-none focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100"/>
-              <p className="text-xs leading-5 text-slate-500">{copy("Typische Paare: Jung / Alt oder Erfahren / Weniger erfahren. Lege die beiden Kategorien nacheinander an; eine einzige ist ebenfalls möglich.", "Typical pairs: Younger / Older or Experienced / Less experienced. Add categories one after the other; one category also works.")}</p>
+              <p className="text-xs leading-5 text-slate-500">{copy("Eine Kategorie nach der anderen hinzufügen. Bis zu zwei aktive Kategorien sind in Free enthalten.", "Add one category at a time. Free includes up to two active categories.")}</p>
               <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"><Plus className="h-4 w-4"/>{copy("Kategorie hinzufügen", "Add category")}</button>
             </form>
           </div>
@@ -147,7 +127,7 @@ export async function CategorySettingsSection({
                   <button type="submit" className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-3 text-sm font-black text-slate-900">{copy("Änderungen speichern", "Save changes")}</button>
                 </form>
               ))}
-              <p className="rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-950">{copy("Die zuerst angelegte aktive Kategorie wird zunächst stärker gewichtet. Prüfe, ob das zu eurer Gruppe passt – über „Diese Kategorie stärker gewichten“ kannst du es ändern. strikr bewertet Spieler nicht automatisch nach ihrem Alter. Individuelle Spielstärken sind eine separate Einstellung.", "The first active category is initially weighted as stronger. Check whether that fits your group; you can change it using “Weight this category as stronger”. strikr does not automatically judge players by age. Individual player ratings are separate.")}</p>
+              <p className="rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-950">{copy("Die erste aktive Kategorie ist zunächst als stärker markiert. Du kannst das jederzeit ändern. Das Alter allein bestimmt keine Spielstärke.", "The first active category is initially marked as stronger. You can change this at any time. Age alone does not determine a player’s strength.")}</p>
             </div>
           ) : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">{copy("Noch keine Kategorien angelegt. Wenn ihr keine benötigt, könnt ihr einfach mit dem Spielmodus weitermachen.", "No categories yet. If you don't need any, simply continue to game mode.")}</div>}
 
