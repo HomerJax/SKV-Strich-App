@@ -105,27 +105,33 @@ test("onboarding season has a default continue path and only optional PRO editin
   assert.match(setup, /variant="onboarding" qaPreview=\{qaMode\}/);
 });
 
-test("category onboarding explains its effects, uses real forms and offers explicit continue", () => {
+test("category onboarding explains the stronger-category bonus with a short, accurate example", () => {
   const categories = read("components/admin/settings/CategorySettingsSection.tsx");
   const wizard = read("components/admin/SetupWizard.tsx");
   const setup = read("app/admin/setup/page.tsx");
-  assert.match(categories, /Jung und Alt fair auf die Teams verteilen/);
-  assert.match(categories, /Beispiel: 4 Junge \+ 4 Alte/);
-  assert.match(categories, /2 Junge/);
-  assert.match(categories, /2 Alte/);
-  assert.match(categories, /Kategorien\?/);
-  assert.match(categories, /Torwart, Abwehr, Angriff/);
-  assert.match(categories, /Wie stark ein einzelner Spieler ist/);
-  assert.match(categories, /strikr bewertet Spieler nicht automatisch nach ihrem Alter/);
-  assert.match(categories, /placeholder=\{copy\("z. B. Jung"/);
-  assert.match(setup, /Torhüter und Feldspieler gehören zur Einstellung/);
-  assert.doesNotMatch(setup, /etwa Torhüter und Feldspieler/);
+  const generator = read("components/club-setup/TeamGeneratorOnboardingFields.tsx");
+  const scoring = read("app/sessions/[id]/session-ui.tsx");
 
+  assert.match(categories, /Kategorien für fairere Teams/);
+  assert.doesNotMatch(categories, /Jung und Alt fair auf die Teams verteilen/);
+  assert.match(categories, /Eine Kategorie kannst du als stärker markieren/);
+  assert.match(categories, /„Jung“ ist als stärkere Kategorie markiert/);
+  assert.match(categories, /Alex · Jung · Stärke 5/);
+  assert.match(categories, /Ben · Alt · Stärke 5/);
+  assert.match(categories, /5 \+ 5 = 10/);
+  assert.match(categories, /5 \+ 0 = 5/);
+  assert.match(categories, /Punkte für den Teamgenerator/);
+  assert.match(categories, /Positionen \(z\. B\. Torwart\) sind etwas anderes/);
+  assert.match(categories, /Kategorien sind optional/);
+  assert.match(categories, /Die erste aktive Kategorie ist zunächst als stärker markiert/);
   assert.match(categories, /Als stärker gewichtet/);
-  assert.match(categories, /Dieser Schritt ist optional/);
   assert.match(categories, /action=\{addCategoryAction\}/);
   assert.match(categories, /action=\{updateCategoryAction\}/);
   assert.match(wizard, /Weiter zum Spielmodus/);
+  assert.match(setup, /Markiere eine Kategorie als stärker/);
+  assert.match(generator, /eine Kategorie als stärker markieren/);
+  assert.match(scoring, /generatorCategoryClass\(player, balanceCategories\) === "strong" \? 5 : 0/);
+  assert.match(scoring, /return categoryScore \+ playerStrength/);
   assert.match(setup, /categories=\{qaMode\?\[\]:\(categories.data\?\?\[\]\)\}/);
 });
 
