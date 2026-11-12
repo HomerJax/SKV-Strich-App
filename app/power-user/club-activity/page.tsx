@@ -3,7 +3,7 @@ import { requirePowerUser } from "@/lib/auth/power-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
-type Event = { created_at:string; user_id:string|null; event_name:string; path:string|null };
+type Event = { created_at:string; user_id:string|null; event_name:string; path:string|null; metadata?:Record<string,unknown>|null };
 type Player = { user_id:string|null; name:string|null; first_name:string|null; last_name:string|null };
 type Club = { id:string; display_name:string|null; name:string|null };
 const format = (v:string) => new Date(v).toLocaleString("de-DE",{timeZone:"Europe/Berlin",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
@@ -20,7 +20,7 @@ export default async function ClubActivityPage({searchParams}:{searchParams:Prom
  const clubId=selected?.id;
  const since=new Date(Date.now()-days*86400000).toISOString();
  const [eventResult,playerResult,guestResult]=clubId?await Promise.all([
-  admin.from("product_analytics_events").select("created_at,user_id,event_name,path").eq("club_id",clubId).gte("created_at",since).order("created_at",{ascending:false}).limit(5000),
+  admin.from("product_analytics_events").select("created_at,user_id,event_name,path,metadata").eq("club_id",clubId).gte("created_at",since).order("created_at",{ascending:false}).limit(5000),
   admin.from("players").select("user_id,name,first_name,last_name").eq("club_id",clubId).not("user_id","is",null),
   admin.from("players").select("name,created_at").eq("club_id",clubId).eq("is_guest",true).gte("created_at",since).order("created_at",{ascending:false}).limit(100)
  ]):[{data:[],error:null},{data:[],error:null},{data:[],error:null}];
@@ -37,6 +37,7 @@ export default async function ClubActivityPage({searchParams}:{searchParams:Prom
   featureCounts.set(e.event_name,(featureCounts.get(e.event_name)??0)+1);
  }
  const users=[...userCounts.values()].sort((a,b)=>b.count-a.count);
+ const platforms=new Map<string,number>();for(const e of events){const platform=typeof e.metadata?.platform==="string"?e.metadata.platform:"Nicht erfasst";platforms.set(platform,(platforms.get(platform)??0)+1)}
  const features=[...featureCounts.entries()].sort((a,b)=>b[1]-a[1]);
  const params=(club:string,range:number)=>"/power-user/club-activity?"+new URLSearchParams({club,days:String(range)}).toString();
  return <main className="min-h-screen bg-slate-50 pb-24"><section className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-5 sm:px-6">
@@ -47,7 +48,8 @@ export default async function ClubActivityPage({searchParams}:{searchParams:Prom
  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[["Aufrufe",events.length],["Aktive Konten",userCounts.size],["Bereiche",featureCounts.size],["Neue Gastspieler",guestResult.data?.length??0]].map(([label,value])=><div key={label} className="rounded-2xl border border-slate-200 bg-white p-4"><div className="text-xs font-bold text-slate-500">{label}</div><div className="mt-2 text-3xl font-black">{value}</div></div>)}</div>
  <div className="grid gap-4 md:grid-cols-2"><section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="text-lg font-black">Aktive Nutzer</h2><div className="mt-3 divide-y divide-slate-100">{users.map((u,i)=><div key={i} className="flex items-center justify-between gap-3 py-3 text-sm"><div><div className="font-bold">{u.name}</div><div className="text-xs text-slate-500">Zuletzt {format(u.last)}</div></div><span className="font-black">{u.count}</span></div>)}{!users.length?<p className="py-5 text-sm text-slate-500">Keine Ereignisse im Zeitraum.</p>:null}</div></section>
  <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="text-lg font-black">Genutzte Bereiche</h2><div className="mt-3 divide-y divide-slate-100">{features.map(([name,count])=><div key={name} className="flex justify-between gap-3 py-3 text-sm"><span>{labels[name]??name}</span><b>{count}</b></div>)}</div></section></div>
- <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="text-lg font-black">Aktivitätsverlauf</h2><p className="mt-1 text-xs text-slate-500">Neueste zuerst · Uhrzeit Deutschland · maximal 5.000 Ereignisse</p><div className="mt-4 max-h-[700px] overflow-auto divide-y divide-slate-100">{events.map((e,i)=><div key={i} className="grid grid-cols-[92px_1fr] gap-3 py-3 text-sm sm:grid-cols-[120px_1fr_1fr]"><span className="text-xs text-slate-500">{format(e.created_at)}</span><span className="font-semibold">{e.user_id?(playerNames.get(e.user_id)??"Support / ohne Spielerprofil"):"Nicht zugeordnet"}</span><span className="col-start-2 text-slate-600 sm:col-start-auto">{labels[e.event_name]??e.event_name} <span className="text-xs text-slate-400">{e.path}</span></span></div>)}{!events.length?<p className="py-5 text-sm text-slate-500">Keine Ereignisse.</p>:null}</div></section>
- <p className="text-xs text-slate-500">Die Ansicht zeigt nur bereits instrumentierte Ereignisse. Öffnungen ohne Tracking, echte Anmeldungen, Gerätearten und einzelne Klicks können nicht zuverlässig rekonstruiert werden. Konten ohne Vereins-Spielerprofil können Supportzugriffe sein. Neue Gäste sind angelegte Datensätze, keine Registrierungen.</p>
+ <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="text-lg font-black">Geräteplattformen</h2><p className="mt-1 text-xs text-slate-500">Nur für neu erfasste Ereignisse verfügbar.</p><div className="mt-3 flex flex-wrap gap-2">{[...platforms.entries()].map(([name,count])=><span key={name} className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold">{name}: {count}</span>)}</div></section>
+ <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="text-lg font-black">Aktivitätsverlauf</h2><p className="mt-1 text-xs text-slate-500">Neueste zuerst · Uhrzeit Deutschland · maximal 5.000 Ereignisse</p><div className="mt-4 max-h-[700px] overflow-auto divide-y divide-slate-100">{events.map((e,i)=><div key={i} className="grid grid-cols-[92px_1fr] gap-3 py-3 text-sm sm:grid-cols-[120px_1fr_1fr]"><span className="text-xs text-slate-500">{format(e.created_at)}</span><span className="font-semibold">{e.user_id?(playerNames.get(e.user_id)??"Support / ohne Spielerprofil"):"Nicht zugeordnet"}</span><span className="col-start-2 text-slate-600 sm:col-start-auto">{labels[e.event_name]??e.event_name} <span className="text-xs text-slate-400">{e.path} {typeof e.metadata?.platform==="string"?"· "+e.metadata.platform:""} {typeof e.metadata?.action==="string"?"· "+e.metadata.action:""}</span></span></div>)}{!events.length?<p className="py-5 text-sm text-slate-500">Keine Ereignisse.</p>:null}</div></section>
+ <p className="text-xs text-slate-500">Die Ansicht zeigt nur bereits instrumentierte Ereignisse. Öffnungen ohne Tracking, Echte Logins werden noch nicht separat bestätigt; Gerätearten sind nur für neue Ereignisse verfügbar und einzelne Klicks werden nur bei ausdrücklich instrumentierten Aktionen erfasst. Konten ohne Vereins-Spielerprofil können Supportzugriffe sein. Neue Gäste sind angelegte Datensätze, keine Registrierungen.</p>
  </section></main>;
 }
