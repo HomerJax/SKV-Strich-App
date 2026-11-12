@@ -157,3 +157,25 @@ test("simulated edited season dates flow into the same training defaults without
   assert.match(training, /qaSeason \? qaSeason.end_date : seasonEnd/);
   assert.match(context, /createContext/);
 });
+
+test("second weekly onboarding training is optional with separate weekday and start time", () => {
+  const training = read("components/admin/TrainingSeriesOnboardingForm.tsx");
+  const helper = read("lib/onboarding/training-template.ts");
+  const setup = read("app/admin/setup/page.tsx");
+  const matrix = read("lib/billing/product-matrix.ts");
+  assert.match(training, /Optional: zweiten Trainingstag hinzufügen/);
+  assert.match(training, /secondEnabled, setSecondEnabled/);
+  assert.match(training, /name="weekday_two" required/);
+  assert.match(training, /name="start_time_two" required/);
+  assert.match(training, /disabled=\{index === weekday\}/);
+  assert.match(training, /getSecondTrainingStart\(activeSeasonStart, startDate, weekday/);
+  assert.match(training, /Beide Trainingsserien anlegen und weiter/);
+  assert.match(helper, /export function getSecondTrainingStart/);
+  assert.match(helper, /export function getWeeklyTrainingDates/);
+  assert.match(setup, /secondWeekdayRaw===""\?null:Number\(secondWeekdayRaw\)/);
+  assert.match(setup, /secondWeekday===weekday/);
+  assert.match(setup, /getSecondTrainingStart\(season.start_date,start,weekday,secondWeekday\)/);
+  assert.match(setup, /secondNew\.map\(/);
+  assert.match(setup, /\.insert\(newSessions\)/);
+  assert.match(matrix, /1 oder 2 Trainingstage \/ Woche/);
+});
