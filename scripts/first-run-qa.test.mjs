@@ -33,50 +33,37 @@ test("scenario coverage and reset, no production data writes from the QA surface
   assert.doesNotMatch(qa, /createAdminClient|\.from\(|signUp\(|fetch\(|\.rpc\(/);
 });
 
-test("admin simulation opens the isolated Power-User wizard with the same areas as real setup", () => {
+test("Power-User simulator renders the actual admin setup rather than separate example fields", () => {
   const qa = read("app/power-user/onboarding-simulator/FirstRunQA.tsx");
-  const wizard = read("app/power-user/onboarding-simulator/wizard/page.tsx");
+  const route = read("app/power-user/onboarding-simulator/wizard/page.tsx");
   const realSetup = read("app/admin/setup/page.tsx");
   const shell = read("components/RouteAwareAppShell.tsx");
   assert.match(qa, /setStage\("club-setup"\)/);
   assert.match(qa, /href="\/power-user\/onboarding-simulator\/wizard"/);
-  assert.match(wizard, /await requirePowerUser\(\)/);
-  assert.match(wizard, /<SetupWizard[\s\S]*preview allowTest/);
-  assert.match(shell, /pathname === "\/power-user\/onboarding-simulator"/);
-  assert.ok(shell.includes('pathname.startsWith("/power-user/onboarding-simulator/")'));
-  assert.ok(shell.includes('pathname === "/admin/setup"'));
-  assert.ok(shell.includes('pathname === "/club-setup"'));
-  assert.match(wizard, /Design V3/);
-  const ids = [...wizard.matchAll(/\["([^"]+)","[^"]+","[^"]+",(?:true|false)\]/g)]
-    .map((match) => match[1]);
-  const realIds = [...realSetup.matchAll(/\{id:"([^"]+)",title:/g)]
-    .map((match) => match[1]);
-  assert.equal(ids.length, 8);
+  assert.match(qa, /Echte Einrichtung simulieren/);
+  assert.match(route, /await requirePowerUser\(\)/);
+  assert.match(route, /import AdminSetupPage from "@\/app\/admin\/setup\/page"/);
+  assert.match(route, /<AdminSetupPage searchParams=\{Promise.resolve\(\{ qa: "1" \}\)\}/);
+  assert.doesNotMatch(route, /const definitions|<SetupWizard|Beispielfelder/);
+  const ids = [...realSetup.matchAll(/\{id:"([^"]+)",title:/g)].map(match => match[1]);
   assert.deepEqual(ids, ["club", "season", "training", "rsvp", "teams", "categories", "games", "pro"]);
-  const realOnboardingIds = realIds.filter((id) => ids.includes(id));
-  assert.deepEqual(ids, realOnboardingIds);
-  assert.match(wizard, /Alle 8 Onboarding-Schritte/);
-  assert.doesNotMatch(wizard, /createAdminClient|\.from\(|signUp\(|\.rpc\(|fetch\(/);
+  assert.match(realSetup, /preview=\{qaMode\}/);
+  assert.match(realSetup, /qaMode\?null:progress.data/);
+  assert.match(realSetup, /<ClubSetupClubStep/);
+  assert.match(realSetup, /qaInWizard=\{qaMode\}/);
+  assert.ok(shell.includes('pathname.startsWith("/power-user/onboarding-simulator/")'));
 });
 
-test("preview wizard never saves progress or redirects into the live admin area", () => {
+test("simulator blocks all form writes and shares exact real setup panels", () => {
   const wizard = read("components/admin/SetupWizard.tsx");
+  const club = read("components/club-setup/ClubSetupClubStep.tsx");
+  assert.doesNotMatch(wizard, /SetupWizardPreview/);
+  assert.match(wizard, /inlinePanels\[current.id\]/);
+  assert.match(wizard, /onSubmitCapture=\{preview\?/);
+  assert.match(wizard, /event.preventDefault\(\)/);
+  assert.match(wizard, /event.stopPropagation\(\)/);
   assert.match(wizard, /if\(preview\)return;/);
-  assert.match(wizard, /href=\{preview \? "\/power-user\/onboarding-simulator" : "\/admin"\}/);
-  assert.match(wizard, /Vorschau abgeschlossen!/);
-  const preview = read("components/admin/SetupWizardPreview.tsx");
-  assert.match(wizard, /<SetupWizardPreview/);
-  assert.match(preview, /import ClubSetupClubStep/);
-  assert.match(preview, /<ClubSetupClubStep/);
-  assert.ok(preview.includes("qaPreview={{ onComplete:"));
-  assert.ok(preview.includes("initialLogoUrl={null}"));
-  assert.ok(!preview.includes("FC Musterstadt"));
-  assert.match(preview, /Simulation abschließen/);
-  assert.match(preview, /Speichern und weiter/);
-  for (const step of ["club", "season", "training", "rsvp", "teams", "categories", "games", "pro"]) {
-    assert.match(preview, new RegExp('step === "' + step + '"'));
-  }
-  assert.doesNotMatch(preview, /createAdminClient|\.from\(|signUp\(|\.rpc\(|fetch\(/);
+  assert.match(club, /qaPreview \|\| qaMode \|\| qaInWizard \? undefined :/);
   assert.match(wizard, /Simulation erfolgreich abgeschlossen/);
   assert.match(wizard, /Es wurden keine Vereinsdaten gespeichert/);
 });
@@ -87,7 +74,7 @@ test("simulator retains read-only previews and clearly separates real setup from
   const sandbox = read("components/club-setup/ClubSetupQASandbox.tsx");
   assert.match(qa, /<WaitingForInviteContent qaPreview/);
   assert.match(qa, /<AdminFirstHomePreview/);
-  assert.match(qa, /Echtes Onboarding starten/);
+  assert.match(qa, /Echte Einrichtung simulieren/);
   assert.match(home, /QA-Ablaufmodell/);
   assert.match(home, /Keine Aktionen hier speichern Daten/);
   assert.match(sandbox, /Keine Speicherung/);

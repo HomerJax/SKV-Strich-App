@@ -200,7 +200,7 @@ export default function FirstRunQA() {
                 else setStage("after");
               } }} />
           ) : stage === "club-setup" && scenario === "admin" ? (
-            <div className="space-y-4 bg-white p-6"><h2 className="text-xl font-black text-slate-950">Jetzt folgt das echte Vereins-Onboarding</h2><p className="text-sm text-slate-600">Der nächste Schritt öffnet den neuen 14-Schritte-Admin-Wizard als isolierte Vorschau ohne Vereinsbindung oder Datenbank-Schreibzugriffe.</p><Link href="/power-user/onboarding-simulator/wizard" className="inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Echtes Onboarding starten</Link></div>
+            <div className="space-y-4 bg-white p-6"><h2 className="text-xl font-black text-slate-950">Jetzt folgt das echte Vereins-Onboarding</h2><p className="text-sm text-slate-600">Der nächste Schritt öffnet denselben achtstufigen Einrichtungswizard wie beim echten Vereinsstart. Eingaben werden im Test vor dem Speichern abgefangen, damit bestehende Vereinsdaten unverändert bleiben.</p><Link href="/power-user/onboarding-simulator/wizard" className="inline-flex rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Echte Einrichtung simulieren</Link></div>
           ) : scenario === "waiting" ? (
             <WaitingForInviteContent qaPreview />
           ) : scenario === "admin" ? (
