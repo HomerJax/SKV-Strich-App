@@ -96,7 +96,7 @@ export default async function PlayerSettingsCard({
 
   return (
     <section
-      className={`rounded-[28px] border border-black/10 bg-white p-5 shadow-sm sm:p-6 ${className}`}
+      className={`min-w-0 max-w-full rounded-[28px] border border-black/10 bg-white p-4 shadow-sm sm:p-6 ${className}`}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
