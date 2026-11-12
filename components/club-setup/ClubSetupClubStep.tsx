@@ -90,6 +90,7 @@ export default function ClubSetupClubStep({
   variant = "default",
   qaPreview,
   qaMode = false,
+  qaInWizard = false,
 }: ClubSetupClubStepProps) {
   const { t } = useI18n();
   const [displayName, setDisplayName] = useState(initialDisplayName);
@@ -137,9 +138,9 @@ export default function ClubSetupClubStep({
 
 
       <form
-        method={qaPreview || qaMode ? undefined : "post"}
-        action={qaPreview || qaMode ? undefined : "/api/admin/club"}
-        encType={qaPreview || qaMode ? undefined : "multipart/form-data"}
+        method={qaPreview || qaMode || qaInWizard ? undefined : "post"}
+        action={qaPreview || qaMode || qaInWizard ? undefined : "/api/admin/club"}
+        encType={qaPreview || qaMode || qaInWizard ? undefined : "multipart/form-data"}
         onSubmit={qaMode ? (event) => {
           event.preventDefault();
           event.stopPropagation();
