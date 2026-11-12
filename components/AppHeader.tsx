@@ -218,7 +218,7 @@ export default async function AppHeader() {
 
   if (ctx.user && activeClubId) {
     const flags = await getFeatureFlagsForClub(activeClubId);
-    showTeamChatLink = flags.team_chat === true;
+    showTeamChatLink = false; // Team chat temporarily disabled globally.
   }
 
   const nickname = profilePlayer?.nickname?.trim() || null;
