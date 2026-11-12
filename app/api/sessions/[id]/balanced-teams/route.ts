@@ -27,7 +27,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     { data: settings, error: settingsErr }, { data: categories, error: categoriesErr }] = await Promise.all([
     db.from("results").select("id").eq("session_id",id).eq("club_id",access.clubId).limit(1),
     db.from("session_players").select("player_id").eq("session_id",id),
-    db.from("club_settings").select("use_strength,use_categories,strength_default").eq("club_id",access.clubId).maybeSingle(),
+    db.from("club_settings").select("use_strength,use_categories,strength_default,protected_player_id").eq("club_id",access.clubId).maybeSingle(),
     db.from("club_categories").select("key,label,is_strong").eq("club_id",access.clubId).eq("is_active",true),
   ]);
   if (resultErr || attendanceErr || settingsErr || categoriesErr)
@@ -51,6 +51,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     const generated = generateBalancedTeamMap(present, {
       useStrength: settings?.use_strength !== false, useCategories: settings?.use_categories !== false,
       balanceCategories: categoryList,
+      protectedPlayerId: settings?.protected_player_id ?? null,
     });
     // Aggregate two team totals only. No individual strengths, source players or
     // per-player scores are ever emitted by this endpoint.
@@ -82,7 +83,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     { data: categories, error: categoryError },
   ] = await Promise.all([
     db.from("teams").select("id,name").eq("session_id",id).eq("club_id",access.clubId),
-    db.from("club_settings").select("use_strength,use_categories,strength_default")
+    db.from("club_settings").select("use_strength,use_categories,strength_default,protected_player_id")
       .eq("club_id",access.clubId).maybeSingle(),
     db.from("club_categories").select("key,label,is_strong").eq("club_id",access.clubId).eq("is_active",true),
   ]);
