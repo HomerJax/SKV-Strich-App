@@ -197,7 +197,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
         missingPositionCount={missingPositionCount}
         defaultStrengthCount={defaultStrengthCount}
         balanceGroupCount={balanceGroupCount}
-        balanceGroupManager={<BalanceGroupManager isPro={billingAccess.isPro} players={generatorPlayers.filter(player => player.is_guest !== true).map(player => ({ id: player.id, name: playerDisplayName(player), balance_group: player.balance_group }))} />}
+        balanceGroupManager={<BalanceGroupManager isPro={billingAccess.isPro} players={generatorPlayers.filter(player => player.is_guest !== true).map(player => ({ id: player.id, name: playerDisplayName(player), balance_group: player.balance_group, strength: player.strength }))} />}
         balanceGroups={balanceGroups.map(([name, groupPlayers]) => ({
           name,
           players: groupPlayers
