@@ -82,6 +82,8 @@ function applyCoreProductDefaults(flags: ClubFeatureFlagMap) {
   flags.use_field_view = true;
   flags.home_session_rsvp = true;
   flags.session_types = true;
+  // Team chat is temporarily disabled globally, regardless of legacy DB rows.
+  flags.team_chat = false;
 
   // Das alte MVP-pro-Training-Modell wird bewusst nicht mehr ausgerollt.
   // Ein späteres Halbserien-/Saison-Voting bekommt ein neues Konzept.
