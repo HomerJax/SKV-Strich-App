@@ -60,7 +60,14 @@ test("preview wizard never saves progress or redirects into the live admin area"
   assert.match(wizard, /if\(preview\)return;/);
   assert.match(wizard, /href=\{preview \? "\/power-user\/onboarding-simulator" : "\/admin"\}/);
   assert.match(wizard, /Vorschau abgeschlossen!/);
-  assert.match(wizard, /Simulation abschließen/);
+  const preview = read("components/admin/SetupWizardPreview.tsx");
+  assert.match(wizard, /<SetupWizardPreview/);
+  assert.match(preview, /Simulation abschließen/);
+  assert.match(preview, /Speichern und weiter/);
+  for (const step of ["club", "season", "training", "rsvp", "teams", "categories", "games", "pro"]) {
+    assert.match(preview, new RegExp('step === "' + step + '"'));
+  }
+  assert.doesNotMatch(preview, /createAdminClient|\.from\(|signUp\(|\.rpc\(|fetch\(/);
   assert.match(wizard, /Simulation erfolgreich abgeschlossen/);
   assert.match(wizard, /Es wurden keine Vereinsdaten gespeichert/);
 });
