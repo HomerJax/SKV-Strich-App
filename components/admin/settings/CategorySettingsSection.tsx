@@ -1,5 +1,4 @@
-import OnboardingExamples from "@/components/club-setup/OnboardingExamples";
-import { Users, ShieldCheck, Plus, Check, ArrowRight } from "lucide-react";
+import { Users, ShieldCheck, Plus, Check } from "lucide-react";
 import {
   addCategoryAction,
   updateCategoryAction,
@@ -155,36 +154,22 @@ export async function CategorySettingsSection({
         ) : null}
       </div>
 
-      {variant === "onboarding" ? (
-        <div className="rounded-[22px] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-cyan-50 p-5 text-sm leading-6 text-slate-700">
-          <div className="font-black text-slate-950">{t("categories.shortExplain")}</div>
-          <p className="mt-1">
-            {t("categories.shortExplainText")}
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
-          <div className="font-bold">{t("categories.whichStronger")}</div>
-          <p className="mt-1">
-            {t("categories.whichStrongerText")}
-          </p>
-          <p className="mt-2 text-blue-900">
-            {t("categories.onlyOneStrong")}
-          </p>
-        </div>
-      )}
+      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+        <div className="font-bold">{t("categories.whichStronger")}</div>
+        <p className="mt-1">{t("categories.whichStrongerText")}</p>
+        <p className="mt-2 text-blue-900">{t("categories.onlyOneStrong")}</p>
+      </div>
 
-      {variant === "onboarding" ? <OnboardingExamples kind="categories" /> : null}
-      <div className={variant === "onboarding" ? "rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm" : "rounded-xl border border-black/10 bg-neutral-50 p-3"}>
+      <div className="rounded-xl border border-black/10 bg-neutral-50 p-3">
         <form action={addCategoryAction} className="flex gap-2">
           <input type="hidden" name="redirect_to" value={redirectTo} />
           <input
             name="label"
             required
             placeholder={t("categories.newPlaceholder")}
-            className={variant === "onboarding" ? "min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-950 outline-none transition focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100" : "flex-1 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm"}
+            className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm"
           />
-          <button type="submit" className={variant === "onboarding" ? "rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800" : "rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white"}>
+          <button type="submit" className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white">
             {t("categories.add")}
           </button>
         </form>
