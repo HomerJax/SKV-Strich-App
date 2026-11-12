@@ -109,11 +109,19 @@ test("category onboarding explains its effects, uses real forms and offers expli
   const categories = read("components/admin/settings/CategorySettingsSection.tsx");
   const wizard = read("components/admin/SetupWizard.tsx");
   const setup = read("app/admin/setup/page.tsx");
-  assert.match(categories, /Spieler sinnvoll in Gruppen einteilen/);
-  assert.match(categories, /Beispiel: Acht Spieler, zwei Teams/);
-  assert.match(categories, /2 Erfahrene/);
-  assert.match(categories, /2 Einsteiger/);
-  assert.match(categories, /Stärkere Gruppe/);
+  assert.match(categories, /Jung und Alt fair auf die Teams verteilen/);
+  assert.match(categories, /Beispiel: 4 Junge \+ 4 Alte/);
+  assert.match(categories, /2 Junge/);
+  assert.match(categories, /2 Alte/);
+  assert.match(categories, /Kategorien\?/);
+  assert.match(categories, /Torwart, Abwehr, Angriff/);
+  assert.match(categories, /Wie stark ein einzelner Spieler ist/);
+  assert.match(categories, /strikr erkennt das nicht am Alter/);
+  assert.match(categories, /placeholder=\{copy\("z. B. Jung"/);
+  assert.match(setup, /Torhüter und Feldspieler gehören zur Einstellung/);
+  assert.doesNotMatch(setup, /etwa Torhüter und Feldspieler/);
+
+  assert.match(categories, /Als stärker gewichtet/);
   assert.match(categories, /Dieser Schritt ist optional/);
   assert.match(categories, /action=\{addCategoryAction\}/);
   assert.match(categories, /action=\{updateCategoryAction\}/);
