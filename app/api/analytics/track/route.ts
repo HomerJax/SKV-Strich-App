@@ -6,7 +6,7 @@ const ALLOWED_EVENTS = new Set([
   "home_open","sessions_open","session_detail_open","my_stats_open",
   "standings_open","player_pass_open","compare_open","mvp_open",
   "team_feed_open","badge_open","team_cashbox_open","beer_cashbox_open",
-  "event_roster_open","admin_open","other_page_open"
+  "event_roster_open","admin_open","other_page_open","visit_started","ui_action"
 ]);
 
 function normalizeEvent(path: string) {
@@ -39,8 +39,9 @@ export async function POST(request: Request) {
       : path ? normalizeEvent(path) : null;
     if (!eventName) return NextResponse.json({ ok: false }, { status: 400 });
 
-    const metadata = body.metadata && typeof body.metadata === "object"
+    const metadata = body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata)
       ? body.metadata : {};
+    if (eventName === "ui_action" && (typeof metadata.action !== "string" || !/^[a-z0-9_]{2,60}$/.test(metadata.action))) return NextResponse.json({ ok: false }, { status: 400 });
 
     const admin = createAdminClient();
     const { error } = await admin.from("product_analytics_events").insert({
