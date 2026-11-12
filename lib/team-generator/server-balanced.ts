@@ -11,7 +11,7 @@ import { compareTeamBalanceQuality, type TeamBalanceQuality } from "@/lib/team-g
  * No per-player strengths or scores are returned to the caller. */
 export function generateBalancedTeamMap(
   present: Player[],
-  options: { useStrength: boolean; useCategories: boolean; balanceCategories: BalanceCategory[] },
+  options: { useStrength: boolean; useCategories: boolean; balanceCategories: BalanceCategory[]; protectedPlayerId?: number | null },
 ): { teams: TeamMap; aggregate: { a: number; b: number } } {
   if (present.length < 2) throw new Error("Mindestens zwei anwesende Spieler erforderlich.");
   const targetA = Math.ceil(present.length / 2);
@@ -20,6 +20,8 @@ export function generateBalancedTeamMap(
   const field = present.filter(p => p.preferred_position !== "goalkeeper");
   const {useStrength, useCategories, balanceCategories} = options;
   const shouldUseScore = useStrength || useCategories;
+  const protectedId = present.length % 2 === 1 && present.some(p => p.id === options.protectedPlayerId)
+    ? options.protectedPlayerId : null;
 
   const evaluate = (A: Player[], B: Player[]): TeamBalanceQuality => ({
     goalkeeperDiff: Math.abs(
@@ -39,9 +41,13 @@ export function generateBalancedTeamMap(
   for (let k = 0; k < attempts; k++) {
     const A: Player[] = [];
     const B: Player[] = [];
+    if (protectedId != null) {
+      const protectedPlayer = present.find(p => p.id === protectedId)!;
+      A.push(protectedPlayer);
+    }
     let keepersA = 0;
     let keepersB = 0;
-    for (const keeper of shuffle(keepers)) {
+    for (const keeper of shuffle(keepers.filter(p => p.id !== protectedId))) {
       if (A.length >= targetA) { B.push(keeper); keepersB++; }
       else if (B.length >= targetB) { A.push(keeper); keepersA++; }
       else if (keepersA < keepersB) { A.push(keeper); keepersA++; }
@@ -49,7 +55,7 @@ export function generateBalancedTeamMap(
       else if (Math.random() < .5) { A.push(keeper); keepersA++; }
       else { B.push(keeper); keepersB++; }
     }
-    const shuffled = shuffle(field);
+    const shuffled = shuffle(field.filter(p => p.id !== protectedId));
     const remainingA = targetA - A.length;
     const remainingB = targetB - B.length;
     A.push(...shuffled.slice(0, remainingA));
@@ -67,6 +73,7 @@ export function generateBalancedTeamMap(
     let quality: TeamBalanceQuality = bestQuality;
     let improved = false;
     for (let i = 0; i < bestA.length; i++) {
+      if (bestA[i].id === protectedId) continue;
       for (let j = 0; j < bestB.length; j++) {
         const A = [...bestA], B = [...bestB];
         [A[i],B[j]] = [B[j],A[i]];
