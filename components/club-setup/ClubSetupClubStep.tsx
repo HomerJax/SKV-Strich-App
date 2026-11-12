@@ -305,6 +305,19 @@ export default function ClubSetupClubStep({
           </p>
         </div>
 
+        {variant === "onboarding" && initialDisplayName.trim() ? (
+          <div className="space-y-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+            <div className="text-[10px] font-black uppercase tracking-[.16em] text-cyan-700">Bereits bei der Vereinsgründung festgelegt</div>
+            <p className="text-lg font-black text-slate-950">{displayName}</p>
+            <details className="rounded-xl border border-slate-200 bg-white">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-slate-700">Vereinsnamen ändern (optional)</summary>
+              <div className="border-t border-slate-100 p-4">
+                <label htmlFor="display_name" className="block text-xs font-black uppercase tracking-[.12em] text-slate-500">Vereinsname</label>
+                <input id="display_name" name="display_name" type="text" maxLength={80} required value={displayName} onChange={event=>setDisplayName(event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 font-bold text-slate-950 focus:border-cyan-400 focus:outline-none" />
+              </div>
+            </details>
+          </div>
+        ) : (
         <div className="space-y-2">
           <label
             htmlFor="display_name"
@@ -324,6 +337,7 @@ export default function ClubSetupClubStep({
           />
         </div>
 
+        )}
 
         <div className="space-y-2">
           <div className={variant === "onboarding" ? "block text-xs font-black uppercase tracking-[.12em] text-slate-500" : "block text-sm font-medium text-slate-900"}>
