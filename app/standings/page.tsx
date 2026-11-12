@@ -2,6 +2,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import StandingsClient from "./StandingsClient";
 import StandingsSortAccent from "./StandingsSortAccent";
 import StandingsTop10Share from "./StandingsTop10Share";
@@ -17,6 +18,7 @@ export default async function StandingsPage() {
   const { clubId, player, supportViewPlayer } = await requireClub();
   const viewPlayerId = player?.id ?? supportViewPlayer?.id ?? null;
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   const [{ data: clubData }, billingAccess, featureFlags] = await Promise.all([
     supabase
@@ -24,7 +26,7 @@ export default async function StandingsPage() {
       .select("id, display_name, primary_color")
       .eq("id", clubId)
       .maybeSingle<ClubRow>(),
-    getClubBillingAccess(supabase, clubId),
+    getClubBillingAccess(admin, clubId),
     getFeatureFlagsForClub(clubId),
   ]);
 
