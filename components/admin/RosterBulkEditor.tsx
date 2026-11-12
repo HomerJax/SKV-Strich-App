@@ -38,9 +38,11 @@ type Props = {
   categories: ClubCategoryRow[];
 };
 
-const BALANCE_GROUP_OPTIONS: Array<{ value: string; labelKey: MessageKey }> = [
+const BALANCE_GROUP_OPTIONS: Array<{ value: string; labelKey?: MessageKey; label?: string }> = [
   { value: "Gehfußballer", labelKey: "roster.balanceWalking" },
   { value: "Defensivanker", labelKey: "roster.balanceDefense" },
+  { value: "Offensive Topspieler", label: "Offensive Topspieler" },
+  { value: "Defensive Topspieler", label: "Defensive Topspieler" },
   { value: "Offensivfokus", labelKey: "roster.balanceAttack" },
   { value: "Laufstark", labelKey: "roster.balanceRunner" },
   { value: "Techniker", labelKey: "roster.balanceTechnician" },
@@ -319,7 +321,7 @@ export default async function RosterBulkEditor({
                         <option value="">{t("roster.noBalanceGroup")}</option>
                         {BALANCE_GROUP_OPTIONS.map((group) => (
                           <option key={group.value} value={group.value}>
-                            {t(group.labelKey)}
+                            {group.labelKey ? t(group.labelKey) : group.label}
                           </option>
                         ))}
                         {player.balance_group &&
