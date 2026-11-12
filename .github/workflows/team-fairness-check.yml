@@ -1,0 +1,24 @@
+name: Team fairness typecheck and regression
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'scripts/team-fairness-protected-player.test.mjs'
+      - 'package.json'
+      - '.github/workflows/team-fairness-check.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: node --test scripts/team-fairness-protected-player.test.mjs
+      - run: npm run test:balance
