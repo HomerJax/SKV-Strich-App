@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Player = { id: number; name: string; balance_group: string | null };
 type Props = { players: Player[]; isPro: boolean };
@@ -8,6 +9,7 @@ type Props = { players: Player[]; isPro: boolean };
 const STANDARD_GROUPS = ["Gehfußballer", "Offensive Topspieler", "Defensive Topspieler"];
 
 export default function BalanceGroupManager({ players, isPro }: Props) {
+  const router = useRouter();
   const [pending, setPending] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [assignments, setAssignments] = useState(() =>
@@ -32,6 +34,7 @@ export default function BalanceGroupManager({ players, isPro }: Props) {
       if (!response.ok) throw new Error(result.error || "Zuordnung konnte nicht gespeichert werden.");
       setAssignments(current => ({ ...current, [playerId]: group }));
       setSelected(current => ({ ...current, [group]: "" }));
+      router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Speichern fehlgeschlagen.");
     } finally {
