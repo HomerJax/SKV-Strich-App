@@ -33,7 +33,7 @@ export default function BalanceGroupManager({ players, isPro }: Props) {
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Zuordnung konnte nicht gespeichert werden.");
       setAssignments(current => ({ ...current, [playerId]: group }));
-      setSelected(current => ({ ...current, [group]: "" }));
+      setSelected({});
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Speichern fehlgeschlagen.");
