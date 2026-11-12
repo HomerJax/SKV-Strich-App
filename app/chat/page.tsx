@@ -13,7 +13,7 @@ export default async function ChatPage() {
   const { t } = await getServerI18n();
   const { clubId, user, membership, isPowerUser } = await requireClub();
   const flags = await getFeatureFlagsForClub(clubId);
-  if (true) redirect("/home");
+  if (!flags.team_chat) redirect("/home");
 
   const admin = createAdminClient();
 
