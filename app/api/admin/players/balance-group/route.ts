@@ -31,6 +31,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Spieler in diesem Verein nicht gefunden." }, { status: 404 });
   }
   const nextGroup = typeof balanceGroup === "string" ? balanceGroup.trim() : null;
+  if (nextGroup && player.balance_group && player.balance_group !== nextGroup) {
+    return NextResponse.json({ error: "Der Spieler ist bereits einer Balance-Gruppe zugeordnet. Bitte zuerst entfernen." }, { status: 409 });
+  }
   if (nextGroup) {
     const { data: groupRows, error: groupError } = await supabase.from("players")
       .select("id,balance_group").eq("club_id", clubId).not("balance_group", "is", null);
