@@ -8,6 +8,7 @@ import { isCashboxPilotClub, isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-s
 import { requireClub } from "@/lib/auth/guards";
 import { getFeatureFlagsForClub } from "@/lib/feature-flags";
 import WhatsNewModal from "@/components/WhatsNewModal";
+import GebersheimHallOfFameAnnouncement from "@/components/notifications/GebersheimHallOfFameAnnouncement";
 import NextSessionAttendanceCard from "@/components/home/NextSessionAttendanceCard";
 import HomeQuickStats from "@/components/home/HomeQuickStats";
 import UpcomingHomeAccordion from "@/components/home/UpcomingHomeAccordion";
@@ -974,6 +975,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     <HomePullToRefresh>
       <main className="min-h-screen bg-slate-50 pb-24">
       <WhatsNewModal version="v0.2" />
+      {clubId==="6944e5d9-9375-40f0-82d1-4992a55cefd4" && featureFlags.hall_of_fame_badges ? <GebersheimHallOfFameAnnouncement clubId={clubId} /> : null}
       <InsideStrikrChannelModal />
       <AppStoreReviewPrompt />
 
