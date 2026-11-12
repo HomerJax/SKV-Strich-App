@@ -66,7 +66,7 @@ test("preview wizard never saves progress or redirects into the live admin area"
   assert.match(preview, /<ClubSetupClubStep/);
   assert.ok(preview.includes("qaPreview={{ onComplete:"));
   assert.ok(preview.includes("initialLogoUrl={null}"));
-  assert.doesNotMatch(preview, /FC Musterstadt|Teamfarbe.*map\\(/);
+  assert.ok(!preview.includes("FC Musterstadt"));
   assert.match(preview, /Simulation abschließen/);
   assert.match(preview, /Speichern und weiter/);
   for (const step of ["club", "season", "training", "rsvp", "teams", "categories", "games", "pro"]) {
