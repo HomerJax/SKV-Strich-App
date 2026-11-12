@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { getServerI18n } from "@/lib/i18n/server";
 
 type PlayerSettingsCardProps = {
@@ -14,6 +15,7 @@ type PlayerSettingsCardProps = {
   defaultStrengthCount?: number;
   balanceGroupCount?: number;
   balanceGroups?: { name: string; players: string[] }[];
+  balanceGroupManager?: ReactNode;
   className?: string;
 };
 
@@ -84,6 +86,7 @@ export default async function PlayerSettingsCard({
   defaultStrengthCount = 0,
   balanceGroupCount = 0,
   balanceGroups = [],
+  balanceGroupManager,
   className = "",
 }: PlayerSettingsCardProps) {
   const { t } = await getServerI18n();
@@ -208,28 +211,7 @@ export default async function PlayerSettingsCard({
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-extrabold text-violet-950">Balanced Groups</div>
-            <div className="mt-1 text-xs leading-5 text-violet-800">Aktuelle Gruppen und zugeteilte Spieler.</div>
-          </div>
-          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-violet-700 ring-1 ring-violet-200">{balanceGroups.filter((group) => group.name).length} Gruppen</span>
-        </div>
-        <div className="mt-3 space-y-2">
-          {balanceGroups.map((group) => (
-            <details key={group.name || "__unassigned"} className="group overflow-hidden rounded-xl border border-violet-100 bg-white">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
-                <div><div className={`text-sm font-bold ${group.name ? "text-slate-900" : "text-amber-800"}`}>{group.name || "Ohne Balanced Group"}</div><div className="text-[11px] text-slate-500">{group.players.length} Spieler</div></div>
-                <span className="text-xs font-bold text-slate-400 transition group-open:rotate-180">⌄</span>
-              </summary>
-              <div className="flex flex-wrap gap-1.5 border-t border-slate-100 px-3 py-3">
-                {group.players.map((name) => <span key={name} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{name}</span>)}
-              </div>
-            </details>
-          ))}
-        </div>
-      </div>
+      {balanceGroupManager ?? null}
 
       <details className="group mt-5 rounded-2xl border border-slate-200 bg-slate-50">
         <summary className="cursor-pointer list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
