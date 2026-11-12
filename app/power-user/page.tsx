@@ -318,6 +318,8 @@ export default async function PowerUserPage() {
             detailsLabel={detailsLabel}
           />
 
+          <KpiCard href="/power-user/club-activity" label="Vereinsaktivität" value="Live" description="Pro Verein sehen, wer wann welche Bereiche geöffnet hat – mit Zeitstrahl und aktiven Nutzern." icon={<MousePointerClick className="h-6 w-6" />} detailsLabel={detailsLabel} />
+
           <KpiCard
             href="/power-user/product-analytics"
             label="Product Analytics"
