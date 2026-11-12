@@ -7,6 +7,7 @@ import { createContext } from "react";
  * the real season form is submitted in the simulator, never persisted to a club.
  */
 export const OnboardingQaSeasonContext = createContext<{
+  name: string;
   start_date: string;
   end_date: string | null;
 } | null>(null);
