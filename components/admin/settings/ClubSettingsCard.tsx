@@ -21,6 +21,7 @@ type ClubSettingsCardProps = {
   redirectTo?: string;
   submitLabel?: string;
   removeLogoRedirectTo?: string;
+  variant?: "default" | "onboarding";
 };
 
 const COLOR_OPTIONS: Array<{ value: string; labelKey: MessageKey; color: string }> = [
@@ -53,6 +54,7 @@ export default async function ClubSettingsCard({
   redirectTo = "/admin/settings",
   submitLabel,
   removeLogoRedirectTo,
+  variant = "default",
 }: ClubSettingsCardProps) {
   const { locale, t } = await getServerI18n();
   const { clubId, membership, isPowerUser } = await requireClub();
@@ -122,13 +124,13 @@ export default async function ClubSettingsCard({
         </div>
       ) : null}
 
-      <div className="rounded-[20px] border border-black/10 bg-neutral-50 p-4">
+      <div className={variant === "onboarding" ? "relative overflow-hidden rounded-[24px] border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-5 shadow-[0_12px_35px_rgba(6,182,212,.07)]" : "rounded-[20px] border border-black/10 bg-neutral-50 p-4"}>
         <div className="mb-3 text-sm font-semibold text-slate-500">
           {t("settings.club.preview")}
         </div>
 
         <div
-          className="rounded-2xl border border-slate-200 bg-white p-4"
+          className={variant === "onboarding" ? "rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm" : "rounded-2xl border border-slate-200 bg-white p-4"}
           style={{ borderTop: `4px solid ${previewColor}` }}
         >
           <div className="flex items-center gap-3">
@@ -187,7 +189,7 @@ export default async function ClubSettingsCard({
             maxLength={80}
             defaultValue={club.display_name ?? ""}
             placeholder={t("settings.club.namePlaceholder")}
-            className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"
+            className={variant === "onboarding" ? "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-bold text-slate-950 outline-none transition focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100" : "w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900"}
           />
         </div>
 
@@ -219,7 +221,7 @@ export default async function ClubSettingsCard({
             {COLOR_OPTIONS.map((option) => (
               <label
                 key={option.value}
-                className="flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"
+                className={variant === "onboarding" ? "flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition hover:border-cyan-400 hover:bg-cyan-50" : "flex cursor-pointer items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-slate-900 transition hover:border-slate-900/20"}
               >
                 <input
                   type="radio"
