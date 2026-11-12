@@ -46,3 +46,36 @@ export function selectOnboardingSeason<T extends OnboardingSeasonRange>(
     Boolean(season.start_date && season.start_date <= today && (!season.end_date || season.end_date >= today)),
   ) ?? seasons[0] ?? null;
 }
+
+/**
+ * The optional second day starts in the same calendar week as the first
+ * selected day (Monday-based), but never before the season begins.
+ * If the second weekday has already passed, its first date is in the next week.
+ */
+export function getSecondTrainingStart(
+  seasonStart: string,
+  firstDate: string,
+  firstWeekday: number,
+  secondWeekday: number,
+): string {
+  if (!seasonStart || !firstDate || firstWeekday === secondWeekday) return "";
+  const daysSinceMonday = (firstWeekday + 6) % 7;
+  const mondayOfFirstWeek = addCalendarDays(firstDate, -daysSinceMonday);
+  const earliest = mondayOfFirstWeek < seasonStart ? seasonStart : mondayOfFirstWeek;
+  return firstWeekdayOnOrAfter(earliest, secondWeekday);
+}
+
+/** Each weekday is a separate recurring series, with up to 52 occurrences. */
+export function getWeeklyTrainingDates(
+  start: string,
+  end: string,
+  weekday: number,
+): string[] {
+  if (!start || !end || start > end || !Number.isInteger(weekday) || weekday < 0 || weekday > 6) return [];
+  const first = firstWeekdayOnOrAfter(start, weekday);
+  const dates: string[] = [];
+  for (let date = first; date <= end && dates.length <= 52; date = addCalendarDays(date, 7)) {
+    dates.push(date);
+  }
+  return dates;
+}
