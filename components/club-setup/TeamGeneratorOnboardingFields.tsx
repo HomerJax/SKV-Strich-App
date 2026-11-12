@@ -66,7 +66,7 @@ export default function TeamGeneratorOnboardingFields({
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-800"><Users className="h-5 w-5" /></div>
         <div className="min-w-0 flex-1">
           <strong className="block text-sm font-black text-slate-950">Kategorien verwenden</strong>
-          <p className="mt-1 text-xs leading-5 text-slate-600">Zum Beispiel AH und Ü32 oder erfahrene und neue Spieler. Kategorien können die Einteilung beeinflussen.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-600">Zum Beispiel „Jung“ und „Alt“ oder „Erfahren“ und „Weniger erfahren“. So kann strikr die Gruppen zusätzlich zu Positionen und Spielstärken fair verteilen.</p>
           <p className="mt-2 text-xs leading-5 text-slate-500">Detaillierte Erklärungen und weitere Einstellungen findest du im Admin-Bereich.</p>
         </div>
         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${categories ? "border-cyan-600 bg-cyan-600 text-white" : "border-slate-300 bg-white"}`}>{categories ? <Check className="h-4 w-4" /> : null}</span>
