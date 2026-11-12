@@ -232,6 +232,7 @@ export async function POST(request: Request) {
     !submitsAwardSettings &&
     !submitsRsvpSettings &&
     !submitsHomeSettings &&
+    !submitsProtectedPlayer &&
     !submitsLanguageSettings
   ) {
     return redirectWithParams(request, redirectTo, { error: "nothing_to_save" });
