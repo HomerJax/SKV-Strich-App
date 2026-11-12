@@ -3,13 +3,14 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Player = { id: number; name: string; balance_group: string | null };
+type Player = { id: number; name: string; balance_group: string | null; strength: number | null };
 type Props = { players: Player[]; isPro: boolean };
 
 const STANDARD_GROUPS = ["Gehfußballer", "Offensive Topspieler", "Defensive Topspieler"];
 
 export default function BalanceGroupManager({ players, isPro }: Props) {
   const router = useRouter();
+  const strengthLabel = (player: Player) => `Stärke ${player.strength ?? 3}`;
   const [pending, setPending] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [assignments, setAssignments] = useState(() =>
@@ -53,16 +54,17 @@ export default function BalanceGroupManager({ players, isPro }: Props) {
           const members = players.filter(player => assignments[player.id] === group);
           const blocked = !isPro && !activeGroups.has(group) && activeGroups.size >= 1;
           return (
-            <div key={group} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between gap-2">
+            <details key={group} className="group rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
                 <h3 className="font-bold text-slate-900">{group}</h3>
-                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{members.length} Spieler</span>
-              </div>
+                <span className="ml-auto rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{members.length} Spieler</span>
+                <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-180">⌄</span>
+              </summary>
               <div className="mt-3 space-y-2">
                 {members.length === 0 && <p className="text-sm text-slate-500">Noch niemand zugeordnet.</p>}
                 {members.map(player => (
                   <div key={player.id} className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 text-sm">
-                    <span className="min-w-0 truncate text-slate-800">{player.name}</span>
+                    <span className="min-w-0 truncate text-slate-800">{player.name} <span className="ml-1 text-xs text-slate-500">· {strengthLabel(player)}</span></span>
                     <button type="button" disabled={pending !== null} onClick={() => void save(player.id, "")} className="shrink-0 font-semibold text-red-700 disabled:opacity-40" aria-label={`${player.name} aus ${group} entfernen`}>Entfernen</button>
                   </div>
                 ))}
@@ -70,12 +72,12 @@ export default function BalanceGroupManager({ players, isPro }: Props) {
               <div className="mt-3 flex gap-2">
                 <select aria-label={`Spieler zu ${group} hinzufügen`} value={selected[group] || ""} disabled={pending !== null || blocked || available.length === 0} onChange={event => setSelected(current => ({ ...current, [group]: event.target.value }))} className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm disabled:opacity-50">
                   <option value="">Spieler auswählen …</option>
-                  {available.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}
+                  {available.map(player => <option key={player.id} value={player.id}>{player.name} · {strengthLabel(player)}</option>)}
                 </select>
                 <button type="button" disabled={pending !== null || blocked || !selected[group]} onClick={() => void save(Number(selected[group]), group)} className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">Hinzufügen</button>
               </div>
               {blocked && <p className="mt-2 text-xs text-amber-800">Weitere Gruppe nur mit PRO.</p>}
-            </div>
+            </details>
           );
         })}
       </div>
