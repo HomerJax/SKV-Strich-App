@@ -144,3 +144,16 @@ test("weekly training uses selected season and Thursday 19:00 as editable preset
   assert.match(seasons, /getQaSeasonRange\(\)/);
   assert.doesNotMatch(setup, /training:<form action=\{addWizardSeries\}/);
 });
+
+test("simulated edited season dates flow into the same training defaults without a write", () => {
+  const wizard = read("components/admin/SetupWizard.tsx");
+  const training = read("components/admin/TrainingSeriesOnboardingForm.tsx");
+  const context = read("components/admin/OnboardingQaSeasonContext.tsx");
+  assert.match(wizard, /new FormData\(form\)/);
+  assert.match(wizard, /setQaSeason\(\{name:/);
+  assert.match(wizard, /OnboardingQaSeasonContext.Provider/);
+  assert.match(training, /useContext\(OnboardingQaSeasonContext\)/);
+  assert.match(training, /qaSeason\?\.start_date \?\? seasonStart/);
+  assert.match(training, /qaSeason \? qaSeason.end_date : seasonEnd/);
+  assert.match(context, /createContext/);
+});
