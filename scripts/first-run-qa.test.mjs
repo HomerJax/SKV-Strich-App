@@ -135,7 +135,7 @@ test("weekly training uses selected season and Thursday 19:00 as editable preset
   assert.match(form, /Trainingsserie anlegen und weiter/);
   assert.match(form, /value=\{weekday\}/);
   assert.match(form, /value=\{startDate\}/);
-  assert.match(form, /min=\{seasonStart\}/);
+  assert.match(form, /min=\{activeSeasonStart\}/);
   assert.match(setup, /selectOnboardingSeason\(seasons.data\?\?\[\]\)/);
   assert.match(setup, /qaMode\?\{name:"strikr Standardsaison",\.\.\.getQaSeasonRange\(\)\}/);
   assert.match(setup, /<TrainingSeriesOnboardingForm/);
