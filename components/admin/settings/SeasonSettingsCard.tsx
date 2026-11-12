@@ -27,6 +27,7 @@ type Props = {
   message?: string;
   redirectTo?: string;
   createSubmitLabel?: string;
+  variant?: "default" | "onboarding";
 };
 
 const WEEKDAY_OPTIONS: Array<{ value: string; labelKey: MessageKey }> = [
@@ -69,6 +70,7 @@ export default async function SeasonSettingsCard({
   message = "",
   redirectTo = "/admin/settings",
   createSubmitLabel,
+  variant = "default",
 }: Props) {
   const { locale, t } = await getServerI18n();
   const { clubId, membership, isPowerUser } = await requireClub();
@@ -116,7 +118,23 @@ export default async function SeasonSettingsCard({
         <p className="mt-1">{t("settings.season.hint")}</p>
       </div>
 
-      {seasons.length > 0 ? (
+      {variant === "onboarding" ? (
+        <div className="rounded-[24px] border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-5">
+          <div className="text-[10px] font-black uppercase tracking-[.16em] text-cyan-700">Schritt 2 · Saison</div>
+          <h3 className="mt-2 text-xl font-black tracking-tight text-slate-950">Eure Saison ist die Basis für Tabellen und Statistiken</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-600">strikr legt beim Vereinsstart automatisch eine einjährige Standardsaison an. Alle Trainings und Ergebnisse werden dieser Saison zugeordnet. Mit PRO können Name und Zeitraum individuell angepasst werden.</p>
+          {seasons.map(season=>(
+            <div key={season.id} className="mt-3 rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Bereits angelegte Saison</p>
+              <p className="mt-1 text-lg font-black text-slate-950">{season.name}</p>
+              <p className="mt-1 text-xs text-slate-600">{formatDate(season.start_date,locale,t("settings.season.notSet"))} – {season.end_date?formatDate(season.end_date,locale,t("settings.season.notSet")):t("settings.season.open")}</p>
+            </div>
+          ))}
+          <p className="mt-3 text-xs leading-5 text-slate-600">An welchen Wochentagen und zu welchen Uhrzeiten ihr trainiert, legst du erst auf der nächsten Seite „Trainingsbetrieb“ fest.</p>
+        </div>
+      ) : null}
+
+      {variant !== "onboarding" && seasons.length > 0 ? (
         <div className="space-y-3">
           <div className="text-sm font-semibold text-slate-900">
             {t("settings.season.manageSeries")}
@@ -234,7 +252,7 @@ export default async function SeasonSettingsCard({
                     </label>
                   </div>
           
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  {variant !== "onboarding" ? <div className="rounded-2xl border border-slate-200 bg-white p-4">
                     <div className="text-sm font-semibold text-slate-900">
                       {t("settings.season.recurring")}
                     </div>
@@ -264,7 +282,7 @@ export default async function SeasonSettingsCard({
                         </label>
                       ))}
                     </div>
-                  </div>
+                  </div> : null}
           
                   <button
                     type="submit"
