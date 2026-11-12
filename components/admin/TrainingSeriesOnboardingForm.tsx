@@ -7,6 +7,7 @@ import {
   addCalendarDays,
   firstWeekdayOnOrAfter,
   getWeeklyTrainingTemplate,
+  getSecondTrainingStart,
 } from "@/lib/onboarding/training-template";
 
 type Props = {
@@ -30,9 +31,17 @@ export default function TrainingSeriesOnboardingForm({
   const [startDate, setStartDate] = useState(template.firstDate);
   const [endDate, setEndDate] = useState(template.lastDate);
   const [startTime, setStartTime] = useState(template.startTime);
+  const [secondEnabled, setSecondEnabled] = useState(false);
+  const [secondWeekday, setSecondWeekday] = useState("");
+  const [secondStartTime, setSecondStartTime] = useState("19:00");
+  const secondFirstDate = secondEnabled && secondWeekday !== "" && activeSeasonStart && startDate
+    ? getSecondTrainingStart(activeSeasonStart, startDate, weekday, Number(secondWeekday))
+    : "";
+  const invalidSecondDate = secondEnabled && Boolean(secondFirstDate && secondFirstDate > endDate);
 
   function changeWeekday(value: number) {
     setWeekday(value);
+    if (String(value) === secondWeekday) setSecondWeekday("");
     const next = getWeeklyTrainingTemplate({ start_date: activeSeasonStart, end_date: activeSeasonEnd }, value);
     setStartDate(next.firstDate);
     setEndDate(next.lastDate);
@@ -62,7 +71,7 @@ export default function TrainingSeriesOnboardingForm({
           Das erste Training liegt am ersten Donnerstag eurer Saison. Alles lässt sich noch ändern.
         </p>
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-bold text-slate-950"><Repeat2 className="h-4 w-4 shrink-0 text-cyan-700" />1 × pro Woche</div>
+          <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-bold text-slate-950"><Repeat2 className="h-4 w-4 shrink-0 text-cyan-700" />{secondEnabled ? "2 × pro Woche" : "1 × pro Woche"}</div>
           <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-bold text-slate-950"><CalendarDays className="h-4 w-4 shrink-0 text-cyan-700" />{WEEKDAYS[weekday]}</div>
           <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-bold text-slate-950"><Clock3 className="h-4 w-4 shrink-0 text-cyan-700" />{startTime} Uhr</div>
         </div>
@@ -100,11 +109,43 @@ export default function TrainingSeriesOnboardingForm({
                 <input name="end_date" required type="date" value={endDate} min={startDate} max={startDate ? (activeSeasonEnd && activeSeasonEnd < addCalendarDays(startDate,51*7) ? activeSeasonEnd : addCalendarDays(startDate,51*7)) : (activeSeasonEnd ?? undefined)} onChange={event=>setEndDate(event.target.value)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-2 py-3 text-base text-slate-950"/>
               </label>
             </div>
+            <section className="min-w-0 space-y-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input type="checkbox" checked={secondEnabled} onChange={event => { setSecondEnabled(event.target.checked); if (!event.target.checked) setSecondWeekday(""); }} className="mt-1 h-5 w-5 shrink-0 accent-slate-950"/>
+                <span className="min-w-0">
+                  <strong className="block text-sm font-black text-slate-950">Optional: zweiten Trainingstag hinzufügen</strong>
+                  <span className="mt-1 block text-xs leading-5 text-slate-600">Wenn ihr zweimal pro Woche trainiert, kannst du einen weiteren Wochentag mit eigener Uhrzeit auswählen. Auch in Free sind bis zu zwei feste Trainingstage enthalten.</span>
+                </span>
+              </label>
+              {secondEnabled ? (
+                <div className="min-w-0 space-y-3 border-t border-slate-200 pt-4">
+                  <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="block min-w-0 text-sm font-bold text-slate-800">
+                      Zweiter Wochentag
+                      <select name="weekday_two" required value={secondWeekday} onChange={event => setSecondWeekday(event.target.value)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-950">
+                        <option value="">Tag auswählen</option>
+                        {WEEKDAYS.map((day, index) => <option key={day} value={index} disabled={index === weekday}>{day}{index === weekday ? " (bereits ausgewählt)" : ""}</option>)}
+                      </select>
+                    </label>
+                    <label className="block min-w-0 text-sm font-bold text-slate-800">
+                      Uhrzeit am zweiten Tag
+                      <input name="start_time_two" required type="time" value={secondStartTime} onChange={event => setSecondStartTime(event.target.value)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-950"/>
+                    </label>
+                  </div>
+                  {secondFirstDate ? (
+                    <p className="rounded-xl border border-cyan-100 bg-cyan-50 p-3 text-xs leading-5 text-cyan-950">
+                      Erstes Training am zweiten Wochentag: <strong>{new Date(secondFirstDate + "T12:00:00Z").toLocaleDateString("de-DE")}</strong>. Der letzte Termin liegt spätestens am ausgewählten Enddatum.
+                    </p>
+                  ) : null}
+                  {invalidSecondDate ? <p role="alert" className="rounded-xl bg-rose-50 p-3 text-xs text-rose-800">Der zweite Trainingstag liegt hinter dem Enddatum. Wähle einen längeren Zeitraum oder einen anderen Wochentag.</p> : null}
+                </div>
+              ) : null}
+            </section>
             <p className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-              <Info className="mt-0.5 h-4 w-4 shrink-0" /> strikr plant maximal 52 wöchentliche Termine auf einmal. Weitere Termine kannst du später ergänzen. Es wird nur der ausgewählte Wochentag angelegt.
+              <Info className="mt-0.5 h-4 w-4 shrink-0" /> strikr plant je Trainingstag maximal 52 wöchentliche Termine. Wenn du einen zweiten Tag auswählst, werden beide Trainingsserien mit ihren jeweiligen Uhrzeiten angelegt. Weitere Termine kannst du später ergänzen.
             </p>
-            <button type="submit" className="w-full rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(15,23,42,.14)] hover:bg-slate-800">
-              Trainingsserie anlegen und weiter
+            <button type="submit" disabled={invalidSecondDate} className="w-full rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(15,23,42,.14)] hover:bg-slate-800">
+              {secondEnabled ? "Beide Trainingsserien anlegen und weiter" : "Trainingsserie anlegen und weiter"}
             </button>
           </form>
         )}
