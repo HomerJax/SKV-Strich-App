@@ -92,7 +92,7 @@ export default function TrainingSeriesOnboardingForm({
               </label>
               <label className="block min-w-0 text-sm font-bold text-slate-800">
                 Letztes Training bis
-                <input name="end_date" required type="date" value={endDate} min={startDate} max={seasonEnd && seasonEnd < addCalendarDays(startDate,51*7) ? seasonEnd : addCalendarDays(startDate,51*7)} onChange={event=>setEndDate(event.target.value)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-2 py-3 text-base text-slate-950"/>
+                <input name="end_date" required type="date" value={endDate} min={startDate} max={startDate ? (seasonEnd && seasonEnd < addCalendarDays(startDate,51*7) ? seasonEnd : addCalendarDays(startDate,51*7)) : (seasonEnd ?? undefined)} onChange={event=>setEndDate(event.target.value)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-2 py-3 text-base text-slate-950"/>
               </label>
             </div>
             <p className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
