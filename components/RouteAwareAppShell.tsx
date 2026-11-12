@@ -18,7 +18,7 @@ export default function RouteAwareAppShell({
   const pathname = usePathname();
   // The internal QA route deliberately renders without the authenticated app chrome.
   // It remains protected server-side by requirePowerUser() on its page.
-  const isMarketingLanding = pathname === "/" || pathname === "/power-user/onboarding-simulator";
+  const isMarketingLanding = pathname === "/" || pathname === "/power-user/onboarding-simulator" || pathname.startsWith("/power-user/onboarding-simulator/") || pathname === "/admin/setup" || pathname === "/club-setup";
 
   if (isMarketingLanding) {
     return <>{children}</>;
