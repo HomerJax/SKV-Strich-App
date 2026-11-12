@@ -1244,7 +1244,8 @@ ${sessionUrl}`;
 
     // A real training leader must never receive individual strength ratings.
     // Optimize their roster with server-only full ratings, not masked client data.
-    if (!initialIsClubAdmin) {
+    if (sessionId > 0) {
+      // One server-side generator for admins and training leaders ensures identical protected-player rules.
       try {
         const response = await fetch("/api/sessions/" + sessionId + "/balanced-teams", {
           method: "POST", credentials: "same-origin", cache: "no-store",
