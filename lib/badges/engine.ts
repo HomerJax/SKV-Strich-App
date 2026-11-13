@@ -3,6 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   BADGE_DEFINITIONS,
+  SEASON_BADGE_PILOT_CLUB_ID,
   getBadgeDefinition,
   type BadgeKey,
 } from "@/lib/badges/catalog";
@@ -367,7 +368,9 @@ function addCandidate(
   target: AchievementCandidate[],
   candidate: AchievementCandidate,
 ) {
-  if (!getBadgeDefinition(candidate.badge_key)) return;
+  const definition = getBadgeDefinition(candidate.badge_key);
+  if (!definition) return;
+  if (definition.scope === "season" && candidate.club_id !== SEASON_BADGE_PILOT_CLUB_ID) return;
 
   const duplicate = target.some(
     (item) =>
