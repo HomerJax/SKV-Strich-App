@@ -55,9 +55,15 @@ export type BadgeKey = (typeof ALL_BADGE_DEFINITIONS)[number]["key"];
 
 // Vorerst sind nur die beiden Karriere-Familien live. Die übrigen Definitionen
 // bleiben im Code und können später ohne Datenverlust wieder aktiviert werden.
-export const BADGE_DEFINITIONS: readonly BadgeDefinition[] = ALL_BADGE_DEFINITIONS.filter(
-  (badge) => badge.scope === "career",
-);
+export const SEASON_BADGE_PILOT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
+
+export const BADGE_DEFINITIONS: readonly BadgeDefinition[] = ALL_BADGE_DEFINITIONS;
+
+export function getClubBadgeDefinitions(clubId: string): readonly BadgeDefinition[] {
+  return clubId === SEASON_BADGE_PILOT_CLUB_ID
+    ? BADGE_DEFINITIONS
+    : BADGE_DEFINITIONS.filter((badge) => badge.scope === "career");
+}
 
 export const BADGE_DEFINITION_BY_KEY = new Map<string, BadgeDefinition>(
   BADGE_DEFINITIONS.map((badge) => [badge.key, badge]),
@@ -93,5 +99,5 @@ export function getLocalizedBadgeDefinition(
   return copy ? { ...definition, ...copy } : definition;
 }
 
-export const SEASON_BADGES: readonly BadgeDefinition[] = [];
+export const SEASON_BADGES: readonly BadgeDefinition[] = BADGE_DEFINITIONS.filter((badge) => badge.scope === "season");
 export const CAREER_BADGES = BADGE_DEFINITIONS;
