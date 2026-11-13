@@ -304,7 +304,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
       .eq("club_id", clubId)
       .order("sort_order", { ascending: true }),
     getClubBillingAccess(supabase, clubId),
-    supabase.from("players").select("id,name,first_name,last_name").eq("club_id", clubId).eq("is_active", true).neq("roster_role", "staff").order("name"),
+    supabase.from("players").select("id,name,first_name,last_name").eq("club_id", clubId).eq("is_active", true).or("roster_role.is.null,roster_role.neq.staff").order("name"),
   ]);
 
   const settings = (settingsData as ClubSettingsRow | null) ?? null;
