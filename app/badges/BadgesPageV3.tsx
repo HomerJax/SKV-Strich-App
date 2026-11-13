@@ -16,6 +16,7 @@ import PageHero from "@/components/ui/PageHero";
 import { requireClub } from "@/lib/auth/guards";
 import {
   BADGE_DEFINITIONS,
+  getClubBadgeDefinitions,
   getBadgeDefinition,
   getLocalizedBadgeDefinition,
 } from "@/lib/badges/catalog";
@@ -123,14 +124,14 @@ function getAchievementMap(rows: AchievementRow[]) {
   return map;
 }
 
-function getEarnedDefinitions(rows: AchievementRow[]) {
+function getEarnedDefinitions(rows: AchievementRow[], clubId: string) {
   const keys = new Set(rows.map((row) => row.badge_key));
-  return BADGE_DEFINITIONS.filter((badge) => keys.has(badge.key));
+  return getClubBadgeDefinitions(clubId).filter((badge) => keys.has(badge.key));
 }
 
-function getOpenDefinitions(rows: AchievementRow[]) {
+function getOpenDefinitions(rows: AchievementRow[], clubId: string) {
   const keys = new Set(rows.map((row) => row.badge_key));
-  return BADGE_DEFINITIONS.filter((badge) => !keys.has(badge.key));
+  return getClubBadgeDefinitions(clubId).filter((badge) => !keys.has(badge.key));
 }
 
 function countByScope(
@@ -629,7 +630,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
 
   const displayAchievements = achievementsByPlayer.get(displayPlayer.id) ?? [];
   const displayAchievementMap = getAchievementMap(displayAchievements);
-  const allEarnedBadges = getEarnedDefinitions(displayAchievements).map(
+  const allEarnedBadges = getEarnedDefinitions(displayAchievements, clubId).map(
     (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
   );
   const earnedBadges = billingAccess.isPro
@@ -638,7 +639,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
   const lockedCareerBadges = billingAccess.isPro
     ? []
     : allEarnedBadges.filter((badge) => badge.scope === "career");
-  const openBadges = getOpenDefinitions(displayAchievements).map(
+  const openBadges = getOpenDefinitions(displayAchievements, clubId).map(
     (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
   );
   const displayName = getPlayerDisplayName(displayPlayer, { useNicknames });
@@ -662,7 +663,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
     : null;
 
   const ownAchievements = achievementsByPlayer.get(ownPlayer.id) ?? [];
-  const ownEarnedBadges = getEarnedDefinitions(ownAchievements).map(
+  const ownEarnedBadges = getEarnedDefinitions(ownAchievements, clubId).map(
     (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
   );
   const ownAchievementMap = getAchievementMap(ownAchievements);
@@ -670,7 +671,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
     ? achievementsByPlayer.get(comparePlayer.id) ?? []
     : [];
   const compareEarnedBadges = comparePlayer
-    ? getEarnedDefinitions(compareAchievements).map(
+    ? getEarnedDefinitions(compareAchievements, clubId).map(
         (badge) => getLocalizedBadgeDefinition(badge.key, locale) ?? badge,
       )
     : [];
@@ -715,7 +716,7 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
           backHref={isOwnHall ? "/stats" : "/badges"}
           topRightSlot={
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold text-white/90">
-              {billingAccess.isPro ? `${allEarnedBadges.length}/${BADGE_DEFINITIONS.length}` : `${earnedBadges.length} Saison · PRO Karriere`}
+              {billingAccess.isPro ? `${allEarnedBadges.length}/${getClubBadgeDefinitions(clubId).length}` : `${earnedBadges.length} Saison · PRO Karriere`}
             </span>
           }
           compact

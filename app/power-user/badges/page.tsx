@@ -2,7 +2,7 @@ import Link from "next/link";
 import { EyeOff, Layers3, Sparkles, Trophy } from "lucide-react";
 import AchievementBadgeVisual from "@/components/badges/AchievementBadgeVisual";
 import { requirePowerUser } from "@/lib/auth/power-user";
-import { BADGE_DEFINITIONS, getLocalizedBadgeDefinition } from "@/lib/badges/catalog";
+import { ALL_BADGE_DEFINITIONS, getLocalizedBadgeDefinition } from "@/lib/badges/catalog";
 import { getServerI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { getBadgeVisualMeta } from "@/lib/badges/visual-catalog";
@@ -54,7 +54,7 @@ export default async function PowerUserBadgesPage() {
   const activeClubName = activeClub?.display_name?.trim() || activeClub?.name?.trim() || "Aktiver Club";
   const sections = getSections(t);
 
-  const badges = BADGE_DEFINITIONS.map((badge) => ({
+  const badges = ALL_BADGE_DEFINITIONS.map((badge) => ({
     ...(getLocalizedBadgeDefinition(badge.key, locale) ?? badge),
     sectionKey: getBadgeSectionKey(badge.key),
     visual: getBadgeVisualMeta(badge.key),
@@ -72,9 +72,9 @@ export default async function PowerUserBadgesPage() {
         <section className="overflow-hidden rounded-[32px] bg-slate-950 p-6 text-white shadow-sm sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Power User · Hall of Fame</div>
+              <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Power User · Hall of Fame · Designvorschau</div>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{t("power.badgeCatalog")}</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">{t("power.badges.heroDescription")}</p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">Alle geplanten Badges auf einen Blick – auch noch nicht freigeschaltete Saison-Badges. Die Grafik ist eine Vorschau; individuelle Illustrationen für die neuen Kategorien werden noch finalisiert.</p>
             </div>
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 sm:px-4"><div className="text-2xl font-black">{badges.length}</div><div className="text-[10px] text-slate-400 sm:text-xs">Badges</div></div>
@@ -168,7 +168,7 @@ export default async function PowerUserBadgesPage() {
                           <h3 className="text-sm font-black tracking-tight sm:text-base">{badge.title}</h3>
                           {badge.visual.secret ? <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-slate-950">Secret</span> : null}
                         </div>
-                        <p className="mt-1 text-xs font-medium leading-5 text-white/60">{badge.description}</p>
+                        <p className="mt-1 text-xs font-medium leading-5 text-white/60">{badge.description}</p><p className="mt-2 text-[10px] font-semibold text-cyan-200/80">{badge.visual.tierLabel} · {badge.visual.motifLabel}</p>
                         <div className="mt-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/35">{badge.scope === "career" ? t("power.badges.career") : t("power.badges.seasonSeries")}</div>
                       </div>
                     </div>
