@@ -382,7 +382,7 @@ export async function POST(request: Request) {
     if (raw) {
       const id = Number(raw);
       if (!Number.isSafeInteger(id) || id <= 0) return redirectWithParams(request, redirectTo, { error: "invalid_protected_player" });
-      const { data: player } = await supabase.from("players").select("id").eq("club_id", activeClubId).eq("id", id).eq("is_active", true).neq("roster_role", "staff").maybeSingle();
+      const { data: player } = await supabase.from("players").select("id").eq("club_id", activeClubId).eq("id", id).eq("is_active", true).or("roster_role.is.null,roster_role.neq.staff").maybeSingle();
       if (!player) return redirectWithParams(request, redirectTo, { error: "invalid_protected_player" });
       protectedPlayerId = id;
     } else protectedPlayerId = null;
