@@ -40,9 +40,9 @@ export default function ProOnboardingFinish({ billing, preview, trialAvailableFo
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.17em] text-violet-700">
           <Sparkles className="h-4 w-4" /> Fast geschafft
         </div>
-        <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Dein Verein ist startklar! Lade jetzt dein Team ein.</h2>
+        <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Dein Team ist ready!</h2>
         <p className="mt-2 text-sm leading-6 text-slate-700">
-          Teile gleich den Einladungslink mit deinen Mitspielern – oder erledige das später. Hier siehst du außerdem euren Tarif.
+          Lade jetzt deine Spieler ein und nimm weitere Einstellungen jederzeit im Admin-Bereich vor. Hier siehst du außerdem euren Tarif.
         </p>
         <div className="mt-4 rounded-2xl border border-violet-100 bg-white p-4">
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-violet-700">
@@ -117,7 +117,7 @@ export default function ProOnboardingFinish({ billing, preview, trialAvailableFo
 
       <section className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
         <h3 className="text-base font-black text-slate-950">Jetzt Mitspieler einladen</h3>
-        <p className="mt-1 text-sm text-slate-700">Dein Verein steht. Lade dein Team über einen Einladungslink ein. Das kannst du auch später erledigen.</p>
+        <p className="mt-1 text-sm text-slate-700">Lade deine Spieler über einen Einladungslink ein. Weitere Einstellungen wie Spielstärken, Kategorien und Balanced Groups kannst du später im Admin-Bereich vornehmen.</p>
         {preview ? <p className="mt-3 text-xs font-semibold text-cyan-900">Im Testmodus wird kein echter Einladungslink erzeugt. Schließe die Simulation unten ab.</p> : <Link href="/admin/members" className="mt-4 block rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white">Einladungslink erstellen und teilen</Link>}
       </section>
       <div className="flex items-start gap-2 rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-xs leading-5 text-cyan-950">
