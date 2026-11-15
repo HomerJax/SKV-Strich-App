@@ -4,8 +4,6 @@ import { useContext, useState } from "react";
 import { OnboardingQaSeasonContext } from "@/components/admin/OnboardingQaSeasonContext";
 import { CalendarDays, Clock3, Info, Repeat2 } from "lucide-react";
 import {
-  addCalendarDays,
-  firstWeekdayOnOrAfter,
   getWeeklyTrainingTemplate,
   getSecondTrainingStart,
 } from "@/lib/onboarding/training-template";
@@ -28,8 +26,9 @@ export default function TrainingSeriesOnboardingForm({
   const activeSeasonName = qaSeason?.name ?? seasonName;
   const template = getWeeklyTrainingTemplate({ start_date: activeSeasonStart, end_date: activeSeasonEnd });
   const [weekday, setWeekday] = useState(4);
-  const [startDate, setStartDate] = useState(template.firstDate);
-  const [endDate, setEndDate] = useState(template.lastDate);
+  const dates = getWeeklyTrainingTemplate({ start_date: activeSeasonStart, end_date: activeSeasonEnd }, weekday);
+  const startDate = dates.firstDate;
+  const endDate = dates.lastDate;
   const [startTime, setStartTime] = useState(template.startTime);
   const [secondEnabled, setSecondEnabled] = useState(false);
   const [secondWeekday, setSecondWeekday] = useState("");
@@ -42,22 +41,8 @@ export default function TrainingSeriesOnboardingForm({
   function changeWeekday(value: number) {
     setWeekday(value);
     if (String(value) === secondWeekday) setSecondWeekday("");
-    const next = getWeeklyTrainingTemplate({ start_date: activeSeasonStart, end_date: activeSeasonEnd }, value);
-    setStartDate(next.firstDate);
-    setEndDate(next.lastDate);
   }
 
-  function changeFirstDate(value: string) {
-    const clamped = activeSeasonStart && value < activeSeasonStart ? activeSeasonStart : value;
-    const aligned = clamped ? firstWeekdayOnOrAfter(clamped, weekday) : "";
-    setStartDate(aligned);
-    if (!aligned) return;
-    const lastAllowed = addCalendarDays(aligned, 51 * 7);
-    const lastSeasonDate = activeSeasonEnd && activeSeasonEnd < lastAllowed ? activeSeasonEnd : lastAllowed;
-    if (!endDate || endDate < aligned || endDate > lastSeasonDate) {
-      setEndDate(lastSeasonDate);
-    }
-  }
 
   return (
     <div className="min-w-0 space-y-5">
@@ -100,15 +85,10 @@ export default function TrainingSeriesOnboardingForm({
                 Uhrzeit
                 <input name="start_time" required type="time" value={startTime} onChange={event=>setStartTime(event.target.value)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-950"/>
               </label>
-              <label className="block min-w-0 text-sm font-bold text-slate-800">
-                Erstes Training
-                <input name="start_date" required type="date" value={startDate} min={activeSeasonStart} max={activeSeasonEnd ?? undefined} onChange={event=>changeFirstDate(event.target.value)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-2 py-3 text-base text-slate-950"/>
-              </label>
-              <label className="block min-w-0 text-sm font-bold text-slate-800">
-                Letztes Training bis
-                <input name="end_date" required type="date" value={endDate} min={startDate} max={startDate ? (activeSeasonEnd && activeSeasonEnd < addCalendarDays(startDate,51*7) ? activeSeasonEnd : addCalendarDays(startDate,51*7)) : (activeSeasonEnd ?? undefined)} onChange={event=>setEndDate(event.target.value)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-2 py-3 text-base text-slate-950"/>
-              </label>
+              <input type="hidden" name="start_date" value={startDate} />
+              <input type="hidden" name="end_date" value={endDate} />
             </div>
+            <p className="text-xs leading-5 text-slate-600">Die Termine werden automatisch innerhalb eurer Saison geplant. Erster Termin: {startDate ? new Date(startDate + "T12:00:00Z").toLocaleDateString("de-DE") : "–"}.</p>
             <section className="min-w-0 space-y-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 p-4">
               <label className="flex cursor-pointer items-start gap-3">
                 <input type="checkbox" checked={secondEnabled} onChange={event => { setSecondEnabled(event.target.checked); if (!event.target.checked) setSecondWeekday(""); }} className="mt-1 h-5 w-5 shrink-0 accent-slate-950"/>
@@ -134,7 +114,7 @@ export default function TrainingSeriesOnboardingForm({
                   </div>
                   {secondFirstDate ? (
                     <p className="rounded-xl border border-cyan-100 bg-cyan-50 p-3 text-xs leading-5 text-cyan-950">
-                      Erstes Training am zweiten Wochentag: <strong>{new Date(secondFirstDate + "T12:00:00Z").toLocaleDateString("de-DE")}</strong>. Der letzte Termin liegt spätestens am ausgewählten Enddatum.
+                      Erstes Training am zweiten Wochentag: <strong>{new Date(secondFirstDate + "T12:00:00Z").toLocaleDateString("de-DE")}</strong>. Der letzte Termin liegt spätestens am Saisonende.
                     </p>
                   ) : null}
                   {invalidSecondDate ? <p role="alert" className="rounded-xl bg-rose-50 p-3 text-xs text-rose-800">Der zweite Trainingstag liegt hinter dem Enddatum. Wähle einen längeren Zeitraum oder einen anderen Wochentag.</p> : null}
