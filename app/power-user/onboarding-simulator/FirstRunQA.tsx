@@ -48,7 +48,7 @@ export default function FirstRunQA() {
           </div>
         )}
         {step === "signup" && <SignupForm initialNext={mode === "founder" ? "/club-setup" : ""} qaPreview={{ onComplete: () => setStep("onboarding") }} />}
-        {step === "onboarding" && <OnboardingForm inviteFlow={mode === "invite"} qaPreview={{ onComplete: (input) => { setFirstName(input.firstName); setClubName(input.clubName); setStep("done"); } }} />}
+        {step === "onboarding" && <OnboardingForm inviteFlow={mode === "invite"} qaPreview={{ onComplete: (input) => { setFirstName(input.firstName); setClubName(input.clubName); if (mode === "founder") { window.location.assign("/power-user/onboarding-simulator/wizard"); } else { setStep("done"); } } }} />}
         {step === "done" && (
           <div className="mx-auto max-w-xl rounded-2xl border border-emerald-200 bg-white p-6">
             <h2 className="text-2xl font-bold">Willkommen{firstName ? `, ${firstName}` : ""}!</h2>
