@@ -40,9 +40,9 @@ export default function ProOnboardingFinish({ billing, preview, trialAvailableFo
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.17em] text-violet-700">
           <Sparkles className="h-4 w-4" /> Fast geschafft
         </div>
-        <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Euer Verein kann starten!</h2>
+        <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Dein Verein ist startklar! Lade jetzt dein Team ein.</h2>
         <p className="mt-2 text-sm leading-6 text-slate-700">
-          Zum Abschluss zeigen wir euch euren Tarif. Die wichtigsten Funktionen zum Organisieren, Einladen und Spielen sind auch mit Free nutzbar.
+          Teile gleich den Einladungslink mit deinen Mitspielern – oder erledige das später. Hier siehst du außerdem euren Tarif.
         </p>
         <div className="mt-4 rounded-2xl border border-violet-100 bg-white p-4">
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-violet-700">
@@ -115,6 +115,11 @@ export default function ProOnboardingFinish({ billing, preview, trialAvailableFo
         )}
       </section>
 
+      <section className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
+        <h3 className="text-base font-black text-slate-950">Jetzt Mitspieler einladen</h3>
+        <p className="mt-1 text-sm text-slate-700">Dein Verein steht. Lade dein Team über einen Einladungslink ein. Das kannst du auch später erledigen.</p>
+        {preview ? <p className="mt-3 text-xs font-semibold text-cyan-900">Im Testmodus wird kein echter Einladungslink erzeugt. Schließe die Simulation unten ab.</p> : <Link href="/admin/members" className="mt-4 block rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white">Einladungslink erstellen und teilen</Link>}
+      </section>
       <div className="flex items-start gap-2 rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-xs leading-5 text-cyan-950">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
         <span><strong>Nächster Schritt:</strong> Einrichtung abschließen, Mitspieler einladen und das erste Training gemeinsam nutzen. Das geht auch ohne PRO-Kauf.</span>
