@@ -110,7 +110,16 @@ export default function AchievementBadgeVisual({
           title={badgeKey}
         />
       )}
-      {attendanceDisplay && px >= SIZE.lg ? (\n        <span className="pointer-events-none absolute left-1/2 top-[77%] z-20 flex w-[112%] -translate-x-1/2 flex-col items-center" aria-label={`${attendanceDisplay.title}${seasonYear ? ` · Saison ${seasonYear}` : ""}`}>\n          <span className="relative flex h-[23px] w-full items-center justify-center">\n            <img src={`/badges/achievements/plinth-${attendanceDisplay.plate}.svg`} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-fill" />\n            <span className="relative z-10 max-w-[88%] truncate text-[8px] font-black tracking-[-0.02em] text-white [text-shadow:0_1px_2px_rgba(0,0,0,.95)]">{attendanceDisplay.title}</span>\n          </span>\n          {seasonYear ? <span className="relative -mt-[3px] rounded-b-md border-x border-b border-white/25 bg-slate-950/90 px-3 py-[1px] text-[9px] font-black leading-tight text-white">{seasonYear}</span> : null}\n        </span>\n      ) : null}\n      {seasonYear && !attendanceDisplay && !badgeKey.startsWith("career_") && px >= SIZE.lg ? (
+      {attendanceDisplay && px >= SIZE.lg ? (
+        <span className="pointer-events-none absolute left-1/2 top-[77%] z-20 flex w-[112%] -translate-x-1/2 flex-col items-center" aria-label={`${attendanceDisplay.title}${seasonYear ? ` · Saison ${seasonYear}` : ""}`}>
+          <span className="relative flex h-[23px] w-full items-center justify-center">
+            <img src={`/badges/achievements/plinth-${attendanceDisplay.plate}.svg`} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-fill" />
+            <span className="relative z-10 max-w-[88%] truncate text-[8px] font-black tracking-[-0.02em] text-white [text-shadow:0_1px_2px_rgba(0,0,0,.95)]">{attendanceDisplay.title}</span>
+          </span>
+          {seasonYear ? <span className="relative -mt-[3px] rounded-b-md border-x border-b border-white/25 bg-slate-950/90 px-3 py-[1px] text-[9px] font-black leading-tight text-white">{seasonYear}</span> : null}
+        </span>
+      ) : null}
+      {seasonYear && !attendanceDisplay && !badgeKey.startsWith("career_") && px >= SIZE.lg ? (
         <span className="pointer-events-none absolute -bottom-[12px] left-1/2 z-20 flex h-[20px] w-[76%] -translate-x-1/2 items-center justify-center" aria-label={`Saison ${seasonYear}`}>
           <span className="absolute -top-[3px] h-[5px] w-[83%] rounded-[50%] border border-slate-400/40 bg-gradient-to-b from-slate-400/65 to-slate-900 shadow-[0_2px_4px_rgba(0,0,0,.5)]" />
           <span className="absolute inset-x-0 top-[2px] bottom-0 rounded-b-[7px] rounded-t-[3px] border border-slate-500/70 bg-gradient-to-b from-[#777d87] via-[#323946] to-[#151b27] shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_4px_6px_rgba(0,0,0,.5)]" />
