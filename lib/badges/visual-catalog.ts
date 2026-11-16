@@ -112,11 +112,10 @@ export function getAchievementVisualTier(badgeKey: string): PlayerBadgeTier {
 
   const attendance = parseSuffix(badgeKey, "attendance_streak_");
   if (attendance !== null) {
-    if (attendance >= 20) return "goat";
-    if (attendance >= 15) return "gold";
-    if (attendance >= 10) return "silver";
-    if (attendance >= 5) return "bronze";
-    return "copper";
+    if (attendance >= 15) return "goat";
+    if (attendance >= 10) return "gold";
+    if (attendance >= 5) return "silver";
+    return "bronze";
   }
 
   const winStreak = parseSuffix(badgeKey, "win_streak_");
@@ -155,6 +154,8 @@ export function getAchievementTierLabel(tier: PlayerBadgeTier) {
 }
 
 function getBadgeTierLabel(badgeKey: string, tier: PlayerBadgeTier) {
+  if (badgeKey === "attendance_streak_20") return "Rainbow · Legendär";
+  if (badgeKey === "attendance_streak_15") return "Rainbow";
   if (badgeKey === "career_appearances_500") return "GOAT";
   if (badgeKey === "career_appearances_250") return "Legendär";
   if (badgeKey === "career_wins_250") return "Siegeslegende";
