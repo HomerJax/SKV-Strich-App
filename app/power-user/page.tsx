@@ -109,12 +109,15 @@ function getSafeCount(
   return result.count ?? 0;
 }
 
-export default async function PowerUserPage() {
+export default async function PowerUserPage({ searchParams }: { searchParams: Promise<{ hideMe?: string }> }) {
   await requirePowerUser();
   const { locale, t } = await getServerI18n();
   const detailsLabel = t("power.details");
 
+  const { hideMe } = await searchParams;
+  const excludeOwnActivity = hideMe === "1";
   const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
   const adminSupabase = createAdminClient();
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -198,6 +201,7 @@ export default async function PowerUserPage() {
     : ((latestSessionsResult.data ?? []) as SessionRow[]);
 
   const recentActivity = recentActivityResult.error ? [] : (recentActivityResult.data ?? []) as RecentActivity[];
+  const visibleRecentActivity = excludeOwnActivity && currentUser ? recentActivity.filter(event => event.user_id !== currentUser.id) : recentActivity;
   const activityPlayers = activityPlayersResult.error ? [] : (activityPlayersResult.data ?? []) as ActivityPlayer[];
   const activityNames = new Map(activityPlayers.filter(p => p.user_id).map(p => [p.user_id!, [p.first_name, p.last_name].filter(Boolean).join(" ") || p.name || "Spieler"]));
   const lastSignIns = [...authUsers].filter(u => u.last_sign_in_at).sort((a,b) => (b.last_sign_in_at ?? "").localeCompare(a.last_sign_in_at ?? "")).slice(0,8);
@@ -421,9 +425,9 @@ export default async function PowerUserPage() {
             <Link href="/power-user/club-activity" className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">Vereinsaktivität ansehen →</Link>
           </div>
           <div className="mt-5 grid gap-5 lg:grid-cols-[1.6fr,1fr]">
-            <div><h3 className="text-sm font-bold text-slate-900">Letzte Nutzung · bis zu 100 Aktivitäten</h3><details className="mt-2" open><summary className="cursor-pointer rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800">Aktivitäten anzeigen / einklappen ({recentActivity.length})</summary><div className="mt-2 max-h-[600px] overflow-y-auto divide-y divide-slate-100">
-              {recentActivity.map((event,index) => <div key={index} className="flex items-start justify-between gap-3 py-2.5 text-sm"><div><div className="font-semibold text-slate-900">{event.user_id ? activityNames.get(event.user_id) ?? "Konto ohne Spielerprofil" : "Nicht zugeordnet"}</div><div className="text-xs text-slate-600">{clubNameById.get(event.club_id ?? "") ?? "Verein unbekannt"} · {activityLabels[event.event_name] ?? event.event_name}</div></div><time className="shrink-0 text-xs text-slate-500">{formatDateTime(event.created_at,locale)}</time></div>)}
-              {recentActivity.length === 0 && <p className="py-4 text-sm text-slate-500">Keine erfassten Aktivitäten vorhanden.</p>}
+            <div><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-bold text-slate-900">Letzte Nutzung · bis zu 100 Aktivitäten</h3><Link href={excludeOwnActivity ? "/power-user" : "/power-user?hideMe=1"} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100">{excludeOwnActivity ? "Eigene Aktivitäten einblenden" : "Meine Aktivitäten ausblenden"}</Link></div><details className="mt-2" open><summary className="cursor-pointer rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800">Aktivitäten anzeigen / einklappen ({visibleRecentActivity.length})</summary><div className="mt-2 max-h-[600px] overflow-y-auto divide-y divide-slate-100">
+              {visibleRecentActivity.map((event,index) => <div key={index} className="flex items-start justify-between gap-3 py-2.5 text-sm"><div><div className="font-semibold text-slate-900">{event.user_id ? activityNames.get(event.user_id) ?? "Konto ohne Spielerprofil" : "Nicht zugeordnet"}</div><div className="text-xs text-slate-600">{clubNameById.get(event.club_id ?? "") ?? "Verein unbekannt"} · {activityLabels[event.event_name] ?? event.event_name}</div></div><time className="shrink-0 text-xs text-slate-500">{formatDateTime(event.created_at,locale)}</time></div>)}
+              {visibleRecentActivity.length === 0 && <p className="py-4 text-sm text-slate-500">Keine erfassten Aktivitäten vorhanden.</p>}
             </div></details></div>
             <div><h3 className="text-sm font-bold text-slate-900">Zuletzt angemeldet</h3><div className="mt-2 divide-y divide-slate-100">
               {lastSignIns.map(user => <div key={user.id} className="py-2.5 text-sm"><div className="break-all font-semibold text-slate-900">{activityNames.get(user.id) ?? user.email ?? "Unbekanntes Konto"}</div><div className="text-xs text-slate-500">{formatDateTime(user.last_sign_in_at,locale)} · Auth-Login</div></div>)}
