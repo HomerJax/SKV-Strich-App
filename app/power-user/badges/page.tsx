@@ -7,6 +7,7 @@ import { getServerI18n } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { getBadgeVisualMeta } from "@/lib/badges/visual-catalog";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSeasonYearLabel } from "@/lib/seasons/year-label";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,8 @@ export default async function PowerUserBadgesPage() {
       ])
     : [{ data: null }, { data: null }];
   const activeClubName = activeClub?.display_name?.trim() || activeClub?.name?.trim() || "Aktiver Club";
+  const { data: currentSeasons } = activeClubId ? await admin.from("seasons").select("start_date,end_date").eq("club_id", activeClubId).order("start_date", { ascending: false }).limit(1) : { data: null };
+  const seasonYear = getSeasonYearLabel(currentSeasons?.[0]?.start_date ?? null, currentSeasons?.[0]?.end_date ?? null);
   const sections = getSections(t);
 
   const badges = ALL_BADGE_DEFINITIONS.map((badge) => ({
@@ -161,7 +164,7 @@ export default async function PowerUserBadgesPage() {
                     <div className="flex items-center gap-3">
                       <div className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center">
                         <div className="absolute inset-1 rounded-[24px] bg-white/[0.04] blur-lg" />
-                        <AchievementBadgeVisual badgeKey={badge.key} size="xl" />
+                        <AchievementBadgeVisual badgeKey={badge.key} size="xl" seasonYear={badge.scope === "season" ? seasonYear : null} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
