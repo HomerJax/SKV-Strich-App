@@ -20,6 +20,7 @@ const SIZE = {
 } as const;
 
 const PREMIUM_ASSET_BY_BADGE_KEY: Record<string, string> = {
+  season_kickoff: "/badges/achievements/season-kickoff-blech.svg",
   attendance_streak_5: "/badges/achievements/attendance-dauerlaeufer.svg",
   attendance_streak_20: "/badges/achievements/attendance-immer-da.svg",
   win_streak_10: "/badges/achievements/win-streak.webp",
