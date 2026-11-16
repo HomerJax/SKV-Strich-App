@@ -43,7 +43,6 @@ export default function AchievementBadgeVisual({
   const visual = getBadgeVisualMeta(badgeKey);
   const isCareerAppearance = badgeKey.startsWith("career_appearances_");
   const isCareerWin = badgeKey.startsWith("career_wins_");
-  const isSeasonAttendance = badgeKey === "season_kickoff" || badgeKey.startsWith("attendance_streak_");
 
   if (isCareerAppearance && px >= SIZE.lg) {
     return (
@@ -101,12 +100,13 @@ export default function AchievementBadgeVisual({
           title={badgeKey}
         />
       )}
-      {isSeasonAttendance && px >= SIZE.lg ? (
-        <span className="pointer-events-none absolute bottom-[19%] right-[13%] z-10 flex h-[23%] w-[23%] items-center justify-center rounded-[22%] border border-white/30 bg-slate-950/75 shadow-[inset_0_1px_2px_rgba(255,255,255,.25),0_2px_4px_rgba(0,0,0,.5)]" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" className="h-[78%] w-[78%] text-white/85" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18m-13 5 3 3 5-5"/></svg>
+      {seasonYear && !badgeKey.startsWith("career_") && px >= SIZE.lg ? (
+        <span className="pointer-events-none absolute -bottom-[12px] left-1/2 z-20 flex h-[20px] w-[76%] -translate-x-1/2 items-center justify-center" aria-label={`Saison ${seasonYear}`}>
+          <span className="absolute -top-[3px] h-[5px] w-[83%] rounded-[50%] border border-slate-400/40 bg-gradient-to-b from-slate-400/65 to-slate-900 shadow-[0_2px_4px_rgba(0,0,0,.5)]" />
+          <span className="absolute inset-x-0 top-[2px] bottom-0 rounded-b-[7px] rounded-t-[3px] border border-slate-500/70 bg-gradient-to-b from-[#777d87] via-[#323946] to-[#151b27] shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_4px_6px_rgba(0,0,0,.5)]" />
+          <span className="relative z-10 text-[10px] font-black tracking-[0.06em] text-slate-100 [text-shadow:0_1px_1px_rgba(0,0,0,.9)]">{seasonYear}</span>
         </span>
       ) : null}
-      {seasonYear && !badgeKey.startsWith("career_") && px >= SIZE.lg ? <span className="pointer-events-none absolute -bottom-1 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded border border-white/40 bg-slate-950 px-1.5 py-0.5 text-[9px] font-black leading-none text-white shadow-md">{seasonYear}</span> : null}
     </span>
   );
 }
