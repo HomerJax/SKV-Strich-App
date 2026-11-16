@@ -9,6 +9,7 @@ type AchievementBadgeVisualProps = {
   grayscale?: boolean;
   className?: string;
   interactive?: boolean;
+  seasonYear?: string | null;
 };
 
 const SIZE = {
@@ -36,6 +37,7 @@ export default function AchievementBadgeVisual({
   grayscale = false,
   className = "",
   interactive = true,
+  seasonYear = null,
 }: AchievementBadgeVisualProps) {
   const px = SIZE[size];
   const visual = getBadgeVisualMeta(badgeKey);
@@ -98,6 +100,7 @@ export default function AchievementBadgeVisual({
           title={badgeKey}
         />
       )}
+      {seasonYear && !badgeKey.startsWith("career_") && px >= SIZE.lg ? <span className="pointer-events-none absolute -bottom-1 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded border border-white/40 bg-slate-950 px-1.5 py-0.5 text-[9px] font-black leading-none text-white shadow-md">{seasonYear}</span> : null}
     </span>
   );
 }
