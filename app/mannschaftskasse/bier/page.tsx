@@ -125,6 +125,9 @@ export default async function BeerManagementPage({ searchParams }: Props) {
             ← {t("beerManage.back")}
           </Link>
           {isClubAdmin ? (
+            <Link href="/mannschaftskasse/bier/einstellungen" className="text-xs font-black text-amber-800">⚙️ Bierkasse einstellen</Link>
+          ) : null}
+          {isClubAdmin ? (
             <Link href="/admin/members" className="text-xs font-black text-slate-500">
               {t("beerManage.permissions")}
             </Link>
