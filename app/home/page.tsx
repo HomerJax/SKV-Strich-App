@@ -1207,9 +1207,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                 sumupEnabled={bierkasseSumupEnabled}
                 cashEnabled={bierkasseCashEnabled}
               />
-              <Link href="/mannschaftskasse/bier-rangliste" className="flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-3 text-center text-sm font-bold text-slate-900 shadow-sm transition hover:border-cyan-300 hover:bg-slate-50 active:scale-[0.99]">
-                <span aria-hidden="true">🏆</span>
-                <span>Bier-Rangliste öffnen</span>
+              <Link href="/mannschaftskasse/bier-rangliste" className="group relative flex min-h-16 min-w-0 items-center justify-between gap-2 overflow-hidden rounded-2xl border border-cyan-400/70 bg-gradient-to-br from-slate-950 via-slate-900 to-teal-950 px-3 py-3 text-left text-sm font-extrabold text-white shadow-[0_8px_22px_-12px_rgba(15,23,42,0.8)] transition hover:brightness-125 active:scale-[0.98] before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_90%_15%,rgba(34,211,238,.5)_1px,transparent_2px)] before:bg-[length:9px_9px] before:opacity-45">
+                <span className="relative z-10 flex items-center gap-2"><span aria-hidden="true" className="text-xl">🏆</span><span>Bier-Rangliste öffnen</span></span>
+                <span aria-hidden="true" className="relative z-10 text-xl font-light text-cyan-300">›</span>
               </Link>
             </div>
             {q?.beer_saved === "cash" ? (
