@@ -16,7 +16,7 @@ import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { FREE_TRANSACTION_HISTORY_LIMIT } from "@/lib/billing/product-limits";
 
 type Props = {
-  searchParams?: Promise<{ saved?: string; error?: string; beer_error?: string; beer_saved?: string; setup_saved?: string }>;
+  searchParams?: Promise<{ saved?: string; error?: string; beer_error?: string; beer_saved?: string; setup_saved?: string; view?: string }>;
 };
 
 type Player = {
@@ -111,6 +111,30 @@ export default async function Page({ searchParams }: Props) {
   const q = await searchParams;
   const access = await requireCashboxAccess();
   const { clubId, player, canManageCashbox, canManageBeer, isClubAdmin } = access;
+  if (q?.view !== "details" && !q?.saved && !q?.error && !q?.beer_error && !q?.beer_saved && !q?.setup_saved) {
+    const sections = [
+      { title: "Kabinenregeln", subtitle: "Regeln, Strafen und Glücksrad", icon: "📋", href: canManageCashbox || isClubAdmin ? "/mannschaftskasse/kabinenregeln" : "/mannschaftskasse/strafen" },
+      { title: "Meine offenen Posten", subtitle: "Strafen ansehen und begleichen", icon: "⚖️", href: "/mannschaftskasse/strafen" },
+      { title: "Bierkasse", subtitle: "Biere, Zahlungen und Gönner", icon: "🍺", href: "/mannschaftskasse/bier-rangliste" },
+      ...(canManageBeer ? [{ title: "Bierkasse verwalten", subtitle: "Zahlungen prüfen und Buchungen verwalten", icon: "💳", href: "/mannschaftskasse/bier" }] : []),
+      ...(canManageCashbox ? [
+        { title: "Mannschaftskasse verwalten", subtitle: "Beiträge, Strafen und Kassenbuch", icon: "💰", href: "/admin/penalties" },
+        { title: "Zahlungen & Konten", subtitle: "Zahlungsübersicht und Konten", icon: "🏦", href: "/mannschaftskasse/zahlungen" },
+      ] : []),
+      { title: "Kassenübersicht", subtitle: "Bisherige ausführliche Übersicht", icon: "📊", href: "/mannschaftskasse?view=details" },
+    ];
+    return <main className="min-h-screen bg-[#f5f6f8] px-4 py-6 pb-24"><div className="mx-auto max-w-2xl space-y-5">
+      <Link href="/home" className="text-sm font-semibold text-slate-500">← Home</Link>
+      <header className="space-y-1"><p className="text-xs font-black uppercase tracking-[.16em] text-violet-700">Vereinskasse</p><h1 className="text-3xl font-black tracking-tight text-slate-950">Mannschaftskasse</h1><p className="text-sm text-slate-500">Was möchtest du machen?</p></header>
+      <nav className="grid gap-3" aria-label="Bereiche der Mannschaftskasse">
+        {sections.map(section => <Link key={section.href} href={section.href} className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-violet-300 hover:shadow-md">
+          <span aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-2xl">{section.icon}</span>
+          <span className="min-w-0 flex-1"><span className="block text-base font-black text-slate-950">{section.title}</span><span className="mt-1 block text-xs leading-5 text-slate-500">{section.subtitle}</span></span>
+          <span aria-hidden="true" className="text-lg text-slate-400">›</span>
+        </Link>)}
+      </nav>
+    </div></main>;
+  }
   const supabase = await createClient();
   const billingAccess = await getClubBillingAccess(supabase, clubId);
 
