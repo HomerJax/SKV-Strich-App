@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Banknote, CreditCard } from "lucide-react";
+import BeerWorkflowHelp from "@/components/cashbox/BeerWorkflowHelp";
 import { recordBeerAction } from "./actions";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
@@ -117,6 +118,8 @@ export default function BeerCheckoutCard({
         </div>
         <span className="rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black text-white">PREMIUM</span>
       </div>
+
+      <BeerWorkflowHelp audience="player" className="mt-4" />
 
       <form action={recordBeerAction} className="mt-5">
         <input type="hidden" name="quantity" value={quantity} />
