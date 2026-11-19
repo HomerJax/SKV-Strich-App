@@ -18,7 +18,7 @@ import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
-import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
+
 import InsideStrikrChannelModal from "@/components/home/InsideStrikrChannelModal";
 import AppStoreReviewPrompt from "@/components/home/AppStoreReviewPrompt";
 import AdminActivationChecklist from "@/components/home/AdminActivationChecklist";
@@ -1050,51 +1050,33 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           </Link>
         ) : null}
 
-        {isPenaltyWorkflowClub(clubId) ? (
-          <Link href="/mannschaftskasse/strafen" className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-950">
-            <span>⚖️ {locale==="en"?"Penalties: report, review & confirm":"Kabinenregeln: melden, prüfen & bestätigen"}</span>
+        {isPenaltyWorkflowClub(clubId) && myOpenPenalties.length === 0 && canManageCashbox ? (
+          <Link href="/mannschaftskasse/strafen" className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800">
+            <span>📋 {locale==="en"?"Review open items":"Kabinenregeln verwalten"}</span>
             <span aria-hidden>→</span>
           </Link>
         ) : null}
 
         {myOpenPenalties.length > 0 ? (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-[.16em] text-amber-700">
-                  📋 Meine offenen Posten
+          <Link href="/mannschaftskasse/strafen" className="block rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 shadow-sm transition hover:border-amber-300">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-xl" aria-hidden>📋</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-black text-slate-950">
+                  {myOpenPenalties.length === 1 ? "1 offener Posten" : `${myOpenPenalties.length} offene Posten`}
                 </div>
-                <div className="mt-1 text-sm font-black text-slate-950">
+                <div className="mt-0.5 truncate text-xs font-medium text-slate-600">
                   {myOpenPenalties.length === 1
-                    ? "Du hast 1 offenen Posten – bitte erledigen"
-                    : `Du hast ${myOpenPenalties.length} offene Posten – bitte erledigen`}
+                    ? (myOpenPenalties[0].reason || "Bitte erledigen")
+                    : "Zahlung, Aufgabe oder Glücksrad – bitte erledigen"}
                 </div>
-                <div className="text-[11px] font-medium text-amber-900/70">
-                  Nur für dich sichtbar · Hier kannst du deine offenen Posten erledigen
-                </div>
+                {myOpenPenalties.some(p => p.source_key?.startsWith("test:")) ? (
+                  <div className="mt-0.5 text-[10px] font-semibold text-cyan-700">Testposten dabei · keine echte Zahlung</div>
+                ) : null}
               </div>
-              <Link href="/mannschaftskasse/strafen" className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">
-                Jetzt erledigen →
-              </Link>
+              <span className="shrink-0 text-xs font-black text-amber-900">Erledigen →</span>
             </div>
-            <div className="mt-3 space-y-2">
-              {myOpenPenalties.slice(0, 2).map((penalty) => (
-                <div key={penalty.id} className="rounded-xl border border-amber-100 bg-white px-3 py-3">
-                  <div className="text-sm font-bold text-slate-900">{penalty.reason || "Offener Posten"}</div>
-                  <div className="mt-0.5 text-sm font-semibold text-amber-800">{penalty.value || "Betrag offen"}</div>
-                  {penalty.source_key?.startsWith("test:") ? (
-                    <div className="mt-1 text-[10px] font-bold text-cyan-700">Test – keine echte Zahlung</div>
-                  ) : null}
-                  <PenaltyFunWheel penaltyId={penalty.id}/>
-                </div>
-              ))}
-              {myOpenPenalties.length > 2 ? (
-                <Link href="/mannschaftskasse/strafen" className="inline-flex text-xs font-bold text-cyan-700">
-                  + {myOpenPenalties.length - 2} weitere Posten ansehen →
-                </Link>
-              ) : null}
-            </div>
-          </section>
+          </Link>
         ) : null}
 
         {canManageCashbox && homeSettings?.beerkasse_enabled === true ? (
