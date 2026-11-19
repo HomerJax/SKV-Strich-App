@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Banknote, CreditCard, X } from "lucide-react";
+import { Banknote, ChevronDown, CreditCard, Heart, X } from "lucide-react";
 import { recordBeerAction } from "@/app/mannschaftskasse/actions";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { AppLocale } from "@/lib/i18n/config";
@@ -56,6 +56,7 @@ export default function HomeBeerCheckoutModal({
   const [poolOpening, setPoolOpening] = useState(false);
   const [poolReminderOpen, setPoolReminderOpen] = useState(false);
   const [donationCents, setDonationCents] = useState(0);
+  const [donationsOpen, setDonationsOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [cashSaving, setCashSaving] = useState(false);
   const [cashError, setCashError] = useState("");
@@ -218,27 +219,32 @@ export default function HomeBeerCheckoutModal({
               <input type="hidden" name="quantity" value={quantity} />
               <input type="hidden" name="return_to" value="/home" />
 
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500">Anzahl Bier</p>
-                  <p className="mt-0.5 text-lg font-black text-slate-950">{quantity} × {formatEuro(priceCents, locale)}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-xl font-bold text-slate-900" aria-label={t("beer.less")}>−</button>
-                  <span className="min-w-5 text-center text-lg font-black tabular-nums text-slate-950">{quantity}</span>
-                  <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-xl font-bold text-white" aria-label={t("beer.more")}>+</button>
+              <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                <p className="mb-2 text-center text-xs font-semibold text-slate-500">Wie viele Bier?</p>
+                <div className="flex items-center justify-between">
+                  <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-2xl font-bold text-slate-900" aria-label={t("beer.less")}>−</button>
+                  <div className="text-center">
+                    <div className="text-3xl font-black tabular-nums text-slate-950">{quantity}</div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Bier</div>
+                  </div>
+                  <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-2xl font-bold text-white" aria-label={t("beer.more")}>+</button>
                 </div>
               </div>
 
-              <div className="mt-4">
-                <p className="text-sm font-bold text-slate-900">Mannschaftskasse unterstützen?</p>
-                <div className="mt-2 grid grid-cols-5 gap-1.5">
-                  {[0, 100, 200, 500, 1000].map((value) => (
-                    <button key={value} type="button" aria-pressed={donationCents === value} onClick={() => setDonationCents(value)} className={"rounded-lg border px-1 py-2.5 text-xs font-bold transition " + (donationCents === value ? "border-teal-600 bg-teal-50 text-teal-800" : "border-slate-200 bg-white text-slate-600")}>
-                      {value === 0 ? "Ohne" : "+" + formatEuro(value, locale)}
-                    </button>
-                  ))}
-                </div>
+              <div className="mt-3 border-b border-slate-100 pb-3">
+                <button type="button" aria-expanded={donationsOpen} onClick={() => setDonationsOpen((value) => !value)} className="flex w-full items-center justify-between gap-2 py-2 text-left">
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-800"><Heart className="h-4 w-4 shrink-0 text-slate-400" /> Mannschaftskasse unterstützen</span>
+                  <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-slate-500">{donationCents ? "+" + formatEuro(donationCents, locale) : "Freiwillig"}<ChevronDown className={"h-4 w-4 transition-transform " + (donationsOpen ? "rotate-180" : "")} /></span>
+                </button>
+                {donationsOpen ? (
+                  <div className="mt-2 grid grid-cols-5 gap-1.5">
+                    {[0, 100, 200, 500, 1000].map((value) => (
+                      <button key={value} type="button" aria-pressed={donationCents === value} onClick={() => { setDonationCents(value); setDonationsOpen(false); }} className={"rounded-lg border px-1 py-2.5 text-xs font-bold transition " + (donationCents === value ? "border-teal-600 bg-teal-50 text-teal-800" : "border-slate-200 bg-white text-slate-600")}>
+                        {value === 0 ? "Ohne" : "+" + formatEuro(value, locale)}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div className="mt-5 flex items-center justify-between">
