@@ -354,7 +354,7 @@ export default async function Page({ searchParams }: Props) {
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto max-w-6xl space-y-4 px-4 py-5 pb-24">
         <div className="flex items-center justify-between gap-3">
-          <Link href={isClubAdmin ? "/admin" : "/mannschaftskasse"} className="text-sm font-semibold text-slate-600">
+          <Link href="/mannschaftskasse" className="text-sm font-semibold text-slate-600">
             ← {t("cashAdmin.back")}
           </Link>
           <div className="flex items-center gap-2"><Link href="/mannschaftskasse/setup?edit=1" className="text-xs font-bold text-slate-500">{t("cashAdmin.editSetup")}</Link><Link href="/mannschaftskasse" className="text-xs font-bold text-slate-500">{t("cashAdmin.playerView")}</Link></div>
