@@ -3,7 +3,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { canManageClub } from "@/lib/auth/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DEFAULT_WHEEL_SEGMENTS, parseWheelSegments } from "@/lib/cashbox/wheel-config";
-import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
+import { isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-structure";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +34,7 @@ export async function PUT(request: NextRequest) {
   const db = createAdminClient();
   const scopeKey=typeof payload?.scopeKey==="string"?payload.scopeKey:"";
   if(scopeKey) {
-    if(!isCashboxPilotClub(clubId) || !/^(penalty:[0-9]{1,18}|rule:[a-zA-Z0-9_-]{1,100})$/.test(scopeKey))
+    if(!isPenaltyWorkflowClub(clubId) || !/^(penalty:[0-9]{1,18}|rule:[a-zA-Z0-9_-]{1,100})$/.test(scopeKey))
       return NextResponse.json({error:"Ungültiger Rad-Geltungsbereich."},{status:400});
     const [kind,key]=scopeKey.split(":");
     const {data:source}=kind==="penalty"
