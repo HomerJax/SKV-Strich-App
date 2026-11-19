@@ -1058,24 +1058,20 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         ) : null}
 
         {myOpenPenalties.length > 0 ? (
-          <Link href="/mannschaftskasse/strafen" className="block rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 shadow-sm transition hover:border-amber-300">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-xl" aria-hidden>📋</span>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-black text-slate-950">
-                  {myOpenPenalties.length === 1 ? "1 offener Posten" : `${myOpenPenalties.length} offene Posten`}
-                </div>
-                <div className="mt-0.5 truncate text-xs font-medium text-slate-600">
-                  {myOpenPenalties.length === 1
-                    ? (myOpenPenalties[0].reason || "Bitte erledigen")
-                    : "Zahlung, Aufgabe oder Glücksrad – bitte erledigen"}
-                </div>
-                {myOpenPenalties.some(p => p.source_key?.startsWith("test:")) ? (
-                  <div className="mt-0.5 text-[10px] font-semibold text-cyan-700">Testposten dabei · keine echte Zahlung</div>
-                ) : null}
-              </div>
-              <span className="shrink-0 text-xs font-black text-amber-900">Erledigen →</span>
-            </div>
+          <Link href="/mannschaftskasse/strafen" className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-xl" aria-hidden>📋</span>
+              <span className="min-w-0">
+                <span className="block text-sm font-black text-slate-950">Offene Posten</span>
+                <span className="mt-0.5 block text-xs font-medium text-slate-500">
+                  {myOpenPenalties.length === 1 ? "1 Aufgabe wartet auf dich" : `${myOpenPenalties.length} Aufgaben warten auf dich`}
+                </span>
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-slate-800 px-2 text-sm font-bold text-white">{myOpenPenalties.length}</span>
+              <span className="text-lg text-slate-400" aria-hidden>→</span>
+            </span>
           </Link>
         ) : null}
 
