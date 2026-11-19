@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BeerWorkflowHelp from "@/components/cashbox/BeerWorkflowHelp";
 import { requireBeerManagementAccess } from "@/lib/cashbox/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatCents } from "@/lib/cashbox/money";
@@ -178,6 +179,8 @@ export default async function BeerManagementPage({ searchParams }: Props) {
               <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">{t("beerManage.openCount", { count: pendingRows.length })}</span>
             </div>
           </div>
+
+          <BeerWorkflowHelp audience="manager" className="mt-4" />
 
           <div className="mt-4 space-y-3">
             {pendingRows.map((row, index) => (
