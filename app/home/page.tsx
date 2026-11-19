@@ -1096,26 +1096,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         ) : null}
 
         {canManageCashbox && homeSettings?.beerkasse_enabled === true ? (
-          <section className={"rounded-2xl border px-4 py-4 " + (pendingBeerCount > 0 ? "border-amber-400 bg-amber-100 shadow-[0_8px_24px_rgba(245,158,11,0.18)] ring-2 ring-amber-300/40" : "border-slate-200 bg-white")}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className={"text-[10px] font-bold uppercase tracking-[0.18em] " + (pendingBeerCount > 0 ? "text-amber-700" : "text-cyan-700")}>{pendingBeerCount > 0 ? "⚠️ Aktion nötig · Kassenwart" : "Kassenwart"}</div>
-                <div className="mt-0.5 text-sm font-semibold text-slate-950">
-                  {pendingBeerCount > 0
-                    ? pendingBeerCount + " ZAHLUNG" + (pendingBeerCount === 1 ? "" : "EN") + " WART" + (pendingBeerCount === 1 ? "ET" : "EN") + " AUF DICH · " + new Intl.NumberFormat(locale === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }).format(pendingBeerTotalCents / 100)
-                    : "Keine offenen Bierzahlungen"}
-                </div>
-              </div>
-              <Link href="/mannschaftskasse/bier?review=1#offen" className="shrink-0 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm">
-                {pendingBeerCount > 0 ? "Jetzt prüfen →" : "Bierkasse"}
-              </Link>
-            </div>
-            {bierkassePaypalUrl ? (
-              <a href={bierkassePaypalUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex text-xs font-semibold text-cyan-700">
-                PayPal-Pool öffnen →
-              </a>
-            ) : null}
-          </section>
+          <Link href="/mannschaftskasse/bier/pruefen" className="group flex items-center justify-between gap-4 rounded-2xl border border-teal-200 bg-white px-4 py-4 shadow-sm transition hover:border-teal-400 hover:shadow-md">
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xl">🍺</span>
+              <span className="min-w-0"><span className="block text-sm font-black text-slate-950">Bierzahlungen prüfen</span><span className="mt-0.5 block text-xs font-medium text-slate-500">{pendingBeerCount > 0 ? pendingBeerCount + " offen · " + new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"}).format(pendingBeerTotalCents/100) : "Alles erledigt"}</span></span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2">{pendingBeerCount > 0 ? <span className="rounded-full bg-teal-700 px-2.5 py-1 text-xs font-black text-white">{pendingBeerCount}</span> : null}<span className="text-lg text-slate-400 transition group-hover:translate-x-1">→</span></span>
+          </Link>
         ) : null}
 
         {nextSession ? (
