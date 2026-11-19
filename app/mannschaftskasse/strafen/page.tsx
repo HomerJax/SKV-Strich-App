@@ -120,23 +120,47 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
         <span className="shrink-0 text-xs font-semibold text-violet-700 group-open:hidden">Öffnen →</span>
         <span className="hidden shrink-0 text-xs font-semibold text-slate-400 group-open:inline">Schließen ↑</span>
       </summary>
-      <div className="space-y-3 border-t border-slate-100 px-4 pb-4 pt-4">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-semibold text-slate-700">{s?.effective_label||p.value||"Erfüllung offen"}</span>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{status[current]||"Offen"}</span>
-        </div>
-        {p.source_key?.startsWith("test:")?<p className="text-xs font-semibold text-cyan-700">Testposten · kein echtes Geld überweisen</p>:null}
-        {spin?<p className="text-xs font-semibold text-violet-700">Glücksrad: {spin.outcome_label}{spin.outcome_detail?" · "+spin.outcome_detail:""}</p>:null}
-        {s?.report_note?<p className="text-xs text-slate-500">Deine Meldung: {s.report_note}</p>:null}
-        {s?.review_note?<p className="text-xs text-slate-500">Rückmeldung: {s.review_note}</p>:null}
-        {canReport?<div className="space-y-3">
-          {!s?<PenaltyFunWheel penaltyId={p.id}/>:null}
-          {requiresSpin && !spin
-            ? <p role="status" className="rounded-xl bg-slate-50 p-3 text-xs font-medium text-slate-600">Bitte zuerst das Glücksrad drehen.</p>
-            : <PenaltyFulfillmentForm penaltyId={p.id} methods={methods}
-                 isMoney={payment.isMoney}
-                 amountLabel={payment.isMoney && payment.cents!==null?formatCents(payment.cents,locale):null}/>}
-        </div>:null}
+      <div className="space-y-4 border-t border-slate-100 px-4 pb-5 pt-5">
+        {payment.isMoney && payment.cents!==null ? (
+          <div className="text-center">
+            <p className="text-xs font-medium text-slate-500">Deine Strafe</p>
+            <p className="mt-1 text-3xl font-black tracking-tight text-slate-950">{formatCents(payment.cents,locale)}</p>
+          </div>
+        ) : (
+          <p className="text-center text-lg font-bold text-slate-950">{s?.effective_label||p.value||"Aufgabe erledigen"}</p>
+        )}
+        {p.source_key?.startsWith("test:")?<p className="text-center text-xs font-semibold text-cyan-700">Test · kein echtes Geld überweisen</p>:null}
+        {current==="reported" ? (
+          <p className="rounded-xl bg-slate-50 p-4 text-center text-sm font-semibold text-slate-700">Deine Meldung wird geprüft.</p>
+        ) : canReport ? (
+          <div className="space-y-3">
+            {!spin && !s ? (
+              <div className="rounded-2xl bg-slate-950 p-4 text-center text-white">
+                <p className="text-base font-black">🎡 Willst du deine Strafe loswerden?</p>
+                <p className="mt-1 text-xs text-slate-300">Versuch dein Glück – vielleicht wird’s günstiger.</p>
+                <PenaltyFunWheel penaltyId={p.id}/>
+              </div>
+            ) : spin ? (
+              <p className="rounded-xl bg-violet-50 p-3 text-center text-sm font-semibold text-violet-900">🎡 Dein Ergebnis: {spin.outcome_label}</p>
+            ) : null}
+            {requiresSpin && !spin ? (
+              <p className="text-center text-xs text-slate-500">Dreh zuerst das Glücksrad, um fortzufahren.</p>
+            ) : (
+              <details className="rounded-xl border border-slate-200 bg-slate-50/70 p-3" open={!spin && !requiresSpin && !s}>
+                <summary className="cursor-pointer text-center text-sm font-bold text-slate-900">
+                  {payment.isMoney ? `${formatCents(payment.cents??0,locale)} bezahlen` : "Erfüllung melden"}
+                </summary>
+                <div className="mt-3">
+                  <PenaltyFulfillmentForm penaltyId={p.id} methods={methods}
+                    isMoney={payment.isMoney}
+                    amountLabel={payment.isMoney && payment.cents!==null?formatCents(payment.cents,locale):null}/>
+                </div>
+              </details>
+            )}
+          </div>
+        ) : (
+          <p className="text-center text-sm text-slate-600">{status[current]||"Offen"}</p>
+        )}
       </div>
     </details>;
   })}
