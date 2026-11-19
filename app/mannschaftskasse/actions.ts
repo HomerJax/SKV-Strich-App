@@ -161,6 +161,7 @@ export async function recordBeerAction(formData: FormData) {
 
   revalidatePath("/mannschaftskasse");
   revalidatePath("/mannschaftskasse/bier");
+  revalidatePath("/mannschaftskasse/bier/pruefen");
   revalidatePath("/home");
   revalidatePath("/power-user/beerkasse");
 
@@ -178,7 +179,7 @@ export async function recordBeerAction(formData: FormData) {
 }
 
 function beerManageUrl(params: Record<string, string> = {}) {
-  return url(params, "/mannschaftskasse/bier");
+  return url(params, "/mannschaftskasse/bier/pruefen");
 }
 
 function refreshBeerViews() {
