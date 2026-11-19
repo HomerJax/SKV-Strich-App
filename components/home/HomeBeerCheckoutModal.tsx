@@ -70,6 +70,7 @@ export default function HomeBeerCheckoutModal({
     const body = new FormData();
     body.set("quantity", String(quantity));
     body.set("payment_method", "cash");
+    body.set("donation_cents", String(donationCents));
 
     try {
       const response = await fetch("/api/mannschaftskasse/beer", {
@@ -217,6 +218,7 @@ export default function HomeBeerCheckoutModal({
 
             <form action={recordBeerAction} className="mt-4">
               <input type="hidden" name="quantity" value={quantity} />
+              <input type="hidden" name="donation_cents" value={donationCents} />
               <input type="hidden" name="return_to" value="/home" />
 
               <div className="rounded-2xl bg-slate-50 px-3 py-3">
