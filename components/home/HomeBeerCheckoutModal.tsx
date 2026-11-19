@@ -214,37 +214,39 @@ export default function HomeBeerCheckoutModal({
               </button>
             </div>
 
-            <form action={recordBeerAction} className="mt-5">
+            <form action={recordBeerAction} className="mt-4">
               <input type="hidden" name="quantity" value={quantity} />
               <input type="hidden" name="return_to" value="/home" />
 
-              <div className="flex items-center justify-between rounded-[20px] border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-2xl font-black text-slate-900 shadow-sm ring-1 ring-slate-200" aria-label={t("beer.less")}>−</button>
-                <div className="min-w-0 text-center">
-                  <div className="text-3xl font-black tracking-tight text-slate-950">{quantity}</div>
-                  <div className="text-[10px] font-black uppercase tracking-[.14em] text-slate-500">{t("beer.beer")}</div>
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">Anzahl Bier</p>
+                  <p className="mt-0.5 text-lg font-black text-slate-950">{quantity} × {formatEuro(priceCents, locale)}</p>
                 </div>
-                <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-2xl font-black text-white shadow-sm" aria-label={t("beer.more")}>+</button>
+                <div className="flex shrink-0 items-center gap-3">
+                  <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-xl font-bold text-slate-900" aria-label={t("beer.less")}>−</button>
+                  <span className="min-w-5 text-center text-lg font-black tabular-nums text-slate-950">{quantity}</span>
+                  <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-xl font-bold text-white" aria-label={t("beer.more")}>+</button>
+                </div>
               </div>
 
-              <div className="mt-3">
-                <div className="text-sm font-black text-slate-950">Mannschaftskasse unterstützen?</div>
-                <div className="mt-1 text-xs font-medium text-slate-500">Optional – mit einem Klick auswählen.</div>
+              <div className="mt-4">
+                <p className="text-sm font-bold text-slate-900">Mannschaftskasse unterstützen?</p>
                 <div className="mt-2 grid grid-cols-5 gap-1.5">
                   {[0, 100, 200, 500, 1000].map((value) => (
-                    <button key={value} type="button" onClick={() => setDonationCents(value)} className={"rounded-xl border px-2 py-2 text-xs font-black transition " + (donationCents === value ? "border-cyan-500 bg-cyan-50 text-cyan-800" : "border-white/70 bg-white/65 text-slate-600")}>
+                    <button key={value} type="button" aria-pressed={donationCents === value} onClick={() => setDonationCents(value)} className={"rounded-lg border px-1 py-2.5 text-xs font-bold transition " + (donationCents === value ? "border-teal-600 bg-teal-50 text-teal-800" : "border-slate-200 bg-white text-slate-600")}>
                       {value === 0 ? "Ohne" : "+" + formatEuro(value, locale)}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-between rounded-2xl bg-slate-950 px-4 py-3 text-white">
-                <span className="text-xs font-black uppercase tracking-[.16em] text-white/55">Gesamt</span>
-                <span className="text-2xl font-black">{formatEuro(totalCents + donationCents, locale)}</span>
+              <div className="mt-5 flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-600">Gesamt</span>
+                <span className="text-2xl font-black tabular-nums text-slate-950">{formatEuro(totalCents + donationCents, locale)}</span>
               </div>
 
-              <div className="mt-4 grid gap-2">
+              <div className="mt-3 grid gap-2">
                 {paypalEnabled ? (
                   paypalPool ? (
                     <button type="button" onClick={() => setPoolReminderOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
@@ -278,10 +280,10 @@ export default function HomeBeerCheckoutModal({
                 </button>
                 ) : null}
               </div>
-              <div className="mt-4 border-t border-slate-200 pt-3">
-                <p className="mb-2 text-xs font-semibold text-slate-400">Weitere Zahlungsmethoden</p>
-                <div aria-disabled="true" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm font-bold text-slate-400">
-                  <CreditCard className="h-4 w-4" /> SumUp <span className="ml-auto text-xs font-medium">Demnächst</span>
+              <div className="mt-3 pt-1">
+  
+                <div aria-disabled="true" className="flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
+                  <CreditCard className="h-3.5 w-3.5" /> SumUp · demnächst
                 </div>
               </div>
 
