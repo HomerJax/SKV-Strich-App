@@ -295,6 +295,7 @@ export default async function Page({ searchParams }: Props) {
           <div className="flex items-center gap-2">
             {isClubAdmin ? (
               <>
+                <Link href="/mannschaftskasse/kabinenregeln" className="rounded-full border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-900">📋 Kabinenregeln einstellen</Link>
                 <Link href="/mannschaftskasse/gluecksrad" className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-900">
                   🎡 Glücksrad einstellen
                 </Link>
