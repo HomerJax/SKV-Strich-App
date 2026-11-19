@@ -255,42 +255,44 @@ export default function HomeBeerCheckoutModal({
               <div className="mt-3 grid gap-2">
                 {paypalEnabled ? (
                   paypalPool ? (
-                    <button type="button" onClick={() => setPoolReminderOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
-                      <span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span><span className="block text-base font-black">Bezahlen per PayPal</span></span>
-                      <span className="font-black">→</span>
+                    <button type="button" onClick={() => setPoolReminderOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-3.5 text-left text-white shadow-sm active:scale-[0.99]">
+                      <span className="text-base font-black">Mit PayPal bezahlen</span><span className="font-black">→</span>
                     </button>
                   ) : (
-                    <button name="payment_method" value="paypal" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
-                      <span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span><span className="block text-base font-black">Bezahlen per PayPal</span></span>
-                      <span className="font-black">→</span>
+                    <button name="payment_method" value="paypal" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-3.5 text-left text-white shadow-sm active:scale-[0.99]">
+                      <span className="text-base font-black">Mit PayPal bezahlen</span><span className="font-black">→</span>
                     </button>
                   )
-                ) : null}
-
-                {paypalMeEnabled && !paypalEnabled ? (
-                  <button name="payment_method" value="paypal_me" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
-                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span><span className="block text-base font-black">Bezahlen per PayPal</span></span></span><span className="font-black">→</span>
+                ) : paypalMeEnabled ? (
+                  <button name="payment_method" value="paypal_me" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-3.5 text-left text-white shadow-sm active:scale-[0.99]">
+                    <span className="text-base font-black">Mit PayPal bezahlen</span><span className="font-black">→</span>
                   </button>
-                ) : null}
+                ) : (
+                  <button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3.5 text-left text-slate-400">
+                    <span className="text-base font-bold">Mit PayPal bezahlen</span><span className="text-xs font-medium">Nicht verfügbar</span>
+                  </button>
+                )}
 
                 {cashEnabled ? (
-                <button type="button" onClick={handleCashPayment} disabled={cashSaving} className="flex w-full items-center justify-between rounded-2xl border border-white/70 bg-white/65 px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99] disabled:opacity-60">
-                  <span className="flex items-center gap-3">
-                    <Banknote className="h-5 w-5 text-emerald-700" />
-                    <span>
-                      <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">{t("beer.cash")}</span>
-                      <span className="block text-base font-black">{cashSaving ? "Wird eingetragen …" : "Bar bezahlen"}</span>
-                    </span>
-                  </span>
-                  <span className="font-black">→</span>
-                </button>
-                ) : null}
+                  <button type="button" onClick={handleCashPayment} disabled={cashSaving} className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left text-slate-950 shadow-sm active:scale-[0.99] disabled:opacity-60">
+                    <span className="flex items-center gap-2 text-base font-black"><Banknote className="h-5 w-5 text-emerald-700" />{cashSaving ? "Wird eingetragen …" : "Bar bezahlen"}</span><span className="font-black">→</span>
+                  </button>
+                ) : (
+                  <button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3.5 text-left text-slate-400">
+                    <span className="flex items-center gap-2 text-base font-bold"><Banknote className="h-5 w-5" />Bar bezahlen</span><span className="text-xs font-medium">Nicht verfügbar</span>
+                  </button>
+                )}
               </div>
               <div className="mt-3 pt-1">
-  
-                <div aria-disabled="true" className="flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
-                  <CreditCard className="h-3.5 w-3.5" /> SumUp · demnächst
-                </div>
+                {sumupEnabled ? (
+                  <button name="payment_method" value="sumup" type="submit" className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-800">
+                    <span className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> Mit SumUp bezahlen</span><span>→</span>
+                  </button>
+                ) : (
+                  <div aria-disabled="true" className="flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
+                    <CreditCard className="h-3.5 w-3.5" /> SumUp · nicht verfügbar
+                  </div>
+                )}
               </div>
 
               {cashError ? <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-700">{cashError}</p> : null}
