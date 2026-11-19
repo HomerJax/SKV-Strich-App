@@ -839,11 +839,9 @@ export default async function Page({ searchParams }: Props) {
         ) : null}
 
         {visibleTab === "rules" ? (
-          billingAccess.isPro ? <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-black">{t("cashAdmin.rulesTitle")}</h2>
-            <p className="mt-1 text-xs text-slate-500">
-              {t("cashAdmin.rulesHint")}
-            </p>
+          billingAccess.isPro ? <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+            <h2 className="text-xl font-black tracking-tight text-slate-950">Kabinenregeln</h2>
+            <p className="mt-1 text-sm text-slate-500">Regeln antippen, bearbeiten und speichern.</p>
             {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
               <form action={createPilotPenaltyRuleAction} className="mt-4 grid gap-2 rounded-2xl border border-teal-200 bg-teal-50 p-3 sm:grid-cols-2">
                 <p className="sm:col-span-2 text-sm font-black text-teal-950">Neuen Strafenkatalog-Eintrag erstellen</p>
@@ -859,22 +857,26 @@ export default async function Page({ searchParams }: Props) {
                 <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white">Eintrag anlegen</button>
               </form>
             ) : null}
-            <div className="mt-4 space-y-3">
+            <div className="mt-5 space-y-2">
               {rules.map((rule) => (
-                <form key={rule.rule_key} action={savePenaltyRuleAction} className="rounded-2xl border bg-slate-50 p-3">
+                <details key={rule.rule_key} className="group overflow-hidden rounded-xl border border-slate-200 bg-white open:border-violet-200 open:shadow-sm">
+                  <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-slate-950">{rule.label}</span><span className="mt-1 block truncate text-xs text-slate-500">{rule.value} · {rule.enabled ? "Aktiv" : "Inaktiv"}</span></span><span className="text-slate-400 group-open:rotate-90">›</span>
+                  </summary>
+                  <form action={savePenaltyRuleAction} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
                   <input type="hidden" name="rule_key" value={rule.rule_key} />
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="block">
-                      <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.ruleName")}</span>
-                      <input name="label" defaultValue={rule.label} className="w-full rounded-xl border bg-white px-3 py-2 text-sm font-bold" />
+                      <span className="mb-1 block text-xs font-semibold text-slate-600">{t("cashAdmin.ruleName")}</span>
+                      <input name="label" defaultValue={rule.label} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100 font-bold" />
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.reasonDescription")}</span>
-                      <input name="reason" defaultValue={rule.reason} className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
+                      <input name="reason" defaultValue={rule.reason} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100" />
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.type")}</span>
-                      <select name="type" defaultValue={rule.type} className="w-full rounded-xl border bg-white px-3 py-2 text-sm">
+                      <select name="type" defaultValue={rule.type} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100">
                         <option value="beer">{t("cashAdmin.inKind")}</option>
                         <option value="money">{t("cashAdmin.money")}</option>
                         <option value="custom">{t("cashAdmin.other")}</option>
@@ -882,18 +884,18 @@ export default async function Page({ searchParams }: Props) {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.valueContribution")}</span>
-                      <input name="value" defaultValue={rule.value} className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
+                      <input name="value" defaultValue={rule.value} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100" />
                     </label>
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <label className="block">
                       <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.escalationDays")}</span>
-                      <input name="escalation_after_days" type="number" min="1" defaultValue={rule.escalation_after_days ?? ""} placeholder="z. B. 28" className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
+                      <input name="escalation_after_days" type="number" min="1" defaultValue={rule.escalation_after_days ?? ""} placeholder="z. B. 28" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100" />
                       <span className="mt-1 block text-[10px] font-medium text-slate-500">{t("cashAdmin.escalationDaysHint")}</span>
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-[11px] font-black uppercase tracking-[.12em] text-slate-500">{t("cashAdmin.afterwards")}</span>
-                      <input name="escalation_value" defaultValue={rule.escalation_value ?? ""} placeholder={t("cashAdmin.escalationPlaceholder")} className="w-full rounded-xl border bg-white px-3 py-2 text-sm" />
+                      <input name="escalation_value" defaultValue={rule.escalation_value ?? ""} placeholder={t("cashAdmin.escalationPlaceholder")} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100" />
                       <span className="mt-1 block text-[10px] font-medium text-slate-500">{t("cashAdmin.escalationHint")}</span>
                     </label>
                   </div>
@@ -903,15 +905,16 @@ export default async function Page({ searchParams }: Props) {
                       🎡 Glücksrad & konkrete Auswirkung für diesen Katalogeintrag festlegen
                     </Link>
                   ) : null}
-                  <div className="mt-3 flex items-center justify-between">
+                  <div className="mt-5 flex items-center justify-between gap-3">
                     <label className="flex items-center gap-2 text-xs font-black">
                       <input type="checkbox" name="enabled" defaultChecked={rule.enabled} /> {t("cashAdmin.active")}
                     </label>
-                    <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white">
+                    <button className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">
                       {t("cashAdmin.saveRule")}
                     </button>
                   </div>
-                </form>
+                  </form>
+                </details>
               ))}
             </div>
           </section> : <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-black">🔒 FBZG-Regeln · PRO</h2><p className="mt-1 text-sm text-slate-600">Vorlagen, Fälligkeiten und Eskalationen werden mit PRO freigeschaltet.</p></section>
