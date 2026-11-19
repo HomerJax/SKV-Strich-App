@@ -269,7 +269,7 @@ export default function HomeBeerCheckoutModal({
                   </button>
                 ) : (
                   <button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3.5 text-left text-slate-400">
-                    <span className="text-base font-bold">Mit PayPal bezahlen</span><span className="text-xs font-medium">Nicht verfügbar</span>
+                    <span className="text-base font-bold">Mit PayPal bezahlen</span><span className="text-xs font-medium">Vom Admin deaktiviert</span>
                   </button>
                 )}
 
@@ -279,7 +279,7 @@ export default function HomeBeerCheckoutModal({
                   </button>
                 ) : (
                   <button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3.5 text-left text-slate-400">
-                    <span className="flex items-center gap-2 text-base font-bold"><Banknote className="h-5 w-5" />Bar bezahlen</span><span className="text-xs font-medium">Nicht verfügbar</span>
+                    <span className="flex items-center gap-2 text-base font-bold"><Banknote className="h-5 w-5" />Bar bezahlen</span><span className="text-xs font-medium">Vom Admin deaktiviert</span>
                   </button>
                 )}
               </div>
@@ -290,7 +290,7 @@ export default function HomeBeerCheckoutModal({
                   </button>
                 ) : (
                   <div aria-disabled="true" className="flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
-                    <CreditCard className="h-3.5 w-3.5" /> SumUp · nicht verfügbar
+                    <CreditCard className="h-3.5 w-3.5" /> SumUp · vom Admin deaktiviert
                   </div>
                 )}
               </div>
