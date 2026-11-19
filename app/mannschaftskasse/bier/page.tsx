@@ -113,6 +113,32 @@ export default async function BeerManagementPage({ searchParams }: Props) {
   activeRows
     .filter((row) => row.payment_status === "paid" && row.donation_cents > 0)
     .forEach((row) => donorTotals.set(row.player_id, (donorTotals.get(row.player_id) ?? 0) + row.donation_cents));
+  // Only confirmed, financially booked wheel donations count; test spins never do.
+  const [{data:confirmedWheelDonations},{data:wheelDonationPlayers}]=await Promise.all([
+    admin.from("pilot_penalty_settlements")
+      .select("penalty_id,amount_cents,transaction_id")
+      .eq("club_id",clubId).eq("state","confirmed").eq("fulfillment_kind","money")
+      .not("transaction_id","is",null),
+    admin.from("penalties").select("id,player_id").eq("club_id",clubId),
+  ]);
+  const donationSettlements=confirmedWheelDonations??[];
+  const donationPenaltyIds=donationSettlements.map(x=>x.penalty_id);
+  const {data:donationSpins}=donationPenaltyIds.length
+    ?await admin.from("penalty_wheel_spins").select("penalty_id,outcome_label")
+       .eq("club_id",clubId).in("penalty_id",donationPenaltyIds)
+    :{data:[]};
+  const donationSpinIds=new Set((donationSpins??[]).filter(x=>/^spende$/i.test(x.outcome_label?.trim()??"")).map(x=>x.penalty_id));
+  const donationPlayerIds=new Map((wheelDonationPlayers??[]).map(x=>[x.id,x.player_id]));
+  const wheelDonationTotals=new Map<number,number>();
+  for(const settlement of donationSettlements){
+    if(!donationSpinIds.has(settlement.penalty_id))continue;
+    const playerId=donationPlayerIds.get(settlement.penalty_id);
+    if(playerId==null)continue;
+    wheelDonationTotals.set(playerId,(wheelDonationTotals.get(playerId)??0)+Number(settlement.amount_cents??0));
+  }
+  for(const [playerId,cents] of wheelDonationTotals){
+    donorTotals.set(playerId,(donorTotals.get(playerId)??0)+cents);
+  }
   const topDonors = Array.from(donorTotals.entries())
     .map(([playerId, cents]) => ({ playerId, cents, name: names.get(playerId) ?? t("beerManage.playerFallback", { id: playerId }) }))
     .sort((a, b) => b.cents - a.cents || a.name.localeCompare(b.name, locale === "de" ? "de-DE" : "en-GB"));
@@ -120,6 +146,11 @@ export default async function BeerManagementPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-neutral-100">
       <section className="mx-auto max-w-5xl space-y-4 px-4 py-5 pb-24">
+        {wheelDonationTotals.size>0 ? <section className="rounded-2xl border border-violet-200 bg-white p-4">
+          <h2 className="text-sm font-black text-slate-950">💜 Gönner · Spende durch Glücksrad</h2>
+          <p className="mt-1 text-xs text-slate-500">Nur vom Kassenwart bestätigte Spenden. Die Beträge zählen zusätzlich zur Gönner-Gesamtsumme.</p>
+          <div className="mt-3 space-y-2">{[...wheelDonationTotals.entries()].sort((a,b)=>b[1]-a[1]).map(([playerId,cents])=><div key={playerId} className="flex justify-between gap-3 text-sm"><span className="font-semibold text-slate-800">{names.get(playerId)??"Spieler"}</span><span className="font-black text-violet-800">{formatCents(cents)}</span></div>)}</div>
+        </section> : null}
         <div className="flex items-center justify-between gap-3">
           <Link href="/mannschaftskasse" className="text-sm font-semibold text-slate-600">
             ← {t("beerManage.back")}
