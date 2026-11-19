@@ -1,3 +1,4 @@
+import BeerWorkflowHelp from "@/components/cashbox/BeerWorkflowHelp";
 "use client";
 
 import Link from "next/link";
@@ -314,6 +315,7 @@ export default function CashboxSetupWizard({
               <p className="mt-3 max-w-xl text-base font-medium leading-7 text-slate-500">
                 {t("cashSetup.beerText")}
               </p>
+              <BeerWorkflowHelp audience="setup" className="mt-5" />
 
               {premiumBeer ? (
                 <div className="mt-8">
