@@ -15,7 +15,7 @@ type Props = {
 };
 
 export default function PenaltyChoice({penaltyId,methods,isMoney,amountLabel,requiresSpin,hasSpin,wheelResult}:Props){
-  const [choice,setChoice]=useState<"wheel"|"pay"|null>(hasSpin?"pay":null);
+  const [choice,setChoice]=useState<"wheel"|"pay"|null>(null);
   return <div className="space-y-3">
     {hasSpin && wheelResult ? <p className="rounded-xl bg-violet-50 p-3 text-center text-sm font-semibold text-violet-900">🎡 Dein Ergebnis: {wheelResult}</p> : null}
     {!hasSpin ? <>
@@ -33,8 +33,9 @@ export default function PenaltyChoice({penaltyId,methods,isMoney,amountLabel,req
       {requiresSpin?<p className="text-center text-xs text-slate-500">Für diesen Posten ist das Glücksrad vorgeschrieben.</p>:null}
     </>:null}
     {choice==="wheel"&&!hasSpin?<div className="rounded-2xl bg-slate-950 p-3 text-white"><PenaltyFunWheel penaltyId={penaltyId}/></div>:null}
+    {hasSpin && choice!=="pay" ? <button type="button" onClick={()=>setChoice("pay")} className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">Jetzt {isMoney?"Spende begleichen":"Ergebnis erfüllen"} →</button> : null}
     {choice==="pay"&&(!requiresSpin||hasSpin)?<div className="space-y-2">
-      <p className="text-center text-sm font-bold text-slate-800">{isMoney?"Zahlung via hinterlegtem Zahlungsweg":"Erfüllung melden"}</p>
+      <p className="text-center text-sm font-bold text-slate-800">{isMoney?`Jetzt ${amountLabel??"Spende"} begleichen`:"Erfüllung melden"}</p>
       <PenaltyFulfillmentForm penaltyId={penaltyId} methods={methods} isMoney={isMoney} amountLabel={amountLabel}/>
     </div>:null}
   </div>;
