@@ -171,10 +171,10 @@ export default function HomeBeerCheckoutModal({
           setCashSaving(false);
           setOpen(true);
         }}
-        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-3 text-center text-sm font-bold text-slate-900 shadow-sm transition hover:border-cyan-300 hover:bg-slate-50 active:scale-[0.99]"
+        className="group relative flex min-h-16 w-full items-center justify-between gap-2 overflow-hidden rounded-2xl border border-cyan-300/50 bg-gradient-to-br from-cyan-400 via-teal-500 to-teal-700 px-3 py-3 text-left text-sm font-extrabold text-white shadow-[0_8px_22px_-12px_rgba(6,182,212,0.85)] transition hover:brightness-110 active:scale-[0.98] before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_12%_95%,rgba(255,255,255,.28)_1px,transparent_2px)] before:bg-[length:9px_9px] before:opacity-40"
       >
-        <span aria-hidden="true">🍺</span>
-        <span>Bier bezahlen</span>
+        <span className="relative z-10 flex items-center gap-2"><span aria-hidden="true" className="text-xl">🍺</span><span>Bier bezahlen</span></span>
+        <span aria-hidden="true" className="relative z-10 text-xl font-light">›</span>
       </button>
 
       {open ? (
