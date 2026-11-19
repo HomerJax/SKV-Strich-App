@@ -155,7 +155,7 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
         {!s?<PenaltyFunWheel penaltyId={p.id}/>:null}
         {requiresSpin && !spin
           ? <p role="status" className="rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-900">
-              Erst das Glücksrad drehen (ab heute 20:30 Uhr). Danach erscheint hier die Meldung für die endgültige Strafe.
+              Bitte zuerst das Glücksrad drehen. Danach kannst du die endgültige Erfüllung melden.
             </p>
           : <PenaltyFulfillmentForm penaltyId={p.id} methods={methods}
                isMoney={payment.isMoney}
