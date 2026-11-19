@@ -5,7 +5,7 @@ import { canManageClub } from "@/lib/auth/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DEFAULT_WHEEL_SEGMENTS, parseWheelSegments } from "@/lib/cashbox/wheel-config";
 import WheelSettingsEditor from "./WheelSettingsEditor";
-import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
+import { isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-structure";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export default async function WheelSettingsPage({searchParams}:{searchParams?:Pr
   if (isSupportView || !canManageClub({ isPowerUser, role: membership.role })) redirect("/mannschaftskasse");
   const db=createAdminClient();
   const q=await searchParams;
-  const pilot=isCashboxPilotClub(clubId);
+  const pilot=isPenaltyWorkflowClub(clubId);
   let scopeKey="";
   let chosenName="Vereinsstandard";
   const penaltyId=Number(q?.penaltyId);
