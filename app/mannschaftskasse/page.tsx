@@ -241,9 +241,8 @@ export default async function Page({ searchParams }: Props) {
   const beerBadgesEnabled =
     beerStatsEnabled && settings?.beerkasse_badges_enabled === true;
   const beerPriceCents = Math.max(1, Number(settings?.beerkasse_price_cents ?? 200));
-  // SKV Bierstatistik starts with the new tracked Bierkasse on 01.10.2026.
-  // Older entries remain visible in history but do not affect statistics.
-  const beerStatsStart = "2026-10-01";
+  // Align the cashbox beer totals with the current club season and beer leaderboard.
+  const beerStatsStart = "2025-12-07";
   const beerTotals = new Map<number, number>();
   for (const entry of activeBeerConsumptions) {
     if (entry.payment_status !== "paid" || entry.created_at.slice(0, 10) < beerStatsStart) continue;
