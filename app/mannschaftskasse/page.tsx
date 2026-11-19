@@ -114,7 +114,7 @@ export default async function Page({ searchParams }: Props) {
   if (q?.view !== "details" && !q?.saved && !q?.error && !q?.beer_error && !q?.beer_saved && !q?.setup_saved) {
     const sections = [
       { title: "Kabinenregeln", subtitle: "Regeln, Strafen und Glücksrad", icon: "📋", href: canManageCashbox || isClubAdmin ? "/mannschaftskasse/kabinenregeln" : "/mannschaftskasse/strafen" },
-      { title: "Meine offenen Posten", subtitle: "Strafen ansehen und begleichen", icon: "⚖️", href: "/mannschaftskasse/strafen" },
+      { title: "Alle offenen Posten", subtitle: "Offene Strafen der Mannschaft im Überblick", icon: "⚖️", href: canManageCashbox ? "/admin/penalties?tab=penalties" : "/mannschaftskasse/strafen" },
       { title: "Bierkasse", subtitle: "Biere, Zahlungen und Gönner", icon: "🍺", href: "/mannschaftskasse/bier-rangliste" },
       ...(canManageBeer ? [{ title: "Bierkasse verwalten", subtitle: "Zahlungen prüfen und Buchungen verwalten", icon: "💳", href: "/mannschaftskasse/bier" }] : []),
       ...(canManageCashbox ? [
