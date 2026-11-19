@@ -126,13 +126,16 @@ export async function recordBeerAction(formData: FormData) {
     redirect(url({ beer_error: t("cashAction.invalidBeerPrice") }, returnTo));
   }
 
-  const totalCents = unitPriceCents * quantity;
+  const donationRaw = Number(String(formData.get("donation_cents") ?? "0"));
+  const donationCents = Number.isInteger(donationRaw) && [0, 100, 200, 500, 1000].includes(donationRaw) ? donationRaw : 0;
+  const totalCents = unitPriceCents * quantity + donationCents;
   const { error } = await supabase.from("beer_consumptions").insert({
     club_id: clubId,
     player_id: player.id,
     quantity,
     unit_price_cents: unitPriceCents,
     total_cents: totalCents,
+    donation_cents: donationCents,
     payment_method: paymentMethod,
     payment_status: "pending",
     created_by: user.id,
