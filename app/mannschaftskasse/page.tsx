@@ -429,7 +429,7 @@ export default async function Page({ searchParams }: Props) {
           <BeerCheckoutCard
             priceCents={beerPriceCents}
             myTotal={myBeerTotal}
-            badge={beerBadgesEnabled ? beerBadge(myBeerTotal, locale) : null}
+            badge={null}
             paypalEnabled={paypalEnabled}
             paypalPool={paypalPool}
             paypalUrl={paypalUrl}
@@ -515,7 +515,7 @@ export default async function Page({ searchParams }: Props) {
               </div>
             </div>
 
-            {beerBadgesEnabled && beerBadge(myBeerTotal, locale) ? (
+            {false && beerBadgesEnabled && beerBadge(myBeerTotal, locale) ? (
               <div className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-black text-amber-900">
                 {t("cashbox.yourBeerBadge", { badge: beerBadge(myBeerTotal, locale) ?? "" })}
               </div>
