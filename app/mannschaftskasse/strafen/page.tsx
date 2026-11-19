@@ -110,45 +110,35 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
     const canReport=!p.resolved_at&&(!s||["open","rejected"].includes(s.state))&&ctx.player?.id===p.player_id;
     const canReview=false;
     const canCorrect=false;
-    return <section key={p.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="flex items-start justify-between gap-3">
-       <div>
-        <h2 className="font-black text-slate-950">{p.reason||"Strafe"}</h2>
-        <p className="text-sm text-slate-600">{s?.effective_label||p.value}</p>
-        {spin?<p className="text-xs font-bold text-violet-700">🎡 {spin.outcome_label}{spin.outcome_detail?" · "+spin.outcome_detail:""}</p>:null}
-        {p.source_key?.startsWith("test:")?<p className="text-xs font-bold text-amber-800">{en?"Test – no actual payment":"Test – keine echte Zahlung"}</p>:null}
-       </div><span className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-bold">{en?current:status[current]}</span>
+    return <details key={p.id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm open:border-violet-200">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-lg" aria-hidden>📋</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-bold text-slate-950">{p.reason||"Offener Posten"}</span>
+          <span className="mt-0.5 block text-xs text-slate-500">{current==="reported"?"Wird geprüft":current==="rejected"?"Bitte erneut erledigen":canReport?"Noch zu erledigen":status[current]||"Offen"}</span>
+        </span>
+        <span className="shrink-0 text-xs font-semibold text-violet-700 group-open:hidden">Öffnen →</span>
+        <span className="hidden shrink-0 text-xs font-semibold text-slate-400 group-open:inline">Schließen ↑</span>
+      </summary>
+      <div className="space-y-3 border-t border-slate-100 px-4 pb-4 pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-semibold text-slate-700">{s?.effective_label||p.value||"Erfüllung offen"}</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{status[current]||"Offen"}</span>
+        </div>
+        {p.source_key?.startsWith("test:")?<p className="text-xs font-semibold text-cyan-700">Testposten · kein echtes Geld überweisen</p>:null}
+        {spin?<p className="text-xs font-semibold text-violet-700">Glücksrad: {spin.outcome_label}{spin.outcome_detail?" · "+spin.outcome_detail:""}</p>:null}
+        {s?.report_note?<p className="text-xs text-slate-500">Deine Meldung: {s.report_note}</p>:null}
+        {s?.review_note?<p className="text-xs text-slate-500">Rückmeldung: {s.review_note}</p>:null}
+        {canReport?<div className="space-y-3">
+          {!s?<PenaltyFunWheel penaltyId={p.id}/>:null}
+          {requiresSpin && !spin
+            ? <p role="status" className="rounded-xl bg-slate-50 p-3 text-xs font-medium text-slate-600">Bitte zuerst das Glücksrad drehen.</p>
+            : <PenaltyFulfillmentForm penaltyId={p.id} methods={methods}
+                 isMoney={payment.isMoney}
+                 amountLabel={payment.isMoney && payment.cents!==null?formatCents(payment.cents,locale):null}/>}
+        </div>:null}
       </div>
-      {s?.fulfillment_kind==="money"?<p className="mt-2 text-sm font-bold">{formatCents(s.amount_cents??0,locale)} · {s.payment_method}</p>:null}
-      {s?.report_note?<p className="mt-1 text-xs text-slate-600">{en?"Reported":"Gemeldet"}: {s.report_note}</p>:null}
-      {s?.review_note?<p className="mt-1 text-xs text-slate-600">{en?"Reviewed":"Kassenwart"}: {s.review_note}</p>:null}
-      {canReport?<div className="mt-4 space-y-2">
-        {!s?<PenaltyFunWheel penaltyId={p.id}/>:null}
-        {requiresSpin && !spin
-          ? <p role="status" className="rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-900">
-              Bitte zuerst das Glücksrad drehen. Danach kannst du die endgültige Erfüllung melden.
-            </p>
-          : <PenaltyFulfillmentForm penaltyId={p.id} methods={methods}
-               isMoney={payment.isMoney}
-               amountLabel={payment.isMoney && payment.cents!==null?formatCents(payment.cents,locale):null}/>}
-</div>:null}
-      {canReview?<div className="mt-3 grid gap-2 rounded-xl bg-amber-50 p-3 sm:grid-cols-2">
-        <form action={pilotPenaltyAction} className="space-y-2">
-         <input name="action" type="hidden" value="confirm"/><input name="penalty_id" type="hidden" value={p.id}/>
-         <input name="note" className={field} maxLength={500} placeholder="Prüfnotiz (optional)"/>
-         <button className={btn}>{en?"Confirm received":"Eingang / Erfüllung bestätigen"}</button>
-        </form>
-        <form action={pilotPenaltyAction} className="space-y-2">
-         <input name="action" type="hidden" value="reject"/><input name="penalty_id" type="hidden" value={p.id}/>
-         <input name="note" className={field} required minLength={3} maxLength={500} placeholder="Ablehnungsgrund"/>
-         <button className={btn}>{en?"Reject":"Meldung ablehnen"}</button>
-        </form>
-       </div>:null}
-      {(history.get(p.id)||[]).length>0?<details className="mt-3 border-t pt-2 text-xs text-slate-600">
-       <summary className="cursor-pointer font-bold">Verlauf ({history.get(p.id)?.length})</summary>
-       {(history.get(p.id)||[]).map((e,i)=><p key={i} className="mt-1">{new Date(e.occurred_at).toLocaleString("de-DE")} · {e.action}</p>)}
-      </details>:null}
-    </section>;
+    </details>;
   })}
  </div></main>;
 }
