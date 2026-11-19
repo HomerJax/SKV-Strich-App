@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: t("beerApi.invalidQuantity") }, { status: 400 });
     }
 
-    const donationCents = paymentMethod !== "cash" && Number.isInteger(donationCentsRaw) && donationCentsRaw >= 0 && donationCentsRaw <= 10000 ? donationCentsRaw : 0;
+    const donationCents = Number.isInteger(donationCentsRaw) && [0, 100, 200, 500, 1000].includes(donationCentsRaw) ? donationCentsRaw : 0;
 
     const supabase = await createClient();
     const { data: settings, error: settingsError } = await supabase
