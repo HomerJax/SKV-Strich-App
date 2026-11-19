@@ -5,7 +5,7 @@ import { Instagram, X, Beer, Trophy } from "lucide-react";
 
 // Flip only after the beer feature has been explicitly released to all clubs.
 // The club's own beerkasse_enabled setting remains opt-in.
-const BEER_ANNOUNCEMENT_RELEASED = false;
+const BEER_ANNOUNCEMENT_RELEASED = true;
 const BEER_KEY = "strikr:announcement:beer-rollout-2026-11";
 const INSTAGRAM_KEY = "strikr:announcement:instagram-getstrikr-2026-11";
 
