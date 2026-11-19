@@ -33,9 +33,9 @@ export default function PenaltyChoice({penaltyId,methods,isMoney,amountLabel,req
       {requiresSpin?<p className="text-center text-xs text-slate-500">Für diesen Posten ist das Glücksrad vorgeschrieben.</p>:null}
     </>:null}
     {choice==="wheel"&&!hasSpin?<div className="rounded-2xl bg-slate-950 p-3 text-white"><PenaltyFunWheel penaltyId={penaltyId}/></div>:null}
-    {hasSpin && choice!=="pay" ? <button type="button" onClick={()=>setChoice("pay")} className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">Jetzt {isMoney?"Spende begleichen":"Ergebnis erfüllen"} →</button> : null}
+    {hasSpin && choice!=="pay" ? <button type="button" onClick={()=>setChoice("pay")} className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">Jetzt {isMoney?"Betrag begleichen":"Ergebnis bestätigen lassen"} →</button> : null}
     {choice==="pay"&&(!requiresSpin||hasSpin)?<div className="space-y-2">
-      <p className="text-center text-sm font-bold text-slate-800">{isMoney?`Jetzt ${amountLabel??"Spende"} begleichen`:"Erfüllung melden"}</p>
+      <p className="text-center text-sm font-bold text-slate-800">{isMoney?`Jetzt ${amountLabel??"Betrag"} begleichen`:"Erfüllung melden"}</p>
       <PenaltyFulfillmentForm penaltyId={penaltyId} methods={methods} isMoney={isMoney} amountLabel={amountLabel}/>
     </div>:null}
   </div>;
