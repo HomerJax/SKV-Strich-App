@@ -9,7 +9,7 @@ import { translate } from "@/lib/i18n/messages";
 import { EMPTY_PILOT_CASHBOX, isCashboxPilotClub, parsePilotCashboxStructure } from "@/lib/cashbox/pilot-structure";
 
 type Props = {
-  searchParams?: Promise<{ error?: string }>;
+  searchParams?: Promise<{ error?: string; module?: string; edit?: string }>;
 };
 
 type PlayerRow = {
@@ -48,6 +48,12 @@ export default async function Page({ searchParams }: Props) {
 
   if (!canManageClub({ isPowerUser: ctx.isPowerUser, role: ctx.membership.role })) {
     redirect("/mannschaftskasse");
+  }
+
+  // Legacy setup links should not force beer-only clubs through the full cashbox wizard.
+  // The full wizard remains available via an explicit module=full entry.
+  if (q?.module !== "full" && q?.edit !== "1" && !q?.error) {
+    redirect("/mannschaftskasse/bier/einstellungen");
   }
 
   const admin = createAdminClient();
