@@ -620,6 +620,16 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
   const displayPlayer =
     players.find((candidate) => candidate.id === requestedPlayerId) ?? ownPlayer;
   const isOwnHall = displayPlayer.id === ownPlayer.id;
+  const [{ data: beerSettings }, { data: confirmedBeers }] = await Promise.all([
+    supabase.from("club_settings").select("beerkasse_enabled").eq("club_id", clubId).maybeSingle(),
+    supabase.from("beer_consumptions").select("player_id,quantity").eq("club_id", clubId).eq("payment_status", "paid").is("cancelled_at", null).gte("created_at", "2026-10-01T00:00:00+02:00"),
+  ]);
+  const beerCounts = new Map<number, number>();
+  for (const entry of confirmedBeers ?? []) {
+    beerCounts.set(entry.player_id, (beerCounts.get(entry.player_id) ?? 0) + Number(entry.quantity ?? 0));
+  }
+  const myBeerCount = beerCounts.get(displayPlayer.id) ?? 0;
+  const beerRank = [...beerCounts.entries()].filter(([id]) => players.some(p => p.id === id)).sort((a, b) => b[1] - a[1]).findIndex(([id]) => id === displayPlayer.id) + 1;
 
   const achievementsByPlayer = new Map<number, AchievementRow[]>();
   for (const achievement of achievements) {
@@ -743,6 +753,19 @@ export default async function BadgesPageV3({ searchParams }: PageProps) {
           </div>
           <div className="border-t border-stone-300 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[.12em] text-slate-500">Spielerpass · Hall of Fame</div>
         </section>
+
+        {beerSettings?.beerkasse_enabled === true ? (
+          <section className="rounded-[26px] border border-amber-200 bg-amber-50 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div><p className="text-[10px] font-black uppercase tracking-widest text-amber-700">🍺 Bierkasse</p><h2 className="mt-1 text-lg font-black text-slate-950">Persönliche Bierstatistik</h2></div>
+              <Link href="/mannschaftskasse/bier-rangliste" className="text-xs font-black text-amber-900">Rangliste →</Link>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-white p-3"><p className="text-xs font-semibold text-slate-500">Bestätigte Biere</p><p className="mt-1 text-2xl font-black text-slate-950">{myBeerCount} 🍺</p></div>
+              <div className="rounded-xl bg-white p-3"><p className="text-xs font-semibold text-slate-500">Platzierung</p><p className="mt-1 text-2xl font-black text-slate-950">{beerRank > 0 ? `#${beerRank}` : "—"}</p></div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="relative overflow-hidden rounded-[32px] bg-slate-950 p-5 text-white shadow-[0_28px_70px_rgba(15,23,42,0.24)] sm:p-6">
           <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-400/[0.08] blur-3xl" />
