@@ -199,7 +199,7 @@ export default function HomeBeerCheckoutModal({
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[.18em] text-amber-700">
+                <div className="text-[10px] font-black uppercase tracking-[.18em] text-teal-700">
                   🍺 {t("beer.title")}
                 </div>
                 <h2 id="beer-checkout-title" className="mt-1 text-2xl font-black text-slate-950">
@@ -218,7 +218,7 @@ export default function HomeBeerCheckoutModal({
               <input type="hidden" name="quantity" value={quantity} />
               <input type="hidden" name="return_to" value="/home" />
 
-              <div className="flex items-center justify-between rounded-[20px] border border-amber-200 bg-amber-50/70 px-3 py-2.5">
+              <div className="flex items-center justify-between rounded-[20px] border border-slate-200 bg-slate-50 px-3 py-2.5">
                 <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-2xl font-black text-slate-900 shadow-sm ring-1 ring-slate-200" aria-label={t("beer.less")}>−</button>
                 <div className="min-w-0 text-center">
                   <div className="text-3xl font-black tracking-tight text-slate-950">{quantity}</div>
@@ -229,11 +229,11 @@ export default function HomeBeerCheckoutModal({
 
               <div className="mt-3">
                 <div className="text-sm font-black text-slate-950">Mannschaftskasse unterstützen?</div>
-                <div className="mt-1 text-xs font-medium text-slate-500">Optional – einfach zum Bierbetrag dazu.</div>
-                <div className="mt-2 grid grid-cols-4 gap-2">
-                  {[0, 100, 200, 500].map((value) => (
+                <div className="mt-1 text-xs font-medium text-slate-500">Optional – mit einem Klick auswählen.</div>
+                <div className="mt-2 grid grid-cols-5 gap-1.5">
+                  {[0, 100, 200, 500, 1000].map((value) => (
                     <button key={value} type="button" onClick={() => setDonationCents(value)} className={"rounded-xl border px-2 py-2 text-xs font-black transition " + (donationCents === value ? "border-cyan-500 bg-cyan-50 text-cyan-800" : "border-white/70 bg-white/65 text-slate-600")}>
-                      {value === 0 ? "Nein" : "+" + formatEuro(value, locale)}
+                      {value === 0 ? "Ohne" : "+" + formatEuro(value, locale)}
                     </button>
                   ))}
                 </div>
@@ -245,34 +245,23 @@ export default function HomeBeerCheckoutModal({
               </div>
 
               <div className="mt-4 grid gap-2">
-                {sumupEnabled ? (
-                  <button name="payment_method" value="sumup" type="submit" className="flex w-full items-center justify-between rounded-2xl border border-white/70 bg-white/65 px-4 py-4 text-left text-slate-950 shadow-sm active:scale-[0.99]">
-                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5 text-sky-700" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-sky-700">SumUp</span><span className="block text-base font-black">{formatEuro(totalCents, locale)} · Link öffnen</span></span></span><span className="font-black">→</span>
-                  </button>
-                ) : (
-                  <button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-slate-100 px-4 py-4 text-left text-slate-400 opacity-70">
-                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em]">SumUp</span><span className="block text-base font-black">Demnächst</span></span></span>
-                    <span className="rounded-full bg-slate-200 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500">Coming soon</span>
-                  </button>
-                )}
-
                 {paypalEnabled ? (
                   paypalPool ? (
                     <button type="button" onClick={() => setPoolReminderOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
-                      <span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal Pool</span><span className="block text-base font-black">{formatEuro(totalCents + donationCents, locale)} zahlen</span></span>
+                      <span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span><span className="block text-base font-black">Bezahlen per PayPal</span></span>
                       <span className="font-black">→</span>
                     </button>
                   ) : (
                     <button name="payment_method" value="paypal" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
-                      <span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span><span className="block text-base font-black">{formatEuro(totalCents, locale)} zahlen</span></span>
+                      <span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span><span className="block text-base font-black">Bezahlen per PayPal</span></span>
                       <span className="font-black">→</span>
                     </button>
                   )
                 ) : null}
 
-                {paypalMeEnabled ? (
+                {paypalMeEnabled && !paypalEnabled ? (
                   <button name="payment_method" value="paypal_me" type="submit" className="flex w-full items-center justify-between rounded-2xl bg-[#0070ba] px-4 py-4 text-left text-white shadow-sm active:scale-[0.99]">
-                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal.Me</span><span className="block text-base font-black">{formatEuro(totalCents, locale)}</span></span></span><span className="font-black">→</span>
+                    <span className="flex items-center gap-3"><CreditCard className="h-5 w-5" /><span><span className="block text-[10px] font-black uppercase tracking-[.16em] text-white/70">PayPal</span><span className="block text-base font-black">Bezahlen per PayPal</span></span></span><span className="font-black">→</span>
                   </button>
                 ) : null}
 
@@ -282,12 +271,18 @@ export default function HomeBeerCheckoutModal({
                     <Banknote className="h-5 w-5 text-emerald-700" />
                     <span>
                       <span className="block text-[10px] font-black uppercase tracking-[.16em] text-emerald-700">{t("beer.cash")}</span>
-                      <span className="block text-base font-black">{cashSaving ? "Wird eingetragen …" : t("beer.cashOpen")}</span>
+                      <span className="block text-base font-black">{cashSaving ? "Wird eingetragen …" : "Bar bezahlen"}</span>
                     </span>
                   </span>
                   <span className="font-black">→</span>
                 </button>
                 ) : null}
+              </div>
+              <div className="mt-4 border-t border-slate-200 pt-3">
+                <p className="mb-2 text-xs font-semibold text-slate-400">Weitere Zahlungsmethoden</p>
+                <div aria-disabled="true" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm font-bold text-slate-400">
+                  <CreditCard className="h-4 w-4" /> SumUp <span className="ml-auto text-xs font-medium">Demnächst</span>
+                </div>
               </div>
 
               {cashError ? <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-700">{cashError}</p> : null}
