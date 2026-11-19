@@ -87,6 +87,15 @@ export async function GET(request: NextRequest) {
   if (!penalty) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
   const canResetForTest = mayResetTestWheel(clubId, penalty);
 
+  const {data: pause, error: pauseError} = await db.from("penalty_wheel_pauses")
+    .select("paused_until,eligible_penalties_from").eq("club_id",clubId).maybeSingle();
+  if(pauseError) return NextResponse.json({error:"Glücksradstatus konnte nicht geprüft werden."},{status:500});
+  const lockedReason = pause?.paused_until && new Date(pause.paused_until).getTime()>Date.now()
+    ? "Das Glücksrad ist für euren Verein derzeit gesperrt."
+    : pause?.eligible_penalties_from && new Date(penalty.created_at).getTime()<new Date(pause.eligible_penalties_from).getTime()
+      ? "Für diesen Posten ist das Glücksrad nicht freigegeben."
+      : "";
+
   const [{ data: spin, error: spinError }, segments] = await Promise.all([
     db.from("penalty_wheel_spins")
       .select("outcome,outcome_label,outcome_detail,outcome_icon,segments_snapshot")
@@ -96,7 +105,7 @@ export async function GET(request: NextRequest) {
   if (spinError) return NextResponse.json({ error: "Drehung konnte nicht geladen werden." }, { status: 500 });
   return NextResponse.json(spin
     ? spinPayload(spin as SpinRow, segments, canResetForTest)
-    : { outcome: null, label: null, detail: null, segments: playerWheelSegments(segments), canResetForTest });
+    : { outcome: null, label: null, detail: null, segments: playerWheelSegments(segments), canResetForTest, lockedReason });
 }
 
 export async function POST(request: NextRequest) {
@@ -151,8 +160,8 @@ export async function POST(request: NextRequest) {
       .select("outcome,outcome_label,outcome_detail,outcome_icon,segments_snapshot")
       .eq("club_id", clubId).eq("penalty_id", penaltyId).maybeSingle();
     if (saved) return NextResponse.json(spinPayload(saved as SpinRow, segments, canResetForTest));
-    console.error("Penalty wheel spin saving failed", saveError.code);
-    return NextResponse.json({ error: "Das Ergebnis konnte nicht gespeichert werden." }, { status: 500 });
+    console.error("Penalty wheel spin saving failed", saveError.code, saveError.message);
+    return NextResponse.json({ error: saveError.message.startsWith("wheel_paused_until_") ? "Das Glücksrad ist für euren Verein derzeit gesperrt." : saveError.message.startsWith("wheel_penalty_too_old_since_") ? "Für diesen Posten ist das Glücksrad nicht freigegeben." : "Das Ergebnis konnte nicht gespeichert werden." }, { status: saveError.code==="P0001"?409:500 });
   }
   // Explicitly do not change penalties, payments, beer, or cash transactions.
   return NextResponse.json({
