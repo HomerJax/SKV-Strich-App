@@ -171,20 +171,10 @@ export default function HomeBeerCheckoutModal({
           setCashSaving(false);
           setOpen(true);
         }}
-        className="flex w-full items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left shadow-sm transition active:scale-[0.99]"
+        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-3 text-center text-sm font-bold text-slate-900 shadow-sm transition hover:border-cyan-300 hover:bg-slate-50 active:scale-[0.99]"
       >
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-[.16em] text-amber-700">
-            🍺 {t("beer.title")}
-          </div>
-          <div className="text-sm font-black text-slate-950">{t("beer.add")}</div>
-          <div className="mt-0.5 text-[11px] font-medium text-slate-500">
-            {t("beer.hint")}
-          </div>
-        </div>
-        <span className="rounded-full bg-amber-400 px-3 py-2 text-xs font-black text-slate-950">
-          {t("beer.open")}
-        </span>
+        <span aria-hidden="true">🍺</span>
+        <span>Bier bezahlen</span>
       </button>
 
       {open ? (
