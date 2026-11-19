@@ -91,7 +91,7 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
  for(const e of (events??[]) as Event[])history.set(e.penalty_id,[...(history.get(e.penalty_id)||[]),e]);
  const pending=rows.filter(x=>stateMap.get(x.id)?.state==="reported").length;
  return <main className="min-h-screen bg-[#f5f6f8] px-4 py-6 pb-24"><div className="mx-auto max-w-3xl space-y-4">
-  <Link href="/home" className="text-sm font-semibold text-slate-500">← Home</Link>
+  <Link href="/mannschaftskasse" className="text-sm font-semibold text-slate-500">← Mannschaftskasse</Link>
   <header className="py-2">
     <h1 className="text-2xl font-black tracking-tight text-slate-950">Meine offenen Posten</h1>
     <p className="mt-1 text-sm text-slate-500">Alles, was du noch erledigen musst.</p>
