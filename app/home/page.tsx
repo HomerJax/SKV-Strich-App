@@ -1058,7 +1058,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         ) : null}
 
         {myOpenPenalties.length > 0 ? (
-          <Link href="/mannschaftskasse/strafen" className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
+          <Link href="/mannschaftskasse/strafen" className="group flex items-center justify-between gap-4 rounded-2xl border border-violet-400/80 bg-white px-4 py-4 shadow-[0_0_0_1px_rgba(167,139,250,0.4),0_0_14px_rgba(139,92,246,0.26)] transition hover:border-violet-500 hover:shadow-[0_0_0_1px_rgba(167,139,250,0.6),0_0_20px_rgba(139,92,246,0.35)]">
             <span className="flex min-w-0 items-center gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-xl" aria-hidden>📋</span>
               <span className="min-w-0">
