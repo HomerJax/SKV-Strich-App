@@ -99,7 +99,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
   const userNames = new Map(players.filter((player) => player.user_id).map((player) => [player.user_id as string, playerName(player, locale)]));
   const actorName = (userId: string | null) => userId ? (userNames.get(userId) ?? "Unbekannter Nutzer") : null;
   const activeRows = rows.filter((row) => row.payment_status !== "cancelled");
-  const pendingRows = activeRows.filter((row) => row.payment_status === "pending");
+  const pendingRows = activeRows.filter((row) => row.payment_status === "pending").sort((a, b) => Number(a.payment_method !== "cash") - Number(b.payment_method !== "cash"));
   const pendingCash = pendingRows.filter((row) => row.payment_method === "cash");
   const pendingDigital = pendingRows.filter((row) => row.payment_method !== "cash");
   const totalBeers = activeRows.reduce((sum, row) => sum + row.quantity, 0);
@@ -180,8 +180,10 @@ export default async function BeerManagementPage({ searchParams }: Props) {
           </div>
 
           <div className="mt-4 space-y-3">
-            {pendingRows.map((row) => (
-              <div key={row.id} className="rounded-2xl border border-slate-200 p-3">
+            {pendingRows.map((row, index) => (
+              <div key={row.id}>
+                {(index === 0 || pendingRows[index - 1].payment_method === "cash" && row.payment_method !== "cash" || pendingRows[index - 1].payment_method !== "cash" && row.payment_method === "cash") ? <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">{row.payment_method === "cash" ? "Barzahlungen" : "Digitale Zahlungen"}</p> : null}
+              <div className="rounded-2xl border border-slate-200 p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <div className="font-black text-slate-950">{names.get(row.player_id) ?? t("beerManage.playerFallback", { id: row.player_id })}</div>
@@ -212,18 +214,13 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                       {row.payment_method !== "cash" ? (
                         <div className="mb-3">
                           <div className="text-[10px] font-black uppercase tracking-[.12em] text-slate-500">Tatsächlich eingegangen</div>
-                          <div className="mt-2 flex max-w-sm flex-wrap gap-1.5">
-                            {Array.from({ length: 10 }, (_, index) => index + 1).map((euros) => (
-                              <label key={euros} className="cursor-pointer">
-                                <input className="peer sr-only" type="radio" name="actual_amount_euros" value={euros} defaultChecked={euros * 100 === row.total_cents} />
-                                <span className="block rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-black text-slate-700 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-800">{euros} €</span>
-                              </label>
-                            ))}
-                          </div>
-                          <label className="mt-2 block text-[10px] font-bold text-slate-500">
-                            Anderer Betrag
-                            <input name="actual_amount_euros" inputMode="decimal" placeholder="z. B. 12,50" className="mt-1 w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900" />
-                          </label>
+                          <details className="mt-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+                            <summary className="cursor-pointer text-xs font-bold text-slate-700">Betrag abweichend? Korrigieren</summary>
+                            <label className="mt-3 block text-xs font-semibold text-slate-600">
+                              Tatsächlich eingegangener Betrag (€)
+                              <input name="actual_amount_euros" type="number" inputMode="decimal" min={row.quantity * row.unit_price_cents / 100} max="1000" step="0.01" placeholder={String((row.total_cents / 100).toFixed(2))} className="mt-1 block w-32 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900" />
+                            </label>
+                          </details>
                           <div className="mt-2 text-[11px] font-semibold text-slate-500">strikr berechnet einen Mehrbetrag automatisch als freiwilligen Beitrag.</div>
                         </div>
                       ) : null}
@@ -240,6 +237,7 @@ export default async function BeerManagementPage({ searchParams }: Props) {
                     </form>
                   </div>
                 </div>
+              </div>
               </div>
             ))}
             {pendingRows.length === 0 ? (
