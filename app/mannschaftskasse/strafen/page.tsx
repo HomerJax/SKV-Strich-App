@@ -8,7 +8,7 @@ import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
 import { parseWheelSegments } from "@/lib/cashbox/wheel-config";
 import { SKV_AH_CLUB_ID } from "@/lib/cashbox/pilot-structure";
 import PenaltyFunWheel from "@/components/cashbox/PenaltyFunWheel";
-import PenaltyFulfillmentForm from "./PenaltyFulfillmentForm";
+import PenaltyChoice from "./PenaltyChoice";
 import { pilotPenaltyAction } from "./actions";
 import { addPenaltyAction } from "@/app/admin/penalties/actions";
 import {parsePilotCashboxStructure} from "@/lib/cashbox/pilot-structure";
@@ -133,31 +133,12 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
         {current==="reported" ? (
           <p className="rounded-xl bg-slate-50 p-4 text-center text-sm font-semibold text-slate-700">Deine Meldung wird geprüft.</p>
         ) : canReport ? (
-          <div className="space-y-3">
-            {!spin && !s ? (
-              <div className="rounded-2xl bg-slate-950 p-4 text-center text-white">
-                <p className="text-base font-black">🎡 Willst du deine Strafe loswerden?</p>
-                <p className="mt-1 text-xs text-slate-300">Versuch dein Glück – vielleicht wird’s günstiger.</p>
-                <PenaltyFunWheel penaltyId={p.id}/>
-              </div>
-            ) : spin ? (
-              <p className="rounded-xl bg-violet-50 p-3 text-center text-sm font-semibold text-violet-900">🎡 Dein Ergebnis: {spin.outcome_label}</p>
-            ) : null}
-            {requiresSpin && !spin ? (
-              <p className="text-center text-xs text-slate-500">Dreh zuerst das Glücksrad, um fortzufahren.</p>
-            ) : (
-              <details className="rounded-xl border border-slate-200 bg-slate-50/70 p-3" open={!spin && !requiresSpin && !s}>
-                <summary className="cursor-pointer text-center text-sm font-bold text-slate-900">
-                  {payment.isMoney ? `${formatCents(payment.cents??0,locale)} bezahlen` : "Erfüllung melden"}
-                </summary>
-                <div className="mt-3">
-                  <PenaltyFulfillmentForm penaltyId={p.id} methods={methods}
-                    isMoney={payment.isMoney}
-                    amountLabel={payment.isMoney && payment.cents!==null?formatCents(payment.cents,locale):null}/>
-                </div>
-              </details>
-            )}
-          </div>
+          <PenaltyChoice penaltyId={p.id} methods={methods}
+            isMoney={payment.isMoney}
+            amountLabel={payment.isMoney && payment.cents!==null?formatCents(payment.cents,locale):null}
+            requiresSpin={requiresSpin}
+            hasSpin={Boolean(spin)}
+            wheelResult={spin?.outcome_label}/>
         ) : (
           <p className="text-center text-sm text-slate-600">{status[current]||"Offen"}</p>
         )}
