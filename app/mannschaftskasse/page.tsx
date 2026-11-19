@@ -5,6 +5,7 @@ export default async function MannschaftskassePage() {
   const { canManageCashbox, canManageBeer, isClubAdmin } = await requireCashboxAccess();
   const sections = [
     { title: "Alle offenen Posten", description: "Offene Strafen und Bestätigungen", href: canManageCashbox ? "/admin/penalties?tab=penalties" : "/mannschaftskasse/strafen" },
+    { title: "Strafen-Rangliste", description: "Saisonwertung und ewige Tabelle", href: "/mannschaftskasse/strafen-statistik" },
     { title: "Kabinenregeln", description: "Strafen und Glücksrad", href: canManageCashbox || isClubAdmin ? "/mannschaftskasse/kabinenregeln" : "/mannschaftskasse/strafen" },
     { title: "Bierkasse", description: "Bier-Rangliste und Gönner", href: "/mannschaftskasse/bier-rangliste" },
     ...(canManageBeer ? [{ title: "Bierzahlungen prüfen", description: "Buchungen und Zahlungseingänge", href: "/mannschaftskasse/bier" }] : []),
