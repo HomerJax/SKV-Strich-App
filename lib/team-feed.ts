@@ -310,6 +310,7 @@ export async function getTeamFeedItems(
   const { data: beerData } = await supabase
     .from("beer_consumptions")
     .select(`player_id, quantity, created_at, players (first_name, last_name, nickname)`)
+    .eq("payment_status", "paid")
     .eq("club_id", clubId)
     .gte("created_at", beerSince)
     .is("cancelled_at", null);
