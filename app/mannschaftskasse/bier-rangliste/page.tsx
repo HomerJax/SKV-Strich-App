@@ -19,7 +19,7 @@ export default async function BeerLeaderboardPage({ searchParams }: { searchPara
     supabase.from("players").select("id,name,nickname,first_name,last_name").eq("club_id", clubId).eq("is_guest", false),
   ]);
   if (!settings?.beerkasse_enabled) {
-    return <main className="mx-auto max-w-2xl px-4 py-8"><Link href="/home" className="text-sm font-bold text-slate-600">← Home</Link><p className="mt-6">Die Bierkasse ist in diesem Verein nicht aktiviert.</p></main>;
+    return <main className="mx-auto max-w-2xl px-4 py-8"><Link href="/mannschaftskasse" className="text-sm font-bold text-slate-600">← Home</Link><p className="mt-6">Die Bierkasse ist in diesem Verein nicht aktiviert.</p></main>;
   }
   const seasonList = ((seasons ?? []) as SeasonRow[]).filter(s => s.start_date && s.end_date);
   const today = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Berlin",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
@@ -56,7 +56,7 @@ export default async function BeerLeaderboardPage({ searchParams }: { searchPara
   for (const entries of history.values()) entries.sort((a, b) => b.created_at.localeCompare(a.created_at));
   const ranking = [...totals.entries()].map(([id, count]) => ({ id, count, name: names.get(id) ?? "Spieler" })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "de"));
   return <main className="mx-auto max-w-2xl space-y-5 px-4 py-6">
-    <Link href="/home" className="text-sm font-bold text-slate-600">← Home</Link>
+    <Link href="/mannschaftskasse" className="text-sm font-bold text-slate-600">← Home</Link>
     <header className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
       <p className="text-xs font-black uppercase tracking-widest text-amber-700">🍺 Bierkasse</p>
       <h1 className="mt-1 text-2xl font-black text-slate-950">{lifetime ? "Ewige Bier-Tabelle" : "Bier-Rangliste"}</h1>
