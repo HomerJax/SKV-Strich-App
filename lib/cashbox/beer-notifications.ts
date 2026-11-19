@@ -95,6 +95,6 @@ export async function notifyBeerManagers(params: {
     userIds,
     title: "🍺 Bierkasse prüfen",
     body: `${displayName} hat ${quantity} Bier (${formatEuro(totalCents)}) ${methodLabel} eingetragen.`,
-    url: "/mannschaftskasse/bier",
+    url: "/mannschaftskasse/bier/pruefen",
   });
 }
