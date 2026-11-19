@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase.from("beer_consumptions")
     .select("club_id, player_id, quantity, created_at, players(nickname, first_name, last_name)")
+    .eq("payment_status", "paid")
     .gte("created_at", berlinDayStartUtc(now.date))
     .is("cancelled_at", null);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
