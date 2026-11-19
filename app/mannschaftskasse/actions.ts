@@ -225,73 +225,22 @@ export async function markBeerCashPaidAction(formData: FormData) {
   }
 
   const beerCents = entry.quantity * entry.unit_price_cents;
-  const confirmedTotalCents = entry.payment_method === "cash"
-    ? entry.total_cents
-    : actualAmountCents ?? entry.total_cents;
-
+  const confirmedTotalCents = actualAmountCents ?? entry.total_cents;
   if (!Number.isInteger(confirmedTotalCents) || confirmedTotalCents < beerCents || confirmedTotalCents > 100000) {
     redirect(beerManageUrl({ error: "Der tatsächliche Zahlbetrag muss mindestens dem Bierbetrag entsprechen." }));
   }
 
-  const confirmedDonationCents = Math.max(0, confirmedTotalCents - beerCents);
-  const sourceKey = `beer:${entry.id}:${entry.payment_method}-payment`;
-  let transactionId = entry.cash_transaction_id;
-
-  if (!transactionId) {
-    const { data: transaction, error: transactionError } = await admin
-      .from("cash_transactions")
-      .insert({
-        club_id: clubId,
-        amount_cents: confirmedTotalCents,
-        kind: "income",
-        category: "Getränke",
-        account: entry.payment_method === "cash" ? "cash" : "paypal",
-        title: `Bierkasse · ${entry.quantity} Bier · ${entry.payment_method === "cash" ? "Bar" : entry.payment_method === "paypal_me" ? "PayPal.Me" : entry.payment_method === "sumup" ? "SumUp" : "PayPal Pool"}`,
-        source_type: "beer",
-        source_id: entry.id,
-        source_key: sourceKey,
-        created_by: user.id,
-      })
-      .select("id")
-      .single<{ id: number }>();
-
-    if (transactionError) {
-      if (transactionError.code === "23505") {
-        const { data: existingTransaction } = await admin
-          .from("cash_transactions")
-          .select("id")
-          .eq("club_id", clubId)
-          .eq("source_key", sourceKey)
-          .maybeSingle<{ id: number }>();
-        transactionId = existingTransaction?.id ?? null;
-      } else {
-        redirect(beerManageUrl({ error: t("cashAction.paymentFailed") }));
-      }
-    } else {
-      transactionId = transaction?.id ?? null;
-    }
-  }
-
-  if (!transactionId) {
-    redirect(beerManageUrl({ error: t("cashAction.paymentFailed") }));
-  }
-
-  const { error: updateError } = await admin
-    .from("beer_consumptions")
-    .update({
-      payment_status: "paid",
-      total_cents: confirmedTotalCents,
-      donation_cents: confirmedDonationCents,
-      paid_at: new Date().toISOString(),
-      confirmed_by: user.id,
-      cash_transaction_id: transactionId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("club_id", clubId)
-    .eq("id", entry.id);
-
-  if (updateError) {
-    redirect(beerManageUrl({ error: t("cashAction.paymentStatusFailed") }));
+  // A single Postgres transaction locks the booking, inserts its cash transaction
+  // and confirms payment together. Concurrent confirmations cannot double-book.
+  const { error: confirmationError } = await admin.rpc("confirm_beer_payment_atomic", {
+    p_club_id: clubId,
+    p_consumption_id: entry.id,
+    p_actor_id: user.id,
+    p_actual_amount_cents: confirmedTotalCents,
+  });
+  if (confirmationError) {
+    console.error("Atomic beer confirmation failed", confirmationError);
+    redirect(beerManageUrl({ error: "Zahlung konnte nicht bestätigt werden. Bitte erneut prüfen." }));
   }
 
   refreshBeerViews();
