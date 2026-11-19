@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BeerWorkflowHelp from "@/components/cashbox/BeerWorkflowHelp";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
@@ -61,6 +62,7 @@ export default async function BeerLeaderboardPage({ searchParams }: { searchPara
       <h1 className="mt-1 text-2xl font-black text-slate-950">{lifetime ? "Ewige Bier-Tabelle" : "Bier-Rangliste"}</h1>
       <p className="mt-2 text-sm text-slate-600">Nur bestätigte Bierbuchungen. Offene und stornierte Zahlungen zählen nicht.</p>
     </header>
+    <BeerWorkflowHelp audience="ranking" />
     <nav className="flex flex-wrap gap-2">
       <Link href="/mannschaftskasse/bier-rangliste" className={`rounded-xl px-4 py-2 text-sm font-bold ${!lifetime?"bg-teal-700 text-white":"bg-slate-100 text-slate-700"}`}>Saison</Link>
       {billing.isPro ? <Link href="/mannschaftskasse/bier-rangliste?view=all" className={`rounded-xl px-4 py-2 text-sm font-bold ${lifetime?"bg-teal-700 text-white":"bg-slate-100 text-slate-700"}`}>Ewige Tabelle · PRO</Link> : <span className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-400">🔒 Ewige Tabelle · PRO</span>}
