@@ -27,7 +27,7 @@ export default function PenaltyFulfillmentForm({penaltyId,methods,isMoney,amount
         </div><button type="button" aria-label="Schließen" onClick={()=>{setOpen(false);setSelected(null)}} className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600"><X size={20}/></button></div>
         {isMoney&&!selected?<div className="mt-6 space-y-2">
           {methods.map(m=><button key={m.key} type="button" onClick={()=>setSelected(m)} className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-sm font-black shadow-sm ${m.key.startsWith("paypal")?"bg-[#0070ba] text-white":"border border-slate-200 bg-white text-slate-900"}`}>
-            <span className="flex items-center gap-3">{m.key==="cash"?<Banknote size={20}/>:<CreditCard size={20}/>} {m.key==="cash"?"Bar bezahlen":m.key.startsWith("paypal")?"Mit PayPal bezahlen":m.label}</span><span>→</span>
+            <span className="flex items-center gap-3">{m.key==="cash"?<Banknote size={20}/>:<CreditCard size={20}/>} {m.key==="cash"?"Barzahlung auswählen":m.key.startsWith("paypal")?"PayPal auswählen":`${m.label} auswählen`}</span><span>→</span>
           </button>)}
           {methods.length===0?<p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Der Verein hat noch keinen Zahlungsweg aktiviert.</p>:null}
         </div>:null}
@@ -37,13 +37,13 @@ export default function PenaltyFulfillmentForm({penaltyId,methods,isMoney,amount
           <input type="hidden" name="payment_method" value={submitMethod}/>
           {isMoney?<div className="rounded-2xl bg-slate-50 p-4">
             <p className="text-sm font-black text-slate-900">{selected?.key==="cash"?"Barzahlung":"Digitale Zahlung"}</p>
-            <p className="mt-1 text-sm text-slate-600">{selected?.key==="cash"?"Übergib den Betrag an den Kassenwart. Melde die Zahlung erst danach.":"Bezahle den Betrag über den hinterlegten Zahlungsweg und melde anschließend die Zahlung."}</p>
-            {selected?.url?<a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-xl bg-[#0070ba] px-4 py-3 text-center text-sm font-black text-white">Jetzt bezahlen ↗</a>:null}
+            <p className="mt-1 text-sm text-slate-600">{selected?.key==="cash"?"Übergib den Betrag an den Kassenwart. Melde die Zahlung erst danach.":"Öffne zuerst den Zahlungsdienst. Wenn du dort bezahlt hast, komm zurück und bestätige die Meldung."}</p>
+            {selected?.url?<a href={selected.url} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-xl bg-[#0070ba] px-4 py-3 text-center text-sm font-black text-white">PayPal / Zahlungsseite öffnen ↗</a>:null}
           </div>:<p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Melde die erledigte Aufgabe oder den Joker zur Prüfung.</p>}
           <label className="block text-xs font-semibold text-slate-600">Notiz (optional)
             <input name="note" value={note} onChange={e=>setNote(e.target.value)} maxLength={500} placeholder="Nachricht an den Kassenwart" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm"/>
           </label>
-          <button className="w-full rounded-2xl bg-slate-950 px-4 py-4 text-sm font-black text-white">{isMoney?"Zahlung zur Bestätigung melden":"Erfüllung zur Bestätigung melden"}</button>
+          <button className="w-full rounded-2xl bg-slate-950 px-4 py-4 text-sm font-black text-white">{isMoney?"Ich habe bezahlt – zur Prüfung melden":"Erfüllung zur Bestätigung melden"}</button>
           <p className="text-center text-xs text-slate-500">Der Kassenwart muss deine Meldung bestätigen.</p>
           {isMoney?<button type="button" onClick={()=>setSelected(null)} className="w-full py-2 text-xs font-semibold text-slate-500">Andere Zahlungsart wählen</button>:null}
         </form>:null}
