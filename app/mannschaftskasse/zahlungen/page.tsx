@@ -34,7 +34,7 @@ export default async function PaymentSettings({searchParams}:{searchParams?:Prom
  }
  return <main className="min-h-screen bg-slate-50 px-4 py-6 pb-20">
   <div className="mx-auto max-w-3xl space-y-4">
-   <Link href="/mannschaftskasse/strafen" className="text-sm font-bold text-slate-600">← {locale==="en"?"Penalties":"Strafen"}</Link>
+   <Link href="/mannschaftskasse" className="text-sm font-bold text-slate-600">← {locale==="en"?"Penalties":"Strafen"}</Link>
    <header className="rounded-2xl bg-slate-950 p-5 text-white">
     <p className="text-xs font-bold uppercase tracking-widest text-teal-300">Mannschaftskasse · Einstellungen</p>
     <h1 className="mt-2 text-2xl font-black">{locale==="en"?"Penalty payment methods":"Zahlungswege für Strafen"}</h1>
