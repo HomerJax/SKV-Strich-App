@@ -14,6 +14,7 @@ export default function PenaltyFulfillmentForm({penaltyId,methods,isMoney,amount
   const [note,setNote]=useState("");
   const submitMethod=selected?.key??"";
   return <>
+    {!open?<button type="button" onClick={()=>setOpen(true)} className="w-full rounded-2xl bg-slate-950 px-4 py-3.5 text-sm font-black text-white">Zahlungsarten erneut anzeigen →</button>:null}
     {open?<div role="presentation" className="fixed inset-0 z-[1000] flex items-end justify-center bg-slate-950/40 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={e=>{if(e.target===e.currentTarget){setOpen(false);setSelected(null)}}}>
       <div role="dialog" aria-modal="true" aria-labelledby="penalty-checkout-title" className="max-h-[calc(100dvh-1rem)] w-full overflow-y-auto rounded-t-[30px] bg-white px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 shadow-2xl sm:max-w-md sm:rounded-[30px] sm:p-6">
         <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden"/>
