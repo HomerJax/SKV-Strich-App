@@ -24,7 +24,7 @@ export default async function BeerLeaderboardPage({ searchParams }: { searchPara
   const today = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Berlin",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   const currentSeason = seasonList.find(s => s.start_date! <= today && s.end_date! >= today) ?? seasonList[0];
   const requestedSeason = seasonList.find(s => String(s.id) === params?.season);
-  const selectedSeason = requestedSeason ?? currentSeason;
+  const selectedSeason = (billing.isPro ? requestedSeason : null) ?? currentSeason;
   const lifetime = params?.view === "all" && billing.isPro;
   const seasonStart = selectedSeason?.start_date ?? null;
   const seasonEnd = selectedSeason?.end_date ?? null;
@@ -65,7 +65,7 @@ export default async function BeerLeaderboardPage({ searchParams }: { searchPara
       <Link href="/mannschaftskasse/bier-rangliste" className={`rounded-xl px-4 py-2 text-sm font-bold ${!lifetime?"bg-teal-700 text-white":"bg-slate-100 text-slate-700"}`}>Saison</Link>
       {billing.isPro ? <Link href="/mannschaftskasse/bier-rangliste?view=all" className={`rounded-xl px-4 py-2 text-sm font-bold ${lifetime?"bg-teal-700 text-white":"bg-slate-100 text-slate-700"}`}>Ewige Tabelle · PRO</Link> : <span className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-400">🔒 Ewige Tabelle · PRO</span>}
     </nav>
-    {!lifetime && seasonList.length>0 ? <div className="flex flex-wrap gap-2">{seasonList.map(season=><Link key={season.id} href={`/mannschaftskasse/bier-rangliste?season=${season.id}`} className={`rounded-lg border px-3 py-2 text-xs font-bold ${selectedSeason?.id===season.id?"border-teal-600 bg-teal-50 text-teal-800":"border-slate-200 text-slate-600"}`}>{season.name||"Saison"} · {season.start_date}</Link>)}</div> : null}
+    {!lifetime && billing.isPro && seasonList.length>0 ? <div className="flex flex-wrap gap-2">{seasonList.map(season=><Link key={season.id} href={`/mannschaftskasse/bier-rangliste?season=${season.id}`} className={`rounded-lg border px-3 py-2 text-xs font-bold ${selectedSeason?.id===season.id?"border-teal-600 bg-teal-50 text-teal-800":"border-slate-200 text-slate-600"}`}>{season.name||"Saison"} · {season.start_date}</Link>)}</div> : null}
     {!lifetime && !selectedSeason ? <p className="text-sm text-slate-500">Noch keine Vereinssaison angelegt.</p> : null}
     {error ? <p className="rounded-xl bg-red-50 p-4 text-sm text-red-800">Die Rangliste konnte nicht geladen werden.</p> : ranking.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm text-slate-600">Noch keine bestätigten Biere.</p> : <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       {ranking.map((entry, index) => {
