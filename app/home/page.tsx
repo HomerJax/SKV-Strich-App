@@ -1197,7 +1197,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
         {bierkasseHomeEnabled ? (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <HomeBeerCheckoutModal
                 priceCents={bierkassePriceCents}
                 paypalEnabled={bierkassePaypalEnabled}
@@ -1207,13 +1207,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                 sumupEnabled={bierkasseSumupEnabled}
                 cashEnabled={bierkasseCashEnabled}
               />
-              <Link href="/mannschaftskasse/bier-rangliste" className="flex min-w-0 flex-col justify-between rounded-2xl border border-amber-200 bg-white px-3 py-3 shadow-sm transition active:scale-[0.99]">
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-[.16em] text-amber-700">🏆 Bierkasse</div>
-                  <div className="mt-1 text-sm font-black text-slate-950">Bier-Rangliste</div>
-                  <div className="mt-1 text-[11px] font-medium text-slate-500">Wer liegt vorne?</div>
-                </div>
-                <span className="mt-2 text-xs font-black text-amber-800">Ansehen →</span>
+              <Link href="/mannschaftskasse/bier-rangliste" className="flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-3 text-center text-sm font-bold text-slate-900 shadow-sm transition hover:border-cyan-300 hover:bg-slate-50 active:scale-[0.99]">
+                <span aria-hidden="true">🏆</span>
+                <span>Bier-Rangliste öffnen</span>
               </Link>
             </div>
             {q?.beer_saved === "cash" ? (
