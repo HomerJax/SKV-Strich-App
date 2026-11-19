@@ -45,10 +45,8 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
  const db=createAdminClient();
  const query=db.from("penalties").select("id,player_id,reason,value,type,source_key,resolved_at,created_at")
    .eq("club_id",ctx.clubId).order("created_at",{ascending:false}).limit(250);
- if(!ctx.canManageCashbox){
-   if(!ctx.player?.id)redirect("/home");
-   query.eq("player_id",ctx.player.id);
- }
+ if(!ctx.player?.id)redirect("/home");
+ query.eq("player_id",ctx.player.id);
  const {data:catalog}=ctx.canManageCashbox
    ?await db.from("penalty_rules").select("rule_key,label,type,value").eq("club_id",ctx.clubId).eq("enabled",true).order("sort_order")
    :{data:[]};
@@ -93,55 +91,28 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
  for(const e of (events??[]) as Event[])history.set(e.penalty_id,[...(history.get(e.penalty_id)||[]),e]);
  const pending=rows.filter(x=>stateMap.get(x.id)?.state==="reported").length;
  return <main className="min-h-screen bg-[#f5f6f8] px-4 py-6 pb-24"><div className="mx-auto max-w-3xl space-y-4">
-  <Link href="/mannschaftskasse" className="text-sm font-bold text-slate-600">← {en?"Cashbox":"Mannschaftskasse"}</Link>
-  <header className="rounded-2xl bg-slate-950 p-5 text-white">
-   <p className="text-xs font-bold uppercase tracking-widest text-teal-300">strikr · Mannschaftskasse</p>
-   <h1 className="mt-2 text-2xl font-black">{ctx.canManageCashbox?(en?"Review penalties":"Strafen prüfen"):(en?"My penalties":"Meine Strafen")}</h1>
-   <p className="mt-2 text-sm text-slate-200">{en?"Only confirmed money payments are posted to the cash ledger.":"Geld wird erst nach bestätigtem Zahlungseingang gebucht."}</p>
-   {ctx.canManageCashbox?<p className="mt-2 text-xs font-black">{pending} {en?"pending reports":"Meldungen zu prüfen"}</p>:null}
+  <Link href="/home" className="text-sm font-semibold text-slate-500">← Home</Link>
+  <header className="py-2">
+    <h1 className="text-2xl font-black tracking-tight text-slate-950">Meine offenen Posten</h1>
+    <p className="mt-1 text-sm text-slate-500">Alles, was du noch erledigen musst.</p>
   </header>
   {q?.error?<p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{q.error==="wheel"?(en?"Spin the configured wheel first.":"Bitte zuerst das hinterlegte Glücksrad drehen.")
     :q.error==="payment"?(en?"This payment method is disabled.":"Dieser Zahlungsweg ist nicht freigeschaltet.")
     :en?"Request could not be saved; check status and fields.":"Aktion nicht möglich – bitte Status und Angaben prüfen."}</p>:null}
   {q?.saved?<p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{en?"Saved.":"Gespeichert."}</p>:null}
-  {ctx.isClubAdmin?<Link className="block rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm font-black text-teal-950"
-    href="/mannschaftskasse/zahlungen">💳 Zahlungswege für Strafen einrichten / bearbeiten →</Link>:null}
-  {ctx.canManageCashbox?<details className="rounded-xl border border-teal-200 bg-white p-4">
-    <summary className="cursor-pointer text-sm font-black text-teal-950">{en?"Create penalty":"Neue Strafe anlegen"}</summary>
-    <form action={addPenaltyAction} className="mt-3 space-y-2">
-      <select name="player_id" required className={field} defaultValue="">
-        <option value="" disabled>{en?"Choose player":"Spieler auswählen"}</option>
-        {(players??[]).map(p=><option key={p.id} value={p.id}>{names.get(p.id)||"Spieler"}</option>)}
-      </select>
-      <label className="block text-xs font-black text-slate-700">Strafenkatalog (optional)
-        <select name="preset" className={field} defaultValue="">
-          <option value="">Individuelle Strafe</option>
-          {(catalog??[]).map(rule=><option key={rule.rule_key} value={rule.rule_key}>{rule.label} · {rule.value}</option>)}
-        </select>
-      </label>
-      <input name="reason" className={field} required maxLength={120} placeholder={en?"Reason":"Grund, z. B. nach Deadline abgesagt"}/>
-      <select name="type" className={field} defaultValue="money">
-        <option value="money">{en?"Money":"Geld"}</option>
-        <option value="beer">{en?"Beer / goods":"Bier / Sachleistung"}</option>
-        <option value="custom">{en?"Other task":"Andere Aufgabe"}</option>
-      </select>
-      <input name="value" className={field} required maxLength={100} placeholder={en?"e.g. 2 or 1 crate":"z. B. 2 oder 1 Kiste Bier"}/>
-      <button className={btn}>{en?"Add penalty":"Strafe speichern"}</button>
-    </form>
-  </details>:null}
-  {rows.length===0?<p className="rounded-xl bg-white p-4 text-sm text-slate-600">{en?"No penalties yet.":"Noch keine Strafen."}</p>:null}
-  {rows.map(p=>{const s=stateMap.get(p.id);const spin=spinMap.get(p.id);
+  {rows.filter(p=>!p.resolved_at && !["confirmed","cancelled"].includes(stateMap.get(p.id)?.state??"open")).length===0?<p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Alles erledigt. Du hast keine offenen Posten.</p>:null}
+  {rows.filter(p=>!p.resolved_at && !["confirmed","cancelled"].includes(stateMap.get(p.id)?.state??"open")).map(p=>{const s=stateMap.get(p.id);const spin=spinMap.get(p.id);
     const payment=effectivePayment(p,spin);
     const requiresSpin=ctx.clubId===SKV_AH_CLUB_ID
       && new Date(p.created_at).getTime()>=Date.parse("2026-10-29T17:30:00Z")
       && !p.source_key?.startsWith("test:");
     const current=s?.state||(p.resolved_at?"confirmed":"open");
     const canReport=!p.resolved_at&&(!s||["open","rejected"].includes(s.state))&&ctx.player?.id===p.player_id;
-    const canReview=ctx.canManageCashbox&&current==="reported";
-    const canCorrect=ctx.canManageCashbox&&Boolean(s);
+    const canReview=false;
+    const canCorrect=false;
     return <section key={p.id} className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="flex items-start justify-between gap-3">
-       <div><p className="text-xs text-slate-500">{names.get(p.player_id)||""} · #{p.id}</p>
+       <div>
         <h2 className="font-black text-slate-950">{p.reason||"Strafe"}</h2>
         <p className="text-sm text-slate-600">{s?.effective_label||p.value}</p>
         {spin?<p className="text-xs font-bold text-violet-700">🎡 {spin.outcome_label}{spin.outcome_detail?" · "+spin.outcome_detail:""}</p>:null}
@@ -173,16 +144,6 @@ export default async function PilotPenaltyPage({searchParams}:{searchParams?:Pro
          <button className={btn}>{en?"Reject":"Meldung ablehnen"}</button>
         </form>
        </div>:null}
-      {ctx.canManageCashbox&&current!=="confirmed"&&current!=="cancelled"?<form action={pilotPenaltyAction} className="mt-3 flex gap-2">
-        <input name="action" type="hidden" value="cancel"/><input name="penalty_id" type="hidden" value={p.id}/>
-        <input name="note" className={field} required minLength={3} maxLength={500} placeholder="Storno-/Entschuldigungsgrund"/>
-        <button className={btn}>{en?"Cancel":"Stornieren"}</button>
-       </form>:null}
-      {canCorrect&&(current==="confirmed"||current==="cancelled")?<form action={pilotPenaltyAction} className="mt-3 flex gap-2">
-        <input name="action" type="hidden" value="reopen"/><input name="penalty_id" type="hidden" value={p.id}/>
-        <input name="note" className={field} required minLength={3} maxLength={500} placeholder="Korrekturgrund"/>
-        <button className={btn}>{en?"Reopen":"Wieder öffnen"}</button>
-       </form>:null}
       {(history.get(p.id)||[]).length>0?<details className="mt-3 border-t pt-2 text-xs text-slate-600">
        <summary className="cursor-pointer font-bold">Verlauf ({history.get(p.id)?.length})</summary>
        {(history.get(p.id)||[]).map((e,i)=><p key={i} className="mt-1">{new Date(e.occurred_at).toLocaleString("de-DE")} · {e.action}</p>)}
