@@ -1197,15 +1197,25 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
         {bierkasseHomeEnabled ? (
           <>
-            <HomeBeerCheckoutModal
-              priceCents={bierkassePriceCents}
-              paypalEnabled={bierkassePaypalEnabled}
-              paypalPool={bierkassePaypalPool}
-              paypalUrl={bierkassePaypalUrl}
-              paypalMeEnabled={bierkassePaypalMeEnabled}
-              sumupEnabled={bierkasseSumupEnabled}
-              cashEnabled={bierkasseCashEnabled}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <HomeBeerCheckoutModal
+                priceCents={bierkassePriceCents}
+                paypalEnabled={bierkassePaypalEnabled}
+                paypalPool={bierkassePaypalPool}
+                paypalUrl={bierkassePaypalUrl}
+                paypalMeEnabled={bierkassePaypalMeEnabled}
+                sumupEnabled={bierkasseSumupEnabled}
+                cashEnabled={bierkasseCashEnabled}
+              />
+              <Link href="/mannschaftskasse/bier-rangliste" className="flex min-w-0 flex-col justify-between rounded-2xl border border-amber-200 bg-white px-3 py-3 shadow-sm transition active:scale-[0.99]">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[.16em] text-amber-700">🏆 Bierkasse</div>
+                  <div className="mt-1 text-sm font-black text-slate-950">Bier-Rangliste</div>
+                  <div className="mt-1 text-[11px] font-medium text-slate-500">Wer liegt vorne?</div>
+                </div>
+                <span className="mt-2 text-xs font-black text-amber-800">Ansehen →</span>
+              </Link>
+            </div>
             {q?.beer_saved === "cash" ? (
               <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
                 {t("home.beerPending")}
