@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-structure";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -783,7 +784,7 @@ export default async function Page({ searchParams }: Props) {
                         ) : null}
                       </div>
                       <div className="flex gap-1">
-                        {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
+                        {isPenaltyWorkflowClub(clubId) ? (
                           <Link href={`/mannschaftskasse/gluecksrad?penaltyId=${entry.id}`}
                             className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-1.5 text-xs font-black text-violet-800">🎡 Individuell</Link>
                         ) : null}
@@ -901,8 +902,8 @@ export default async function Page({ searchParams }: Props) {
                   </div>
                   {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
                     <Link href={`/mannschaftskasse/gluecksrad?ruleKey=${encodeURIComponent(rule.rule_key)}`}
-                      className="mt-3 inline-block rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-black text-teal-900">
-                      🎡 Glücksrad & konkrete Auswirkung für diesen Katalogeintrag festlegen
+                      className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-900">
+                      <span>🎡 Glücksrad für diese Regel</span><span className="text-xs font-semibold">Konfigurieren →</span>
                     </Link>
                   ) : null}
                   <div className="mt-5 flex items-center justify-between gap-3">
