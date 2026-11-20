@@ -21,7 +21,12 @@ export default async function ActivatePlayersPage({ searchParams }: { searchPara
     <Link href="/admin/members" className="text-sm text-slate-600">← Mitglieder</Link>
     <h1 className="text-2xl font-bold">Spielerzugänge aktivieren</h1>
     <p className="text-sm text-slate-600">Deine Spieler bleiben auch ohne Anmeldung vollwertige Kaderspieler. Mit einer Einladung können sie später ihr bestehendes Profil und alle Statistiken übernehmen.</p>
-    {status && <p className="rounded-xl bg-slate-100 p-3 text-sm">{status === "sent" ? "Einladung verschickt." : status === "missing" ? "Bitte zuerst eine E-Mail-Adresse beim Spieler hinterlegen." : "Einladung konnte nicht verschickt werden. Bitte Adresse und bestehenden Zugang prüfen."}</p>}
+    {status && <p className="rounded-xl bg-slate-100 p-3 text-sm">{status === "sent" ? "Einladung(en) verschickt." : status === "partial" ? "Einige Einladungen wurden verschickt. Fehlende E-Mails, doppelte Profile oder bereits registrierte Konten bitte einzeln prüfen." : status === "missing" ? "Bitte zuerst eine E-Mail-Adresse beim Spieler hinterlegen." : "Einladung konnte nicht verschickt werden. Bitte Adresse und bestehenden Zugang prüfen."}</p>}
+    <form action="/api/admin/players/activate" method="post" className="rounded-xl border border-slate-200 p-4">
+      <input type="hidden" name="bulk" value="1" />
+      <p className="mb-3 text-sm text-slate-600">Versendet Einladungen an bis zu 25 noch nicht aktivierte Spieler pro Durchgang. Spieler ohne E-Mail oder mit bereits vorhandenem Konto benötigen eine separate Klärung.</p>
+      <button type="submit" disabled={!pending.some(p => p.email)} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Einladungen an alle senden</button>
+    </form>
     <div className="space-y-2">
       {pending.map(p => <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <div><div className="font-semibold">{p.name || [p.first_name,p.last_name].filter(Boolean).join(" ")}</div><div className="text-xs text-slate-500">{p.email || "Noch keine E-Mail hinterlegt"}</div></div>
