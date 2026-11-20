@@ -4,7 +4,7 @@ import { requireClub } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DEFAULT_WHEEL_SEGMENTS, parseWheelSegments, pickWheelSegment, type WheelSegment } from "@/lib/cashbox/wheel-config";
 import type { PublicWheelSegment } from "@/lib/cashbox/wheel-public";
-import { isCashboxPilotClub } from "@/lib/cashbox/pilot-structure";
+import { isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-structure";
 
 // Do not transmit server-side weights to ordinary players, even through the API.
 // The spin is weighted on the server, while the visual wheel is neutral.
@@ -31,7 +31,7 @@ function mayResetTestWheel(clubId: string, penalty: {
 
 
 async function activeSegments(db: ReturnType<typeof createAdminClient>, clubId: string, penaltyId:number): Promise<WheelSegment[]> {
-  if(isCashboxPilotClub(clubId)){
+  if(isPenaltyWorkflowClub(clubId)){
     const {data:override,error:overrideError}=await db.from("pilot_wheel_scoped_configs")
       .select("segments").eq("club_id",clubId).eq("scope_key",`penalty:${penaltyId}`).maybeSingle();
     if(overrideError)throw new Error("Individual wheel unavailable");
