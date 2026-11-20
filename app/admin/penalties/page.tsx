@@ -1,3 +1,4 @@
+import { isPenaltyWorkflowClub } from "@/lib/cashbox/pilot-structure";
 import Link from "next/link";
 import { requireCashboxAccess } from "@/lib/cashbox/access";
 import { formatCents, parseEuroToCents } from "@/lib/cashbox/money";
