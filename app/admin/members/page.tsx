@@ -249,6 +249,7 @@ export default async function AdminMembersPage({
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
+            <Link href="/admin/players/activate" className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Spielerzugänge aktivieren</Link>
             <form method="POST" action="/admin/members/create">
               <input type="hidden" name="role" value="member" />
               <button
