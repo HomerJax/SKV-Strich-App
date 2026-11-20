@@ -240,11 +240,11 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
         </div>
 
         {segments.length > 0 && (
-          <div className="grid grid-cols-2 gap-2" aria-label="Alle Glücksrad-Felder">
+          <div className="mx-auto flex w-full max-w-[360px] flex-col gap-2.5" aria-label="Alle Glücksrad-Felder">
             {segments.map((segment, index) => (
-              <div key={segment.id} className="flex min-w-0 items-start gap-2.5 rounded-xl border border-white/15 bg-white/[0.07] px-3 py-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/40 text-[11px] font-black text-white" style={{backgroundColor: PUBLIC_WHEEL_COLORS[index % PUBLIC_WHEEL_COLORS.length]}}>{index + 1}</span>
-                <span className="min-w-0 break-words text-xs font-bold leading-4 text-white">{segment.icon} {segment.label}</span>
+              <div key={segment.id} className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.08] px-4 py-3.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/40 text-sm font-black text-white" style={{backgroundColor: PUBLIC_WHEEL_COLORS[index % PUBLIC_WHEEL_COLORS.length]}}>{index + 1}</span>
+                <span className="min-w-0 flex-1 break-words text-left text-sm font-bold leading-5 text-white"><span className="mr-2 text-lg">{segment.icon}</span>{segment.label}</span>
               </div>
             ))}
           </div>
