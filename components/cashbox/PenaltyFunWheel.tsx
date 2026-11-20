@@ -215,7 +215,19 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                 const dense = segments.length >= 8;
                 const point = polar(center, small || dense ? 120 : 112);
                 const textPoint = polar(center, dense ? 88 : segments.length >= 6 ? 83 : 76);
-                const maxLabelLength = dense ? 7 : segments.length >= 6 ? 9 : 12;
+                const maxChars = dense ? 10 : segments.length >= 6 ? 13 : 17;
+                const words = segment.label.trim().split(/\s+/);
+                const lines: string[] = [];
+                for (const word of words) {
+                  const last = lines.length - 1;
+                  if (last >= 0 && (lines[last] + " " + word).length <= maxChars) {
+                    lines[last] += " " + word;
+                  } else {
+                    lines.push(word);
+                  }
+                }
+                // Keep the wheel legible on mobile; full labels are also listed below.
+                const displayLines = lines.length > 3 ? [...lines.slice(0, 2), lines.slice(2).join(" ")] : lines;
                 return (
                   <g key={segment.id}>
                     <path d={sector(start, end)} fill={PUBLIC_WHEEL_COLORS[index % PUBLIC_WHEEL_COLORS.length]}
@@ -226,7 +238,12 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
                       <text x={textPoint.x} y={textPoint.y} textAnchor="middle"
                         dominantBaseline="central" fontSize={dense ? "8" : segments.length >= 6 ? "9" : "10"} fontWeight="800" fill="#fff"
                         stroke="#041725" strokeWidth=".5" paintOrder="stroke">
-                        {segment.label.length > maxLabelLength ? segment.label.slice(0, maxLabelLength - 1) + "…" : segment.label}
+                        {displayLines.map((line, lineIndex) => (
+                          <tspan key={lineIndex} x={textPoint.x}
+                            dy={lineIndex === 0 ? -((displayLines.length - 1) * 6) : 12}>
+                            {line}
+                          </tspan>
+                        ))}
                       </text>
                     )}
                   </g>
@@ -242,6 +259,17 @@ export default function PenaltyFunWheel({ penaltyId }: { penaltyId: number }) {
             </div>
           </div>
         </div>
+
+        {segments.length > 0 && (
+          <div className="grid grid-cols-2 gap-2" aria-label="Alle Glücksrad-Felder">
+            {segments.map((segment, index) => (
+              <div key={segment.id} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.07] px-3 py-2">
+                <span className="h-3 w-3 shrink-0 rounded-full" style={{backgroundColor: PUBLIC_WHEEL_COLORS[index % PUBLIC_WHEEL_COLORS.length]}} aria-hidden="true"/>
+                <span className="min-w-0 break-words text-xs font-bold leading-4 text-white">{segment.icon} {segment.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {outcome ? (
           <div className="space-y-2 text-center">
