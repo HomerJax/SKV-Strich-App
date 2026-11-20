@@ -900,7 +900,7 @@ export default async function Page({ searchParams }: Props) {
                       <span className="mt-1 block text-[10px] font-medium text-slate-500">{t("cashAdmin.escalationHint")}</span>
                     </label>
                   </div>
-                  {clubId === "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60" ? (
+                  {isPenaltyWorkflowClub(clubId) ? (
                     <Link href={`/mannschaftskasse/gluecksrad?ruleKey=${encodeURIComponent(rule.rule_key)}`}
                       className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-900">
                       <span>🎡 Glücksrad für diese Regel</span><span className="text-xs font-semibold">Konfigurieren →</span>
