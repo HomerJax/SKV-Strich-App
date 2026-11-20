@@ -56,6 +56,10 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
     const firstName = clean(String(formData.get("first_name") ?? ""));
     const lastName = clean(String(formData.get("last_name") ?? ""));
     const nickname = clean(String(formData.get("nickname") ?? ""));
+    const email = clean(String(formData.get("email") ?? "")).toLowerCase();
+    if (email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+      redirect("/players/new?error=Bitte%20eine%20g%C3%BCltige%20E-Mail-Adresse%20eingeben.");
+    }
     const ageGroup = (String(formData.get("age_group") ?? "") || "AH") as AgeGroup;
     const position = (String(
       formData.get("preferred_position") ?? ""
@@ -82,6 +86,7 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
       first_name: firstName || null,
       last_name: lastName || null,
       nickname: nickname || null,
+      email: email || null,
       age_group: ageGroup,
       preferred_position: position,
       club_id: clubId,
@@ -151,6 +156,12 @@ export default async function NewPlayerPage({ searchParams }: PageProps) {
             type="text"
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-400"
           />
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-slate-700">E-Mail-Adresse (optional, für spätere Kontoaktivierung)</label>
+          <input name="email" type="email" autoComplete="off" placeholder="spieler@beispiel.de" className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-400" />
+          <p className="text-xs text-slate-500">Der Spieler kann zunächst ohne Login mitspielen. Seine Statistiken bleiben bei einer späteren Aktivierung erhalten.</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
