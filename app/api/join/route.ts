@@ -141,11 +141,35 @@ export async function POST(request: Request) {
 
   const membershipRole = invite.role === "admin" ? "admin" : "member";
 
+  // Reuse an admin-created roster profile when the authenticated user's
+  // verified email matches it. Never replace the player's stable ID: all
+  // existing match results, attendance and statistics refer to that ID.
+  const verifiedEmail = user.email_confirmed_at && user.email
+    ? user.email.trim().toLowerCase()
+    : null;
+  const { data: rosterMatches, error: rosterMatchError } = verifiedEmail
+    ? await adminSupabase.from("players")
+        .select("id, user_id, email")
+        .eq("club_id", invite.club_id)
+        .eq("is_guest", false)
+        .is("user_id", null)
+        .ilike("email", verifiedEmail)
+        .limit(2)
+    : { data: [], error: null };
+
+  if (rosterMatchError || (rosterMatches?.length ?? 0) > 1) {
+    return buildRedirect(requestUrl, "/join", {
+      token,
+      error: "Spielerprofil konnte nicht eindeutig zugeordnet werden. Bitte den Admin kontaktieren.",
+    });
+  }
+
+  const claimableRosterPlayer = rosterMatches?.[0] ?? null;
   const existingPlayerInTargetClub = existingProfiles.find(
     (profile) => profile.club_id === invite.club_id
   );
 
-  if (!existingPlayerInTargetClub) {
+  if (!existingPlayerInTargetClub && !claimableRosterPlayer) {
     const playerAllowed = await canAddFixedPlayer(adminSupabase, invite.club_id);
     if (!playerAllowed) {
       return buildRedirect(requestUrl, "/join", {
@@ -177,7 +201,26 @@ export async function POST(request: Request) {
     });
   }
 
-  if (!existingPlayerInTargetClub) {
+  if (!existingPlayerInTargetClub && claimableRosterPlayer) {
+    // Atomic conditional update prevents two accounts from claiming one profile.
+    const { data: claimed, error: claimError } = await adminSupabase
+      .from("players")
+      .update({ user_id: user.id })
+      .eq("id", claimableRosterPlayer.id)
+      .eq("club_id", invite.club_id)
+      .is("user_id", null)
+      .select("id")
+      .single();
+
+    if (claimError || !claimed) {
+      return buildRedirect(requestUrl, "/join", {
+        token,
+        error: "Spielerprofil konnte nicht übernommen werden. Bitte erneut versuchen.",
+      });
+    }
+  }
+
+  if (!existingPlayerInTargetClub && !claimableRosterPlayer) {
     const sourceProfile = existingProfiles[0];
 
     const displayName =
