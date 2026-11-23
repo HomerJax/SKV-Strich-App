@@ -211,10 +211,12 @@ export async function GET(request: NextRequest) {
         });
       }
       const playerName = extra.playerName;
+      const isBeerCrate = /(?:1\s*kischde|1\s*kiste)/iu.test(extra.detail ?? "");
+      const penaltyLine = isBeerCrate ? "Das kostet 1 Kischde! 🍺" : extra.detail || "Strafe eingetragen.";
       const image = (
         <div style={{
           display: "flex", width: 1080, height: 1920, flexDirection: "column",
-          boxSizing: "border-box", padding: "210px 46px 175px",
+          boxSizing: "border-box", padding: "165px 46px 125px",
           background: "linear-gradient(145deg,#102c70,#24236f 58%,#562078)",
           color: "#fff", fontFamily: "sans-serif",
         }}>
@@ -223,49 +225,49 @@ export async function GET(request: NextRequest) {
               style={{ width: 65, height: 65, borderRadius: 15 }} /> : null}
             <div style={{ display: "flex", fontSize: 46, fontWeight: 900 }}>strikr</div>
           </div>
-          <div style={{ display: "flex", fontSize: 73, fontWeight: 900,
-            marginTop: 29, letterSpacing: -1 }}>KABINENMOMENT.</div>
+          <div style={{ display: "flex", fontSize: 76, fontWeight: 900,
+            marginTop: 28, letterSpacing: -1 }}>KABINENMOMENT.</div>
           <div style={{ display: "flex", fontSize: 34, color: "#d9dcf7",
-            marginTop: 11 }}>Die Highlights der Woche</div>
+            marginTop: 11 }}>Was für ein Donnerstag!</div>
 
           <div style={{
-            display: "flex", flexDirection: "row", width: 988, height: 760,
-            marginTop: 116, overflow: "hidden", boxSizing: "border-box",
+            display: "flex", flexDirection: "row", width: 988, height: 1000,
+            marginTop: 70, overflow: "hidden", boxSizing: "border-box",
             borderRadius: 32, border: "2px solid rgba(255,255,255,.24)",
             background: "linear-gradient(115deg,#142c69,#252267 75%,#30206c)",
           }}>
             <div style={{ display: "flex", width: 16, height: "100%",
               background: "#ffbc67", flexShrink: 0 }} />
             <div style={{
-              display: "flex", width: 290, height: "100%", flexShrink: 0,
+              display: "flex", width: 300, height: "100%", flexShrink: 0,
               alignItems: "center", justifyContent: "center",
               background: "rgba(0,0,0,.12)",
             }}>
-              <Avatar name={playerName} photo={extraPhoto} accent="#ffbc67" size={245} />
+              <Avatar name={playerName} photo={extraPhoto} accent="#ffbc67" size={250} />
             </div>
             <div style={{
-              display: "flex", flexDirection: "column", width: 650, height: "100%",
+              display: "flex", flexDirection: "column", width: 640, height: "100%",
               justifyContent: "center", boxSizing: "border-box",
-              padding: "32px 32px 38px 38px",
+              padding: "34px 22px 42px 35px",
             }}>
-              <div style={{ display: "flex", fontSize: 27, fontWeight: 900,
-                color: "#ffd494" }}>KABINENMOMENT · 11 METER</div>
-              <div style={{ display: "flex", fontSize: 56, fontWeight: 900,
-                color: "#fff", marginTop: 24, lineHeight: 1.1 }}>ELFER</div>
-              <div style={{ display: "flex", fontSize: 56, fontWeight: 900,
-                color: "#fff", lineHeight: 1.1 }}>VERSEMMELT!</div>
-              <div style={{ display: "flex", fontSize: playerName.length > 23 ? 35 : 43,
-                fontWeight: 900, color: "#fff", marginTop: 36,
+              <div style={{ display: "flex", fontSize: 31, fontWeight: 900,
+                color: "#ffd494" }}>11 METER</div>
+              <div style={{ display: "flex", fontSize: 75, fontWeight: 900,
+                color: "#fff", marginTop: 22, lineHeight: 1.04 }}>ELFER</div>
+              <div style={{ display: "flex", fontSize: 66, fontWeight: 900,
+                color: "#fff", lineHeight: 1.05 }}>VERSEMMELT!</div>
+              <div style={{ display: "flex", fontSize: playerName.length > 23 ? 36 : 48,
+                fontWeight: 900, color: "#fff", marginTop: 48,
                 lineHeight: 1.13 }}>{playerName}</div>
-              <div style={{ display: "flex", width: 515, height: 2,
-                background: "rgba(255,255,255,.2)", marginTop: 26 }} />
-              <div style={{ display: "flex", fontSize: 29, lineHeight: 1.3,
-                color: "#e9e5fc", marginTop: 24 }}>{extra.detail || "Strafe eingetragen."}</div>
+              <div style={{ display: "flex", width: 525, height: 2,
+                background: "rgba(255,255,255,.2)", marginTop: 28 }} />
+              <div style={{ display: "flex", fontSize: 36, lineHeight: 1.25, fontWeight: 800,
+                color: "#ffd494", marginTop: 28 }}>{penaltyLine}</div>
             </div>
           </div>
           <div style={{
             display: "flex", flexDirection: "row", justifyContent: "space-between",
-            marginTop: 110, fontSize: 29, color: "#e4d9f4",
+            marginTop: 65, fontSize: 29, color: "#e4d9f4",
           }}>
             <div style={{ display: "flex" }}>@getstrikr</div>
             <div style={{ display: "flex" }}>strikr.team</div>
