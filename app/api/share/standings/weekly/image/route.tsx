@@ -85,7 +85,7 @@ type StoryMoment = {
   icon: string;
 };
 
-function StoryMomentCard({ moment, compact }: { moment: StoryMoment; compact: boolean }) {
+function StoryMomentCard({ moment, compact, height }: { moment: StoryMoment; compact: boolean; height?: number }) {
   const isRise = moment.id === "rise";
   const isFall = moment.id === "fall";
   const mover = isRise || isFall;
@@ -96,12 +96,10 @@ function StoryMomentCard({ moment, compact }: { moment: StoryMoment; compact: bo
     : isElfer ? "#ffbc67" : moment.id === "special" ? "#c58aff" : "#c58aff";
   return (
     <div style={{
-      display: "flex", width: 988, height: mover ? (compact ? 320 : 405) : (compact ? 220 : 265),
+      display: "flex", width: 988, height: height ?? (mover ? (compact ? 320 : 405) : (compact ? 220 : 265)),
       flexDirection: "row", boxSizing: "border-box", overflow: "hidden",
       borderRadius: 32, border: "2px solid rgba(255,255,255,.24)",
-      background: isElfer
-        ? "linear-gradient(112deg,#4a2c58,#362367 65%,#29205c)"
-        : "linear-gradient(115deg,#142c69,#252267 75%,#30206c)",
+      background: "linear-gradient(115deg,#142c69,#252267 75%,#30206c)",
     }}>
       <div style={{ display: "flex", width: 14, height: "100%", background: color, flexShrink: 0 }} />
       {mover ? (
@@ -131,21 +129,21 @@ function StoryMomentCard({ moment, compact }: { moment: StoryMoment; compact: bo
         </>
       ) : isElfer ? (
         <div style={{ display: "flex", width: 970, height: "100%", flexDirection: "row", alignItems: "center" }}>
-          <div style={{ display: "flex", width: 200, height: "100%", flexShrink: 0,
-            justifyContent: "center", alignItems: "center", background: "rgba(255,188,103,.09)" }}>
-            <Avatar name={moment.name || ""} photo={moment.photo ?? null} accent="#ffbc67" size={compact ? 148 : 172} />
+          <div style={{ display: "flex", width: 275, height: "100%", flexShrink: 0,
+            justifyContent: "center", alignItems: "center", background: "rgba(0,0,0,.12)" }}>
+            <Avatar name={moment.name || ""} photo={moment.photo ?? null} accent="#ffbc67" size={195} />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", width: 730,
-            padding: "12px 20px 12px 27px", boxSizing: "border-box" }}>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", width: 660,
+            padding: "16px 22px 16px 28px", boxSizing: "border-box" }}>
             <div style={{ display: "flex", fontSize: compact ? 22 : 24, fontWeight: 900, color: "#ffd69c" }}>
               KABINENMOMENT · 11 METER
             </div>
             <div style={{ display: "flex", marginTop: 6, fontSize: compact ? 37 : 43,
               fontWeight: 900, color: "#fff" }}>ELFER VERSEMMELT!</div>
-            <div style={{ display: "flex", marginTop: compact ? 4 : 9, fontSize: compact ? 26 : 29,
-              fontWeight: 800, color: "#fff" }}>{moment.headline}</div>
-            <div style={{ display: "flex", marginTop: compact ? 3 : 8, fontSize: compact ? 21 : 24,
-              color: "#ffe1ba" }}>{moment.detail}</div>
+            <div style={{ display: "flex", marginTop: 6, fontSize: (moment.name || "").length > 23 ? 30 : 36,
+              fontWeight: 900, color: "#fff" }}>{moment.name}</div>
+            <div style={{ display: "flex", marginTop: compact ? 3 : 8, fontSize: 25,
+              color: "#e9e5fc" }}>{moment.detail}</div>
           </div>
         </div>
       ) : (
@@ -254,8 +252,11 @@ export async function GET(request: NextRequest) {
       background: "linear-gradient(120deg,#5336a4,#2e2876)",
     });
 
-    const visibleMoments = moments.slice(0, 4);
-    const compact = visibleMoments.length === 4;
+    // A recorded Elfer receives its own full-width card, separate from
+    // winner, loser and title race. Do not compress all four into one grid.
+    const elferMoment = moments.find((moment) => moment.id === "elfer") ?? null;
+    const mainMoments = moments.filter((moment) => moment.id !== "elfer").slice(0, 3);
+    const withFourthCard = Boolean(elferMoment && mainMoments.length === 3);
     const story = (
       <div style={{
         display: "flex", width: 1080, height: 1920, boxSizing: "border-box",
@@ -264,7 +265,8 @@ export async function GET(request: NextRequest) {
       }}>
         <div style={{
           display: "flex", flexDirection: "column", width: 1080, height: 1920,
-          boxSizing: "border-box", padding: "205px 46px 180px",
+          boxSizing: "border-box",
+          padding: withFourthCard ? "150px 46px 110px" : "205px 46px 180px",
         }}>
           <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 17 }}>
             {logo ? <img src={logo} alt="" width={65} height={65}
@@ -273,15 +275,23 @@ export async function GET(request: NextRequest) {
           </div>
           <div style={{ display: "flex", fontSize: 76, fontWeight: 900, marginTop: 22, letterSpacing: -1 }}>WOCHENREPORT.</div>
           <div style={{ display: "flex", fontSize: 35, color: "#d9dcf7", marginTop: 8 }}>Die Highlights der Woche</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: compact ? 20 : 26,
-            marginTop: compact ? 44 : 58 }}>
-            {visibleMoments.map((moment) => (
-              <StoryMomentCard key={moment.id} moment={moment} compact={compact} />
+          <div style={{ display: "flex", flexDirection: "column",
+            gap: withFourthCard ? 18 : 26, marginTop: withFourthCard ? 30 : 58 }}>
+            {mainMoments.map((moment) => (
+              <StoryMomentCard key={moment.id} moment={moment} compact={false}
+                height={moment.id === "rise" || moment.id === "fall"
+                  ? (withFourthCard ? 350 : 405)
+                  : (withFourthCard ? 230 : 265)} />
             ))}
           </div>
+          {elferMoment ? (
+            <div style={{ display: "flex", marginTop: withFourthCard ? 28 : 30 }}>
+              <StoryMomentCard moment={elferMoment} compact={false} height={265} />
+            </div>
+          ) : null}
           <div style={{
             display: "flex", flexDirection: "row", justifyContent: "space-between",
-            marginTop: compact ? 37 : 60, fontSize: 29, color: "#e4d9f4",
+            marginTop: withFourthCard ? 34 : 60, fontSize: 29, color: "#e4d9f4",
           }}>
             <div style={{ display: "flex" }}>@getstrikr</div>
             <div style={{ display: "flex" }}>strikr.team</div>
