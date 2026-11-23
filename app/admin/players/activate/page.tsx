@@ -30,6 +30,11 @@ export default async function ActivatePlayersPage({ searchParams }: { searchPara
     <div className="space-y-2">
       {pending.map(p => <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <div><div className="font-semibold">{p.name || [p.first_name,p.last_name].filter(Boolean).join(" ")}</div><div className="text-xs text-slate-500">{p.email || "Noch keine E-Mail hinterlegt"}</div></div>
+        <form action="/api/admin/players/email" method="post" className="flex flex-wrap items-center gap-2">
+          <input type="hidden" name="player_id" value={p.id} />
+          <input type="email" name="email" defaultValue={p.email || ""} placeholder="E-Mail ergänzen" aria-label="Spieler-E-Mail" className="w-48 rounded-lg border px-2 py-2 text-sm" />
+          <button className="rounded-lg border px-3 py-2 text-sm">Speichern</button>
+        </form>
         <form action="/api/admin/players/activate" method="post">
           <input type="hidden" name="player_id" value={p.id} />
           <button disabled={!p.email} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40">Einladung senden</button>
