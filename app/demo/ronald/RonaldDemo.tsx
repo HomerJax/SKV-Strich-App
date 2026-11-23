@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import LandingPageTracker from "@/components/analytics/LandingPageTracker";
+import RonaldDutiesPreview from "./RonaldDutiesPreview";
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, RotateCcw, Shuffle, Trophy, Users } from "lucide-react";
 
 type Player = {
@@ -112,7 +113,7 @@ export default function RonaldDemo() {
     setFinished(false);
   };
   const stages: Array<{ id: Stage; label: string }> = [
-    { id: "attendance", label: "Teilnehmer" },
+    { id: "attendance", label: "Organisation" },
     { id: "teams", label: "Teams" },
     { id: "result", label: "Endstand" },
     { id: "table", label: "Tabelle" },
@@ -132,11 +133,11 @@ export default function RonaldDemo() {
               <div className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-bold">Persönliche Demo · DJK AH</div>
             </div>
             <h1 className="max-w-xl text-3xl font-black leading-tight tracking-tight sm:text-4xl">
-              Hi Ronald! So wird aus eurem Donnerstag eine kleine eigene Liga. ⚽
+              Hi Ronald! So könnte dein Donnerstag ohne Excel aussehen. ⚽
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-              Kein Schriftführer. Keine einzelnen Tore oder Torschützen erfassen.
-              Nur die Teilnehmer und am Ende ein Ergebnis – den Rest erledigt strikr.
+              Anwesenheit erfassen, Leibchen- und Getränkedienst im Blick behalten.
+              Und wenn ihr Lust habt: faire Teams und eine eigene kleine Liga als Bonus.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">Keine Anmeldung</span>
@@ -159,18 +160,23 @@ export default function RonaldDemo() {
         <section className="mt-4 rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           {stage === "attendance" && (
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Schritt 1 · Anwesenheit</p>
-              <h2 className="mt-2 text-2xl font-black">Wer kickt heute mit?</h2>
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Schritt 1 · Dein Trainingsalltag</p>
+              <h2 className="mt-2 text-2xl font-black">Das steht bei dir heute in Excel.</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                In der richtigen App können eure Spieler selbst zu- oder absagen – ähnlich wie bei SpielerPlus.
-                Die Liste ist dann schon fertig. Hier kannst du testweise ein paar Spieler abwählen.
+                Wer kommt? Wer wäscht die Leibchen? Wer bringt Getränke mit?
+                Die Spieler können sich in strikr bereits selbst zu- und absagen.
+                Die zwei Dienste zeigen wir dir darunter als mögliche Erweiterung.
               </p>
               <div className="mt-5 rounded-2xl bg-emerald-50 p-4">
                 <div className="flex items-center gap-3">
                   <Users className="h-6 w-6 text-emerald-700" />
-                  <div><div className="text-xl font-black">{present.length} Zusagen</div><p className="text-xs text-emerald-800">Beispiel für euer Donnerstagstraining</p></div>
+                  <div><div className="text-xl font-black">{present.length} Zusagen</div><p className="text-xs text-emerald-800">Anwesenheit – in strikr bereits verfügbar</p></div>
                 </div>
               </div>
+              <RonaldDutiesPreview players={DEMO_PLAYERS} present={present} />
+              <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <summary className="cursor-pointer text-sm font-bold text-slate-800">Teilnehmer ändern · {present.length} Zusagen (hier klicken)</summary>
+                <p className="mt-2 text-xs text-slate-600">In der echten App kann jeder Spieler selbst zusagen. Hier kannst du die Anwesenheit zum Ausprobieren ändern.</p>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {DEMO_PLAYERS.map(player => (
                   <label key={player.id} className={"flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-3 transition " +
@@ -186,10 +192,11 @@ export default function RonaldDemo() {
                   </label>
                 ))}
               </div>
+              </details>
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-slate-500">Alle Namen sind erfunden. Keine Registrierung notwendig.</p>
+                <p className="text-xs text-slate-500">Alles nur eine Demo mit erfundenen Namen. Spielbetrieb ist optional.</p>
                 <button type="button" data-analytics-event="private_demo_teams_click" disabled={present.length < 4} onClick={() => {setFinished(false); setStage("teams");}} className={button}>
-                  Faire Teams erstellen <ArrowRight className="h-4 w-4" />
+                  Optional: Faire Teams ausprobieren <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
               {present.length < 4 && <p className="mt-2 text-xs text-amber-700">Bitte mindestens vier Spieler auswählen.</p>}
@@ -245,8 +252,8 @@ export default function RonaldDemo() {
               <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Schritt 3 · Nach dem Training</p>
               <h2 className="mt-2 text-2xl font-black">Nur noch das Endergebnis.</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Ihr spielt ganz normal. Niemand muss Tore zählen oder mitschreiben.
-                Am Ende trägst du nur den Endstand ein – fertig.
+                Wenn ihr ohnehin am Ende einen Endstand kennt, kannst du ihn hier eintragen.
+                Falls ihr keine Ergebnisse zählen wollt, lasst ihr diesen freiwilligen Teil einfach weg.
               </p>
               <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl bg-slate-50 p-5 sm:gap-6">
                 <label className="min-w-0 text-center">
@@ -319,8 +326,9 @@ export default function RonaldDemo() {
                   <CircleHelp className="h-5 w-5" /> Und was macht der Organisator?
                 </div>
                 <p className="mt-2 text-sm leading-6 text-amber-950">
-                  Praktisch nur das Endergebnis eintragen. Alle anderen Funktionen kannst du nutzen –
-                  musst du aber nicht. Eure Leibchen- und Getränkeliste darf einfach weiterlaufen.
+                  Bei der Anwesenheit können sich die Spieler selbst anmelden. Wasch- und Getränkedienst
+                  hast du am Anfang als interaktives Konzept gesehen – diese beiden Dienste gibt es in
+                  strikr derzeit noch nicht live. Und die Liga ist nur ein freiwilliger Bonus.
                 </p>
               </div>
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
