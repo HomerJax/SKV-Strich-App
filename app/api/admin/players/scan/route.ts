@@ -114,7 +114,6 @@ export async function POST(request: Request) {
               properties: {
                 players: {
                   type: "array",
-                  maxItems: MAX_PLAYERS,
                   items: {
                     type: "object",
                     additionalProperties: false,
