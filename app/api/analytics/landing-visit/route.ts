@@ -37,7 +37,7 @@ function getReferrerHost(referrer: string | null) {
 }
 
 const TRACKED_PATHS = new Set([
-  "/", "/en", "/demo", "/pro", "/faire-fussballteams",
+  "/", "/en", "/demo", "/demo/ronald", "/pro", "/faire-fussballteams",
   "/training-organisieren", "/mannschaftskasse-app",
   "/en/faire-fussballteams", "/en/training-organisieren",
   "/en/mannschaftskasse-app",
