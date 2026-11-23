@@ -2,6 +2,7 @@ import Link from "next/link";
 import BeerWorkflowHelp from "@/components/cashbox/BeerWorkflowHelp";
 import { requireClub } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 type BeerRow = { player_id: number; quantity: number; created_at: string; payment_method: string | null };
@@ -9,8 +10,8 @@ type PlayerRow = { id: number; name: string | null; nickname: string | null; fir
 
 type SeasonRow = { id:number; name:string|null; start_date:string|null; end_date:string|null };
 export default async function BeerLeaderboardPage({ searchParams }: { searchParams?: Promise<{ view?: string; season?: string }> }) {
-  const { clubId } = await requireClub();
-  const supabase = await createClient();
+  const { clubId, isPowerUser } = await requireClub();
+  const supabase = isPowerUser ? createAdminClient() : await createClient();
   const params = await searchParams;
   const billing = await getClubBillingAccess(supabase, clubId);
   const [{ data: settings }, { data: seasons }, { data: players }] = await Promise.all([
