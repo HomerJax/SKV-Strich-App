@@ -21,35 +21,37 @@ async function fileToBase64(file: File) {
   return btoa(binary);
 }
 
-async function shareRecapFile(file: File) {
+async function shareRecapFile(file: File, kind: "weekly" | "elfer") {
+  const filename = kind === "elfer" ? "strikr-elfer-versemmelt.png" : "strikr-wochenrueckblick.png";
+  const title = kind === "elfer" ? "strikr · Elfer versemmelt!" : "strikr · Wochenrückblick";
   if (Capacitor.isNativePlatform()) {
     if (!Capacitor.isPluginAvailable("Share") || !Capacitor.isPluginAvailable("Filesystem")) {
       throw new Error("Bitte die aktuelle App-Version installieren, um die Story zu teilen.");
     }
     const written = await Filesystem.writeFile({
-      path: `share/${Date.now()}-strikr-wochenrueckblick.png`,
+      path: `share/${Date.now()}-${filename}`,
       data: await fileToBase64(file),
       directory: Directory.Cache,
       recursive: true,
     });
     await Share.share({
       files: [written.uri],
-      title: "strikr · Wochenrückblick",
-      dialogTitle: "Wochenrückblick teilen",
+      title,
+      dialogTitle: kind === "elfer" ? "Elfer-Story teilen" : "Wochenrückblick teilen",
     });
     return "shared";
   }
 
   if (typeof navigator !== "undefined" && typeof navigator.share === "function"
     && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-    await navigator.share({ files: [file], title: "strikr · Wochenrückblick" });
+    await navigator.share({ files: [file], title });
     return "shared";
   }
 
   const url = URL.createObjectURL(file);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "strikr-wochenrueckblick.png";
+  anchor.download = filename;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
@@ -71,14 +73,15 @@ function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl?: string | nu
 
 export default function StandingsWeeklyRecap({ report, selectedSeason, seasonName }: Props) {
   const { locale } = useI18n();
-  const [sharing, setSharing] = useState(false);
+  const [sharing, setSharing] = useState<"weekly" | "elfer" | null>(null);
   const [message, setMessage] = useState("");
   const hasChanges = report.hasBaseline && report.completedTrainings > 0;
   const cutoffLabel = report.cutoffDate.split("-").reverse().join(".");
   const race = weeklyRaceStory(report);
-  const onShare = async () => {
+  const elfer = report.extraHighlight?.kind === "missed_penalty" ? report.extraHighlight : null;
+  const onShare = async (kind: "weekly" | "elfer") => {
     if (sharing) return;
-    setSharing(true);
+    setSharing(kind);
     setMessage("");
     try {
       const params = new URLSearchParams({
@@ -86,22 +89,26 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
         lang: locale,
         ts: String(Date.now()),
       });
+      if (kind === "elfer") params.set("card", "elfer");
+      const filename = kind === "elfer" ? "strikr-elfer-versemmelt.png" : "strikr-wochenrueckblick.png";
       const file = await fetchImageAsFile(
         `/api/share/standings/weekly/image?${params.toString()}`,
-        "strikr-wochenrueckblick.png",
+        filename,
       );
-      const result = await shareRecapFile(file);
-      setMessage(result === "shared" ? "Wochenreport geteilt." : "Wochenreport heruntergeladen.");
+      const result = await shareRecapFile(file, kind);
+      const label = kind === "elfer" ? "Elfer-Story" : "Wochenreport";
+      setMessage(label + (result === "shared" ? " geteilt." : " heruntergeladen."));
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
       setMessage(error instanceof Error ? error.message : "Story konnte nicht erstellt werden.");
     } finally {
-      setSharing(false);
+      setSharing(null);
     }
   };
 
   return (
-    <section className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 px-3 py-4 text-white shadow-lg sm:rounded-[24px] sm:p-5">
+    <div className="space-y-3">
+      <section className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 px-3 py-4 text-white shadow-lg sm:rounded-[24px] sm:p-5">
       <div className="min-w-0">
         <div className="text-[10px] font-black uppercase tracking-[0.15em] text-teal-300">
           strikr · Wochenrückblick
@@ -161,7 +168,7 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
         </p>
       )}
 
-      {report.extraHighlight ? (
+      {report.extraHighlight && report.extraHighlight.kind !== "missed_penalty" ? (
         <div className="mt-3 flex min-w-0 items-center gap-3 rounded-xl border border-sky-400/20 bg-sky-400/10 p-3">
           {report.extraHighlight.playerId ? (
             <PlayerAvatar name={report.extraHighlight.playerName || report.extraHighlight.text}
@@ -211,12 +218,38 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
           : ""}
       </p>
       <div className="mt-4 border-t border-white/10 pt-4">
-        <button type="button" onClick={() => void onShare()} disabled={sharing}
+        <button type="button" onClick={() => void onShare("weekly")} disabled={sharing !== null}
           className="w-full rounded-xl bg-teal-300 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-200 disabled:opacity-50">
-          {sharing ? "Wochenreport wird erstellt …" : "Wochenreport teilen"}
+          {sharing === "weekly" ? "Wochenreport wird erstellt …" : "Wochenreport teilen"}
         </button>
         {message ? <p role="status" className="mt-2 break-words rounded-lg bg-white/10 px-3 py-2 text-xs">{message}</p> : null}
       </div>
-    </section>
+      </section>
+      {elfer ? (
+        <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-amber-400/40 bg-slate-950 px-3 py-4 text-white shadow-lg sm:rounded-[24px] sm:p-5"
+          aria-label="Separate Elfer-Story">
+          <div className="text-[10px] font-black uppercase tracking-[0.15em] text-amber-300">
+            Separater Kabinenmoment · Eigene Story
+          </div>
+          <h3 className="mt-2 text-xl font-black">⚽ ELFER VERSEMMELT!</h3>
+          <div className="mt-3 flex items-center gap-3 rounded-xl border border-amber-300/30 bg-white/5 p-3">
+            <PlayerAvatar name={elfer.playerName || "Spieler"} photoUrl={elfer.photoUrl} />
+            <div className="min-w-0">
+              <div className="break-words text-base font-black">{elfer.playerName}</div>
+              <div className="mt-1 break-words text-xs leading-5 text-white/75">
+                {elfer.detail}
+              </div>
+            </div>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-white/60">
+            Eigenes 9:16-Bild im strikr-Stil – unabhängig vom Wochenreport teilen.
+          </p>
+          <button type="button" onClick={() => void onShare("elfer")} disabled={sharing !== null}
+            className="mt-4 w-full rounded-xl bg-amber-300 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-200 disabled:opacity-50">
+            {sharing === "elfer" ? "Elfer-Story wird erstellt …" : "Elfer-Card separat teilen"}
+          </button>
+        </section>
+      ) : null}
+    </div>
   );
 }
