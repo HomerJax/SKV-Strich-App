@@ -141,7 +141,7 @@ export default function RonaldDemo() {
             <div className="mt-5 flex flex-wrap gap-2">
               <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">Keine Anmeldung</span>
               <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">Keine echten Vereinsdaten</span>
-              <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">Nichts wird gespeichert</span>
+              <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">Ergebnisse nur zur Vorschau</span>
             </div>
           </div>
         </header>
@@ -338,7 +338,7 @@ export default function RonaldDemo() {
         </section>
 
         <footer className="mt-5 flex items-center justify-between gap-3 px-1 text-xs text-slate-500">
-          <span>Persönliche Vorschau · Ohne Anmeldung · Ohne Speicherung</span>
+          <span>Persönliche Vorschau · Ohne Anmeldung · Ohne Speicherung der Spielergebnisse</span>
           <span className="font-black text-slate-800">strikr.team</span>
         </footer>
       </div>
