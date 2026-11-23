@@ -80,6 +80,10 @@ export async function GET(request: Request) {
     .limit(1)
     .maybeSingle();
 
+  if (!player && next.startsWith("/join?token=")) {
+    return NextResponse.redirect(new URL(next, origin));
+  }
+
   if (!player) {
     const onboardingUrl = new URL("/onboarding", origin);
 
