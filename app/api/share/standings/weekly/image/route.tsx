@@ -89,16 +89,19 @@ function StoryMomentCard({ moment, compact }: { moment: StoryMoment; compact: bo
   const isRise = moment.id === "rise";
   const isFall = moment.id === "fall";
   const mover = isRise || isFall;
+  const isElfer = moment.id === "elfer";
   const match = mover ? moment.headline.match(/[0-9]+[ ]+Plätze?/) : null;
   const metric = match ? match[0].replace(/ Plätze?/, "") : "";
   const color = isRise ? "#55e58d" : isFall ? "#ff666e"
-    : moment.id === "special" ? "#ffbc67" : "#c58aff";
+    : isElfer ? "#ffbc67" : moment.id === "special" ? "#c58aff" : "#c58aff";
   return (
     <div style={{
       display: "flex", width: 988, height: mover ? (compact ? 320 : 405) : (compact ? 220 : 265),
       flexDirection: "row", boxSizing: "border-box", overflow: "hidden",
       borderRadius: 32, border: "2px solid rgba(255,255,255,.24)",
-      background: "linear-gradient(115deg,#142c69,#252267 75%,#30206c)",
+      background: isElfer
+        ? "linear-gradient(112deg,#4a2c58,#362367 65%,#29205c)"
+        : "linear-gradient(115deg,#142c69,#252267 75%,#30206c)",
     }}>
       <div style={{ display: "flex", width: 14, height: "100%", background: color, flexShrink: 0 }} />
       {mover ? (
@@ -126,6 +129,25 @@ function StoryMomentCard({ moment, compact }: { moment: StoryMoment; compact: bo
             <div style={{ display: "flex", fontSize: compact ? 23 : 29, color: "#d9dcf7", marginTop: compact ? 7 : 12 }}>{moment.detail}</div>
           </div>
         </>
+      ) : isElfer ? (
+        <div style={{ display: "flex", width: 970, height: "100%", flexDirection: "row", alignItems: "center" }}>
+          <div style={{ display: "flex", width: 200, height: "100%", flexShrink: 0,
+            justifyContent: "center", alignItems: "center", background: "rgba(255,188,103,.09)" }}>
+            <Avatar name={moment.name || ""} photo={moment.photo ?? null} accent="#ffbc67" size={compact ? 148 : 172} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", width: 730,
+            padding: "12px 20px 12px 27px", boxSizing: "border-box" }}>
+            <div style={{ display: "flex", fontSize: compact ? 22 : 24, fontWeight: 900, color: "#ffd69c" }}>
+              KABINENMOMENT · 11 METER
+            </div>
+            <div style={{ display: "flex", marginTop: 6, fontSize: compact ? 37 : 43,
+              fontWeight: 900, color: "#fff" }}>ELFER VERSEMMELT!</div>
+            <div style={{ display: "flex", marginTop: compact ? 4 : 9, fontSize: compact ? 26 : 29,
+              fontWeight: 800, color: "#fff" }}>{moment.headline}</div>
+            <div style={{ display: "flex", marginTop: compact ? 3 : 8, fontSize: compact ? 21 : 24,
+              color: "#ffe1ba" }}>{moment.detail}</div>
+          </div>
+        </div>
       ) : (
         <div style={{
           display: "flex", flexDirection: "row", alignItems: "center",
@@ -209,17 +231,16 @@ export async function GET(request: NextRequest) {
       accent: "#f5a6df",
       background: "linear-gradient(120deg,#7d35ae,#4c237d 72%,#332064)",
     });
-    // A genuinely recorded Kabinenmoment must not disappear behind three
-    // standings stories. Use four compact cards for an Elfer, birthday or
-    // wheel event; keep less relevant table extras to the usual three cards.
-    const isKabinenMoment = extra && ["missed_penalty", "birthday", "wheel"].includes(extra.kind);
-    if (extra && (moments.length < 3 || isKabinenMoment)) {
+    // Only a documented missed penalty gets an additional fourth Kabinenmoment
+    // card. Other extras retain their previous maximum of three stories.
+    const hasMissedElfer = extra?.kind === "missed_penalty";
+    if (extra && (moments.length < 3 || hasMissedElfer)) {
       const icon = extra.kind === "missed_penalty" ? "⚽"
         : extra.kind === "birthday" ? "🎂"
         : extra.kind === "wheel" ? "🎡"
         : extra.kind === "finale" ? "🏁" : "⭐";
       moments.push({
-        id: "special", icon, label: extra.title.toUpperCase(),
+        id: hasMissedElfer ? "elfer" : "special", icon, label: extra.title.toUpperCase(),
         headline: extra.text, detail: extra.detail || "Das ist diese Woche passiert.",
         name: extra.playerName, photo: extraPhoto, accent: "#fbc7ed",
         background: "linear-gradient(112deg,#b63691,#682776 65%,#40216a)",
