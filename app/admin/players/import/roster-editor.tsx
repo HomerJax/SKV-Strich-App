@@ -32,6 +32,8 @@ export default function RosterEditor({ action }: { action: (data: FormData) => P
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [source, setSource] = useState<"image" | "text" | null>(null);
+  const [testBusy, setTestBusy] = useState(false);
+  const [testStatus, setTestStatus] = useState("");
 
   async function scan(file?: File) {
     if (!file) return;
@@ -70,6 +72,44 @@ export default function RosterEditor({ action }: { action: (data: FormData) => P
       setError(e instanceof Error ? e.message : "Erkennung fehlgeschlagen");
     } finally {
       setBusy(false);
+    }
+  }
+
+
+  async function testAiConnection() {
+    setTestStatus("");
+    setTestBusy(true);
+    try {
+      // Synthetic-only fixture: tests actual vision inference without uploading member data.
+      const canvas = document.createElement("canvas");
+      canvas.width = 1200;
+      canvas.height = 390;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Der Browser unterstützt den KI-Test nicht.");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, 1200, 390);
+      ctx.fillStyle = "#111827";
+      ctx.font = "bold 42px Arial";
+      ctx.fillText("Spielerliste", 42, 75);
+      ctx.font = "32px Arial";
+      ctx.fillText("Anton Testspieler   anton.test@example.com", 42, 170);
+      ctx.fillText("Mia Muster   mia.muster@example.com", 42, 255);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("Testbild konnte nicht erzeugt werden.");
+      const data = new FormData();
+      data.set("image", new File([blob], "ki-test.png", { type: "image/png" }));
+      const response = await fetch("/api/admin/players/scan", { method: "POST", body: data, cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "KI-Test fehlgeschlagen.");
+      const recognized = Array.isArray(result.players) && result.players.some(
+        (p: { email?: string }) => p.email === "anton.test@example.com",
+      );
+      if (!recognized) throw new Error("KI ist erreichbar, konnte die Testliste aber nicht sicher erkennen.");
+      setTestStatus("KI-Verbindung erfolgreich: Testnamen und E-Mail erkannt. Keine Testspieler gespeichert.");
+    } catch (err) {
+      setTestStatus("KI-Test nicht erfolgreich: " + (err instanceof Error ? err.message : "Unbekannter Fehler"));
+    } finally {
+      setTestBusy(false);
     }
   }
 
@@ -137,6 +177,13 @@ export default function RosterEditor({ action }: { action: (data: FormData) => P
             className="mt-2 block w-full text-sm"
           />
           <p className="mt-2 text-xs text-slate-500">Tipp: Zum Einfügen eines kopierten Screenshots hier klicken und Strg+V drücken.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={() => void testAiConnection()} disabled={busy || testBusy}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium disabled:opacity-40">
+            {testBusy ? "KI wird getestet …" : "KI-Verbindung mit Beispieldaten testen"}
+          </button>
+          {testStatus && <p role="status" className="text-xs text-slate-700">{testStatus}</p>}
         </div>
         <p className="text-xs text-slate-500">
           Maximal 3 MB, 25 Einträge pro Vorgang. Das Bild wird ohne dauerhafte Speicherung in strikr
