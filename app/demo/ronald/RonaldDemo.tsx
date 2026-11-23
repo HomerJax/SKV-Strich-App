@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import LandingPageTracker from "@/components/analytics/LandingPageTracker";
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, RotateCcw, Shuffle, Trophy, Users } from "lucide-react";
 
 type Player = {
@@ -121,6 +122,7 @@ export default function RonaldDemo() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 pb-16 pt-6 text-slate-950 sm:pt-10">
+      <LandingPageTracker />
       <div className="mx-auto max-w-3xl">
         <header className="relative overflow-hidden rounded-[28px] bg-slate-950 px-6 pb-7 pt-6 text-white sm:px-8 sm:pt-8">
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-emerald-400/15 blur-3xl" />
@@ -186,7 +188,7 @@ export default function RonaldDemo() {
               </div>
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs text-slate-500">Alle Namen sind erfunden. Keine Registrierung notwendig.</p>
-                <button type="button" disabled={present.length < 4} onClick={() => {setFinished(false); setStage("teams");}} className={button}>
+                <button type="button" data-analytics-event="private_demo_teams_click" disabled={present.length < 4} onClick={() => {setFinished(false); setStage("teams");}} className={button}>
                   Faire Teams erstellen <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -231,7 +233,7 @@ export default function RonaldDemo() {
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <button type="button" onClick={() => setStage("attendance")}
                   className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600"><ArrowLeft className="h-4 w-4" /> Zurück</button>
-                <button type="button" onClick={nextFromTeams} className={button}>
+                <button type="button" data-analytics-event="private_demo_result_click" onClick={nextFromTeams} className={button}>
                   Training gespielt – Endstand eintragen <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -268,7 +270,7 @@ export default function RonaldDemo() {
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <button type="button" onClick={() => setStage("teams")}
                   className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600"><ArrowLeft className="h-4 w-4" /> Zurück</button>
-                <button type="button" disabled={!validScore} onClick={() => {setFinished(true);setStage("table");}} className={button}>
+                <button type="button" data-analytics-event="private_demo_completed" disabled={!validScore} onClick={() => {setFinished(true);setStage("table");}} className={button}>
                   Ergebnis speichern – Tabelle ansehen <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
