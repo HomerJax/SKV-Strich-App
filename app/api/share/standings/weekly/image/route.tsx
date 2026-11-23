@@ -201,6 +201,83 @@ export async function GET(request: NextRequest) {
       trustedAvatarData(faller?.photoUrl),
       trustedAvatarData(extra?.photoUrl),
     ]);
+    // Standalone 1080x1920 story. This is a separate image, never a fourth
+    // tile in the regular weekly report. Only a genuinely recorded missed
+    // penalty from the current rolling week can trigger it.
+    if (request.nextUrl.searchParams.get("card") === "elfer") {
+      if (extra?.kind !== "missed_penalty" || !extra.playerName) {
+        return new Response("Kein verschossener Elfmeter in dieser Berichtswoche erfasst.", {
+          status: 404, headers: { "Cache-Control": "private, no-store" },
+        });
+      }
+      const playerName = extra.playerName;
+      const image = (
+        <div style={{
+          display: "flex", width: 1080, height: 1920, flexDirection: "column",
+          boxSizing: "border-box", padding: "210px 46px 175px",
+          background: "linear-gradient(145deg,#102c70,#24236f 58%,#562078)",
+          color: "#fff", fontFamily: "sans-serif",
+        }}>
+          <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 17 }}>
+            {logo ? <img src={logo} alt="" width={65} height={65}
+              style={{ width: 65, height: 65, borderRadius: 15 }} /> : null}
+            <div style={{ display: "flex", fontSize: 46, fontWeight: 900 }}>strikr</div>
+          </div>
+          <div style={{ display: "flex", fontSize: 73, fontWeight: 900,
+            marginTop: 29, letterSpacing: -1 }}>KABINENMOMENT.</div>
+          <div style={{ display: "flex", fontSize: 34, color: "#d9dcf7",
+            marginTop: 11 }}>Die Highlights der Woche</div>
+
+          <div style={{
+            display: "flex", flexDirection: "row", width: 988, height: 760,
+            marginTop: 116, overflow: "hidden", boxSizing: "border-box",
+            borderRadius: 32, border: "2px solid rgba(255,255,255,.24)",
+            background: "linear-gradient(115deg,#142c69,#252267 75%,#30206c)",
+          }}>
+            <div style={{ display: "flex", width: 16, height: "100%",
+              background: "#ffbc67", flexShrink: 0 }} />
+            <div style={{
+              display: "flex", width: 290, height: "100%", flexShrink: 0,
+              alignItems: "center", justifyContent: "center",
+              background: "rgba(0,0,0,.12)",
+            }}>
+              <Avatar name={playerName} photo={extraPhoto} accent="#ffbc67" size={245} />
+            </div>
+            <div style={{
+              display: "flex", flexDirection: "column", width: 650, height: "100%",
+              justifyContent: "center", boxSizing: "border-box",
+              padding: "32px 32px 38px 38px",
+            }}>
+              <div style={{ display: "flex", fontSize: 27, fontWeight: 900,
+                color: "#ffd494" }}>KABINENMOMENT · 11 METER</div>
+              <div style={{ display: "flex", fontSize: 56, fontWeight: 900,
+                color: "#fff", marginTop: 24, lineHeight: 1.1 }}>ELFER</div>
+              <div style={{ display: "flex", fontSize: 56, fontWeight: 900,
+                color: "#fff", lineHeight: 1.1 }}>VERSEMMELT!</div>
+              <div style={{ display: "flex", fontSize: playerName.length > 23 ? 35 : 43,
+                fontWeight: 900, color: "#fff", marginTop: 36,
+                lineHeight: 1.13 }}>{playerName}</div>
+              <div style={{ display: "flex", width: 515, height: 2,
+                background: "rgba(255,255,255,.2)", marginTop: 26 }} />
+              <div style={{ display: "flex", fontSize: 29, lineHeight: 1.3,
+                color: "#e9e5fc", marginTop: 24 }}>{extra.detail || "Strafe eingetragen."}</div>
+            </div>
+          </div>
+          <div style={{
+            display: "flex", flexDirection: "row", justifyContent: "space-between",
+            marginTop: 110, fontSize: 29, color: "#e4d9f4",
+          }}>
+            <div style={{ display: "flex" }}>@getstrikr</div>
+            <div style={{ display: "flex" }}>strikr.team</div>
+          </div>
+        </div>
+      );
+      return new ImageResponse(image, {
+        width: 1080, height: 1920,
+        headers: { "Cache-Control": "private, no-store, max-age=0" },
+      });
+    }
+
     const race = weeklyRaceStory(report);
 
     // One shareable story: clear winner hero, loser and title race below.
@@ -229,8 +306,8 @@ export async function GET(request: NextRequest) {
       accent: "#f5a6df",
       background: "linear-gradient(120deg,#7d35ae,#4c237d 72%,#332064)",
     });
-    // Only a documented missed penalty gets an additional fourth Kabinenmoment
-    // card. Other extras retain their previous maximum of three stories.
+    // Only a documented missed penalty gets an exclusive standalone Elfer story.
+    // Other specials can still occupy a free slot in the regular report.
     const hasMissedElfer = extra?.kind === "missed_penalty";
     if (extra && (moments.length < 3 || hasMissedElfer)) {
       const icon = extra.kind === "missed_penalty" ? "⚽"
@@ -252,11 +329,9 @@ export async function GET(request: NextRequest) {
       background: "linear-gradient(120deg,#5336a4,#2e2876)",
     });
 
-    // A recorded Elfer receives its own full-width card, separate from
-    // winner, loser and title race. Do not compress all four into one grid.
-    const elferMoment = moments.find((moment) => moment.id === "elfer") ?? null;
+    // The weekly report remains a single three-card story. The missed-penalty
+    // highlight is exclusively shared via ?card=elfer as its own story.
     const mainMoments = moments.filter((moment) => moment.id !== "elfer").slice(0, 3);
-    const withFourthCard = Boolean(elferMoment && mainMoments.length === 3);
     const story = (
       <div style={{
         display: "flex", width: 1080, height: 1920, boxSizing: "border-box",
@@ -265,8 +340,7 @@ export async function GET(request: NextRequest) {
       }}>
         <div style={{
           display: "flex", flexDirection: "column", width: 1080, height: 1920,
-          boxSizing: "border-box",
-          padding: withFourthCard ? "150px 46px 110px" : "205px 46px 180px",
+          boxSizing: "border-box", padding: "205px 46px 180px",
         }}>
           <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 17 }}>
             {logo ? <img src={logo} alt="" width={65} height={65}
@@ -275,23 +349,15 @@ export async function GET(request: NextRequest) {
           </div>
           <div style={{ display: "flex", fontSize: 76, fontWeight: 900, marginTop: 22, letterSpacing: -1 }}>WOCHENREPORT.</div>
           <div style={{ display: "flex", fontSize: 35, color: "#d9dcf7", marginTop: 8 }}>Die Highlights der Woche</div>
-          <div style={{ display: "flex", flexDirection: "column",
-            gap: withFourthCard ? 18 : 26, marginTop: withFourthCard ? 30 : 58 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 26, marginTop: 58 }}>
             {mainMoments.map((moment) => (
               <StoryMomentCard key={moment.id} moment={moment} compact={false}
-                height={moment.id === "rise" || moment.id === "fall"
-                  ? (withFourthCard ? 350 : 405)
-                  : (withFourthCard ? 230 : 265)} />
+                height={moment.id === "rise" || moment.id === "fall" ? 405 : 265} />
             ))}
           </div>
-          {elferMoment ? (
-            <div style={{ display: "flex", marginTop: withFourthCard ? 28 : 30 }}>
-              <StoryMomentCard moment={elferMoment} compact={false} height={265} />
-            </div>
-          ) : null}
           <div style={{
             display: "flex", flexDirection: "row", justifyContent: "space-between",
-            marginTop: withFourthCard ? 34 : 60, fontSize: 29, color: "#e4d9f4",
+            marginTop: 60, fontSize: 29, color: "#e4d9f4",
           }}>
             <div style={{ display: "flex" }}>@getstrikr</div>
             <div style={{ display: "flex" }}>strikr.team</div>
