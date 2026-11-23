@@ -137,10 +137,10 @@ export function buildWeeklyReport(input: {
   const extraHighlight: WeeklyExtraHighlight | null =
     input.penaltyMoment?.kind === "missed_penalty"
       ? { kind: "missed_penalty", title: "⚽ Elfer versemmelt!",
-          text: input.penaltyMoment.playerName + " setzt den Elfer daneben!",
+          text: input.penaltyMoment.playerName + " verschießt den Elfer!",
           detail: input.penaltyMoment.isKiste
-            ? "Kischde! 🍺 Die Kabine hat einen Grund zum Grinsen."
-            : "Die Strafe: " + input.penaltyMoment.value,
+            ? "1 Kischde Bier als Strafe eingetragen. 🍺"
+            : "Strafe eingetragen: " + input.penaltyMoment.value,
           playerId: input.penaltyMoment.playerId,
           playerName: input.penaltyMoment.playerName,
           photoUrl: input.penaltyMoment.photoUrl ?? null }
