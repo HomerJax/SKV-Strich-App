@@ -43,9 +43,10 @@ const ALLOWED_EVENTS = new Set([
   "seo_demo_click", "seo_signup_click", "demo_generate_click",
   "demo_signup_after_teams_click", "demo_signup_header_click",
   "demo_signup_mobile_click",
+  "private_demo_teams_click", "private_demo_result_click", "private_demo_completed",
 ]);
 const TRACKED_PATHS = new Set([
-  "/", "/en", "/demo", "/pro", "/faire-fussballteams",
+  "/", "/en", "/demo", "/demo/ronald", "/pro", "/faire-fussballteams",
   "/training-organisieren", "/mannschaftskasse-app",
   "/en/faire-fussballteams", "/en/training-organisieren",
   "/en/mannschaftskasse-app",
