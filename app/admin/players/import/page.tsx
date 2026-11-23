@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RosterEditor from "./roster-editor";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/auth/context";
@@ -64,13 +65,6 @@ export default async function ImportPlayersPage({ searchParams }: { searchParams
     <h1 className="text-2xl font-bold">Kader aus Liste übernehmen</h1>
     <p className="text-sm text-slate-600">Kopiere Namen und optional E-Mail-Adressen aus Excel, einer Nachricht oder einer Liste. Ein Spieler pro Zeile, getrennt durch Semikolon oder Tab. Ohne E-Mail ist keine Registrierung nötig.</p>
     {feedback && <p className="rounded-xl bg-slate-100 p-3 text-sm">{feedback}</p>}
-    <form action={importPlayers} className="space-y-3">
-      <label htmlFor="roster" className="block text-sm font-semibold">Spielerliste</label>
-      <textarea id="roster" name="roster" rows={10} required maxLength={6000}
-        placeholder={"Thomas Müller; thomas@example.de\nStefan Weber; stefan@example.de\nMichael Braun"}
-        className="w-full rounded-xl border border-slate-300 p-3 text-sm" />
-      <p className="text-xs text-slate-500">Bestehende Namen und E-Mail-Adressen werden übersprungen. Bitte vor dem Import prüfen; Screenshots und KI-Erkennung folgen separat.</p>
-      <button className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-semibold text-white">Spieler importieren</button>
-    </form>
+    <RosterEditor action={importPlayers} />
   </main>;
 }
