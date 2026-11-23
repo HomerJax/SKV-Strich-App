@@ -486,7 +486,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       .select("id, display_name, logo_path, primary_color, created_at")
       .eq("id", clubId)
       .maybeSingle<ClubRow>(),
-    supabase
+    (isPowerUser ? createAdminClient() : supabase)
       .from("club_settings")
       .select(
         "rsvp_deadline_minutes_before, require_rsvp_reason_on_absence, beerkasse_enabled, beerkasse_home_enabled, beerkasse_paypal_url, beerkasse_paypal_me_url, beerkasse_sumup_url, beerkasse_cash_enabled, beerkasse_price_cents, home_team_feed_enabled"
@@ -1160,6 +1160,13 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               </div>
             )}
           </section>
+        ) : null}
+
+        {isPowerUser && !bierkasseHomeEnabled ? (
+          <Link href="/mannschaftskasse/bier/einstellungen" className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <span>🍺 Bierkasse {homeSettings?.beerkasse_enabled ? "ist in diesem Verein nicht auf Home eingeblendet" : "ist in diesem Verein noch nicht aktiviert"}</span>
+            <span className="shrink-0 font-bold underline">Einrichten</span>
+          </Link>
         ) : null}
 
         {bierkasseHomeEnabled ? (
