@@ -185,16 +185,14 @@ export default async function JoinPage({
           </div>
         ) : !hasPlayer ? (
           <div className="space-y-3">
-            <Link
-              href={onboardingHref}
-              className="flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
-            >
-              {t("join.createProfile")}
-            </Link>
-
-            <p className="text-center text-xs text-neutral-500">
-              {t("join.profileThen")}
-            </p>
+            <p className="text-sm text-neutral-600">Wenn dein Admin dich bereits angelegt hat, kannst du dein bestehendes Spielerprofil direkt übernehmen.</p>
+            <form method="post" action="/api/join">
+              <input type="hidden" name="token" value={token} />
+              <button type="submit" className="w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white">
+                Bestehendes Spielerprofil übernehmen
+              </button>
+            </form>
+            <Link href={onboardingHref} className="block text-center text-sm text-slate-600 underline">Noch kein Spielerprofil? Neu anlegen</Link>
           </div>
         ) : shouldAutoAccept ? (
           <>
