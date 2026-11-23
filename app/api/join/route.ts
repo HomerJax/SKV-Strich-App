@@ -111,12 +111,6 @@ export async function POST(request: Request) {
 
   const existingProfiles = (playerProfiles as PlayerProfileRow[] | null) ?? [];
 
-  if (existingProfiles.length === 0) {
-    return buildRedirect(requestUrl, "/onboarding", {
-      next: `/join?token=${encodeURIComponent(token)}`,
-    });
-  }
-
   const { data: invite, error: inviteError } = await adminSupabase
     .from("invites")
     .select("id, club_id, role, expires_at, accepted_at")
@@ -168,6 +162,10 @@ export async function POST(request: Request) {
   const existingPlayerInTargetClub = existingProfiles.find(
     (profile) => profile.club_id === invite.club_id
   );
+
+  if (!existingPlayerInTargetClub && !claimableRosterPlayer && existingProfiles.length === 0) {
+    return buildRedirect(requestUrl, "/onboarding", { next: `/join?token=${encodeURIComponent(token)}` });
+  }
 
   if (!existingPlayerInTargetClub && !claimableRosterPlayer) {
     const playerAllowed = await canAddFixedPlayer(adminSupabase, invite.club_id);
