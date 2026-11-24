@@ -19,7 +19,9 @@ export default async function SeasonTransitionPage({searchParams}:{searchParams?
   if (!canManageClub({isPowerUser,role:membership.role})) redirect("/home");
   const supabase = await createClient();
   const billing = await getClubBillingAccess(supabase,clubId);
-  const today = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Berlin",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const parts = new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Berlin",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const datePart = Object.fromEntries(parts.map(part => [part.type,part.value]));
+  const today = [datePart.year,datePart.month,datePart.day].join("-");
   const [{data:seasonRows},{data:recentSessions}] = await Promise.all([
     supabase.from("seasons").select("id,name,start_date,end_date").eq("club_id",clubId).order("start_date",{ascending:false}),
     supabase.from("sessions").select("date,start_time,type").eq("club_id",clubId).eq("type","training").lte("date",today).order("date",{ascending:false}).limit(12),
