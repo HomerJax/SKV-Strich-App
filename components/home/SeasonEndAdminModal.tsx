@@ -5,17 +5,18 @@ import Link from "next/link";
 import { CalendarDays, ClipboardCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type Props = { clubId: string; userId: string; seasonId: number; seasonName: string; endDate: string; hasNextSeason: boolean };
+type Props = { clubId: string; userId: string; seasonId: number; seasonName: string; endDate: string; hasNextSeason: boolean; preview?: boolean; onPreviewClose?: () => void };
 
-export default function SeasonEndAdminModal({ clubId, userId, seasonId, seasonName, endDate, hasNextSeason }: Props) {
+export default function SeasonEndAdminModal({ clubId, userId, seasonId, seasonName, endDate, hasNextSeason, preview = false, onPreviewClose }: Props) {
   const [ready, setReady] = useState(false);
   const [closed, setClosed] = useState(false);
   const storageKey = ["strikr:season-end-admin:v1", clubId, userId, seasonId, endDate].join(":");
   useEffect(() => {
-    try { setClosed(window.localStorage.getItem(storageKey) === "closed"); } catch { setClosed(false); }
+    if (preview) { setClosed(false); } else { try { setClosed(window.localStorage.getItem(storageKey) === "closed"); } catch { setClosed(false); } }
     setReady(true);
-  }, [storageKey]);
+  }, [storageKey, preview]);
   function close() {
+    if (preview) { onPreviewClose?.(); setClosed(true); return; }
     try { window.localStorage.setItem(storageKey, "closed"); } catch {}
     setClosed(true);
   }
@@ -49,7 +50,7 @@ export default function SeasonEndAdminModal({ clubId, userId, seasonId, seasonNa
               <div><div className="text-sm font-black">{hasNextSeason ? "Neue Saison bereits geplant" : "Nächste Saison jetzt planen"}</div><p className="mt-1 text-xs leading-5 text-slate-600">Start, Ende und Trainingstage vorbereiten – die aktuelle Saison läuft normal weiter.</p></div>
             </div>
           </div>
-          <Link href="/admin/season-transition" onClick={close} className="mt-6 flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white">
+          <Link href={preview ? "/admin/season-transition" : "/admin/season-transition"} onClick={close} className="mt-6 flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white">
             {hasNextSeason ? "Saisonplanung öffnen" : "Neue Saison planen"}
           </Link>
           <Link href="/standings" onClick={close} className="mt-2 flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700">Tabelle prüfen</Link>
