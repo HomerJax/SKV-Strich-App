@@ -55,12 +55,13 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: billing, error: billingError } = await admin
     .from("club_billing")
-    .select("stripe_customer_id,stripe_subscription_id,status")
+    .select("stripe_customer_id,stripe_subscription_id,status,plan_key")
     .eq("club_id", ctx.activeClubId)
     .maybeSingle<{
       stripe_customer_id: string | null;
       stripe_subscription_id: string | null;
       status: string | null;
+      plan_key: string | null;
     }>();
 
   if (billingError) {
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (billing?.stripe_subscription_id && billing.status === "active") {
+  if (billing?.plan_key === "founder" || (billing?.stripe_subscription_id && billing.status === "active")) {
     return NextResponse.redirect(
       new URL("/pro?checkout=already_active", request.url),
       { status: 303 },
