@@ -224,6 +224,19 @@ export default function TrainingClosingCheck({ sessionId, players, presentIds, o
         : availableRules.length === 0
           ? <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">Keine passende aktive Vereinsregel vorhanden.</p>
           : <>
+            {specialEvents === "yes" && availableRules.some(rule => rule.rule_key === "missed_penalty") ? (
+              <button
+                type="button"
+                onClick={() => { setRuleKey("missed_penalty"); requestIdRef.current = null; }}
+                aria-pressed={currentRuleKey === "missed_penalty"}
+                className={`mt-4 flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left text-sm font-black transition ${currentRuleKey === "missed_penalty"
+                  ? "border-violet-400 bg-violet-50 text-violet-950 ring-1 ring-violet-200"
+                  : "border-slate-200 bg-slate-50 text-slate-700 hover:border-violet-300"}`}
+              >
+                <span>⚽ Elfer verschossen</span>
+                <span className="text-xs font-semibold">1 Kiste Bier · {currentRuleKey === "missed_penalty" ? "✓" : "Auswählen"}</span>
+              </button>
+            ) : null}
             <label className="mt-4 block text-xs font-bold text-slate-700">Was ist passiert?
               <select value={currentRuleKey} onChange={event => { setRuleKey(event.target.value); requestIdRef.current = null; }}
                 className="mt-1 block min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-base">
