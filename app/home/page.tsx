@@ -18,6 +18,8 @@ import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
+import ProTrialTransitionNotice, { getProTrialNoticePhase } from "@/components/home/ProTrialTransitionNotice";
+import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 import InsideStrikrChannelModal from "@/components/home/InsideStrikrChannelModal";
 import AppStoreReviewPrompt from "@/components/home/AppStoreReviewPrompt";
@@ -468,6 +470,14 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const isHomeRsvpPilot = true;
   const isAdmin =
     isPowerUser || membership.role === "admin" || membership.role === "owner";
+  const billingAccess = !isSupportView
+    ? await getClubBillingAccess(isPowerUser ? createAdminClient() : supabase, clubId)
+    : null;
+  const trialNoticePhase = billingAccess
+    ? getProTrialNoticePhase(billingAccess.billing.trial_ends_at,
+        billingAccess.billing.plan_key, billingAccess.billing.status,
+        billingAccess.isPro, isAdmin)
+    : null;
   const viewPlayer = player ?? supportViewPlayer;
   const currentPlayerId = viewPlayer?.id ?? null;
 
@@ -1029,6 +1039,18 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           }
           compact
         />
+
+        {trialNoticePhase && billingAccess?.billing.trial_ends_at ? (
+          <ProTrialTransitionNotice
+            key={`${clubId}:${trialNoticePhase}`}
+            clubId={clubId}
+            userId={user.id}
+            trialEnd={billingAccess.billing.trial_ends_at}
+            role={isAdmin ? "admin" : "player"}
+            phase={trialNoticePhase}
+            locale={locale}
+          />
+        ) : null}
 
         {showGettingStarted ? (
           <AdminActivationChecklist
