@@ -268,11 +268,21 @@ export async function GET(request: NextRequest) {
             <div style={{ display: "flex", width: 16, height: "100%",
               background: "#ffbc67", flexShrink: 0 }} />
             <div style={{
-              display: "flex", width: 300, height: "100%", flexShrink: 0,
+              display: "flex", flexDirection: "column", width: 300, height: "100%", flexShrink: 0,
               alignItems: "center", justifyContent: "center",
-              background: "rgba(0,0,0,.12)",
+              background: "rgba(0,0,0,.12)", gap: 28,
             }}>
-              <Avatar name={playerName} photo={extraPhoto} accent="#ffbc67" size={250} />
+              <Avatar name={playerName} photo={extraPhoto} accent="#ffbc67" size={205} />
+              <div style={{
+                display: "flex", width: 270, height: 162,
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <PenaltyMissDoodle />
+              </div>
+              <div style={{
+                display: "flex", maxWidth: 275, fontSize: 22, fontWeight: 800,
+                textAlign: "center", color: "#ffd494", lineHeight: 1.2,
+              }}>Der Ball wird noch gesucht.</div>
             </div>
             <div style={{
               display: "flex", flexDirection: "column", width: 640, height: "100%",
