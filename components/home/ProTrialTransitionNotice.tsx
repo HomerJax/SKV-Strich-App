@@ -93,7 +93,7 @@ export default function ProTrialTransitionNotice({
   return (
     <div role="dialog" aria-modal="true" aria-label={t.title[phase]}
       className="fixed inset-0 z-[150] overflow-y-auto bg-[radial-gradient(ellipse_at_75%_5%,rgba(125,95,220,.11),transparent_45%),linear-gradient(180deg,#f8fafc,#eef2f8)] text-slate-950">
-      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pb-[calc(30px+env(safe-area-inset-bottom))] pt-[calc(20px+env(safe-area-inset-top))] sm:px-8 sm:pt-9">
+      <div className={`mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pt-[calc(20px+env(safe-area-inset-top))] sm:px-8 sm:pt-9 ${preview ? "pb-[calc(145px+env(safe-area-inset-bottom))]" : "pb-[calc(30px+env(safe-area-inset-bottom))]"}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Image src="/icon-dark.png" alt="strikr" width={38} height={38} className="rounded-xl" />
