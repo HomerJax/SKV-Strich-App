@@ -3,7 +3,10 @@ import { requireSessionAccess } from "@/lib/session-detail/access";
 import { canManageClub } from "@/lib/auth/access";
 
 export const dynamic = "force-dynamic";
-const PILOT_CLUB_ID = "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60";
+const CLOSING_CHECK_CLUB_IDS = new Set([
+  "12f0d9fe-9a79-4ea9-b8e9-c9d2cbba7c60", // 1. FC Strikr (test)
+  "108590d9-0877-4787-90a5-4679615b3b76", // SKV Rutesheim AH
+]);
 const ALLOWED_KEYS = ["late", "missed_penalty", "walk_in"] as const;
 
 async function getAuthorizedSession(context: { params: Promise<{ id: string }> }) {
@@ -11,7 +14,7 @@ async function getAuthorizedSession(context: { params: Promise<{ id: string }> }
   if (!Number.isSafeInteger(sessionId) || sessionId < 1) return { error: "Ungültiges Training.", status: 400 as const };
   const access = await requireSessionAccess(sessionId);
   if ("error" in access) return access;
-  if (access.clubId !== PILOT_CLUB_ID || access.session.type !== "training") {
+  if (!CLOSING_CHECK_CLUB_IDS.has(access.clubId) || access.session.type !== "training") {
     return { error: "Diese Funktion ist nur im Trainings-Pilot verfügbar.", status: 403 as const };
   }
   if (!canManageClub({ isPowerUser: access.isPowerUser, role: access.membership?.role }) && !access.canLeadTraining) {
