@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthContext, isActiveClubAdmin } from "@/lib/auth/context";
+import { getAuthContext } from "@/lib/auth/context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   createStripeCheckoutSession,
@@ -28,9 +28,9 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!ctx.activeClubId || !isActiveClubAdmin(ctx)) {
+  if (!ctx.activeClubId || !ctx.memberships.some((m) => m.club_id === ctx.activeClubId)) {
     return NextResponse.redirect(
-      new URL("/pro?checkout=admin_required", request.url),
+      new URL("/pro?checkout=membership_required", request.url),
       { status: 303 },
     );
   }
@@ -85,7 +85,8 @@ export async function POST(request: Request) {
       userId: ctx.user.id,
       email: ctx.user.email,
       origin: getOrigin(request),
-      customerId: billing?.stripe_customer_id ?? null,
+      // Each supporter gets a new Stripe customer: never charge another team member’s saved payment method.
+      customerId: null,
     });
 
     if (!session.url) throw new Error("Stripe returned no checkout URL.");
