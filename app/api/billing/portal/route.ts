@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getAuthContext, isActiveClubAdmin } from "@/lib/auth/context";
+import { getAuthContext } from "@/lib/auth/context";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createStripeCustomerPortalSession } from "@/lib/billing/stripe";
+import { createStripeCustomerPortalSession, getStripeSubscription } from "@/lib/billing/stripe";
 
 function getOrigin(request: Request) {
   const configured =
@@ -20,9 +20,9 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!ctx.activeClubId || !isActiveClubAdmin(ctx)) {
+  if (!ctx.activeClubId || !ctx.memberships.some((m) => m.club_id === ctx.activeClubId)) {
     return NextResponse.redirect(
-      new URL("/pro?billing=admin_required", request.url),
+      new URL("/pro?billing=membership_required", request.url),
       { status: 303 },
     );
   }
@@ -30,9 +30,9 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: billing, error } = await admin
     .from("club_billing")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id,stripe_subscription_id")
     .eq("club_id", ctx.activeClubId)
-    .maybeSingle<{ stripe_customer_id: string | null }>();
+    .maybeSingle<{ stripe_customer_id: string | null; stripe_subscription_id: string | null }>();
 
   if (error || !billing?.stripe_customer_id) {
     return NextResponse.redirect(
@@ -42,6 +42,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Portal access is limited to the actual subscriber; club admin status alone is not enough.
+    if (!billing.stripe_subscription_id) return NextResponse.redirect(new URL("/pro?billing=no_subscription", request.url), { status: 303 });
+    const subscription = await getStripeSubscription(billing.stripe_subscription_id);
+    if (subscription.metadata?.user_id !== ctx.user.id) {
+      return NextResponse.redirect(new URL("/pro?billing=payer_only", request.url), { status: 303 });
+    }
     const portal = await createStripeCustomerPortalSession({
       customerId: billing.stripe_customer_id,
       returnUrl: `${getOrigin(request)}/pro`,
