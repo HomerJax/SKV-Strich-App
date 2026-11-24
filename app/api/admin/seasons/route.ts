@@ -152,6 +152,19 @@ export async function POST(request: Request) {
     const parsedStart = parseIsoDate(startDate); const parsedEnd = endDate ? parseIsoDate(endDate) : null;
     if (!parsedStart || (endDate && !parsedEnd)) return withMessage(request.url, redirectTo, { error: t("seasonApi.invalidDates") });
     if (parsedEnd && parsedStart > parsedEnd) return withMessage(request.url, redirectTo, { error: t("seasonApi.startAfterEnd") });
+    if (redirectTo === "/admin/season-transition") {
+      const today = new Date().toISOString().slice(0,10);
+      if (startDate <= today || !endDate) {
+        return withMessage(request.url, redirectTo, {error:"Die neue Saison braucht einen künftigen Start und ein Enddatum."});
+      }
+      const {data:existingSeasons,error:overlapError} = await supabase.from("seasons")
+        .select("id,name,start_date,end_date").eq("club_id",clubId);
+      if (overlapError) return withMessage(request.url,redirectTo,{error:overlapError.message});
+      const overlap = ((existingSeasons ?? []) as SeasonRow[]).some(s =>
+        Boolean(s.start_date && s.start_date <= endDate && (!s.end_date || s.end_date >= startDate))
+      );
+      if (overlap) return withMessage(request.url,redirectTo,{error:"Der neue Zeitraum überschneidet sich mit einer vorhandenen Saison. Bitte Start und Ende anpassen."});
+    }
     const weekdayOne = getWeekdayNumber(formData.get("weekday_one")); const weekdayTwo = getWeekdayNumber(formData.get("weekday_two"));
     const selectedWeekdays = Array.from(new Set([weekdayOne, weekdayTwo].filter((value): value is number => value !== null)));
     const { data: createdSeason, error: seasonInsertError } = await supabase.from("seasons").insert({ club_id: clubId, name, start_date: startDate, end_date: endDate || null }).select("id, name, start_date, end_date").single<SeasonRow>();
