@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getServerI18n } from "@/lib/i18n/server";
 import { ArrowRight, Check, Crown } from "lucide-react";
 import { FREE_HIGHLIGHTS, PRODUCT_MATRIX, PRO_HIGHLIGHTS } from "@/lib/billing/product-matrix";
-import { getAuthContext, isActiveClubAdmin } from "@/lib/auth/context";
+import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 import { isProTrialEnabled } from "@/lib/billing/pro-trial";
@@ -38,7 +38,7 @@ export default async function ProPage({
   const billingState = typeof params.billing === "string" ? params.billing : "";
 
   const ctx = await getAuthContext();
-  const canBuyForActiveClub = Boolean(ctx.user && ctx.activeClubId && isActiveClubAdmin(ctx));
+  const canBuyForActiveClub = Boolean(ctx.user && ctx.activeClubId && ctx.memberships.some((m) => m.club_id === ctx.activeClubId));
   const supabase = await createClient();
   const billingAccess = ctx.activeClubId
     ? await getClubBillingAccess(supabase, ctx.activeClubId)
@@ -131,7 +131,7 @@ export default async function ProPage({
           </div>
         ) : billingState === "failed" ? (
           <div className="mb-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100">
-            Das Abo-Portal konnte gerade nicht geöffnet werden.
+            Das Abo-Portal konnte gerade nicht geöffnet werden. Nur der zahlende Nutzer kann sein Abo verwalten.
           </div>
         ) : null}
 
@@ -200,7 +200,7 @@ export default async function ProPage({
                   {hasStripeSubscription ? (
                     <form method="post" action="/api/billing/portal" className="mt-3">
                       <button className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white px-4 py-3 text-sm font-black text-slate-950">
-                        Abo verwalten
+                        Abo als zahlendes Mitglied verwalten
                       </button>
                     </form>
                   ) : null}
@@ -236,9 +236,9 @@ export default async function ProPage({
                 </div>
               ) : ctx.user ? (
                 <div className="text-center">
-                  <div className="text-sm font-black">Nur ein Team-Admin kann PRO buchen.</div>
+                  <div className="text-sm font-black">Jedes Teammitglied kann PRO fürs Team übernehmen.</div>
                   <div className="mt-1 text-xs leading-5 text-white/50">
-                    Wähle zuerst den Club, für den du PRO aktivieren möchtest.
+                    Wähle zuerst einen Verein, in dem du Mitglied bist.
                   </div>
                 </div>
               ) : (
