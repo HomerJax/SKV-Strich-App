@@ -21,7 +21,7 @@ const copy = {
   de: {
     playerBeforeTitle: "Euer PRO-Test endet bald.",
     playerBeforeBody: "Eure Mannschaft kann kostenlos mit strikr Free weitermachen. Einige Extras könnt ihr mit PRO behalten.",
-    adminThreeTitle: "Noch 3 Tage voller PRO-Power!",
+    adminThreeTitle: "Eure PRO-Testphase endet bald.",
     adminOneTitle: "Letzter Tag eurer PRO-Testphase.",
     adminBeforeBody: "Euer Team kann kostenlos mit Free weiterspielen. Möchtet ihr alle PRO-Extras behalten, entscheidet ihr selbst.",
     playerAfterTitle: "Ihr spielt jetzt mit strikr Free.",
@@ -42,7 +42,7 @@ const copy = {
   en: {
     playerBeforeTitle: "Your PRO trial ends soon.",
     playerBeforeBody: "Your team can continue with strikr Free. You can keep the optional extras with PRO.",
-    adminThreeTitle: "Only 3 days of PRO left!",
+    adminThreeTitle: "Your PRO trial ends soon.",
     adminOneTitle: "Last day of your PRO trial.",
     adminBeforeBody: "Your team can keep playing for free. It's up to you whether to keep PRO extras.",
     playerAfterTitle: "Your team is now on strikr Free.",
