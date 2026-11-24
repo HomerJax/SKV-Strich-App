@@ -21,6 +21,7 @@ import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import ProTrialTransitionNotice from "@/components/home/ProTrialTransitionNotice";
 import ProGiftWelcomeModal from "@/components/home/ProGiftWelcomeModal";
 import SeasonEndAdminModal from "@/components/home/SeasonEndAdminModal";
+import PowerUserFullscreenTour from "@/components/home/PowerUserFullscreenTour";
 import { getProTrialNoticePhase } from "@/lib/billing/pro-trial-notice";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
@@ -1081,21 +1082,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           compact
         />
 
-        {isPowerUser ? (
-          <Link href="/power-user/season-end-preview"
-            className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-900">
-            <span>📅 Saison-Ende-Fullscreen ansehen · Vorschau</span>
-            <span aria-hidden="true">›</span>
-          </Link>
-        ) : null}
-
-        {isPowerUser ? (
-          <Link href="/power-user/pro-trial-preview"
-            className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-900">
-            <span>👑 Neue PRO-Fullscreen-Meldungen ansehen · 6 Vorschauen</span>
-            <span aria-hidden="true">›</span>
-          </Link>
-        ) : null}
+        {isPowerUser && !isSupportView ? <PowerUserFullscreenTour userId={user.id}/> : null}
 
         {trialNoticePhase && billingAccess?.billing.trial_ends_at ? (
           <ProTrialTransitionNotice
