@@ -39,5 +39,5 @@ export function choosePenaltySpecial(recent: RecordedPenalty[]): RecognizedPenal
 }
 
 export function isKistePenalty(p: Pick<RecordedPenalty, "type" | "value">): boolean {
-  return p.type === "beer" && /\bkiste\b/iu.test(p.value ?? "");
+  return p.type === "beer" && /^\s*1\s*(?:kiste|kischde)\b/iu.test(p.value ?? "");
 }
