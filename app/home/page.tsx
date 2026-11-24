@@ -1082,6 +1082,14 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         />
 
         {isPowerUser ? (
+          <Link href="/power-user/season-end-preview"
+            className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-900">
+            <span>📅 Saison-Ende-Fullscreen ansehen · Vorschau</span>
+            <span aria-hidden="true">›</span>
+          </Link>
+        ) : null}
+
+        {isPowerUser ? (
           <Link href="/power-user/pro-trial-preview"
             className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-900">
             <span>👑 Neue PRO-Fullscreen-Meldungen ansehen · 6 Vorschauen</span>
