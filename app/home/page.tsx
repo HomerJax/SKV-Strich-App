@@ -19,6 +19,7 @@ import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import ProTrialTransitionNotice from "@/components/home/ProTrialTransitionNotice";
+import ProGiftWelcomeModal from "@/components/home/ProGiftWelcomeModal";
 import { getProTrialNoticePhase } from "@/lib/billing/pro-trial-notice";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
@@ -993,6 +994,16 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       {clubId==="6944e5d9-9375-40f0-82d1-4992a55cefd4" && featureFlags.hall_of_fame_badges ? <GebersheimHallOfFameAnnouncement clubId={clubId} /> : null}
       <InsideStrikrChannelModal />
       <AppStoreReviewPrompt />
+      {clubId === "e0f37725-0915-4760-8fb0-dff7ec9f7c67" && !isSupportView &&
+        billingAccess?.isTrial && billingAccess.billing.trial_ends_at &&
+        billingAccess.billing.billing_note?.includes("Geschenk für TVN") ? (
+          <ProGiftWelcomeModal
+            clubId={clubId}
+            userId={user.id}
+            trialEnd={billingAccess.billing.trial_ends_at}
+            locale={locale}
+          />
+        ) : null}
 
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <PageHero
