@@ -16,6 +16,7 @@ type Props = {
   phase: ProTrialNoticePhase;
   locale?: "de" | "en";
   preview?: boolean;
+  onPreviewClose?: () => void;
 };
 
 const copy = {
@@ -66,7 +67,7 @@ const copy = {
 } as const;
 
 export default function ProTrialTransitionNotice({
-  clubId, userId, trialEnd, role, phase, locale = "de", preview = false,
+  clubId, userId, trialEnd, role, phase, locale = "de", preview = false, onPreviewClose,
 }: Props) {
   const [dismissed, setDismissed] = useState(false);
   const key = ["strikr:pro-trial-fullscreen:v2", clubId, userId, trialEnd, role, phase].join(":");
@@ -84,7 +85,8 @@ export default function ProTrialTransitionNotice({
   });
   const showProExtras = !after;
   function dismiss() {
-    if (!preview) { try { window.localStorage.setItem(key, "dismissed"); } catch {} }
+    if (preview) { onPreviewClose?.(); setDismissed(true); return; }
+    try { window.localStorage.setItem(key, "dismissed"); } catch {}
     setDismissed(true);
   }
 
