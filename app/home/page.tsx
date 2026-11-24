@@ -20,6 +20,7 @@ import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
 import ProTrialTransitionNotice from "@/components/home/ProTrialTransitionNotice";
 import ProGiftWelcomeModal from "@/components/home/ProGiftWelcomeModal";
+import SeasonEndAdminModal from "@/components/home/SeasonEndAdminModal";
 import { getProTrialNoticePhase } from "@/lib/billing/pro-trial-notice";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
@@ -472,6 +473,24 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const isHomeRsvpPilot = true;
   const isAdmin =
     isPowerUser || membership.role === "admin" || membership.role === "owner";
+  // The season-ending notice is admin-only and only for the season currently running.
+  // Future seasons may already exist without replacing the active one.
+  const { data: seasonNoticeRows } = isAdmin && !isSupportView
+    ? await supabase.from("seasons")
+      .select("id,name,start_date,end_date")
+      .eq("club_id",clubId).lte("start_date",today).gte("end_date",today)
+      .order("end_date",{ascending:true}).limit(1)
+    : { data: [] as {id:number;name:string;start_date:string;end_date:string}[] };
+  const endingSeason = (seasonNoticeRows ?? [])[0] ?? null;
+  const seasonDaysLeft = endingSeason?.end_date
+    ? Math.round((Date.parse(endingSeason.end_date + "T12:00:00Z") - Date.parse(today + "T12:00:00Z")) / 86400000)
+    : null;
+  const shouldShowSeasonEnd = seasonDaysLeft !== null && seasonDaysLeft >= 0 && seasonDaysLeft <= 14;
+  const { data: futureSeasonsData } = shouldShowSeasonEnd && endingSeason
+    ? await supabase.from("seasons").select("id")
+      .eq("club_id",clubId).gt("start_date",endingSeason.end_date).limit(1)
+    : { data: [] as {id:number}[] };
+
   const billingAccess = !isSupportView
     ? await getClubBillingAccess(isPowerUser ? createAdminClient() : supabase, clubId)
     : null;
@@ -994,6 +1013,16 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       {clubId==="6944e5d9-9375-40f0-82d1-4992a55cefd4" && featureFlags.hall_of_fame_badges ? <GebersheimHallOfFameAnnouncement clubId={clubId} /> : null}
       <InsideStrikrChannelModal />
       <AppStoreReviewPrompt />
+      {shouldShowSeasonEnd && endingSeason && !isSupportView ? (
+        <SeasonEndAdminModal
+          clubId={clubId}
+          userId={user.id}
+          seasonId={endingSeason.id}
+          seasonName={endingSeason.name}
+          endDate={endingSeason.end_date}
+          hasNextSeason={(futureSeasonsData?.length ?? 0) > 0}
+        />
+      ) : null}
       {clubId === "e0f37725-0915-4760-8fb0-dff7ec9f7c67" && !isSupportView &&
         billingAccess?.isTrial && billingAccess.billing.trial_ends_at &&
         billingAccess.billing.billing_note?.includes("Geschenk für TVN") ? (
