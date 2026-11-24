@@ -85,6 +85,32 @@ type StoryMoment = {
   icon: string;
 };
 
+/** Original strikr flat-line doodle: the missed ball has already left the stadium. */
+function PenaltyMissDoodle() {
+  return (
+    <svg width="246" height="116" viewBox="0 0 246 116" xmlns="http://www.w3.org/2000/svg">
+      <path d="M83 61 L166 61 L166 103 L83 103 Z" stroke="#d9d1ff" strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M97 65 V101 M111 65 V101 M125 65 V101 M139 65 V101 M153 65 V101 M84 75 H165 M84 88 H165"
+        stroke="#9485d5" strokeWidth="1.8" opacity=".67"/>
+      <path d="M35 109 Q99 3 216 19" stroke="#ffcd75" strokeWidth="4" fill="none" strokeLinecap="round" strokeDasharray="7 8"/>
+      <circle cx="219" cy="18" r="15" fill="#fff9ec" stroke="#1c224f" strokeWidth="3"/>
+      <path d="M219 9 L227 15 L224 24 L215 25 L210 16 Z" fill="#223163"/>
+      <path d="M206 6 L202 2 M232 7 L239 2 M233 31 L242 34"
+        stroke="#ffcd75" strokeWidth="3" strokeLinecap="round"/>
+      <circle cx="43" cy="58" r="12" fill="#ffe0bd" stroke="#27315e" strokeWidth="3"/>
+      <path d="M33 49 Q43 37 53 49" fill="none" stroke="#27315e" strokeWidth="6" strokeLinecap="round"/>
+      <path d="M30 77 Q42 67 56 77 L62 96 L25 96 Z" fill="#e9e5ff" stroke="#27315e" strokeWidth="3" strokeLinejoin="round"/>
+      <path d="M32 77 L18 55 L11 57 M53 77 L68 56 L76 59"
+        stroke="#ffe0bd" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M18 55 L21 45 M68 56 L65 47" stroke="#ffe0bd" strokeWidth="7" strokeLinecap="round"/>
+      <path d="M32 97 L29 110 M52 97 L56 110" stroke="#d9d1ff" strokeWidth="8" strokeLinecap="round"/>
+      <path d="M24 112 L36 112 M52 112 L63 112" stroke="#ffcd75" strokeWidth="5" strokeLinecap="round"/>
+      <path d="M38 57 L41 59 M47 57 L49 59 M43 65 Q47 61 51 65" stroke="#27315e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <path d="M10 30 L17 23 M24 27 V16" stroke="#ffcd75" strokeWidth="3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 function StoryMomentCard({ moment, compact, height }: { moment: StoryMoment; compact: boolean; height?: number }) {
   const isRise = moment.id === "rise";
   const isFall = moment.id === "fall";
@@ -129,9 +155,12 @@ function StoryMomentCard({ moment, compact, height }: { moment: StoryMoment; com
         </>
       ) : isElfer ? (
         <div style={{ display: "flex", width: 970, height: "100%", flexDirection: "row", alignItems: "center" }}>
-          <div style={{ display: "flex", width: 275, height: "100%", flexShrink: 0,
+          <div style={{ display: "flex", flexDirection: "column", width: 275, height: "100%", flexShrink: 0,
             justifyContent: "center", alignItems: "center", background: "rgba(0,0,0,.12)" }}>
-            <Avatar name={moment.name || ""} photo={moment.photo ?? null} accent="#ffbc67" size={195} />
+            <Avatar name={moment.name || ""} photo={moment.photo ?? null} accent="#ffbc67" size={compact ? 125 : 156} />
+            <div style={{ display: "flex", marginTop: 5, justifyContent: "center", alignItems: "center" }}>
+              <PenaltyMissDoodle />
+            </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", width: 660,
             padding: "16px 22px 16px 28px", boxSizing: "border-box" }}>
