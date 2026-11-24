@@ -18,7 +18,8 @@ import HomeMvpHighlightCard from "@/components/home/HomeMvpHighlightCard";
 import HomeBeerCheckoutModal from "@/components/home/HomeBeerCheckoutModal";
 import HomePullToRefresh from "@/components/home/HomePullToRefresh";
 import HomeTeamFeedPreview from "@/components/home/HomeTeamFeedPreview";
-import ProTrialTransitionNotice, { getProTrialNoticePhase } from "@/components/home/ProTrialTransitionNotice";
+import ProTrialTransitionNotice from "@/components/home/ProTrialTransitionNotice";
+import { getProTrialNoticePhase } from "@/lib/billing/pro-trial-notice";
 import { getClubBillingAccess } from "@/lib/billing/club-billing";
 
 import InsideStrikrChannelModal from "@/components/home/InsideStrikrChannelModal";
