@@ -242,74 +242,84 @@ export async function GET(request: NextRequest) {
       const playerName = extra.playerName;
       const isBeerCrate = /(?:1\s*kischde|1\s*kiste)/iu.test(extra.detail ?? "");
       const penaltyLine = isBeerCrate ? "Das kostet 1 Kischde! 🍺" : extra.detail || "Strafe eingetragen.";
+      // Standalone Elfer story: bold editorial design, no empty 1000px box.
+      // Keep the real player and fine details from the recorded incident.
       const image = (
         <div style={{
-          display: "flex", width: 1080, height: 1920, flexDirection: "column",
-          boxSizing: "border-box", padding: "165px 46px 125px",
-          background: "linear-gradient(145deg,#102c70,#24236f 58%,#562078)",
-          color: "#fff", fontFamily: "sans-serif",
+          display:"flex", width:1080, height:1920, flexDirection:"column",
+          padding:"116px 58px 100px", boxSizing:"border-box",
+          background:"linear-gradient(160deg,#0e1d4e 0%,#182e70 47%,#3c2370 100%)",
+          color:"#ffffff", fontFamily:"sans-serif",
         }}>
-          <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 17 }}>
-            {logo ? <img src={logo} alt="" width={65} height={65}
-              style={{ width: 65, height: 65, borderRadius: 15 }} /> : null}
-            <div style={{ display: "flex", fontSize: 46, fontWeight: 900 }}>strikr</div>
+          <div style={{display:"flex",width:"100%",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{display:"flex",alignItems:"center",gap:19}}>
+              {logo ? <img src={logo} alt="" width={70} height={70} style={{width:70,height:70,borderRadius:17}}/> : null}
+              <div style={{display:"flex",fontWeight:900,fontSize:46,letterSpacing:-1}}>strikr</div>
+            </div>
+            <div style={{display:"flex",padding:"12px 20px",borderRadius:30,
+              background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.18)",
+              fontSize:20,fontWeight:800,letterSpacing:1.4}}>KABINENMOMENT</div>
           </div>
-          <div style={{ display: "flex", fontSize: 76, fontWeight: 900,
-            marginTop: 28, letterSpacing: -1 }}>KABINENMOMENT.</div>
-          <div style={{ display: "flex", fontSize: 34, color: "#d9dcf7",
-            marginTop: 11 }}>Was für ein Donnerstag!</div>
-
-          <div style={{
-            display: "flex", flexDirection: "row", width: 988, height: 1000,
-            marginTop: 70, overflow: "hidden", boxSizing: "border-box",
-            borderRadius: 32, border: "2px solid rgba(255,255,255,.24)",
-            background: "linear-gradient(115deg,#142c69,#252267 75%,#30206c)",
-          }}>
-            <div style={{ display: "flex", width: 16, height: "100%",
-              background: "#ffbc67", flexShrink: 0 }} />
-            <div style={{
-              display: "flex", flexDirection: "column", width: 300, height: "100%", flexShrink: 0,
-              alignItems: "center", justifyContent: "center",
-              background: "rgba(0,0,0,.12)", gap: 28,
-            }}>
-              <Avatar name={playerName} photo={extraPhoto} accent="#ffbc67" size={205} />
-              <div style={{
-                display: "flex", width: 270, height: 162,
-                alignItems: "center", justifyContent: "center",
-              }}>
-                <PenaltyMissDoodle />
-              </div>
-              <div style={{
-                display: "flex", maxWidth: 275, fontSize: 22, fontWeight: 800,
-                textAlign: "center", color: "#ffd494", lineHeight: 1.2,
-              }}>Der Ball wird noch gesucht.</div>
+          <div style={{display:"flex",marginTop:125,flexDirection:"column",alignItems:"flex-start"}}>
+            <div style={{display:"flex",fontSize:34,fontWeight:900,letterSpacing:5,color:"#ffca76"}}>
+              11 METER. 0 TORE.
             </div>
-            <div style={{
-              display: "flex", flexDirection: "column", width: 640, height: "100%",
-              justifyContent: "center", boxSizing: "border-box",
-              padding: "34px 22px 42px 35px",
-            }}>
-              <div style={{ display: "flex", fontSize: 31, fontWeight: 900,
-                color: "#ffd494" }}>11 METER</div>
-              <div style={{ display: "flex", fontSize: 75, fontWeight: 900,
-                color: "#fff", marginTop: 22, lineHeight: 1.04 }}>ELFER</div>
-              <div style={{ display: "flex", fontSize: 66, fontWeight: 900,
-                color: "#fff", lineHeight: 1.05 }}>VERSEMMELT!</div>
-              <div style={{ display: "flex", fontSize: playerName.length > 23 ? 36 : 48,
-                fontWeight: 900, color: "#fff", marginTop: 48,
-                lineHeight: 1.13 }}>{playerName}</div>
-              <div style={{ display: "flex", width: 525, height: 2,
-                background: "rgba(255,255,255,.2)", marginTop: 28 }} />
-              <div style={{ display: "flex", fontSize: 36, lineHeight: 1.25, fontWeight: 800,
-                color: "#ffd494", marginTop: 28 }}>{penaltyLine}</div>
-            </div>
+            <div style={{display:"flex",marginTop:20,fontSize:132,fontWeight:900,
+              lineHeight:.91,letterSpacing:-5}}>ELFER</div>
+            <div style={{display:"flex",fontSize:116,fontWeight:900,
+              lineHeight:1.06,letterSpacing:-4}}>VERSEMMELT.</div>
+            <div style={{display:"flex",marginTop:34,width:180,height:8,
+              borderRadius:8,background:"#ffbd65"}}/>
           </div>
           <div style={{
-            display: "flex", flexDirection: "row", justifyContent: "space-between",
-            marginTop: 65, fontSize: 29, color: "#e4d9f4",
+            display:"flex", width:964, height:635, marginTop:78,
+            borderRadius:34,background:"rgba(10,24,65,.45)",
+            border:"2px solid rgba(255,255,255,.16)",overflow:"hidden",
+            flexDirection:"column",alignItems:"center",justifyContent:"center",
           }}>
-            <div style={{ display: "flex" }}>@getstrikr</div>
-            <div style={{ display: "flex" }}>strikr.team</div>
+            <div style={{display:"flex",width:900,height:420,alignItems:"center",justifyContent:"center"}}>
+              <svg width="820" height="400" viewBox="0 0 246 116" xmlns="http://www.w3.org/2000/svg">
+                <path d="M83 61 L166 61 L166 103 L83 103 Z" stroke="#d9d1ff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M97 65 V101 M111 65 V101 M125 65 V101 M139 65 V101 M153 65 V101 M84 75 H165 M84 88 H165"
+                  stroke="#9485d5" strokeWidth="1.8" opacity=".7"/>
+                <path d="M35 109 Q99 3 216 19" stroke="#ffcd75" strokeWidth="4" fill="none" strokeLinecap="round" strokeDasharray="7 8"/>
+                <circle cx="219" cy="18" r="15" fill="#fff9ec" stroke="#1c224f" strokeWidth="3"/>
+                <path d="M219 9 L227 15 L224 24 L215 25 L210 16 Z" fill="#223163"/>
+                <path d="M206 6 L202 2 M232 7 L239 2 M233 31 L242 34"
+                  stroke="#ffcd75" strokeWidth="3" strokeLinecap="round"/>
+                <circle cx="43" cy="58" r="12" fill="#ffe0bd" stroke="#27315e" strokeWidth="3"/>
+                <path d="M33 49 Q43 37 53 49" fill="none" stroke="#27315e" strokeWidth="6" strokeLinecap="round"/>
+                <path d="M30 77 Q42 67 56 77 L62 96 L25 96 Z" fill="#e9e5ff" stroke="#27315e" strokeWidth="3" strokeLinejoin="round"/>
+                <path d="M32 77 L18 55 L11 57 M53 77 L68 56 L76 59"
+                  stroke="#ffe0bd" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18 55 L21 45 M68 56 L65 47" stroke="#ffe0bd" strokeWidth="7" strokeLinecap="round"/>
+                <path d="M32 97 L29 110 M52 97 L56 110" stroke="#d9d1ff" strokeWidth="8" strokeLinecap="round"/>
+                <path d="M24 112 L36 112 M52 112 L63 112" stroke="#ffcd75" strokeWidth="5" strokeLinecap="round"/>
+                <path d="M38 57 L41 59 M47 57 L49 59 M43 65 Q47 61 51 65"
+                  stroke="#27315e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                <path d="M10 30 L17 23 M24 27 V16" stroke="#ffcd75" strokeWidth="3" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div style={{display:"flex",fontSize:34,fontWeight:800,color:"#ffd18a",marginTop:14}}>
+              DER BALL WIRD NOCH GESUCHT.
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"row",alignItems:"center",marginTop:74,gap:24}}>
+            <Avatar name={playerName} photo={extraPhoto} accent="#ffbd65" size={118}/>
+            <div style={{display:"flex",flexDirection:"column",width:770}}>
+              <div style={{display:"flex",fontSize:23,fontWeight:800,letterSpacing:2,color:"#c9c9ed"}}>DIESMAL NICHT VOM PUNKT:</div>
+              <div style={{display:"flex",fontSize:playerName.length>23?43:57,fontWeight:900,letterSpacing:-1,marginTop:8}}>{playerName}</div>
+            </div>
+          </div>
+          <div style={{display:"flex",marginTop:48,width:964,padding:"25px 36px",
+            background:"#ffbd65",borderRadius:26,alignItems:"center",justifyContent:"center",
+            color:"#14234f",fontSize:53,fontWeight:900,letterSpacing:-1}}>
+            {penaltyLine}
+          </div>
+          <div style={{display:"flex",flexDirection:"row",justifyContent:"space-between",
+            width:964,marginTop:67,fontSize:27,color:"#d5d5eb",fontWeight:700}}>
+            <div style={{display:"flex"}}>@getstrikr</div>
+            <div style={{display:"flex"}}>strikr.team</div>
           </div>
         </div>
       );
