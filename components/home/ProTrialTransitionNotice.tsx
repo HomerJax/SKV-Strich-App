@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Check, Crown, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -19,46 +20,48 @@ type Props = {
 
 const copy = {
   de: {
-    playerBeforeTitle: "Euer PRO-Test endet bald.",
-    playerBeforeBody: "Free bleibt kostenlos. Mit PRO behaltet ihr eure Extras.",
-    adminThreeTitle: "Eure PRO-Testphase endet bald.",
-    adminOneTitle: "Letzter Tag eurer PRO-Testphase.",
-    adminBeforeBody: "Free bleibt. PRO-Extras könnt ihr für euer Team behalten.",
-    playerAfterTitle: "Ihr spielt jetzt mit strikr Free.",
-    playerAfterBody: "Weiterkicken mit Free. Eure Daten bleiben erhalten.",
-    adminAfterTitle: "Euer Team ist jetzt auf Free.",
-    adminAfterBody: "Weiterkicken mit Free. PRO könnt ihr jederzeit aktivieren.",
-    freeHeader: "Das bleibt kostenlos",
-    freeLine: "Zusagen, faire Teams, Ergebnisse und Basis-Stats.",
-    proHeader: "Mit PRO behaltet ihr zusätzlich",
-    proExtras: ["Siegquote & Karriere-Stats", "Saisonarchiv & Badges", "Turniermodus & zweites Spiel"],
-    playerAction: "Ihr könnt PRO auch selbst fürs Team übernehmen.",
-    adminCta: "PRO fürs Team sichern",
-    detailCta: "PRO fürs Team sichern",
-    noPayment: "Ohne Buchung automatisch Free. Daten bleiben.",
-    close: "Hinweis schließen",
-    expiry: "Danach automatisch Free.",
+    title: {
+      three_days: "Eure PRO-Zeit endet bald.",
+      one_day: "Letzter Tag mit PRO.",
+      free: "Ihr kickt jetzt mit Free.",
+    },
+    intro: "Free bleibt. Die Extras könnt ihr behalten.",
+    after: "Eure Daten bleiben. Alle Basis-Funktionen auch.",
+    freeTitle: "Mit Free bleibt",
+    freeText: "Zusagen · faire Teams · Ergebnisse · Basis-Stats",
+    proTitle: "Mit PRO behaltet ihr",
+    proItems: ["Siegquote & Karriere-Stats", "Saisonarchiv & Badges", "Turniere & zweites Spiel"],
+    sponsor: "Jeder Spieler kann PRO fürs Team übernehmen.",
+    adminSponsor: "Ein Spieler oder Admin kann PRO fürs Team übernehmen.",
+    cta: "PRO fürs Team sichern",
+    ctaAfter: "PRO freischalten",
+    close: "Meldung schließen",
+    later: "Weiter mit Free",
+    noCharge: "Ohne Buchung kostenlos weiter. Keine automatische Zahlung.",
+    on: "Bis",
+    readMore: "Free und PRO vergleichen",
   },
   en: {
-    playerBeforeTitle: "Your PRO trial ends soon.",
-    playerBeforeBody: "Free stays free. Keep your extras with PRO.",
-    adminThreeTitle: "Your PRO trial ends soon.",
-    adminOneTitle: "Last day of your PRO trial.",
-    adminBeforeBody: "Free stays. Keep the extras your team enjoys.",
-    playerAfterTitle: "Your team is now on strikr Free.",
-    playerAfterBody: "Keep playing on Free. Your data stays.",
-    adminAfterTitle: "Your team is now on Free.",
-    adminAfterBody: "Keep playing on Free. Upgrade any time.",
-    freeHeader: "Still free",
-    freeLine: "RSVPs, fair teams, results and basic stats.",
-    proHeader: "Keep these extras with PRO",
-    proExtras: ["Win rates & career stats", "Season archive & badges", "Tournaments & a second game"],
-    playerAction: "You can sponsor PRO for your team too.",
-    adminCta: "Keep PRO for the team",
-    detailCta: "Sponsor team PRO",
-    noPayment: "Automatically Free unless purchased. Data stays.",
-    close: "Dismiss notice",
-    expiry: "Then automatically Free.",
+    title: {
+      three_days: "Your PRO trial ends soon.",
+      one_day: "Last day with PRO.",
+      free: "Your team is now on Free.",
+    },
+    intro: "Free stays. You can keep the extras.",
+    after: "Your data and core features stay.",
+    freeTitle: "Still free",
+    freeText: "RSVPs · fair teams · results · basic stats",
+    proTitle: "Keep with PRO",
+    proItems: ["Win rate & career stats", "Season archive & badges", "Tournaments & second game"],
+    sponsor: "Any player can sponsor PRO for the team.",
+    adminSponsor: "Any team member can sponsor PRO.",
+    cta: "Keep PRO for your team",
+    ctaAfter: "Activate PRO",
+    close: "Dismiss",
+    later: "Continue on Free",
+    noCharge: "Free unless purchased. No automatic payment.",
+    on: "Until",
+    readMore: "Compare Free and PRO",
   },
 } as const;
 
@@ -66,87 +69,89 @@ export default function ProTrialTransitionNotice({
   clubId, userId, trialEnd, role, phase, locale = "de", preview = false,
 }: Props) {
   const [dismissed, setDismissed] = useState(false);
-  const key = ["strikr:pro-trial-notice:v1", clubId, userId, trialEnd, role, phase].join(":");
+  const key = ["strikr:pro-trial-fullscreen:v2", clubId, userId, trialEnd, role, phase].join(":");
   useEffect(() => {
     if (preview) { setDismissed(false); return; }
     try { setDismissed(window.localStorage.getItem(key) === "dismissed"); }
     catch { setDismissed(false); }
   }, [key, preview]);
+
   if (dismissed) return null;
   const t = copy[locale];
-  const admin = role === "admin";
   const after = phase === "free";
-  const title = after
-    ? (admin ? t.adminAfterTitle : t.playerAfterTitle)
-    : admin ? (phase === "one_day" ? t.adminOneTitle : t.adminThreeTitle) : t.playerBeforeTitle;
-  const body = after
-    ? (admin ? t.adminAfterBody : t.playerAfterBody)
-    : (admin ? t.adminBeforeBody : t.playerBeforeBody);
   const endText = new Date(trialEnd).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     timeZone: "Europe/Berlin", day: "2-digit", month: "2-digit", year: "numeric",
   });
-
+  const showProExtras = !after;
   function dismiss() {
     if (!preview) { try { window.localStorage.setItem(key, "dismissed"); } catch {} }
     setDismissed(true);
   }
 
   return (
-    <section aria-label="PRO-Testphase" className="relative overflow-hidden rounded-[26px] border border-violet-300/25 bg-gradient-to-br from-slate-950 via-[#152758] to-[#31236b] p-4 text-white shadow-[0_12px_28px_-14px_rgba(30,41,94,.65)] sm:p-5">
-      <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-violet-400/15 blur-3xl" />
-      <div className="relative">
-        <div className="flex items-start justify-between gap-3">
-          <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-200">
-            <Crown className="h-4 w-4 text-amber-300" />
-            {after ? "STRIKR FREE" : "STRIKR PRO · 28 TAGE TEST"}
+    <div role="dialog" aria-modal="true" aria-label={t.title[phase]}
+      className="fixed inset-0 z-[150] overflow-y-auto bg-[radial-gradient(ellipse_at_75%_5%,rgba(125,95,220,.11),transparent_45%),linear-gradient(180deg,#f8fafc,#eef2f8)] text-slate-950">
+      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pb-[calc(30px+env(safe-area-inset-bottom))] pt-[calc(20px+env(safe-area-inset-top))] sm:px-8 sm:pt-9">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Image src="/icon-dark.png" alt="strikr" width={38} height={38} className="rounded-xl" />
+            <span className="text-xl font-black tracking-tight">strikr</span>
           </div>
-          <button onClick={dismiss} type="button" aria-label={t.close} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/75 hover:bg-white/20">
-            <X className="h-4 w-4" />
+          <button type="button" onClick={dismiss} aria-label={t.close}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-100">
+            <X className="h-5 w-5" />
           </button>
         </div>
-        <h2 className="mt-2 pr-6 text-xl font-black tracking-tight sm:text-2xl">{title}</h2>
-        <p className="mt-1.5 text-sm leading-6 text-white/75">{body}</p>
-        {!after ? (
-          <p className="mt-1 text-xs font-semibold text-violet-200">
-            {locale === "de" ? "Ende am " : "Ends "} {endText} · {t.expiry}
-          </p>
-        ) : null}
 
-        <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.08] p-3">
-          <div className="flex items-center gap-2 text-sm font-extrabold text-emerald-200">
-            <Check className="h-4 w-4" /> {t.freeHeader}
+        <div className="flex flex-1 flex-col justify-center py-7">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-gradient-to-br from-[#182752] to-[#3d287a] text-white shadow-[0_12px_32px_rgba(56,44,127,.24)]">
+            <Crown className="h-8 w-8 text-amber-300" />
           </div>
-          <p className="mt-1 text-xs leading-5 text-white/85">{t.freeLine}</p>
-        </div>
-        {!after && (
-          <div className="mt-3 rounded-2xl border border-violet-300/15 bg-white/[0.06] p-3">
-            <div className="text-sm font-extrabold text-violet-100">{t.proHeader}</div>
-            <div className="mt-2 grid gap-1.5">
-              {t.proExtras.map(feature => (
-                <div key={feature} className="flex items-start gap-2 text-xs leading-5 text-white/80">
-                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" /> {feature}
+          <div className="mt-5 text-center text-[11px] font-black uppercase tracking-[0.20em] text-violet-700">
+            {after ? "STRIKR FREE" : "STRIKR PRO · 28 TAGE TEST"}
+          </div>
+          <h1 className="mx-auto mt-2 max-w-sm text-center text-[29px] font-black leading-tight tracking-[-0.045em] sm:text-4xl">{t.title[phase]}</h1>
+          <p className="mt-2 text-center text-sm font-medium text-slate-600">{after ? t.after : t.intro}</p>
+          {!after && <p className="mt-1 text-center text-xs font-bold text-violet-700">{t.on} {endText}</p>}
+
+          <div className="mt-6 space-y-3">
+            <section className="rounded-[22px] border border-emerald-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-[15px] font-black text-slate-950">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"><Check className="h-4 w-4"/></span>
+                {t.freeTitle}
+              </div>
+              <p className="mt-1 pl-9 text-[13px] font-medium leading-5 text-slate-600">{t.freeText}</p>
+            </section>
+            {showProExtras && (
+              <section className="rounded-[22px] border border-violet-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-2 text-[15px] font-black text-slate-950">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50 text-violet-700"><Crown className="h-4 w-4"/></span>
+                  {t.proTitle}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {admin ? (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            {preview ? <span className="inline-flex rounded-xl bg-white px-4 py-2.5 text-xs font-black text-slate-950">{t.adminCta}</span> : (
-              <Link href="/pro" className="inline-flex rounded-xl bg-white px-4 py-2.5 text-xs font-black text-slate-950 transition hover:bg-violet-100">{t.adminCta}</Link>
+                <div className="mt-2 space-y-1.5 pl-9">
+                  {t.proItems.map(item => <div key={item} className="flex items-center gap-2 text-[13px] font-semibold text-slate-700"><Check className="h-3.5 w-3.5 shrink-0 text-violet-600"/>{item}</div>)}
+                </div>
+              </section>
             )}
-            <span className="text-xs text-white/65">{locale === "de" ? "4,99 €/Monat oder 49,99 €/Jahr" : "€4.99/month or €49.99/year"}</span>
           </div>
-        ) : (
-          <p className="mt-3 text-xs font-semibold leading-5 text-amber-200">{t.playerAction}</p>
-        )}
-        {!admin && (preview ? (
-          <span className="mt-2 inline-block text-xs font-bold text-violet-200 underline">{t.detailCta}</span>
-        ) : (
-          <Link href="/pro" className="mt-2 inline-block text-xs font-bold text-violet-200 underline">{t.detailCta}</Link>
-        ))}
-        <p className="mt-3 text-[11px] leading-5 text-white/50">{t.noPayment}</p>
+
+          <p className="mt-5 text-center text-[13px] font-semibold text-slate-700">
+            {role === "admin" ? t.adminSponsor : t.sponsor}
+          </p>
+          {preview ? (
+            <div className="mt-4 flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white">
+              {after ? t.ctaAfter : t.cta}
+            </div>
+          ) : (
+            <Link href="/pro" onClick={dismiss}
+              className="mt-4 flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white transition hover:bg-slate-800">
+              {after ? t.ctaAfter : t.cta}
+            </Link>
+          )}
+          <button onClick={dismiss} type="button" className="mt-2.5 rounded-2xl py-3 text-sm font-bold text-slate-500 hover:bg-slate-100">{t.later}</button>
+          <p className="mt-2 text-center text-[11px] leading-5 text-slate-500">{t.noCharge}</p>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
