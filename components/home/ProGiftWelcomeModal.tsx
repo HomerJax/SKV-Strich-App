@@ -5,17 +5,19 @@ import Link from "next/link";
 import { Check, Gift, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type Props = { clubId: string; userId: string; trialEnd: string; locale?: "de" | "en" };
+type Props = { clubId: string; userId: string; trialEnd: string; locale?: "de" | "en"; preview?: boolean; onPreviewClose?: () => void };
 
-export default function ProGiftWelcomeModal({ clubId, userId, trialEnd, locale = "de" }: Props) {
+export default function ProGiftWelcomeModal({ clubId, userId, trialEnd, locale = "de", preview = false, onPreviewClose }: Props) {
   const [ready, setReady] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const key = ["strikr:pro-gift:v1", clubId, userId, trialEnd].join(":");
   useEffect(() => {
-    try { setDismissed(window.localStorage.getItem(key) === "seen"); }
-    catch { setDismissed(false); }
+    if (preview) { setDismissed(false); } else {
+      try { setDismissed(window.localStorage.getItem(key) === "seen"); }
+      catch { setDismissed(false); }
+    }
     setReady(true);
-  }, [key]);
+  }, [key, preview]);
 
   if (!ready || dismissed) return null;
   const de = locale === "de";
@@ -23,6 +25,7 @@ export default function ProGiftWelcomeModal({ clubId, userId, trialEnd, locale =
     timeZone: "Europe/Berlin", day: "2-digit", month: "2-digit", year: "numeric",
   });
   function dismiss() {
+    if (preview) { onPreviewClose?.(); setDismissed(true); return; }
     try { window.localStorage.setItem(key, "seen"); } catch {}
     setDismissed(true);
   }
@@ -60,7 +63,7 @@ export default function ProGiftWelcomeModal({ clubId, userId, trialEnd, locale =
           <button onClick={dismiss} className="mt-6 flex w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white">
             {de ? "PRO entdecken" : "Explore PRO"}
           </button>
-          <Link href="/pro" onClick={dismiss} className="mt-3 py-2 text-xs font-bold text-violet-700 underline">{de ? "Free und PRO vergleichen" : "Compare Free and PRO"}</Link>
+          <Link href={preview ? "#" : "/pro"} onClick={(event) => { if (preview) event.preventDefault(); dismiss(); }} className="mt-3 py-2 text-xs font-bold text-violet-700 underline">{de ? "Free und PRO vergleichen" : "Compare Free and PRO"}</Link>
         </div>
       </div>
     </div>
