@@ -241,7 +241,8 @@ export async function GET(request: NextRequest) {
       }
       const playerName = extra.playerName;
       const isBeerCrate = /(?:1\s*kischde|1\s*kiste)/iu.test(extra.detail ?? "");
-      const penaltyLine = isBeerCrate ? "Das kostet 1 Kischde! 🍺" : extra.detail || "Strafe eingetragen.";
+      const penaltyLine = isBeerCrate ? "Das kostet 1 Kischde! 🍺"
+        : (extra.detail?.replace(/^Strafe eingetragen:\s*/iu, "Strafe: ") || "Strafe eingetragen.");
       // Standalone Elfer story: bold editorial design, no empty 1000px box.
       // Keep the real player and fine details from the recorded incident.
       const image = (
