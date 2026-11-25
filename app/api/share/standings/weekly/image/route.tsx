@@ -293,7 +293,7 @@ export async function GET(request: NextRequest) {
                 <path d="M429 443 L407 420 L425 395 L439 403 M473 443 L496 420 L478 395 L464 403" fill="none" strokeWidth="11"/>
                 <path d="M441 486 L432 515 L423 537 M461 486 L469 515 L481 537" fill="none" strokeWidth="12"/>
               </g>
-              <text x="451" y="463" fill="#f0f6fc" fontSize="29" fontWeight="800" textAnchor="middle">9</text>
+              <path d="M444 451 Q453 446 458 453 Q462 460 452 473 M444 451 Q444 461 454 460" stroke="#f0f6fc" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               <path d="M540 409 Q674 369 759 346" stroke="#e9f3fa" strokeWidth="3" strokeDasharray="8 12" opacity=".72" fill="none"/>
               <circle cx="789" cy="337" r="17" fill="#091622" stroke="#eaf5fc" strokeWidth="3"/>
               <path d="M782 333 L790 326 L799 333 L796 344 L784 346 Z" fill="none" stroke="#eaf5fc" strokeWidth="2"/>
