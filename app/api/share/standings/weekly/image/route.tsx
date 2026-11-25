@@ -243,82 +243,54 @@ export async function GET(request: NextRequest) {
       const isBeerCrate = /(?:1\s*kischde|1\s*kiste)/iu.test(extra.detail ?? "");
       const penaltyLine = isBeerCrate ? "Das kostet 1 Kischde! 🍺"
         : (extra.detail?.replace(/^Strafe eingetragen:\s*/iu, "Strafe: ") || "Strafe eingetragen.");
-      // Standalone Elfer story: bold editorial design, no empty 1000px box.
-      // Keep the real player and fine details from the recorded incident.
+      // A real strikr editorial Kabinenmoment: player-first, strong typography, no illustration.
       const image = (
         <div style={{
-          display:"flex", width:1080, height:1920, flexDirection:"column",
-          padding:"116px 58px 100px", boxSizing:"border-box",
-          background:"linear-gradient(160deg,#0e1d4e 0%,#182e70 47%,#3c2370 100%)",
-          color:"#ffffff", fontFamily:"sans-serif",
+          display:"flex",width:1080,height:1920,flexDirection:"column",
+          padding:"100px 62px 90px",boxSizing:"border-box",
+          background:"linear-gradient(155deg,#0b173e 0%,#14275c 46%,#37205f 100%)",
+          color:"#fff",fontFamily:"sans-serif",
         }}>
-          <div style={{display:"flex",width:"100%",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{display:"flex",alignItems:"center",gap:19}}>
-              {logo ? <img src={logo} alt="" width={70} height={70} style={{width:70,height:70,borderRadius:17}}/> : null}
-              <div style={{display:"flex",fontWeight:900,fontSize:46,letterSpacing:-1}}>strikr</div>
+          <div style={{display:"flex",width:"100%",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{display:"flex",alignItems:"center",gap:18}}>
+              {logo ? <img src={logo} alt="" width={70} height={70} style={{width:70,height:70,borderRadius:16}}/> : null}
+              <div style={{display:"flex",fontSize:51,fontWeight:900,letterSpacing:-2}}>strikr.</div>
             </div>
-            <div style={{display:"flex",padding:"12px 20px",borderRadius:30,
-              background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.18)",
-              fontSize:20,fontWeight:800,letterSpacing:1.4}}>KABINENMOMENT</div>
+            <div style={{display:"flex",border:"2px solid rgba(255,255,255,.20)",borderRadius:40,
+              padding:"15px 23px",fontSize:21,fontWeight:900,letterSpacing:2,color:"#ffd38b"}}>KABINENMOMENT</div>
           </div>
-          <div style={{display:"flex",marginTop:125,flexDirection:"column",alignItems:"flex-start"}}>
-            <div style={{display:"flex",fontSize:34,fontWeight:900,letterSpacing:5,color:"#ffca76"}}>
-              11 METER. 0 TORE.
-            </div>
-            <div style={{display:"flex",marginTop:20,fontSize:132,fontWeight:900,
-              lineHeight:.91,letterSpacing:-5}}>ELFER</div>
-            <div style={{display:"flex",fontSize:116,fontWeight:900,
-              lineHeight:1.06,letterSpacing:-4}}>VERSEMMELT.</div>
-            <div style={{display:"flex",marginTop:34,width:180,height:8,
-              borderRadius:8,background:"#ffbd65"}}/>
+          <div style={{display:"flex",flexDirection:"column",marginTop:150}}>
+            <div style={{display:"flex",fontSize:38,fontWeight:900,letterSpacing:6,color:"#ffca76"}}>11 METER. 0 TORE.</div>
+            <div style={{display:"flex",marginTop:28,fontSize:158,fontWeight:900,letterSpacing:-8,lineHeight:.96}}>ELFER.</div>
+            <div style={{display:"flex",fontSize:117,fontWeight:900,letterSpacing:-6,lineHeight:1.06,color:"#ffca76"}}>VERSEMMELT.</div>
+            <div style={{display:"flex",height:10,width:208,marginTop:45,borderRadius:8,background:"#ffca76"}}/>
           </div>
-          <div style={{
-            display:"flex", width:964, height:635, marginTop:78,
-            borderRadius:34,background:"rgba(10,24,65,.45)",
-            border:"2px solid rgba(255,255,255,.16)",overflow:"hidden",
-            flexDirection:"column",alignItems:"center",justifyContent:"center",
-          }}>
-            <div style={{display:"flex",width:900,height:420,alignItems:"center",justifyContent:"center"}}>
-              <svg width="820" height="400" viewBox="0 0 246 116" xmlns="http://www.w3.org/2000/svg">
-                <path d="M83 61 L166 61 L166 103 L83 103 Z" stroke="#d9d1ff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M97 65 V101 M111 65 V101 M125 65 V101 M139 65 V101 M153 65 V101 M84 75 H165 M84 88 H165"
-                  stroke="#9485d5" strokeWidth="1.8" opacity=".7"/>
-                <path d="M35 109 Q99 3 216 19" stroke="#ffcd75" strokeWidth="4" fill="none" strokeLinecap="round" strokeDasharray="7 8"/>
-                <circle cx="219" cy="18" r="15" fill="#fff9ec" stroke="#1c224f" strokeWidth="3"/>
-                <path d="M219 9 L227 15 L224 24 L215 25 L210 16 Z" fill="#223163"/>
-                <path d="M206 6 L202 2 M232 7 L239 2 M233 31 L242 34"
-                  stroke="#ffcd75" strokeWidth="3" strokeLinecap="round"/>
-                <circle cx="43" cy="58" r="12" fill="#ffe0bd" stroke="#27315e" strokeWidth="3"/>
-                <path d="M33 49 Q43 37 53 49" fill="none" stroke="#27315e" strokeWidth="6" strokeLinecap="round"/>
-                <path d="M30 77 Q42 67 56 77 L62 96 L25 96 Z" fill="#e9e5ff" stroke="#27315e" strokeWidth="3" strokeLinejoin="round"/>
-                <path d="M32 77 L18 55 L11 57 M53 77 L68 56 L76 59"
-                  stroke="#ffe0bd" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M18 55 L21 45 M68 56 L65 47" stroke="#ffe0bd" strokeWidth="7" strokeLinecap="round"/>
-                <path d="M32 97 L29 110 M52 97 L56 110" stroke="#d9d1ff" strokeWidth="8" strokeLinecap="round"/>
-                <path d="M24 112 L36 112 M52 112 L63 112" stroke="#ffcd75" strokeWidth="5" strokeLinecap="round"/>
-                <path d="M38 57 L41 59 M47 57 L49 59 M43 65 Q47 61 51 65"
-                  stroke="#27315e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-                <path d="M10 30 L17 23 M24 27 V16" stroke="#ffcd75" strokeWidth="3" strokeLinecap="round"/>
-              </svg>
+          <div style={{display:"flex",marginTop:120,width:956,minHeight:405,padding:"48px 44px",
+            boxSizing:"border-box",flexDirection:"row",alignItems:"center",gap:40,
+            background:"rgba(255,255,255,.08)",border:"2px solid rgba(255,255,255,.2)",borderRadius:40}}>
+            <div style={{display:"flex",width:230,height:230,borderRadius:115,
+              alignItems:"center",justifyContent:"center",background:"rgba(255,202,118,.12)",
+              border:"7px solid #ffca76",flexShrink:0}}>
+              <Avatar name={playerName} photo={extraPhoto} accent="#ffca76" size={204}/>
             </div>
-            <div style={{display:"flex",fontSize:34,fontWeight:800,color:"#ffd18a",marginTop:14}}>
-              DER BALL WIRD NOCH GESUCHT.
+            <div style={{display:"flex",width:575,flexDirection:"column"}}>
+              <div style={{display:"flex",fontSize:27,letterSpacing:2,color:"#c3c9e8",fontWeight:900}}>DIESMAL NICHT VOM PUNKT</div>
+              <div style={{display:"flex",marginTop:20,fontSize:playerName.length>24?51:playerName.length>16?62:77,
+                lineHeight:1.05,fontWeight:900,overflowWrap:"anywhere"}}>{playerName}</div>
             </div>
           </div>
-          <div style={{display:"flex",flexDirection:"row",alignItems:"center",marginTop:74,gap:24}}>
-            <Avatar name={playerName} photo={extraPhoto} accent="#ffbd65" size={118}/>
-            <div style={{display:"flex",flexDirection:"column",width:770}}>
-              <div style={{display:"flex",fontSize:23,fontWeight:800,letterSpacing:2,color:"#c9c9ed"}}>DIESMAL NICHT VOM PUNKT:</div>
-              <div style={{display:"flex",fontSize:playerName.length>23?43:57,fontWeight:900,letterSpacing:-1,marginTop:8}}>{playerName}</div>
-            </div>
-          </div>
-          <div style={{display:"flex",marginTop:48,width:964,padding:"25px 36px",
-            background:"#ffbd65",borderRadius:26,alignItems:"center",justifyContent:"center",
-            color:"#14234f",fontSize:53,fontWeight:900,letterSpacing:-1}}>
+          <div style={{display:"flex",marginTop:56,width:956,padding:"36px 32px",boxSizing:"border-box",
+            justifyContent:"center",alignItems:"center",borderRadius:28,
+            background:"#ffca76",color:"#10214c",fontSize:57,fontWeight:900}}>
             {penaltyLine}
           </div>
-          <div style={{display:"flex",flexDirection:"row",justifyContent:"space-between",
-            width:964,marginTop:67,fontSize:27,color:"#d5d5eb",fontWeight:700}}>
+          <div style={{display:"flex",marginTop:88,width:956,flexDirection:"column",
+            alignItems:"center",gap:14}}>
+            <div style={{display:"flex",fontSize:34,fontWeight:800,color:"#e9e8f8"}}>DER BALL WIRD NOCH GESUCHT.</div>
+            <div style={{display:"flex",height:2,width:130,background:"rgba(255,255,255,.22)"}}/>
+          </div>
+          <div style={{display:"flex",marginTop:"auto",width:956,justifyContent:"space-between",
+            fontSize:28,color:"#d1d2ec",fontWeight:800}}>
             <div style={{display:"flex"}}>@getstrikr</div>
             <div style={{display:"flex"}}>strikr.team</div>
           </div>
