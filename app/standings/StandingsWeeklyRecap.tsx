@@ -226,35 +226,35 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
       </div>
       </section>
       {elfer ? (
-        <section className="w-full min-w-0 overflow-hidden rounded-[26px] border border-amber-300/25 bg-[#0d1940] text-white shadow-[0_18px_45px_rgba(9,18,50,.23)]"
+        <section className="w-full min-w-0 overflow-hidden rounded-[26px] border border-sky-400/25 bg-[#091521] text-white shadow-[0_18px_45px_rgba(9,18,50,.23)]"
           aria-label="Separater strikr Elfer-Moment">
-          <div className="relative overflow-hidden bg-[radial-gradient(ellipse_at_80%_10%,rgba(255,190,96,.13),transparent_55%),linear-gradient(135deg,#0e1a43,#1d2366_70%,#302163)] px-5 pb-6 pt-5 sm:px-7">
+          <div className="relative overflow-hidden bg-[radial-gradient(ellipse_at_80%_10%,rgba(170,200,220,.13),transparent_55%),linear-gradient(135deg,#08131e,#14283b_70%,#091521)] px-5 pb-6 pt-5 sm:px-7">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-base font-black tracking-[-.04em]">strikr<span className="text-amber-300">.</span></div>
+              <div className="text-base font-black tracking-[-.04em]">strikr</div>
               <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-amber-200">Kabinenmoment</span>
             </div>
-            <div className="mt-6 text-xs font-black uppercase tracking-[.26em] text-amber-300">11 Meter. 0 Tore.</div>
+            <div className="mt-6 text-xs font-black uppercase tracking-[.26em] text-amber-300">Moments</div>
             <div className="mt-2 text-[clamp(43px,12vw,74px)] font-black leading-[.94] tracking-[-.065em]">
-              ELFER.<br/><span className="text-amber-300">VERSEMMELT.</span>
+              Verantwortung<br/><span className="text-sky-400">übernommen.</span>
             </div>
             <div className="mt-6 flex items-center gap-4 rounded-[20px] border border-white/15 bg-white/[.07] p-4">
               <div className="shrink-0 rounded-full border-[3px] border-amber-300/70 p-1">
                 <PlayerAvatar name={elfer.playerName || "Spieler"} photoUrl={elfer.photoUrl}/>
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-black uppercase tracking-[.15em] text-white/50">Diesmal nicht vom Punkt</div>
+                <div className="text-[10px] font-black uppercase tracking-[.15em] text-white/50">Elfmeter versemmelt. Starker Typ.</div>
                 <div className="mt-1 break-words text-xl font-black leading-tight">{elfer.playerName}</div>
               </div>
             </div>
-            <div className="mt-4 rounded-xl bg-amber-300 px-4 py-3 text-center text-lg font-black tracking-tight text-[#101d48]">
-              {/(?:1\s*kischde|1\s*kiste)/iu.test(elfer.detail ?? "") ? "Das kostet 1 Kischde!" : (elfer.detail || "Strafe eingetragen.")}
+            <div className="mt-4 rounded-xl bg-sky-400/15 border border-sky-400/40 px-4 py-3 text-center text-lg font-black tracking-tight text-white">
+              {/(?:1\s*kischde|1\s*kiste)/iu.test(elfer.detail ?? "") ? "Kiste Bier trotzdem fällig." : (elfer.detail || "Strafe eingetragen.")}
             </div>
             <div className="mt-4 flex justify-between text-[10px] font-bold tracking-wide text-white/45"><span>@getstrikr</span><span>strikr.team</span></div>
           </div>
           <div className="px-4 pb-4 pt-3 sm:px-6">
             <p className="text-xs leading-5 text-white/60">Ein echter Kabinenmoment. Als eigene 9:16-Story teilen.</p>
             <button type="button" onClick={() => void onShare("elfer")} disabled={sharing !== null}
-              className="mt-3 w-full rounded-xl bg-amber-300 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-200 disabled:opacity-50">
+              className="mt-3 w-full rounded-xl bg-sky-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-200 disabled:opacity-50">
               {sharing === "elfer" ? "Elfer-Story wird erstellt …" : "Elfer-Moment separat teilen"}
             </button>
           </div>
