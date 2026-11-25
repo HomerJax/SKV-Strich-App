@@ -26,11 +26,18 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
     const query=new URLSearchParams(window.location.search);
     setFormResult({saved:query.get("saved")==="1",error:query.get("error")||""});
     const queryStep=query.get("step");
+    const savedStep=query.get("saved")==="1"&&!query.get("error")&&["club","season","training","rsvp","teams"].includes(queryStep||"")?queryStep:null;
     // Existing clubs may still store the removed games step. Resume at PRO instead.
     const requestedStep=(queryStep||initial?.current_step)==="games"?"pro":(queryStep||initial?.current_step);
     const idx=steps.findIndex(s=>s.id===requestedStep);
     const next=steps.findIndex(s=>!s.done&&!saved.includes(s.id));
-    setIndex(idx>=0?idx:next>=0?next:0);
+    if(savedStep&&idx>=0&&idx<steps.length-1){
+      const nextReviewed=[...new Set([...(initial?.reviewed??[]),savedStep])];
+      const nextSkipped=saved.filter(id=>id!==savedStep);
+      setReviewed(nextReviewed);setSkipped(nextSkipped);setIndex(idx+1);
+      query.set("step",steps[idx+1].id);query.delete("saved");window.history.replaceState(window.history.state,"",`${window.location.pathname}?${query.toString()}`);
+      void save(steps[idx+1].id,nextSkipped,testMode,testCompleted,nextReviewed);
+    }else setIndex(idx>=0?idx:next>=0?next:0);
     setReady(true);
   },[clubId]);
   const save=async(step:string,nextSkipped:string[],mode=testMode,completed=testCompleted,nextReviewed=reviewed)=>{
@@ -73,7 +80,7 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
         </div>
         <div className="mt-7 flex items-center gap-2 text-[10px] font-black uppercase tracking-[.2em] text-cyan-300"><Sparkles className="h-4 w-4"/> In sieben Schritten startklar</div>
         <h1 className="mt-2 max-w-2xl text-2xl font-black tracking-tight sm:text-3xl">{current.title}</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">{current.description}</p>
+        {preview?<p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">{current.description}</p>:null}
         <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-400 transition-all duration-300" style={{width:`${100*(index+1)/steps.length}%`}}/></div>
         <div className="mt-3 flex gap-1.5">{actualSteps.map((s,i)=><button key={s.id} type="button" onClick={()=>persist(i,skipped)} aria-label={s.title} aria-current={i===index?"step":undefined} title={s.title} className={"h-2.5 min-w-0 flex-1 rounded-full transition "+(i===index?"bg-white":s.done?"bg-cyan-400":"bg-white/20 hover:bg-white/40")}/>)}</div>
       </div>
@@ -91,17 +98,17 @@ export default function SetupWizard({ clubId, clubName, steps, initial, allowTes
       {current.id==="categories" ? <button type="button" onClick={()=>{const nextReviewed=[...new Set([...reviewed,current.id])];setReviewed(nextReviewed);if(preview)setTestCompleted(v=>[...new Set([...v,current.id])]);setIndex(Math.min(index+1,steps.length-1));void save(steps[index+1]?.id||"pro",skipped,testMode,testCompleted,nextReviewed);}} className="mt-5 flex w-full items-center justify-between gap-3 rounded-2xl bg-slate-950 px-5 py-4 text-left text-white shadow-[0_12px_28px_rgba(15,23,42,.14)] transition hover:bg-slate-800"><span><span className="block text-[10px] font-black uppercase tracking-widest text-cyan-300">Optionaler Schritt</span><span className="mt-1 block text-base font-black">Weiter zum Abschluss</span></span><ArrowRight className="h-5 w-5 shrink-0"/></button> : null}
       {current.id==="pro" ? <button type="button" onClick={()=>{void completeOnboarding();}} disabled={finishing||((preview||testMode)&&testCompleted.includes("pro"))} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(15,23,42,.14)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">{finishing?"Einrichtung wird abgeschlossen …":preview||testMode?(testCompleted.includes("pro")?"Simulation abgeschlossen":"Simulation abschließen"):"Einrichtung abschließen & Mitspieler einladen"}<ArrowRight className="h-4 w-4"/></button> : null}
       <div className="mt-6 flex flex-wrap gap-2">
-        {!testMode&&current.id!=="pro"?<Link href={current.href} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white"> {inlinePanels[current.id]?"Erweiterte Einstellungen öffnen":current.done?"Einstellungen öffnen":"Jetzt einrichten"} <ArrowRight className="h-4 w-4"/></Link>:null}
+        {!testMode&&current.id!=="pro"&&!inlinePanels[current.id]?<Link href={current.href} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white"> {current.done?"Einstellungen öffnen":"Jetzt einrichten"} <ArrowRight className="h-4 w-4"/></Link>:null}
         <button type="button" disabled={index===0} onClick={()=>persist(index-1,skipped)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold disabled:opacity-30"><ArrowLeft className="h-4 w-4"/> Zurück</button>
-        {index<steps.length-1 && current.id!=="categories" && (current.done || !current.required)?<button type="button" onClick={()=>persist(index+1,current.required?skipped:[...new Set([...skipped,current.id])])} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">{current.done?"Weiter":"Überspringen"}</button>:null}
+        {index<steps.length-1 && current.id!=="categories" && (current.done || !current.required)?<button type="button" onClick={()=>persist(index+1,current.required||current.done?skipped:[...new Set([...skipped,current.id])])} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold">{current.done?"Weiter":"Überspringen"}</button>:null}
       </div>
     </div>
-    {!testMode&&current.id!=="pro"&&!current.required&&!current.done?<button type="button" className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900" onClick={()=>{const next=[...new Set([...reviewed,current.id])];setReviewed(next);void save(current.id,skipped,testMode,testCompleted,next)}}>Diesen optionalen Bereich als angesehen markieren</button>:null}
+
     {requiredDone&&!preview?<div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><strong>{preview ? "Vorschau abgeschlossen!" : "Dein Verein ist startklar!"}</strong> {preview ? "Alle Pflichtbereiche wurden in der Simulation durchgespielt. Es wurden keine Vereinsdaten gespeichert." : "Du kannst jetzt loslegen oder die optionalen Bereiche später einrichten."}</div>:null}
     {testCompleted.includes("pro")&&preview?<div role="status" className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-950"><strong>Simulation erfolgreich abgeschlossen.</strong> Alle sieben Onboarding-Schritte sind durchlaufen. In der echten App folgt jetzt die Einladung der Mitspieler. Es wurden keine Daten gespeichert.</div>:null}
     <div className="flex flex-wrap items-center justify-between gap-3"><Link href={preview ? "/power-user/onboarding-simulator" : "/admin"} className="text-sm font-bold text-slate-700">{preview ? "Simulation verlassen · Zurück zur Übersicht" : "Einrichtung beenden · Zum Admin-Bereich"}</Link><button type="button" onClick={()=>{persist(0,[])}} className="text-xs text-slate-500 underline">Wizard von vorne ansehen</button></div>
     {allowTest&&!preview?<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm"><strong>Testmodus 1. FC Strikr</strong><p className="mt-1 text-xs">Simuliert einen neuen Verein, ohne echte Vereinsdaten zu verändern.</p><button type="button" className="mt-2 rounded-lg bg-amber-900 px-3 py-2 font-bold text-white" onClick={()=>{setTestMode(preview?true:!testMode);setTestCompleted([]);setIndex(0);void save("club",[],preview?true:!testMode,[])}}>{preview?"Simulation zurücksetzen":testMode?"Testmodus beenden":"Testmodus mit 0 erledigten Schritten starten"}</button>{testMode?<button type="button" className="ml-2 rounded-lg border border-amber-500 px-3 py-2" onClick={()=>{const next=[...new Set([...testCompleted,current.id])];setTestCompleted(next);void save(current.id,skipped,true,next)}}>Testschritt als erledigt markieren</button>:null}</div>:null}
     <div className="rounded-2xl border border-slate-200 bg-white p-4"><h3 className="text-sm font-bold">Alle Bereiche</h3><div className="mt-3 grid gap-2 sm:grid-cols-2">{actualSteps.map((s,i)=><button key={s.id} onClick={()=>persist(i,skipped)} className="flex items-center gap-2 rounded-xl border border-slate-100 p-3 text-left text-xs"><span className={s.done?"text-emerald-600":"text-slate-400"}>{s.done?"✓":"○"}</span><span className="flex-1">{s.title}</span><span className="text-slate-400">{s.required?"Pflicht":"Optional"}</span></button>)}</div></div>
-    <p className="text-xs text-slate-500">{preview ? "Vorschau: Es werden keine Daten gespeichert." : "Dein Wizard-Fortschritt wird in deinem Benutzerkonto gespeichert."} Pflichtschritte werden anhand der Vereinsdaten geprüft. Optionale Bereiche können zusätzlich ausdrücklich als angesehen markiert werden.</p>
+    <p className="text-xs text-slate-500">{preview ? "Vorschau: Es werden keine Daten gespeichert." : "Dein Wizard-Fortschritt wird in deinem Benutzerkonto gespeichert."} Pflichtschritte werden anhand der Vereinsdaten geprüft. Optionale Schritte kannst du überspringen.</p>
   </div>;
 }
