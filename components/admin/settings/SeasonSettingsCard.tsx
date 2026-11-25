@@ -132,7 +132,7 @@ export default async function SeasonSettingsCard({
               <label className="block min-w-0 text-sm font-bold text-slate-800">Enddatum<input type="date" name="end_date" defaultValue={toDateInputValue(season.end_date)} className="mt-1.5 block w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-2 py-3 text-base text-slate-950"/></label>
             </div>
             <p className="text-xs leading-5 text-slate-500">{qaPreview?"Simulation: Änderungen werden nicht gespeichert.":"Änderungen an einer Saison können die Zuordnung vorhandener Trainings beeinflussen."}</p>
-            <button type="submit" className="w-full rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white hover:bg-violet-800">Saison-Einstellungen speichern</button>
+            <button type="submit" className="w-full rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white hover:bg-violet-800">Speichern &amp; weiter</button>
           </form>
         </details> : <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><strong>Mit PRO:</strong> Eigener Saisonname und individueller Zeitraum. Die Standardsaison funktioniert ohne Anpassungen.</div>}
       </div>
