@@ -71,6 +71,29 @@ function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl?: string | nu
   );
 }
 
+function PenaltyMissSketch() {
+  return (
+    <svg viewBox="0 0 246 116" role="img" aria-label="Handgezeichnete Szene: Der Elfer fliegt übers Tor, der Schütze fasst sich an den Kopf"
+      className="mx-auto h-auto w-full max-w-[260px]" xmlns="http://www.w3.org/2000/svg">
+      <path d="M83 61 L166 61 L166 103 L83 103 Z" stroke="#d9d1ff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M97 65 V101 M111 65 V101 M125 65 V101 M139 65 V101 M153 65 V101 M84 75 H165 M84 88 H165" stroke="#9485d5" strokeWidth="1.8" opacity=".7"/>
+      <path d="M35 109 Q99 3 216 19" stroke="#ffcd75" strokeWidth="4" fill="none" strokeLinecap="round" strokeDasharray="7 8"/>
+      <circle cx="219" cy="18" r="15" fill="#fff9ec" stroke="#1c224f" strokeWidth="3"/>
+      <path d="M219 9 L227 15 L224 24 L215 25 L210 16 Z" fill="#223163"/>
+      <path d="M206 6 L202 2 M232 7 L239 2 M233 31 L242 34" stroke="#ffcd75" strokeWidth="3" strokeLinecap="round"/>
+      <circle cx="43" cy="58" r="12" fill="#ffe0bd" stroke="#27315e" strokeWidth="3"/>
+      <path d="M33 49 Q43 37 53 49" fill="none" stroke="#27315e" strokeWidth="6" strokeLinecap="round"/>
+      <path d="M30 77 Q42 67 56 77 L62 96 L25 96 Z" fill="#e9e5ff" stroke="#27315e" strokeWidth="3" strokeLinejoin="round"/>
+      <path d="M32 77 L18 55 L11 57 M53 77 L68 56 L76 59" stroke="#ffe0bd" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M18 55 L21 45 M68 56 L65 47" stroke="#ffe0bd" strokeWidth="7" strokeLinecap="round"/>
+      <path d="M32 97 L29 110 M52 97 L56 110" stroke="#d9d1ff" strokeWidth="8" strokeLinecap="round"/>
+      <path d="M24 112 L36 112 M52 112 L63 112" stroke="#ffcd75" strokeWidth="5" strokeLinecap="round"/>
+      <path d="M38 57 L41 59 M47 57 L49 59 M43 65 Q47 61 51 65" stroke="#27315e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <path d="M10 30 L17 23 M24 27 V16" stroke="#ffcd75" strokeWidth="3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 export default function StandingsWeeklyRecap({ report, selectedSeason, seasonName }: Props) {
   const { locale } = useI18n();
   const [sharing, setSharing] = useState<"weekly" | "elfer" | null>(null);
@@ -232,6 +255,12 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
             Separater Kabinenmoment · Eigene Story
           </div>
           <h3 className="mt-2 text-xl font-black">⚽ ELFER VERSEMMELT!</h3>
+          <div className="mt-3 rounded-2xl border border-amber-300/15 bg-gradient-to-br from-[#172558] to-[#332365] px-4 py-3">
+            <PenaltyMissSketch />
+            <p className="mt-1 text-center text-[10px] font-black uppercase tracking-[0.14em] text-amber-200">
+              Der Ball wird noch gesucht.
+            </p>
+          </div>
           <div className="mt-3 flex items-center gap-3 rounded-xl border border-amber-300/30 bg-white/5 p-3">
             <PlayerAvatar name={elfer.playerName || "Spieler"} photoUrl={elfer.photoUrl} />
             <div className="min-w-0">
