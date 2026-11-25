@@ -234,6 +234,7 @@ export async function GET(request: NextRequest) {
     // tile in the regular weekly report. Only a genuinely recorded missed
     // penalty from the current rolling week can trigger it.
     if (request.nextUrl.searchParams.get("card") === "elfer") {
+      return new Response("Elfer-Moments sind vorübergehend deaktiviert.", { status: 404, headers: { "Cache-Control": "private, no-store" } });
       if (extra?.kind !== "missed_penalty" || !extra.playerName) {
         return new Response("Kein verschossener Elfmeter in dieser Berichtswoche erfasst.", {
           status: 404, headers: { "Cache-Control": "private, no-store" },
