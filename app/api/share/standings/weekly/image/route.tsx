@@ -243,88 +243,65 @@ export async function GET(request: NextRequest) {
       const isBeerCrate = /(?:1\\s*kischde|1\\s*kiste)/iu.test(extra.detail ?? "");
       const penaltyLine = isBeerCrate ? "Kiste Bier trotzdem fällig."
         : (extra.detail?.replace(/^Strafe eingetragen:\\s*/iu, "Strafe: ") || "Strafe eingetragen.");
-      // A true 9:16 strikr Moment. Deliberately no AI-rendered player anatomy:
-      // the penalty taker is a calm post-shot silhouette, viewed from behind.
+      // Editorial, deliberately illustration-free 9:16 design.
+      // Keep text out of SVG: Satori's SVG engine does not support <text>.
       const image = (
         <div style={{
           display:"flex",width:1080,height:1920,flexDirection:"column",
-          padding:"90px 80px 120px",boxSizing:"border-box",
-          background:"linear-gradient(160deg,#08131e 0%,#112237 56%,#07111b 100%)",
-          color:"#f8fbfd",fontFamily:"sans-serif",
+          padding:"108px 84px 145px",boxSizing:"border-box",
+          background:"linear-gradient(157deg,#08131e 0%,#102037 64%,#08121e 100%)",
+          color:"#f6fbff",fontFamily:"sans-serif",
         }}>
-          <div style={{display:"flex",flexDirection:"column",width:"100%"}}>
-            <div style={{display:"flex",alignItems:"center",gap:16}}>
-              {logo ? <img src={logo} alt="" width={75} height={75} style={{width:75,height:75,borderRadius:17}}/> : null}
-              <div style={{display:"flex",fontSize:66,fontWeight:900,letterSpacing:-3}}>strikr</div>
+          <div style={{display:"flex",flexDirection:"column"}}>
+            <div style={{display:"flex",alignItems:"center",gap:20}}>
+              {logo ? <img src={logo} alt="" width={76} height={76} style={{width:76,height:76,borderRadius:17}}/> : null}
+              <div style={{display:"flex",fontSize:69,fontWeight:900,letterSpacing:-3}}>strikr</div>
             </div>
-            <div style={{display:"flex",width:168,height:8,marginTop:22,background:"#06a9ff",borderRadius:8}}/>
-            <div style={{display:"flex",fontSize:39,marginTop:15,fontWeight:400}}>Moments</div>
+            <div style={{display:"flex",width:188,height:8,background:"#0aa8f7",borderRadius:6,marginTop:24}}/>
+            <div style={{display:"flex",fontSize:40,marginTop:15,letterSpacing:1}}>Moments</div>
           </div>
-          <div style={{display:"flex",width:920,height:580,marginTop:70}}>
-            <svg width="920" height="580" viewBox="0 0 920 580" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="ground" x1="0" x2="0" y1="0" y2="1">
-                  <stop stopColor="#1c3448" stopOpacity=".04"/>
-                  <stop offset="1" stopColor="#7593a9" stopOpacity=".2"/>
-                </linearGradient>
-              </defs>
-              <path d="M0 364 H920 V580 H0 Z" fill="url(#ground)"/>
-              <g fill="none" stroke="#d7e7f2" strokeWidth="3" opacity=".56" strokeLinecap="round">
-                <circle cx="51" cy="266" r="13"/><path d="M35 286 L29 365 M65 286 L70 365 M34 295 L8 270 L6 232 M64 295 L87 267 L89 231 M29 365 L17 412 M70 365 L83 412"/>
-                <circle cx="105" cy="276" r="12"/><path d="M91 294 L86 365 M118 294 L125 365 M90 303 L73 281 L71 248 M119 303 L143 275 L144 249 M87 365 L79 407 M124 365 L135 407"/>
-                <circle cx="857" cy="266" r="13"/><path d="M841 286 L836 365 M873 286 L878 365 M843 295 L825 270 L826 231 M871 295 L894 265 L893 234 M836 365 L826 412 M878 365 L888 412"/>
-                <circle cx="806" cy="276" r="12"/><path d="M793 294 L790 365 M819 294 L822 365 M791 303 L771 276 L770 248 M820 303 L844 281 L844 251 M790 365 L781 407 M822 365 L832 407"/>
-              </g>
-              <path d="M252 377 V190 H668 V377" stroke="#dbe8f2" strokeWidth="8" fill="none" strokeLinejoin="round"/>
-              <g stroke="#b7ccdd" strokeWidth="1.6" opacity=".31">
-                <path d="M279 194 V374 M313 194 V374 M347 194 V374 M381 194 V374 M415 194 V374 M449 194 V374 M483 194 V374 M517 194 V374 M551 194 V374 M585 194 V374 M619 194 V374 M653 194 V374"/>
-                <path d="M257 223 H663 M257 258 H663 M257 293 H663 M257 328 H663 M257 363 H663"/>
-              </g>
-              <g fill="#0a1825" stroke="#bdcfdb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="459" cy="288" r="14"/>
-                <path d="M445 306 L473 306 L481 344 L473 359 L445 359 L438 344 Z"/>
-                <path d="M442 318 L421 343 M475 318 L498 343 M450 356 L442 376 M468 356 L477 376" fill="none" strokeWidth="10"/>
-              </g>
-              <path d="M0 395 H920" stroke="#7892a6" strokeWidth="2" opacity=".52"/>
-              <ellipse cx="452" cy="508" rx="9" ry="3.5" fill="#e6f0f7"/>
-              <g fill="#0d1a25" stroke="#e0edf6" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="451" cy="414" r="17"/>
-                <path d="M433 434 Q451 425 469 434 L479 473 L466 487 L435 487 L423 473 Z"/>
-                <path d="M429 443 L407 420 L425 395 L439 403 M473 443 L496 420 L478 395 L464 403" fill="none" strokeWidth="11"/>
-                <path d="M441 486 L432 515 L423 537 M461 486 L469 515 L481 537" fill="none" strokeWidth="12"/>
-              </g>
-              <path d="M444 451 Q453 446 458 453 Q462 460 452 473 M444 451 Q444 461 454 460" stroke="#f0f6fc" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <path d="M540 409 Q674 369 759 346" stroke="#e9f3fa" strokeWidth="3" strokeDasharray="8 12" opacity=".72" fill="none"/>
-              <circle cx="789" cy="337" r="17" fill="#091622" stroke="#eaf5fc" strokeWidth="3"/>
-              <path d="M782 333 L790 326 L799 333 L796 344 L784 346 Z" fill="none" stroke="#eaf5fc" strokeWidth="2"/>
-              <path d="M821 318 L831 308 M824 335 L843 335" stroke="#f3faff" strokeWidth="5" strokeLinecap="round"/>
+
+          <div style={{display:"flex",flexDirection:"column",marginTop:160}}>
+            <div style={{display:"flex",fontSize:34,letterSpacing:5,fontWeight:700,color:"#6dbce9"}}>KABINENMOMENT · ELFMETER</div>
+            <div style={{display:"flex",marginTop:34,fontSize:106,fontWeight:900,lineHeight:1.03,letterSpacing:-5}}>Verantwortung</div>
+            <div style={{display:"flex",fontSize:106,fontWeight:900,lineHeight:1.03,letterSpacing:-5}}>übernommen<span style={{color:"#0aa8f7"}}>.</span></div>
+            <div style={{display:"flex",fontSize:45,marginTop:34,color:"#e8f0f7"}}>Elfmeter versemmelt. Starker Typ.</div>
+          </div>
+
+          <div style={{display:"flex",height:300,marginTop:85,position:"relative",alignItems:"center",justifyContent:"center",
+            background:"linear-gradient(90deg,rgba(28,54,77,.32),rgba(15,31,48,.08))",borderRadius:32,
+            border:"2px solid rgba(181,214,237,.12)"}}>
+            <svg width="820" height="225" viewBox="0 0 820 225" xmlns="http://www.w3.org/2000/svg">
+              <path d="M238 183 V35 H550 V183" fill="none" stroke="#aec2d2" strokeWidth="5" strokeLinecap="round"/>
+              <path d="M241 182 H548" fill="none" stroke="#aec2d2" strokeWidth="2" opacity=".55"/>
+              <path d="M292 184 V38 M345 184 V38 M398 184 V38 M451 184 V38 M504 184 V38 M240 74 H548 M240 110 H548 M240 146 H548" stroke="#9fb8c9" strokeWidth="1.5" opacity=".18" fill="none"/>
+              <path d="M126 197 Q402 12 692 109" stroke="#e3eef8" strokeWidth="3.5" strokeDasharray="8 13" opacity=".8" fill="none" strokeLinecap="round"/>
+              <circle cx="714" cy="111" r="16" fill="#08131e" stroke="#e7f3fb" strokeWidth="3"/>
+              <path d="M707 106 L715 101 L723 107 L720 117 L710 120 L702 113 Z" fill="none" stroke="#e7f3fb" strokeWidth="2"/>
+              <path d="M744 89 L756 77 M749 113 L765 113" stroke="#0aa8f7" strokeWidth="5" strokeLinecap="round"/>
             </svg>
           </div>
-          <div style={{display:"flex",flexDirection:"column",width:920,marginTop:25}}>
-            <div style={{display:"flex",fontSize:92,fontWeight:900,letterSpacing:-4,lineHeight:1.06}}>Verantwortung</div>
-            <div style={{display:"flex",fontSize:92,fontWeight:900,letterSpacing:-4,lineHeight:1.06}}>
-              übernommen<span style={{color:"#0baaff"}}>.</span>
-            </div>
-            <div style={{display:"flex",fontSize:39,marginTop:22,color:"#e3edf5"}}>Elfmeter versemmelt. Starker Typ.</div>
+
+          <div style={{display:"flex",width:912,marginTop:80,alignItems:"center",gap:29}}>
+            <Avatar name={playerName} photo={extraPhoto} accent="#9ccfe9" size={132}/>
+            <div style={{display:"flex",height:75,width:3,background:"rgba(255,255,255,.4)"}}/>
+            <div style={{display:"flex",fontSize:playerName.length>24?43:playerName.length>17?54:62,fontWeight:850,
+              overflowWrap:"anywhere"}}>{playerName}</div>
           </div>
-          <div style={{display:"flex",width:920,alignItems:"center",gap:25,marginTop:55}}>
-            <Avatar name={playerName} photo={extraPhoto} accent="#c3d6e5" size={116}/>
-            <div style={{display:"flex",width:3,height:60,background:"rgba(255,255,255,.4)"}}/>
-            <div style={{display:"flex",fontSize:playerName.length>25?38:playerName.length>18?46:53,
-              fontWeight:850,overflowWrap:"anywhere"}}>{playerName}</div>
-          </div>
-          <div style={{display:"flex",width:170,height:7,marginTop:55,borderRadius:6,background:"#0baaff"}}/>
-          <div style={{display:"flex",width:920,alignItems:"center",gap:38,marginTop:42}}>
-            <svg width="172" height="160" viewBox="0 0 172 160" xmlns="http://www.w3.org/2000/svg">
-              <g fill="none" stroke="#e2eef6" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round">
-                <path d="M14 60 L89 32 L157 58 L82 89 Z M14 60 V124 L82 151 V89 M82 151 L157 122 V58"/>
-                <path d="M36 73 L50 80 V91 L36 84 Z M47 44 V20 L56 16 V10 H64 V16 L73 20 V35 M88 33 V15 L96 11 V5 H105 V11 L114 15 V36 M126 44 V22 L134 18 V12 H143 V18 L150 22 V49"/>
-              </g>
-              <path d="M109 108 l10 9 l19 -27" fill="none" stroke="#0baaff" strokeWidth="6" strokeLinecap="round"/>
-            </svg>
-            <div style={{display:"flex",flexDirection:"column",width:710}}>
-              <div style={{display:"flex",fontSize:isBeerCrate?60:48,fontWeight:900,lineHeight:1.1,overflowWrap:"anywhere"}}>{penaltyLine}</div>
+
+          <div style={{display:"flex",height:7,width:158,background:"#0aa8f7",borderRadius:5,marginTop:72}}/>
+          <div style={{display:"flex",marginTop:47,width:912,alignItems:"center",gap:30}}>
+            <div style={{display:"flex",width:106,height:106,justifyContent:"center",alignItems:"center",
+              border:"3px solid #a0d9fb",borderRadius:20,color:"#a0d9fb",fontSize:57,fontWeight:900}}>1</div>
+            <div style={{display:"flex",flexDirection:"column"}}>
+              <div style={{display:"flex",fontSize:isBeerCrate?61:47,lineHeight:1.12,fontWeight:900,overflowWrap:"anywhere"}}>
+                {penaltyLine}
+              </div>
             </div>
+          </div>
+          <div style={{display:"flex",marginTop:"auto",width:912,justifyContent:"space-between",color:"#8ba3b5",fontSize:28}}>
+            <div style={{display:"flex"}}>@getstrikr</div>
+            <div style={{display:"flex"}}>strikr.team</div>
           </div>
         </div>
       );
