@@ -225,7 +225,7 @@ export default function StandingsWeeklyRecap({ report, selectedSeason, seasonNam
         {message ? <p role="status" className="mt-2 break-words rounded-lg bg-white/10 px-3 py-2 text-xs">{message}</p> : null}
       </div>
       </section>
-      {elfer ? (
+      {false && elfer ? (
         <section className="w-full min-w-0 overflow-hidden rounded-[26px] border border-sky-400/25 bg-[#091521] text-white shadow-[0_18px_45px_rgba(9,18,50,.23)]"
           aria-label="Separater strikr Elfer-Moment">
           <div className="relative overflow-hidden bg-[radial-gradient(ellipse_at_80%_10%,rgba(170,200,220,.13),transparent_55%),linear-gradient(135deg,#08131e,#14283b_70%,#091521)] px-5 pb-6 pt-5 sm:px-7">
