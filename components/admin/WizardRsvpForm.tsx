@@ -8,6 +8,6 @@ export default function WizardRsvpForm({value,reason,isPro}:{value:number;reason
   </label>
   {!isPro?<p className="text-xs text-violet-700">Free: feste Rückmeldefrist. Individuelle Fristen gibt es mit PRO.</p>:null}
   <label className="flex items-center gap-3 text-sm"><input name="require_rsvp_reason_on_absence" type="checkbox" defaultChecked={isPro&&reason} disabled={!isPro}/>Absagegrund verpflichtend (PRO)</label>
-  <button type="submit" className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white">Rückmelderegeln speichern</button>
+  <button type="submit" className="w-full rounded-2xl bg-slate-950 px-5 py-4 text-sm font-black text-white">Speichern &amp; weiter</button>
  </form>;
 }
